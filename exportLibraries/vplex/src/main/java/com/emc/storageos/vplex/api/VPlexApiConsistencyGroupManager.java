@@ -772,4 +772,61 @@ public class VPlexApiConsistencyGroupManager {
 
         return cgDeleted;
     }
+    
+    /**
+     * Sets the read-only flag on the consistency group to the clusters in the
+     * passed list. Note: This flag only supported in VPlex 5.5 and beyond, and it
+     * requires a patch (not yet released as of 2016May26) to work on Consistency Groups
+     * with distributed virtual volumes. It throws vplexFirmwareUpdateNeeded
+     * if the firmware does not fully support thre read-only operation.
+     * 
+     * @param cgName The consistency group to update.
+     * @param clusterInfoList The list of clusters
+     * 
+     * @throws VPlexApiException When an error occurs setting the consistency
+     *             group visibility.
+     */
+    void setConsistencyGroupReadOnly(String cgName,
+            List<VPlexClusterInfo> clusterInfoList, boolean isReadOnly) throws VPlexApiException {
+
+        // Find the consistency group
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
+                clusterInfoList, true);
+
+        // Build the request path.
+        StringBuilder pathBuilder = new StringBuilder();
+        pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
+        pathBuilder.append(cgInfo.getPath());
+        pathBuilder.append("?");
+        pathBuilder.append(VPlexApiConstants.ATTRIBUTE_CG_READ_ONLY);
+        pathBuilder.append("=");
+        pathBuilder.append(isReadOnly);
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                URI.create(pathBuilder.toString()));
+        s_logger.info("Set read-only in CG  URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.put(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Set read-only response is {}", responseStr);
+        int status = response.getStatus();
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            if (status == VPlexApiConstants.ASYNC_STATUS) {
+                s_logger.info("Set read-only in CG is completing asynchronously");
+                _vplexApiClient.waitForCompletion(response);
+                response.close();
+            } else {
+                response.close();
+                if (responseStr.contains(VPlexApiConstants.CG_READ_ONLY_INVALID_ATTRIBUTE) 
+                        || responseStr.contains(VPlexApiConstants.CG_CANNOT_MAKE_READ_ONLY)) {
+                    throw VPlexApiException.exceptions
+                        .vplexFirmwareUpdateNeeded(VPlexApiConstants.CG_READ_ONLY_ATTRIBUTE_NOT_SUPPORTED);
+                }
+                String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                throw VPlexApiException.exceptions.setConsistencyGroupReadOnlyFailureStatus(
+                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+            }
+        }
+    }
+
 }

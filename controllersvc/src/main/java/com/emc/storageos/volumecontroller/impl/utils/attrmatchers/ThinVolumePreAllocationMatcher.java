@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -35,7 +36,8 @@ public class ThinVolumePreAllocationMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         Integer thinVolumePreAllocationPercentage = (Integer) attributeMap.get(Attributes.thin_volume_preallocation_percentage
                 .toString());
         _logger.info("Pools Matching ThinVolumePreAllocationPercentage Started {}, {} :", thinVolumePreAllocationPercentage,
@@ -62,6 +64,11 @@ public class ThinVolumePreAllocationMatcher extends AttributeMatcher {
         }
         _logger.info("Pools Matching ThinVolumePreAllocationPercentage Ended {}, {}", thinVolumePreAllocationPercentage, Joiner
                 .on("\t").join(getNativeGuidFromPools(filteredPoolList)));
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("No matching storage pool found with the vpool thin volume pre allocation percentage %d%%. ",
+                    thinVolumePreAllocationPercentage));
+            _logger.error(errorMessage.toString());
+        }
         return filteredPoolList;
     }
 }

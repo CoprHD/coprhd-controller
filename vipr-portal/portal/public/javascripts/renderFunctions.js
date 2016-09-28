@@ -133,24 +133,6 @@ render.serviceCatalogImage = function(o, val) {
     return "<img src='" + url + "'>";
 }
 
-render.approvalStatus = function(o, val) {
-    var icons = {
-        'PENDING':  'glyphicon glyphicon-time',
-        'APPROVED': 'glyphicon glyphicon-ok',
-        'REJECTED': 'glyphicon glyphicon-remove'
-    };
-    var messages = {
-        'PENDING':  Messages.get("renderFunctions.approval.status.pending"),
-        'APPROVED': Messages.get("renderFunctions.approval.status.approved"),
-        'REJECTED': Messages.get("renderFunctions.approval.status.rejected")
-    };
-    
-    var icon = defaultValue(icons[val], 'glyphicon glyphicon-none');
-    var message = defaultValue(messages[val], val);
-    
-    return "<span class='" + icon + "'></span> <span>" + message+"</span>";
-}
-
 render.operatingSystem = function(o, val) {
     var values = {
         'LINUX':   Messages.get("renderFunctions.operating.system.linux"),
@@ -183,8 +165,8 @@ render.protocols = function(o, val) {
 
 render.approvalStatus = function(o, val) {
     var icons = {
-        'PENDING':  'glyphicon glyphicon-time',
-        'APPROVED': 'glyphicon glyphicon-ok',
+        'PENDING':  'glyphicon glyphicon-flag',
+        'APPROVED': 'glyphicon glyphicon-time',
         'REJECTED': 'glyphicon glyphicon-remove'
     };
     var messages = {
@@ -517,6 +499,15 @@ render.taskState = function(o, val) {
     else if (state.toUpperCase() == "ERROR") {
       s += ' ' + Messages.get('resources.tasks.error');
     }
+    else if (state.toUpperCase() == "QUEUED") {
+      s += ' ' + Messages.get('resources.tasks.queued');
+    }
+    else if (state.toUpperCase() == "SUSPENDED_NO_ERROR") {
+      s += ' ' + Messages.get('resources.tasks.suspended_no_error');
+    }
+    else if (state.toUpperCase() == "SUSPENDED_ERROR") {
+      s += ' ' + Messages.get('resources.tasks.suspended_error');
+    }
     s += '</div>';
   }      
   return s;
@@ -550,6 +541,21 @@ render.taskResource = function(o, val) {
       s += " <a href='" + resourceLink + "'>";
     }
     s += o.aData.resourceName;
+    if (resourceLink) {
+      s += "</a>";
+    }
+  }
+  return s;
+}
+
+render.actionableEvent = function(o, val) {
+  var s = ""
+  if (o.aData.id != null) {
+    var resourceLink = getResourceLink("ACTIONABLE_EVENT", o.aData.id)
+    if (resourceLink) {
+      s += " <a href='" + resourceLink + "'>";
+    }
+    s += o.aData.name;
     if (resourceLink) {
       s += "</a>";
     }
@@ -633,6 +639,9 @@ function getResourceLink(resourceType, resourceId) {
     else if (resourceType.toUpperCase() == "COMPUTE_SYSTEM") {
       resourceLink = routes.ComputeSystem_edit({"id": resourceId});
     }
+    else if (resourceType.toUpperCase() == "ACTIONABLE_EVENT") {
+      resourceLink = routes.Events_details({"id": resourceId});
+    }
   }
   return resourceLink;
 }
@@ -669,6 +678,15 @@ function renderTaskStateIcon(state) {
     else if (state.toUpperCase() == "ERROR") {
       s += '<span class="glyphicon glyphicon-remove"></span>';
     }
+    else if (state.toUpperCase() == "QUEUED") {
+      s += '<span class="glyphicon glyphicon-lock"></span>';
+    }
+    else if (state.toUpperCase() == "SUSPENDED_NO_ERROR") {
+      s += '<span class="glyphicon glyphicon-pause"></span>';
+    }
+    else if (state.toUpperCase() == "SUSPENDED_ERROR") {
+      s += '<span class="glyphicon glyphicon-remove-circle"></span>';
+    }
   }      
   return s;
 }    
@@ -696,7 +714,10 @@ function renderResourceImage(resourceType) {
       }         
       else if (resourceType.toUpperCase() == "HOST") {
         resourceImage = Messages.get('affectedResources.host.image');
-      }         
+      }
+      else if (resourceType.toUpperCase() == "INITIATOR") {
+          resourceImage = Messages.get('affectedResources.initiator.image');
+      }
       else if (resourceType.toUpperCase() == "CLUSTER") {
         resourceImage = Messages.get('affectedResources.cluster.image');
       }   

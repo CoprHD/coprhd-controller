@@ -15,10 +15,17 @@
         document.forms[0].action = document.forms[0].action + "&fragment=" + window.location.hash.replace("#", "");
       }
     }
+    function eraseGuideCookie() {
+      var name = "VIPR_START_GUIDE";
+      var date = new Date();
+      date.setTime(date.getTime() + (-1 * 24 * 60 * 60 * 1000));
+      var expires = "; expires=" + date.toGMTString();
+      document.cookie = escape(name) + "=" + expires + "; path=/";
+    }
   </script>
 </head>
 
-<body onload="breakOut();">
+<body onload="breakOut();eraseGuideCookie();">
   <header>
     <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="navbar-header">
@@ -42,10 +49,8 @@
       </div>
     </form>
 
-    <div class="alert alert-warning">
-      <span class="glyphicon glyphicon-warning-sign "></span>
-      <span style="font-weight: bold;">Authorized Users Only.</span><br/>
-      If you are not an authorized user, please leave this page.
+    <div style="text-align: center;overflow-wrap: break-word;" class="alert alert-warning">
+      system_login_banner
     </div>
   </div>
 </body>

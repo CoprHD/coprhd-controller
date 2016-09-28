@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,17 +49,18 @@ public class BucketScheduler {
      * @param vArray
      * @param vPool
      * @param capabilities
+     * @param attributeMap
      * @return
      */
     public List<BucketRecommendation> placeBucket(VirtualArray vArray, VirtualPool vPool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray, vPool, capabilities);
+        List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray, vPool, capabilities, attributeMap);
 
         // Get the recommendations for the candidate pools.
         List<Recommendation> poolRecommendations =

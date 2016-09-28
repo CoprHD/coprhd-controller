@@ -58,7 +58,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
     // Number of Data Centers on which this pool is spread
     //This is required only for object storage pools
     private Integer dataCenters;
-
+    // Stroage pools supporting de-duplication feature 
+    private Boolean dedupCapable;
     // Storage Tier Information for each Pool
     // VNX Pools have multiple tiers and VMAX has single Tier always
     private StringSet _tiers;
@@ -81,6 +82,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
     private Boolean thinVolumePreAllocationSupported = false;
 
     private Boolean autoTieringEnabled;
+
+    private Boolean compressionEnabled;
 
     // used in finding out whether or not the pool is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
@@ -376,7 +379,25 @@ public class StoragePool extends VirtualArrayTaggedResource {
         setChanged("dataCenters");
     }
 
-    public boolean supportsProtocols(Set<String> protocols) {
+	@Name("dedupCapable")
+    public Boolean getDedupCapable() {
+		if (null == dedupCapable) {
+			return false;
+		} else {
+			return dedupCapable;	
+		}
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		if (null == dedupCapable) {
+			this.dedupCapable = false;
+		} else {
+			this.dedupCapable = dedupCapable;
+		}
+		setChanged("dedupCapable");
+	}
+
+	public boolean supportsProtocols(Set<String> protocols) {
         if (_protocols == null) {
             return false;
         }
@@ -728,6 +749,16 @@ public class StoragePool extends VirtualArrayTaggedResource {
         return this.autoTieringEnabled == null ? false : autoTieringEnabled;
     }
 
+    public void setCompressionEnabled(final Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
+        setChanged("compressionEnabled");
+    }
+
+    @Name("compressionEnabled")
+    public Boolean getCompressionEnabled() {
+        return this.compressionEnabled == null ? false : compressionEnabled;
+    }
+
     @Name("avgStorageDevicePortMetrics")
     public Double getAvgStorageDevicePortMetrics() {
         return _avgStorageDevicePortMetrics;
@@ -779,4 +810,6 @@ public class StoragePool extends VirtualArrayTaggedResource {
             }
         }
     }
+
+
 }

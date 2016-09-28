@@ -5,7 +5,7 @@
     active = navSelected?.find { it == title }
     pinned = request.current().cookies.get('isMenuPinned')?.value == 'true'
     open = active && pinned
-    
+
     navClass = "rootNav"
     if (active) navClass += ' active'
     if (!pinned) navClass += ' blueArrow'
@@ -19,7 +19,7 @@
 <div id="${subnav}" class="navMenu ${open ? 'menu-open' : ''}">
   <div class="menuPin ${pinned ? 'menu-pinned' : ''}">
     #{icon 'pushpin'/}
-  </div>        
+  </div>
   #{doBody /}
 </div>
 #{/set}

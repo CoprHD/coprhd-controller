@@ -55,8 +55,10 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String UNKNOWN = "disasterRecovery.unknown";
     protected static final String UPDATE_SUCCESS = "disasterRecovery.update.success";
     protected static final String ADD_WARNING = "disasterRecovery.add.unstable.warning";
+    // We don't support failover to site of ACTIVE_DEGRADED state in X-wing , thus no need to show network and data-sync status.
+    // So re-add ACTIVE_DEGRADED state back to this list to hide these details for site of this state as same as in Yoda.
     private static final List<SiteState> activeStates =
-            Arrays.asList(SiteState.ACTIVE,SiteState.ACTIVE_FAILING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
+            Arrays.asList(SiteState.ACTIVE, SiteState.ACTIVE_DEGRADED, SiteState.ACTIVE_FAILING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
 
     private static void backToReferrer() {
         String referrer = Common.getReferrer();

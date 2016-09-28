@@ -60,21 +60,20 @@ public class PropertiesConfigurationValidator {
     /**
      * validate property for updating operation.
      */
-    public String getValidPropValue(String propertyName, String propertyValue,
-            boolean userMutated) {
+    public String getValidPropValue(String propertyName, String propertyValue, boolean userMutated) {
         return getValidPropValue(propertyName, propertyValue, userMutated, false);
     }
 
     /**
-     * Validate the property using the properties metadata, for property resetting or updating.
-     * 
+     * Validate the property using the properties metadata, for property
+     * resetting or updating.
+     *
      * @param propertyName
      * @param propertyValue
      * @param userMutated
      * @return
      */
-    public String getValidPropValue(String propertyName, String propertyValue,
-            boolean userMutated, boolean bReset) {
+    public String getValidPropValue(String propertyName, String propertyValue, boolean userMutated, boolean bReset) {
 
         Map<String, PropertyMetadata> metadataMap = getMetaData();
         PropertyMetadata metaData = metadataMap.get(propertyName);
@@ -102,7 +101,7 @@ public class PropertiesConfigurationValidator {
      * @return
      */
     private String validateProperty(String propertyName, String propertyValue,
-            PropertyMetadata metaData, boolean bReset) {
+             PropertyMetadata metaData,boolean bReset) {
 
         // If the property is not the encrypted string, trip the leading
         // and trailing whitespaces. That is because, the propertyValue
@@ -111,7 +110,8 @@ public class PropertiesConfigurationValidator {
         // what actually user entered. Where that should not be removed
         // until they are encrypted. The base64.encrypt() will take care
         // that.
-        if (!(ENCRYPTEDSTRING.equalsIgnoreCase(metaData.getType()) || ENCRYPTEDTEXT.equalsIgnoreCase(metaData.getType()))) {
+        if (!(ENCRYPTEDSTRING.equalsIgnoreCase(metaData.getType())
+                || ENCRYPTEDTEXT.equalsIgnoreCase(metaData.getType()))) {
             // Remove leading and trailing spaces and newlines
             propertyValue = propertyValue.trim();
         }
@@ -130,25 +130,27 @@ public class PropertiesConfigurationValidator {
             }
         }
 
-        // added to allow nill for properties. If the propertyValue passed the previous test and is null, we should return it directly
+        // added to allow nill for properties. If the propertyValue passed the
+        // previous test and is null, we should return it directly
         if (StringUtils.isEmpty(propertyValue)) {
             if (bReset || allowEmptyValue(propertyName)) {
                 return propertyValue;
             }
         }
 
-        // allowed values check. If the propertyValue doesn't match the allowable values, it should throw a exception. Because we might not
+        // allowed values check. If the propertyValue doesn't match the
+        // allowable values, it should throw a exception. Because we might not
         // explicitly specify null as allowed value, we
         // have to put this logic after the null test.
-        if (metaData.getAllowedValues() != null
-                && metaData.getAllowedValues().length > 0) {
+        if (metaData.getAllowedValues() != null && metaData.getAllowedValues().length > 0) {
             if (!validateAllowedValues(propertyValue, metaData.getAllowedValues())) {
                 throw APIException.badRequests.propertyValueDoesNotMatchAllowedValues(propertyName,
                         Arrays.toString(metaData.getAllowedValues()));
             }
         }
 
-        // Valid Type Check. Same reason as above, we should validate a null value's type.
+        // Valid Type Check. Same reason as above, we should validate a null
+        // value's type.
         if (!validateType(propertyValue, metaData)) {
             throw APIException.badRequests.propertyValueTypeIsInvalid(propertyName, metaData.getType());
         }
@@ -157,13 +159,13 @@ public class PropertiesConfigurationValidator {
         // Prepare property value according to type
         if (STRING.equalsIgnoreCase(metaData.getType())) {
             validatedPropVal = propertyValue;
-        } else if (ENCRYPTEDSTRING.equalsIgnoreCase(metaData.getType()) || ENCRYPTEDTEXT.equalsIgnoreCase(metaData.getType())) {
+        } else if (ENCRYPTEDSTRING.equalsIgnoreCase(metaData.getType())
+                || ENCRYPTEDTEXT.equalsIgnoreCase(metaData.getType())) {
             validatedPropVal = new String(Base64.encodeBase64(_encryptionProvider.encrypt(propertyValue)));
         } else if (TEXT.equalsIgnoreCase(metaData.getType())) {
             validatedPropVal = propertyValue;
             validatedPropVal = validatedPropVal.replace("\n", "\\\\n").replace("\r", "");
-        } else if (IPLIST.equalsIgnoreCase(metaData.getType())
-                || EMAILLIST.equalsIgnoreCase(metaData.getType())) {
+        } else if (IPLIST.equalsIgnoreCase(metaData.getType()) || EMAILLIST.equalsIgnoreCase(metaData.getType())) {
             validatedPropVal = formatList(propertyValue);
         } else {
             validatedPropVal = propertyValue;
@@ -174,7 +176,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * check if the property allows empty as its value
-     * 
+     *
      * @param propertyName
      * @return
      */
@@ -184,7 +186,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate the property's type.
-     * 
+     *
      * @param propertyValue
      * @param metaData
      * @return
@@ -219,6 +221,8 @@ public class PropertiesConfigurationValidator {
             return validateStrictHostName(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(IPLIST)) {
             return validateIpList(propertyValue);
+        } else if (metaData.getType().equalsIgnoreCase(IPPORTLIST)) {
+            return validateIpPortList(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDSTRING)) {
             return true;
         } else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDTEXT)) {
@@ -234,7 +238,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate String - return false if contains newlines
-     * 
+     *
      * @param string
      * @return Boolean
      */
@@ -244,7 +248,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Remove spaces and newlines from ip list
-     * 
+     *
      * @param iplist
      * @return
      */
@@ -260,13 +264,12 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate a property's allowable values.
-     * 
+     *
      * @param propertyValue
      * @param acceptableValues
      * @return boolean
      */
-    private static boolean validateAllowedValues(String propertyValue,
-            String[] acceptableValues) {
+    private static boolean validateAllowedValues(String propertyValue, String[] acceptableValues) {
 
         for (String value : acceptableValues) {
             if (value.equals(propertyValue)) {
@@ -278,7 +281,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate uint64 values.
-     * 
+     *
      * @param value
      * @return
      */
@@ -293,7 +296,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate uint16 values.
-     * 
+     *
      * @param value
      * @return
      */
@@ -309,7 +312,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate uint8 values.
-     * 
+     *
      * @param value
      * @return
      */
@@ -325,7 +328,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate uint32 values.
-     * 
+     *
      * @param value
      * @return
      */
@@ -340,7 +343,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate boolean values.
-     * 
+     *
      * @param value
      * @return
      */
@@ -356,7 +359,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate percent values.
-     * 
+     *
      * @param value
      * @return
      */
@@ -375,7 +378,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate value is an IpAddr.
-     * 
+     *
      * @param value
      * @return
      */
@@ -385,7 +388,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate value is an IPv4 Address
-     * 
+     *
      * @param value
      * @return
      */
@@ -399,7 +402,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate value is an IPv6 Address
-     * 
+     *
      * @param value
      * @return
      */
@@ -413,7 +416,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate that value is an Email.
-     * 
+     *
      * @param value
      * @return
      */
@@ -423,7 +426,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate that value is an email list.
-     * 
+     *
      * @param value comma separated email list
      * @return
      */
@@ -439,7 +442,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate the value is a valid URL.
-     * 
+     *
      * @param value
      * @return
      */
@@ -455,7 +458,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate ip list
-     * 
+     *
      * @param iplist ip list
      * @return
      */
@@ -493,14 +496,13 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate a property's maxLength and minLength values.
-     * 
+     *
      * @param value
      * @param lengthThreshold
      * @param lengthCriteria
      * @return
      */
-    public static boolean validateLength(String value, int lengthThreshold,
-            PROP_LENGTH lengthCriteria) {
+    public static boolean validateLength(String value, int lengthThreshold, PROP_LENGTH lengthCriteria) {
 
         if (value == null) {
             return false;
@@ -520,7 +522,7 @@ public class PropertiesConfigurationValidator {
 
     /**
      * Validate Hostname
-     * 
+     *
      * @param hostName
      * @return
      */
@@ -536,14 +538,15 @@ public class PropertiesConfigurationValidator {
             return false;
         }
 
-        // Testing uses an IP Address as opposed to a hostname. First test if the
+        // Testing uses an IP Address as opposed to a hostname. First test if
+        // the
         // hostname looks like an ip address.
         if (validateIpAddr(hostName)) {
             return true;
         }
 
         // hostname doesn't appear to be an ip adress, let's check for hostname.
-        String[] hostLabels = hostName.split("\\.",-1);
+        String[] hostLabels = hostName.split("\\.", -1);
         if (hostLabels.length == 0) {
             return false;
         }
@@ -582,7 +585,7 @@ public class PropertiesConfigurationValidator {
             return false;
         }
 
-        String[] hostLabels = hostName.split("\\.",-1);
+        String[] hostLabels = hostName.split("\\.", -1);
         if (hostLabels.length == 0) {
             return false;
         }
@@ -604,8 +607,47 @@ public class PropertiesConfigurationValidator {
     }
 
     /**
+     * Validate the IP-Port List for Syslog
+     * <p/>
+     * Ex - 1.1.1.1:4444,[22:22::222]:3333
+     *
+     * @param ipPortList
+     * @return
+     */
+    public static boolean validateIpPortList(String ipPortList) {
+        if (ipPortList == null || ipPortList.isEmpty()) {
+            return true;
+        }
+        String[] serverPortList = ipPortList.split(",");
+
+        for (String serverPort : serverPortList) {
+
+            // split on last colon for ip:port
+            String ip = serverPort.substring(0, serverPort.lastIndexOf(":"));
+            String port = serverPort.substring(serverPort.lastIndexOf(":") + 1);
+
+            if (ip.startsWith("[") && ip.endsWith("]")) {
+                // if it is surrounded by [] then it should be IPV6 only
+                ip = ip.substring(1, ip.length() - 1);
+                if (!validateIpv6Addr(ip))
+                    return false;
+            } else if (validateIpv6Addr(ip)) {
+                // this is an ipv6 address without brackets
+                return false;
+            } else if (!validateHostName(ip)) {
+                // this isn't hostname or ipv4
+                return false;
+            }
+
+            if (!validateUint16(port))
+                return false;
+        }
+        return true;
+    }
+
+    /**
      * Return the map of the properties metadata.
-     * 
+     *
      * @return
      */
     private Map<String, PropertyMetadata> getMetaData() {

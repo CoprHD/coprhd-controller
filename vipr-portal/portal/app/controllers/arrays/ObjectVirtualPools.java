@@ -131,9 +131,8 @@ public class ObjectVirtualPools extends ViprResourceController {
 
     private static void addStaticOptions() {
         renderArgs.put("protocolOptions", ObjectProtocols.options(ObjectProtocols.SWIFT, ObjectProtocols.ATMOS, ObjectProtocols.S3));
-        renderArgs.put("systemTypeOptions",
-                StorageSystemTypes.options(
-                        StorageSystemTypes.ECS));
+        renderArgs.put("systemTypeOptions", StorageSystemTypes.getObjectStorageOptions());
+
         renderArgs.put("poolAssignmentOptions",
                 PoolAssignmentTypes.options(PoolAssignmentTypes.AUTOMATIC, PoolAssignmentTypes.MANUAL));
         renderArgs.put("varrayAttributeNames", VirtualArrayUtils.ATTRIBUTES);

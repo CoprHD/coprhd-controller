@@ -24,9 +24,17 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
 
     // The device geometry (RAID level).
     private String geometry = null;
+    
+    private String healthState = null;
+    
+    private String operationalStatus = null;
 
     // The device slot number.
     private String slotNumber = null;
+    
+    private String serviceStatus = null;
+    
+    private String virtualVolume = null;
     
     /**
      * Getter for the extent info for the device.
@@ -150,5 +158,37 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
         }
         str.append(" )");
         return str.toString();
+    }
+
+    public String getHealthState() {
+        return healthState;
+    }
+
+    public void setHealthState(String healthState) {
+        this.healthState = healthState;
+    }
+
+    public String getOperationalStatus() {
+        return operationalStatus;
+    }
+
+    public void setOperationalStatus(String operationalStatus) {
+        this.operationalStatus = operationalStatus;
+    }
+
+    public String getServiceStatus() {
+        return serviceStatus;
+    }
+
+    public void setServiceStatus(String serviceStatus) {
+        this.serviceStatus = serviceStatus;
+    }
+
+    public String getVirtualVolume() {
+        return virtualVolume;
+    }
+
+    public void setVirtualVolume(String virtualVolume) {
+        this.virtualVolume = virtualVolume;
     }
 }

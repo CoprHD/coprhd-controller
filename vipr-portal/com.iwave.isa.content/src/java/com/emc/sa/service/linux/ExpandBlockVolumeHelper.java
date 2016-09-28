@@ -45,6 +45,8 @@ public class ExpandBlockVolumeHelper {
         linuxSupport.removeFromFSTab(mountPoint.getPath());
         linuxSupport.removeVolumeMountPointTag(volume);
 
+        linuxSupport.addMountExpandRollback(volume, mountPoint);
+
         logInfo("expand.block.volume.resize.volume", volume.getName(), newSizeInGB.toString());
         linuxSupport.resizeVolume(volume, newSizeInGB);
         linuxSupport.refreshStorage(Collections.singletonList(volume), usePowerPath);
@@ -75,6 +77,8 @@ public class ExpandBlockVolumeHelper {
         linuxSupport.addToFSTab(mountPoint.getDevice(), mountPoint.getPath(), mountPoint.getFsType(), null);
         linuxSupport.mountPath(mountPoint.getPath());
         linuxSupport.setVolumeMountPointTag(volume, mountPoint.getPath());
+
+        ExecutionUtils.clearRollback();
     }
 
 }

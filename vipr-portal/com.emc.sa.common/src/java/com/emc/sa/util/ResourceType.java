@@ -21,6 +21,7 @@ public enum ResourceType {
     BLOCK_CONTINUOUS_COPY("BlockMirror"),
     VPLEX_CONTINUOUS_COPY("VplexMirror"),
     PROJECT("Project"),
+    INITIATOR("Initiator"),
 
     HOST("Host"),
     CLUSTER("Cluster"),

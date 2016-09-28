@@ -12,6 +12,7 @@ scripts {
 dependencies {
     compile library(commons_io),
             library(apache_cassandra),
+            library(jcifs),
             project(":coordinatorsvc")
     runtimeOnly project(":jmx")
     provided rootProject.toolsJar

@@ -47,12 +47,13 @@ public class VmaxFastInitialPlacementSelectionMatcher extends ConditionalAttribu
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         // run drive Type and Raid Level Matcher
         _logger.info("Finding Initial tier Placement with Pools {} Started", Joiner
                 .on("\t").join(getNativeGuidFromPools(allPools)));
-        List<StoragePool> filteredPools = raidLevelMatcher.runMatchStoragePools(allPools, attributeMap);
-        filteredPools = driveTypeMatcher.runMatchStoragePools(filteredPools, attributeMap);
+        List<StoragePool> filteredPools = raidLevelMatcher.runMatchStoragePools(allPools, attributeMap, errorMessage);
+        filteredPools = driveTypeMatcher.runMatchStoragePools(filteredPools, attributeMap, errorMessage);
         // if matching pools is 0, then return all the Pools, randomly a tier will be chosen as initial placement tier.
         if (filteredPools.isEmpty()) {
             _logger.info("No Pools found matching initial placement Criteria ,returning all  Pools : {} ", Joiner
@@ -61,7 +62,7 @@ public class VmaxFastInitialPlacementSelectionMatcher extends ConditionalAttribu
         }
         // if matching pools, then return filtered Pools.
         _logger.info("{} Pools found matching initial placement Criteria ", Joiner
-                .on("\t").join(getNativeGuidFromPools(allPools)));
+                .on("\t").join(getNativeGuidFromPools(filteredPools)));
         return filteredPools;
 
     }

@@ -10,13 +10,13 @@
   #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}
     #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm', 
                 data:['enabled':'selected', 'property':'discoverable', 'value':'true']/}
-    #{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
+    #{Form.button name:'button.discoverArrayAffinity', class:'info', icon:'vipricon-resources', submit:'discoverArrayAffinityForm',
                 data:['enabled':'selected']/}
   #{/DataTable.baseCrudButtonBar}
 #{/DataTable.baseCrudTable}
 #{DataTable.formAction @introspect(), id:'rediscoverForm', table:'host'/}
+#{DataTable.formAction @discoverArrayAffinity(), id:'discoverArrayAffinityForm', table:'host'/}
 #{DataTable.expandHtml @itemDetails(':id'), table:'host'/}
-#{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'host', confirm:messages.get('Hosts.detachStorageConfirm')/}
 
 #{DataTable.formAction @delete(), id:'deleteModalForm', class:'show form form-horizontal', table:'host'}
   #{Modal.dialog id:'deleteHostDialog'}
@@ -25,7 +25,7 @@
         &{'Hosts.deleteConfirm'}
         #{field 'detachStorage'}
           %{
-            field.value = 'true'
+            field.value = 'false'
             field.cssClass = 'checkbox'
             field.label = messages.get('Hosts.detachStorageModal')
             field.helpText = messages.get('Hosts.detachStorageModal.help')

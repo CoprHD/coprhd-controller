@@ -19,13 +19,13 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
@@ -271,10 +272,23 @@ public class VPlexScheduler implements Scheduler {
         // have enough capacity to hold at least one resource of the
         // requested size.
         _log.info("Getting placement recommendations for srcVarray {}", srcVarray.getId());
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPools = getMatchingPools(srcVarray, null, excludeStorageSystem,
-                mirrorVpool, capabilities);
+                mirrorVpool, capabilities, attributeMap);
 
         _log.info("Found {} Matching pools for VirtualArray for the Mirror", allMatchingPools.size());
+
+        // If the attribute matcher framework returns an error, then throw that error.
+        // Otherwise, even when there are no pools, let the code return the empty list
+        // of recommendations which is handled by the caller. This code was added for
+        // COP-17666, but resulted in a regression captured by COP-25216. Therefore,
+        // we now only throw an exception if there is an actual error set by a matcher.
+        // If there is no error, returning the empty list will result in the previous
+        // message being displayed.
+        StringBuffer errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+        if ((CollectionUtils.isEmpty(allMatchingPools)) && (errorMessage != null) && (errorMessage.length() != 0)) {
+            throw APIException.badRequests.noStoragePools(srcVarray.getLabel(), srcVpool.getLabel(), errorMessage.toString());
+        }
 
         // Due to VirtualPool attribute matching, we should only get storage
         // pools on storage systems that are connected to a VPlex
@@ -547,11 +561,17 @@ public class VPlexScheduler implements Scheduler {
         // Don't look for SRDF in the HA side.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
         // We don't require that the HA side have the same storage controller.
-        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);;
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
-                haVarray, haStorageSystem, haVpool, haCapabilities);
+                haVarray, haStorageSystem, haVpool, haCapabilities, attributeMap);
         if (allMatchingPoolsForHaVarray.isEmpty()) {
-            throw BadRequestException.badRequests.noMatchingHighAvailabilityStoragePools(haVpool.getLabel(), haVarray.getLabel());
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw BadRequestException.badRequests.noMatchingHighAvailabilityStoragePools(haVpool.getLabel(), haVarray.getLabel(),
+                    errorMessage.toString());
         }
         _log.info("Found {} matching pools for HA varray", allMatchingPoolsForHaVarray.size());
 
@@ -816,8 +836,9 @@ public class VPlexScheduler implements Scheduler {
                 // resource of the requested size.
                 VirtualArray vplexHaNH = _dbClient.queryObject(VirtualArray.class,
                         URI.create(vplexHaNHId));
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
                 List<StoragePool> allMatchingPools = getMatchingPools(vplexHaNH, null, cos,
-                        capabilities);
+                        capabilities, attributeMap);
                 _log.info("Found {} matching pools for HA varray", allMatchingPools.size());
 
                 // Now from the list of candidate pools, we only want pools
@@ -857,14 +878,14 @@ public class VPlexScheduler implements Scheduler {
      * @param virtualArray The desired varray.
      * @param storageSystemURI The desired storage system, or null.
      * @param virtualPool The required CoS.
-     * 
+     * @param attributeMap
      * @return A list of storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray virtualArray,
             URI storageSystemURI, VirtualPool virtualPool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
         return getMatchingPools(virtualArray, storageSystemURI, null, virtualPool,
-                capabilities);
+                capabilities, attributeMap);
     }
 
     /**
@@ -878,47 +899,30 @@ public class VPlexScheduler implements Scheduler {
      * @param excludeStorageSystemURI The storage system that should be excluded or null.
      * @param vpool The required virtual pool.
      * @param capabilities The virtual pool capabilities.
-     * 
+     * @param attributeMap
      * @return A list of storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray,
             URI storageSystemURI, URI excludeStorageSystemURI, VirtualPool vpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
 
-        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities);
-        Iterator<StoragePool> storagePoolIter = storagePools.iterator();
-        while (storagePoolIter.hasNext()) {
-            StoragePool storagePool = storagePoolIter.next();
-            StringSet storagePoolNHs = storagePool.getTaggedVirtualArrays();
-            if ((storagePoolNHs == null)
-                    || (!storagePoolNHs.contains(varray.getId().toString()))
-                    || ((storageSystemURI != null) && (!storageSystemURI.toString()
-                            .equals(storagePool.getStorageDevice().toString())))
-                    || ((excludeStorageSystemURI != null) && (excludeStorageSystemURI.toString()
-                            .equals(storagePool.getStorageDevice().toString())))) {
-                storagePoolIter.remove();
-            }
+        // If a specific storage system is specified, then enable the storage system matcher
+        // to filter for pools only on that system.
+        if (storageSystemURI != null) {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, storageSystem);
+        } else if (excludeStorageSystemURI != null) {
+            // Otherwise, if an excluded system is provided, enable the exclude storage
+            // system matcher to filter out pools on the excluded system. Note that there
+            // should never be an excluded system when a specific storage system to match
+            // is passed.
+            StorageSystem excludeStorageSystem = _dbClient.queryObject(StorageSystem.class, excludeStorageSystemURI);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.EXCLUDED_STORAGE_SYSTEM, excludeStorageSystem);            
         }
-
+        
+        // Now call the block scheduler to get the matching storage pools.
+        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
         return storagePools;
-    }
-
-    /**
-     * Gets all storage pools in the passed varray, satisfying the passed
-     * CoS and capable of holding a resource of the requested size. Calls out
-     * too getMatchingPools to filter the storagepools to those on the storage system
-     * with the passed URI, when the passed storage system is not null.
-     * 
-     * @param virtualArray
-     * @param storageSystemURI
-     * @param virtualPool
-     * @param capabilities
-     * @return
-     */
-    protected List<StoragePool> getMatchingPools(VirtualArray virtualArray,
-            URI storageSystemURI, VirtualPool virtualPool,
-            List<StoragePool> storagePools) {
-        return getMatchingPools(virtualArray, storageSystemURI, virtualPool, storagePools);
     }
 
     /**

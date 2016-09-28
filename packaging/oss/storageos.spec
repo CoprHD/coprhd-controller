@@ -93,6 +93,7 @@ fi
 /etc/genconfig.d/ssh
 /etc/genconfig.d/ssh_auth_key
 /etc/genconfig.d/ssl
+/etc/genconfig.d/syslog
 /etc/genconfig.d/syssvc
 /etc/genconfig.d/ipsec
 /etc/genconfig.d/test

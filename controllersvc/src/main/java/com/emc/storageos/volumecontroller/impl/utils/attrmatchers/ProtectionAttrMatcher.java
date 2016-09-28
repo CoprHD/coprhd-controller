@@ -14,6 +14,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -36,7 +37,8 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
             .getLogger(ProtectionAttrMatcher.class);
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         StringMap rpMap = (StringMap) attributeMap.get(Attributes.recoverpoint_map.name());
         _logger.info("Pools matching protection attributes Started {}, {} :", rpMap,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
@@ -232,6 +234,12 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                 // If we found at least 1 matched pool using HA as the RP Source, return all pools.
                 matchedPools = allPools;
             }            
+        }
+        
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(
+                    "No valid protection system could be found for storage pools. "
+                            + "Please check data protection systems to ensure they are not inactive or invalid. ");
         }
         
         _logger.info("Pools matching protection attributes ended. " +

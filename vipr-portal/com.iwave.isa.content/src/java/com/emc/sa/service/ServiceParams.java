@@ -61,8 +61,13 @@ public interface ServiceParams {
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
     public String FAILOVER_TARGET_FILE = "failoverTargetFile";
+    public String REPLICATE_CONFIG_FAILOVER = "replicateConfFailover";
+    public String REPLICATE_CONFIG_FAILBACK = "replicateConfFailback";
+    public String FAILBACK_TARGET = "failbackTarget";
+    public String FAILBACK_TARGET_FILE = "failbackTargetFile";
     public String IMAGE_TO_ACCESS = "imageToAccess";
     public String POINT_IN_TIME = "pointInTime";
+    public String DIRECT_ACCESS = "directAccess";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";
@@ -76,8 +81,11 @@ public interface ServiceParams {
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
     public String COPIES = "copies";
+    public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String MIGRATION_SUSPEND = "migrationSuspend";
+    public String DISPLAY_JOURNALS = "displayJournals";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 
@@ -154,4 +162,10 @@ public interface ServiceParams {
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 
+    public String MOUNT_PATH = "mountPath";
+    public String SECURITY_TYPE = "securityType";
+    public String MOUNTED_NFS_EXPORTS = "mountedNFSExports";
+    public String FILESYSTEM_NAME = "fileSystemName";
+    public String MOUNT_LIST = "mountList";
+    public String FS_TYPE = "fsType";
 }

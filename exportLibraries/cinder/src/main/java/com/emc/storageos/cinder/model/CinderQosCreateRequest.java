@@ -17,34 +17,24 @@
 
 package com.emc.storageos.cinder.model;
 
-import com.google.gson.annotations.SerializedName;
-
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Map;
 
 /**
  * Quality of Service object required for "Create QoS specification" call.
  */
+@XmlRootElement
 public class CinderQosCreateRequest {
 
-    /**
-     * Json model for creating QoS request
-     * {
-     *  "qos_specs": {
-     *      "specs": {
-     *           "availability": "100",
-     *           "numberOfFailures": "0"
-     *       },
-     *       "name": "reliability-spec",
-     *  }
-     * }
-     */
+    @XmlElement(name = "qos_specs")
+    private Map<String, String> qosSpecs;
 
-    @SerializedName("qos_specs")
-    QosSpecs qosSpecs = new QosSpecs();
-
-    public class QosSpecs {
-        public String name;
-        public Map<String, String> specs;
+    public Map<String, String> getQosSpecs() {
+        return qosSpecs;
     }
 
+    public void setQosSpecs(Map<String, String> qosSpecs) {
+        this.qosSpecs = qosSpecs;
+    }
 }

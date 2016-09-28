@@ -1,9 +1,23 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.api.service.impl.response;
 
+import static com.emc.storageos.model.ResourceTypeEnum.ACTIONABLE_EVENT;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
@@ -12,6 +26,10 @@ import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_CATEGORY;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_IMAGE;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_SERVICE;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_SERVICE_FIELD;
 import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
@@ -20,6 +38,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
 import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
+import static com.emc.storageos.model.ResourceTypeEnum.EXECUTION_WINDOW;
 import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.FC_PORT_CONNECTION;
 import static com.emc.storageos.model.ResourceTypeEnum.FILE;
@@ -32,6 +51,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.MIGRATION;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.ORDER;
 import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
@@ -61,13 +81,16 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
 import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -123,7 +146,16 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogImage;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
+
+import static com.emc.storageos.model.ResourceTypeEnum.*;
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
@@ -191,6 +223,15 @@ public class ResourceTypeMapping {
         classMapping.put(VOLUME_GROUP, VolumeGroup.class);
         classMapping.put(BLOCK_SNAPSHOT_SESSION, BlockSnapshotSession.class);
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
+        classMapping.put(OPENSTACK_TENANT, OSTenant.class);
+        classMapping.put(STORAGE_SYSTEM_TYPE, StorageSystemType.class);
+        classMapping.put(CATALOG_SERVICE, CatalogService.class);
+        classMapping.put(ORDER, Order.class);
+        classMapping.put(CATALOG_CATEGORY, CatalogCategory.class);
+        classMapping.put(CATALOG_SERVICE_FIELD, CatalogServiceField.class);
+        classMapping.put(CATALOG_IMAGE, CatalogImage.class);
+        classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
+        classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

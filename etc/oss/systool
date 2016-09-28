@@ -14,7 +14,6 @@
 
 export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
 
-. /etc/rc.status
 set -e
 
 _usage() {
@@ -252,6 +251,8 @@ _reload() {
             exec /usr/bin/systemctl restart connectemc ;;
         ssl)
             exec /usr/bin/systemctl restart nginx ;;
+        syslog)
+            exec /usr/bin/systemctl restart rsyslog ;;				
         firewall)
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
         ipsec)
@@ -495,8 +496,6 @@ nl='
 
 DO_NOT_INCLUDE="no"
 
-rc_reset
-
 # Parse flags and hacks
 while [ $# -gt 0 ] ; do
     case ${1} in
@@ -545,5 +544,3 @@ case ${#} in
         esac;;
     *)  _usage
 esac
-
-rc_exit

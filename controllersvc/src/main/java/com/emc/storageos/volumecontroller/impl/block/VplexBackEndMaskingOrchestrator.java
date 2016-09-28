@@ -39,31 +39,37 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            [IN] - URI to Volume object mapping. These are the volumes to place
      *
      */
-            void suggestExportMasksForPlacement(StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
-                    ExportMaskPlacementDescriptor placementDescriptor);
+    void suggestExportMasksForPlacement(StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor);
 
     /**
      * Searches the storage device for any ExportMask (e.g. MaskingView) that contains
      * any of the initiators.
      * 
-     * @param storage -- Storage system to be searched.
-     * @param device -- Storage device to be searched for Export Masks
-     * @param initiators - List of Initiator objects to be searched for.
+     * @param storage
+     *            -- Storage system to be searched.
+     * @param device
+     *            -- Storage device to be searched for Export Masks
+     * @param initiators
+     *            - List of Initiator objects to be searched for.
      * @return a map of URIs to Export Masks that contain any of the initiators
      */
-            Map<URI, ExportMask> readExistingExportMasks(
+    Map<URI, ExportMask> readExistingExportMasks(
             StorageSystem storage, BlockStorageDevice device,
             List<Initiator> initiators);
 
     /**
      * Refreshes an ExportMask with data from the array.
      * 
-     * @param storage -- Storage device to be searched for Export Masks
-     * @param device -- Storage device to be searched for Export Masks
-     * @param mask -- ExportMask
+     * @param storage
+     *            -- Storage device to be searched for Export Masks
+     * @param device
+     *            -- Storage device to be searched for Export Masks
+     * @param mask
+     *            -- ExportMask
      * @return -- updated ExportMask that is also persisted
      */
-            ExportMask refreshExportMask(StorageSystem storage,
+    ExportMask refreshExportMask(StorageSystem storage,
             BlockStorageDevice device, ExportMask mask);
 
     /**
@@ -71,30 +77,39 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * distinct port group. The mapping of available ports to port groups
      * is array dependent.
      * <p>
-     * Each PortGroup is a Map of Network URI to a List of StoragePort objects. For XtremIO, it is a Map of Network URI to a list of list of
-     * StoragePorts. i.e Each network has multiple sets of StoragePorts. This is needed so that each director will map to different set of
+     * Each PortGroup is a Map of Network URI to a List of StoragePort objects. For XtremIO, it is a Map of Network URI
+     * to a list of list of
+     * StoragePorts. i.e Each network has multiple sets of StoragePorts. This is needed so that each director will map
+     * to different set of
      * StoragePorts for a network.
      * 
      * <p>
      * 
-     * @param allocatablePorts -- Map of Network URI to list of allocatable ports
+     * @param allocatablePorts
+     *            -- Map of Network URI to list of allocatable ports
      *            in that Network.
-     * @param networkMap -- Map of Network URI to NetworkLite structure
-     * @param varrayURI -- URI of virtual array used for allocation
-     * @param nInitiatorGroups -- the number of Initiator Groups created
+     * @param networkMap
+     *            -- Map of Network URI to NetworkLite structure
+     * @param varrayURI
+     *            -- URI of virtual array used for allocation
+     * @param nInitiatorGroups
+     *            -- the number of Initiator Groups created
      * @return Set of PortGroups.
      */
-    Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI,
-            List<StoragePort>> allocatablePorts,
+    Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups);
 
     /**
      * Configure the zoning for an ExportMask given its PortGroup and InitiatorGroup.
      * 
-     * @param portGroup -- Map of Network URI to List of StoragePort objects.
-     * @param initiatorGroup -- Map of VPlex director name to Map of Network URI to Set of Initiator objects.
-     * @param networkMap -- map of Network URI to NetworkLite structures.
-     * @param assigner an instance of StoragePortsAssigner
+     * @param portGroup
+     *            -- Map of Network URI to List of StoragePort objects.
+     * @param initiatorGroup
+     *            -- Map of VPlex director name to Map of Network URI to Set of Initiator objects.
+     * @param networkMap
+     *            -- map of Network URI to NetworkLite structures.
+     * @param assigner
+     *            an instance of StoragePortsAssigner
      * @return StringSetMap -- the zoningMap entry that should be used for the ExportMask.
      */
     StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
@@ -104,30 +119,45 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
     /**
      * Return a Workflow method for createOrAddVolumesToExportMask.
      * 
-     * @param arrayURI -- Storage Array URI
-     * @param exportGroupURI -- ExportGroupURI
-     * @param exportMaskURI -- ExportMask URI
-     * @param volumeMap -- Map of Volume URI to HLU Integer
-     * @param completer -- TaskCompleter to be fired when complete.
+     * @param arrayURI
+     *            -- Storage Array URI
+     * @param exportGroupURI
+     *            -- ExportGroupURI
+     * @param exportMaskURI
+     *            -- ExportMask URI
+     * @param volumeMap
+     *            -- Map of Volume URI to HLU Integer
+     * @param initiatorURIs
+     *            -- List of initiators impacted by this operation
+     * @param completer
+     *            -- TaskCompleter to be fired when complete.
      * @return Workflow.Method
      */
-            Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
+    Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer);
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer);
 
     /**
      * Create an ExportMask (VMAX: Masking View, VNX: Storage Group) on the backend array
      * it it does not exist. If it does exist, just add the indicated volumes to the mask.
      * 
-     * @param arrayURI -- Storage Array URI
-     * @param exportGroupURI -- ExportGroup URI
-     * @param exportMaskURI -- ExportMask URI
-     * @param volumeMap -- Map of Volume URI to HLU Integer
-     * @param completer -- TaskCompleter to be fired when complete.
-     * @param stepId --Step id of Workflow Step.
+     * @param arrayURI
+     *            -- Storage Array URI
+     * @param exportGroupURI
+     *            -- ExportGroup URI
+     * @param exportMaskURI
+     *            -- ExportMask URI
+     * @param volumeMap
+     *            -- Map of Volume URI to HLU Integer
+     * @param initiatorURIs
+     *            -- List of initiators impacted by this operation
+     * @param completer
+     *            -- TaskCompleter to be fired when complete.
+     * @param stepId
+     *            --Step id of Workflow Step.
      */
-            void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId);
+    void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer, String stepId);
 
     /**
      * Return a Workflow Method for:
@@ -135,29 +165,44 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * if there will be no remaining volumes. Otherwise, just remove the indicated volumes
      * and leave those that remain.
      * 
-     * @param arrayURI -- Storage Array URI
-     * @param exportGroupURI -- ExportGroup URI
-     * @param exportMaskURI -- ExportMask URI
-     * @param volumes -- List of Volume URIs to be removed from the Mask
-     * @param completer -- Task completer to be fired when complete.
+     * @param arrayURI
+     *            -- Storage Array URI
+     * @param exportGroupURI
+     *            -- ExportGroup URI
+     * @param exportMaskURI
+     *            -- ExportMask URI
+     * @param volumes
+     *            -- List of Volume URIs to be removed from the Mask
+     * @param initiatorURIs
+     *            -- Initiators that are impacted by this change
+     * @param completer
+     *            -- Task completer to be fired when complete.
      * @return
      */
-            Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
+    Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer);
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer);
 
     /**
      * Delete an Export Mask (VMAX: Masking View, VNX: Storage Group) on the backend array
      * if there will be no remaining volumes. Otherwise, just remove the indicated volumes
      * and leave those that remain.
      * 
-     * @param arrayURI -- Array URI
-     * @param exportGroupURI -- ExportGroup URI
-     * @param exportMaskURI -- ExportMask URI
-     * @param volumes -- List of volume URIs
-     * @param completer -- TaskCompleter to be fired when complete.
-     * @param stepId -- Workflow step id.
+     * @param arrayURI
+     *            -- Array URI
+     * @param exportGroupURI
+     *            -- ExportGroup URI
+     * @param exportMaskURI
+     *            -- ExportMask URI
+     * @param volumes
+     *            -- List of volume URIs
+     * @param initiatorURIs
+     *            -- Initiators that are impacted by this change
+     * @param completer
+     *            -- TaskCompleter to be fired when complete.
+     * @param stepId
+     *            -- Workflow step id.
      */
-            void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId);
+    void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId);
 }

@@ -131,11 +131,10 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds);
 
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray, true);
+                project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
-        // Wonder what the purpose of this call is!?? Seems to do no good, or harm. Hence commenting
-        // ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

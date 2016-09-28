@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +13,8 @@ import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -26,6 +29,7 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
  * Block snapshot session implementation for volumes a VMAX3 systems.
@@ -132,8 +136,20 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // Invoke the BlockDeviceController to create the array snapshot session and create and link
         // target volumes as necessary.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, sourceObj.getStorageController());
-        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.createSnapshotSession(storageSystem.getId(), snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
+        
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SNAPSHOT_SESSION_COPY_MODE, copyMode);
+        VolumeDescriptor sessionDescriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION,
+                storageSystem.getId(), snapSessionURI, null, sourceObj.getConsistencyGroup(), capabilities,
+                snapSessionSnapshotURIs);
+        
+        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        volumeDescriptors.add(sessionDescriptor);
+        
+        BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.createSnapshotSession(volumeDescriptors, taskId);
+        
     }
 
     /**

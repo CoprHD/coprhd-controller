@@ -350,7 +350,7 @@ public class ComputeVirtualPools extends ViprResourceController {
             for (Entry<String, Set<String>> comp : csTemplatesMap.entrySet()) {
                 Set<String> compTemplates = comp.getValue();
                 if (compTemplates != null && !compTemplates.isEmpty()) {
-                    String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp);
+                    String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp.getKey());
                     computeVirtualPool.systems.add(new StringOption(comp.getKey(), systemName));
                     List<StringOption> templateOptions = Lists.newArrayList();
                     templateOptions.add(new StringOption("NONE", ""));

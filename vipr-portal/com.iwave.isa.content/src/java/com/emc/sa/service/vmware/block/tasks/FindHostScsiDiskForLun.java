@@ -4,14 +4,14 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
-import com.emc.sa.util.VolumeWWNUtils;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vmware.VMwareUtils;
+import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.ScsiLunState;
 import com.vmware.vim25.mo.HostSystem;
@@ -59,19 +59,29 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         }
 
         if (lun == null) {
-            diskNotFound();
+            diskNotFound(true);
         }
-        logInfo("find.host.scsi.lun", lun.getDeviceName());
+        logInfo("find.host.scsi.lun", lunDiskName);
         return lun;
     }
 
     private HostScsiDisk getLunDisk() {
         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume)) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn())) {
                 return entry;
             }
         }
         return null;
+    }
+
+    /**
+     * Attaches the scsi disk to the host
+     * 
+     * @param disk the scsi disk to attach
+     */
+    private void attachDisk(HostScsiDisk disk) {
+        logInfo("find.host.scsi.lun.esx.attach", lunDiskName, host.getName());
+        new HostStorageAPI(host).attachScsiLun(disk);
     }
 
     private void rescan() {
@@ -80,20 +90,46 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         new HostStorageAPI(host).rescanHBAs();
     }
 
+    /**
+     * Waits for a valid state of the given scsi disk.
+     * If the disk is in an 'off' state, the disk is attached to the host.
+     * 
+     * @param disk the scsi disk to monitor
+     * @return the scsi disk once it is in a valid state
+     */
     private HostScsiDisk waitForValidState(HostScsiDisk disk) {
-        logInfo("find.host.scsi.lun.esx.wait.valid", disk.getDeviceName(), host.getName());
+        logInfo("find.host.scsi.lun.esx.wait.valid", lunDiskName, host.getName());
         long startTime = System.currentTimeMillis();
-        while (!isValidState(disk) && canRetry(startTime, VALID_STATE_TIMEOUT)) {
+        while ((disk == null || !isValidState(disk)) && canRetry(startTime, VALID_STATE_TIMEOUT)) {
             pause(VALID_STATE_DELAY);
             disk = getLunDisk();
             if (disk == null) {
-                diskNotFound();
+                diskNotFound(false);
+            } else if (isDiskOff(disk)) {
+                attachDisk(disk);
             }
         }
-        if (!isValidState(disk)) {
+        if (disk == null) {
+            diskNotFound(true);
+        } else if (!isValidState(disk)) {
             diskInvalid(disk);
         }
         return disk;
+    }
+
+    /**
+     * Returns true if the disk operational state is 'off'
+     * 
+     * @param disk the scsi disk
+     * @return true if the disk operational state is 'off', otherwise returns false
+     */
+    private boolean isDiskOff(HostScsiDisk disk) {
+        String[] state = disk.getOperationalState();
+        if (state == null || state.length == 0) {
+            return false;
+        }
+        String primaryState = state[0];
+        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
     private boolean isValidState(HostScsiDisk disk) {
@@ -104,12 +140,11 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         String primaryState = state[0];
         if (StringUtils.equals(primaryState, ScsiLunState.ok.name())
                 || StringUtils.equals(primaryState, ScsiLunState.degraded.name())) {
-            logInfo("find.host.scsi.lun.esx.valid", disk.getDeviceName(), host.getName(),
+            logInfo("find.host.scsi.lun.esx.valid", lunDiskName, host.getName(),
                     StringUtils.join(state, ", "));
             return true;
-        }
-        else {
-            logInfo("find.host.scsi.lun.esx.invalid", disk.getDeviceName(), host.getName(),
+        } else {
+            logInfo("find.host.scsi.lun.esx.invalid", lunDiskName, host.getName(),
                     StringUtils.join(state, ", "));
             return false;
         }
@@ -124,8 +159,12 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         }
     }
 
-    private void diskNotFound() {
-        throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+    private void diskNotFound(boolean fail) {
+        if (fail) {
+            throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+        } else {
+            logInfo("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+        }
     }
 
     private void diskInvalid(HostScsiDisk disk) {

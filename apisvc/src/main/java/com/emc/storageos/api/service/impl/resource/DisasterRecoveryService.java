@@ -239,7 +239,7 @@ public class DisasterRecoveryService {
             }
 
             // sync site related info with to be added standby site
-            long dataRevision = System.currentTimeMillis();
+            long dataRevision = vdcConfigVersion;
             List<Site> allStandbySites = new ArrayList<>();
             allStandbySites.add(standbySite);
             allStandbySites.addAll(existingSites);
@@ -908,7 +908,7 @@ public class DisasterRecoveryService {
                     log.error("Re-init the target standby", uuid);
 
                     // init the to-be resumed standby site
-                    long dataRevision = System.currentTimeMillis();
+                    long dataRevision = vdcTargetVersion;
                     List<Site> standbySites = drUtil.listStandbySites();
                     SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(),
                             uuid, dataRevision, vdcTargetVersion, secretKey);
@@ -1070,7 +1070,7 @@ public class DisasterRecoveryService {
                     SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
                     String resumeSiteOperation = siteTargetInfo.getActionRequired();
                     if (resumeSiteOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
-                        long dataRevision = System.currentTimeMillis();
+                        long dataRevision = vdcTargetVersion;
                         drUtil.updateVdcTargetVersion(siteUuid, resumeSiteOperation, vdcTargetVersion, dataRevision);
                         continue;
                     }
@@ -1182,7 +1182,7 @@ public class DisasterRecoveryService {
             drUtil.recordDrOperationStatus(oldActiveSite.getUuid(), InterState.SWITCHINGOVER_ACTIVE);
 
             // trigger reconfig
-            long vdcConfigVersion = System.currentTimeMillis(); // a version for all sites.
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion(); // a version for all sites.
             for (Site eachSite : drUtil.listSites()) {
                 if (!eachSite.getUuid().equals(uuid) && eachSite.getState() == SiteState.STANDBY_PAUSED) {
                     try (InternalSiteServiceClient client = new InternalSiteServiceClient(eachSite)) {
@@ -1779,39 +1779,13 @@ public class DisasterRecoveryService {
         }
 
         // should be PAUSED, either marked by itself or user
-        // Also allow user to failover to an ACTIVE_DEGRADED site
-        if (standby.getState() != SiteState.STANDBY_PAUSED && standby.getState() != SiteState.ACTIVE_DEGRADED) {
+        // Don't allow failover to site of ACTIVE_DEGRADED state in X-wing
+        if (standby.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
-        // Need to check every site state via HMAC way when failing over to ACTIVE_DEGRADED site
-        if (standby.getState() == SiteState.ACTIVE_DEGRADED) {
-            for (Site site : drUtil.listSites()) {
-                if (!site.getUuid().equals(drUtil.getLocalSite().getUuid()) && isSiteAvailable(site)) {
-                    throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                            String.format("Site %s is available, so it's not allowed to failover to an ACTIVE_DEGRADED site", site.getName()));
-                }
-            }
-        }
-
         precheckForFailover();
-    }
-
-    /**
-     * Reuse /site/internal/list API to check if it can return result correctly
-     * @return true if result can be returned correctly, otherwise return false
-     */
-    private boolean isSiteAvailable(Site site) {
-        try (InternalSiteServiceClient client = new InternalSiteServiceClient(site, coordinator, apiSignatureGenerator)) {
-            SiteList sites = client.getSiteList();
-            if (!sites.getSites().isEmpty()) {
-                return true;
-            }
-        } catch (Exception e) {
-            log.warn("Error happened when trying to get sites from site {} via HMAC way", site.getUuid(), e);
-        }
-        return false;
     }
 
     void precheckForFailover() {

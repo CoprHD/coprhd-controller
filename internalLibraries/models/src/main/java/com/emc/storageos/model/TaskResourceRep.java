@@ -16,9 +16,10 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+
 import com.emc.storageos.model.adapters.CalendarAdapter;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "task")
@@ -38,6 +39,7 @@ public class TaskResourceRep extends DataObjectRestRep {
     private Integer progress;
     private Calendar queuedStartTime;
     private String queueName;
+    private String allowedOperations;
 
     private RelatedResourceRep workflow;
 
@@ -47,7 +49,7 @@ public class TaskResourceRep extends DataObjectRestRep {
     public TaskResourceRep(ServiceErrorRestRep serviceError, String opId,
             RestLinkRep selfLink, NamedRelatedResourceRep resource,
             List<NamedRelatedResourceRep> associatedResources, String message,
-            String state, String description, Calendar startTime,
+            String state, String allowedOperations, String description, Calendar startTime,
             Calendar endTime) {
         super();
         this.serviceError = serviceError;
@@ -57,6 +59,7 @@ public class TaskResourceRep extends DataObjectRestRep {
         this.associatedResources = associatedResources;
         this.message = message;
         this.state = state;
+        this.allowedOperations = allowedOperations;
         this.description = description;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -135,6 +138,8 @@ public class TaskResourceRep extends DataObjectRestRep {
      *      pending = task is pending
      *      ready = task succeed
      *      error = task fails
+     *      suspended_error = task is suspended due to an error
+     *      suspended_no_error = task is suspended due to config/request
      */
     @XmlElement(name = "state")
     public String getState() {
@@ -143,6 +148,18 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    /**
+     * The allowed operations of the task
+     */
+    @XmlElement(name = "allowed_operations")
+    public String getAllowedOperations() {
+        return allowedOperations;
+    }
+
+    public void setAllowedOperations(String allowedOperations) {
+        this.allowedOperations = allowedOperations;
     }
 
     /**

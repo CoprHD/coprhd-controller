@@ -8,8 +8,18 @@
            <property name="storageSystemsMap">
               <map>
                  <entry key="Simulator" value="driversystem"/>
+                 <entry key="SimulatorToo" value="providersystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
+                 <entry key="HP3ParDriver" value="hp3par"/>
+                 <entry key="DellSCDriver" value="dellscsystem"/>
               </map>
+           </property>
+
+           <property name="storageProvidersMap">
+               <map>
+                   <entry key="Simulator" value="driverprovider"/>
+                   <entry key="DellSCDriver" value="dellscprovider"/>
+               </map>
            </property>
 
            <!-- Set of block storage systems managed by drivers -->
@@ -17,6 +27,8 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>hp3par</value> <!-- HP3Par Driver-->
+                   <value>dellscsystem</value>
                </set>
            </property>
 
@@ -30,7 +42,9 @@
            <!-- Set of storage systems managed through providers (proxy management model) -->
            <property name="providerManaged">
                <set>
-         <!--          <value>scaleiosystem</value>  -->
+                         <value>providersystem</value>
+                   <!--      <value>scaleiosystem</value>  -->
+                   <value>dellscsystem</value>
 
                </set>
            </property>
@@ -38,8 +52,9 @@
            <!-- Set of storage systems managed through direct connection from client -->
            <property name="directlyManaged">
                <set>
-                   <value>driversystem</value> <!-- simulator -->
+                   <value>driversystem</value>
                    <value>scaleiosystem</value>
+                   <value>hp3par</value> <!-- HP3Par Driver-->
                </set>
            </property>
 

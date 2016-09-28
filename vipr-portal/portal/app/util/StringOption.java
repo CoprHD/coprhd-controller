@@ -21,6 +21,12 @@ import com.google.common.collect.Lists;
  * @author jonnymiller
  */
 public class StringOption implements Comparable<StringOption> {
+    public static final StringOption NONE_OPTION;
+
+    static {
+        NONE_OPTION = new StringOption("NONE", "none");
+    }
+
     public String id;
     public String name;
 

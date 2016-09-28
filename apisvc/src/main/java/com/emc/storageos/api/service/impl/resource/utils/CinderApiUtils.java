@@ -73,11 +73,11 @@ public class CinderApiUtils {
     /**
      * method for getting http response based on Pojo and http header
      * 
-     * @param obj Pojo object
-     * @param header http request header
+     * @param obj Pojo object 
+     * @param obj header http request header expectedcode
      * @return Response Object
      */
-    public static Response getCinderResponse(Object obj, HttpHeaders header, boolean isJsonRootElementRequired) {
+    public static Response getCinderResponse(Object obj, HttpHeaders header, boolean isJsonRootElementRequired, int expectedCode) {
         String mediaType = getMediaType(header);
         if (StringUtils.isNotEmpty(mediaType)) {
             if (mediaType.equals(XML)) {
@@ -91,7 +91,8 @@ public class CinderApiUtils {
                 }
                 try {
                     String jsonResponse = objectMapper.writeValueAsString(obj);
-                    return Response.ok().entity(jsonResponse).build();
+                    _log.debug("Expected return code ={}",expectedCode);
+                    return Response.status(expectedCode).entity(jsonResponse).build();
                 } catch (JsonGenerationException e) {
                     throw APIException.badRequests.parameterIsNotValid(obj.getClass().getName());
                 } catch (JsonMappingException e) {
@@ -104,8 +105,8 @@ public class CinderApiUtils {
         return Response.status(415).entity("Unsupported Media Type")
                 .build();
 
-    }
-
+    }   
+    
     /**
      * method for getting media type based on http header
      * 

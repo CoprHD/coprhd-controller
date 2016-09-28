@@ -19,7 +19,7 @@ public class Cluster extends AbstractTenantResource {
     private URI _vcenterDataCenter;
     private URI _project;
     private String _externalId;
-    private Boolean autoExportEnabled = true;
+    private Boolean autoExportEnabled = false;
     private StringSet volumeGroupIds;
 
     /**

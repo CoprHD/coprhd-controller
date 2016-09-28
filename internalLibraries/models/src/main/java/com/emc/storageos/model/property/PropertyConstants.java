@@ -25,6 +25,9 @@ public class PropertyConstants {
     // text is for multi-line, whereas string is for single line 
     public static final String TEXT                            = "text";
     public static final String ENCRYPTEDTEXT                   = "encryptedtext";
+    
+    // type added for Syslog Forwarder feature
+    public static final String IPPORTLIST                          = "ipportlist";
 
     // node related property key
     public static final String NODE_ID_KEY = "node_id";

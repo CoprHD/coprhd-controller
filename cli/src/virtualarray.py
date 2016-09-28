@@ -24,6 +24,8 @@ class VirtualArray(object):
     # Commonly used URIs for the 'varrays' module
     URI_VIRTUALARRAY = '/vdc/varrays'
     URI_VIRTUALARRAY_BY_VDC_ID = '/vdc/varrays?vdc-id={0}'
+    URI_VIRTUALARRAY_BY_VDC_ID_AND_TENANT_ID = '/vdc/varrays?vdc-id={0}&tenant-id={1}'
+    URI_VIRTUALARRAY_BY_TENANT_ID = '/vdc/varrays?tenant-id={0}'
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
     URI_VIRTUALARRAY_ACLS = URI_VIRTUALARRAY_URI + '/acl'
     URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
@@ -78,7 +80,7 @@ class VirtualArray(object):
 
         return varrayList
 
-    def varray_list(self, vdcname=None):
+    def varray_list(self, vdcname=None, tenant=None):
         '''
         Returns all the varrays in a vdc
         Parameters:
@@ -87,11 +89,21 @@ class VirtualArray(object):
         '''
         vdcuri = None
         vdcrestapi = None
-        if(vdcname != None):
-            vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_VDC_ID.format(
-                                                                    vdcname)
+
+        if(tenant != None):
+            from tenant import Tenant
+            tenant_obj = Tenant(self.__ipAddr, self.__port)
+            tenanturi = tenant_obj.tenant_query(tenant)
+            if(vdcname != None):
+                vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_VDC_ID_AND_TENANT_ID.format(vdcname, tenanturi)
+            else:
+                vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_TENANT_ID.format(tenanturi)
         else:
-            vdcrestapi = VirtualArray.URI_VIRTUALARRAY
+            if(vdcname != None):
+                vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_VDC_ID.format(vdcname)
+            else:
+                vdcrestapi = VirtualArray.URI_VIRTUALARRAY
+
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             vdcrestapi, None)
@@ -563,6 +575,11 @@ def list_parser(subcommand_parsers, common_parser):
         metavar='<vdcname>',
         dest='vdcname')
 
+    list_parser.add_argument('-tenant', '-tn',
+        help='name of Tenant',
+        dest='tenant',
+        metavar='<tenant>')
+
     list_parser.set_defaults(func=varray_list)
 
 
@@ -570,7 +587,7 @@ def varray_list(args):
     obj = VirtualArray(args.ip, args.port)
     from common import TableGenerator
     try:
-        uris = obj.varray_list(args.vdcname)
+        uris = obj.varray_list(args.vdcname, args.tenant)
         output = []
         for uri in uris:
             temp = obj.varray_show(uri)

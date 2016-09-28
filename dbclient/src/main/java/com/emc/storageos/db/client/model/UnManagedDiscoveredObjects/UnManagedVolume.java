@@ -103,7 +103,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         STORAGE_POOL("PoolUri", "PoolUri"),
         NATIVE_GUID("NativeGuid", "NativeGuid"),
         AUTO_TIERING_POLICIES("PolicyRuleName", "PolicyRuleName"),
-        IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         NATIVE_ID("SVDeviceID", "DeviceID"),
         SUPPORTED_VPOOL_LIST("vpoolUriList", "vpoolUriList"),
         DATA_FORMAT("EMCSVDataFormat", "EMCDataFormat"),

@@ -78,12 +78,14 @@
         
         updateReceipt('${orderId}');
     });
+    
   </script>
 #{/set}
 <div>
 <div id="orderDetails" class="container" style="margin-bottom: 2em;">
   #{Orders.serviceHeader service:details.catalogService /}
   
+  <p id="migrationAlert" class="alert alert-info" style="display:none">&{'order.PausedResume'}</p>
   #{alerts disappear:true, duration:10 /}
 
   <div id="lastUpdated" style="display:none">${details.lastUpdated}</div>
@@ -92,6 +94,39 @@
       <dt>&{'order.number'}:</dt>
       <dd>${details.order.orderNumber}&nbsp;</dd>
       
+      #{if details.scheduledEvent != null}
+      <dt>&{'order.schedule'}:</dt>
+      <dd>
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 1}
+         &{'order.occur'}
+         #{localDateTime details.scheduleStartDateTime/}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+         &{'order.recur'}
+         &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
+         &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
+         &{'order.at'}
+         #{localDateTime details.scheduleStartDateTime, format: "HH:mm"/}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence > 1}
+            &{'order.occurrences', details.scheduledEvent.scheduleInfo.reoccurrence}
+         #{/if}
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
+            &{'order.occurrences.indefinite'}
+         #{/if}
+
+      </dd>
+      #{/if}
+
+      #{if details.scheduledEvent != null}
+        #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+        <dt>&{'order.currentScheduleTime'}:</dt>
+        <dd>#{localDateTime details.order.scheduledTime/}</dd>
+        #{/if}
+      #{/if}
+
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
       

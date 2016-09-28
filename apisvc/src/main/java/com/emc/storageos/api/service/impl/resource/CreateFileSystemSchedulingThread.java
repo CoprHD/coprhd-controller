@@ -74,7 +74,7 @@ public class CreateFileSystemSchedulingThread implements Runnable {
             // Call out placementManager to get the recommendation for placement.
             List recommendations = this.fileService._filePlacementManager.getRecommendationsForFileCreateRequest(
                     varray, project, vpool, capabilities);
-            if (recommendations.isEmpty()) {
+            if (recommendations == null || recommendations.isEmpty()) {
                 throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
             } else {
                 // Call out to the respective file service implementation to prepare

@@ -69,6 +69,7 @@ import com.sun.jersey.api.NotFoundException;
 public abstract class ResourceService {
     public final static URI INTERNAL_DATASVC_USER = URI.create("datasvc");
     public final static String VDC_ID_QUERY_PARAM = "vdc-id";
+    public final static String TENANT_ID_QUERY_PARAM = "tenant-id";
 
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";

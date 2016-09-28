@@ -14,6 +14,8 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/non-oss/suse suse-13.2-non-oss
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-monitoring \
          --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-http \
+         --no-gpgcheck http://download.opensuse.org/repositories/server:/http/openSUSE_13.2 suse-13.2-http
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-seife \
          --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-python \
@@ -26,8 +28,8 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_13.2 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
-  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-filesystems-ceph \
-         --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-42.1-filesystems-ceph \
+         --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.1 suse-42.1-filesystems-ceph
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-electronics \
          --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 
@@ -35,13 +37,14 @@ function installRepositories
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss-update
   zypper --non-interactive --no-gpg-checks modifyrepo --priority 99 suse-13.2-non-oss
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-monitoring
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-http
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-seife
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  4 suse-13.2-python
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  4 suse-13.2-network
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  5 suse-13.2-building
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-containers
-  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-42.1-filesystems-ceph
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-electronics
 
   return 0
@@ -68,20 +71,10 @@ function installJava
 
   update-alternatives --set java /usr/lib64/jvm/jre-1.${java}.0-openjdk/bin/java
   update-alternatives --set javac /usr/lib64/jvm/java-1.${java}.0-openjdk/bin/javac
-}
-
-function installNginx
-{
-  if [ -d /nginx-1.6.2 -a -d /nginx_upstream_check_module-0.3.0 -a -d /headers-more-nginx-module-0.25 ]; then
-    mkdir -p /tmp/nginx
-    mv /nginx-1.6.2 /tmp/nginx/
-    mv /nginx_upstream_check_module-0.3.0 /tmp/nginx/
-    mv /headers-more-nginx-module-0.25 /tmp/nginx/
-    patch --directory=/tmp/nginx/nginx-1.6.2 -p1 < /tmp/nginx/nginx_upstream_check_module-0.3.0/check_1.5.12+.patch
-    bash -c "cd /tmp/nginx/nginx-1.6.2; ./configure --add-module=/tmp/nginx/nginx_upstream_check_module-0.3.0 --add-module=/tmp/nginx/headers-more-nginx-module-0.25 --with-http_ssl_module --prefix=/usr --conf-path=/etc/nginx/nginx.conf"
-    make --directory=/tmp/nginx/nginx-1.6.2
-    make --directory=/tmp/nginx/nginx-1.6.2 install
-    rm -fr /tmp/nginx
+  if [ -f /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security ] ; then
+    cp -p /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security.orig
+    sed -i 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+    sed -i 's/^jdk.certpath.disabledAlgorithms=.*/jdk.certpath.disabledAlgorithms=MD2/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
   fi
 }
 

@@ -32,6 +32,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
     private Set<String> groupWhitelistValues;
     private Boolean disable;
     private Boolean autoRegCoprHDNImportOSProjects;
+    private Set<String> tenantsSynchronizationOptions;
     private String description;
     private Integer maxPageSize;
     private Set<String> groupObjectClasses;
@@ -76,6 +77,19 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
         this.autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
+    }
+
+    /**
+     *
+     */
+    @XmlElementWrapper(name = "tenants_synchronization_options")
+    @XmlElement(name = "tenants_synchronization_option")
+    public Set<String> getTenantsSynchronizationOptions() {
+        return tenantsSynchronizationOptions;
+    }
+
+    public void setTenantsSynchronizationOptions(Set<String> tenantsSynchronizationOptions) {
+        this.tenantsSynchronizationOptions = tenantsSynchronizationOptions;
     }
 
     @XmlElementWrapper(name = "domains")

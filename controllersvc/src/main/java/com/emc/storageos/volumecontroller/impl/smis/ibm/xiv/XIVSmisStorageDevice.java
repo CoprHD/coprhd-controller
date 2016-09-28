@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +19,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+import javax.wbem.client.EnumerateResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -227,7 +230,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 // All the volumes will be in the same consistency group
                 final URI consistencyGroupId = firstVolume.getConsistencyGroup();
                 if (consistencyGroupId != null) {
-                    addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs), true);
+                    addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs));
                 }
             }
 
@@ -451,7 +454,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupCreate
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportCreate
      * (com.emc.storageos.db.client.model.StorageSystem,
      * com.emc.storageos.db.client.model.ExportMask,
      * java.util.Map, java.util.List,
@@ -461,110 +464,110 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * @param targets not used
      */
     @Override
-    public void doExportGroupCreate(final StorageSystem storage, final ExportMask exportMask,
+    public void doExportCreate(final StorageSystem storage, final ExportMask exportMask,
             final Map<URI, Integer> volumeMap, final List<Initiator> initiators,
             final List<URI> targets, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        _log.info("{} doExportGroupCreate START ...", storage.getLabel());
+        _log.info("{} doExportCreate START ...", storage.getLabel());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumeMap, _dbClient);
         _exportMaskOperationsHelper.createExportMask(storage, exportMask.getId(), volumeLunArray,
                 targets, initiators, taskCompleter);
-        _log.info("{} doExportGroupCreate END ...", storage.getLabel());
+        _log.info("{} doExportCreate END ...", storage.getLabel());
     }
 
     @Override
-    public void doExportGroupDelete(final StorageSystem storage, final ExportMask exportMask,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} doExportGroupDelete START ...", storage.getLabel());
+    public void doExportDelete(final StorageSystem storage, final ExportMask exportMask,
+            List<URI> volumeURIs, List<URI> initiatorURIs, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportDelete START ...", storage.getLabel());
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
                 new ArrayList<URI>(), new ArrayList<URI>(), new ArrayList<Initiator>(),
                 taskCompleter);
-        _log.info("{} doExportGroupDelete END ...", storage.getLabel());
+        _log.info("{} doExportDelete END ...", storage.getLabel());
     }
 
     @Override
     public void doExportAddVolume(final StorageSystem storage, final ExportMask exportMask,
-            final URI volume, final Integer lun, final TaskCompleter taskCompleter)
+            final URI volume, final Integer lun, List<Initiator> initiators, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportAddVolume START ...", storage.getLabel());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), map, _dbClient);
-        _exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray,
-                taskCompleter);
+        _exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
+                initiators, taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getLabel());
     }
 
     @Override
     public void doExportAddVolumes(final StorageSystem storage, final ExportMask exportMask,
-            final Map<URI, Integer> volumes, final TaskCompleter taskCompleter)
+            List<Initiator> initiators, final Map<URI, Integer> volumes, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportAddVolume START ...", storage.getLabel());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumes, _dbClient);
-        _exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray,
-                taskCompleter);
+        _exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
+                initiators, taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getLabel());
     }
 
     @Override
     public void doExportRemoveVolume(final StorageSystem storage, final ExportMask exportMask,
-            final URI volume, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final URI volume, List<Initiator> initiators, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportRemoveVolume START ...", storage.getLabel());
-        _exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(),
-                Arrays.asList(volume), taskCompleter);
+        _exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(),
+                Arrays.asList(volume), initiators, taskCompleter);
         _log.info("{} doExportRemoveVolume END ...", storage.getLabel());
     }
 
     @Override
     public void doExportRemoveVolumes(final StorageSystem storage, final ExportMask exportMask,
-            final List<URI> volumes, final TaskCompleter taskCompleter)
+            final List<URI> volumes, List<Initiator> initiators, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportRemoveVolume START ...", storage.getLabel());
-        _exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), volumes,
-                taskCompleter);
+        _exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), volumes,
+                initiators, taskCompleter);
         _log.info("{} doExportRemoveVolume END ...", storage.getLabel());
     }
 
     @Override
     public void doExportAddInitiator(final StorageSystem storage, final ExportMask exportMask,
-            final Initiator initiator, final List<URI> targets, final TaskCompleter taskCompleter)
+            List<URI> volumeURIs, final Initiator initiator, final List<URI> targets, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportAddInitiator START ...", storage.getLabel());
-        _exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(),
-                Arrays.asList(initiator), targets, taskCompleter);
+        _exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(),
+                volumeURIs, Arrays.asList(initiator), targets, taskCompleter);
         _log.info("{} doExportAddInitiator END ...", storage.getLabel());
     }
 
     @Override
     public void doExportAddInitiators(final StorageSystem storage, final ExportMask exportMask,
-            final List<Initiator> initiators, final List<URI> targets,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<URI> volumeURIs, final List<Initiator> initiators,
+            final List<URI> targets, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportAddInitiator START ...", storage.getLabel());
-        _exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), initiators, targets,
-                taskCompleter);
+        _exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, initiators,
+                targets, taskCompleter);
         _log.info("{} doExportAddInitiator END ...", storage.getLabel());
     }
 
     @Override
     public void doExportRemoveInitiator(final StorageSystem storage, final ExportMask exportMask,
-            final Initiator initiator, final List<URI> targets, final TaskCompleter taskCompleter)
+            List<URI> volumes, final Initiator initiator, final List<URI> targets, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiator START ...", storage.getLabel());
-        _exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                Arrays.asList(initiator), targets, taskCompleter);
+        _exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, Arrays.asList(initiator), targets, taskCompleter);
         _log.info("{} doExportRemoveInitiator END ...", storage.getLabel());
     }
 
     @Override
     public void doExportRemoveInitiators(final StorageSystem storage, final ExportMask exportMask,
-            final List<Initiator> initiators, final List<URI> targets,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<URI> volumes, final List<Initiator> initiators,
+            final List<URI> targets, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiator START ...", storage.getLabel());
-        _exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(), initiators,
-                targets, taskCompleter);
+        _exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(), volumes,
+                initiators, targets, taskCompleter);
         _log.info("{} doExportRemoveInitiator END ...", storage.getLabel());
     }
 
@@ -584,13 +587,13 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public Map<String, Set<URI>> findExportMasks(final StorageSystem storage,
-            final List<String> initiatorNames, final boolean mustHaveAllPorts) {
+            final List<String> initiatorNames, final boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
     }
 
     @Override
-    public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) {
+    public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
@@ -715,7 +718,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * (non-Javadoc)
      * 
      * @see
-     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem
+     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.
+     * StorageSystem
      * , java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      * 
      * Note: this won't create CG on array side, it just associate CG with array
@@ -765,7 +769,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
+            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive,
+            final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
@@ -807,10 +812,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
@@ -830,7 +835,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
         try {
-            addVolumesToCG(storage, consistencyGroupId, blockObjects, false);
+            addVolumesToCG(storage, consistencyGroupId, blockObjects);
             List<BlockObject> objectsToSave = new ArrayList<BlockObject>();
             for (URI blockObjectURI : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient,
@@ -1035,74 +1040,36 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private void addVolumesToCG(StorageSystem storageSystem,
-            URI consistencyGroupId, List<URI> volumeURIs, boolean isVolumeCreation) throws Exception {
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
-                BlockConsistencyGroup.class, consistencyGroupId);
-
-        // if no cg, OR cg is not of type LOCAL, the volumes are not part of a
-        // consistency group, just return
-        if (consistencyGroup == null
-                || !consistencyGroup.created()
-                || (consistencyGroup.getTypes() != null && !consistencyGroup
-                        .getTypes().contains(
-                                BlockConsistencyGroup.Types.LOCAL.name()))) {
-            if (!isVolumeCreation) {
-                throw DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storageSystem
-                                        .getId()));
+    private synchronized void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
+        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+        if (null != consistencyGroup) {
+            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storageSystem);
+            if (groupName.equals(EMPTY_CG_NAME)) {
+                // may also check if CG instance exists on array, or not, if not, re-create it here need to create CG group
+                // here with member volumes this will ensure the new CG is associated to right pool without member volumes,
+                // there is no way to control which pool the CG will be associated to
+                CIMArgument[] inArgs = _helper.getCreateReplicationGroupInputArguments(storageSystem, consistencyGroup.getLabel(),
+                        volumeURIs);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.callReplicationSvc(storageSystem, SmisConstants.CREATE_GROUP, inArgs, outArgs);
+                // grab the CG name from the instance ID and store it in the db
+                final CIMObjectPath cgPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.CP_REPLICATION_GROUP);
+                final String deviceName = _helper.getReplicationGroupName(cgPath);
+                // the order of adding and removing system consistency group makes different somehow, removing before adding won't work
+                consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), deviceName);
+                consistencyGroup.removeSystemConsistencyGroup(storageSystem.getId().toString(), EMPTY_CG_NAME);
+                _dbClient.updateObject(consistencyGroup);
+            } else {
+                // existing CG, add volumes to the CG
+                CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(storageSystem, groupName);
+                CIMInstance cgPathInstance = _helper.checkExists(storageSystem, cgPath, false, false);
+                // if there is no consistency group with the given name, set the operation to error
+                if (cgPathInstance == null) {
+                    throw DeviceControllerException.exceptions.consistencyGroupNotFound(consistencyGroup.getLabel(),
+                            consistencyGroup.getCgNameOnStorageSystem(storageSystem.getId()));
+                }
+                _helper.addVolumesToConsistencyGroup(storageSystem, new ArrayList<URI>(volumeURIs), cgPath);
             }
-            else {
-                _log.info("Skipping addVolumesToCG: Volumes are not part of a consistency group");
-                return;
-            }
-        }
-
-        String groupName = _helper.getConsistencyGroupName(consistencyGroup,
-                storageSystem);
-        if (groupName.equals(EMPTY_CG_NAME)) { // may also check if CG
-                                               // instance
-            // exists on array, or not, if
-            // not, re-create it here
-            // need to create CG group here with member volumes
-            // this will ensure the new CG is associated to right pool
-            // without member volumes, there is no way to control which pool the
-            // CG will be associated to
-            CIMArgument[] inArgs = _helper
-                    .getCreateReplicationGroupInputArguments(storageSystem,
-                            consistencyGroup.getLabel(), volumeURIs);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            _helper.callReplicationSvc(storageSystem,
-                    SmisConstants.CREATE_GROUP, inArgs, outArgs);
-            // grab the CG name from the instance ID and store it in the db
-            final CIMObjectPath cgPath = _cimPath
-                    .getCimObjectPathFromOutputArgs(outArgs,
-                            SmisConstants.CP_REPLICATION_GROUP);
-            final String deviceName = _helper.getReplicationGroupName(cgPath);
-            // the order of adding and removing system consistency group makes different
-            // somehow, removing before adding won't work
-            consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), deviceName);
-            consistencyGroup.removeSystemConsistencyGroup(storageSystem.getId()
-                    .toString(), EMPTY_CG_NAME);
-            _dbClient.persistObject(consistencyGroup);
-        } else {
-            // existing CG, add volumes to the CG
-            CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(
-                    storageSystem, groupName);
-            CIMInstance cgPathInstance = _helper.checkExists(storageSystem,
-                    cgPath, false, false);
-            // if there is no consistency group with the given name, set the
-            // operation to error
-            if (cgPathInstance == null) {
-                throw DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storageSystem
-                                        .getId()));
-            }
-
-            _helper.addVolumesToConsistencyGroup(storageSystem,
-                    new ArrayList<URI>(volumeURIs), cgPath);
         }
     }
 
@@ -1151,8 +1118,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             _log.info("Exception on getCGMembers: " + e.getMessage());
             if (removeMembersException != null) {
                 throw removeMembersException;
-            }
-            else {
+            } else {
                 throw e;
             }
         }
@@ -1193,4 +1159,58 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException {
+        Map<URI, List<Integer>> initiatorToHLUMap = new HashMap<URI, List<Integer>>();
+
+        for (URI initiatorURI : initiatorURIs) {
+            List<Integer> initiatorHLUs = new ArrayList<Integer>();
+            initiatorToHLUMap.put(initiatorURI, initiatorHLUs);
+            Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+            final String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
+            CloseableIterator<CIMInstance> scsiPCInstances = null;
+            CloseableIterator<CIMInstance> pcforseunitInstances = null;
+
+            try {
+                String query = String.format("Select * From %s Where ElementName=\"%s\"", IBMSmisConstants.CP_STORAGE_HARDWARE_ID,
+                		normalizedPortName);
+                CIMObjectPath pcHwdIDPath = CimObjectPathCreator.createInstance(IBMSmisConstants.CP_STORAGE_HARDWARE_ID,
+                        Constants.IBM_NAMESPACE, null);
+                List<CIMInstance> hwidInstances = _helper.executeQuery(storage, pcHwdIDPath, query, "WQL");
+                if (null != hwidInstances && !hwidInstances.isEmpty()) {
+                    CIMObjectPath hwidObjectPath = hwidInstances.get(0).getObjectPath();
+                    scsiPCInstances = _helper.getAssociatorInstances(storage, hwidObjectPath, null,
+                            IBMSmisConstants.CP_SCSI_PROTOCOL_CONTROLLER, IBMSmisConstants.CP_COLLECTION, IBMSmisConstants.CP_MEMBER,
+                            SmisConstants.PS_ELEMENT_NAME);
+                    while (null != scsiPCInstances && scsiPCInstances.hasNext()) {
+                        CIMInstance scsiPCInstance = scsiPCInstances.next();
+                        CIMObjectPath scsiPCObjectPath = scsiPCInstance.getObjectPath();
+                        pcforseunitInstances = _helper.getReferenceInstances(storage, scsiPCObjectPath,
+                                IBMSmisConstants.CP_PROTOCOLCONTROLLER_FOR_SEUNIT, null, new String[] { IBMSmisConstants.DEVICE_NUMBER });
+                        while (null != pcforseunitInstances && pcforseunitInstances.hasNext()) {
+                            CIMInstance instance = pcforseunitInstances.next();
+                            final String deviceNumber = CIMPropertyFactory.getPropertyValue(instance, IBMSmisConstants.DEVICE_NUMBER);
+                            if (null != deviceNumber && !deviceNumber.isEmpty()) {
+                                initiatorHLUs.add(Integer.parseInt(deviceNumber));
+                            }
+                        }
+                        _log.info("HLU list for Initiator Port {} : {}", normalizedPortName, initiatorHLUs);
+                    }
+                }
+            } catch (WBEMException e) {
+                DeviceControllerException.exceptions.smis.hluRetrievalFailed("Error occured during retrieval of HLUs for a Host", e);
+            } finally {
+                if (scsiPCInstances != null) {
+                    scsiPCInstances.close();
+                }
+                if (pcforseunitInstances != null) {
+                    pcforseunitInstances.close();
+                }
+            }
+        }
+        return initiatorToHLUMap;
+    }
 }

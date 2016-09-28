@@ -21,12 +21,8 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileStartTaskCompleter.class);
 
-    public MirrorFileStartTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
-    }
-
-    public MirrorFileStartTaskCompleter(Class clazz, URI id, String opId) {
-        super(clazz, id, opId);
+    public MirrorFileStartTaskCompleter(Class clazz, URI id, String opId, URI storageUri) {
+        super(clazz, id, opId, storageUri);
     }
 
     public MirrorFileStartTaskCompleter(URI sourceURI, URI targetURI, String opId) {
@@ -48,7 +44,13 @@ public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        return this.mirrorSyncStatus = MirrorStatus.SYNCHRONIZED;
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        if(fs.getStorageDevice().equals(getStorageUri())) {
+        	_log.info("start on device is success - fs name {} and mirror state {}", fs.getName(), MirrorStatus.SYNCHRONIZED.name());
+            return MirrorStatus.SYNCHRONIZED.name();
+        } else {
+        	_log.info("start op is success - fs name {} and mirror state {}", fs.getName(), fs.getMirrorStatus());
+            return fs.getMirrorStatus();
+        }
     }
 }

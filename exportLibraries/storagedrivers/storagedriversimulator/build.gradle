@@ -1,5 +1,6 @@
 dependencies {
     compile project(":storagedriver"),
             library(slf4j),
+            library(spring),
             library(commons_lang)
 }

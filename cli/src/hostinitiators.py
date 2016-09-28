@@ -15,6 +15,7 @@ import common
 import json
 from common import SOSError
 from host import Host
+from storagesystem import StorageSystem
 import sys
 
 '''
@@ -36,8 +37,10 @@ class HostInitiator(object):
     URI_INITIATOR_DETAILS_BULK = "/compute/initiators/bulk"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_INITIATOR_DEACTIVATE = "/compute/initiators/{0}/deactivate"
+    URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias/{1}"
+    URI_INITIATOR_ALIASSET = "/compute/initiators/{0}/alias"
 
-    INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI']
+    INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI', 'RBD']
 
     __hostObject = None
 
@@ -414,6 +417,53 @@ class HostInitiator(object):
                     self.__ipAddr, self.__port)
             )
 
+    """
+    Initiator alias get operation
+    """
+
+    def aliasget(self, initiator_uri, device_name, device_type):
+        '''
+        Makes a REST API call to get the initiator alias against a storage system
+        '''
+        from storagesystem import StorageSystem
+        obj = StorageSystem(self.__ipAddr, self.__port)
+        device_detail = obj.show(name=device_name, type=device_type)
+        system_uri = device_detail['id']
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            HostInitiator.URI_INITIATOR_ALIASGET.format(initiator_uri, system_uri),
+            None)
+        o = common.json_decode(s)
+        return o
+
+
+    """
+    Initiator alias set operation
+    """
+
+    def aliasset(self, initiator_uri, device_name, device_type, alias):
+        '''
+        Makes a REST API call to get the initiator alias against a storage system
+        '''
+
+        from storagesystem import StorageSystem
+        obj = StorageSystem(self.__ipAddr, self.__port)
+        device_detail = obj.show(name=device_name, type=device_type)
+        system_uri = device_detail['id']
+
+        request = {'system_uri': system_uri,
+                   'initiator_alias': alias
+                   }
+        body = json.dumps(request)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "PUT",
+            HostInitiator.URI_INITIATOR_ALIASSET.format(initiator_uri),
+            body)
+        o = common.json_decode(s)
+        return o
+
     # Indentation END for the class
 # Start Parser definitions
 def create_parser(subcommand_parsers, common_parser):
@@ -465,7 +515,7 @@ def create_parser(subcommand_parsers, common_parser):
 
     mandatory_args.add_argument(
         '-pwwn', '-initiatorportwwn',
-        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI',
+        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI, or pseudo RBD port for Ceph',
         dest='initiatorportwwn',
         metavar='<initiatorportwwn>',
         required=True)
@@ -486,11 +536,11 @@ def initiator_create(args):
             " " + sys.argv[2] + ": error:" +
             "-initiatorwwn is required for FC type initiator")
 
-    if(args.protocol == "iSCSI" and args.initiatorwwn):
+    if(args.protocol in ("iSCSI", "RBD") and args.initiatorwwn):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
             " " + sys.argv[2] + ": error:" +
-            "-initiatorwwn is not required for iSCSI type initiator")
+            "-initiatorwwn is not required for " + args.protocol + " type initiator")
 
     initiatorObj = HostInitiator(args.ip, args.port)
     try:
@@ -746,7 +796,7 @@ def update_parser(subcommand_parsers, common_parser):
 
     mandatory_args.add_argument(
         '-npwwn', '-newinitiatorportwwn',
-        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI',
+        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI, or pseudo RBD port for Ceph',
         dest='newinitiatorportwwn',
         metavar='<newinitiatorportwwn>',
         required=True)
@@ -769,10 +819,10 @@ def initiator_update(args):
                        "At least one of the arguments :"
                        "-newprotocol -newinitiatorwwn -newinitiatorportwwn"
                        " should be provided to update the Host")
-    if(args.newprotocol == "iSCSI" and args.newinitiatorwwn):
+    if(args.newprotocol in ("iSCSI", "RBD") and args.newinitiatorwwn):
         raise SOSError(SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
                        " " + sys.argv[2] + ": error: -newinititorwwn " +
-                       "is not required for iSCSI type initiator")
+                       "is not required for " + args.newprotocol + " type initiator")
 
     initiatorObj = HostInitiator(args.ip, args.port)
     try:
@@ -867,6 +917,124 @@ def host_initiator_list_tasks(args):
         common.format_err_msg_and_raise("get tasks list", "initiator",
                                         e.err_text, e.err_code)
 
+#
+# initiator alias get parser
+#
+def aliasget_parser(subcommand_parsers, common_parser):
+    aliasget_parser = subcommand_parsers.add_parser(
+        'aliasget',
+        description='ViPR Initiator aliasget CLI usage ',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Gets the alias of an Initiator against a storage system if set')
+    mandatory_args = aliasget_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-pwwn', '-initiatorportwwn',
+                                metavar='<initiatorportwwn>',
+                                dest='initiatorportwwn',
+                                help='Port WWN of the Initiator to be deleted',
+                                required=True)
+    mandatory_args.add_argument('-hl', '-hostlabel',
+                                dest='hostlabel',
+                                metavar='<hostlabel>',
+                                help='Host for which initiator to be searched',
+                                required=True)
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of storage system',
+                                required=True)
+    mandatory_args.add_argument('-t', '-type',
+                                choices=StorageSystem.SYSTEM_TYPE_LIST,
+                                dest='type',
+                                help='Type of storage system',
+                                required=True)
+    aliasget_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
+    aliasget_parser.set_defaults(func=initiator_aliasget)
+
+
+def initiator_aliasget(args):
+    try:
+
+        initiatorObj = HostInitiator(args.ip, args.port)
+        initiatorUri = initiatorObj.query_by_portwwn(
+            args.initiatorportwwn,
+            args.hostlabel, args.tenant)
+        alias = initiatorObj.aliasget(initiatorUri,args.name, args.type)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "aliasget",
+            "initiator",
+            e.err_text,
+            e.err_code)
+
+    return alias['initiator_alias']
+
+#
+# initiator alias set parser
+#
+def aliasset_parser(subcommand_parsers, common_parser):
+    aliasset_parser = subcommand_parsers.add_parser(
+        'aliasset',
+        description='ViPR Initiator aliasset CLI usage ',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Sets the alias of an Initiator against a storage system')
+    mandatory_args = aliasset_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-pwwn', '-initiatorportwwn',
+                                metavar='<initiatorportwwn>',
+                                dest='initiatorportwwn',
+                                help='Port WWN of the Initiator to be deleted',
+                                required=True)
+    mandatory_args.add_argument('-hl', '-hostlabel',
+                                dest='hostlabel',
+                                metavar='<hostlabel>',
+                                help='Host for which initiator to be searched',
+                                required=True)
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of storage system',
+                                required=True)
+    mandatory_args.add_argument('-t', '-type',
+                                choices=StorageSystem.SYSTEM_TYPE_LIST,
+                                dest='type',
+                                help='Type of storage system',
+                                required=True)
+    mandatory_args.add_argument('-ia', '-initiatoralias',
+                                dest='alias',
+                                metavar='<alias>',
+                                help='Alias name that needs to be set',
+                                required=True)
+    aliasset_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
+    aliasset_parser.set_defaults(func=initiator_aliasset)
+
+
+def initiator_aliasset(args):
+    try:
+
+        initiatorObj = HostInitiator(args.ip, args.port)
+        initiatorUri = initiatorObj.query_by_portwwn(
+            args.initiatorportwwn,
+            args.hostlabel, args.tenant)
+        initiatorObj.aliasset(initiatorUri, args.name, args.type, args.alias)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "aliasset",
+            "initiator",
+            e.err_text,
+            e.err_code)
+
+    return
 
 def initiator_parser(parent_subparser, common_parser):
 
@@ -895,3 +1063,10 @@ def initiator_parser(parent_subparser, common_parser):
 
     # task parser
     task_parser(subcommand_parsers, common_parser)
+
+    # alias get parser
+    aliasget_parser(subcommand_parsers, common_parser)
+
+    # alias set parser
+    aliasset_parser(subcommand_parsers, common_parser)
+

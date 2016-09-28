@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
+import com.emc.storageos.management.backup.ExternalServerType;
+
 import java.io.OutputStream;
 import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.List;
@@ -21,10 +23,12 @@ public abstract class Uploader {
             return null;
         }
 
-        if (FtpsUploader.isSupported(cfg.uploadUrl)) {
+        if (ExternalServerType.FTP == cfg.getUploadServerType() && FtpsUploader.isSupported(cfg.uploadUrl) )
             return new FtpsUploader(cfg, cli);
-        }
 
+        if (ExternalServerType.CIFS == cfg.getUploadServerType() && CifsUploader.isSupported(cfg.uploadUrl)) {
+            return new CifsUploader(cfg,cli);
+        }
         throw new UnsupportedAddressTypeException();
     }
 

@@ -192,8 +192,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (!remoteSettingsMap.isEmpty()) {
             _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
+        StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
         Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
         Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
@@ -233,12 +234,12 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap, protectionSettingsMap, protectionSettings);
         List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
-
+        StringBuffer errorMessage = new StringBuffer();
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 protectionSettingsMap,
                 remoteSettingsMap,
                 null,
-                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -254,9 +255,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualPoolList getBlockVirtualPool(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualPoolList getBlockVirtualPool(
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId,
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
-        return getVirtualPoolList(VirtualPool.Type.block, shortVdcId);
+        return getVirtualPoolList(VirtualPool.Type.block, shortVdcId, tenantId);
     }
 
     /**
@@ -466,6 +469,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
             }
         }
+        
+        if (null != param.getCompressionEnabled()) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
 
         vpool.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
 
@@ -507,11 +514,26 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             updateProtectionParamsForVirtualPool(vpool, param.getProtection(), param.getHighAvailability());
         }
 
+        // update placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+        
+        // non-dedep vpool can NOT be made dedup if it has volumes created
+        // dedup vpool can be made non-dedup because dedup storage pools will always remain
+        if (null != param.getDedupCapable()) {
+            if (vpool.getDedupCapable() != null && !vpool.getDedupCapable() &&
+            		param.getDedupCapable()) {
+                ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
+            }
+            vpool.setDedupCapable(param.getDedupCapable());
+        }
+
         // Validate Block VirtualPool update params.
         VirtualPoolUtil.validateBlockVirtualPoolUpdateParams(vpool, param, _dbClient);
-
+        StringBuffer errorMessage = new StringBuffer();
         // invokes implicit pool matching algorithm.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
 
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
@@ -530,7 +552,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (vpool.getMaxNativeContinuousCopies() != null) {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
-
+        
         _dbClient.updateObject(vpool);
 
         // Update VirtualPool and QoS with new parameters
@@ -1723,6 +1745,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (null != param.getAutoTieringPolicyName() && !param.getAutoTieringPolicyName().isEmpty()) {
             vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
         }
+        if (param.getCompressionEnabled() != null) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
         }
@@ -1742,6 +1767,16 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set limit for host i/o
         if (param.getHostIOLimitIOPs() != null) {
             vpool.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        }
+        
+        // set placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+        
+        // set dedup capable or not
+        if (null != param.getDedupCapable()) {
+        	vpool.setDedupCapable(param.getDedupCapable());
         }
 
         return vpool;

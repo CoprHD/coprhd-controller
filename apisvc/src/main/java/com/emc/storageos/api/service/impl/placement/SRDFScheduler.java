@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
@@ -185,12 +186,12 @@ public class SRDFScheduler implements Scheduler {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
-
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_SOURCE);
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities);
+        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
 
         if (pools == null || pools.isEmpty()) {
             _log.error(
@@ -198,8 +199,12 @@ public class SRDFScheduler implements Scheduler {
                             + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
                             + "hold at least one resource of the requested size.",
                     varray.getLabel());
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(),
-                    varray.getLabel());
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(),
+                    errorMessage.toString());
         }
 
         // skip StoragePools, which had been used as R2 targets for given consistencyGroup earlier.
@@ -306,9 +311,9 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
-
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
-                capabilities);
+                capabilities, attributeMap);
         if (varrayPoolMap == null || varrayPoolMap.isEmpty()) {
             // No matching storage pools found for any of the target varrays. There are no target
             // storage pools that match the passed vpool parameters and protocols and/or there are
@@ -325,10 +330,14 @@ public class SRDFScheduler implements Scheduler {
 
             sb.append("]. There are no storage pools that match the passed vpool parameters and protocols and/or "
                     + "there are no pools that have enough capacity to hold at least one resource of the requested size.");
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
 
             _log.error(sb.toString());
             throw APIException.badRequests.noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-                    vpool.getLabel(), tmpTargetVarrays);
+                    vpool.getLabel(), tmpTargetVarrays, errorMessage.toString());
 
         }
 
@@ -1217,10 +1226,12 @@ public class SRDFScheduler implements Scheduler {
      *            the requested vpool that must be satisfied by the storage pool
      * @param capabilities
      *            capabilities
+     * @param attributeMap
+     *            attributeMap
      * @return A list of matching storage pools and varray mapping
      */
     private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays,
-            final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities) {
+            final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
         Map<VirtualArray, List<StoragePool>> varrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
         Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool
                 .getRemoteProtectionSettings(vpool, _dbClient);
@@ -1236,7 +1247,7 @@ public class SRDFScheduler implements Scheduler {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_TARGET);
             // Find a matching pool for the target vpool
             varrayStoragePoolMap.put(varray,
-                    _blockScheduler.getMatchingPools(varray, targetVpool, capabilities));
+                    _blockScheduler.getMatchingPools(varray, targetVpool, capabilities, attributeMap));
         }
 
         return varrayStoragePoolMap;

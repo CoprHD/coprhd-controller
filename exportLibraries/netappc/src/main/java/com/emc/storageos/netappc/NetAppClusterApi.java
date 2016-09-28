@@ -19,6 +19,7 @@ import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.QuotaCommands.QuotaStatus;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netappc.NFSSecurityStyle;
 import com.iwave.ext.netappc.NetAppClusterFacade;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
@@ -684,6 +685,26 @@ public class NetAppClusterApi {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             return netAppClusterFacade.listVolumes();
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.listFileSystems(_ipAddress, e.getMessage());
+        }
+    }
+    
+    public List<Qtree> listQtrees() throws NetAppCException {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.listQtrees(null);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.listFileSystems(_ipAddress, e.getMessage());
+        }
+    }
+    
+    public List<Quota> listQuotas() throws NetAppCException {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.listTreeQuotas();
         } catch (Exception e) {
             throw NetAppCException.exceptions.listFileSystems(_ipAddress, e.getMessage());
         }

@@ -984,6 +984,23 @@ public class BasePermissionsHelper {
     }
 
     /**
+     * Returns true if any tenant in the list has a usage acl on the VirtualPool
+     *
+     * @param tenantUris
+     * @param virtualPool
+     * @return
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, VirtualPool virtualPool) {
+        for (URI tenantUri : tenantUris) {
+            if (tenantHasUsageACL(tenantUri, virtualPool)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Returns true if the user's tenant has a usage acl on the ComputeVirtualPool
      * 
      * @param tenantUri
@@ -1008,6 +1025,16 @@ public class BasePermissionsHelper {
         return false;
     }
 
+    public boolean tenantHasUsageACL(List<URI> tenantUris, ComputeVirtualPool computeVirtualPool) {
+        for (URI tenantUri : tenantUris) {
+            if (tenantHasUsageACL(tenantUri, computeVirtualPool)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Returns true if the user's tenant has a usage acl on the VirtualArray
      * 
@@ -1029,6 +1056,38 @@ public class BasePermissionsHelper {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Returns true if any tenant in the list has a usage acl on the VirtualArray
+     *
+     * @param tenantUris
+     * @param virtualArray
+     * @return
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, VirtualArray virtualArray) {
+        for (URI tenantUri : tenantUris) {
+            if (tenantHasUsageACL(tenantUri, virtualArray)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * return a list of tenant URI the specified user has tenant role over it.
+     *
+     * @param user
+     * @return
+     */
+    public List<URI> getSubtenantsWithRoles(StorageOSUser user) {
+        Map<String, Collection<String>> subTenantRoles = getSubtenantRolesForUser(user);
+        List<URI> subtenants = new ArrayList<URI>();
+        for (String subtenant : subTenantRoles.keySet()) {
+            subtenants.add(URI.create(subtenant));
+        }
+
+        return subtenants;
     }
 
     /**

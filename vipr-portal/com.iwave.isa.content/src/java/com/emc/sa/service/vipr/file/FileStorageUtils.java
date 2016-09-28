@@ -15,6 +15,7 @@ import static com.emc.sa.service.vipr.file.FileConstants.NFS_PROTOCOL;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,7 @@ import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemShare;
 import com.emc.sa.service.vipr.file.tasks.DeactivateQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.DissociateFilePolicyFromFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ExpandFileSystem;
+import com.emc.sa.service.vipr.file.tasks.FailbackFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FailoverFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FindFileSnapshotExportRules;
 import com.emc.sa.service.vipr.file.tasks.FindFileSystemExportRules;
@@ -54,12 +56,15 @@ import com.emc.sa.service.vipr.file.tasks.GetCifsSharesForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
+import com.emc.sa.service.vipr.file.tasks.GetNfsMountsforFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
+import com.emc.sa.service.vipr.file.tasks.MountFSExport;
 import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
+import com.emc.sa.service.vipr.file.tasks.UnmountFSExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -71,6 +76,9 @@ import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
+import com.emc.storageos.model.file.FileSystemMountParam;
+import com.emc.storageos.model.file.FileSystemUnmountParam;
+import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
@@ -128,8 +136,18 @@ public class FileStorageUtils {
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
-        logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
+        logInfo("file.storage.filesystem.task", task.getResourceId(), task.getOpId());
         return fileSystemId;
+    }
+
+    public static URI createFileSystemWithoutRollBack(URI project, URI virtualArray, URI virtualPool, String label,
+            double sizeInGb, int advisoryLimit,
+            int softLimit, int gracePeriod) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
+                virtualArray, project));
+        addAffectedResource(task);
+        logInfo("file.storage.filesystem.task", task.getResourceId(), task.getOpId());
+        return task.getResourceId();
     }
 
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
@@ -155,7 +173,7 @@ public class FileStorageUtils {
 
             // Delete all export rules for filesystem and all sub-directories
             if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null);
+                deactivateFileSystemExport(fileSystemId, true, null, true);
             }
 
             // Deactivate NFS Exports
@@ -232,23 +250,30 @@ public class FileStorageUtils {
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, exportRule.security, exportRule.permission, DEFAULT_ROOT_USER,
+        return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, DEFAULT_ROOT_USER,
                 exportRule.exportHosts, subDirectory);
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, String security, String permissions, String rootUser,
             List<String> exportHosts, String subDirectory) {
-        Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permissions,
-                rootUser, exportHosts, subDirectory));
-        addAffectedResource(task);
+        Task<FileShareRestRep> task = createFileSystemExportWithoutRollBack(fileSystemId, comment, security, permissions, rootUser,
+                exportHosts, subDirectory);
+        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
         String exportId = task.getResourceId().toString();
-        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null));
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }
 
+    public static Task<FileShareRestRep> createFileSystemExportWithoutRollBack(URI fileSystemId, String comment, String security,
+            String permissions, String rootUser, List<String> exportHosts, String subDirectory) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permissions,
+                rootUser, exportHosts, subDirectory));
+        addAffectedResource(task);
+        return task;
+    }
+
     public static String createFileSnapshotExport(URI fileSnapshotId, String comment, FileExportRule exportRule, String subDirectory) {
-        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.security, exportRule.permission,
+        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.getSecurity(), exportRule.permission,
                 DEFAULT_ROOT_USER, exportRule.exportHosts, subDirectory);
     }
 
@@ -371,8 +396,15 @@ public class FileStorageUtils {
         addAffectedResource(task);
     }
 
-    public static void failoverFileSystem(URI fileId, URI targetId) {
-        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
+    public static void failoverFileSystem(URI fileId, URI targetId, boolean replicationConf) {
+        Tasks<FileShareRestRep> tasks = execute(
+                new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(), replicationConf));
+        addAffectedResources(tasks);
+    }
+
+    public static void failbackFileSystem(URI fileId, URI targetId, boolean replicationConf) {
+        Tasks<FileShareRestRep> tasks = execute(
+                new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(), replicationConf));
         addAffectedResources(tasks);
     }
 
@@ -433,8 +465,8 @@ public class FileStorageUtils {
         return task.getResourceId();
     }
 
-    public static URI deactivateFileSystemExport(URI fileSystemId, Boolean allDir, String subDir) {
-        Task<FileShareRestRep> task = execute(new DeactivateFileSystemExportRule(fileSystemId, allDir, subDir));
+    public static URI deactivateFileSystemExport(URI fileSystemId, Boolean allDir, String subDir, Boolean unmountExport) {
+        Task<FileShareRestRep> task = execute(new DeactivateFileSystemExportRule(fileSystemId, allDir, subDir, unmountExport));
         addAffectedResource(task);
         return task.getResourceId();
     }
@@ -452,11 +484,9 @@ public class FileStorageUtils {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
                 rules.put(fileExportRule.security, rule);
-            }
-            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            }
-            else {
+            } else {
                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
@@ -473,8 +503,7 @@ public class FileStorageUtils {
             exportRule.setAnon(DEFAULT_ROOT_USER);
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
-            }
-            else {
+            } else {
                 exportRuleListToAdd.add(exportRule);
             }
         }
@@ -510,11 +539,9 @@ public class FileStorageUtils {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
                 rules.put(fileExportRule.security, rule);
-            }
-            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            }
-            else {
+            } else {
                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
@@ -531,8 +558,7 @@ public class FileStorageUtils {
             exportRule.setAnon(DEFAULT_ROOT_USER);
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
-            }
-            else {
+            } else {
                 exportRuleListToAdd.add(exportRule);
             }
         }
@@ -572,6 +598,25 @@ public class FileStorageUtils {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
 
+    public static MountInfoList getMountList(URI fileSystemId) {
+        return execute(new GetNfsMountsforFileSystem(fileSystemId));
+    }
+
+    public static Task<FileShareRestRep> mountNFSExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
+            String security, String fsType) {
+        FileSystemMountParam param = new FileSystemMountParam(hostId, subDirectory, security, mountPath, fsType);
+        Task<FileShareRestRep> task = execute(new MountFSExport(fileSystemId, param));
+        addAffectedResource(task);
+        return task;
+    }
+
+    public static Task<FileShareRestRep> unmountNFSExport(URI fileSystemId, URI hostId, String mountPath) {
+        FileSystemUnmountParam param = new FileSystemUnmountParam(hostId, mountPath);
+        Task<FileShareRestRep> task = execute(new UnmountFSExport(fileSystemId, param));
+        addAffectedResource(task);
+        return task;
+    }
+
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {
         List<String> names = new ArrayList<String>();
         for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
@@ -592,7 +637,7 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;
@@ -621,5 +666,86 @@ public class FileStorageUtils {
 
         @Param
         protected String permission;
+
+        public List<String> getExportHosts() {
+            return exportHosts;
+        }
+
+        public void setExportHosts(List<String> exportHosts) {
+            this.exportHosts = exportHosts;
+        }
+
+        public String getSecurity() {
+            return security;
+        }
+
+        public void setSecurity(String security) {
+            this.security = security;
+        }
+
+        public String getPermission() {
+            return permission;
+        }
+
+        public void setPermission(String permission) {
+            this.permission = permission;
+        }
+    }
+
+    public static class Mount {
+        @Param
+        private URI host;
+
+        @Param
+        private String security;
+
+        @Param
+        private String permission;
+
+        @Param
+        private String mountPath;
+
+        @Param
+        private String fsType;
+
+        public URI getHost() {
+            return host;
+        }
+
+        public void setHost(URI host) {
+            this.host = host;
+        }
+
+        public String getSecurity() {
+            return security;
+        }
+
+        public void setSecurity(String security) {
+            this.security = security;
+        }
+
+        public String getPermission() {
+            return permission;
+        }
+
+        public void setPermission(String permission) {
+            this.permission = permission;
+        }
+
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        public void setMountPath(String mountPath) {
+            this.mountPath = mountPath;
+        }
+
+        public String getFsType() {
+            return fsType;
+        }
+
+        public void setFsType(String fsType) {
+            this.fsType = fsType;
+        }
     }
 }

@@ -10,8 +10,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.valid.Range;
 import org.codehaus.jackson.annotate.JsonIgnore;
+
+import com.emc.storageos.model.valid.Range;
 
 /**
  * Parameters to create Block VirtualPool.
@@ -35,10 +36,19 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     private BlockVirtualPoolProtectionParam protection;
     private VirtualPoolHighAvailabilityParam highAvailability;
     private Boolean uniquePolicyNames;
+    
+    // compression setting for all flash vmax arrays
+    private Boolean compressionEnabled;
 
     // VMAX Host IO Limits attributes
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+    
+    // De-duplication supported vpool
+    private Boolean dedupCapable;
+
+    // resource placement policy
+    private String placementPolicy;
 
     public BlockVirtualPoolParam() {
     }
@@ -336,6 +346,21 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
     }
 
+    /**
+     * @return the compressionEnabled
+     */
+    @XmlElement(name = "compression_enabled", required = false)
+    public Boolean getCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
+    }
+
     @JsonIgnore
     public boolean isHostIOLimitBandwidthSet() {
         return hostIOLimitBandwidth != null && hostIOLimitBandwidth > 0;
@@ -345,4 +370,29 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     public boolean isHostIOLimitIOPsSet() {
         return hostIOLimitIOPs != null && hostIOLimitIOPs > 0;
     }
+
+    @XmlElement(name = "dedup_capable", required = false)
+	public Boolean getDedupCapable() {
+		return dedupCapable;
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
+	}
+
+    /**
+     * Resource placement policy used by the virtual pool.
+     * Valid values:
+     *  default_policy (storage system/pool selection based on metrics and capacity)
+     *  array_affinity (storage system/pool selection based on host/cluster's array affinity first, then metrics and capacity)
+     */
+    @XmlElement(name = "placement_policy")
+    public String getPlacementPolicy() {
+        return placementPolicy;
+    }
+
+    public void setPlacementPolicy(String placementPolicy) {
+        this.placementPolicy = placementPolicy;
+    }
+
 }

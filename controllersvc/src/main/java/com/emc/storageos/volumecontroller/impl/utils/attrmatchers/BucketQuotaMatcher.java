@@ -11,10 +11,10 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.google.common.base.Joiner;
 
 /**
@@ -38,7 +38,8 @@ private static final Logger _logger = LoggerFactory.getLogger(BucketQuotaMatcher
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         String quota = attributeMap.get(Attributes.quota.toString()).toString();
         Long hardQuota = Long.parseLong(quota);
         //convert to KB
@@ -53,6 +54,11 @@ private static final Logger _logger = LoggerFactory.getLogger(BucketQuotaMatcher
                 _logger.info("Ignoring pool {} as Free capacity is less", pool.getNativeGuid());
                 filteredPoolList.remove(pool);
             }
+        }
+
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("No available capacity for hard quota %d. ", hardQuota));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching Hard quota Ended : {}, {}", hardQuota,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));

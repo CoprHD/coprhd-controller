@@ -129,6 +129,11 @@ function accessStatus(){
         
       <dt class="moreDetails">&{'resources.volume.devicelabel'}:</dt>
       <dd class="moreDetails">#{spaceForNull volume.deviceLabel/}</dd>
+        
+      #{if compressionRatio}
+        <dt class="moreDetails">&{'resources.volume.compressionratio'}:</dt>
+        <dd class="moreDetails">#{spaceForNull volume.compressionRatio/}</dd>
+      #{/if}
       
       <dt class="moreDetails">&{'resources.volume.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>

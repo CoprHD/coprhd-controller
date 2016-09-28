@@ -24,8 +24,8 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -57,32 +57,36 @@ public class ImplicitPoolMatcher {
     public static void matchBlockSystemPools(Object systemPools,
             Object dbClient, Object coordinator, Object systemId) throws Exception {
         List<StoragePool> modifiedPools = new ArrayList<StoragePool>(((Map<URI, StoragePool>) systemPools).values());
+        StringBuffer errorMessage = new StringBuffer();
         matchModifiedStoragePoolsWithAllVpool(modifiedPools,
                 (DbClient) dbClient, (CoordinatorClient) coordinator,
-                (URI) systemId);
+                (URI) systemId, errorMessage);
     }
 
     /**
      * Match all the Storage Pools in a StorageSystem to All Virtual Pools.
      * 
-     * @param storageSystem
+     * @param storageSystemURI
+     * @param dbClient
+     * @param coordinator
+     * @param errorMessage
      */
     public static void matchStorageSystemPoolsToVPools(URI storageSystemURI,
-            DbClient _dbClient, CoordinatorClient _coordinator) {
+            DbClient dbClient, CoordinatorClient coordinator, StringBuffer errorMessage) {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getStorageDeviceStoragePoolConstraint(storageSystemURI),
                 storagePoolURIs);
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         while (storagePoolURIs.iterator().hasNext()) {
             URI storagePoolURI = storagePoolURIs.iterator().next();
-            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolURI);
+            StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
             if (storagePool != null && !storagePool.getInactive()) {
                 storagePools.add(storagePool);
             }
         }
         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(
-                storagePools, _dbClient, _coordinator);
+                storagePools, dbClient, coordinator, errorMessage);
     }
 
     /**
@@ -126,12 +130,14 @@ public class ImplicitPoolMatcher {
      *            : modified pools of the discovered system.
      * @param dbClient
      *            : dbClient instance.
+     * @param coordinator
      * @param systemId
      *            : system id.
+     * @param errorMessage
      * @throws Exception
      */
     public static void matchModifiedStoragePoolsWithAllVpool(List<StoragePool> systemModifiedPools, DbClient dbClient,
-            CoordinatorClient coordinator, URI systemId) throws DeviceControllerException {
+            CoordinatorClient coordinator, URI systemId, StringBuffer errorMessage) throws DeviceControllerException {
         if (null == systemModifiedPools || systemModifiedPools.isEmpty()) {
             _logger.info("No StoragePools found to run implicit pool matching for systemId: {}", systemId);
             return;
@@ -150,7 +156,7 @@ public class ImplicitPoolMatcher {
         try {
             lock.acquire();
             _logger.info("Acquired lock to update vpool-pool relation for system {}", systemId);
-            matchModifiedStoragePoolsWithAllVirtualPool(systemModifiedPools, dbClient, coordinator);
+            matchModifiedStoragePoolsWithAllVirtualPool(systemModifiedPools, dbClient, coordinator, errorMessage);
         } catch (Exception e) {
             _logger.error("Failed to match pools", e);
             throw new DeviceControllerException(e, "Failed to match pools. Caused by : {0}",
@@ -188,15 +194,17 @@ public class ImplicitPoolMatcher {
      *            : List of pools updated.
      * @param dbClient
      *            : dbClient instance.
+     * @param coordinator
+     * @param errorMessage
      */
     public static void matchModifiedStoragePoolsWithAllVirtualPool(List<StoragePool> updatedPoolList,
-            DbClient dbClient, CoordinatorClient coordinator) {
+            DbClient dbClient, CoordinatorClient coordinator, StringBuffer errorMessage) {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
         Iterator<VirtualPool> vpoolListItr = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
         List<VirtualPool> vPoolsToUpdate = new ArrayList<VirtualPool>();
         while (vpoolListItr.hasNext()) {
             VirtualPool vpool = vpoolListItr.next();
-            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator, null);
+            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator, null, errorMessage);
             vPoolsToUpdate.add(vpool);
         }
         if (!vPoolsToUpdate.isEmpty()) {
@@ -206,19 +214,21 @@ public class ImplicitPoolMatcher {
 
     /**
      * Matches given set of virtual pools with list of storage pools.
+     * 
      * @param updatedPoolList list of storage pools
      * @param vpoolURIs list of virtual pools
      * @param dbClient
      * @param coordinator
      * @param matcherGroupName group name of attribute matchers
+     * @param errorMessage Error Message instance
      */
     public static void matchModifiedStoragePoolsWithVirtualPools(List<StoragePool> updatedPoolList, List<URI> vpoolURIs,
-                                                                 DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName) {
+            DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
         Iterator<VirtualPool> vpoolListItr = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
         List<VirtualPool> vPoolsToUpdate = new ArrayList<VirtualPool>();
         while (vpoolListItr.hasNext()) {
             VirtualPool vpool = vpoolListItr.next();
-            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator, matcherGroupName);
+            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator, matcherGroupName, errorMessage);
             vPoolsToUpdate.add(vpool);
         }
         if (!vPoolsToUpdate.isEmpty()) {
@@ -236,13 +246,14 @@ public class ImplicitPoolMatcher {
      *            : pools to match.
      * @param dbClient
      * @param matcherGroupName group name of attribute matchers to run
+     * @param errorMessage
      */
     public static void matchvPoolWithStoragePools(VirtualPool vpool, List<StoragePool> pools, DbClient dbClient,
-            CoordinatorClient coordinator, String matcherGroupName) {
+            CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
         List<StoragePool> filterPools = getMatchedPoolWithStoragePools(vpool, pools,
                 VirtualPool.getProtectionSettings(vpool, dbClient),
                 VirtualPool.getRemoteProtectionSettings(vpool, dbClient),
-                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName);
+                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName, errorMessage);
         updateInvalidAndMatchedPoolsForVpool(vpool, filterPools, pools, dbClient);
     }
 
@@ -257,7 +268,7 @@ public class ImplicitPoolMatcher {
             Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
             Map<URI, VpoolRemoteCopyProtectionSettings> fileRemoteSettingsMap,
             DbClient dbClient,
-            CoordinatorClient coordinator, String matcherGroupName) {
+            CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
         // By default use all vpool matchers.
         if (matcherGroupName == null) {
             matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
@@ -269,7 +280,7 @@ public class ImplicitPoolMatcher {
         Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
         _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
         List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
-                matcherGroupName);
+                matcherGroupName, errorMessage);
         _logger.info("Ended matching pools with vpool attributes. Found {} matching pools", filterPools.size());
         return filterPools;
     }
@@ -373,10 +384,13 @@ public class ImplicitPoolMatcher {
      * @param vpool
      *            : List of VirtualPool
      * @param dbClient
-     * @return
+     * @param coordinator
+     * @param errorMessage
+     * @return {@link Void}
      * @throws IOException
      */
-    public static void matchVirtualPoolWithAllStoragePools(VirtualPool vpool, DbClient dbClient, CoordinatorClient coordinator) {
+    public static void matchVirtualPoolWithAllStoragePools(VirtualPool vpool, DbClient dbClient, CoordinatorClient coordinator,
+            StringBuffer errorMessage) {
         List<URI> storagePoolURIs = dbClient.queryByType(StoragePool.class, true);
         Iterator<StoragePool> storagePoolList = dbClient.queryIterativeObjects(StoragePool.class, storagePoolURIs);
         List<StoragePool> allPoolsToProcess = new ArrayList<StoragePool>();
@@ -384,7 +398,7 @@ public class ImplicitPoolMatcher {
             allPoolsToProcess.add(storagePoolList.next());
         }
         if (!allPoolsToProcess.isEmpty()) {
-            matchvPoolWithStoragePools(vpool, allPoolsToProcess, dbClient, coordinator, null);
+            matchvPoolWithStoragePools(vpool, allPoolsToProcess, dbClient, coordinator, null, errorMessage);
         }
     }
 

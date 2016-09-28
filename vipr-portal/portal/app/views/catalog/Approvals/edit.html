@@ -11,7 +11,13 @@
 
   <div class="pull-left span5">
     <dl class="dl-horizontal nomargin">
-      <dt>&{'order.number'}:</dt>
+        <dt>
+        #{if scheduledEvent != null}
+            #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
+                &{'order.number.first'}
+            #{/if}
+        #{/if}
+      &{'order.number'}:</dt>
       <dd>${order.orderNumber}</dd>
       
       <dt>&{'order.dateSubmitted'}:</dt>
@@ -23,6 +29,38 @@
       <dt>&{'approval.status'}:</dt>
       <dd>#{Approvals.statusIcon status:approval.approvalStatus/}
           &{'ApprovalStatus.' + approval.approvalStatus}</dd>
+
+
+        #{if scheduledEvent != null}
+            <dt>&{'order.schedule'}:</dt>
+            <dd>
+                #{if scheduledEvent.scheduleInfo.reoccurrence == 1}
+                    &{'order.occur'}
+                    #{localDateTime scheduleStartDateTime/}
+                #{/if}
+
+                #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
+                    &{'order.recur'}
+                    &nbsp;${scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
+                    &{'order.'+scheduledEvent.scheduleInfo.cycleType}
+                    &{'order.at'}
+                	#{localDateTime scheduleStartDateTime, format: "HH:mm"/}
+                #{/if}
+
+                #{if scheduledEvent.scheduleInfo.reoccurrence > 1}
+                    &{'order.occurrences',scheduledEvent.scheduleInfo.reoccurrence}
+                #{/if}
+                #{if scheduledEvent.scheduleInfo.reoccurrence == 0}
+                    &{'order.occurrences.indefinite'}
+                #{/if}
+            </dd>
+            #{if scheduledEvent.orderCreateParam.additionalScheduleInfo != null}
+                <dt>&{'order.additionalScheduleInfo'}:</dt>
+                <dd>
+                    &{'order.additionalScheduleInfo.value',scheduledEvent.orderCreateParam.additionalScheduleInfo}
+                </dd>
+            #{/if}
+        #{/if}
     </dl>
   </div>
   
@@ -33,6 +71,13 @@
   <div class="clear"></div>
   <hr>
   #{if approval.isPending()}
+    #{if scheduledEvent != null}
+        #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
+            <div class="alert alert-info"><span class="badge badge-info">#{icon 'time'/}</span>
+                &{'approval.orderScheduled'}
+            </div>
+        #{/if}
+    #{/if}
     %{ id = approval.id.toString() }%
       #{form @submit(id), id:'approval', class:'form form-horizontal', autocomplete:"off"}
           #{field 'approval.message'}
@@ -55,7 +100,7 @@
               </button>
           #{/Form.buttonBar}
       #{/form}
-      #{/if}
+  #{/if}
   #{elseif approval.isApproved()}
     <div style="margin-top:1em;" class="alert alert-info">
       <span class="badge badge-info">#{icon 'ok'/}</span> 

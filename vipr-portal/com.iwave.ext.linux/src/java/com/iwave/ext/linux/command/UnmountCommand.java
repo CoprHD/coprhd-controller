@@ -17,6 +17,12 @@ public class UnmountCommand extends LinuxCommand {
         setPath(path);
     }
 
+    public UnmountCommand(Integer timeoutVal) {
+        setCommand(CommandConstants.TIMEOUT + " " + timeoutVal.toString() + " " + CommandConstants.UMOUNT);
+        addVariable(PATH);
+        setRunAsRoot(true);
+    }
+
     public UnmountCommand() {
         setCommand(CommandConstants.UMOUNT);
         addVariable(PATH);

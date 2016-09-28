@@ -22,6 +22,8 @@ public class RecoverPointVolumeProtectionInfo {
     private long _rpVolumeRSetID;
     private String _rpVolumeWWN;
     private boolean isMetroPoint = false;
+    private String rpCopyName;
+    private String rpSiteName;
 
     public RecoverPointVolumeProtectionInfo() {
         _rpVolumeCurrentProtectionStatus = volumeProtectionStatus.NOT_PROTECTED;
@@ -94,5 +96,21 @@ public class RecoverPointVolumeProtectionInfo {
 
     public void setMetroPoint(boolean isMetroPoint) {
         this.isMetroPoint = isMetroPoint;
+    }
+
+    public String getRpCopyName() {
+        return rpCopyName;
+    }
+
+    public void setRpCopyName(String rpCopyName) {
+        this.rpCopyName = rpCopyName;
+    }
+
+    public String getRpSiteName() {
+        return rpSiteName;
+    }
+
+    public void setRpSiteName(String rpSiteName) {
+        this.rpSiteName = rpSiteName;
     }
 }

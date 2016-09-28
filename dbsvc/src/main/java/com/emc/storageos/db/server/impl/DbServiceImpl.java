@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
+import com.emc.storageos.db.event.ActionableEventScrubberExecutor;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
 import com.emc.storageos.db.server.DbService;
 import com.emc.storageos.db.server.MigrationHandler;
@@ -84,6 +85,7 @@ public class DbServiceImpl implements DbService {
     private MigrationHandler _handler;
     private GarbageCollectionExecutor _gcExecutor;
     private TaskScrubberExecutor _taskScrubber;
+    private ActionableEventScrubberExecutor _eventScrubber;
     // 3 threads two threads for node repair, one is for failure detector
     private static final String POOL_NAME = "DBBackgroundPool";
     private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(POOL_NAME, 3);
@@ -170,6 +172,14 @@ public class DbServiceImpl implements DbService {
 
     public void setGarbageCollector(GarbageCollectionExecutor gcExecutor) {
         _gcExecutor = gcExecutor;
+    }
+
+    public ActionableEventScrubberExecutor getEventScrubber() {
+        return _eventScrubber;
+    }
+
+    public void setEventScrubber(ActionableEventScrubberExecutor eventScrubber) {
+        this._eventScrubber = eventScrubber;
     }
 
     public TaskScrubberExecutor getTaskScrubber() {
@@ -673,6 +683,8 @@ public class DbServiceImpl implements DbService {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
             if (isGeoDbsvc()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
+            } else {
+                _schemaUtil.checkAndInitStorageSystemTypes(_dbClient);
             }
 
             startBackgroundTasks();
@@ -852,6 +864,10 @@ public class DbServiceImpl implements DbService {
     
             if (_taskScrubber != null) {
                 _taskScrubber.start();
+            }
+
+            if (_eventScrubber != null) {
+                _eventScrubber.start();
             }
         }
         startBackgroundDetectorTask();

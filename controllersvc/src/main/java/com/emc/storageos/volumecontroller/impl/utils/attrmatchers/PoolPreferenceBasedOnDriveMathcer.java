@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
@@ -30,6 +31,14 @@ public class PoolPreferenceBasedOnDriveMathcer extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
+        // ignore preference in case of array affinity
+        if (attributeMap != null && attributeMap.containsKey(Attributes.array_affinity.name())) {
+            Boolean arrayAffinity = (Boolean) attributeMap.get(Attributes.array_affinity.name());
+            if (arrayAffinity) {
+                return false;
+            }
+        }
+
         // run only if System Type is VMAX.
         return (null != attributeMap
                 && attributeMap.containsKey(Attributes.system_type.toString())
@@ -38,7 +47,8 @@ public class PoolPreferenceBasedOnDriveMathcer extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> optimalPools = new ArrayList<StoragePool>();
         ListMultimap<String, StoragePool> groupSPByDriveType = ArrayListMultimap.create();
         _logger.info("Optimal Pool Selection Matcher Started {} :", Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
@@ -70,6 +80,11 @@ public class PoolPreferenceBasedOnDriveMathcer extends AttributeMatcher {
         if (optimalPools.isEmpty()) {
             _logger.info("Storage pool list is empty after filtering based on optimal pools. Returning back the full list.");
             optimalPools = allPools;
+        }
+
+        if (CollectionUtils.isEmpty(optimalPools)) {
+            errorMessage.append("No matching pools available for pool preference  based on the drive type. ");
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Optimal Pool Selection Matcher Ended {} :", Joiner.on("\t").join(getNativeGuidFromPools(optimalPools)));
         return optimalPools;

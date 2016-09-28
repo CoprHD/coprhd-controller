@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    
+    <bean id="3parIngestionHelper" class="com.emc.storageos.hp3par.impl.HP3PARIngestHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+
+    <bean id="3parSnapshotHelper" class="com.emc.storageos.hp3par.impl.HP3PARSnapshotHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+
+    <bean id="3parCloneHelper" class="com.emc.storageos.hp3par.impl.HP3PARCloneHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+
+    <bean id="3parCGHelper" class="com.emc.storageos.hp3par.impl.HP3PARCGHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+
+	<bean id="hp3parApiFactory" class="com.emc.storageos.hp3par.connection.HP3PARApiFactory" init-method="init">
+		<property name="connectionTimeoutMs" value="30000"/>
+		<property name="connManagerTimeout" value="60000"/>
+		<property name="socketConnectionTimeoutMs" value="7200000"/>
+	</bean>
+	
+	<bean id="hp3parUtil" class="com.emc.storageos.hp3par.utils.HP3PARUtil">
+		<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
+	</bean>
+	
+	<bean id="3parProvHelper" class="com.emc.storageos.hp3par.impl.HP3PARProvisioningHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+
+	<bean id="3parExpUnexpHelper" class="com.emc.storageos.hp3par.impl.HP3PARExpUnexpHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+    
+</beans>

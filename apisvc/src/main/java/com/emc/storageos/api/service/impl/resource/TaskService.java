@@ -4,6 +4,32 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.URI;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapTask;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -15,12 +41,21 @@ import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.util.TaskUtils;
-import com.emc.storageos.model.*;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.BulkRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.TagAssignment;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.search.Tags;
@@ -34,29 +69,14 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.workflow.WorkflowController;
+import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang.StringUtils;
-
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 @Path("/vdc/tasks")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
+        Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
@@ -73,7 +93,8 @@ public class TaskService extends TaggedResource {
     /**
      * Returns information about the specified task.
      * 
-     * @param id the URN of a ViPR task
+     * @param id
+     *            the URN of a ViPR task
      * @brief Show Task
      * @return The specified task details
      */
@@ -86,8 +107,7 @@ public class TaskService extends TaggedResource {
         // Permission Check
         if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
             verifySystemAdmin();
-        }
-        else {
+        } else {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
@@ -99,7 +119,8 @@ public class TaskService extends TaggedResource {
      * 
      * @prereq none
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * 
      * @brief List data of volume resources
      * @return list of representations.
@@ -117,7 +138,9 @@ public class TaskService extends TaggedResource {
      * Returns task status count information for the specified Tenant.
      * 
      * @brief Task Status count
-     * @param tenantId Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will be used.
+     * @param tenantId
+     *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
+     *            be used.
      *            A value of 'system' will return system tasks
      * @return Count of tasks in different statuses
      */
@@ -158,7 +181,9 @@ public class TaskService extends TaggedResource {
      * Returns a list of tasks for the specified tenant
      * 
      * @brief Return a list of tasks for a tenant
-     * @param tenantId Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will be used.
+     * @param tenantId
+     *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
+     *            be used.
      *            A value of 'system' will provide a list of all the system tasks
      * @return A list of tasks for the tenant
      */
@@ -204,8 +229,7 @@ public class TaskService extends TaggedResource {
 
         if (max_count == null || max_count < 0) {
             max_count = FETCH_ALL;
-        }
-        else {
+        } else {
             max_count = Math.min(max_count, sortedIndexEntries.size());
         }
 
@@ -228,7 +252,8 @@ public class TaskService extends TaggedResource {
      * Deletes the specified task. After this operation has been called, the task will no longer be accessible.
      * 
      * @brief Deletes a task
-     * @param taskId ID of the task to be deleted
+     * @param taskId
+     *            ID of the task to be deleted
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -240,8 +265,7 @@ public class TaskService extends TaggedResource {
         // Permission Check
         if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
             verifySystemAdmin();
-        }
-        else {
+        } else {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
@@ -252,13 +276,116 @@ public class TaskService extends TaggedResource {
     }
 
     /**
+     * Resumes a task. This can only be performed on a Task that has status of: suspended_no_error
+     * Retries a task. This can only be performed on a Task that has status of: suspended_error
+     * 
+     * In the case of retry, we will retry the controller workflow starting at the failed step.
+     * 
+     * @brief Resumes a task
+     * @param taskId
+     *            ID of the task to be resumed
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{taskId}/resume")
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public Response resumeTask(@PathParam("taskId") URI taskId) {
+        Task task = queryResource(taskId);
+
+        // Permission Check
+        if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
+            verifySystemAdmin();
+        } else {
+            verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
+        }
+
+        Workflow workflow = validateWorkflow(task);
+        String opId = UUID.randomUUID().toString();
+
+        // Resume the workflow
+        WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
+                ResourceOperationTypeEnum.WORKFLOW_RESUME);
+        getWorkflowController().resumeWorkflow(workflow.getId(), opId.toString());
+        return Response.ok().build();
+    }
+
+    /**
+     * Rolls back a task. This can only be performed on a Task with status: suspended_error
+     * 
+     * @brief rolls back a task
+     * @param taskId
+     *            ID of the task to roll back
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{taskId}/rollback")
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public Response rollbackTask(@PathParam("taskId") URI taskId) {
+        Task task = queryResource(taskId);
+
+        // Permission Check
+        if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
+            verifySystemAdmin();
+        } else {
+            verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
+        }
+
+        Workflow workflow = validateWorkflow(task);
+        String opId = UUID.randomUUID().toString();
+
+        // Rollback the workflow
+        WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
+                ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
+        getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
+        return Response.ok().build();
+    }
+
+    private WorkflowController getWorkflowController() {
+        return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
+    }
+
+    /**
+     * Validate a task's workflow information for the purpose of restarting the workflow.
+     * 
+     * @param task
+     *            task object
+     * @return a workflow (as a convenience)
+     */
+    private Workflow validateWorkflow(Task task) {
+        // Validate there is a workflow ID
+        if (task.getWorkflow() == null) {
+            throw APIException.badRequests.noWorkflowAssociatedWithTask(task.getId());
+        }
+
+        // Validate the workflow exists
+        Workflow workflow = _dbClient.queryObject(Workflow.class, task.getWorkflow());
+        if (workflow == null) {
+            throw APIException.badRequests.noWorkflowAssociatedWithURI(task.getWorkflow());
+        }
+
+        // Validate the workflow is in any state
+        if (workflow.getCompletionState() == null) {
+            throw APIException.badRequests.workflowCompletionStateNotFound(workflow.getId());
+        }
+
+        // Validate the workflow is in the right state
+        WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
+        EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
+        ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
+
+        return workflow;
+    }
+
+    /**
      * @brief Assign tags to resource
      *        Assign tags
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR resource
-     * @param assignment tag assignments
+     * @param id
+     *            the URN of a ViPR resource
+     * @param assignment
+     *            tag assignments
      * @return No data returned in response body
      */
     @PUT
@@ -278,7 +405,8 @@ public class TaskService extends TaggedResource {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Resource
+     * @param id
+     *            the URN of a ViPR Resource
      * @return Tags information
      */
     @GET
@@ -377,8 +505,7 @@ public class TaskService extends TaggedResource {
 
         if (!values.isEmpty()) {
             return values.get(0);
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -399,11 +526,9 @@ public class TaskService extends TaggedResource {
                     tenants.add(URI.create(subTenant.getKey()));
                 }
             }
-        }
-        else if (Objects.equals(requestedTenantId, SYSTEM_TENANT) || Objects.equals(requestedTenantId, TenantOrg.SYSTEM_TENANT)) {
+        } else if (Objects.equals(requestedTenantId, SYSTEM_TENANT) || Objects.equals(requestedTenantId, TenantOrg.SYSTEM_TENANT)) {
             tenants.add(TenantOrg.SYSTEM_TENANT);
-        }
-        else {
+        } else {
             tenants.add(requestedTenantId);
         }
 
@@ -425,8 +550,7 @@ public class TaskService extends TaggedResource {
         for (URI tenantId : tenants) {
             if (tenantId.equals(TenantOrg.SYSTEM_TENANT)) {
                 verifySystemAdmin();
-            }
-            else if (!tenantId.toString().equals(user.getTenantId()) &&
+            } else if (!tenantId.toString().equals(user.getTenantId()) &&
                     !subtenants.contains(tenantId.toString())) {
                 throw APIException.forbidden
                         .insufficientPermissionsForUser(user.getName());
@@ -444,24 +568,6 @@ public class TaskService extends TaggedResource {
         return false;
     }
 
-    /** @return a List of search results from the provided set of items, filtered to only those items the user has access to */
-    private List<SearchResultResourceRep> toTenantFilteredSearchResults(Set<URI> tenantIds, NamedElementQueryResultList items) {
-        List<SearchResultResourceRep> results = Lists.newArrayList();
-
-        Iterator<NamedElementQueryResultList.NamedElement> it = items.iterator();
-        while (it.hasNext()) {
-            NamedElementQueryResultList.NamedElement item = it.next();
-
-            Task task = _dbClient.queryObject(Task.class, item.getId());
-            if (task.getTenant() != null && tenantIds.contains(task.getTenant())) {
-                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), item.getId()));
-                results.add(new SearchResultResourceRep(item.getId(), selfLink, null));
-            }
-        }
-
-        return results;
-    }
-
     private List<SearchResultResourceRep> toSearchResults(List<NamedURI> items) {
         List<SearchResultResourceRep> results = Lists.newArrayList();
 
@@ -475,19 +581,6 @@ public class TaskService extends TaggedResource {
     private SearchResultResourceRep toSearchResult(URI uri) {
         RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), uri));
         return new SearchResultResourceRep(uri, selfLink, null);
-    }
-
-    private static Date getDateTimestampParam(List<String> parameters) {
-        if (parameters == null || parameters.isEmpty()) {
-            return null;
-        }
-
-        String timestampStr = parameters.get(0);
-        if (StringUtils.isBlank(timestampStr)) {
-            return null;
-        }
-
-        return getDateFromString(timestampStr);
     }
 
     private static Date getDateFromString(String timestampStr) {

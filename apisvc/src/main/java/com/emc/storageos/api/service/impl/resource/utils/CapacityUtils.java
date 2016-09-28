@@ -7,43 +7,43 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.ArrayList;
-
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
-import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
 import com.emc.storageos.model.vpool.CapacityResponse;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
+import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
+import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
 public class CapacityUtils {
 
@@ -546,9 +546,10 @@ public class CapacityUtils {
         NeighborhoodsMatcher matcher = new NeighborhoodsMatcher();
         matcher.setCoordinatorClient(coordinator);
         matcher.setObjectCache(new ObjectLocalCache(dbClient));
-
-        validPoolsOfvPool = matcher.runMatchStoragePools(validPoolsOfvPool, attributeMap);
-        invalidPoolsOfvPool = matcher.runMatchStoragePools(invalidPoolsOfvPool, attributeMap);
+        StringBuffer errorMessageForValidPools = new StringBuffer();
+        StringBuffer errorMessageForInValidPools = new StringBuffer();
+        validPoolsOfvPool = matcher.runMatchStoragePools(validPoolsOfvPool, attributeMap, errorMessageForValidPools);
+        invalidPoolsOfvPool = matcher.runMatchStoragePools(invalidPoolsOfvPool, attributeMap, errorMessageForInValidPools);
 
         List<StoragePool> validPools = new ArrayList<StoragePool>();
         for (StoragePool pool : validPoolsOfvPool) {

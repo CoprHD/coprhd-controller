@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2008-2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.model;
@@ -42,6 +55,7 @@ public enum ResourceTypeEnum {
     NETWORK_SYSTEM("network_system", "/vdc/network-systems"),
     FC_PORT_CONNECTION("fc_port_connection", "/vdc/fc-port-connections"),
     AUTHN_PROVIDER("authnprovider", "/vdc/admin/authnproviders"),
+    OPENSTACK_TENANT("openstack_tenant", "/v2/keystone/tenants"),
     WORKFLOW("workflow", "/vdc/workflows"),
     WORKFLOW_STEP("workflow_step", "/vdc/workflows/steps"),
     HOST("host", "/compute/hosts"),
@@ -64,10 +78,12 @@ public enum ResourceTypeEnum {
     VDC("virtual_data_center", "/vdc"),
     CATALOG_CATEGORY("catalog_category", "/catalog/categories"),
     CATALOG_SERVICE("catalog_service", "/catalog/services"),
+    CATALOG_SERVICE_FIELD("catalog_service_field", ""),
     CATALOG_IMAGE("catalog_image", "/catalog/images"),
     APPROVAL("approval", "/catalog/approvals"),
     EXECUTION_WINDOW("execution_window", "/catalog/execution-windows"),
     ORDER("order", "/catalog/orders"),
+    SCHEDULED_EVENT("scheduled_event", "/catalog/events"),
     TASK("task", "/vdc/tasks"),
     QUOTA_DIR("quota_dir", "/file/quotadirectories"),
     CUSTOM_CONFIG("controller_config", "/config/controller"),
@@ -75,13 +91,15 @@ public enum ResourceTypeEnum {
     SYS_EVENT("sysevent", ""),
     USER_GROUP("user_group", "/vdc/admin/user-groups"),
     SITE("site", "/site"),
+    EVENT("event", "/vdc/events"),
     VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
     VOLUME_GROUP("volume_group", "/volume-groups/block"),
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
-    OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
-    
+    STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
+    OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
+    ACTIONABLE_EVENT("actionable_event", "/vdc/events");
 
     private final String type;
     private final String service;
@@ -114,6 +132,7 @@ public enum ResourceTypeEnum {
     }
 
     private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
+
     static {
         for (ResourceTypeEnum res : values()) {
             resourceMap.put(res.type, res);

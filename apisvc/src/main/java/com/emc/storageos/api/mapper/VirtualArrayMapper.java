@@ -34,7 +34,10 @@ public class VirtualArrayMapper {
 
         if (from.getAutoSanZoning() != null) {
             BlockSettings blockSettings = new BlockSettings();
-            blockSettings.setAutoSanZoning(from.getAutoSanZoning());
+            if(from.getAutoSanZoning() != null) {
+            	blockSettings.setAutoSanZoning(from.getAutoSanZoning());
+            }
+
             to.setBlockSettings(blockSettings);
         }
 

@@ -14,7 +14,7 @@ _ntp_keys() {
 #
 # /etc/ntp.keys
 #
-1 M -B0u4n3=
+1 SHA1 9b700d5f8b999cdd1ac572aa41255f96b7b56d98
 EOF
 }
 

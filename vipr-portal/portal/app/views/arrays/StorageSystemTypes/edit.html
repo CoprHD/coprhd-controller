@@ -1,0 +1,88 @@
+%{
+  titleKey = 'storageSystemTypes.' + (storageSystemTypes?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'storageSystemTypes.description';
+  image = '/public/img/assets/AddStandbySite.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.setting', 'nav.storageSystemTypes'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'storageSystemTypes.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{alerts/}
+
+<div class="container" >
+  <form-header title-key="${titleKey}"
+               description-key="storageSystemTypes.add.title"
+               image-val="/public/img/assets/AddStandbySite.png">
+  </form-header>
+
+  %{ editing = storageSystemTypes?.id }%
+  
+  #{form @save(), class:'form form-horizontal', autocomplete:"off"}
+    #{if storageSystemTypes?.id}
+      #{field 'storageSystemTypes.id'}
+         <input type="hidden" name="${field.name}" value="${field.value}">
+      #{/field}
+    #{/if}
+    #{field 'referrer'}
+      <input type="hidden" name="${field.name}" value="${referrer}">
+    #{/field}
+
+  <fieldset>
+    #{field 'storageSystemTypes.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'storageSystemTypes.storageSystemTypeDisplayName'}
+      %{
+        field.required = false
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+	#{if !editing }	
+		<control-group v-field="storageSystemTypes.isProvider">
+     		<boolean-checkbox v-disabled='locked'></boolean-checkbox>
+    	</control-group>
+
+	    #{field 'storageSystemTypes.metaType'}
+            %{
+                field.required = true
+      		}%
+      		#{Form.inputTextControlGroup field:field /}
+        #{/field}
+	    <control-group v-field="storageSystemTypes.useSSL">
+        	<boolean-checkbox v-default-value="false"></boolean-checkbox>
+        </control-group>
+	    #{field 'storageSystemTypes.portNumber'}
+	      %{
+	        field.required = false
+	      }%
+	      #{Form.inputTextControlGroup field:field /}
+	    #{/field}
+	    #{field 'storageSystemTypes.sslPortNumber'}
+	      %{
+	        field.required = false
+	      }%
+	      #{Form.inputTextControlGroup field:field /}
+	    #{/field}
+	    #{field 'storageSystemTypes.driverClassName'}
+	      %{
+	        field.required = true
+	      }%
+	      #{Form.inputTextControlGroup field:field /}
+	    #{/field}
+    #{/if}
+  </fieldset>
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()}
+  #{/Form.saveCancelButtonBar}
+  #{/form}
+</div>
+
+

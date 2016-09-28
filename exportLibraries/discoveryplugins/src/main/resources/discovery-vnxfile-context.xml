@@ -38,6 +38,7 @@
 				<entry key="vnxfileStoragePool" value-ref="vnxfileStoragePoolNameSpace" />
 				<entry key="vnxfileStoragePortGroup" value-ref="vnxfileStoragePortGroupSpace" />
 				<entry key="vnxfileStoragePort" value-ref="vnxfileStoragePortSpace" />
+				<entry key="vnxallquotas" value-ref="vnxallquotasnamespace"></entry>
                                 <entry key="vnxfileSystem" value-ref="vnxfileFileSystemSpace" />
                                 <entry key="vnxfileSelectedFileSystem" value-ref="vnxfileSelectedFileSystemSpace" />
                                 <entry key="vnxfileCifsConfig" value-ref="vnxfileCifsConfigSpace" />
@@ -82,7 +83,7 @@
 		<property name="client" ref="client" />
 		<property name="protocol" ref="protocol" />
 		<!-- Set timeout in millis -->
-                <property name="timeout" value="60000" />
+                <property name="timeout" value="600000" />
         </bean>
 
         <bean id="protocol"

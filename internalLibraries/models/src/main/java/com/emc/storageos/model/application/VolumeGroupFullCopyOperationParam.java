@@ -17,6 +17,10 @@ public class VolumeGroupFullCopyOperationParam {
     /** By default, consider clone operation for all array replication groups in Application */
     private Boolean partial = Boolean.FALSE;
     private List<URI> fullCopies;
+    // alternative to passing a list of full copy volumes
+    private String copySetName;
+    // alternative to passing partial flag and list of full copy volumes
+    private List<String> subGroups;
 
     public VolumeGroupFullCopyOperationParam() {
     }
@@ -53,7 +57,7 @@ public class VolumeGroupFullCopyOperationParam {
      * 
      * example:  list of valid URIs
      */
-    @XmlElement(required = true, name = "volume")
+    @XmlElement(required = false, name = "volume")
     public List<URI> getFullCopies() {
         if (fullCopies == null) {
             fullCopies = new ArrayList<URI>();
@@ -63,5 +67,36 @@ public class VolumeGroupFullCopyOperationParam {
 
     public void setFullCopies(List<URI> fullCopies) {
         this.fullCopies = fullCopies;
+    }
+
+    /**
+     * @return the copySetName
+     */
+    @XmlElement(name = "copy_set_name", required = false)
+    public String getCopySetName() {
+        return copySetName;
+    }
+
+    /**
+     * @param copySetName the copySetName to set
+     */
+    public void setCopySetName(String copySetName) {
+        this.copySetName = copySetName;
+    }
+
+    /**
+     * @return the subGroups
+     */
+    @XmlElementWrapper(required = true, name = "subgroups")
+    @XmlElement(required = false, name = "subgroup")
+    public List<String> getSubGroups() {
+        return subGroups;
+    }
+
+    /**
+     * @param subGroups the subGroups to set
+     */
+    public void setSubGroups(List<String> subGroups) {
+        this.subGroups = subGroups;
     }
 }

@@ -185,6 +185,7 @@ ext {
         "com.sun.jersey.contribs:jersey-apache-client:1.12",
         "com.sun.jersey.contribs:jersey-apache-client4:1.12",
         "com.sun.jersey.contribs:jersey-multipart:1.12",
+		"org.jvnet:mimepull:1.6",
 
     ]
     jersey_client = [
@@ -192,6 +193,10 @@ ext {
         "com.sun.jersey:jersey-core:1.12",
         "com.sun.jersey:jersey-json:1.12",
         "javax.ws.rs:jsr311-api:1.1.1",
+		"com.sun.jersey.contribs:jersey-apache-client:1.12",
+        "com.sun.jersey.contribs:jersey-apache-client4:1.12",
+        "com.sun.jersey.contribs:jersey-multipart:1.12",
+		"org.jvnet:mimepull:1.6",
         "org.codehaus.jackson:jackson-core-asl:1.9.2",
         "org.codehaus.jackson:jackson-jaxrs:1.9.2",
         "org.codehaus.jackson:jackson-mapper-asl:1.9.2",
@@ -335,7 +340,8 @@ ext {
         "com.vmware.vasa:vasa-api-common:1.0",
         "com.vmware.vasa:vasa-api-jwinauth:1.0",
         "com.vmware.vasa:vasa-api:1.0",
-
+		"javax.mail:mail:1.4.3",
+		
     ]
     axis2_war = [
         "org.apache.axis2:axis2-webapp:1.5.2@war",
@@ -453,6 +459,10 @@ ext {
 
     json_simple = [
         "com.googlecode.json-simple:json-simple:1.1"
+    ]
+
+    jcifs = [
+         "jcifs:jcifs:1.3.17"
     ]
 
     ceph = [

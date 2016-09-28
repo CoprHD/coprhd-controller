@@ -31,8 +31,12 @@ public interface SmisExceptions {
     SmisException createFullCopyFailure(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
-    SmisException noStoragePoolInstances(String storagePool, Throwable cause);
+    SmisException noStoragePoolInstances(final String storagePool, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
     SmisException unableToFindStoragePoolSetting();
+    
+    @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
+    SmisException hluRetrievalFailed(final String message, final Throwable cause);
+
 }

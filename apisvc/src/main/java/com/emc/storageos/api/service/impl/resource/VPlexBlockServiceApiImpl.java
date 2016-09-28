@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +67,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -117,6 +115,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -128,17 +127,16 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ControllerOperationValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
-import com.emc.vipr.client.core.util.VirtualPoolUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-
-import javassist.bytecode.Descriptor;
 
 /**
  * Implementation of the {@link BlockServiceApi} when the VirtualPool specifies that created
@@ -180,7 +178,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Public setter for Spring configuration.
      *
-     * @param maxCgVols Max number of volumes allowed in a CG for varray and
+     * @param maxCgVols
+     *            Max number of volumes allowed in a CG for varray and
      *            vpool changes resulting in backend data migrations
      */
     public void setMaxCgVolumesForMigration(int maxCgVols) {
@@ -190,10 +189,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Generate a unique volume label based given prefix, its array and volume indices.
      *
-     * @param baseVolumeLabel - volume prefix name
-     * @param nhIndex - array index
-     * @param volumeIndex - volume index
-     * @param resourceCount - volume's virtual pool capacity resource count
+     * @param baseVolumeLabel
+     *            - volume prefix name
+     * @param nhIndex
+     *            - array index
+     * @param volumeIndex
+     *            - volume index
+     * @param resourceCount
+     *            - volume's virtual pool capacity resource count
      * @return
      */
     private String generateVolumeLabel(String baseVolumeLabel, int nhIndex, int volumeIndex, int resourceCount) {
@@ -208,12 +211,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Convenient method to generate volume labels and check for duplicate. If there is a duplicate, throw exception
      *
-     * @param baseVolumeLabel - volume prefix
-     * @param project - project volume creates within
-     * @param vArray - virtual array where volume is create
-     * @param vPool - volume's vpool
-     * @param vPoolCapabilities - vpool capabilities
-     * @param varrayRecomendationsMap - map of virtual array to its list of recommendation
+     * @param baseVolumeLabel
+     *            - volume prefix
+     * @param project
+     *            - project volume creates within
+     * @param vArray
+     *            - virtual array where volume is create
+     * @param vPool
+     *            - volume's vpool
+     * @param vPoolCapabilities
+     *            - vpool capabilities
+     * @param varrayRecomendationsMap
+     *            - map of virtual array to its list of recommendation
      */
     private void validateVolumeLabels(String baseVolumeLabel, Project project,
             VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> varrayRecomendationsMap) {
@@ -236,7 +245,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 VirtualPool volumeVpool = recommendation.getVirtualPool();
                 s_logger.info("Volume virtual pool is {}", volumeVpool.getId().toString());
                 vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeVpool.getAutoTierPolicyName());
-                s_logger.info("Recommendation is for {} resources in pool {}", recommendation.getResourceCount(), storagePoolURI.toString());
+                s_logger.info("Recommendation is for {} resources in pool {}", recommendation.getResourceCount(),
+                        storagePoolURI.toString());
                 for (int i = 0; i < recommendation.getResourceCount(); i++) {
                     // Each volume has a unique label based off the passed
                     // value. Note that the way the storage system creates
@@ -278,10 +288,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
                 volRecommendations, task, vPoolCapabilities, vPoolCapabilities.getBlockConsistencyGroup(),
                 taskList, allVolumes, true);
-        for (VolumeDescriptor desc: descriptors) {
+        for (VolumeDescriptor desc : descriptors) {
             s_logger.info("Vplex Root Descriptors: " + desc.toString());
         }
-        
+
         if (srdfCopyRecommendations != null) {
             // We may have a Vplex protected SRDF copy- if so add those into the mix
             // This may be a Vplex volume or not
@@ -300,12 +310,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             taskList, allVolumes, true);
                     param.setName(name);
                 } else {
-                    srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors, 
-                            param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project, 
-                            vArray, vPool, copyRecommendations, 
+                    srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors,
+                            param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project,
+                            vArray, vPool, copyRecommendations,
                             taskList, task, vPoolCapabilities);
                 }
-                for (VolumeDescriptor desc: srdfCopyDescriptors) {
+                for (VolumeDescriptor desc : srdfCopyDescriptors) {
                     s_logger.info("SRDF Copy: " + desc.toString());
                 }
                 descriptors.addAll(srdfCopyDescriptors);
@@ -349,29 +359,41 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Create the necessary volume descriptors for Vplex volumes, including the backend
      * volume descriptors and the virtual volume descriptors.
-     * @param param - the VolumeCreate parameters
-     * @param project -- user's project
-     * @param vArray -- virtual array volumes are created in
-     * @param vPool -- virtual pool (ROOT) used to create the volumes
-     * @param recommendations -- recommendations received from placement
-     * @param task -- a task identifier
-     * @param vPoolCapabilities - VirtualPoolCapabilitiesWrapper
-     * @param blockConsistencyGroupURI - the block consistency group URI
-     * @param taskList - OUTPUT list of tasks created
-     * @param allVolumes - OUTPUT - list of volumes created
-     * @param createTask -- boolean flag indicating to create tasks
+     * 
+     * @param param
+     *            - the VolumeCreate parameters
+     * @param project
+     *            -- user's project
+     * @param vArray
+     *            -- virtual array volumes are created in
+     * @param vPool
+     *            -- virtual pool (ROOT) used to create the volumes
+     * @param recommendations
+     *            -- recommendations received from placement
+     * @param task
+     *            -- a task identifier
+     * @param vPoolCapabilities
+     *            - VirtualPoolCapabilitiesWrapper
+     * @param blockConsistencyGroupURI
+     *            - the block consistency group URI
+     * @param taskList
+     *            - OUTPUT list of tasks created
+     * @param allVolumes
+     *            - OUTPUT - list of volumes created
+     * @param createTask
+     *            -- boolean flag indicating to create tasks
      * @return
      */
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project,
             final VirtualArray vArray, final VirtualPool vPool, List<Recommendation> recommendations,
-            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities, 
+            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             URI blockConsistencyGroupURI, TaskList taskList, List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
                 vPoolCapabilities.getResourceCount());
 
         // Determine if we're processing an SRDF copy so we can set appropriate name.
         boolean srdfCopy = false;
-        if (recommendations.get(0).getRecommendation() != null 
+        if (recommendations.get(0).getRecommendation() != null
                 && recommendations.get(0).getRecommendation() instanceof SRDFCopyRecommendation) {
             srdfCopy = true;
         }
@@ -382,8 +404,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // should be the same for all recommendations.
         URI vplexStorageSystemURI = null;
         URI[] vplexSystemURIOut = new URI[1];
-        Map<String, List<VPlexRecommendation>> varrayRecommendationsMap =
-                sortRecommendationsByVarray(recommendations, vplexSystemURIOut);
+        Map<String, List<VPlexRecommendation>> varrayRecommendationsMap = sortRecommendationsByVarray(recommendations, vplexSystemURIOut);
         vplexStorageSystemURI = vplexSystemURIOut[0];
 
         // check for potential duplicate volume labels before creating them, but not
@@ -401,7 +422,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         long size = SizeUtil.translateSize(param.getSize());
 
         // The consistency group or null when not specified.
-        final BlockConsistencyGroup consistencyGroup = blockConsistencyGroupURI == null ? null 
+        final BlockConsistencyGroup consistencyGroup = blockConsistencyGroupURI == null ? null
                 : _dbClient.queryObject(BlockConsistencyGroup.class, blockConsistencyGroupURI);
 
         // Find all volumes assigned to the group
@@ -428,7 +449,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         int varrayCount = 0;
         String volumeLabel = param.getName();
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-        
+
         URI[][] varrayVolumeURIs = new URI[2][vPoolCapabilities.getResourceCount()];
         Iterator<String> varrayIter = varrayRecommendationsMap.keySet().iterator();
         while (varrayIter.hasNext()) {
@@ -436,12 +457,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
-                    vplexRecommendations, project, vplexProject, vPool, volumeLabel, varrayCount, 
+                    vplexRecommendations, project, vplexProject, vPool, volumeLabel, varrayCount,
                     size, backendCG, vPoolCapabilities, createTask, task);
             descriptors.addAll(varrayDescriptors);
             List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
             allVolumes.addAll(varrayURIs);
-            for (int i=0; i < varrayURIs.size(); i++) {
+            for (int i = 0; i < varrayURIs.size(); i++) {
                 varrayVolumeURIs[varrayCount][i] = varrayURIs.get(i);
             }
             varrayCount++;
@@ -462,7 +483,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 volumeLabelBuilt = generateLabelFromAssociatedVolume(volumeLabel, associatedVolume);
             } else {
                 volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
-                    vPoolCapabilities.getResourceCount());
+                        vPoolCapabilities.getResourceCount());
             }
             s_logger.info("Volume label is {}", volumeLabelBuilt);
 
@@ -509,6 +530,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
                     vPoolCapabilities, volume.getCapacity());
+            
+            // Set the compute resource in the descriptor if the volume to be created will be exported
+
+            // to a host/cluster after it has been created so that the compute resource name can be 
+            // included in the volume name if the custom volume naming is so configured. Do not set the
+            // compute resource if the descriptor is for an SRDF target as the target is not exported
+            // to the compute resource.
+            URI computeResourceURI = param.getComputeResource();
+            if ((computeResourceURI != null) && (!srdfCopy)) {
+                s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
+                        computeResourceURI.toString()));
+                descriptor.setComputeResource(computeResourceURI);
+            }
             descriptors.add(descriptor);
         }
 
@@ -575,7 +609,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // the source backend volume.
         if (object instanceof Volume) {
             Volume vplexVolume = (Volume) object;
-            if (!vplexVolume.isIngestedVolume(_dbClient)) {
+            if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
                 Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient, false);
                 if (snapshotSourceVolume != null) {
                     List<BlockSnapshot> snapshots = CustomQueryUtility.queryActiveResourcesByConstraint(
@@ -692,7 +726,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     associatedVolumes.add(assocVolume);
 
                     // Remove the associated volume form any export groups/masks.
-                    cleanBlockObjectFromExports(assocVolumeURI, true);
+                    ExportUtils.cleanBlockObjectFromExports(assocVolumeURI, true, _dbClient);
                 }
             }
         }
@@ -1026,7 +1060,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.importVolume(vplexURI, descriptors, vplexProject.getId(),
                     vplexProject.getTenantOrg().getURI(), vpool.getId(),
-                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, taskId);
+                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, Boolean.TRUE, taskId);
         } catch (InternalException ex) {
             s_logger.error("ControllerException on importVolume", ex);
             String errMsg = String.format("ControllerException: %s", ex.getMessage());
@@ -1056,6 +1090,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vplexVolume.getVirtualArray());
             Set<URI> vplexes = new HashSet<URI>();
             vplexes.add(vplexURI);
+            if (null == vplexVolume.getAssociatedVolumes() || vplexVolume.getAssociatedVolumes().isEmpty()) {
+                s_logger.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            }
             Iterator<String> assocIter = vplexVolume.getAssociatedVolumes().iterator();
             URI existingVolumeURI = new URI(assocIter.next());
             Volume existingVolume = _dbClient.queryObject(Volume.class, existingVolumeURI);
@@ -1128,7 +1167,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             try {
                 s_logger.info("Calling VPlex controller.");
                 VPlexController controller = getController();
-                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, taskId);
+                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, Boolean.TRUE, taskId);
                 // controller.importVolume(vplexURI, vpool.getId(),
                 // null, null, /* no need to pass System Project/Tenant */
                 // null, /* no import volume */
@@ -1201,7 +1240,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
-        TaskList taskList = new TaskList();
+        TaskList taskList = createTasksForVolumes(vpool, Arrays.asList(volume), taskId);
 
         String transferSpeed = null;
         ArrayList<Volume> volumes = new ArrayList<Volume>();
@@ -1215,7 +1254,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // vnxblock, or other block storage system.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
-       
+
         if (!DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
             // If it is not a VPLEX volume, then this must be an import to VPLEX.
             s_logger.info("High availability VirtualPool change for array volume, importing volume VPLEX: " + volume.getLabel());
@@ -1227,11 +1266,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
                     URI targetVarray = targetVolume.getVirtualArray();
                     // Get the target virtual pool.
-                    Map<URI, VpoolRemoteCopyProtectionSettings> protectionSettingsMap = VirtualPool.getRemoteProtectionSettings(vpool, _dbClient);
+                    Map<URI, VpoolRemoteCopyProtectionSettings> protectionSettingsMap = VirtualPool.getRemoteProtectionSettings(vpool,
+                            _dbClient);
                     VpoolRemoteCopyProtectionSettings settings = protectionSettingsMap.get(targetVarray);
                     if (settings != null) {
                         VirtualPool targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
-                        if (NullColumnValueGetter.isNotNullValue(targetVpool.getHighAvailability()) 
+                        if (NullColumnValueGetter.isNotNullValue(targetVpool.getHighAvailability())
                                 && targetVpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_local.name())) {
                             String subTaskId = UUID.randomUUID().toString();
                             s_logger.info("Importing SRDF target to VPLEX " + targetVolume.getLabel());
@@ -1258,7 +1298,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     s_logger.info("Coversion of volume from vplex local to distributed will use the provided transfer speed {}",
                             transferSpeed);
                 }
-                
+
                 // Convert vplex_local to vplex_distributed
                 upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskId);
             } else if (!VirtualPool.vPoolSpecifiesMirrors(volumeVirtualPool, _dbClient)
@@ -1274,18 +1314,27 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 String msg = format("VirtualPool changed from %s to %s for Volume %s",
                         originalVirtualPool, vpool.getId(), volume.getId());
                 s_logger.info(msg);
-                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
+                        ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
                 _dbClient.ready(Volume.class, volume.getId(), taskId, msg);
             } else {
                 // Prepare for VPlex virtual volume VirtualPool change.
                 // Get the varray for the virtual volume.
                 s_logger.info("VirtualPool change for VPlex virtual volume.");
-                List<VolumeDescriptor> descriptors = createChangeVirtualPoolDescriptors(storageSystem, volume, vpool, taskId, null, null);
+                ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
+                operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
+                        vpoolChangeParam.getMigrationSuspendBeforeCommit());
+                operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                        vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
+                List<VolumeDescriptor> descriptors = createChangeVirtualPoolDescriptors(storageSystem, volume, vpool,
+                        taskId, null, null,
+                        operationsWrapper);
 
                 // Now we get the Orchestration controller and use it to change the virtual pool of the volumes.
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
+
         return taskList;
     }
 
@@ -1297,16 +1346,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         TaskList taskList = new TaskList();
 
-        // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return null;
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
+
+        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), volumeVirtualPool, vpool,
+                _dbClient, notSuppReasonBuff) ||
+                VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volumes.get(0), volumeVirtualPool, vpool,
+                        _dbClient, notSuppReasonBuff)) {
+            taskList = createTasksForVolumes(vpool, volumes, taskId);
+            checkCommonVpoolUpdates(volumes, vpool, taskId);
+            return taskList;
         }
 
         // Check if any of the volumes passed is a VPLEX volume
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
-        BlockConsistencyGroup cg = null;
-        if ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null) {
+        BlockConsistencyGroup cg = isVPlexVolumeInCgWithLocalType(volumes);
+        if (cg != null) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all
@@ -1320,80 +1376,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             _dbClient, new StringBuffer());
             if ((vpoolChange != null) && (vpoolChange == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
                 s_logger.info("Vpool change is a data migration");
+                ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
+                operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
+                        vpoolChangeParam.getMigrationSuspendBeforeCommit());
+                operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                        vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
 
-                Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
                 List<Volume> volumesNotInRG = new ArrayList<Volume>();
-                // Group volumes by array groups
-                for (Volume volume : volumes) {
-                    Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-                    URI backStorage = backedVol.getStorageController();
-                    String replicaGroup = backedVol.getReplicationGroupInstance();
-                    if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
-                        List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
-                        if (volumeList == null) {
-                            volumeList = new ArrayList<Volume>();
-                            groupVolumes.put(backStorage, replicaGroup, volumeList);
-                        }
-                        volumeList.add(volume);
-                    } else {
-                        volumesNotInRG.add(volume);
-                    }
-                }
-                for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
-                    List<Volume> volumesInRGRequest = cell.getValue();
-                    List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey());
-                    if (volumesInRGRequest.size() != rgVolumes.size()) {
-                        throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
-                    }
-
-                    // All volumes will be migrated in the same workflow.
-                    // If there are many volumes in the CG, the workflow
-                    // will have many steps. Worse, if an error occurs
-                    // additional workflow steps get added for rollback.
-                    // An issue can then arise trying to persist the
-                    // workflow to Zoo Keeper because the workflow
-                    // persistence is restricted to 250000 bytes. So
-                    // we add a restriction on the number of volumes in
-                    // the CG that will be allowed for a data migration
-                    // vpool change.
-                    if (volumesInRGRequest.size() > _maxCgVolumesForMigration) {
-                        throw APIException.badRequests
-                                .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
-                                        volumes.size(), _maxCgVolumesForMigration);
-                    }
-
-                    // When migrating multiple volumes in the CG we
-                    // want to be sure the target vpool ensures the
-                    // migration targets will be placed on the same
-                    // storage system as the migration targets will
-                    // be placed in a CG on the target storage system.
-                    if (volumesInRGRequest.size() > 1) {
-                        s_logger.info("Multiple volume request, verifying target storage systems");
-                        verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
-                    }
-
-                    // Get all volume descriptors for all volumes to be migrated.
-                    URI systemURI = changeVPoolVolume.getStorageController();
-                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
-                    List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-                    for (Volume volume : volumesInRGRequest) {
-                        descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                                volume, vpool, taskId, null, null));
-                    }
-
-                    // Orchestrate the vpool changes of all volumes as a single request.
-                    orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
-                }
+                taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, operationsWrapper, taskId);
+                
+                // Migrate volumes not in Replication Group as single volumes
                 if (!volumesNotInRG.isEmpty()) {
                     for (Volume volume : volumesNotInRG) {
-                        TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
-                                volume, vpool, vpoolChangeParam, taskId);
-                        if (taskList2 != null && taskList2.getTaskList().isEmpty()) {
-                            taskList.getTaskList().addAll(taskList2.getTaskList());
-                            
-                        }
+                        taskList.getTaskList().addAll(changeVolumeVirtualPool(volume.getStorageController(), 
+                                volume, vpool, vpoolChangeParam, taskId).getTaskList());
                     }
                 }
+                
                 return taskList;
             }
         }
@@ -1401,12 +1400,107 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Otherwise proceed as we normally would performing
         // individual vpool changes for each volume.
         for (Volume volume : volumes) {
-            TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
-                    volume, vpool, vpoolChangeParam, taskId);
-            if (taskList2 != null && !taskList2.getTaskList().isEmpty()) {
-                taskList.getTaskList().addAll(taskList2.getTaskList());
-                
+            taskList.getTaskList().addAll(
+                    changeVolumeVirtualPool(volume.getStorageController(), 
+                            volume, vpool, vpoolChangeParam, taskId).getTaskList());
+        }
+        return taskList;
+    }
+    
+    /**
+     * Group all volumes in RGs and create a WF to migrate those volumes together.
+     * 
+     * @param volumes All volumes being considered for migration
+     * @param vpool The vpool to migrate to
+     * @param volumesNotInRG A container to store all volumes NOT in an RG
+     * @param volumesInRG A container to store all the volumes in an RG
+     * @param controllerOperationsWrapper values from controller called used to determine if
+     *   we need to suspend on commit or deletion of source volumes
+     * @param taskId The Task Id
+     * @return taskList Tasks generated for RG migrations
+     */
+    protected TaskList migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
+            List<Volume> volumesNotInRG, List<Volume> volumesInRG, 
+            ControllerOperationValuesWrapper controllerOperationValues, String taskId) {
+        Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+        TaskList taskList = new TaskList();
+
+        // Group volumes by array groups
+        for (Volume volume : volumes) {
+            Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            URI backStorage = backedVol.getStorageController();
+            String replicaGroup = backedVol.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                if (volumeList == null) {
+                    volumeList = new ArrayList<Volume>();
+                    groupVolumes.put(backStorage, replicaGroup, volumeList);
+                }
+                volumeList.add(volume);
+                // Keeps track of the volumes that will be processed because
+                // they are in found to be in an RG.
+                if (volumesInRG != null) {
+                    volumesInRG.add(volume);
+                }
+            } else {
+                // Keeps track of the volumes that will not be processed here
+                // since they are not in a RG.
+                if (volumesNotInRG != null) {
+                    volumesNotInRG.add(volume);
+                }
             }
+        }
+        for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
+            List<Volume> volumesInRGRequest = cell.getValue();
+            Volume firstVolume = volumesInRGRequest.get(0);
+            
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey(), firstVolume.getPersonality());
+            if (volumesInRGRequest.size() != rgVolumes.size()) {
+                throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
+            }
+                        
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, firstVolume.getConsistencyGroup());
+            URI systemURI = firstVolume.getStorageController();
+
+            // All volumes will be migrated in the same workflow.
+            // If there are many volumes in the CG, the workflow
+            // will have many steps. Worse, if an error occurs
+            // additional workflow steps get added for rollback.
+            // An issue can then arise trying to persist the
+            // workflow to Zoo Keeper because the workflow
+            // persistence is restricted to 250000 bytes. So
+            // we add a restriction on the number of volumes in
+            // the CG that will be allowed for a data migration
+            // vpool change.
+            if (volumesInRGRequest.size() > _maxCgVolumesForMigration) {
+                throw APIException.badRequests
+                        .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
+                                volumes.size(), _maxCgVolumesForMigration);
+            }
+                        
+            // When migrating multiple volumes in the CG we
+            // want to be sure the target vpool ensures the
+            // migration targets will be placed on the same
+            // storage system as the migration targets will
+            // be placed in a CG on the target storage system.
+            if (volumesInRGRequest.size() > 1) {
+                s_logger.info("Multiple volume request, verifying target storage systems");
+                verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
+            }
+
+            // Get all volume descriptors for all volumes to be migrated.
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+            List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+            for (Volume volume : volumesInRGRequest) {
+                descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
+                        volume, vpool, taskId, null, null, controllerOperationValues));
+            }
+            
+            // Create a task object associated with the CG
+            taskList.getTaskList().add(createTaskForRG(vpool, rgVolumes, taskId));
+
+            // Orchestrate the vpool changes of all volumes as a single request.
+            orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
         }
         return taskList;
     }
@@ -1451,7 +1545,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // The same restriction applies to the target HA virtual pool
             // when the HA side is being migrated.
-            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool, _dbClient);
+            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool);
             if (!NullColumnValueGetter.isNullURI(haVArrayURI)) {
                 // The HA varray is not null so must be distributed.
                 VirtualPool currentHAVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVPool, _dbClient);
@@ -1509,12 +1603,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volume A reference to the virtual volume.
      * @param newVpool The desired VirtualPool.
      * @param taskId The task identifier.
-     *
+     * @param operationsWrapper a wrapper of various controller options
      * @throws InternalException
      */
     protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem vplexSystem, Volume volume,
             VirtualPool newVpool, String taskId, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            ControllerOperationValuesWrapper operationsWrapper) throws InternalException {
         // Get the varray and current vpool for the virtual volume.
         URI volumeVarrayURI = volume.getVirtualArray();
         VirtualArray volumeVarray = _dbClient.queryObject(VirtualArray.class, volumeVarrayURI);
@@ -1534,6 +1629,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID, volume.getId());
         volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
         volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID, volume.getVirtualPool());
+        if (operationsWrapper != null) {
+            if (operationsWrapper.getMigrationSuspendBeforeCommit() != null) {
+                volumeParams.put(VolumeDescriptor.PARAM_MIGRATION_SUSPEND_BEFORE_COMMIT,
+                        operationsWrapper.getMigrationSuspendBeforeCommit());
+            }
+            if (operationsWrapper.getMigrationSuspendBeforeDeleteSource() != null) {
+                volumeParams.put(VolumeDescriptor.PARAM_MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                        operationsWrapper.getMigrationSuspendBeforeDeleteSource());
+            }
+        }
         vplexVirtualVolumeDesc.setParameters(volumeParams);
         descriptors.add(vplexVirtualVolumeDesc);
 
@@ -1556,7 +1661,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Now determine if the backend volume in the HA varray
         // needs to be migrated.
-        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient);
+        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool);
         if (haVarrayURI != null) {
             VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, haVarrayURI);
             VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVpool, _dbClient);
@@ -1686,7 +1791,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             cosWrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
         }
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(
-                varray, requestedVPlexSystems, null, vpool, false, null, null, 
+                varray, requestedVPlexSystems, null, vpool, false, null, null,
                 cosWrapper, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
@@ -1823,7 +1928,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         if (recommendations == null || recommendations.isEmpty()) {
             recommendations = getBlockScheduler().scheduleStorage(
-                    varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities, 
+                    varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities,
                     targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
@@ -1858,6 +1963,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             targetVolume.setReplicationGroupInstance(sourceVolume.getReplicationGroupInstance());
         }
 
+        // Retain any previous RP fields on the new target volumes
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
+            targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+        }
+
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
+            targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+        }
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 
@@ -2094,7 +2207,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw APIException.badRequests.invalidVarrayForVplex(system.getLabel(), newVarray.getLabel());
         }
 
-        // If the volume is exported, all storage ports that the volume is exported through should be in the target virtual array
+        // If the volume is exported, all storage ports that the volume is exported through should be in the target
+        // virtual array
         // The hosts that volume is exported to should be in the target virtual array too.
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
@@ -2107,9 +2221,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egUri);
             List<URI> inits = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             initiators.addAll(inits);
-            List<URI> exportMaskuris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
-            for (URI exportMaskUri : exportMaskuris) {
-                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {
                 storagePorts.addAll(StringSetUtil.stringSetToUriList(exportMask.getStoragePorts()));
             }
         }
@@ -2123,25 +2236,34 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             while (resultsIter.hasNext()) {
                 newVarrayStoragePorts.add(resultsIter.next());
             }
+
+            URIQueryResultList connectedResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getImplicitVirtualArrayStoragePortsConstraint(newVarrayId), connectedResults);
+            Iterator<URI> iter = connectedResults.iterator();
+            while (iter.hasNext()) {
+                newVarrayStoragePorts.add(iter.next());
+            }
             if (!newVarrayStoragePorts.containsAll(storagePorts)) {
                 s_logger.info("The volume is exported, but the exported target storage ports are not all in the target virtual array");
-                throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the target storage ports exported through"
-                        + " are not all in the target virtual array");
+                throw APIException.badRequests.changesNotSupportedFor("VirtualArray",
+                        "exported volumes, and the target storage ports exported through"
+                                + " are not all in the target virtual array");
             }
             for (URI init : initiators) {
-                Initiator initiator =  _dbClient.queryObject(Initiator.class, init);
+                Initiator initiator = _dbClient.queryObject(Initiator.class, init);
                 if (initiator != null && !initiator.getInactive()) {
                     String pwwn = initiator.getInitiatorPort();
-                    Set<String>varrayIds = ConnectivityUtil.getInitiatorVarrays(pwwn, _dbClient);
+                    Set<String> varrayIds = ConnectivityUtil.getInitiatorVarrays(pwwn, _dbClient);
                     if (!varrayIds.contains(newVarrayId)) {
                         s_logger.info("The volume is exported, the exported hosts initiators are not all in the target virtual array");
-                        throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the exported host initiators"
-                                + " are not all in the target virtual array");
+                        throw APIException.badRequests.changesNotSupportedFor("VirtualArray",
+                                "exported volumes, and the exported host initiators"
+                                        + " are not all in the target virtual array");
                     }
                 }
             }
-           
-            
+
         }
 
         // If the vpool has assigned varrays, the vpool must be assigned
@@ -2290,14 +2412,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // We'll need to prepare a target volume and create a
             // descriptor for each backend volume being migrated.
             StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-            String assocVolumeId = assocVolumes.iterator().next();
-            URI assocVolumeURI = URI.create(assocVolumeId);
-            Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
-            VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                    assocVolume.getVirtualPool());
-            descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
-                    vplexVolume, assocVolume, newVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume), taskId, null, false, null));
+            if (null == assocVolumes) {
+                s_logger.warn("VPLEX volume {} has no backend volumes. It was possibly ingested 'Virtual Volume Only'.", 
+                        vplexVolume.forDisplay());
+            } else {
+                String assocVolumeId = assocVolumes.iterator().next();
+                URI assocVolumeURI = URI.create(assocVolumeId);
+                Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
+                VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
+                        assocVolume.getVirtualPool());
+                descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
+                        vplexVolume, assocVolume, newVarray, assocVolumeVPool,
+                        getVolumeCapacity(assocVolume), taskId, null, false, null));
+            }
         }
 
         return descriptors;
@@ -2361,6 +2488,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Prepare the backend volume(s) for migration.
             StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
+            if (null == assocVolumeIds || assocVolumeIds.isEmpty()) {
+                s_logger.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            }
             for (String assocVolumeId : assocVolumeIds) {
                 Volume assocVolume = _permissionsHelper.getObjectById(
                         URI.create(assocVolumeId), Volume.class);
@@ -2396,16 +2528,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // migration to a larger target volume(s).
         boolean useNativeVolumeExpansion = true;
         StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
-        for (String assocVolumeId : assocVolumeIds) {
-            Volume assocVolume = _permissionsHelper.getObjectById(
-                    URI.create(assocVolumeId), Volume.class);
-            // If any backend volume does not support native expansion, then
-            // we use migration to expand the VPlex volume.
-            try {
-                super.verifyVolumeExpansionRequest(assocVolume, newSize);
-            } catch (Exception e) {
-                useNativeVolumeExpansion = false;
-                break;
+        if (null == assocVolumeIds) {
+            s_logger.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                    vplexVolume.forDisplay());
+            useNativeVolumeExpansion = false;
+        } else {
+            for (String assocVolumeId : assocVolumeIds) {
+                Volume assocVolume = _permissionsHelper.getObjectById(
+                        URI.create(assocVolumeId), Volume.class);
+                // If any backend volume does not support native expansion, then
+                // we use migration to expand the VPlex volume.
+                try {
+                    super.verifyVolumeExpansionRequest(assocVolume, newSize);
+                } catch (Exception e) {
+                    useNativeVolumeExpansion = false;
+                    break;
+                }
             }
         }
 
@@ -2584,7 +2722,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.getId().toString());
+                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
         VirtualPool sourceMirrorVPool = null;
@@ -3151,11 +3289,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *         source.
      */
     public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume) {
-        String vplexVolumeId = vplexVolume.getId().toString();
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
         // Get the backend volume that will serve as the source volume
@@ -3163,7 +3300,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
         if (snapshotSourceVolume == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolumeId);
+                    .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolume.forDisplay());
         }
 
         return snapshotSourceVolume;
@@ -3262,7 +3399,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
-        if (!vplexVolume.isIngestedVolume(_dbClient)) {
+        if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
             Volume snapshotSourceVolume = null;
             try {
                 snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
@@ -3385,7 +3522,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     systemURI, volumeURI, null, null);
             volumeDescriptors.add(descriptor);
             // Add a descriptor for each of the associated volumes.
-            if (!volume.isIngestedVolume(_dbClient)) {
+            if (!volume.isIngestedVolumeWithoutBackend(_dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String assocVolId : volume.getAssociatedVolumes()) {
                     Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
@@ -3397,14 +3534,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 if (null != targetVolume) {
                                     // Look for a Vplex volume fronting the target. If so add it.
                                     List<Volume> vplexTargetVolumes = CustomQueryUtility
-                                            .queryActiveResourcesByConstraint(_dbClient, Volume.class, 
+                                            .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                                                     getVolumesByAssociatedId(targetVolume.getId().toString()));
                                     for (Volume vplexTargetVolume : vplexTargetVolumes) {
                                         // There should only be one volume in list, ie. target only associated with
                                         // one Vplex volume
                                         VolumeDescriptor vplexTargetDescriptor = new VolumeDescriptor(
                                                 VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-                                                vplexTargetVolume.getStorageController(), vplexTargetVolume.getId(), 
+                                                vplexTargetVolume.getStorageController(), vplexTargetVolume.getId(),
                                                 null, null);
                                         volumeDescriptors.add(vplexTargetDescriptor);
                                     }
@@ -3487,10 +3624,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Package up the Volume descriptors
         for (Volume volume : preparedVolumes) {
+            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
+                s_logger.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
             for (String associatedVolumeStr : volume.getAssociatedVolumes()) {
                 Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeStr));
-                
-                if (associatedVolume.isSRDFSource()) {      // SRDF Source Volume
+
+                if (associatedVolume.isSRDFSource()) { // SRDF Source Volume
                     SRDFBlockServiceApiImpl srdfApi = (SRDFBlockServiceApiImpl) BlockService.getBlockServiceImpl("srdf");
                     List<VolumeDescriptor> srdfDescriptors = srdfApi.getVolumeDescriptorsForExpandVolume(
                             associatedVolume, associatedVolume.getProvisionedCapacity());
@@ -3510,7 +3652,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 } else if (!NullColumnValueGetter.isNullNamedURI(associatedVolume.getSrdfParent())) {
                     s_logger.info("Ignoring associated volume that is SRDF target: " + associatedVolume.getLabel());
-                } else {    // A nice, plain, simple backing volume
+                } else { // A nice, plain, simple backing volume
                     VolumeDescriptor descriptor = new VolumeDescriptor(
                             VolumeDescriptor.Type.BLOCK_DATA,
                             associatedVolume.getStorageController(), associatedVolume.getId(), associatedVolume.getPool(), null, null,
@@ -3565,7 +3707,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Can't add a volume into a CG with ingested volumes.
         for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.isIngestedVolume(_dbClient)) {
+            if (cgVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
                 throw APIException.badRequests.notAllowedAddVolumeToCGWithIngestedVolumes();
             }
         }
@@ -3609,7 +3751,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw APIException.badRequests.snapshotNotAllowedVolumeIsExposedSnapshot(reqVolume.getId().toString());
         }
 
-        // If there are more than one volume in the consistency group, and they are on different backend storage system, return error.
+        // If there are more than one volume in the consistency group, and they are on different backend storage system,
+        // return error.
         if (volumesToSnap.size() > 1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
         }
@@ -3673,9 +3816,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // a VPLEX volume.
                     List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                             _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
-                                    volumesWithSameNativeGuid.get(0).getId().toString()));
+			    volumesWithSameNativeGuid.get(0).getId().toString()));
+                    String volumeLabel = !vplexVolumes.isEmpty() ? 
+                            vplexVolumes.get(0).getLabel() : volumesWithSameNativeGuid.get(0).getId().toString();
                     throw APIException.badRequests
-                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), vplexVolumes.get(0).getLabel());
+                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), volumeLabel);
                 }
             }
         }
@@ -3967,6 +4112,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 if (systemURI == null) {
                     systemURI = removeVol.getStorageController();
                 }
+                StringSet backingVolumes = removeVol.getAssociatedVolumes();
+                if (backingVolumes != null ) {
+                    for (String backingVolId : backingVolumes) {
+                        URI backingVolUri = URI.create(backingVolId);
+                        Volume backingVol = _dbClient.queryObject(Volume.class, backingVolUri);
+                        if (backingVol != null &&
+                                !BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backingVol, _dbClient, false)) {
+                            throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(removeVol.getLabel(),
+                                "the Unity subgroup has snapshot");
+                        }
+                    }
+                }
                 removeVolIds.add(removeVol.getId());
             }
         }
@@ -4030,6 +4187,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
                                     "Volume has to be added to a different replication group than it is currently in");
                         }
+                    }
+                    if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(addVolumes.getReplicationGroupName(), backingVol, _dbClient, true)) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
+                                "the Unity subgroup has snapshot.");
                     }
                 }
             }
@@ -4120,9 +4281,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *
      * @param groupName The replication group name
      * @param storageSystemUri The backend storage system URI
+     * @param personality Optional argument to filter on volume personality
      * @return The list of Vplex virtual volumes
      */
-    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
+    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri, String personality) {
         List<Volume> vplexVols = new ArrayList<Volume>();
         // Get all backend volumes with the same replication group name
         List<Volume> volumes = CustomQueryUtility
@@ -4137,7 +4299,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 getVolumesByAssociatedId(volume.getId().toString()));
                 if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
                     Volume vplexVol = vplexVolumes.get(0);
-                    if (!vplexVol.checkForRp() || vplexVol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
+                    if ((personality == null) || vplexVol.checkPersonality(personality)) {
                         vplexVols.add(vplexVol);
                     }
                 }
@@ -4150,10 +4312,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Check if all VPlex volumes whose backend volume RG that the backendVol belongs to are in the allVolumes set
      *
-     * @param backnedVol
-     * @param allVolumes
+     * @param backnedVol Backend volume to get the RG name
+     * @param allVolumes All volumes to compare against
      * @param checkedRGMap a map contained RG that has been checked
-     * @return boolean
+     * @return boolean True is all the volumes are in the same request, false otherwise.
      */
     public boolean checkAllVPlexVolsInRequest(Volume backendVol, Set<URI> allVolumes, Map<String, Boolean> checkedRGMap) {
         String rgName = backendVol.getReplicationGroupInstance();
@@ -4164,7 +4326,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             return checkedRGMap.get(key);
         } else {
             boolean containAll = true;
-            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri);
+            Volume firstVolume = _dbClient.queryObject(Volume.class, allVolumes.iterator().next());
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri, firstVolume.getPersonality());
             for (Volume vol : rgVolumes) {
                 if (vol != null && !vol.getInactive()) {
                     if (!allVolumes.contains(vol.getId())) {

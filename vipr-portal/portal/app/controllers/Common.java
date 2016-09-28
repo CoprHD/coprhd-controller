@@ -33,6 +33,7 @@ import play.mvc.Router;
 import play.mvc.Util;
 import play.mvc.With;
 import util.BourneUtil;
+import util.DisasterRecoveryUtils;
 import util.LicenseUtils;
 import util.MessagesUtils;
 import util.VirtualDataCenterUtils;
@@ -146,7 +147,7 @@ public class Common extends Controller {
         renderArgs.put(VDCS, getVDCs());
 
         // Notifications are only shown for tenant approvers
-        if (Security.isTenantApprover()) {
+        if (Security.isTenantApprover() && DisasterRecoveryUtils.isActiveSite()) {
             renderArgs.put(NOTIFICATIONS, Notifications.getNotifications());
         }
         addReferrer();

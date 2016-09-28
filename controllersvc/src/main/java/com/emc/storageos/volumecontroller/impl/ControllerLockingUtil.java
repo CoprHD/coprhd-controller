@@ -40,10 +40,13 @@ public class ControllerLockingUtil {
      * The keys are constructed from a concatenation of the host URI and the storage system URI.
      * 
      * @param dbClient
-     * @param type ExportGroup.ExportGroupType -- used to determine if cluster export
-     * @param initiatorURIs -- set of Initiators to consider
-     * @param storageURI -- URI of storage system 
-     *  (could be a Protection System or null in which case only host in key)
+     * @param type
+     *            ExportGroup.ExportGroupType -- used to determine if cluster export
+     * @param initiatorURIs
+     *            -- set of Initiators to consider
+     * @param storageURI
+     *            -- URI of storage system
+     *            (could be a Protection System or null in which case only host in key)
      * @return List<String> where each item in list is a lockKey
      */
     static public List<String> getHostStorageLockKeys(DbClient dbClient, ExportGroup.ExportGroupType type,
@@ -78,8 +81,8 @@ public class ControllerLockingUtil {
             // add those hosts if not already present.
             for (URI clusterURI : clusterURIs) {
                 URIQueryResultList result = new URIQueryResultList();
-                dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                        getContainedObjectsConstraint(clusterURI, Host.class, "cluster"), result);
+                dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"),
+                        result);
                 Iterator<URI> iter = result.iterator();
                 while (iter.hasNext()) {
                     Host host = dbClient.queryObject(Host.class, iter.next());
@@ -93,8 +96,8 @@ public class ControllerLockingUtil {
 
         // Now make a key for every host / storage pair
         for (String hostName : hostNames) {
-            String key = hostName +  DELIMITER + storageKey;
-            key = key.replaceAll("\\s",  "");
+            String key = hostName + DELIMITER + storageKey;
+            key = key.replaceAll("\\s", "");
             if (!lockKeys.contains(key)) {
                 lockKeys.add(key);
             }
@@ -103,10 +106,11 @@ public class ControllerLockingUtil {
         log.info("Lock keys: " + lockKeys.toString());
         return lockKeys;
     }
-    
+
     /**
-     * This method is only invoked by RecoverPoint controller at this point as RP systems are treated as clusters for export,
-     * but they do not have a real host object associated with each initiator. 
+     * This method is only invoked by RecoverPoint controller at this point as RP systems are treated as clusters for
+     * export,
+     * but they do not have a real host object associated with each initiator.
      * 
      * Returns a list of lock keys for export of Hosts to StorageSystems.
      * This is constructed from a list of Initiators.
@@ -114,13 +118,15 @@ public class ControllerLockingUtil {
      * The keys are constructed from a concatenation of the host URI and the storage system URI.
      * 
      * @param dbClient
-     * @param initiatorURIs -- set of Initiators to consider
-     * @param storageURI -- 
-     *  (could be a Protection System or null in which case only host in key)
+     * @param initiatorURIs
+     *            -- set of Initiators to consider
+     * @param storageURI
+     *            --
+     *            (could be a Protection System or null in which case only host in key)
      * @return List<String> where each item in list is a lockKey
      */
-      
-    static public List<String> getStorageLockKeysForRecoverPoint(DbClient dbClient, 
+
+    static public List<String> getStorageLockKeysForRecoverPoint(DbClient dbClient,
             Collection<URI> initiatorURIs, URI storageURI) {
         String storageKey = getStorageKey(dbClient, storageURI);
         List<String> lockKeys = new ArrayList<String>();
@@ -133,11 +139,11 @@ public class ControllerLockingUtil {
             }
             hostNames.add(initiator.getClusterName());
         }
-   
+
         // Now make a key for every host / storage pair
         for (String hostName : hostNames) {
-            String key = hostName +  DELIMITER + storageKey;
-            key = key.replaceAll("\\s", ""); //remove any spaces as ZK has an issue with space in lockKeys
+            String key = hostName + DELIMITER + storageKey;
+            key = key.replaceAll("\\s", ""); // remove any spaces as ZK has an issue with space in lockKeys
             if (!lockKeys.contains(key)) {
                 lockKeys.add(key);
             }
@@ -150,16 +156,18 @@ public class ControllerLockingUtil {
     /**
      * Make a consistencyGroup / storageSystem duple key.
      * 
-     * @param cgURI -- consistencyGroup may not exist but cgURI must be non NULL
-     * @param storageURI (could be a Protection System or null)
+     * @param cgURI
+     *            -- consistencyGroup may not exist but cgURI must be non NULL
+     * @param storageURI
+     *            (could be a Protection System or null)
      * @return
      */
-    static public String getConsistencyGroupStorageKey(DbClient dbClient, URI cgURI, URI storageURI)  {
+    static public String getConsistencyGroupStorageKey(DbClient dbClient, URI cgURI, URI storageURI) {
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
         String storageKey = getStorageKey(dbClient, storageURI);
         if (consistencyGroup != null) {
-        	
-            return consistencyGroup.getLabel().replaceAll("\\s",  "") + DELIMITER + storageKey;
+
+            return consistencyGroup.getLabel().replaceAll("\\s", "") + DELIMITER + storageKey;
         } else {
             return cgURI.toString() + DELIMITER + storageKey;
         }
@@ -177,11 +185,14 @@ public class ControllerLockingUtil {
     static public String getReplicationGroupStorageKey(DbClient dbClient, String rgName, URI storageURI) {
         return rgName.replaceAll("\\s", "") + DELIMITER + getStorageKey(dbClient, storageURI);
     }
-    
+
     /**
      * Returns a string identifier for the Storage or Protection System
-     * @param dbClient -- DbClient to access database
-     * @param storageURI -- URI, StorageSystem, ProtectionSystem, or random URI, or null
+     * 
+     * @param dbClient
+     *            -- DbClient to access database
+     * @param storageURI
+     *            -- URI, StorageSystem, ProtectionSystem, or random URI, or null
      * @return
      */
     static private String getStorageKey(DbClient dbClient, URI storageURI) {
@@ -198,5 +209,13 @@ public class ControllerLockingUtil {
             return protection.getNativeGuid();
         }
         return storageURI.toString();
+    }
+
+    static public String getMountHostKey(DbClient dbClient, URI hostURI) {
+        if (hostURI == null) {
+            // Return an empty string if no hostURI supplied
+            return "";
+        }
+        return hostURI.toString();
     }
 }

@@ -97,17 +97,18 @@
   #{/else}
 
 </div>
-                  
+<div ng-controller="FileRessourceCtrl" id="rule"> 
+<input type="hidden" ng-model="ruleTitle">                 
 #{Modal.dialog id:'exportRule'}
   #{Modal.header}
-    <h4 class="modal-title">&{'resources.filesystem.export.modify'}</h4>
+    <h4 class="modal-title">{{ruleTitle}}</h4>
   #{/Modal.header}
   #{Modal.body}
-    <div ng-controller="FileRessourceCtrl" id="rule">
+   
        <div class="container-fluid">
            <div class="row">
-                <control-group v-field='rule.security' labelWidth="1">
-                    <select-one options="secOpt" ng-disabled="edit"></select-one>
+                <control-group v-field='rule.security' labelWidth="1" required >
+                    <select-many options="secOpt" ng-disabled="edit"></select-many>
                 </control-group>
            </div>
            <div class="row">
@@ -152,9 +153,10 @@
              </div>
            #{/form}
        </div>
-    </div>
   #{/Modal.body}
 #{/Modal.dialog}
+</div>
+
 
 #{Modal.dialog id:'subDirectory'}
   #{Modal.header}
@@ -217,7 +219,7 @@
         <input-text></input-text>
       </control-group>
       #{Modal.buttonBar}
-        <button type="submit" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+        <button id="saveQuotaButton" type="submit" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
       #{/Modal.buttonBar}
     #{/form}
     </div>

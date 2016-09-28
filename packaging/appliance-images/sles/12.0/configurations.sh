@@ -182,7 +182,7 @@ adg_motd() {
 # HACK - ovftool install
 #--------------------------------------
 adg_ovftoolInstall() {
-    rpm -Uvh http://pld-imgapprd01.isus.emc.com:8081/artifactory/adg-icc/x86_64/vmware-ovftool/3.5.0-1274719/VMware-ovftool-3.5.0-1274719.x86_64.rpm
+    rpm -Uvh http://asdrepo.isus.emc.com:8081/artifactory/adg-icc/x86_64/vmware-ovftool/3.5.0-1274719/VMware-ovftool-3.5.0-1274719.x86_64.rpm
 }
 
 #======================================
@@ -898,7 +898,7 @@ fix_enable_java_sslv3() {
     if [ -f /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security ] ; then
         cp -p /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security.orig
         xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/'
-        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
+        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, MD5, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
     fi
 }
 
@@ -1180,6 +1180,15 @@ vipr_fix_add_strongswan() {
     echo "*** Fixing Adding strongswan parameter" >&2
     echo "net.ipv4.xfrm4_gc_thresh=32768" >> /etc/sysctl.conf
     echo "net.ipv6.xfrm6_gc_thresh=32768" >> /etc/sysctl.conf
+}
+
+#======================================
+# Fix /etc/profile
+#--------------------------------------
+vipr_fix_etc_profile() {
+    if [ -f /etc/profile ] ; then
+        xsed /etc/profile 's/^mesg n/mesg n \&> \/dev\/null/'
+    fi
 }
 
 #======================================

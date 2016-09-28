@@ -25,7 +25,7 @@ public class StorageResource extends VNXeBase {
     private boolean isSnapSchedulePaused;
     private TieringPolicyEnum relocationPolicy;
     private List<Long> perTierSizeused;
-    // private List<BlockHostAccess> blockHostAccess;
+    private List<BlockHostAccess> blockHostAccess;
     private long metadataSize;
     private long metadataSizeAllocated;
     private long snapSizeTotal;
@@ -34,11 +34,11 @@ public class StorageResource extends VNXeBase {
     private List<VNXeBase> luns;
 
     public List<VNXeBase> getLuns() {
-                return luns;
+        return luns;
     }
 
     public void setLuns(List<VNXeBase> luns) {
-                this.luns = luns;
+        this.luns = luns;
     }
 
     public List<Integer> getOperationalStatus() {
@@ -191,6 +191,14 @@ public class StorageResource extends VNXeBase {
 
     public void setSnapCount(int snapCount) {
         this.snapCount = snapCount;
+    }
+
+    public List<BlockHostAccess> getBlockHostAccess() {
+        return blockHostAccess;
+    }
+
+    public void setBlockHostAccess(List<BlockHostAccess> blockHostAccess) {
+        this.blockHostAccess = blockHostAccess;
     }
 
     public static enum StorageResourceTypeEnum {

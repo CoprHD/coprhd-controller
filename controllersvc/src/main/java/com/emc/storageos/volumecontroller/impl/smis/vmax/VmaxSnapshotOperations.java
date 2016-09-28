@@ -303,6 +303,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             _log.info("createSingleVolumeSnapshot operation START");
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
+
             // Need to terminate an restore sessions, so that we can
             // restore from the same snapshot multiple times
             terminateAnyRestoreSessionsForVolume(storage, volume, taskCompleter);
@@ -315,7 +316,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
             if (storage.checkIfVmax3()) {
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
+                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, storage, volume, null);
                 // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
                 CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(storage, volume);
                 targetDeviceIds = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot", snapLabelToUse,
@@ -423,7 +424,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     final List<Volume> volumes = entry.getValue();
                     final Volume volume = volumes.get(0);
                     final URI poolId = volume.getPool();
-                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, storage, volume, null);
 
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
@@ -571,7 +572,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshot it = snapshotIter.next();
                 it.setInactive(true);
                 it.setIsSyncActive(false);
-                _dbClient.persistObject(it);
+                _dbClient.updateObject(it);
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -1578,7 +1579,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     if (URIUtil.isType(sourceObjURI, Volume.class)) {
                         // Provision the new target volume.
                         Volume sourceVolume = (Volume) sourceObj;
-                        CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, sourceVolume, null);
+                        CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, system, sourceVolume, null);
                         // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
                         CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(system, sourceVolume);
                         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, sourceVolume.getTenant().getURI());
@@ -1676,7 +1677,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     final URI poolId = volume.getPool();
 
                     // get respective group path for volume storage pool
-                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, volume, null);
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, system, volume, null);
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
                             sourceGroupName, null, false, true, volumes.size(), poolId,
@@ -1878,16 +1879,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // that it can be detached.
             boolean syncObjectFound = false;
             List<BlockSnapshot> snapshots = null;
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
             CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
             if (snapshot.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
                 String replicationGroupName = snapshot.getReplicationGroupInstance();
+                String sourceReplicationGroupName = sourceObj.getReplicationGroupInstance();
                 List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
                 if (groupSyncs != null && !groupSyncs.isEmpty()) {
                     // Find the right one. We want the one where the replication groups for
                     // the passed snapshot is the sync'd element.
                     for (CIMObjectPath groupSynchronized : groupSyncs) {
                         String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
-                        if (syncElementPath.contains(replicationGroupName)) {
+                        String systemElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
+                        if (syncElementPath.contains(replicationGroupName) && systemElementPath.contains(sourceReplicationGroupName)) {
                             syncObjectPath = groupSynchronized;
                             break;
                         }
@@ -1896,7 +1900,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
                         snapshot, _dbClient);
             } else {
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
                 syncObjectPath = getSyncObject(system, snapshot, sourceObj);
                 snapshots = Lists.newArrayList(snapshot);
             }

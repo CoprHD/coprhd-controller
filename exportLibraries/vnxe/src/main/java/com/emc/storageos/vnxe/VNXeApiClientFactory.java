@@ -5,66 +5,40 @@
 
 package com.emc.storageos.vnxe;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.net.URI;
 
+import com.emc.storageos.services.restutil.RestClientFactory;
+import com.emc.storageos.services.restutil.RestClientItf;
 import com.emc.storageos.vnxe.requests.KHClient;
+import com.sun.jersey.api.client.Client;
+
 
 /*
  *  VNXe (KittyHawk) API client factory
  */
-public class VNXeApiClientFactory {
-    // client map
-    private ConcurrentMap<String, VNXeApiClient> clientMap;
-
-    public void init() {
-        clientMap = new ConcurrentHashMap<String, VNXeApiClient>();
-    }
-
+public class VNXeApiClientFactory extends RestClientFactory{
     /*
      * get VnxeApiClient based on the vnxe unisphere info
      */
     public VNXeApiClient getClient(String host, int port, String user, String password) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(host);
-        builder.append("_");
-        builder.append(port);
-        builder.append("_");
-        builder.append(user);
-        builder.append("_");
-        builder.append(password);
-        String key = builder.toString();
-        VNXeApiClient apiClient = null;
-        if (clientMap.get(key) != null) {
-            apiClient = clientMap.get(key);
-        } else {
-            KHClient client = new KHClient(host, port, user, password);
-            apiClient = new VNXeApiClient(client);
-            clientMap.putIfAbsent(key, apiClient);
-        }
+        KHClient client = new KHClient(host, port, user, password, _clientHandler, false);
+        VNXeApiClient apiClient = new VNXeApiClient(client);
         return apiClient;
     }
 
- public VNXeApiClient getUnityClient(String host, int port, String user, String password) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(host);
-        builder.append("_");
-        builder.append(port);
-        builder.append("_");
-        builder.append(user);
-        builder.append("_");
-        builder.append(password);
-        String key = builder.toString();
-        VNXeApiClient apiClient = null;
-        if (clientMap.get(key) != null) {
-            apiClient = clientMap.get(key);
-        } else {
-            KHClient client = new KHClient(host, port, user, password, true);
-            apiClient = new VNXeApiClient(client);
-            clientMap.putIfAbsent(key, apiClient);
-        }
+    public VNXeApiClient getUnityClient(String host, int port, String user, String password) {
+        KHClient client = new KHClient(host, port, user, password, _clientHandler, true);
+        VNXeApiClient apiClient = new VNXeApiClient(client);
         return apiClient;
     }
+ 
+   @Override
+   protected RestClientItf createNewRestClient(URI endpoint, String username,
+         String password, Client client) {
+     return null;
+   }
+   
+   
 
 
 }

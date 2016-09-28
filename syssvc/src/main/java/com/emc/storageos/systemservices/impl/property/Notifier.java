@@ -36,6 +36,8 @@ public abstract class Notifier {
     private static final String BACKUPSCHEDULER_NOTIFIER = "backupscheduler";
     private static final String UPGRADE_NOTIFIER = "upgrade";
 
+    // syslog forwarder notifier
+    private static final String SYSLOG_NOTIFIER = "syslog";
     // storageos services
     private static final String AUTHSVC_NOTIFIER = "authsvc";
 
@@ -56,6 +58,7 @@ public abstract class Notifier {
             case NTP_NOTIFIER:
             case SSH_NOTIFIER:
             case SSL_NOTIFIER:
+            case SYSLOG_NOTIFIER:
                 notifier = new NonStorageosSvcNotifier(notifierType);
                 break;
             case DNS_NOTIFIER:

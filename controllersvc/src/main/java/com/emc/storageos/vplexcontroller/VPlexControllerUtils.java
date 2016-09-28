@@ -538,7 +538,7 @@ public class VPlexControllerUtils {
      * @param networkDeviceController the NetworkDeviceController, used for refreshing the zoning map
      * @param isRemoveOperation flag to indicate whether the caller is a operation that removes inits or vols
      */
-    public static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
+    private static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
             ExportMask exportMask, Map<String, String> targetPortToPwwnMap, 
             NetworkDeviceController networkDeviceController, boolean isRemoveOperation) {
         try {
@@ -609,14 +609,11 @@ public class VPlexControllerUtils {
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
 
-                    // If the initiator is in our DB, add it to the Initiator list
-                    if (knownInitiator != null) {
+                    // If the initiator is in our DB, and it's in our compute resource, it gets added to to the initiator list.
+                    // Otherwise it gets added to the existing list.
+                    if (knownInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, knownInitiator)) {
                         initiatorObjectsToAdd.add(knownInitiator);
-                    }
-
-                    // If the initiator is not in our DB (or it's in our DB, but not a user added initiator), add to the
-                    // existing initiator list.
-                    if (knownInitiator == null || !exportMask.hasUserInitiator(normalizedPort)) {
+                    } else {
                         initiatorPortWwnsToAdd.add(normalizedPort);
                     }
                     addInitiators = true;

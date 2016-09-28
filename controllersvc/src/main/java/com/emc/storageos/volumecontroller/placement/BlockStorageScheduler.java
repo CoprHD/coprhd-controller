@@ -1943,6 +1943,7 @@ public class BlockStorageScheduler {
                 assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
 
+        ExportUtils.addPrezonedAssignments(existingZoningMap, assignments, preZonedZoningMap);
         return assignments;
     }
 
@@ -2076,7 +2077,7 @@ public class BlockStorageScheduler {
                     }
                 }
             }
-            _log.info("Zoning map after the assignment of pre-zoned ports: ", newZoningMap);
+            _log.info("Zoning map after the assignment of pre-zoned ports: {}", newZoningMap);
         } catch (Exception ex) {
             _log.error("Failed to assign from pre-zoned storage ports because: ", ex);
             if (allocateFromPrezonedPortsOnly(virtualArrayUri, storage.getSystemType(), backend)) {

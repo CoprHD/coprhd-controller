@@ -487,12 +487,14 @@ public class BlockDeviceExportController implements BlockExportController {
 
             for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
                 BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
-                // URI storageControllerUri = getExportStorageController(bo);
+
                 controllerKey = new BlockObjectControllerKey();
                 controllerKey.setStorageControllerUri(bo.getStorageController());
+
                 if (!NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
                     controllerKey.setProtectionControllerUri(bo.getProtectionController());
                 }
+
                 _log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
                 // add an entry in each map for the storage system if not already exists
                 getOrAddStorageMap(controllerKey, addedBlockObjects);
@@ -503,13 +505,14 @@ public class BlockDeviceExportController implements BlockExportController {
         // compute a map of storage-system-to-volumes for volumes to be added
         for (URI uri : addedBlockObjectsFromRequest.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, uri);
-            // URI storageControllerUri = getExportStorageController(bo);
 
             controllerKey = new BlockObjectControllerKey();
             controllerKey.setStorageControllerUri(bo.getStorageController());
+
             if (!NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
                 controllerKey.setProtectionControllerUri(bo.getProtectionController());
             }
+
             // add an entry in each map for the storage system if not already exists
             getOrAddStorageMap(controllerKey, addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
             getOrAddStorageMap(controllerKey, removedBlockObjects);
@@ -520,10 +523,10 @@ public class BlockDeviceExportController implements BlockExportController {
         for (URI uri : removedBlockObjectsFromRequest.keySet()) {
             if (existingMap.containsKey(uri)) {
                 BlockObject bo = BlockObject.fetch(_dbClient, uri);
-                // URI storageControllerUri = getExportStorageController(bo);
 
                 controllerKey = new BlockObjectControllerKey();
                 controllerKey.setStorageControllerUri(bo.getStorageController());
+
                 if (!NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
                     controllerKey.setProtectionControllerUri(bo.getProtectionController());
                 }

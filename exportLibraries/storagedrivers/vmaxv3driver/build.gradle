@@ -12,6 +12,5 @@ dependencies {
     compile library(httpclient4)
     compile library(google_gson)
     compile library(json_sanitizer)
-    compile library(velocity)
     testCompile group: 'org.testng', name: 'testng', version:'6.8.7'
 }

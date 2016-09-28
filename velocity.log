@@ -1,2 +1,2 @@
-2016-09-26 16:51:18,597 - ResourceManager : unable to find resource 'com.emc.storageos.driver.vmaxv3driver.rest.request.StorageGroupPost' in any resource loader.
+2016-09-26 16:51:18,597 - ResourceManager : unable to find resource 'com.emc.storageos.driver.vmaxv3driver.rest.request.RequestStorageGroupPost' in any resource loader.
 2016-09-26 16:52:54,544 - ResourceManager : unable to find resource 'StorageGroupPost' in any resource loader.

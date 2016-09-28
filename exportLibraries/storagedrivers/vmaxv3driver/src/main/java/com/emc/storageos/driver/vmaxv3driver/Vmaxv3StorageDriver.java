@@ -8,6 +8,7 @@ package com.emc.storageos.driver.vmaxv3driver;
 import com.emc.storageos.driver.vmaxv3driver.base.Operation;
 import com.emc.storageos.driver.vmaxv3driver.base.OperationFactory;
 import com.emc.storageos.driver.vmaxv3driver.base.OperationFactoryImpl;
+import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -16,6 +17,8 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,5 +181,18 @@ public class Vmaxv3StorageDriver extends DefaultStorageDriver {
         logger.debug("Vmaxv3StorageDriver.discoverStoragePorts: storageSystem={}, storagePorts={}",
             storageSystem, storagePorts);
         return this.execute("discoverStoragePorts", storageSystem, storagePorts);
+    }
+
+    /**
+     * Defined in the "BlockStorageDriver" interface.
+     *
+     * @param volumes
+     * @param capabilities
+     * @return
+     */
+    @Override
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        logger.debug("Vmaxv3StorageDriver.createVolumes: volumes={}, capabilities={}", volumes, capabilities);
+        return this.execute("createVolumes", volumes, capabilities);
     }
 }

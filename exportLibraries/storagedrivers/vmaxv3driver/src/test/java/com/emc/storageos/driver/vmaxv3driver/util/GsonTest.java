@@ -5,6 +5,9 @@
 
 package com.emc.storageos.driver.vmaxv3driver.util;
 
+import com.emc.storageos.driver.vmaxv3driver.rest.request.RequestStorageGroupPost;
+import com.emc.storageos.driver.vmaxv3driver.rest.request.SloBasedStorageGroupParam;
+import com.emc.storageos.driver.vmaxv3driver.rest.request.VolumeAttribute;
 import com.emc.storageos.driver.vmaxv3driver.rest.response.Symmetrix;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -17,6 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by gang on 6/21/16.
  */
@@ -102,4 +109,36 @@ public class GsonTest {
         String json = gson.toJson(statusLine);
         logger.info("StatusLine in JSON: {}", json);
     }
+
+    @Test
+    public void testConvertRequest2Json() {
+        // Prepare the request bean.
+        VolumeAttribute volumeAttribute1 = new VolumeAttribute();
+        volumeAttribute1.setVolume_size("100");
+        volumeAttribute1.setCapacityUnit("GB");
+        SloBasedStorageGroupParam volume1 = new SloBasedStorageGroupParam();
+        volume1.setVolumeAttribute(volumeAttribute1);
+        volume1.setNum_of_vols(3);
+        volume1.setSloId("Silver");
+        volume1.setWorkloadSelection("OLTP");
+        List<SloBasedStorageGroupParam> volumes = new ArrayList<>();
+        volumes.add(volume1);
+        VolumeAttribute volumeAttribute2 = new VolumeAttribute();
+        volumeAttribute2.setVolume_size("2");
+        volumeAttribute2.setCapacityUnit("TB");
+        SloBasedStorageGroupParam volume2 = new SloBasedStorageGroupParam();
+        volume2.setVolumeAttribute(volumeAttribute2);
+        volume2.setNum_of_vols(2);
+        volume2.setSloId("Gold");
+        volume2.setWorkloadSelection("OLAP");
+        volumes.add(volume2);
+        RequestStorageGroupPost post = new RequestStorageGroupPost();
+        post.setSloBasedStorageGroupParam(volumes);
+        post.setSrpId("SRP_1");
+        post.setStorageGroupId("test2");
+        // Convert the bean to JSON format string.
+        String json = new Gson().toJson(post);
+        logger.info("Request in JSON: {}", json);
+    }
+
 }

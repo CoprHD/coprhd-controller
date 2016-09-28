@@ -13,7 +13,7 @@ public class StorageGroupPostTest {
 
     @Test
     public void testGenerateRequest() {
-//        StorageGroupPost bean = new StorageGroupPost();
+//        RequestStorageGroupPost bean = new RequestStorageGroupPost();
 //        logger.info("{} request: {}", this.getClass().getName(), bean.getRequestBody());
     }
 }

@@ -42,4 +42,12 @@ public class Vmaxv3Constants {
         "/univmax/restapi/sloprovisioning/symmetrix/%1$s/volume?storageGroupId=%2$s";
     public static final String RA_SLOPROVISIONING_SYMMETRIX_VOLUME =
         "/univmax/restapi/sloprovisioning/symmetrix/%1$s/volume/%2$s";
+
+    // Default values.
+    public static final String DEFAULT_VALUE_STORAGE_GROUP_SLO = "Optimized";
+    public static final String DEFAULT_VALUE_STORAGE_GROUP_WORKLOAD = "NONE";
+    public static final String DEFAULT_VALUE_STORAGE_GROUP_NAME= "ViPRSBSDK_%1$s_%2$s_%3$s_%3$s";
+    public static final String DEFAULT_VALUE_VOLUME_CAPACITY_UNIT= "GB";
+
+
 }

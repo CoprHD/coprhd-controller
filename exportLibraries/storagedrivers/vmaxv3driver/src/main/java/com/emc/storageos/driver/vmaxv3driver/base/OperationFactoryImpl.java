@@ -9,6 +9,7 @@ import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStorage
 import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStoragePortsOperation;
 import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStorageProviderOperation;
 import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStorageSystemOperation;
+import com.emc.storageos.driver.vmaxv3driver.operation.provisioning.create.CreateVolumesOperation;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 
@@ -25,10 +26,13 @@ public class OperationFactoryImpl implements OperationFactory {
     private List<Class<? extends Operation>> operationClasses = new ArrayList<>();
 
     public OperationFactoryImpl() {
+        // "DiscoveryDriver" related operations.
         operationClasses.add(DiscoverStorageProviderOperation.class);
         operationClasses.add(DiscoverStorageSystemOperation.class);
         operationClasses.add(DiscoverStoragePoolsOperation.class);
         operationClasses.add(DiscoverStoragePortsOperation.class);
+        // "BlockStorageDriver" related operations.
+        operationClasses.add(CreateVolumesOperation.class);
     }
 
     @Override

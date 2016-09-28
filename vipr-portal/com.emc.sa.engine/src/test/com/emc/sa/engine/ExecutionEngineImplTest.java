@@ -292,6 +292,12 @@ public class ExecutionEngineImplTest {
 			// TODO Auto-generated method stub
 			
 		}
+
+		@Override
+		public void executeModelWorkflow() throws Exception {
+			// TODO Auto-generated method stub
+			
+		}
     }
 
     protected static class EmptyTask extends ExecutionTask<Void> {

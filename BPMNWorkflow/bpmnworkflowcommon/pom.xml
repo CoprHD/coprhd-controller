@@ -16,7 +16,49 @@
 
 	<dependencies>
 
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-mapper-asl</artifactId>
+		</dependency>
 
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-core-asl</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+		</dependency>
+
+
+		<dependency>
+			<groupId>com.jcraft</groupId>
+			<artifactId>jsch</artifactId>
+			<version>0.1.50</version>
+		</dependency>
+
+
+		<!-- Spring -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+		</dependency>
 
 		<!-- Logging -->
 		<dependency>
@@ -31,123 +73,36 @@
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-		</dependency>
-
-			<dependency>
-				<groupId>commons-beanutils</groupId>
-				<artifactId>commons-beanutils</artifactId>
-			</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-client</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-core-asl</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
-		</dependency>
-<dependency>
-				<groupId>com.jcraft</groupId>
-				<artifactId>jsch</artifactId>
-				<version>0.1.50</version>
-			</dependency>
-			
-				<dependency>
-				<groupId>com.fasterxml.jackson.jaxrs</groupId>
-				<artifactId>jackson-jaxrs-json-provider</artifactId>
-				<version>2.1.1</version>
-			</dependency>
 
 
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>servlet-api</artifactId>
+			<groupId>com.emc.storageos</groupId>
+			<artifactId>vipr-client</artifactId>
+			<scope>system</scope>
+			<systemPath>${basedir}/../lib/vipr-client.jar</systemPath>
 		</dependency>
 
-			<dependency>
-				<groupId>com.google.code.gson</groupId>
-				<artifactId>gson</artifactId>
-			</dependency>
-
-		<!-- Spring -->
 		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-context</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-test</artifactId>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<artifactId>commons-logging</artifactId>
-					<groupId>commons-logging</groupId>
-				</exclusion>
-			</exclusions>
+			<groupId>com.emc.storageos</groupId>
+			<artifactId>storageos-models</artifactId>
+			<scope>system</scope>
+			<systemPath>${basedir}/../lib/storageos-models.jar</systemPath>
 		</dependency>
 
 
 
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>2.3</version>
-		</dependency>
-
-
-
-
-		<dependency>
-			<groupId>org.xeustechnologies</groupId>
-			<artifactId>jcl-core</artifactId>
-			<version>2.7</version>
-		</dependency>
-
-<dependency>
-	<groupId>org.codehaus.jackson</groupId>
-	<artifactId>jackson-jaxrs</artifactId>
-	<version>1.5.4</version>
-</dependency>
-
-
-			<dependency>
-				<groupId>com.emc.storageos</groupId>
-				<artifactId>vipr-client</artifactId>
-				<version>1.0</version>
-				<scope>system</scope>
-				<systemPath>${basedir}/lib/vipr-client.jar</systemPath>
-			</dependency>
-
-			<dependency>
-				<groupId>com.emc.storageos</groupId>
-				<artifactId>storageos-models</artifactId>
-				<version>1.0</version>
-				<scope>system</scope>
-				<systemPath>${basedir}/lib/storageos-models.jar</systemPath>
-			</dependency>
 
 	</dependencies>
 
-<build>
+	<build>
 		<plugins>
-			
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
-				<descriptor>src/assembly/bin.xml</descriptor>
-				<finalName>customFlow</finalName>
+					<descriptor>src/assembly/bin.xml</descriptor>
+					<finalName>customFlow</finalName>
 				</configuration>
 				<executions>
 					<execution>
@@ -158,19 +113,19 @@
 					</execution>
 				</executions>
 			</plugin>
-         <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <excludes>
-            <exclude>/com/emc/storageos/vasa/async/TaskInfo.class</exclude>
-          </excludes>
-        </configuration>
-      </plugin>		
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.6</version>
+				<configuration>
+					<excludes>
+						<exclude>/com/emc/storageos/vasa/async/TaskInfo.class</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
 		</plugins>
 		<finalName>custom-service</finalName>
 	</build>
-	
-	
+
+
 </project>

@@ -684,9 +684,9 @@ public class VPlexControllerUtils {
                         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
                         if (volumeList.iterator().hasNext()) {
                             URI volumeURI = volumeList.iterator().next();
-                            if (exportMask.hasVolume(volumeURI)) {
+                            if (exportMask.hasUserCreatedVolume(volumeURI)) {
                                 log.info("\texisting volumes contain wwn {}, but it is also in the "
-                                        + "export mask's volumes, so removing from existing volumes", wwn);
+                                        + "export mask's user added volumes, so removing from existing volumes", wwn);
                                 volumesToRemoveFromExisting.add(wwn);
                             }
                         }

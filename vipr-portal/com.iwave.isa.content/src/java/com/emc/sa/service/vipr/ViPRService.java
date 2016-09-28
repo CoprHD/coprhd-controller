@@ -252,6 +252,22 @@ public abstract class ViPRService extends AbstractExecutionService {
         modelClient.save(retention);
     }
     
+    protected <T extends DataObjectRestRep> void addRetainedReplicas(URI sourceId, String replicaName) {
+        if (!isRetentionRequired()) {
+            return;
+        }
+        
+        ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
+        RetainedReplica retention = new RetainedReplica();
+        retention.setScheduledEventId(event.getId());
+        retention.setResourceId(sourceId);
+        StringSet retainedResource = new StringSet();
+        retention.setAssociatedReplicaIds(retainedResource);
+        retainedResource.add(replicaName);
+
+        modelClient.save(retention);
+    }
+    
     /**
      * 
      * Find obsolete replicas for given resource according to defined retention policy of this order

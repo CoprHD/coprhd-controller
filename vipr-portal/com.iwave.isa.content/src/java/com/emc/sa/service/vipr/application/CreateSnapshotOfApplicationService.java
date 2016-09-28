@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateSnapshotOfApplication")
@@ -48,9 +49,10 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
         checkAndPurgeObsoleteSnapshots(applicationId);
-        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly));
+        String snapshotName = TimeUtils.formatDateForCurrent(name);
+        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, snapshotName, readOnly));
         addAffectedResources(tasks);
-        addRetainedReplicas(applicationId, tasks.getTasks());
+        addRetainedReplicas(applicationId, snapshotName);
     }
     
     /**
@@ -64,17 +66,12 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         }
         List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
         for (RetainedReplica replica : replicas) {
-            List<URI> snapshotIds = new ArrayList<URI>();
-            for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
-                Class clazz = URIUtil.getModelClass(uri(obsoleteSnapshotId));
-                if (clazz.equals(BlockSnapshot.class)) {
-                    info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
-                    snapshotIds.add(uri(obsoleteSnapshotId));
-                } else {
-                    info("Skip object %s. It is not a full copy", obsoleteSnapshotId);
-                }
+            for (String applicationCopySet : replica.getAssociatedReplicaIds()) {
+                info("Delete application snapshots %s since it exceeds max number of clones allowed", applicationCopySet);
+                List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
+                        subGroups);
+                execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
             }
-            execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
             getModelClient().delete(replica);
         }
     }

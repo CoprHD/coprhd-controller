@@ -57,4 +57,10 @@ public class SampleTableService extends AbstractExecutionService {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void executeModelWorkflow() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
 }

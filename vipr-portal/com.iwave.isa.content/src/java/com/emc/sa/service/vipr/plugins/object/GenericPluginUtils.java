@@ -1,12 +1,10 @@
 package com.emc.sa.service.vipr.plugins.object;
 
 
-import java.util.Map;
-
-
 import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
 import com.emc.sa.engine.extension.ExternalTaskParams;
 import com.emc.vipr.client.Task;
+
 
 public class GenericPluginUtils {
 
@@ -15,6 +13,7 @@ public class GenericPluginUtils {
 //		return null;
 //	}
 
+	
 
 	public static void executeExtenstionTask(ExternalTaskApdapterInterface genericExtensionTask,ExternalTaskParams genericExtensionTaskParams) throws Exception {
 		
@@ -47,6 +46,13 @@ public class GenericPluginUtils {
 	}
 
 
+	private static void executeExtenstionTaskModelExecute(ExternalTaskApdapterInterface genericExtensionTask,ExternalTaskParams genericExtensionTaskParams,String workflowModel) throws Exception {
+		GenericTaskExecuteor viprTask = converExternalTaskApdapterToViprTask(genericExtensionTask,genericExtensionTaskParams);
+		Task<GenericRestRep> task=viprTask.doModelExecute();
+		System.out.println("executeExtenstionTaskModelExecute "+task.toString());
+		
+	}
+	
 
 	public static GenericTaskExecuteor converExternalTaskApdapterToViprTask(ExternalTaskApdapterInterface genericExtensionTask, ExternalTaskParams genericExtensionTaskParams){
 		GenericTaskExecuteor externalTask = new GenericTaskExecuteor(genericExtensionTask, genericExtensionTaskParams);
@@ -66,6 +72,15 @@ public class GenericPluginUtils {
 		}
 		
 	}
+
+	public static void executeExtenstionTask(ExternalTaskApdapterInterface genericExtensionTask,ExternalTaskParams genericExtensionTaskParams, String phase,String workflowModel) throws Exception {
+
+		 if (phase.equals("model-execute")){
+				executeExtenstionTaskModelExecute(genericExtensionTask,genericExtensionTaskParams,workflowModel);
+		 }
+	}
+
+
 
 
 

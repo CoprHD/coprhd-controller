@@ -73,4 +73,17 @@ public class GenericTaskExecuteor extends WaitForTask<GenericRestRep>  {
         TaskResourceRep taskResp = new TaskResourceRep();
     	return new Task<GenericRestRep>(client, taskResp, GenericRestRep.class);
 	}
+	
+    public Task<GenericRestRep> doModelExecute() throws Exception {
+     	TaskInfo taskInfo = genericExtensionTask.executeExternal(params.getExternalParam());
+    	System.out.println("Vipr External Taskinfo doExecute Return "+taskInfo.toDisplayString());
+    	
+    	genericExtensionTask.getStatus();
+    	genericExtensionTask.getStatus();
+    	RestClient client = null;
+        TaskResourceRep taskResp = new TaskResourceRep();
+       
+    	return new Task<GenericRestRep>(client, taskResp, GenericRestRep.class);
+
+    }
 }

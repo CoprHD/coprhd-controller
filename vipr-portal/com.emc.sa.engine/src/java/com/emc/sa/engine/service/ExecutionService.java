@@ -20,6 +20,8 @@ public interface ExecutionService {
 
 	public void postcheck() throws Exception ;
 	
+	public void executeModelWorkflow() throws Exception;
+	
     public void destroy();
     
     /*

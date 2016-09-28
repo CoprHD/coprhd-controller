@@ -13,13 +13,14 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateCloneOfApplication;
-import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.RemoveApplicationFullCopy;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateCloneOfApplication")
@@ -59,19 +60,21 @@ public class CreateCloneOfApplicationService extends ViPRService {
         if (!isRetentionRequired()) {
             return;
         }
-        try {
-            List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
-            for (RetainedReplica replica : replicas) {
-                for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
+        List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
+        for (RetainedReplica replica : replicas) {
+            List<URI> fullCopyIds = new ArrayList<>();
+            for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
+                Class clazz = URIUtil.getModelClass(uri(obsoleteCloneId));
+                if (clazz.equals(Volume.class)) {
                     info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
-                    URI uri = new URI(obsoleteCloneId);
-                    String name = getModelClient().findById(Volume.class, uri).getLabel();
-                    execute(new RemoveApplicationFullCopy(applicationId, uri, name));
+                    fullCopyIds.add(uri(obsoleteCloneId));
+                } else {
+                    info("Skip object %s. It is not a full copy", obsoleteCloneId);
                 }
-                getModelClient().delete(replica);
             }
-        } catch (Exception e) {
-            error("Failed to check and purge obsolete clone:%s",e.getMessage());
+            BlockStorageUtils.detachFullCopies(fullCopyIds);
+            BlockStorageUtils.removeBlockResources(fullCopyIds, VolumeDeleteTypeEnum.FULL);
+            getModelClient().delete(replica);
         }
     }
 }

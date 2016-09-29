@@ -51,6 +51,7 @@ public class RemoteSystemRequest extends KHRequests<RemoteSystem> {
      */
 
     public List<RemoteSystem> get() {
+        _url = URL;
         _queryParams = null;
         return getDataForObjects(RemoteSystem.class);
     }

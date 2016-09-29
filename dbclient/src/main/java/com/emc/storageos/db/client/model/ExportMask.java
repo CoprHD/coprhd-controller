@@ -806,6 +806,9 @@ public class ExportMask extends DataObject {
     }
 
     public boolean hasExistingVolume(BlockObject blockObject) {
+        if (checkForNull(blockObject)) {
+            return false;
+        }
         return hasExistingVolume(blockObject.getWWN());
     }
 

@@ -1778,37 +1778,29 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
+                    } else {
+                        refreshExportMask(storage, exportMask);
                     }
 
                     // Do some one-time updates for the ExportMask
                     if (!maskNames.contains(name)) {
                         // https://coprhd.atlassian.net/browse/COP-20149
                         // Find all the initiators associated with the MaskingView and add them
-                        List<String> portNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
-                        Set<Initiator> allInitiators = ExportUtils.getInitiators(portNames, _dbClient);
+                        List<String> initiatorPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
 
-                        for (String portName : portNames) {
-                            String portNetworkId = Initiator.toPortNetworkId(portName);
-                            URIQueryResultList initList = new URIQueryResultList();
-                            _dbClient.queryByConstraint(
-                                    AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(portNetworkId),
-                                    initList);
-                            Iterator<URI> inits = initList.iterator();
-                            while (inits.hasNext()) {
-                                URI init = inits.next();
-                                Initiator obj = _dbClient.queryObject(Initiator.class, init);
-                                exportMask.addInitiator(obj);
-                                if (obj != null) {
-                                    _log.info("Added managed initiator:{} to mask:{}", obj.getInitiatorPort(),
-                                            exportMask.getId());
-                                }
-                            }
-                        }
                         if (!CollectionUtils.isEmpty(exportMask.getExistingInitiators())) {
                             exportMask.getExistingInitiators().clear();
                         }
-                        exportMask.addToExistingInitiatorsIfAbsent(portNames);
-                        exportMask.addInitiators(allInitiators);
+                        exportMask.addToExistingInitiatorsIfAbsent(initiatorPorts);
+
+                        // Update the initiator list to include existing initiators if we know about them (and remove from existing)
+                        for (String portName : initiatorPorts) {
+                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(portName), _dbClient);
+                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, existingInitiator)) {
+                                exportMask.addInitiator(existingInitiator);
+                                exportMask.removeFromExistingInitiators(existingInitiator);
+                            }
+                        }
 
                         // Update the tracking containers
                         Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);

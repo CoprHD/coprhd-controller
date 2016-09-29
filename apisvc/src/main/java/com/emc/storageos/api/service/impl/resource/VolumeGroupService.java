@@ -4136,6 +4136,12 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/create")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationCreate(@PathParam("id") URI id, MigrateApplicationParams param) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        ArgValidator.checkFieldNotNull(param.getTargetVirtualArray(), NAME_FIELD);
+        ArgValidator.checkFieldNotNull(param.getTargetVirtualPool(), NAME_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4161,6 +4167,10 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/migrate")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationMigrate(@PathParam("id") URI id) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4185,7 +4195,11 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/commit")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCommit(@PathParam("id") URI id) {
+    public TaskResourceRep migrationCommit(@PathParam("id") URI id, MigrateApplicationParams param) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4211,7 +4225,11 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCancel(@PathParam("id") URI id) {
+    public TaskResourceRep migrationCancel(@PathParam("id") URI id, MigrateApplicationParams param) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4234,6 +4252,10 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/refresh")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationRefresh(@PathParam("id") URI id) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4256,6 +4278,10 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/recover")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationRecover(@PathParam("id") URI id) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4278,6 +4304,10 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/syncstop")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationSyncStop(@PathParam("id") URI id) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4300,6 +4330,10 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/syncstart")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationSyncStart(@PathParam("id") URI id) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -4322,6 +4356,10 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/migration/remove-environment")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep migrationRemoveEnvironment(@PathParam("id") URI id) {
+        
+        // validate input
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
+        
         VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();

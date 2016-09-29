@@ -2534,7 +2534,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
             // Get a list of CG volumes.
-            List<Volume> volumeList = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(consistencyGroup, _dbClient, null);
+            List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
 
             if (volumeList == null || volumeList.isEmpty()) {
                 throw APIException.badRequests.consistencyGroupContainsNoVolumes(consistencyGroup.getId());

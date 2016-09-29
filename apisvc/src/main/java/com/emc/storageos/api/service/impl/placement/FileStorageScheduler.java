@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -493,7 +494,7 @@ public class FileStorageScheduler implements Scheduler {
                          }                       
                      }else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                          //For unity local replication, nas server selected must be configured for local replication                        
-                         if (vNAS.getDstVNASList().get(0) !=null){
+                         if (!NullColumnValueGetter.isNullURI(vNAS.getDstVNASList().get(0))){
                               VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDstVNASList().get(0));
                               if (destinationNAS != null && destinationNAS.getStorageDeviceURI().equals(storage.getId())){
                                    virtualNasServers.add(vNAS);
@@ -524,7 +525,7 @@ public class FileStorageScheduler implements Scheduler {
                          }
 
 
-			    if (vNAS.getDstVNASList().get(0) !=null){
+			    if (!NullColumnValueGetter.isNullURI(vNAS.getDstVNASList().get(0))){
                               VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDstVNASList().get(0));
                               if (destinationNAS != null && selectedDestination != null && selectedDestination.getId().equals(destinationNAS.getId())){
                                   //destinationNas must match the Nas server that will be picked for placing the target
@@ -543,7 +544,7 @@ public class FileStorageScheduler implements Scheduler {
                        //we are trying to find a destination VNAS to place a target file share.
                           if (vNAS.getReplicationDestination()){
                                VirtualNAS sourceNAS = (VirtualNAS)replicationConfiguration.get("SOURCE_NAS_SERVER");
-                              if (vNAS.getSrcVNASList().get(0) !=null && sourceNAS!=null && vNAS.getSrcVNASList().get(0).equals(sourceNAS.getId())){
+                              if (!NullColumnValueGetter.isNullURI(vNAS.getSrcVNASList().get(0)) && sourceNAS!=null && vNAS.getSrcVNASList().get(0).equals(sourceNAS.getId())){
                                   virtualNasServers.add(vNAS);
                                   _log.info("vNAS {} matches the selected source vnas and is suitable", vNAS.getId());
                               }else{

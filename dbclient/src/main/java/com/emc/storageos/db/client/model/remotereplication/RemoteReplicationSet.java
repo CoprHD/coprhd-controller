@@ -28,10 +28,10 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     public enum ReplicationState {
         ACTIVE,
         SYNCHRONIZING,
-        PAUSED,
+        SUSPENDED,
+        SPLIT,
         FAILED_OVER,
-        SWAPPED,
-        STOPPED
+        SWAPPED
     }
 
     // native id of replication set.

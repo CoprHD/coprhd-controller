@@ -46,10 +46,10 @@ public class RemoteReplicationSet {
     public enum ReplicationState {
         ACTIVE,
         SYNCHRONIZING,
-        PAUSED,
+        SUSPENDED,
+        SPLIT,
         FAILED_OVER,
-        SWAPPED,
-        STOPPED
+        SWAPPED
     }
 
 
@@ -203,7 +203,7 @@ public class RemoteReplicationSet {
 
        String msg = String.format("\n\tSet nativeId %s: " +
                "\n\t\t supported replication modes: %s, " +
-               "\n\t\treplication state: %s" +
+               "\n\t\t replication state: %s" +
                "\n\t\t supported link granularity: %s" +
                "\n\t\t system map: %s" +
                "\n\t\t groups: %s",

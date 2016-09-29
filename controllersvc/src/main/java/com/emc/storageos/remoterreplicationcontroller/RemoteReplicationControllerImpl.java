@@ -13,57 +13,62 @@ import java.util.List;
 
 public class RemoteReplicationControllerImpl implements RemoteReplicationController {
     @Override
-    public DriverTask createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
-        return null;
+    public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
+
     }
 
     @Override
-    public DriverTask createSetReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
-        return null;
+    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
+
     }
 
     @Override
-    public DriverTask deleteReplicationPairs(List<URI> replicationPairs, String opId) {
-        return null;
+    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
+
     }
 
     @Override
-    public DriverTask start(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void deleteReplicationPairs(List<URI> replicationPairs, String opId) {
+
     }
 
     @Override
-    public DriverTask stop(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void suspend(URI replicationArgument, String opId) {
+
     }
 
     @Override
-    public DriverTask suspend(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void resume(URI replicationArgument, String opId) {
+
     }
 
     @Override
-    public DriverTask resume(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void split(URI replicationArgument, String opId) {
+
     }
 
     @Override
-    public DriverTask split(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void establish(URI replicationArgument, String opId) {
+
     }
 
     @Override
-    public DriverTask failover(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void failover(URI replicationArgument, String opId) {
+
     }
 
     @Override
-    public DriverTask failback(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void failback(URI replicationArgument, String opId) {
+
     }
 
     @Override
-    public DriverTask swap(RemoteReplicationArgument replicationArgument, String opId) {
-        return null;
+    public void swap(URI replicationArgument, String opId) {
+
+    }
+
+    @Override
+    public void movePair(URI replicationPair, URI targetGroup, String opId) {
+
     }
 }

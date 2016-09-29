@@ -598,9 +598,13 @@ public class NetworkDiscoveryWorker {
             String currentNetworkId = entry.getValue();
             String currentNetworkWwn = entry.getKey();
             Network currentNetwork = getNetworkByNativeId(allNetworks, currentNetworkId);
-            StringMap endpoints = currentNetwork.getEndpointsMap();
-            _log.info("Endpoints of given VSAN {}/{} in network {}: {}", currentNetworkId, currentNetworkWwn,
-                networkSystem.getLabel(), endpoints);
+            if (currentNetwork != null) {
+                _log.info("Endpoints of given VSAN {}/{} in network {}: {}", currentNetworkId, currentNetworkWwn,
+                    networkSystem.getLabel(), currentNetwork.getEndpointsMap());
+            } else {
+                _log.info("Given VSAN {}/{} network {} cannot be found.", currentNetworkId, currentNetworkWwn,
+                    networkSystem.getLabel());
+            }
             // How to determine it's a transit network: 1. More than one network system have the same network.
             if (currentNetwork != null && currentNetwork.getNetworkSystems().size() > 1) {
                 _log.info("Network id={} is a transit VSAN", currentNetworkId);
@@ -752,7 +756,7 @@ public class NetworkDiscoveryWorker {
     private List<Network> getLocalNetworks(NetworkSystem networkSystem, List<Network> allNetworks) {
         List<Network> realNetworks = new ArrayList<Network>();
         for (Network network : allNetworks) {
-            if (network.getNetworkSystems()!=null &&
+            if (network.getNetworkSystems() != null &&
                 network.getNetworkSystems().contains(networkSystem.getId().toString())) {
                 realNetworks.add(network);
             }
@@ -761,7 +765,7 @@ public class NetworkDiscoveryWorker {
     }
 
     /**
-     * Get the network by the given fabric ID. If not found, throw an "IllegalArgumentException" exception.
+     * Get the network by the given fabric ID. Return null if not found.
      *
      * @param networks
      * @param fabricId
@@ -769,11 +773,11 @@ public class NetworkDiscoveryWorker {
      */
     private Network getNetworkByNativeId(List<Network> networks, String fabricId) {
         for (Network network : networks) {
-            if (network.getNativeId().equals(fabricId)) {
+            if (network != null && network.getNativeId() != null && network.getNativeId().equals(fabricId)) {
                 return network;
             }
         }
-        throw new IllegalArgumentException(MessageFormat.format("The given fabricId '{0}' cannot be found.", fabricId));
+        return null;
     }
 
     /**

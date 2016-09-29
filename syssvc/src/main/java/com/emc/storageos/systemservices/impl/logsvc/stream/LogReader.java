@@ -19,7 +19,6 @@ import com.emc.storageos.systemservices.impl.logsvc.LogMessage;
 import com.emc.storageos.systemservices.impl.logsvc.LogStatusInfo;
 import com.emc.storageos.systemservices.impl.logsvc.parse.LogNginxAccessParser;
 import com.emc.storageos.systemservices.impl.logsvc.parse.LogNginxErrorParser;
-import com.emc.storageos.systemservices.impl.logsvc.parse.LogOEParser;
 import com.emc.storageos.systemservices.impl.logsvc.parse.LogParser;
 import com.emc.storageos.systemservices.impl.logsvc.parse.LogServiceParser;
 import com.emc.storageos.systemservices.impl.logsvc.parse.LogSyslogParser;
@@ -53,12 +52,10 @@ public class LogReader implements LogStream {
         LogParser logSyslogParser = new LogSyslogParser();
         LogParser logNginxAccessParser = new LogNginxAccessParser();
         LogParser logNginxErrorParser = new LogNginxErrorParser();
-	LogParser logOEParser = new LogOEParser();
         parserTable.add(logSvcParser);
         parserTable.add(logSyslogParser);
         parserTable.add(logNginxAccessParser);
         parserTable.add(logNginxErrorParser);
-	parserTable.add(logOEParser);
     }
 
     public LogReader(String path, LogRequest req, LogStatusInfo status, String service) throws IOException,

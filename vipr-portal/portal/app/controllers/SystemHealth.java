@@ -215,7 +215,6 @@ public class SystemHealth extends Controller {
         defaultServiceNames.remove(SystemLogUtils.MESSAGES_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ACCESS_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ERROR_LOG);
-	defaultServiceNames.remove(SystemLogUtils.ANSIBLE_LOG);
 
         loadSystemLogArgument(PARAM_NODE_ID, null);
         loadSystemLogArgument(PARAM_SERVICE, defaultServiceNames, String[].class);

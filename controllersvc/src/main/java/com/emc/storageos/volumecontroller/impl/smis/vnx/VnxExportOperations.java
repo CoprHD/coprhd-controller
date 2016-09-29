@@ -622,17 +622,29 @@ public class VnxExportOperations implements ExportMaskOperations {
                         refreshExportMask(storage, exportMask);
                         builder.append('\n');
                     }
+
                     // Update the tracking containers
                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
                     exportMask.addToExistingInitiatorsIfAbsent(matchingInitiators);
 
                     // Update the initiator list to include existing initiators if we know about them.
-                    if (matchingInitiators != null) {
-                        for (String port : matchingInitiators) {
-                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                            if (existingInitiator != null) {
-                                exportMask.addInitiator(existingInitiator);
-                            }
+                    for (String port : matchingInitiators) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
+                        if (existingInitiator != null) {
+                            exportMask.addInitiator(existingInitiator);
+                            exportMask.removeFromExistingInitiators(existingInitiator);
+                        }
+                    }
+
+                    // If there were matching initiators, there may be unmatched ones as well that
+                    // belong to the same compute resource. Go through the unmatched initiators and see
+                    // if we have DB entries for them and they belong to the same compute resource. If
+                    // so, add them to the initiator list and remove them from existing as well.
+                    for (String port : initiatorPorts) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
+                        if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, existingInitiator)) {
+                            exportMask.addInitiator(existingInitiator);
+                            exportMask.removeFromExistingInitiators(existingInitiator);
                         }
                     }
 
@@ -655,6 +667,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                             hlu = -1;
                                         }
                                         exportMask.addVolume(volume.getId(), hlu);
+                                        exportMask.removeFromExistingVolumes(volume);
                                     }
                                 }
                             }
@@ -725,11 +738,17 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // Check the initiators and update the lists as necessary
                 boolean addInitiators = false;
                 List<String> initiatorsToAdd = new ArrayList<String>();
+                List<Initiator> initiatorIdsToAdd = new ArrayList<>();
                 for (String port : discoveredPorts) {
                     String normalizedPort = Initiator.normalizePort(port);
                     if (!mask.hasExistingInitiator(normalizedPort) &&
                             !mask.hasUserInitiator(normalizedPort)) {
                         initiatorsToAdd.add(normalizedPort);
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
+                        // Don't add additional initiator to initiators list if it belongs to different host/cluster
+                        if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
+                            initiatorIdsToAdd.add(existingInitiator);
+                        }
                         addInitiators = true;
                     }
                 }

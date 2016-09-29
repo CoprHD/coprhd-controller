@@ -30,6 +30,7 @@ import com.vmware.vim25.mo.ServiceInstance;
 import com.vmware.vim25.mo.StorageResourceManager;
 import com.vmware.vim25.mo.VirtualMachine;
 import com.vmware.vim25.mo.util.MorUtil;
+import com.vmware.vim25.ws.WSClient;
 
 /**
  * Helper API for VCenter to help with traversing the object tree.
@@ -39,6 +40,7 @@ import com.vmware.vim25.mo.util.MorUtil;
 public class VCenterAPI {
     /** Constant for the apiType for a vCenter. */
     public static final String VCENTER_API_TYPE = "VirtualCenter";
+    private static final int CONNECTION_TIMEOUT = 60 * 60 * 1000;
 
     private URL url;
 
@@ -92,6 +94,9 @@ public class VCenterAPI {
         }
         try {
             service = new ServiceInstance(url, username, password, true);
+            WSClient wsclient = service.getServerConnection().getVimService().getWsc();
+            wsclient.setConnectTimeout(CONNECTION_TIMEOUT);
+            wsclient.setReadTimeout(CONNECTION_TIMEOUT);
         } catch (RemoteException e) {
             throw new VMWareException(e);
         } catch (MalformedURLException e) {

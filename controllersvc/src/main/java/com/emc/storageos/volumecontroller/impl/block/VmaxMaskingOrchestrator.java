@@ -754,9 +754,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                         ExportMaskRemoveInitiatorCompleter exportTaskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI,
                                 mask.getId(), initiatorsToRemove, null);
-                        List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(mask);
                         previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
-                                exportGroup, mask, volumeURIs, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
+                                exportGroup, mask, getExpectedVolumes(mask), initiatorsToRemoveOnStorage, true, exportTaskCompleter);
                         previousStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep, exportGroup,
                                 maskToInitiatorsMap);
                         anyOperationsToDo = true;
@@ -2290,7 +2289,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     private List<URI> getExpectedVolumes(ExportMask exportMask) {
-        return ExportMaskUtils.getVolumeURIs(exportMask);
+        return ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
     }
 
     private List<URI> getExpectedInitiators(ExportMask exportMask) {

@@ -1778,8 +1778,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
-                    } else {
-                        refreshExportMask(storage, exportMask);
                     }
 
                     // Do some one-time updates for the ExportMask
@@ -1808,6 +1806,33 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             exportMask.getExistingVolumes().clear();
                         }
                         exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
+
+                        // Update the volumes list to include existing volumes if we know about them (and remove from existing)
+                        if (volumeWWNs != null) {
+                            for (Entry<String, Integer> entry : volumeWWNs.entrySet()) {
+                                String wwn = entry.getKey();
+                                URIQueryResultList results = new URIQueryResultList();
+                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                        .getVolumeWwnConstraint(wwn.toUpperCase()), results);
+                                if (results != null) {
+                                    Iterator<URI> resultsIter = results.iterator();
+                                    if (resultsIter.hasNext()) {
+                                        Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
+                                        if (volume != null) {
+                                            Integer hlu = volumeWWNs.get(wwn);
+                                            if (hlu == null) {
+                                                _log.warn(String.format(
+                                                        "The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
+                                                        wwn));
+                                                hlu = -1;
+                                            }
+                                            exportMask.addVolume(volume.getId(), hlu);
+                                            exportMask.removeFromExistingVolumes(volume);
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         // Grab the storage ports that have been allocated for this
                         // existing mask and add them.
@@ -2039,6 +2064,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();
+
+                // if the volume is in export mask's user added volumes and also in the existing volumes, remove from existing volumes
+                for (String wwn : discoveredVolumes.keySet()) {
+                    if (mask.hasExistingVolume(wwn)) {
+                        URIQueryResultList volumeList = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                        if (volumeList.iterator().hasNext()) {
+                            URI volumeURI = volumeList.iterator().next();
+                            if (mask.hasUserCreatedVolume(volumeURI) || mask.hasVolume(volumeURI)) {
+                                builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                                        + "export mask's user added volumes, so removing from existing volumes", wwn));
+                                volumesToRemove.add(wwn);
+                            }
+                        }
+                    }
+                }
+
                 if (mask.getExistingVolumes() != null &&
                         !mask.getExistingVolumes().isEmpty()) {
                     volumesToRemove.addAll(mask.getExistingVolumes().keySet());

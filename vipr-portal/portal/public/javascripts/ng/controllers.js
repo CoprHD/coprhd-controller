@@ -2226,7 +2226,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("General Configuration");
                     break;
                 case 3:
-                    setActiveMenu("Overview");
+                    setActiveMenu("");
                     break;
                 case 4:
                 	if($scope.failedType == "PROVIDER") {

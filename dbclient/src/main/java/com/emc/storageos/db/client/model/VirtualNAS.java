@@ -124,7 +124,7 @@ public class VirtualNAS extends NASServer {
         setChanged("replicationDestination");
     }
 
-    @Name("sourceVirtualNas")
+    @Name("sourceVirtualNasIds")
     public StringSet getSourceVirtualNasIds() {
         return sourceVirtualNasIds;
     }
@@ -134,7 +134,6 @@ public class VirtualNAS extends NASServer {
         setChanged("sourceVirtualNasIds");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
     @Name("destinationVirtualNasIds")
     public StringSet getDestinationVirtualNasIds() {
         return destinationVirtualNasIds;

@@ -511,10 +511,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if (nas1 != null && nas2 != null) {
                 StringSet tempStringSet = new StringSet();
                 tempStringSet.add(nas2.getId().toString());
+                tempStringSet.remove(NullColumnValueGetter.getNullURI().toString());
                 nas1.setDestinationVirtualNasIds(tempStringSet);
                 tempStringSet = new StringSet();
                 tempStringSet.add(nas1.getId().toString());
+                tempStringSet.remove(NullColumnValueGetter.getNullURI().toString());
                 nas2.setSourceVirtualNasIds(tempStringSet);
+                nas2.setReplicationDestination(true);
             }
         }
         _logger.info("discoverNasReplicationAssociations - no of associations {}", nasList.size());

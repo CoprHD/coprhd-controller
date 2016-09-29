@@ -748,6 +748,9 @@ public class ExportMask extends DataObject {
         if (_existingInitiators != null) {
             maskInitiators.addAll(_existingInitiators);
         }
+        if (_initiators != null) {
+            maskInitiators.addAll(_initiators);
+        }
         if (_userAddedInitiators != null) {
             maskInitiators.addAll(_userAddedInitiators.keySet());
         }
@@ -762,6 +765,9 @@ public class ExportMask extends DataObject {
         Collection<String> maskInitiators = new HashSet<String>();
         if (_existingInitiators != null) {
             maskInitiators.addAll(_existingInitiators);
+        }
+        if (_initiators != null) {
+            maskInitiators.addAll(_initiators);
         }
         if (_userAddedInitiators != null) {
             maskInitiators.addAll(_userAddedInitiators.keySet());
@@ -783,6 +789,9 @@ public class ExportMask extends DataObject {
         Collection<String> maskInitiators = new HashSet<String>();
         if (_existingInitiators != null) {
             maskInitiators.addAll(_existingInitiators);
+        }
+        if (_initiators != null) {
+            maskInitiators.addAll(_initiators);
         }
         if (_userAddedInitiators != null) {
             maskInitiators.addAll(_userAddedInitiators.keySet());

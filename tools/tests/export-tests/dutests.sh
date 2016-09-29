@@ -3633,10 +3633,10 @@ test_24() {
     # Inventory-only delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
-    # Add an unrelated initiator to the mask (done differently per array type)
+    # Add an unrelated volumer to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
-    # Verify the mask has the new initiator in it
+    # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Remove the vipr volume from the export group

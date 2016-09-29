@@ -2575,7 +2575,6 @@ vplex_setup_once()
 	echo "Setting up VPLEX environment for IPv4"
 
 	#Discover the Brocade SAN switch.
-echo "***********************Here2"
 	brocade_setup_once
 
 	# Discover the storage systems 
@@ -6062,6 +6061,8 @@ sbsdk_setup()
     run discoveredsystem create $SBSDK_DRIVER_SYS_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_IP \
         $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
     run storagedevice discover_all
+    #The sleep allows discovery to complete, so that the subsequent commands
+    #to add the system ports to the specified network completes successfully.
     sleep 60
     
     #Add storage ports to network
@@ -6103,6 +6104,7 @@ sbsdk_tests()
     #Define variables
     VOLUME_NAME=SBSDK_Volume-${RANDOM}
     SNAPSHOT_NAME=${VOLUME_NAME}Snap
+    FULLCOPY_NAME=${VOLUME_NAME}FullCopy
     HOST_NAME=$PROJECT
     HOST_FQDN=$HOST_NAME.lss.emc.com
     HOST_INIT_PORT_WWN1=10:00:00:E0:7E:00:00:0F
@@ -6143,6 +6145,18 @@ sbsdk_tests()
     #Delete the snapshot
     echo "***** Deleting snapshot $SNAPSHOT_NAME *****"
     run blocksnapshot delete $PROJECT/$VOLUME_NAME/$SNAPSHOT_NAME
+
+    #Create a full copy of the volume
+    echo "***** Creating full copy $FULLCOPY_NAME of volume $VOLUME_NAME *****"
+    run volume full_copy $FULLCOPY_NAME $PROJECT/$VOLUME_NAME --count=1
+
+    #Detach the full copy
+    echo "***** Detaching full copy $FULLCOPY_NAME *****"
+    run volume detach ${PROJECT}/$VOLUME_NAME ${PROJECT}/$FULLCOPY_NAME
+
+    #Delete the full copy
+    echo "***** Deleting full copy $FULLCOPY_NAME *****"
+    run volume delete $PROJECT/$FULLCOPY_NAME --wait
 
     #Delete the volume
     echo "***** Deleting volume $VOLUME_NAME *****"

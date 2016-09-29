@@ -1160,18 +1160,19 @@ public class StorageScheduler implements Scheduler {
         return volume;
     }
 
-   public static Volume prepareSkinyVolume(DbClient dbClient, long size, String label, int volNumber, int volumesRequested) {
+   public static Volume prepareSkinyVolume(DbClient dbClient, long size, String label, int volNumber, int volumesRequested, Project project, VirtualArray varray, VirtualPool vpool) {
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
         String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volNumber, volumesRequested);
 
         volume.setLabel(volumeLabel);
         volume.setCapacity(size);
+        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
 
-        volume.setVirtualPool(null);
-        volume.setProject(null);
-        volume.setTenant(null);
-        volume.setVirtualArray(null);
+        volume.setVirtualPool(vpool.getId());
+        volume.setVirtualArray(varray.getId());
+
         volume.setOpStatus(new OpStatusMap());
         dbClient.createObject(volume);
         return volume;

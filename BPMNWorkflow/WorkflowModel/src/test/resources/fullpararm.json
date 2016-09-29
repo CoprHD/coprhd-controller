@@ -1,0 +1,50 @@
+{
+	"name": "name",
+	"size": "2GB",
+	"count": 1,
+	"vpool": "1234",
+	"varray": "1234",
+	"project": "1234",
+	"consistencyGroup": "consistencyGroup",
+	"computeResource": "computeResource",
+	"type": "Host",
+	"hosts": 
+	[
+		"listuris"
+	],
+
+	"clusters": 
+	[
+		"listuris"
+	],
+
+	"passThroughParams": 
+	{
+		"storage-pool": "pool",
+		"storage-system": "ipAddress"
+	},
+
+	"volumes": 
+	[
+		{
+			"id": "volumeuri",
+			"lun": -1
+		}
+	],
+
+	"initiators": 
+	[
+		"listuris"
+	],
+
+	"exportPathParameters": 
+	{
+		"maxPaths": 1,
+		"pathsPerInitiator": 1,
+		"minPaths": 1,
+		"storagePorts": 
+		[
+			"listuris"
+		]
+	}
+}

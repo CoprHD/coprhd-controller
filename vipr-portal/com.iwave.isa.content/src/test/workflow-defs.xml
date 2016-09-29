@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflows>
+  <workflow name="createExportVolumeLite" type="resource" location="createExportVolumeLite.xml"/>
+</workflows>

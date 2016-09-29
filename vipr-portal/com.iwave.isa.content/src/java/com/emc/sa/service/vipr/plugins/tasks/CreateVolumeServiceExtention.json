@@ -1,22 +1,58 @@
 {
     baseKey:"CreateVolume.Block",
-    serviceId:"CreateVolume.Extension",
+    serviceId:"CreateVolume",
     fields:{
         externalParam:{
             type:"text",
             required: false,
             initialValue: "ExtendedParams"           
+         },
+        virtualArray:{
+            type:"assetType.vipr.virtualArray",
+            lockable: true
         },
-        extendClass:{
-           	type:"text",
-           	required: false,
-           	initialValue: "com.emc.sa.service.vipr.block.tasks.CreateBlockVolume"
-        },
-        extendMethods:{
-           	type:"text",
-           	required: false,
-           	initialValue: "preLaunch,postLaunch"
-         }
-     }
-}
 
+        virtualPool:{
+            type:"assetType.vipr.blockVirtualPool",
+            lockable: true
+        },
+
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+
+        volumes:{
+          type:"table",
+          items:{
+            name:{
+              type:"text",
+              validation:{
+                min:2,
+                max:128
+              }
+            },
+            size:{
+              type:"storageSize",
+              validation:{
+                min:1
+              }
+            },
+            numberOfVolumes:{
+              type:"number",
+              initialValue: "1",
+              validation:{
+                  min:1
+              }
+            }
+          }
+        },
+
+        consistencyGroup:{
+            type:"assetType.vipr.consistencyGroup",
+            required:false
+        }
+    
+  }
+
+}

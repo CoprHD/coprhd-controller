@@ -167,12 +167,13 @@ class CreateExportGroupSchedulingThread implements Runnable {
     }
 
     public static void executePassThroughApiTask(ExportGroupService exportGroupService, ExecutorService executorService, DbClient dbClient,
-                ExportGroup exportGroup, Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters,
-                List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap, ExportPathParameters pathParam, String task,
-                TaskResourceRep taskRes) {
+                VirtualArray virtualArray, Project project,
+                ExportGroup exportGroup, 
+                Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap, 
+                ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
 
-        CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, null, 
-        		null, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
+        CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, virtualArray, 
+        		project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
         try {
                 executorService.execute(schedulingThread);
         } catch (Exception e) {

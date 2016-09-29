@@ -31,6 +31,10 @@ public abstract class ViPRExecutionTask<T> extends ExecutionTask<T> {
         return client;
     }
 
+    public void setClient(ViPRCoreClient client) {
+        this.client=client;
+    }
+    
     public static URI uri(String id) {
         return ViPRExecutionUtils.uri(id);
     }

@@ -5,6 +5,7 @@
 package com.emc.sa.descriptor;
 
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -76,21 +78,34 @@ public class ServiceDefinitionLoader {
     }
     
 	static ServiceDefinition extendServiceDefinition(final List<ServiceDefinition> baseServices, String extendService,ServiceDefinition serviceDefExtension) {
+		
 		for (Iterator<ServiceDefinition> internalIterator = baseServices.iterator(); internalIterator.hasNext();) {
 			ServiceDefinition baseServiceDef = internalIterator.next();
+			
+			
 			if (extendService.equalsIgnoreCase(baseServiceDef.serviceId)) {
+				
+				System.out.println("\n\nMANOJ Before EXTERNAL SERVICE DEFS Matched "+ baseServiceDef.toString()+"\n\n");
+				
+				ServiceDefinition clonedServiceDefinition = (ServiceDefinition) SerializationUtils.clone(baseServiceDef);
+				
 				Map<String, ItemDefinition> items = serviceDefExtension.items;
 				for (Entry<String, ItemDefinition> entry : items.entrySet()) {
 					ItemDefinition itemDef = entry.getValue();
-					baseServiceDef.addItem(itemDef);
+					clonedServiceDefinition.addItem(itemDef);
 				}
-        		baseServiceDef.serviceId=serviceDefExtension.serviceId;
-        		baseServiceDef.extendedServiceId=serviceDefExtension.extendedServiceId;
-        		baseServiceDef.baseKey=serviceDefExtension.baseKey;
-        		baseServiceDef.isExtended=serviceDefExtension.isExtended;
-				return baseServiceDef;
+				clonedServiceDefinition.serviceId=serviceDefExtension.serviceId;
+				clonedServiceDefinition.extendedServiceId=serviceDefExtension.extendedServiceId;
+				clonedServiceDefinition.baseKey=serviceDefExtension.baseKey;
+				clonedServiceDefinition.isExtended=serviceDefExtension.isExtended;
+				
+				System.out.println("\n\nMANOJ After EXTERNAL SERVICE DEFS Matched "+ clonedServiceDefinition.toString()+"\n\n");
+				
+				return clonedServiceDefinition;
 			}
 		}
+		System.out.println("\n\nMANOJ NO MTach EXTERNAL SERVICE DEFS Matched returning Base"+ serviceDefExtension.toString()+"\n\n");
+		
 		return serviceDefExtension;
 
 	}
@@ -119,7 +134,10 @@ public class ServiceDefinitionLoader {
 	}
         
     private static List<InputStream> getExternalResources() throws IOException {
-    	List<String> sysDecriptors =  Arrays.asList("CustomSampleService.json","CreateVolumeServiceExtention.json");
+    	//List<String> sysDecriptors =  Arrays.asList("CustomSampleService.json","CreateVolumeServiceExtention.json","CreateExportVolumeToHostModelExtension.json");
+    	final File customFlowsFolder = new File("/opt/storageos/customFlow");
+    	//final File customFlowsFolder = new File("E:/Development/CoprHD-LITE/coprhd-controller/BPMNWorkflow/bpmnworkflowcommon/src/customFiles");
+    	List<String> sysDecriptors =  loadSysDecriptorFiles(customFlowsFolder,new String[]{"Service.json","Extension.json","ServiceExtention.json"});
     	List<InputStream> resStreams= new ArrayList<InputStream>();
     	for (String sysDecriptor : sysDecriptors){
     		InputStream is = ExtentionClassLoader.getProxyResourceAsStream(sysDecriptor);
@@ -128,15 +146,40 @@ public class ServiceDefinitionLoader {
     	return resStreams;
 	}
 
+
+
 	private static Resource[] getResources(ClassLoader classLoader) throws IOException {
 	   	
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(classLoader);
         return resolver.getResources(PATTERN);
     }
 	
+	private static List<String>  loadSysDecriptorFiles(final File folder, String pattern[]) {
+		List<String> sysDecriptors =  new ArrayList<String>();
+		
+	    for (final File fileEntry : folder.listFiles()) {
+	        if (fileEntry.isDirectory()) {
+	        	loadSysDecriptorFiles(fileEntry,pattern);
+	        } else {
+	        	if(fileEntry.getName().endsWith(pattern[0]) || fileEntry.getName().endsWith(pattern[1])  || fileEntry.getName().endsWith(pattern[2] ) ){
+	        		
+	        		System.out.println("Loading file "+fileEntry.getName());
+	        		sysDecriptors.add(fileEntry.getName());
+	        	}
+	        }
+	    }
+	    return sysDecriptors;
+	}
+
+
+	
+	
+	
     public static void main(String[] args) throws IOException {
-    	ExtentionClassLoader.getProxyObject("com.emc.sa.descriptor.TestExternalInterfaceImpl");
-    	ServiceDefinitionLoader.loadExternal(null);
+//    	ExtentionClassLoader.getProxyObject("com.emc.sa.descriptor.TestExternalInterfaceImpl");
+//    	ServiceDefinitionLoader.loadExternal(null);
+    	
+    	ServiceDefinitionLoader.getExternalResources();
 		
 	}
 }

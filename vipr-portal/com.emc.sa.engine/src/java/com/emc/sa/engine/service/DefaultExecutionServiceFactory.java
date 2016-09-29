@@ -56,7 +56,7 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
             }
         }
     }
-
+//"CreateExportVolumeToHostModelExtension"
     @Override
     public ExecutionService createService(Order order, CatalogService catalogService) throws ServiceNotFoundException {
     	Class<? extends ExecutionService> serviceClass=null;
@@ -68,6 +68,12 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
     		serviceClass = services.get("GenericPlugin");
     		isExtended=true;
     		return newInstance(serviceClass, serviceName,isExtended);
+
+    	} else if (serviceName.endsWith("ModelExtension")){
+    		String baseServiceName = "ModelExecution";
+    		serviceClass = services.get(baseServiceName);
+    		ExecutionService executionService=newInstance(serviceClass, baseServiceName);
+        	return executionService;
 
     	} else if (serviceName.endsWith("Extension")){
     		String baseServiceName = serviceName.substring(0, serviceName.length()-"Extension".length());

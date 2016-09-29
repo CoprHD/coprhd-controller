@@ -22,6 +22,7 @@ import models.datatable.DirectDriverVolumeDataTable;
 import models.datatable.DirectDriverVolumeDataTable.DirectDriverVolume;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -41,13 +42,17 @@ import play.data.validation.Required;
 import play.mvc.Controller;
 import util.BourneUtil;
 import util.HostUtils;
+import util.ProjectUtils;
 import util.StoragePoolUtils;
 import util.StorageSystemUtils;
 import util.TaskUtils;
+import util.VirtualArrayUtils;
+import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
+import controllers.tenant.TenantSelector;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
@@ -62,6 +67,11 @@ public class DirectDriver extends Controller{
         renderArgs.put("ha_Options", Lists.newArrayList(                
         		HighAvailability.option(HighAvailability.VPLEX_LOCAL),
                 HighAvailability.option(HighAvailability.VPLEX_DISTRIBUTED)));
+        
+        String tenantId = Models.currentAdminTenant();
+        renderArgs.put("projectOptions", ProjectUtils.getProjects(tenantId));
+        renderArgs.put("varrayOptions", VirtualArrayUtils.getVirtualArrays());
+        renderArgs.put("vpoolOptions", VirtualPoolUtils.getBlockVirtualPools());
        render();
     }
     public static void getIpFromType(String type) {
@@ -142,15 +152,16 @@ public class DirectDriver extends Controller{
         
         
         public DirectDriverForm() {
-            this.vpool = null;
-            this.varray = null;
-            this.project = null;
+//            this.vpool = null;
+//            this.varray = null;
+//            this.project = null;
         }
         
         public DirectDriverForm(VolumeCreate volumeDriver) {
             this.name = volumeDriver.getName();
             this.size = volumeDriver.getSize();
             this.count = volumeDriver.getCount();
+            this.project = volumeDriver.getProject();
         }
         
         public Boolean save() {
@@ -162,9 +173,9 @@ public class DirectDriver extends Controller{
             volumeDriver.setName(name);
             volumeDriver.setCount(count);
             volumeDriver.setSize(size+"GB");
-            volumeDriver.setVarray(uri("aa"));
-            volumeDriver.setVpool(uri("aa"));
-            volumeDriver.setProject(uri("aa"));
+            volumeDriver.setVarray(varray);
+            volumeDriver.setVpool(vpool);
+            volumeDriver.setProject(project);
             
             volumeDriver.setPassThroughParams(passThroughParamPool);
             Task<VolumeRestRep> tasks = getViprClient().blockVolumes().create(volumeDriver).firstTask();
@@ -194,8 +205,8 @@ public class DirectDriver extends Controller{
             listParam.add(volumeParam);
             exportDriver.setName(name);
             exportDriver.setType("Host");
-            exportDriver.setProject(uri("aa"));
-            exportDriver.setVarray(uri("aa"));
+            exportDriver.setProject(project);
+            exportDriver.setVarray(varray);
             exportDriver.setVolumes(listParam);
             exportDriver.setHosts(hosts);
             exportDriver.setExportPassThroughParam(passThroughParamExport);

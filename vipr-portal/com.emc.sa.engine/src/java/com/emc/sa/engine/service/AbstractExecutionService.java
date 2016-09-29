@@ -6,9 +6,11 @@ package com.emc.sa.engine.service;
 
 import java.util.Collection;
 
+import com.emc.ctd.workflow.vipr.core.ViPrWorkflowLauncher;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
@@ -30,6 +32,10 @@ public abstract class AbstractExecutionService implements ExecutionService, Exte
 
 	//@Param("extendMethods")
 	protected String extendMethods;	
+	
+
+	@Autowired
+	protected ViPrWorkflowLauncher viprWorkflowLauncher;
 
 	protected ExternalTaskApdapterInterface genericExtensionTask;
 

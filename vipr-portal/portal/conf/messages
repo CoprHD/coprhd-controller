@@ -290,6 +290,7 @@ PoolAssignment.manual=Manual
 #Direct Driver
 CreateVolume.direct.description = Enter information needed to create volume
 volume.arrayType=Storage System Type
+volume.project = Projects
 volume.arrayTypeForVplex = Backend Storage System Type
 volume.ipAddress=System Name
 volume.ipAddressForVplex = Storage System

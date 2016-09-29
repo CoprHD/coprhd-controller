@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,6 +154,26 @@ public abstract class ViPRService extends AbstractExecutionService  {
     	}
 	}
 
+	@Override
+	public void executeModelWorkflow() throws Exception {
+
+		ExternalTaskParams genericExtensionTaskParams = new ExternalTaskParams();
+		ExecutionContext context = ExecutionUtils.currentContext();
+		if (context.getParameters().get("WorkflowModel") != null) {
+			genericExtensionTaskParams.setExternalParam((String) context.getParameters().get("externalParam"));
+			String WorkflowModel = (String) context.getParameters().get("WorkflowModel");
+			WorkflowModel = WorkflowModel.replaceAll("^\"|\"$", "");
+			try {
+				viprWorkflowLauncher.launchWorkflow(WorkflowModel,	new HashMap<String, Object>(), 100);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	
+	
 	@Override
 	public void postcheck() throws Exception {
 

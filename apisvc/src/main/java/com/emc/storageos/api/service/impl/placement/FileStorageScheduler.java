@@ -485,7 +485,7 @@ public class FileStorageScheduler implements Scheduler {
 		  if (storage !=null && storage.getSystemType().equals(Type.unity.toString())) { 
                      
                      if (!VirtualPool.vPoolSpecifiesFileReplication(vpool)){
-                         if (vNAS.getIsReplicationDestination()){
+                         if (vNAS.getReplicationDestination()){
                             _log.info("vNAS {} is a replication destination nas server and is not suitable", vNAS.getId());
                          }else{
                             virtualNasServers.add(vNAS);
@@ -493,8 +493,8 @@ public class FileStorageScheduler implements Scheduler {
                          }                       
                      }else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                          //For unity local replication, nas server selected must be configured for local replication                        
-                         if (vNAS.getDestinationVirtualNas() !=null){
-                              VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDestinationVirtualNas());
+                         if (vNAS.getDstVNASList().get(0) !=null){
+                              VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDstVNASList().get(0));
                               if (destinationNAS != null && destinationNAS.getStorageDeviceURI().equals(storage.getId())){
                                    virtualNasServers.add(vNAS);
                                    _log.info("vNAS {} is configured for local replication and is suitable", vNAS.getId());
@@ -524,8 +524,8 @@ public class FileStorageScheduler implements Scheduler {
                          }
 
 
-			    if (vNAS.getDestinationVirtualNas() !=null){
-                              VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDestinationVirtualNas());
+			    if (vNAS.getDstVNASList().get(0) !=null){
+                              VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDstVNASList().get(0));
                               if (destinationNAS != null && selectedDestination != null && selectedDestination.getId().equals(destinationNAS.getId())){
                                   //destinationNas must match the Nas server that will be picked for placing the target
                                 
@@ -541,9 +541,9 @@ public class FileStorageScheduler implements Scheduler {
 
                      }else {
                        //we are trying to find a destination VNAS to place a target file share.
-                          if (vNAS.getIsReplicationDestination()){
+                          if (vNAS.getReplicationDestination()){
                                VirtualNAS sourceNAS = (VirtualNAS)replicationConfiguration.get("SOURCE_NAS_SERVER");
-                              if (vNAS.getSourceVirtualNas() !=null && sourceNAS!=null && vNAS.getSourceVirtualNas().equals(sourceNAS.getId())){
+                              if (vNAS.getSrcVNASList().get(0) !=null && sourceNAS!=null && vNAS.getSrcVNASList().get(0).equals(sourceNAS.getId())){
                                   virtualNasServers.add(vNAS);
                                   _log.info("vNAS {} matches the selected source vnas and is suitable", vNAS.getId());
                               }else{

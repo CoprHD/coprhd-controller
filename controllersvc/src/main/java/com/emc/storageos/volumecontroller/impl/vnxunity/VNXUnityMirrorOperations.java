@@ -20,7 +20,6 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.RemoteSystem;
 import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -327,15 +326,12 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     }
 
     private RemoteSystem getRemoteSystem(VNXeApiClient client, StorageSystem system) {
-        VNXeApiClient remoteClient = getVnxUnityClient(system);
-        // create remote system if does not exist
-        RemoteSystem remoteSystem = client.getRemoteSystemBySerial(remoteClient.getStorageSystem().getSerialNumber());
+        RemoteSystem remoteSystem = client.getRemoteSystemBySerial(system.getSerialNumber());
         if (remoteSystem != null) {
-            return remoteSystem; // remote system already exists
-        }
-        VNXeCommandResult result = client.createRemoteSystemSync(system.getIpAddress(), system.getUsername(), system.getPassword());
-        if (result.getSuccess()) {
-            return client.getRemoteSystem(result.getId());
+            if (remoteSystem.getId().equalsIgnoreCase("RS_0")) {
+                return null;
+            }
+            return remoteSystem;
         }
         return null;
     }

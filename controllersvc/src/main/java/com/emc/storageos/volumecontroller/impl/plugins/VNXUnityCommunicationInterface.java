@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -436,35 +437,47 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
     private List<VirtualNAS> discoverNasReplicationAssociations(StorageSystem viprStorageSystem, VNXeApiClient client) {
         // remove bad associations
+        List<VirtualNAS> unassociatedVnas = new ArrayList<VirtualNAS>();
         URIQueryResultList res = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(viprStorageSystem.getId()),
-                res);
-        if (!res.isEmpty()) {
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(viprStorageSystem.getId()), res);
+        Iterator<URI> vNasIter = res.iterator();
+        if (vNasIter.hasNext()) {
             List<VirtualNAS> vnasList = _dbClient.queryObject(VirtualNAS.class, res);
             for (VirtualNAS vnas : vnasList) {
                 URI srcNas = vnas.getId();
-                URI destNas = vnas.getDestinationVirtualNas();
-                if (vnas.getIsReplicationDestination()) {
-                    srcNas = vnas.getSourceVirtualNas();
+                URI destNas = vnas.getDstVNASList().get(0);
+                if (vnas.getReplicationDestination()) {
+                    srcNas = vnas.getSrcVNASList().get(0);
                     destNas = vnas.getId();
                 }
-                ReplicationSession session = client.getReplicationSession(
-                        _dbClient.queryObject(VirtualNAS.class, srcNas).getNativeId(),
-                        _dbClient.queryObject(VirtualNAS.class, destNas).getNativeId());
-                if (session == null) {
-                    vnas.setDestinationVirtualNas(null);
-                    vnas.setSourceVirtualNas(null);
-                    vnas.setIsReplicationDestination(false);
+                boolean associated = false;
+                if (!NullColumnValueGetter.isNullURI(srcNas) && !NullColumnValueGetter.isNullURI(destNas)) {
+                    ReplicationSession session = client.getReplicationSession(
+                            _dbClient.queryObject(VirtualNAS.class, srcNas).getNativeId(),
+                            _dbClient.queryObject(VirtualNAS.class, destNas).getNativeId());
+                    if (session != null) {
+                        associated = true;
+                    }
+                }
+                if (!associated) {
+                    StringSet tempStringSet = new StringSet();
+                    tempStringSet.add(NullColumnValueGetter.getNullURI().toString());
+                    vnas.setSourceVirtualNasIds(tempStringSet);
+                    vnas.setDestinationVirtualNasIds(tempStringSet);
+                    vnas.setReplicationDestination(false);
+                    unassociatedVnas.add(vnas);
                 }
             }
+
         }
+        _dbClient.updateObject(unassociatedVnas);
         // discover/rediscover associations for vnas from replication session
         List<ReplicationSession> repSessions = client.getAllReplicationSessionsByResource(ReplicationEndpointResourceTypeEnum.NAS_SERVER);
         List<VirtualNAS> nasList = new ArrayList<VirtualNAS>();
         for (ReplicationSession session : repSessions) { // get all replication sessions on the storage system
             StorageSystem dstStorageSystem = viprStorageSystem;
             StorageSystem srcStorageSystem = viprStorageSystem;
-            if (session.getRemoteSystem() != null) { // check if the replication is remote
+            if (!session.getRemoteSystem().getId().equalsIgnoreCase("RS_0")) { // check if the replication is remote
                 URIQueryResultList results = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemBySerialConstraint(
                         client.getRemoteSystem(session.getRemoteSystem().getId()).getSerialNumber()), results);
@@ -489,17 +502,19 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             VirtualNAS nas1 = null, nas2 = null;
             if (srcStorageSystem != null) {
                 nas1 = findvNasByNativeId(srcStorageSystem, session.getSrcResourceId());
+                nasList.add(nas1);
             }
             if (dstStorageSystem != null) {
                 nas2 = findvNasByNativeId(dstStorageSystem, session.getDstResourceId());
-            }
-            if (nas1 != null) {
-                nas1.setDestinationVirtualNas(nas2.getId());
-                nasList.add(nas1);
-            }
-            if (nas2 != null) {
-                nas2.setSourceVirtualNas(nas1.getId());
                 nasList.add(nas2);
+            }
+            if (nas1 != null && nas2 != null) {
+                StringSet tempStringSet = new StringSet();
+                tempStringSet.add(nas2.getId().toString());
+                nas1.setDestinationVirtualNasIds(tempStringSet);
+                tempStringSet = new StringSet();
+                tempStringSet.add(nas1.getId().toString());
+                nas2.setSourceVirtualNasIds(tempStringSet);
             }
         }
         _logger.info("discoverNasReplicationAssociations - no of associations {}", nasList.size());
@@ -992,8 +1007,12 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
                     || nasServer.getIsReplicationDestination()) {
                 _logger.debug("Found a replication destination NasServer");
-                vNas.setIsReplicationDestination(true);
+                vNas.setReplicationDestination(true);
             }
+            StringSet tempStringSet = new StringSet();
+            tempStringSet.add(NullColumnValueGetter.getNullURI().toString());
+            vNas.setSourceVirtualNasIds(tempStringSet);
+            vNas.setDestinationVirtualNasIds(tempStringSet);
         }
 
         // Persist the NAS servers!!!

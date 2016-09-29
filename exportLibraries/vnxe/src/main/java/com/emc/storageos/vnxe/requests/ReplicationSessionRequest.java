@@ -27,7 +27,7 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
 
     private static final String URL_INSTANCE = "/api/instances/replicationSession/";
     private static final String URL = "/api/types/replicationSession/instances";
-    private static final String FIELDS = "name,maxTimeOutOfSync,srcResourceId,dstResourceId,replicationResourceType,localRole";
+    private static final String FIELDS = "name,maxTimeOutOfSync,srcResourceId,dstResourceId,replicationResourceType,localRole,remoteSystem";
     private static final String ACTION = "/action/";
 
     public ReplicationSessionRequest(KHClient client) {

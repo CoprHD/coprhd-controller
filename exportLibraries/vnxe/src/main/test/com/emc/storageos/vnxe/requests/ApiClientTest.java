@@ -17,6 +17,7 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
+import com.emc.storageos.vnxe.models.RemoteSystem;
 import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
 import com.emc.storageos.vnxe.models.Snap;
@@ -374,13 +375,16 @@ public class ApiClientTest {
 
     }
 
-    // @Test
+    @Test
     public void getAllRepSessions() {
         List<ReplicationSession> sessions = apiClient.getAllReplicationSessions();
         System.out.println("List start");
         for (ReplicationSession session : sessions) {
             System.out.println(session.getReplicationResourceType());
-            System.out.println(session.getId());
+            System.out.println(session.getName());
+            if (session.getRemoteSystem() != null) {
+                System.out.println(session.getRemoteSystem().getId());
+            }
         }
         System.out.println("List end");
     }
@@ -446,8 +450,18 @@ public class ApiClientTest {
         System.out.println("List end");
     }
 
-    @Test
+    // @Test
     public void getRepSession() {
         apiClient.getReplicationSession("res_8", "res_11");
+    }
+
+    // @Test
+    public void getRemoteSystems() {
+        List<RemoteSystem> remSysList = apiClient.getAllRemoteSystems();
+        for (RemoteSystem remSys : remSysList) {
+            System.out.println(remSys.getId());
+            System.out.println(remSys.getManagementAddress());
+            System.out.println(remSys.getConnectionType());
+        }
     }
 }

@@ -5,7 +5,9 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -37,13 +39,13 @@ public class VirtualNAS extends NASServer {
     private URI parentNasUri;
 
     // whether this vnas is a replication destination remote or local
-    private boolean isReplicationDestination = false;
+    private Boolean replicationDestination = false;
 
     // source vNas if replication destination, null if not
-    private URI sourceVirtualNas;
-    
+    private StringSet sourceVirtualNasIds;
+
     // destination vNas if replication source, null if not
-    private URI destinationVirtualNas;
+    private StringSet destinationVirtualNasIds;
 
     @Name("project")
     public URI getProject() {
@@ -112,45 +114,48 @@ public class VirtualNAS extends NASServer {
         setChanged("parentNasUri");
     }
 
-    @Name("isReplicationDestination")
-    public boolean getIsReplicationDestination() {
-        return isReplicationDestination;
+    @Name("replicationDestination")
+    public Boolean getReplicationDestination() {
+        return replicationDestination;
     }
 
-    public void setIsReplicationDestination(boolean isReplicationDestination) {
-        this.isReplicationDestination = isReplicationDestination;
-        setChanged("isReplicationDestination");
+    public void setReplicationDestination(Boolean replicationDestination) {
+        this.replicationDestination = replicationDestination;
+        setChanged("replicationDestination");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
     @Name("sourceVirtualNas")
-    public URI getSourceVirtualNas() {
-        return sourceVirtualNas;
+    public StringSet getSourceVirtualNasIds() {
+        return sourceVirtualNasIds;
     }
 
-    public void setSourceVirtualNas(URI sourceVirtualNas) {
-        this.sourceVirtualNas = sourceVirtualNas;
-        setChanged("sourceVirtualNas");
+    public void setSourceVirtualNasIds(StringSet sourceVirtualNasIds) {
+        this.sourceVirtualNasIds = sourceVirtualNasIds;
+        setChanged("sourceVirtualNasIds");
     }
-    
+
     @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
-    @Name("destinationVirtualNas")
-    public URI getDestinationVirtualNas() {
-        return destinationVirtualNas;
+    @Name("destinationVirtualNasIds")
+    public StringSet getDestinationVirtualNasIds() {
+        return destinationVirtualNasIds;
     }
 
-    public void setDestinationVirtualNas(URI destinationVirtualNas) {
-        this.destinationVirtualNas = destinationVirtualNas;
-        setChanged("destinationVirtualNas");
+    public void setDestinationVirtualNasIds(StringSet destinationVirtualNasIds) {
+        this.destinationVirtualNasIds = destinationVirtualNasIds;
+        setChanged("destinationVirtualNasIds");
+    }
+
+    public List<URI> getSrcVNASList() {
+        return URIUtil.uris(sourceVirtualNasIds);
+    }
+
+    public List<URI> getDstVNASList() {
+        return URIUtil.uris(destinationVirtualNasIds);
     }
 
     // Defines different States of the Virtual NAS server.
     public static enum VirtualNasState {
-        LOADED("loaded"),
-        MOUNTED("mounted"),
-        TEMP_LOADED("tempunloaded"),
-        PERM_UNLOADED("permunloaded"),
-        UNKNOWN("N/A");
+        LOADED("loaded"), MOUNTED("mounted"), TEMP_LOADED("tempunloaded"), PERM_UNLOADED("permunloaded"), UNKNOWN("N/A");
 
         private final String vNasState;
 

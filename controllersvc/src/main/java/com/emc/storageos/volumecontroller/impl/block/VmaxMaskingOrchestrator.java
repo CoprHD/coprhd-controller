@@ -2087,7 +2087,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
             // If the mask does not contain the exact set of initiators that we're trying to
             // export to, then we need to put it in the set of masks that have a partial match
-            if (!exportMask.hasExactlyTheseInitiators(portNames)) {
+            if (!ExportMaskUtils.hasExactlyTheseInitiators(exportMask, portNames, _dbClient)) {
                 partialMasks.add(exportMaskURI);
             }
 

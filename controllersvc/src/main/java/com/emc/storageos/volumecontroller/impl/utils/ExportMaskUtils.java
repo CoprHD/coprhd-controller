@@ -1391,4 +1391,82 @@ public class ExportMaskUtils {
         exportMask.setResource(resourceRef);
         return true;
     }
+
+    /**
+     * Check to see if the export mask contains exactly the ports sent in.
+     * 
+     * @param mask
+     *            export mask
+     * @param ports
+     *            ports of a compute resource
+     * @param dbClient
+     *            db client
+     * @return true if contains a subset and ONLY that subset
+     */
+    public static boolean hasExactlyTheseInitiators(ExportMask mask, Collection<String> ports, DbClient dbClient) {
+        Collection<String> normalizedPorts = new HashSet<String>();
+
+        for (String port : ports) {
+            normalizedPorts.add(Initiator.normalizePort(port));
+        }
+
+        Collection<String> maskInitiators = new HashSet<String>();
+        if (mask.getExistingInitiators() != null) {
+            maskInitiators.addAll(mask.getExistingInitiators());
+        }
+
+        if (mask.getInitiators() != null) {
+            for (String initiatorId : mask.getInitiators()) {
+                Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null & initiator.getInitiatorPort() != null) {
+                    maskInitiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));
+                }
+            }
+        }
+
+        if (mask.getUserAddedInitiators() != null) {
+            maskInitiators.addAll(mask.getUserAddedInitiators().keySet());
+        }
+
+        return (normalizedPorts.size() == maskInitiators.size()) && maskInitiators.containsAll(normalizedPorts);
+    }
+
+    /**
+     * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
+     * 
+     * @param mask
+     *            export mask
+     * @param ports
+     *            ports of a compute resource
+     * @param dbClient
+     *            db client
+     * @return true if contains a subset and ONLY that subset
+     */
+    public static boolean hasExactlySubsetOfTheseInitiators(ExportMask mask, List<String> ports, DbClient dbClient) {
+        Collection<String> normalizedPorts = new HashSet<String>();
+
+        for (String port : ports) {
+            normalizedPorts.add(Initiator.normalizePort(port));
+        }
+
+        Collection<String> maskInitiators = new HashSet<String>();
+        if (mask.getExistingInitiators() != null) {
+            maskInitiators.addAll(mask.getExistingInitiators());
+        }
+
+        if (mask.getInitiators() != null) {
+            for (String initiatorId : mask.getInitiators()) {
+                Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null & initiator.getInitiatorPort() != null) {
+                    maskInitiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));
+                }
+            }
+        }
+
+        if (mask.getUserAddedInitiators() != null) {
+            maskInitiators.addAll(mask.getUserAddedInitiators().keySet());
+        }
+
+        return normalizedPorts.containsAll(maskInitiators);
+    }
 }

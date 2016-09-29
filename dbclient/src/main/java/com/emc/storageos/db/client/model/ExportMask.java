@@ -739,66 +739,6 @@ public class ExportMask extends DataObject {
         return hasInitiator;
     }
 
-    public boolean hasInitiators(List<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_initiators != null) {
-            maskInitiators.addAll(_initiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return maskInitiators.containsAll(normalizedPorts);
-    }
-
-    public boolean hasExactlyTheseInitiators(Collection<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_initiators != null) {
-            maskInitiators.addAll(_initiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return (normalizedPorts.size() == maskInitiators.size()) && maskInitiators.containsAll(normalizedPorts);
-    }
-
-    /**
-     * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
-     * 
-     * @param ports ports of a compute resource
-     * @return true if contains a subset and ONLY that subset
-     */
-    public boolean hasExactlySubsetOfTheseInitiators(List<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_initiators != null) {
-            maskInitiators.addAll(_initiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return normalizedPorts.containsAll(maskInitiators);
-    }
-
     public boolean hasExistingInitiator(List<Initiator> initiators) {
         if (_existingInitiators != null) {
             for (Initiator initiator : initiators) {

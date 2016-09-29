@@ -1137,6 +1137,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             // TODO we might need a list of HLU for each Volume URI
                             hluNumberFound = hluNumber.intValue();
                             exportMask.addVolume(blockObj.getId(), hluNumberFound);
+                            exportMask.addToUserCreatedVolumes(blockObj);
 
                         }
                     }

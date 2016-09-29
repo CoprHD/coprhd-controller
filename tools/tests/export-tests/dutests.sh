@@ -3917,7 +3917,6 @@ test_end=25
 if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
    echo Request to run $*
-   exit;
    for t in $*
    do
       echo Run $t
@@ -3938,7 +3937,7 @@ else
    do
      reset_system_props
      prerun_tests
-     echo test_${num}
+     test_${num}
      reset_system_props
      num=`expr ${num} + 1`
    done

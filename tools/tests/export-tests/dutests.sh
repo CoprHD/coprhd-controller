@@ -4001,11 +4001,17 @@ then
     shift
 fi
 
+test_start=0
+test_end=25
+
 # If there's a last parameter, take that
 # as the name of the test to run
-if [ "$1" != "" ]
+# To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
+# ./dutest.sh sanity.conf vplex local test_7+
+if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
    echo Request to run $*
+   exit;
    for t in $*
    do
       echo Run $t
@@ -4015,13 +4021,20 @@ then
       reset_system_props
    done
 else
+   if [ "${1:(-1)}" = "+" ]
+   then
+      num=`echo $1 | sed 's/test_//g' | sed 's/+//g'`
+   else
+      num=${test_start}
+   fi
    # Passing tests:
-   for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+   while [ ${num} -le ${test_end} ]; 
    do
      reset_system_props
      prerun_tests
-     test_${num}
+     echo test_${num}
      reset_system_props
+     num=`expr ${num} + 1`
    done
 fi
 

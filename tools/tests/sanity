@@ -9501,6 +9501,7 @@ quick_setup()
 #    datadomainfile_setup
     vmaxblock_setup
     errorhandling_setup
+    sbsdk_setup
 
 }
 
@@ -9513,6 +9514,7 @@ quick_tests()
     quick_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK
     #quick_file_tests $COS_DDFILE default
     errorhandling_tests
+    sbsdk_tests
 }
 
 all_tests()

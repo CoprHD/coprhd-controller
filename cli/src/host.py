@@ -113,7 +113,7 @@ class Host(object):
     def create(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, autodiscovery,
-               bootvolume, project, testconnection):
+               bootvolume, project, testconnection, isVirtual):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -144,6 +144,7 @@ class Host(object):
                    'password': passwd,
                    'discoverable': autodiscovery,
                    'use_ssl': usessl
+                   'virtual': isVirtual
                    }
 
         '''
@@ -189,7 +190,7 @@ class Host(object):
     def update(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, newlabel, autodiscovery,
-               bootvolume, project):
+               bootvolume, project, isVirtual):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -250,6 +251,9 @@ class Host(object):
 
         if(autodiscovery):
             request['discoverable'] = autodiscovery
+        
+        if(isVirtual):
+            request['virtual'] = isVirtual
 
         if(bootvolume and project):
             path = tenant + "/" + project + "/" + bootvolume
@@ -778,6 +782,10 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='testconnection',
                                help='validate connection',
                                action='store_true')
+    create_parser.add_argument('-virtual', '-v',
+                               dest='virtual',
+                               help='A flag to determine whether host is virtual or not',
+                               action='store_true')
 
     create_parser.set_defaults(func=host_create)
 
@@ -809,7 +817,7 @@ def host_create(args):
                        args.hostport, args.hostusername, passwd,
                        args.hostusessl, args.osversion, args.cluster,
                        args.datacenter, args.vcentername, args.autodiscovery,
-                       args.bootvolume, args.project, args.testconnection)
+                       args.bootvolume, args.project, args.testconnection, args.virtual)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)
@@ -1098,7 +1106,10 @@ def update_parser(subcommand_parsers, common_parser):
                             help='name of project',
                             dest='project',
                             metavar='<project>')
-
+    update_parser.add_argument('-virtual', '-v',
+                               dest='virtual',
+                               help='A flag to determine whether host is virtual or not',
+                               action='store_true')
 
     update_parser.set_defaults(func=host_update)
 
@@ -1139,7 +1150,7 @@ def host_update(args):
                            args.newosversion, args.newcluster,
                            args.newdatacenter, args.vcentername,
                            args.newlabel, args.autodiscovery,
-                           args.bootvolume, args.project)
+                           args.bootvolume, args.project, args.virtual)
     except SOSError as e:
         common.format_err_msg_and_raise("update",
                                         "host", e.err_text, e.err_code)

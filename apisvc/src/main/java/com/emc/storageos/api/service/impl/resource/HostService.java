@@ -810,11 +810,10 @@ public class HostService extends TaskResourceService {
     /**
      * Creates a new paired initiator for a host.
      *
-     * @param id the URN of a ViPR Virtual Machine
+     * @param id the URN of a ViPR Virtual Host
      * @param createParam the details of the initiator
-     * @brief Create VM Initiator
-     * @return the details of the host initiator when creation
-     *         is successfully.
+     * @brief Create paired initiator for Virtual Host
+     * @return TaskResourceRep (asynchronous call)
      * @throws DatabaseException when a database error occurs.
      */
     @POST
@@ -874,12 +873,8 @@ public class HostService extends TaskResourceService {
     private void validatePairedInitiatorData(PairedInitiatorCreateParam createParam) {
         validateInitiatorData(createParam.getFirstInitiator(), null);
         validateInitiatorData(createParam.getSecondInitiator(), null);
-
         if (createParam.getFirstInitiator().getPort().equalsIgnoreCase(createParam.getSecondInitiator().getPort())) {
             throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getPort(), "initiator_port");
-        }
-        if (createParam.getFirstInitiator().getName().equalsIgnoreCase(createParam.getSecondInitiator().getName())) {
-            throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getName(), "name");
         }
 
     }

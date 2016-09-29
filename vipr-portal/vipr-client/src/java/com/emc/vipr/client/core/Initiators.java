@@ -115,7 +115,6 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>POST /compute/initiators/{id}/dissociate</tt>
      * 
      * @param id The ID of the initiator.
-     * @param associatedId the ID of the associated initiator
      * @return a task for monitoring the progress of the initiator dissociation
      */
     public Task<InitiatorRestRep> dissociate(URI id) {

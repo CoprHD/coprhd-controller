@@ -175,11 +175,11 @@ do
     fi
 done
 
-# The VPLEX qucik parameter can also choose xio vs. vnx
+# The VPLEX quick parameter can also choose xio vs. vnx
 if [ "$VPLEX_QUICK_PARAM" = "xio" ]; then
     VPLEX_USE_XIO=1
 fi
-if [ "$VPLEX_QUICK_PARAM" = "vnx" ]; then
+if [ "$VPLEX_QUICK_PARAM" = "vnx" -o "$VPLEX_QUICK_PARAM" = "quick" ]; then
     VPLEX_USE_XIO=0
 fi
 
@@ -854,7 +854,7 @@ brocade_setup_once()
     run transportzone assign FABRIC_losam082-fabric $NH
     run transportzone assign FABRIC_vplex154nbr2 $NH2
     if [ $VPLEX_USE_XIO -eq 1 ]; then
-        # The XIO array sthat will be used in place of VNX only have connectivity to one network each
+        # The XIO arrays that will be used in place of VNX only have connectivity to one network each
         run transportzone assign FABRIC_vplex154nbr2 $NH
         run transportzone assign FABRIC_losam082-fabric $NH2
         run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
@@ -2758,7 +2758,11 @@ vplex_tests()
 	run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
 	run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
 	run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-	run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        if [ $VPLEX_USE_XIO -eq 0 ]; then
+	    run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        else
+            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
+        fi
 
 	echo "**** Deleting VPLEX volume snapshots"
 	run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot

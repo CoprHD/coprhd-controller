@@ -295,11 +295,11 @@
           <control-group v-field='vpool.rpJournalSize' required>
             <div class="row col-gap-sm">
               <div class="col-md-6">
-                <input-text v-disabled="locked" style="vertical-align: top"></input-text>
+                <input-text style="vertical-align: top"></input-text>
               </div>
 
               <div class="col-md-6" v-field="vpool.rpJournalSizeUnit">
-                  <select-one v-disabled="locked" options="rpJournalSizeUnitOptions" v-default-value="'${models.SizeUnit.GB}'" disable-search></select-one>
+                  <select-one options="rpJournalSizeUnitOptions" v-default-value="'${models.SizeUnit.GB}'" disable-search></select-one>
               </div>
             </div>
           </control-group>

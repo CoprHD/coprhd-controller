@@ -1381,7 +1381,7 @@ public class BlockStorageScheduler {
                 }
                 loopedInitiators.add(initiatorId);
                 URI associatedInitorURI = initiator.getAssociatedInitiator();
-                if (associatedInitorURI != null) {
+                if (!NullColumnValueGetter.isNullURI(associatedInitorURI)) {
                     loopedInitiators.add(associatedInitorURI.toString());
                 }
             }

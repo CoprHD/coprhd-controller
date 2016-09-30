@@ -2567,11 +2567,6 @@ vplex_setup_once()
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
 	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
-	# Discover the Brocade SAN switch.
-	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
-	transportzone listall
-
 	# Discover the storage systems 
 	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
 	smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?

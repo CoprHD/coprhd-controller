@@ -4020,7 +4020,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             
             _log.info(String.format("%s SOURCE migrations, %s TARGET migrations, %s METADATA migrations", 
                     sourceVpoolMigrations.size(), targetVpoolMigrations.size(), journalVpoolMigrations.size()));
-           
+                      
             // Buffer to log all the migrations
             StringBuffer logMigrations = new StringBuffer();
             logMigrations.append("\n\nRP+VPLEX Migrations:\n");

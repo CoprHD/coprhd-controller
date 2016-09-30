@@ -96,13 +96,13 @@ public class CreateBlockSnapshotService extends ViPRService {
         if (isRetentionRequired()) {
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 for (String volumeId : volumeIds) {
-                    if(BlockProvider.LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForVolume(uri(volumeId))) {
+                    if(!BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForVolume(uri(volumeId))) {
                         ExecutionUtils.fail("failTask.CreateBlockSnapshot.localArraySnapshotTypeNotSupportedForScheduler.precheck", new Object[] {}, new Object[] {});
                     }
                 }
             } else {
                 for (String consistencyGroupId : volumeIds) {
-                    if(BlockProvider.CG_SNAPSHOT_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForCG(uri(consistencyGroupId))) {
+                    if(!BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForCG(uri(consistencyGroupId))) {
                         ExecutionUtils.fail("failTask.CreateBlockSnapshot.CGSnapshotTypeNotSupportedForScheduler.precheck", new Object[] {}, new Object[] {});
                     }
                 }

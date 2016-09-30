@@ -756,7 +756,7 @@ public class VPlexControllerUtils {
                 exportMask.addInitiators(initiatorObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
-                if (NetworkDeviceController.zoningEnabled(exportMask, dbClient)) {
+                if (NetworkUtil.isZoningEnabled(exportMask, dbClient)) {
                     exportMask.getStoragePorts().addAll(storagePortsToAdd);
                     exportMask.getStoragePorts().removeAll(storagePortsToRemove);
                 }

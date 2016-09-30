@@ -103,7 +103,7 @@ public class CreateBlockSnapshotService extends ViPRService {
             } else {
                 for (String consistencyGroupId : volumeIds) {
                     if(BlockProvider.CG_SNAPSHOT_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForCG(uri(consistencyGroupId))) {
-                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.localArraySnapshotTypeNotSupportedForScheduler.precheck", new Object[] {}, new Object[] {});
+                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.CGSnapshotTypeNotSupportedForScheduler.precheck", new Object[] {}, new Object[] {});
                     }
                 }
             }

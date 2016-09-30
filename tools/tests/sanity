@@ -542,6 +542,11 @@ SRDF_USED_RDFGS=()
 SRDF_RDF_NUMBER=1
 SRDF_RDF_CREATE_RETRY=1 # number of times for retry in case of group name/number collision
 
+ssleep() {
+    secho "Sleeping $1 seconds"
+    sleep $1
+}
+
 srdf_ssh(){
     SRDF_SSH_RESULT=$(sshpass -p $2 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$1 $3)
 }
@@ -12216,8 +12221,8 @@ snapvx_group_tests()
     run blockconsistencygroup link_targets $CG_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
 
     # Restore the source from a linked target
-    secho "Sleeping 60 seconds to wait for copy complete
-    sleep 60
+    # COP-25623 [OPT 508268] workaournd. Remove the sleep once the issue fixed
+    ssleep 120
     secho "Restoring source from linked target"
     run blockconsistencygroup restore_snapshot $CG_NAME $SNAP_SESSION_TGT_NAME3-1-1
 

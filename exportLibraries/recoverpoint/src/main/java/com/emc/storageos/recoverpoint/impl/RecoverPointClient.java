@@ -2677,7 +2677,6 @@ public class RecoverPointClient {
             for (ConsistencyGroupCopyUID existingProductionCopyUID : productionCopiesUIDs) {
                 List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
                 ConsistencyGroupLinkSettings linkSettings = null;
-                String existingProductionCopyName = functionalAPI.getGroupCopyName(existingProductionCopyUID);
 
                 for (ConsistencyGroupCopySettings copySetting : copySettings) {
                     // We need to set the link settings for all orphaned copies. Orphaned copies
@@ -2686,7 +2685,8 @@ public class RecoverPointClient {
                             !RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
 
-                        logger.info(String.format("Attempting to prepare link between %s and %s.", newProductionCopyName, copyName));
+                        logger.info(String.format("Checking to see if there is an active link between %s and %s.", newProductionCopyName,
+                                copyName));
 
                         // Check to see if a link setting already exists for the link between the 2 copies
                         linkSettings = findLinkSettings(
@@ -2694,18 +2694,26 @@ public class RecoverPointClient {
                                 newProductionCopyName, copyName);
 
                         if (linkSettings == null) {
-                            // Link settings for the source/target copies does not exist so we need to create one
-                            // Find the corresponding link settings prior to the failover.
-
-                            linkSettings = findLinkSettings(
-                                    cgLinkSettings, existingProductionCopyUID.getGlobalCopyUID(), copySetting.getCopyUID()
-                                            .getGlobalCopyUID(),
-                                    existingProductionCopyName, copyName);
+                            // Link settings for the source/target copies does not exist so we need to create one. Just grab the
+                            // first link settings that's available and base the new link off of that.
+                            linkSettings = cgLinkSettings.get(0);
 
                             if (linkSettings != null) {
+                                ConsistencyGroupCopyUID firstCopyUID = new ConsistencyGroupCopyUID();
+                                firstCopyUID.setGlobalCopyUID(linkSettings.getGroupLinkUID().getFirstCopy());
+                                firstCopyUID.setGroupUID(linkSettings.getGroupLinkUID().getGroupUID());
+
+                                ConsistencyGroupCopyUID secondCopyUID = new ConsistencyGroupCopyUID();
+                                secondCopyUID.setGlobalCopyUID(linkSettings.getGroupLinkUID().getSecondCopy());
+                                secondCopyUID.setGroupUID(linkSettings.getGroupLinkUID().getGroupUID());
+
+                                String firstCopyName = functionalAPI.getGroupCopyName(firstCopyUID);
+                                String secondCopyName = functionalAPI.getGroupCopyName(secondCopyUID);
+
                                 logger.info(String
-                                        .format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
-                                                newProductionCopyName, copyName, existingProductionCopyName, copyName));
+                                        .format("Generate new link settings between %s and %s based on existing link settings between copy %s and %s.",
+                                                newProductionCopyName, copyName, firstCopyName, secondCopyName));
+
                                 ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();
                                 // Set the link copies appropriately
                                 GlobalCopyUID sourceCopy = newProductionCopyUID.getGlobalCopyUID();

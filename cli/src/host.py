@@ -158,7 +158,7 @@ class Host(object):
 
         if(cluster):
             from cluster import Cluster
-            cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
             request['cluster'] = cli_uri
 
         if(datacenter):
@@ -245,7 +245,7 @@ class Host(object):
 
         if(cluster is not None):
             from cluster import Cluster
-            cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
             request['cluster'] = cli_uri
 
 
@@ -878,6 +878,9 @@ def host_list(args):
             if(args.verbose):
                 return common.format_json_object(hostListDetails)
             else:
+                for element in hostListDetails:
+                    del element['preferred_pools']
+
                 if(args.largetable):
                     TableGenerator(hostListDetails, ['name', 'host_name',
                                    'type', 'user_name',

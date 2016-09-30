@@ -852,7 +852,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             Initiator initiatorInAssignments = iterator.next();
             URI associatedInitiator2 = initiatorInAssignments.getAssociatedInitiator();
 
-            if (associatedInitiator2 != null && initiator.getId().equals(associatedInitiator2)) {
+            if (!NullColumnValueGetter.isNullURI(associatedInitiator2) &&
+                    initiator.getId().equals(associatedInitiator2)) {
                 return initiatorInAssignments;
             }
         }

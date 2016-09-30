@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -1105,6 +1106,17 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             userAddedVolumes.removeAll(volumesToRemove);
                             boolean removingAllUserAddedVolumes = userAddedVolumes.isEmpty();
                             boolean canRemoveVolumes = (!volumesToRemove.isEmpty() && !removingLastVolumeFromMask);
+                            
+                            if (storage.getSystemType().equals(DiscoveredDataObject.Type.hds.name())) {
+                                //Fix for COP-25152 as a part of COP-23625
+                                /*
+                                 * Hitachi arrays can have HostStorageDomains (HSD's) without volumes associated with it.
+                                 * In case if the mask which was not created by VIPR and having no volumes has chosen for export,
+                                 * while un exporting if we even consider !removingLastVolumeFromMask condition the export mask will
+                                 * not be deleted (since it was not created by VIPR) and the lun path continue to be exist.
+                                 */
+                                canRemoveVolumes = !volumesToRemove.isEmpty();
+                            }
 
                             _log.info(String
                                     .format("ExportMask %s(%s) - canRemoveVolumes=%s "

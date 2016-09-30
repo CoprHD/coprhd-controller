@@ -600,7 +600,7 @@ public class VPlexControllerUtils {
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
             List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorObjectsToAdd = new ArrayList<Initiator>();
+            List<Initiator> initiatorObjectsForComputeResourceToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -612,7 +612,7 @@ public class VPlexControllerUtils {
                     // If the initiator is in our DB, and it's in our compute resource, it gets added to to the initiator list.
                     // Otherwise it gets added to the existing list.
                     if (knownInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, knownInitiator)) {
-                        initiatorObjectsToAdd.add(knownInitiator);
+                        initiatorObjectsForComputeResourceToAdd.add(knownInitiator);
                     } else {
                         initiatorPortWwnsToAdd.add(normalizedPort);
                     }
@@ -751,10 +751,11 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsForComputeResourceToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
                 exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
-                exportMask.addInitiators(initiatorObjectsToAdd);
+                exportMask.addToUserCreatedInitiators(initiatorObjectsForComputeResourceToAdd);
+                exportMask.addInitiators(initiatorObjectsForComputeResourceToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);

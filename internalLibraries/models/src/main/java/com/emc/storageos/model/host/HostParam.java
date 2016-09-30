@@ -232,11 +232,11 @@ public abstract class HostParam {
         this.bootVolume = bootVolume;
     }
 
+    @XmlElement(name = "virtual_machine")
     public Boolean getVirtualMachine() {
         return virtualMachine;
     }
 
-    @XmlElement(name = "virtual_machine")
     public void setVirtualMachine(Boolean virtualMachine) {
         this.virtualMachine = virtualMachine;
     }

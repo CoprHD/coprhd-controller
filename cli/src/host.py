@@ -143,8 +143,8 @@ class Host(object):
                    'user_name': username,
                    'password': passwd,
                    'discoverable': autodiscovery,
-                   'use_ssl': usessl
-                   'virtual': isVirtual
+                   'use_ssl': usessl,
+                   'virtual_machine': isVirtual
                    }
 
         '''
@@ -253,7 +253,7 @@ class Host(object):
             request['discoverable'] = autodiscovery
         
         if(isVirtual):
-            request['virtual'] = isVirtual
+            request['virtual_machine'] = isVirtual
 
         if(bootvolume and project):
             path = tenant + "/" + project + "/" + bootvolume

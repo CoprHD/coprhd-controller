@@ -710,15 +710,41 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
     	
-    	//Direct-VPLEX
-    	if(param.getPassThroughParams().equals(VPLEX) && param.getPassThroughParams() != null 
-    			&& !param.getPassThroughParams().isEmpty()){
+	//Direct-VPLEX-TO-PASS-VOLUME
+        if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
+    			&& !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("volumeId")){
+       		Map<String, String> passThroughParam = param.getPassThroughParams();
     		
+    		String volumeId = passThroughParam.get("volumeId");
+    		String vplexId=passThroughParam.get("VPlex-Id");
+            if(volumeId == null || vplexId == null){
+            	throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
+            }
+    		String task = UUID.randomUUID().toString();
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
+            ArrayList<String> requestedTypes = new ArrayList<String>();
+            CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
+            return taskList;
+        		
+    		// VPLEX - Distributed
+    		//if(param.getPassThroughParams().isDistributed()){
+    		//	String volumeIdForHA = passThroughParam.get("volumeIdForHA");
+    		//	if (volumeIdForHA ==null ){
+    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
+    		//	}
+    		//}
+        }
+		
+
+    	//Direct-VPLEX
+        else if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
+    			&& !param.getPassThroughParams().isEmpty()){
+    		_log.info("Entered BlockService.createVolume, in VPlex passThroughParams");
     		Map<String, String> passThroughParam = param.getPassThroughParams();
     		
-    		String SourceStorageSystemId = passThroughParam.get("source-storage-system");
-    		String SourceStoragePortId = passThroughParam.get("source-storage-pool");
-    		String vplexId=passThroughParam.get("vplex-URI");
+    		String SourceStorageSystemId = passThroughParam.get("storage-system");
+    		String SourceStoragePortId = passThroughParam.get("storage-pool");
+    		String vplexId=passThroughParam.get("VPlex-Id");
     		
     		if (SourceStorageSystemId ==null  || SourceStoragePortId == null || vplexId == null){
                 throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
@@ -726,9 +752,11 @@ public class BlockService extends TaskResourceService {
     		
     		String task = UUID.randomUUID().toString();
             TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
-    		
+    		_log.info("1 TaskList {}", taskList.getTaskList());
+		_log.info("2 taskList " +taskList);	
             ArrayList<String> requestedTypes = new ArrayList<String>();
             // call thread that does the work.
+		_log.info("Calling Thread that does the work, from inside VPlex passThroughParam");
             CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
 
             return taskList;

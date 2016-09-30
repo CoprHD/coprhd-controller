@@ -545,13 +545,16 @@ public class ExportMaskUtils {
         }
         ExportMask exportMask = ExportMaskUtils.createExportMask(dbClient, exportGroup,
                 storage.getId(), maskName);
-        String resourceRef;
+        String resourceRef = "";
+        _log.info("IN ExportMaskUtils exportGroupType: " +exportGroup.getType() );
         if (exportGroup.getType() != null) {
             if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
                 resourceRef = initiators.get(0).getClusterName();
             } else {
+       		if(initiators.get(0).getHost() != null ){
                 resourceRef = initiators.get(0).getHost().toString();
-            }
+                 }
+	 }
             exportMask.setResource(resourceRef);
         } else {
             // This resource is used when we add initiators to existing masks on VMAX, which should not be

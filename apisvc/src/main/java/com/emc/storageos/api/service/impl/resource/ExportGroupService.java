@@ -1045,15 +1045,15 @@ public class ExportGroupService extends TaskResourceService {
             Set<URI> initiatorsHost = new HashSet<URI>(1);
             for (URI initiatorUri : initiators) {
                 Initiator initiator = queryObject(Initiator.class, initiatorUri, true);
-                if (initiator.getHost() == null || NullColumnValueGetter.isNullURI(initiator.getHost())) {
-                    throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
-                }
+      //          if (initiator.getHost() == null || NullColumnValueGetter.isNullURI(initiator.getHost())) {
+        //           throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
+        //        }
                 validateInitiatorRegistered(initiator);
                 allInitiators.add(initiator.getId());
                 initiatorsHost.add(initiator.getHost());
                 temp.add(initiator);
             }
-            validateInitiatorsData(temp, initiatorsHost, exportGroup);
+         //   validateInitiatorsData(temp, initiatorsHost, exportGroup);
         }
         if (hosts != null && !hosts.isEmpty()) {
             for (URI hostUri : hosts) {
@@ -3062,21 +3062,28 @@ public class ExportGroupService extends TaskResourceService {
     private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup,
             Collection<URI> storageArrays) {
         if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty()) {
-            return;
+                      return;
         }
         // Get database entries for all the ports in a map of array URI to set of StoragePort.
         Map<URI, Set<StoragePort>> arrayToStoragePorts = new HashMap<URI, Set<StoragePort>>();
         for (URI portURI : param.getStoragePorts()) {
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            _log.info("ExportGroupService   >>  port Uri", portURI);
+            _log.info("StoragePost", port);
             ArgValidator.checkEntityNotNull(port, portURI, false);
             URI arrayURI = port.getStorageDevice();
+            _log.info("ExportGroupService   >>  array Uri", arrayURI);
             if (!arrayToStoragePorts.containsKey(arrayURI)) {
-                arrayToStoragePorts.put(arrayURI, new HashSet<StoragePort>());
-            }
+            	arrayToStoragePorts.put(arrayURI, new HashSet<StoragePort>());
+                }
             arrayToStoragePorts.get(arrayURI).add(port);
+
+            _log.info("ExportGroupService   >>  StoragePorts are ", arrayToStoragePorts);
+            
         }
         // Check that there are entries for all the arrays used by the volumes.
         for (URI storageArray : storageArrays) {
+        	_log.info("ExportGroupService   >>  Storage Array ",storageArrays);
             if (!arrayToStoragePorts.containsKey(storageArray)) {
                 throw APIException.badRequests.pathParameterPortsDoNotIncludeArray(storageArray);
             }
@@ -3088,6 +3095,8 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+
+ 
 
     /**
      * For all the block objects in the list, checks to see if they are associated with an ExportPathParam object.

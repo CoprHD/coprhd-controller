@@ -72,7 +72,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
             // validate clients (initiators, hosts clusters) input and package them
             // This call may take a long time.
         	List<URI> affectedInitiators = null;
-        	if (project == null) {
+        	if (project == null || virtualArray == null) {
         		affectedInitiators = this.exportGroupService.validatePassThroughClientsAndPopulate(exportGroup,
                         storageMap.keySet(), clusters, hosts, initiators, volumeMap.keySet(), pathParam);
                 

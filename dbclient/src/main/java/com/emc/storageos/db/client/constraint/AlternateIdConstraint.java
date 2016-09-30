@@ -475,6 +475,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("initiators"), initiatorId);
         }
 
+        public static AlternateIdConstraint getExportGroupVolumeConstraint(String volumeId) {
+            DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumes"), volumeId);
+        }
+
         public static AlternateIdConstraint getUserIdsByUserName(String userName) {
             DataObjectType doType = TypeMap.getDoType(StorageOSUserDAO.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("username"), userName);

@@ -442,6 +442,7 @@ public class WorkflowService {
         for (StepStatus status : statusMap.values()) {
             Date startTime = status.startTime;
             Date endTime = status.endTime;
+            _log.info("IN WorkFlowService, startTime : {} ; senTime : {}" ,startTime.toString() , endTime.toString());
             if (startTime != null && endTime != null) {
                 _log.info(String.format(
                         "Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",

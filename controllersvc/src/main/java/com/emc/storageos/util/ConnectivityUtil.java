@@ -27,6 +27,8 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
@@ -36,6 +38,7 @@ import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -51,6 +54,7 @@ public class ConnectivityUtil {
     public static final String CLUSTER1 = VPlexApiConstants.CLUSTER_1_ID;
     public static final String CLUSTER2 = VPlexApiConstants.CLUSTER_2_ID;
     public static final String CLUSTER_UNKNOWN = "unknown-cluster";
+
 
     public static enum StorageSystemType {
         BLOCK,
@@ -925,8 +929,63 @@ public class ConnectivityUtil {
                 }
             }
         }
+
         return vplexCluster;
     }
+    
+    /**
+     * 
+     * @param vplexVolumeURIs
+     * @return
+     */
+    public static String getDirectVplexClusterForVolume(URI volumeURI, URI vplexStorageSystemURI, DbClient dbClient ) {
+    	String vplexCluster = CLUSTER_UNKNOWN;
+    	_log.info("in Connectivity.Util, volumeURI  " + volumeURI );
+    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+	_log.info("volume:"+volume.getId());
+    	Map<ExportMask, ExportGroup> map = ExportUtils.getExportMasks(volume, dbClient);
+    	if (map==null){
+		_log.info("map is null");
+        }else if (map.isEmpty()){
+                _log.info("map is empty");
+        }
+
+    	List<String> initiatorPorts = new ArrayList<String>();
+		for(ExportMask exportMask : map.keySet()){
+			if (!exportMask.getInitiators().isEmpty()){
+								
+				for (String initiatorString : exportMask.getInitiators()){
+					Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorString));
+					if (initiator!=null){
+						initiatorPorts.add(initiator.getInitiatorPort());
+					}
+				    
+				}
+			}
+		}
+		List<String> storagePortsList = ExportUtils.storagePortNamesToURIs(dbClient, initiatorPorts);
+		for (String storagePortStr : storagePortsList){
+			StoragePort storagePort = dbClient.queryObject(StoragePort.class, URI.create(storagePortStr));
+			if ((storagePort != null)
+                    && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(
+                            storagePort.getCompatibilityStatus())
+                    && (RegistrationStatus.REGISTERED.toString().equals(storagePort
+                            .getRegistrationStatus()))
+                    && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
+                if (storagePort.getStorageDevice().equals(vplexStorageSystemURI)) {
+                    // Assumption is this export mask cannot not have mix of CLuster 1
+                    // and Cluster 2 ports from VPLEX so getting
+                    // cluster information from one of the VPLEX port should
+                    // work.
+                    vplexCluster = getVplexClusterOfPort(storagePort);
+                    _log.info("IN ConnectivityUtil, vplexCluster" + vplexCluster);
+                    break;
+                }
+            }
+		}
+		return vplexCluster;
+	}
+
 
     /**
      * Given an initiator and StorageSystem object, find if the initiator is connect to the StorageSystem

@@ -436,7 +436,7 @@ public class ControllerUtils {
                 ExportGroup exportGroup = (ExportGroup) resource;
                 try {
                     id = exportGroup.getId();
-                    projectURI = exportGroup.getProject().getURI();
+                    projectURI = (exportGroup.getProject() != null) ? exportGroup.getProject().getURI() : null;
                     tenantURI = (exportGroup.getTenant() != null) ? exportGroup.getTenant().getURI() : null;
                 } catch (Exception e) {
                     s_logger.error("Exception caught", e);

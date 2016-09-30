@@ -867,11 +867,17 @@ public class NetworkDeviceController implements NetworkController {
      * @param varrayURI - The VirtualArray URI.
      */
     private boolean isZoningRequired(URI varrayURI) {
+      if(varrayURI == null){
+    		return false;
+    	}
+    	else {
         VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, varrayURI);
         if (virtualArray == null) {
             throw DeviceControllerException.exceptions.virtualArrayNotFound();
         }
         return NetworkScheduler.isZoningRequired(_dbClient, virtualArray);
+    
+    	}
     }
 
     /**

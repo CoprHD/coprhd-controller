@@ -453,14 +453,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // If no volumes to create, just return
         if (volumeDescriptors.isEmpty()) {
+	    _log.info("Inside BlockDeviceController, volumeDescriptor is empty, returning waitFor");
             return waitFor;
         }
 
         // Segregate by pool to list of volumes.
+	_log.info("Inside BlockDeviceController, Setting poolMap");
         Map<URI, Map<Long, List<VolumeDescriptor>>> poolMap = VolumeDescriptor.getPoolSizeMap(volumeDescriptors);
 
         // Add a Step to create the consistency group if needed
+	_log.info("Inside BlockDeviceController, calling addStepsForCreateConsistencyGroup");
         waitFor = addStepsForCreateConsistencyGroup(workflow, waitFor, volumeDescriptors, CREATE_CONSISTENCY_GROUP_STEP_GROUP);
+	_log.info("Inside BlockDeviceController, waitFor from addStepsForCreateConsistencyGroup : {} ", waitFor);
 
         waitFor = addStepsForReplicaRollbackCleanup(workflow, waitFor, volumeDescriptors);
 
@@ -629,9 +633,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
-
+	_log.info("Inside BlockDeviceController.addStepsForCreateConsistencyGroup,  1volume:: {}",volumes.toString());
+	_log.info("Inside BlockDeviceController.addStepsForCreateConsistencyGroup,  2volume:: {}",volumes);
         // If no volumes to be created, just return.
         if (volumes.isEmpty()) {
+	    _log.info("Inside BlockDeviceController.addStepsForCreateConsistencyGroup,  volumes EMPTY");
             return waitFor;
         }
 
@@ -639,6 +645,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // just return. Get CG from any descriptor.
         final VolumeDescriptor firstVolume = volumes.get(0);
         if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
+		_log.info("Inside BlockDeviceController.addStepsForCreateCG, 1 firstVolume : " + firstVolume);
+        	_log.info("Inside BlockDeviceController.addStepsForCreateCG, 2 NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI()) : " 
+        	+ NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI()) );
+		_log.info("Inside BlockDeviceController.addStepsForCreateConsistencyGroup,  3 firstVolume NULL|isNullURI");
             return waitFor;
         }
         final URI consistencyGroupURI = firstVolume.getConsistencyGroupURI();
@@ -648,6 +658,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (VolumeDescriptor.Type.SRDF_SOURCE.toString().equalsIgnoreCase(firstVolume.getType().toString())
                     || VolumeDescriptor.Type.SRDF_TARGET.toString().equalsIgnoreCase(firstVolume.getType().toString())
                     || VolumeDescriptor.Type.SRDF_EXISTING_SOURCE.toString().equalsIgnoreCase(firstVolume.getType().toString())) {
+		_log.info("Inside BlockDeviceController.addStepsForCreateConsistencyGroup, Returning from if firstVolume.getType, returning waitFor {} ", waitFor);
                 return waitFor;
             }
         }
@@ -699,7 +710,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         if (createdCg) {
             waitFor = stepGroup;
         }
-
+	_log.info("Inside BlockDeviceController.addStepsForCreateConsistencyGroup,  returning waitFor {}" , waitFor);
         return waitFor;
     }
 

@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -1419,25 +1420,34 @@ public class ExportUtils {
         ExportGroup exportGroup = new ExportGroup();
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
         exportGroup.setLabel(groupName);
-        exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
-        exportGroup.setVirtualArray(vplex.getVirtualArray());
-        exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+        if (projectURI!=null){
+        	exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
+        }
+	if (vplex.getVirtualArray()!=null){
+        	exportGroup.setVirtualArray(vplex.getVirtualArray());
+        }
+        if (tenantURI!=null){
+	        exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+        }
         exportGroup.setGeneratedName(groupName);
         exportGroup.setVolumes(new StringMap());
         exportGroup.setOpStatus(new OpStatusMap());
-        exportGroup.setVirtualArray(virtualArrayURI);
+        if (virtualArrayURI!=null){
+        	exportGroup.setVirtualArray(virtualArrayURI);
+        }
         exportGroup.setNumPaths(numPaths);
+        exportGroup.setType( ExportGroupType.Initiator.name() );
 
-        // Add the initiators into the ExportGroup.
+	// Add the initiators into the ExportGroup.
         for (Initiator initiator : initiators) {
             exportGroup.addInitiator(initiator);
         }
-
+	_log.info("IN ExportUtil exportMask.getId : {}", exportMask.getId());
         // If we have an Export Mask, add it into the Export Group.
         if (exportMask != null) {
             exportGroup.addExportMask(exportMask.getId());
         }
-
+	_log.info("IN ExportUtil exportGroup.getId : {}", exportGroup.forDisplay());
         // Persist the ExportGroup
         dbClient.createObject(exportGroup);
         _log.info(String.format("Returning new ExportGroup %s", exportGroup.getLabel()));

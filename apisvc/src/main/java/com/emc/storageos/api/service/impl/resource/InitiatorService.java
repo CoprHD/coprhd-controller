@@ -183,8 +183,23 @@ public class InitiatorService extends TaskResourceService {
         if (id.compareTo(associatedId) == 0) {
             APIException.badRequests.associateInitiatorMismatch(id, associatedId);
         }
+
         Initiator initiator = queryObject(Initiator.class, id, true);
         Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
+        // check initiator belong to same host
+        URI firstHost = initiator.getHost();
+        URI secondtHost = pairInitiator.getHost();
+
+        if (firstHost.compareTo(secondtHost) != 0) {
+            APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
+        }
+
+        // if host in use. do not associate its initiator.
+        if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
+
+            APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
+        }
+
         if (pairInitiator != null && initiator != null) {
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);
@@ -215,9 +230,14 @@ public class InitiatorService extends TaskResourceService {
             ) throws DatabaseException {
 
         Initiator initiator = queryObject(Initiator.class, id, true);
+        Initiator pairInitiator = null;
         if (initiator != null) {
             URI pairedId = initiator.getAssociatedInitiator();
-            Initiator pairInitiator = queryObject(Initiator.class, pairedId, true);
+            try {
+                pairInitiator = queryObject(Initiator.class, pairedId, true);
+            } catch (Exception e) {
+                throw APIException.badRequests.associateInitiatorNotFound(id);
+            }
             if (pairInitiator != null) {
                 initiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
                 pairInitiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());

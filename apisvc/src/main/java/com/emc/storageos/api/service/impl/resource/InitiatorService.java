@@ -219,8 +219,8 @@ public class InitiatorService extends TaskResourceService {
             URI pairedId = initiator.getAssociatedInitiator();
             Initiator pairInitiator = queryObject(Initiator.class, pairedId, true);
             if (pairInitiator != null) {
-                initiator.setAssociatedInitiator(null);
-                pairInitiator.setAssociatedInitiator(null);
+                initiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
+                pairInitiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
                 _dbClient.updateObject(initiator);
                 _dbClient.updateObject(pairInitiator);
                 auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,

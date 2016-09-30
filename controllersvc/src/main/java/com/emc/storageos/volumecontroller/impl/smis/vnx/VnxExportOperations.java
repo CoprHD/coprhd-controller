@@ -632,6 +632,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         if (existingInitiator != null) {
                             exportMask.addInitiator(existingInitiator);
+                            exportMask.addToUserCreatedInitiators(existingInitiator);
                             exportMask.removeFromExistingInitiators(existingInitiator);
                         }
                     }
@@ -644,6 +645,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, existingInitiator)) {
                             exportMask.addInitiator(existingInitiator);
+                            exportMask.addToUserCreatedInitiators(existingInitiator);
                             exportMask.removeFromExistingInitiators(existingInitiator);
                         }
                     }
@@ -658,15 +660,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    if (volume != null) {
-                                        Integer hlu = volumeWWNs.get(wwn);
-                                        if (hlu == null) {
-                                            _log.warn(String.format(
-                                                    "The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
-                                                    wwn));
-                                            hlu = -1;
-                                        }
-                                        exportMask.addVolume(volume.getId(), hlu);
+                                    if (volume != null &&
+                                            (exportMask.hasUserCreatedVolume(volume.getId()) ||
+                                                    exportMask.hasVolume(volume.getId()))) {
                                         exportMask.removeFromExistingVolumes(volume);
                                     }
                                 }

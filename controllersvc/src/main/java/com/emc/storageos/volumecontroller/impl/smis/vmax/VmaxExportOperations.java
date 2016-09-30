@@ -1796,6 +1796,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(portName), _dbClient);
                             if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, existingInitiator)) {
                                 exportMask.addInitiator(existingInitiator);
+                                exportMask.addToUserCreatedInitiators(existingInitiator);
                                 exportMask.removeFromExistingInitiators(existingInitiator);
                             }
                         }
@@ -1818,15 +1819,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                     Iterator<URI> resultsIter = results.iterator();
                                     if (resultsIter.hasNext()) {
                                         Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                        if (volume != null) {
-                                            Integer hlu = volumeWWNs.get(wwn);
-                                            if (hlu == null) {
-                                                _log.warn(String.format(
-                                                        "The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
-                                                        wwn));
-                                                hlu = -1;
-                                            }
-                                            exportMask.addVolume(volume.getId(), hlu);
+                                        if (volume != null &&
+                                                (exportMask.hasUserCreatedVolume(volume.getId()) ||
+                                                        exportMask.hasVolume(volume.getId()))) {
                                             exportMask.removeFromExistingVolumes(volume);
                                         }
                                     }
@@ -2020,7 +2015,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Check the initiators and update the lists as necessary
                 boolean addInitiators = false;
                 List<String> initiatorsToAdd = new ArrayList<String>();
-                List<Initiator> initiatorIdsToAdd = new ArrayList<>();
+                List<Initiator> initiatorObjectsForComputeResource = new ArrayList<>();
                 for (String port : discoveredPorts) {
                     String normalizedPort = Initiator.normalizePort(port);
                     if (!mask.hasExistingInitiator(normalizedPort) &&
@@ -2029,7 +2024,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         // Don't add additional initiator to initiators list if it belongs to different host/cluster
                         if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
-                            initiatorIdsToAdd.add(existingInitiator);
+                            initiatorObjectsForComputeResource.add(existingInitiator);
                         }
                         addInitiators = true;
                     }
@@ -2072,7 +2067,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
                         if (volumeList.iterator().hasNext()) {
                             URI volumeURI = volumeList.iterator().next();
-                            if (mask.hasUserCreatedVolume(volumeURI) || mask.hasVolume(volumeURI)) {
+                            if (mask.hasUserCreatedVolume(volumeURI)) {
                                 builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
                                         + "export mask's user added volumes, so removing from existing volumes", wwn));
                                 volumesToRemove.add(wwn);
@@ -2148,11 +2143,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // ExportMask.
                     // We shouldn't read the initiators that we find as 'existing' (that is created outside of CoprHD),
                     // instead we should consider them userAdded for this ExportMask, as well.
-                    List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd,
+                    List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorObjectsForComputeResource,
                             _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
-                    mask.addInitiators(initiatorIdsToAdd);
+                    mask.addInitiators(initiatorObjectsForComputeResource);
+                    mask.addToUserCreatedInitiators(initiatorObjectsForComputeResource);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);

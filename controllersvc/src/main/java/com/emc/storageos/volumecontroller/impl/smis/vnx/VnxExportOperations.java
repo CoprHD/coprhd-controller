@@ -660,7 +660,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    if (volume != null && exportMask.hasUserCreatedVolume(volume.getId())) {
+                                    if (volume != null) {
                                         Integer hlu = volumeWWNs.get(wwn);
                                         if (hlu == null) {
                                             _log.warn(String.format(

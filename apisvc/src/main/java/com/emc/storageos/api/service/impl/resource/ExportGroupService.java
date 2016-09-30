@@ -257,6 +257,20 @@ public class ExportGroupService extends TaskResourceService {
         // validate input for the type of export
         validateCreateInputForExportType(param);
 
+        Project project = queryObject(Project.class, param.getProject(), true);
+ 
+        // Validate the project and check its permissions
+        
+        StorageOSUser user = getUserFromContext();
+        if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(), Role.TENANT_ADMIN) || _permissionsHelper
+                .userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
+            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+        }
+
+        // Validate the varray and check its permissions
+        VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
+        _permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
+        
         //Add check for PassThroughParam
         if (param.getExportPassThroughParam() != null && !param.getExportPassThroughParam().isEmpty()){
 
@@ -264,7 +278,7 @@ public class ExportGroupService extends TaskResourceService {
 
                 if (passThroughParam.equalsIgnoreCase("direct")) {
 
-                        ExportGroup exportGroup = preparePassThroughExportGroup(param);
+                        ExportGroup exportGroup = preparePassThroughExportGroup(project,param);
 
                         Map<URI, Map<URI, Integer>> storageMap = new HashMap<URI, Map<URI, Integer>>();
                         Map<URI, Integer> volumeMap = validatePassThroughBlockObjectsAndGetMap(param.getVolumes(), exportGroup, storageMap, true);
@@ -284,7 +298,7 @@ public class ExportGroupService extends TaskResourceService {
 
                         TaskResourceRep taskRes = toTask(exportGroup, task, op);
 
-                        CreateExportGroupSchedulingThread.executePassThroughApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
+                        CreateExportGroupSchedulingThread.executePassThroughApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,neighborhood, project,
                         exportGroup, storageMap, param.getClusters(), param.getHosts(),
                         param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
 
@@ -306,17 +320,7 @@ public class ExportGroupService extends TaskResourceService {
             BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
         }
 
-        // Validate the project and check its permissions
-        Project project = queryObject(Project.class, param.getProject(), true);
-        StorageOSUser user = getUserFromContext();
-        if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(), Role.TENANT_ADMIN) || _permissionsHelper
-                .userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
-            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
-        }
 
-        // Validate the varray and check its permissions
-        VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
-        _permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
 
         // prepare the export group object
         ExportGroup exportGroup = prepareExportGroup(project, param);
@@ -1773,7 +1777,8 @@ public class ExportGroupService extends TaskResourceService {
      * @param param
      * @return
      */
-    private ExportGroup preparePassThroughExportGroup(ExportCreateParam param) {
+    private ExportGroup preparePassThroughExportGroup(Project project , ExportCreateParam param) {
+        TenantOrg tenantOrg = _permissionsHelper.getObjectById(project.getTenantOrg().getURI(), TenantOrg.class);
         ExportGroup exportGroup = new ExportGroup();
         exportGroup.setLabel(param.getName());
         // TODO - For temporary backward compatibility
@@ -1781,11 +1786,13 @@ public class ExportGroupService extends TaskResourceService {
         exportGroup.setType((type == null || type.equals(OLD_INITIATOR_TYPE_NAME)) ? ExportGroupType.Initiator.name() : type);
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
 
-        //Pass tenant param as null
-        //Modify NameGenerator interface maybe??
-        String tenant = "";
-        String generatedName = _nameGenerator.generate(tenant, exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
+        exportGroup.setProject(new NamedURI(project.getId(), exportGroup.getLabel()));
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), exportGroup.getLabel()));
+        exportGroup.setVirtualArray(param.getVarray());
 
+        String generatedName = _nameGenerator.generate(tenantOrg.getLabel(), exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
+        exportGroup.setGeneratedName(generatedName);
+        
         return exportGroup;
     }
 

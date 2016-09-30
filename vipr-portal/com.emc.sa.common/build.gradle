@@ -1,7 +1,12 @@
 dependencies {
     compile project(":com.iwave.ext.windows"),
             project(":com.emc.sa.model"),
-            project(":authsvc")
-
+            project(":authsvc"),
+            "org.xeustechnologies:jcl-core:2.7",
+            "opensymphony:osworkflow:2.8.0",
+            "opensymphony:oscore:2.2.6",      
+            "opensymphony:propertyset:1.5"    
+                          
     testCompile "org.javassist:javassist:3.15.0-GA"
 }
+

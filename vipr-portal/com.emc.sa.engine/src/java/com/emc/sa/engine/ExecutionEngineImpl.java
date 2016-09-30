@@ -125,7 +125,11 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         try {
             init(service);
             precheck(service);
+            preLaunch(service);
             execute(service);
+            executeModel(service);
+            postLaunch(service);
+            postcheck(service);
         } catch (ExecutionException e) {
             logError(e, service);
             try {
@@ -139,7 +143,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         }
     }
 
-    protected ExecutionService createService(Order order) {
+
+
+	protected ExecutionService createService(Order order) {
         try {
             CatalogService catalogService = getModelClient().catalogServices().findById(order.getCatalogServiceId());
 
@@ -181,6 +187,21 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         }
     }
 
+    private void preLaunch(ExecutionService service) {
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("preLaunch " + context.getServiceName() +context.getParameters().get("externalParam"));
+
+            updateExecutionStatus(ExecutionStatus.PRELAUNCH);
+            service.preLaunch();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
+    
     protected void execute(ExecutionService service) throws ExecutionException {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();
@@ -194,7 +215,49 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             throw new ExecutionException(e);
         }
     }
+    
+    private void postLaunch(ExecutionService service) {
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("postLaunch " + context.getServiceName());
+            updateExecutionStatus(ExecutionStatus.POSTLAUNCH);
+            service.postLaunch();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
+    
+    private void postcheck(ExecutionService service) {
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("postCheck " + context.getServiceName());
+            updateExecutionStatus(ExecutionStatus.POSTLAUNCH);
+            service.postcheck();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
 
+    private void executeModel(ExecutionService service) {
+   	
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("executeModel " + context.getServiceName());
+            updateExecutionStatus(ExecutionStatus.EXECUTE);
+            service.executeModelWorkflow();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
     protected void destroy(ExecutionService service) {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();

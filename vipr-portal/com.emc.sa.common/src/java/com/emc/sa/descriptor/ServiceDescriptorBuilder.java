@@ -4,13 +4,19 @@
  */
 package com.emc.sa.descriptor;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
 import org.apache.commons.lang.StringUtils;
+
+import com.emc.sa.catalog.ExtentionClassLoader;
 
 public class ServiceDescriptorBuilder {
     public static final String CATEGORY_SUFFIX = ".category";
@@ -18,7 +24,7 @@ public class ServiceDescriptorBuilder {
     public static final String LABEL_SUFFIX = ".label";
     public static final String DESCRIPTION_SUFFIX = ".description";
     public static final String ERROR_SUFFIX = ".validation.error";
-
+    public static final String EXT_SUFFIX = "(Extn)";
     private List<ResourceBundle> bundles;
 
     public ServiceDescriptorBuilder(String... bundleNames) {
@@ -30,17 +36,39 @@ public class ServiceDescriptorBuilder {
         for (int i = 0; i < bundleNames.length; i++) {
             bundles.add(ResourceBundle.getBundle(bundleNames[i], locale, loader));
         }
+        
+        try {
+			InputStream is = ExtentionClassLoader.getProxyResourceAsStream("CustomResourseBundle.properties");
+			PropertyResourceBundle customBundle = new PropertyResourceBundle(new InputStreamReader(is, "UTF-8"));
+			bundles.add(customBundle);
+		} catch (IOException e) {
+
+		}
     }
 
     public ServiceDescriptor build(ServiceDefinition definition) {
-        String baseKey = StringUtils.defaultIfBlank(definition.baseKey, definition.serviceId);
+        Boolean isExtended=false;
+    	String baseKey = StringUtils.defaultIfBlank(definition.baseKey, definition.serviceId);
+        
+//        if (baseKey.endsWith("Extension" ) ){
+//        	baseKey=baseKey.substring(0, baseKey.length()-"Extension".length());
+//        	isExtended=true;
+//        }
 
         ServiceDescriptor service = new ServiceDescriptor();
         service.setServiceId(definition.serviceId);
-        service.setCategory(getMessage(definition.categoryKey, baseKey + CATEGORY_SUFFIX));
-        service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX));
-        service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
-        service.addRoles(definition.roles);
+        if(isExtended){
+            service.setCategory(getMessage(definition.categoryKey, baseKey + CATEGORY_SUFFIX) + EXT_SUFFIX);
+            service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX) + EXT_SUFFIX);
+            service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX) + EXT_SUFFIX);
+            service.addRoles(definition.roles);
+        }else {
+            service.setCategory(getMessage(definition.categoryKey, baseKey + CATEGORY_SUFFIX));
+            service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX));
+            service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
+            service.addRoles(definition.roles);
+        }
+
 
         // Ensure that a missing resource keys don't cause the service to be hidden in the catalog
         if (StringUtils.isBlank(service.getTitle())) {

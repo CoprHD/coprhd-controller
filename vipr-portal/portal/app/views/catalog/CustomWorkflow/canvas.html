@@ -1,0 +1,12 @@
+%{
+  titleKey = 'customWorkflow.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.customWorkflow'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+ #{include 'catalog/CustomWorkflow/bpmn.html' /}
+
+</div>
+

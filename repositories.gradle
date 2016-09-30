@@ -2,6 +2,10 @@ allprojects {
     repositories {
         if (project.hasProperty("withMavenLocal")) {
             mavenLocal()
+
+		 mavenCentral()
+
+		 maven { url "https://maven-us.nuxeo.org/nexus/content/repositories/public/" }
         }
 
         if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
@@ -25,6 +29,11 @@ allprojects {
                 url "http://sourceforge.net/projects/"
             }
 
+
+            maven {
+                url "http://maven-us.nuxeo.org/nexus/content/repositories/public/"
+            }
+
             ivy {
                 //ivyPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision]-ivy.xml"
                 artifactPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision](-[classifier]).[ext]"
@@ -41,6 +50,9 @@ allprojects {
                 name "artifactory"
                 url artifactoryUrl
             }
+
+		 maven { url "https://maven-us.nuxeo.org/nexus/content/repositories/public/" }
+
         }
 
     }

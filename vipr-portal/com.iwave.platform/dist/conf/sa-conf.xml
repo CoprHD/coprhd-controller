@@ -11,6 +11,9 @@
 	<context:component-scan base-package="com.emc.sa.zookeeper" />	
 	<context:component-scan base-package="com.emc.sa.asset" />
 	<context:component-scan base-package="com.emc.sa.catalog" />
+	<context:component-scan base-package="com.emc.ctd" />	
+
+
 	
 	<import resource="classpath:dbclient-conf.xml" />
 	<import resource="classpath:sa-var.xml" />
@@ -225,5 +228,39 @@
     		</list>
     	</property>
     </bean>
+
+	<bean id="workflowStore"
+		class="com.opensymphony.workflow.spi.memory.MemoryWorkflowStore" />
+
+	<bean id="workflowFactory"
+		class="com.opensymphony.workflow.spi.hibernate.SpringWorkflowFactory"
+		init-method="init">
+		<property name="resource" value="workflow-defs.xml" />
+		<property name="reload" value="true" />
+	</bean>
+
+	<bean id="workflowConfiguration" class="com.opensymphony.workflow.config.SpringConfiguration">
+		<property name="factory" ref="workflowFactory" />
+		<property name="store" ref="workflowStore" />
+	</bean>
+
+	<bean id="workflowTypeResolver" class="com.opensymphony.workflow.util.SpringTypeResolver">
+	</bean>
+
+	<bean id="workflow" class="com.opensymphony.workflow.basic.BasicWorkflow"
+		scope="prototype">
+		<constructor-arg>
+			<value>testuser</value>
+		</constructor-arg>
+		<property name="configuration" ref="workflowConfiguration" />
+		<property name="resolver" ref="workflowTypeResolver" />
+	</bean>
+
+	<bean id="viprWorkflowExecutor" class="com.emc.ctd.workflow.vipr.core.ViPRWorkflowExecutor" scope="prototype">
+		<property name="workflow" ref="workflow" />
+	</bean>
+
+	<bean id="viprWorkflowLauncher" class="com.emc.ctd.workflow.vipr.core.ViPrWorkflowLauncher" />
+
     
 </beans>

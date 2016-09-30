@@ -5,13 +5,17 @@
 package com.emc.sa.service.vipr;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.extension.ExternalTaskParams;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.service.vipr.plugins.object.GenericPluginUtils;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -24,7 +28,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
-public abstract class ViPRService extends AbstractExecutionService {
+public abstract class ViPRService extends AbstractExecutionService  {
     @Autowired
     private ViPRProxyUser proxyUser;
     @Autowired
@@ -116,6 +120,66 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
     }
 
+	@Override
+	public void preLaunch() throws Exception {
+    	if (genericExtensionTask !=null){
+    		ExternalTaskParams genericExtensionTaskParams = new ExternalTaskParams();
+    		ExecutionContext context = ExecutionUtils.currentContext();
+    		genericExtensionTaskParams.setExternalParam((String)context.getParameters().get("externalParam"));
+    		
+    		 try {
+    			 GenericPluginUtils.executeExtenstionTask(genericExtensionTask,genericExtensionTaskParams,"preLaunch");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+		
+	}
+
+	@Override
+	public void postLaunch() throws Exception {
+    	if (genericExtensionTask !=null){
+    		ExternalTaskParams genericExtensionTaskParams = new ExternalTaskParams();
+    		ExecutionContext context = ExecutionUtils.currentContext();
+    		genericExtensionTaskParams.setExternalParam((String)context.getParameters().get("externalParam"));
+    		//genericExtensionTaskParams.setExternalParam(externalParam);
+    		
+    		 try {
+    			 GenericPluginUtils.executeExtenstionTask(genericExtensionTask,genericExtensionTaskParams,"postLaunch");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+	}
+
+	@Override
+	public void executeModelWorkflow() throws Exception {
+
+		ExternalTaskParams genericExtensionTaskParams = new ExternalTaskParams();
+		ExecutionContext context = ExecutionUtils.currentContext();
+		if (context.getParameters().get("WorkflowModel") != null) {
+			genericExtensionTaskParams.setExternalParam((String) context.getParameters().get("externalParam"));
+			String WorkflowModel = (String) context.getParameters().get("WorkflowModel");
+			WorkflowModel = WorkflowModel.replaceAll("^\"|\"$", "");
+			try {
+				viprWorkflowLauncher.launchWorkflow(WorkflowModel,	new HashMap<String, Object>(), 100);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	
+	
+	@Override
+	public void postcheck() throws Exception {
+
+	}
+    
+    
     protected <T> void addInjectedValue(Class<? extends T> clazz, T value) {
         ExecutionUtils.currentContext().addInjectedValue(clazz, value);
     }

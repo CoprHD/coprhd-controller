@@ -1,0 +1,56 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+
+	<bean id="workflowStore"
+		class="com.opensymphony.workflow.spi.memory.MemoryWorkflowStore" />
+
+	<bean id="workflowFactory"
+		class="com.opensymphony.workflow.spi.hibernate.SpringWorkflowFactory"
+		init-method="init">
+		<property name="resource" value="workflow-defs.xml" />
+		<property name="reload" value="true" />
+	</bean>
+
+	<bean id="workflowConfiguration" class="com.opensymphony.workflow.config.SpringConfiguration">
+		<property name="factory" ref="workflowFactory" />
+		<property name="store" ref="workflowStore" />
+	</bean>
+
+	<bean id="workflowTypeResolver" class="com.opensymphony.workflow.util.SpringTypeResolver">
+		<property name="functions">
+			<map>
+				<entry key="mockAction">
+					<ref bean="mockAction" />
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<bean id="workflow" class="com.opensymphony.workflow.basic.BasicWorkflow"
+		scope="prototype">
+		<constructor-arg>
+			<value>testuser</value>
+		</constructor-arg>
+		<property name="configuration" ref="workflowConfiguration" />
+		<property name="resolver" ref="workflowTypeResolver" />
+	</bean>
+
+	<bean id="mockAction" class="com.emc.ctd.workflow.MockAction"
+		scope="prototype" />
+
+	<bean id="workflowRunner" class="com.emc.ctd.workflow.WorkflowRunner"
+		scope="prototype">
+		<property name="workflow" ref="workflow" />
+	</bean>
+
+
+
+	<bean id="helloBean" class="com.emc.ctd.workflow.HelloWorld">
+		<property name="name" value="workflow" />
+	</bean>
+</beans>
+
+

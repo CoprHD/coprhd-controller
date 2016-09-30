@@ -16,7 +16,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 /**
  * Java representation of the service definition JSON format.
  */
-public class ServiceDefinition implements Serializable {
+public class ServiceDefinition implements Serializable ,  Cloneable{
     private static final long serialVersionUID = -7173618289200246823L;
 
     /** Whether the service is disabled. */
@@ -36,6 +36,10 @@ public class ServiceDefinition implements Serializable {
 
     /** The key of the service description. */
     public String descriptionKey;
+    
+    public boolean isExtended=false;
+    
+    public String  extendedServiceId;
 
     /** The key of a warning message to display in the service catalog. */
     public String warningMessageKey;
@@ -51,6 +55,10 @@ public class ServiceDefinition implements Serializable {
 
     public void addItem(ItemDefinition item) {
         items.put(item.name, item);
+    }
+    
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 
     @Override

@@ -319,11 +319,12 @@
   
   
 #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR']]}
-    #{nav.menu 'driver', icon:'vipricon-settings'}
+    #{nav.menu 'driver', icon:'vipricon-san-multiplan'}
     #{nav.menuSection 'nav.driver'}
     #{nav.item 'createDriver', href: @infra.DirectDriver.createDirecVolume()/}
     #{nav.item 'listDriver', href:@infra.DirectDriver.list()/}
     #{nav.item 'exportDriver' , href:@infra.DirectDriver.export()/}
+	#{nav.item 'customWorkflow', href: @catalog.CustomWorkflow.diagrams()/}
     #{/nav.menuSection} 
 	#{/nav.menu}
   #{/deadbolt.restrict}

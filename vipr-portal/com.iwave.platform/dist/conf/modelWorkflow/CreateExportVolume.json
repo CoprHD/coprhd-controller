@@ -1,0 +1,13 @@
+{
+	"workflowInputParams": 
+	{
+		"virtualPool": "urn:storageos:VirtualPool:dbda8252-375b-4129-8e83-71bedd75cdf4:vdc1",
+		"virtualArray": "urn:storageos:VirtualArray:265be179-1ed0-42c3-b9a2-5dc1d6fda4eb:vdc1",
+		"project": "urn:storageos:Project:3701e6cc-c60f-49c7-906d-831eb8f90b0f:global",
+		"volumeName": "MANOJ-WF2-VOL",
+		"volumeSize": "2GB",
+		"count": "1",
+		"hostId": "urn:storageos:Host:de6cdbb2-74d1-4903-bc5e-6ceae5429d1f:vdc1",
+		"hlu": "-1"
+	}
+}

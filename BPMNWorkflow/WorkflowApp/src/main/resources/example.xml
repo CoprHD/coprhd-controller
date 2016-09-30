@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE workflow PUBLIC "-//OpenSymphony Group//DTD OSWorkflow 2.6//EN" "http://www.opensymphony.com/osworkflow/workflow_2_8.dtd">
+<workflow>
+	<initial-actions>
+		<action id="100" name="Start Workflow">
+			<restrict-to>
+				<conditions type="AND">
+					<condition type="beanshell">
+						<arg name="script">true</arg>
+					</condition>
+					<condition type="class">
+						<arg name="class.name">com.opensymphony.workflow.util.OSUserGroupCondition</arg>
+						<arg name="group">foos</arg>
+					</condition>
+				</conditions>
+			</restrict-to>
+			<pre-functions>
+				<function type="class">
+					<arg name="class.name">com.opensymphony.workflow.util.Caller</arg>
+				</function>
+			</pre-functions>
+			<results>
+				<unconditional-result old-status="Finished" status="Underway" step="1" owner="${caller}"/>
+			</results>
+		</action>
+	</initial-actions>
+	<steps>
+		<step id="1" name="First Draft">
+			<external-permissions>
+				<permission name="permA">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+				</permission>
+			</external-permissions>
+			<actions>
+				<action id="1" name="Finish First Draft">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="beanshell">
+								<arg name="script">true</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="beanshell">
+							<arg name="script">
+                                String caller = context.getCaller();
+                                propertySet.setString("caller", caller);
+                                boolean test = true;
+                                String yuck = null;
+                                String blah = "987654321";
+                                System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+                            </arg>
+						</function>
+					</pre-functions>
+					<results>
+						<result old-status="Finished" split="1">
+							<conditions type="AND">
+								<condition type="beanshell">
+									<arg name="script">
+									propertySet.getString("caller").equals("test")
+									</arg>
+								</condition>
+							</conditions>
+							<post-functions>
+								<function type="beanshell">
+									<arg name="script">
+                                        System.out.println("11111111111111");
+                                        System.out.println("11111111111111");
+                                        System.out.println("11111111111111");
+                                        System.out.println("11111111111111");
+                                        System.out.println("11111111111111");
+                                        System.out.println("11111111111111");
+                                        System.out.println("11111111111111");
+                                    </arg>
+								</function>
+							</post-functions>
+						</result>
+						<unconditional-result old-status="Finished" split="2"/>
+					</results>
+					<post-functions>
+						<function type="beanshell">
+							<arg name="script">
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                                System.out.println("22222222222222");
+                            </arg>
+						</function>
+                        <!--
+                        <function type="class">
+                            <arg name="class.name">com.opensymphony.workflow.util.ScheduleJob</arg>
+                            <arg name="triggerId">1</arg>
+                            <arg name="jobName">testJob</arg>
+                            <arg name="triggerName">testTrigger</arg>
+                            <arg name="groupName">test</arg>
+
+                            <arg name="repeat">10</arg>
+                            <arg name="repeatDelay">2000</arg>
+                            <arg name="cronExpression">0,5,10,15,20,25,30,35,40,45,50,55 * * * * ?</arg>
+
+                            <arg name="username">test</arg>
+                            <arg name="password">test</arg>
+
+                            <arg name="local">true</arg>
+                            <arg name="schedulerStart">true</arg>
+                        </function>
+                        -->
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="2" name="Edit Doc">
+			<external-permissions>
+				<permission name="permB">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+
+				</permission>
+			</external-permissions>
+			<actions>
+				<action id="2" name="Sign Up For Editing">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Queued</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.OSUserGroupCondition</arg>
+								<arg name="group">bars</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.Caller</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Underway" step="2" owner="${caller}"/>
+					</results>
+				</action>
+				<action id="3" name="Finish Editing">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.MostRecentOwner</arg>
+							<arg name="stepId">1</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Underway" step="3" owner="${mostRecentOwner}"/>
+					</results>
+				</action>
+				<action id="4" name="Requeue Editing">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<results>
+						<unconditional-result old-status="Finished" status="Queued" step="2"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+		<step id="3" name="Review Doc">
+			<external-permissions>
+				<permission name="permA">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+				</permission>
+			</external-permissions>
+			<actions>
+				<action id="5" name="More Edits">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.MostRecentOwner</arg>
+							<arg name="stepId">2</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Underway" step="2" owner="${mostRecentOwner}"/>
+					</results>
+				</action>
+				<action id="6" name="Peer Review">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<results>
+						<unconditional-result old-status="Finished" status="Queued" step="4"/>
+					</results>
+				</action>
+				<action id="7" name="Publish Doc">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.MostRecentOwner</arg>
+							<arg name="stepId">2</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Underway" step="5" owner="${mostRecentOwner}"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+		<step id="4" name="Second Review">
+			<external-permissions>
+				<permission name="permC">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+				</permission>
+			</external-permissions>
+			<actions>
+				<action id="8" name="Finish Second Review">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.MostRecentOwner</arg>
+							<arg name="stepId">3</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Underway" step="3" owner="${mostRecentOwner}"/>
+					</results>
+				</action>
+				<action id="9" name="Sign Up For Second Review">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Queued</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.OSUserGroupCondition</arg>
+								<arg name="group">bazs</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.Caller</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Underway" step="4" owner="${caller}"/>
+					</results>
+				</action>
+				<action id="10" name="Queue Second Review">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<results>
+						<unconditional-result old-status="Finished" status="Queued" step="4"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+		<step id="5" name="Publish Doc">
+			<actions>
+				<action id="11" name="Publish Document">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<pre-functions>
+						<function type="class">
+							<arg name="class.name">com.opensymphony.workflow.util.Caller</arg>
+						</function>
+					</pre-functions>
+					<results>
+						<unconditional-result old-status="Finished" status="Finished" step="5" owner="${caller}"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+		<step id="6" name="Foo">
+			<actions>
+				<action name="Finish Foo" id="12">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+								<arg name="stepId">6</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+								<arg name="stepId">6</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<results>
+						<unconditional-result old-status="Finished" join="1"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+		<step id="7" name="Bar">
+			<actions>
+				<action name="Finish Bar" id="13">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+								<arg name="stepId">7</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+								<arg name="stepId">7</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<results>
+						<unconditional-result old-status="Finished" owner="test" status="Underway" step="8"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+		<step id="8" name="Baz">
+			<actions>
+				<action name="Finish Baz" id="14">
+					<restrict-to>
+						<conditions type="AND">
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.StatusCondition</arg>
+								<arg name="status">Underway</arg>
+								<arg name="stepId">8</arg>
+							</condition>
+							<condition type="class">
+								<arg name="class.name">com.opensymphony.workflow.util.AllowOwnerOnlyCondition</arg>
+								<arg name="stepId">8</arg>
+							</condition>
+						</conditions>
+					</restrict-to>
+					<results>
+						<unconditional-result old-status="Finished" join="1"/>
+					</results>
+				</action>
+			</actions>
+		</step>
+	</steps>
+	<splits>
+		<split id="1">
+			<unconditional-result old-status="Finished" status="Underway" owner="test" step="6"/>
+			<unconditional-result old-status="Finished" status="Underway" owner="test" step="7"/>
+		</split>
+		<split id="2">
+			<unconditional-result old-status="Finished" status="Queued" step="2"/>
+		</split>
+	</splits>
+	<joins>
+		<join id="1">
+			<conditions type="AND">
+				<condition type="beanshell">
+					<arg name="script"><![CDATA[
+					"Finished".equals(jn.getStep(6).getStatus()) && "Finished".equals(jn.getStep(8).getStatus())
+					]]></arg>
+				</condition>
+			</conditions>
+			<unconditional-result old-status="Finished" status="Underway" owner="test" step="2"/>
+		</join>
+	</joins>
+</workflow>
+

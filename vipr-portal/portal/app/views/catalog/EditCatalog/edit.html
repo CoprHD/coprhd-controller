@@ -42,6 +42,18 @@ $(document).ready(function() {
             catalog.updateCatalog();
         }
     });
+    
+    $('#customServiceBtn').on('click', function(event) {
+    	 var url = routes.ServiceCatalog_CreateCustomService();
+    	 var data = {
+		            authenticityToken:'${session.authenticityToken}',
+		    };
+    	$.post(url, data)
+			.done(function(result) {
+			showPasswordValidityStatus(result,controlGroup);
+		});
+    	
+    });
 });
 </script>
 #{/set}
@@ -77,6 +89,9 @@ $(document).ready(function() {
     #{icon 'trash'/} &{'ServiceCatalog.restoreCatalog'}
   </button>
 
+  <button type="button" class="btn btn-sm btn-success" value="Add Custom Service" id="customServiceBtn">
+    #{icon 'plus'/} Add Custom Service
+  </button>
   #{if catalogUpdateAvailable}
     <button type="button" class="btn btn-sm btn-info" value="&{'ServiceCatalog.updateCatalog'}" id="updateCatalog">
       #{icon 'repeat'/} &{'ServiceCatalog.updateCatalog'}

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflows>
+  <workflow name="workflow-def-1" type="resource" location="workflow-def-1.xml"/>
+</workflows>

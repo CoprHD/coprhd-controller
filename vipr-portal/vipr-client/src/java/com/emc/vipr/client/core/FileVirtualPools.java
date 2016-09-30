@@ -18,6 +18,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.pools.StoragePoolRecommendations;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
@@ -339,4 +340,19 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
     public FileVirtualPoolRestRep assignStoragePools(URI id, VirtualPoolPoolUpdateParam input) {
         return client.put(FileVirtualPoolRestRep.class, input, getIdUrl() + "/assign-matched-pools", id);
     }
+    
+    /**
+     * Get storage pool recommendations for a given file virtual pool.
+     * <p>
+     * API Call: <tt>PUT /file/vpools/{id}/pool-recommendations</tt>
+     * 
+     * @param id
+     *            the ID of the file virtual pool.
+     * @return storage pool recommendations for a given file virtual pool.
+     */
+    
+    public StoragePoolRecommendations storagePoolRecommendations(URI id) {
+    	return client.get(StoragePoolRecommendations.class, getIdUrl() + "/pool-recommendations", id);
+    }
 }
+

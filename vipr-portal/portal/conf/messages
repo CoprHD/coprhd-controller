@@ -57,7 +57,7 @@ nav.storage=Resources
 nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=System
-nav.driver=Direct Driver
+nav.driver=Workflow Designer
 nav.block=Block
 nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
@@ -149,6 +149,11 @@ nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
+nav.customWorkflow=Workflow Modeler
+
+diagram.crud.title=Workflow Diagrams
+diagrams.name=Name
+customWorkflow.title=Workflow Modeler
 
 # Override messages in the Secure plugin
 secure.title=
@@ -285,6 +290,7 @@ PoolAssignment.manual=Manual
 #Direct Driver
 CreateVolume.direct.description = Enter information needed to create volume
 volume.arrayType=Storage System Type
+volume.project = Projects
 volume.arrayTypeForVplex = Backend Storage System Type
 volume.ipAddress=System Name
 volume.ipAddressForVplex = Storage System

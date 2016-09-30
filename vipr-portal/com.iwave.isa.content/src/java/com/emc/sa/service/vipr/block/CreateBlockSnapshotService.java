@@ -13,6 +13,7 @@ import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,8 +28,10 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateBlockSnapshot")
@@ -81,6 +84,27 @@ public class CreateBlockSnapshotService extends ViPRService {
                         || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
                                 || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
                     ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
+                }
+            }
+        }
+        
+        // We disable recurring VMAX V3 snapshot in case when "Local Array Snapshot Type" is selected. With "Local Array Snapshot Type" enabled for VMAX V3, 
+        // both snapshot sessions and snapshot are created. It brings some difficulties for snapshot rotation. So far we don't have single API to delete 
+        // both snapshot session and snapshot in single shot. If we implement orchestration of those 2 calls at sasvc, we may introduce unnecessary complexities
+        // for parameter preparation, error handling in the middle etc. So we would take out this special case and go back to it until a backend API is ready for
+        // deletion both snapshot session and snapshot in single shot.
+        if (isRetentionRequired()) {
+            if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+                for (String volumeId : volumeIds) {
+                    if(!BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForVolume(uri(volumeId))) {
+                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.localArraySnapshotTypeNotSupportedForScheduler.precheck", new Object[] {}, new Object[] {});
+                    }
+                }
+            } else {
+                for (String consistencyGroupId : volumeIds) {
+                    if(!BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type) && isSnapshotSessionSupportedForCG(uri(consistencyGroupId))) {
+                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.CGSnapshotTypeNotSupportedForScheduler.precheck", new Object[] {}, new Object[] {});
+                    }
                 }
             }
         }
@@ -149,5 +173,15 @@ public class CreateBlockSnapshotService extends ViPRService {
             }
             getModelClient().delete(replica);
         } 
+    }
+    
+    private boolean isSnapshotSessionSupportedForVolume(URI volumeId) {
+        VolumeRestRep volume = getClient().blockVolumes().get(volumeId);
+        return volume.getSupportsSnapshotSessions();
+    }
+    
+    private boolean isSnapshotSessionSupportedForCG(URI cgId) {
+        BlockConsistencyGroupRestRep cg = getClient().blockConsistencyGroups().get(cgId);
+        return cg.getSupportsSnapshotSessions();
     }
 }

@@ -551,7 +551,7 @@ srdf_generate_rdfg_name() {
     echo $(date +"S"%m%d$RANDOM | cut -c1-10)
 }
 
-SRDF_SLEEPING_SECONDS=300
+SRDF_SLEEPING_SECONDS=120
 srdf_sleep() {
     secho "Sleeping ${SRDF_SLEEPING_SECONDS} seconds"
     sleep ${SRDF_SLEEPING_SECONDS}
@@ -2001,8 +2001,9 @@ srdf_v3_cos_setup()
     secho "SRDF V3 Virtual Pool setup" 
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
+    # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block $COS_VMAXBLOCK_V3_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' true \
+	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \

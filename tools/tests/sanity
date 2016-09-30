@@ -6118,10 +6118,6 @@ sbsdk_setup()
     run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN15
     run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN16
 
-    #Add ports from the SBDK simulator storage system to varray $NH
-    echo "***** Adding simulator ports to varray $NH *****"
-    run storageport update $SBSDK_DRIVER_SYS_NATIVEGUID FC --addvarrays $NH
-
     #Define a virtual pool
     echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
     run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \

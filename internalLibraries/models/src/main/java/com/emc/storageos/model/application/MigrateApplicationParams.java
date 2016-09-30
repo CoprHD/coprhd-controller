@@ -64,7 +64,8 @@ public class MigrateApplicationParams {
     /**
      * @return the removeEnvironment
      */
-    public boolean isRemoveEnvironment() {
+    @XmlElement(name = "remove-environment")
+    public boolean getRemoveEnvironment() {
         return removeEnvironment;
     }
 

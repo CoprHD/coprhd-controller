@@ -497,12 +497,12 @@ public class ActionableEventExecutor {
             URI blockURI = details.getBlockURI();
             if (gainAccess) {
                 result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostGainAccess",
-                        (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI));
+                        (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName),
+                        blockURI));
             } else {
                 result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostLoseAccess",
-                        (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI));
+                        (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName),
+                        blockURI));
             }
         }
         return result;

@@ -319,7 +319,7 @@
               </tr>
               </thead>
               <tbody>
-              <tr ng-repeat="rpCopy in vpool.rpCopies" ng-class="{disabled:locked, edit:!locked}" ng-click="!locked && editRecoverPointCopy(rpCopy, $index, $event);">
+              <tr ng-repeat="rpCopy in vpool.rpCopies" ng-click="editRecoverPointCopy(rpCopy, $index, $event);">
                 <td class="virtualArray">{{rpCopy.virtualArrayName}}</td>
                 <td class="virtualPool">{{rpCopy.virtualPoolName}}</td>
                 <td class="journalVArray">{{rpCopy.journalVArrayName}}</td>
@@ -358,11 +358,11 @@
             <control-group v-field='vpool.journalSetting' ng-show="vpool.protectSourceSite">
         		<div class="row col-gap-sm">
                 <div class="col-md-6" v-field="vpool.sourceJournalVArray">
-                  <select-one style="width: auto;" options="vpoolSourceJournalVirtualArrayOptions" v-disabled='locked' empty-option="none"></select-one>
+                  <select-one style="width: auto;" options="vpoolSourceJournalVirtualArrayOptions" empty-option="none"></select-one>
                 </div>
 
                 <div class="col-md-6" v-field="vpool.sourceJournalVPool">
-                  <select-one  style="width: auto;" options="vpoolSourceJournalVirtualPoolOptions" v-disabled='locked' empty-option="none"></select-one>
+                  <select-one  style="width: auto;" options="vpoolSourceJournalVirtualPoolOptions" empty-option="none"></select-one>
                 </div>
               </div>
       		</control-group>
@@ -372,11 +372,11 @@
             <control-group v-field='vpool.journalSetting' ng-show="vpool.protectHASite">
         		<div class="row col-gap-sm">
                 <div class="col-md-6" v-field="vpool.haJournalVArray">
-                  <select-one options="vpoolHAJournalVirtualArrayOptions" v-disabled='locked' empty-option="none"></select-one>
+                  <select-one options="vpoolHAJournalVirtualArrayOptions" empty-option="none"></select-one>
                 </div>
 
                 <div class="col-md-6" v-field="vpool.haJournalVPool">
-                  <select-one options="vpoolHAJournalVirtualPoolOptions" v-disabled='locked' empty-option="none"></select-one>
+                  <select-one options="vpoolHAJournalVirtualPoolOptions" empty-option="none"></select-one>
                 </div>
               </div>
       		</control-group>
@@ -418,10 +418,10 @@
   <form id="rpCopyForm" class="form form-horizontal" onSubmit="return false;">
     #{Modal.body}
       <control-group v-field='rpCopy.virtualArray' required>
-        <select-one options="rpVirtualArrayOptions" empty-option="none"></select-one>
+        <select-one options="rpVirtualArrayOptions" v-disabled='locked' empty-option="none"></select-one>
       </control-group>
       <control-group v-field='rpCopy.virtualPool'>
-        <select-one options="rpVirtualPoolOptions" empty-option="none"></select-one>
+        <select-one options="rpVirtualPoolOptions" v-disabled='locked' empty-option="none"></select-one>
       </control-group>
       
        <control-group v-field='rpCopy.journalVArray' >

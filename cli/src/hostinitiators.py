@@ -162,24 +162,20 @@ class HostInitiator(object):
     """
     Associate initiators operation
     """
-    def associate_initiator(self, sync, initiatorUri, associatedInitiatorUri):
+    def associate_initiator(self, initiatorUri, associatedInitiatorUri):
 
-        hostUri = self.get_host_uri(hostlabel, tenant)
-              
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "PUT",
             HostInitiator.URI_INITIATOR_ASSOCIATE.format(initiatorUri, associatedInitiatorUri),
             None)
         o = common.json_decode(s)
-        return self.check_for_sync(o, sync,synctime)
+        return o
         
     """
     Dissociate initiators operation
     """
-    def dissociate_initiator(self, sync, initiatorUri):
-
-        hostUri = self.get_host_uri(hostlabel, tenant)
+    def dissociate_initiator(self, initiatorUri):
               
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -187,7 +183,7 @@ class HostInitiator(object):
             HostInitiator.URI_INITIATOR_DISSOCIATE.format(initiatorUri),
             None)
         o = common.json_decode(s)
-        return self.check_for_sync(o, sync,synctime)
+        return o
     
     """
     Initiator update operation
@@ -898,6 +894,11 @@ def initiator_associate_parser(subcommand_parsers, common_parser):
         help='Associate (pair) two existing initiators')
 
     mandatory_args = associate_initiator_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-hl', '-hostlabel',
+                                help='Host label in which initiator needs to be created',
+                                metavar='<hostlabel>',
+                                dest='hostlabel',
+                                required=True)
     mandatory_args.add_argument('-pwwn1', '-initiatorportwwn1',
                                 metavar='<name1>',
                                 dest='initiatorportwwn1',
@@ -949,6 +950,11 @@ def initiator_dissociate_parser(subcommand_parsers, common_parser):
         help='Dissociate existing initiator pair')
 
     mandatory_args = dissociate_initiator_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-hl', '-hostlabel',
+                                help='Host label in which initiator needs to be created',
+                                metavar='<hostlabel>',
+                                dest='hostlabel',
+                                required=True)
     mandatory_args.add_argument('-pwwn', '-initiatorportwwn',
                                 metavar='<name>',
                                 dest='initiatorportwwn',
@@ -1350,6 +1356,9 @@ def initiator_parser(parent_subparser, common_parser):
 
     # alias set parser
     aliasset_parser(subcommand_parsers, common_parser)
+    
+    # create paired initiators parser
+    create_pair_parser(subcommand_parsers, common_parser)
     
     # associate initiator command parser
     initiator_associate_parser(subcommand_parsers, common_parser)

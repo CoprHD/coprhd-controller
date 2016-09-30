@@ -36,6 +36,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     /** The items in the service. */
     private Map<String, ServiceItem> items = new LinkedHashMap<>();
 
+    /** Whether the service is a base service loaded from descriptors in file system */
+    private boolean isBase = false;
+
     /**
      * Optional roles to limit the service visibility to (User must have one). No restriction is required as this is
      * more intended to limit things already restricted by the services that run or asset options required for them.
@@ -159,5 +162,13 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         builder.append("roles", roles);
         builder.append("items", items);
         return builder.toString();
+    }
+
+    protected void setIsBase(boolean isBase) {
+        this.isBase = isBase;
+    }
+
+    public boolean isBase() {
+        return isBase;
     }
 }

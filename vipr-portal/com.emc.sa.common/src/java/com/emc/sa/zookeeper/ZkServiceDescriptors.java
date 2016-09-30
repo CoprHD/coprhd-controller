@@ -95,6 +95,10 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
      * Adds all the given service definitions to the Zookeeper tree
      */
     public void addServices(List<ServiceDefinition> services) throws Exception {
+        addServices(services,true);
+    }
+
+    public void addServices(List<ServiceDefinition> services, boolean removeOthers) throws Exception {
         ensurePathExists();
 
         Set<String> remainingDescriptors = new HashSet<>(dataManager.getChildren(ZK_SERVICE_DEFINITION_PATH));
@@ -114,10 +118,12 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
             }
         }
 
-        // Remove any remaining descriptors
-        for (String descriptorName : remainingDescriptors) {
-            LOG.info(String.format("Removing old Service %s from ZK", descriptorName));
-            dataManager.removeNode(ZK_SERVICE_DEFINITION_PATH + "/" + descriptorName);
+        if(removeOthers) {
+            // Remove any remaining descriptors
+            for (String descriptorName : remainingDescriptors) {
+                LOG.info(String.format("Removing old Service %s from ZK", descriptorName));
+                dataManager.removeNode(ZK_SERVICE_DEFINITION_PATH + "/" + descriptorName);
+            }
         }
     }
 

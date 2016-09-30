@@ -3,7 +3,7 @@
   serviceId:"OrchestrationService",
   fields:{
     workflow:{
-      type:"assetType.oe.workflow",
+      type:"text",
       lockable: true,
       required: "false"
     }

@@ -49,6 +49,16 @@ public class ServiceDefinition implements Serializable {
      */
     public List<String> roles = new ArrayList<>();
 
+    private boolean isBase = false;  // whether this is a base service, read in from file based ServiceDescriptor
+
+    public boolean isBase() {
+        return isBase;
+    }
+
+    protected void setBase(boolean isBase) {
+        this.isBase = isBase;
+    }
+
     public void addItem(ItemDefinition item) {
         items.put(item.name, item);
     }
@@ -64,6 +74,7 @@ public class ServiceDefinition implements Serializable {
         builder.append("warningMessageKey", warningMessageKey);
         builder.append("roles", roles);
         builder.append("items", items);
+        builder.append("isBase", isBase);
         return builder.toString();
     }
 }

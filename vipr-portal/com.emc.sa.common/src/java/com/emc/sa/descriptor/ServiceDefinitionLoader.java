@@ -29,6 +29,7 @@ public class ServiceDefinitionLoader {
                 ServiceDefinition service = reader.readService(in);
                 if (service != null) {
                     if (!service.disabled) {
+                        service.setBase(true);
                         services.add(service);
                     }
                     else {

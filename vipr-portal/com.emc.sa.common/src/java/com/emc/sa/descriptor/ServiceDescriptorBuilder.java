@@ -41,6 +41,7 @@ public class ServiceDescriptorBuilder {
         service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX));
         service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
         service.addRoles(definition.roles);
+        service.setIsBase(definition.isBase());
 
         // Ensure that a missing resource keys don't cause the service to be hidden in the catalog
         if (StringUtils.isBlank(service.getTitle())) {

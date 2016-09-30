@@ -37,6 +37,25 @@ public class FieldDefinition extends ItemDefinition {
     /** Validation definition for this field. */
     public ValidationDefinition validation = new ValidationDefinition();
 
+    public FieldDefinition() {}
+
+    public FieldDefinition(ServiceField serviceField) {
+        this.descriptionKey = serviceField.getDescription();
+        this.labelKey = serviceField.getLabel();
+        this.name = serviceField.getName();
+        this.type = serviceField.getType();
+        this.omitNone = serviceField.isOmitNone();
+        this.lockable = serviceField.isLockable();
+        this.select = serviceField.getSelect();
+        this.required = serviceField.isRequired();
+        this.initialValue = serviceField.getInitialValue();
+        this.options = serviceField.getOptions();
+        this.validation.min = serviceField.getValidation().getMin();
+        this.validation.max = serviceField.getValidation().getMax();
+        this.validation.regEx = serviceField.getValidation().getRegEx();
+        this.validation.errorKey = serviceField.getValidation().getError();
+    }
+
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);

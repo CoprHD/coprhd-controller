@@ -14,6 +14,7 @@ import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,15 +38,24 @@ import com.emc.sa.api.utils.CatalogACLInputFilter;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogCategoryManager;
 import com.emc.sa.catalog.CatalogServiceManager;
+import com.emc.sa.descriptor.FieldDefinition;
+import com.emc.sa.descriptor.GroupDefinition;
+import com.emc.sa.descriptor.ServiceDefinition;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
+import com.emc.sa.descriptor.ServiceFieldGroup;
+import com.emc.sa.descriptor.ServiceFieldTable;
+import com.emc.sa.descriptor.ServiceItem;
+import com.emc.sa.descriptor.TableDefinition;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceAndFields;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.sa.model.util.SortedIndexUtils;
+import com.emc.sa.zookeeper.ZkServiceDescriptors;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -87,6 +97,9 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
+
+    @Autowired
+    CoordinatorClient coordinatorClient;
 
     private CatalogConfigUtils catalogConfigUtils;
 
@@ -132,7 +145,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     /**
      * Gets a service descriptor by ID, returning null if no such service exists.
-     * 
+     *
      * @param serviceId
      *            the service ID.
      * @return the service descriptor, or null.
@@ -146,6 +159,17 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     }
 
     /**
+     * Gets the service descriptor for the given base service.
+     *
+     * @param service
+     *            the catalog service.
+     * @return the service descriptor, or null.
+     */
+    private ServiceDescriptor getBaseServiceDescriptor(CatalogService service) {
+        return getServiceDescriptor(service.getBaseService());
+    }
+
+    /**
      * Gets the service descriptor for the given service.
      * 
      * @param service
@@ -153,7 +177,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      * @return the service descriptor, or null.
      */
     private ServiceDescriptor getServiceDescriptor(CatalogService service) {
-        return getServiceDescriptor(service.getBaseService());
+        return getServiceDescriptor(service.getTitle());
     }
 
     /**
@@ -169,7 +193,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @Path("/{id}")
     public CatalogServiceRestRep getCatalogService(@PathParam("id") URI id) {
         CatalogService catalogService = queryResource(id);
-        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
+        ServiceDescriptor serviceDescriptor = getBaseServiceDescriptor(catalogService);
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
@@ -203,10 +227,12 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
         auditOpSuccess(OperationTypeEnum.CREATE_CATALOG_SERVICE, catalogService.auditParameters());
 
+        updateServiceDescriptor(catalogService);
+
         // Refresh Objects
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
+        ServiceDescriptor serviceDescriptor = getBaseServiceDescriptor(catalogService);
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
@@ -242,12 +268,93 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         catalogServiceManager.updateCatalogService(catalogService, updatedCatalogServiceFields);
         auditOpSuccess(OperationTypeEnum.UPDATE_CATALOG_SERVICE, catalogService.auditParameters());
 
+        updateServiceDescriptor(catalogService);
+
         // Refresh Objects
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
+        ServiceDescriptor serviceDescriptor = getBaseServiceDescriptor(catalogService);
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
+    }
+
+    private void updateServiceDescriptor(CatalogService service) {
+
+        ServiceDefinition newServiceDefinition = new ServiceDefinition();
+        newServiceDefinition.baseKey = service.getBaseService();
+        newServiceDefinition.titleKey = service.getTitle();
+        newServiceDefinition.categoryKey = service.getCatalogCategoryId().toString();
+        newServiceDefinition.descriptionKey = service.getDescription();
+
+        ServiceDescriptor oldServiceDescriptor = getServiceDescriptor(service);
+        if (oldServiceDescriptor == null) {
+            oldServiceDescriptor = getBaseServiceDescriptor(service);
+            newServiceDefinition.serviceId = service.getTitle();
+        } else {
+            newServiceDefinition.serviceId = oldServiceDescriptor.getServiceId();
+        }
+
+        // copy fields from old service descriptor
+        for(String serviceItemKey : oldServiceDescriptor.getItems().keySet()) {
+            ServiceItem serviceItem = oldServiceDescriptor.getItems().get(serviceItemKey);
+            if(serviceItem instanceof ServiceFieldGroup) {
+                ServiceFieldGroup serviceFieldGroup = (ServiceFieldGroup) serviceItem;
+                GroupDefinition groupDefinition = new GroupDefinition();
+                groupDefinition.descriptionKey = serviceFieldGroup.getDescription();
+                groupDefinition.labelKey = serviceFieldGroup.getLabel();
+                groupDefinition.name = serviceFieldGroup.getName();
+                groupDefinition.type = serviceFieldGroup.getType();
+                // TODO: transfer other field data
+                newServiceDefinition.addItem(groupDefinition);
+            }
+            else if(serviceItem instanceof ServiceFieldTable) {
+                ServiceFieldTable serviceFieldTable = (ServiceFieldTable) serviceItem;
+                TableDefinition tableDefinition = new TableDefinition();
+                tableDefinition.descriptionKey = serviceFieldTable.getDescription();
+                tableDefinition.labelKey = serviceFieldTable.getLabel();
+                tableDefinition.name = serviceFieldTable.getName();
+                tableDefinition.type = serviceFieldTable.getType();
+                // TODO: transfer other field data
+                newServiceDefinition.addItem(tableDefinition);
+            }
+            else if(serviceItem instanceof ServiceField) {
+                ServiceField serviceField = oldServiceDescriptor.getField(serviceItemKey);
+                FieldDefinition fieldDefinition = new FieldDefinition(serviceField);
+                newServiceDefinition.addItem(fieldDefinition);
+            }
+        }
+
+        // add catalog_service_fields     TODO: handle group & table fields
+        for(CatalogServiceField catalogServiceField : catalogServiceManager.getCatalogServiceFields(service.getId())) {
+            FieldDefinition fieldDefinition;
+            if (newServiceDefinition.items.containsKey(catalogServiceField.getLabel())) {
+                // if field is in new descriptor, start with it & override it with CatalogServiceField info
+                fieldDefinition = (FieldDefinition) newServiceDefinition.items.remove(catalogServiceField.getLabel());
+            }
+            else {
+                fieldDefinition = new FieldDefinition();
+                fieldDefinition.required = false;   //TODO: allow these to be set by API
+                fieldDefinition.select = "one";
+                fieldDefinition.omitNone = false;
+                fieldDefinition.type = "text";
+                fieldDefinition.lockable = true;
+                fieldDefinition.initialValue = "";
+            }
+            fieldDefinition.labelKey = catalogServiceField.getLabel();
+            fieldDefinition.name = catalogServiceField.getLabel();
+            newServiceDefinition.addItem(fieldDefinition);
+        }
+
+        ZkServiceDescriptors zkServiceDescriptors = new ZkServiceDescriptors();
+        zkServiceDescriptors.setCoordinatorClient(coordinatorClient);
+        zkServiceDescriptors.start();
+        try {
+            zkServiceDescriptors.addServices(Arrays.asList(newServiceDefinition),false);
+        }
+        catch (Exception e) {
+            throw APIException.internalServerErrors.updateObjectError("ServiceDescriptor '" +
+                    newServiceDefinition.titleKey + "' in ZooKeeper", e);
+        }
     }
 
     @GET
@@ -386,7 +493,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         ServiceDescriptor descriptor =
                 catalogServiceManager.getServiceDescriptor(input.getBaseService());
 
-        if (descriptor == null) {
+        if (descriptor == null || !descriptor.isBase()) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());
         }
 

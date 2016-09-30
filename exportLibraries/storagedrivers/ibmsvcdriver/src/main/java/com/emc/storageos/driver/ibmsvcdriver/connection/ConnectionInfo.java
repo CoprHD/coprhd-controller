@@ -8,6 +8,9 @@ package com.emc.storageos.driver.ibmsvcdriver.connection;
 
 public class ConnectionInfo {
 
+    // System Native ID
+    private String _systemNativeId;
+
     // The host to which the connection is made.
     private String _hostname;
     
@@ -26,15 +29,16 @@ public class ConnectionInfo {
     // Whether or not SSL is used for the CIM connection.
     private boolean _useSSL;
 
-    public ConnectionInfo(String _hostname, int _port, String _username, String _password) {
+    public ConnectionInfo(String _hostname, int _port, String _username, String _password, String _systemNativeId) {
         super();
         this._hostname = _hostname;
         this._port = _port;
         this._username = _username;
         this._password = _password;
+        this._systemNativeId = _systemNativeId;
     }
 
-    public ConnectionInfo(String _hostname, int _port, String _username, String _password, String _interopNS,
+    public ConnectionInfo(String _hostname, int _port, String _username, String _password, String _interopNS, String _systemNativeId,
             boolean _useSSL) {
         super();
         this._hostname = _hostname;
@@ -43,6 +47,7 @@ public class ConnectionInfo {
         this._password = _password;
         this._interopNS = _interopNS;
         this._useSSL = _useSSL;
+        this._systemNativeId = _systemNativeId;
     }
 
     public String get_hostname() {
@@ -91,6 +96,14 @@ public class ConnectionInfo {
 
     public void set_useSSL(boolean _useSSL) {
         this._useSSL = _useSSL;
+    }
+
+    public String get_systemNativeId() {
+        return _systemNativeId;
+    }
+
+    public void set_systemNativeId(String _systemNativeId) {
+        this._systemNativeId = _systemNativeId;
     }
 
 }

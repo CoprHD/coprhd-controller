@@ -11,7 +11,14 @@
 package com.emc.storageos.driver.ibmsvcdriver.connection;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCConstants;
+import com.emc.storageos.storagedriver.Registry;
+import com.jcraft.jsch.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -24,14 +31,45 @@ public class ConnectionManager {
 
     // A list of the connections are managed.
     private ArrayList<SSHConnection> _connections = null;
-    
+    private Registry driverRegistry;
+
+    private Map<String, SSHConnection> IBMSVCSSHClientMap = null;
+
+    private static final Object syncObject = new Object();
+
+    private static ConnectionManager instance;
+
     // The logger.
     private static final Logger _log = LoggerFactory.getLogger(ConnectionManager.class);
+
+    /**
+     * Get the instance
+     * @return The IBM SVC ConnectionManager instance
+     */
+    public static ConnectionManager getInstance(){
+        synchronized (syncObject) {
+            if (instance == null) {
+                instance = new ConnectionManager();
+            }
+        }
+
+        return instance;
+    }
+
+    /**
+     * Sets the persistence store.
+     *
+     * @param driverRegistry The driver persistence registry.
+     */
+    public void setDriverRegistry(Registry driverRegistry) {
+        this.driverRegistry = driverRegistry;
+    }
 
     /**
      * Constructs a connection manager instance and initializes the Connection Pool.
      */
     public ConnectionManager() {
+        IBMSVCSSHClientMap = new ConcurrentHashMap<String, SSHConnection>();
         _connections = new ArrayList<SSHConnection>();
     }
 
@@ -63,6 +101,14 @@ public class ConnectionManager {
                 _connections.add(connection);
 
                 _log.info("Connection Created to the host {}", hostName);
+
+                IBMSVCSSHClientMap.put(connectionInfo.get_systemNativeId(), connection);
+
+                _log.info(String.format("Setting conn info in registry %s - %s - %s - %s - %s", connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
+                        connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password()));
+                setConnInfoToRegistry(connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
+                        connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password());
+
             } catch (Exception e) {
                 _log.error("Failed creating connection to the host {}", hostName + e.getMessage());
                 throw new Exception(MessageFormatter.format("Failed creating connection to the host {}",
@@ -98,11 +144,21 @@ public class ConnectionManager {
             throw new ConnectionManagerException("Passed host is null or blank.");
         }
 
-        Connection retConnection = null;
+        SSHConnection retConnection = (SSHConnection) getConnection(hostName);
 
-        try {
+        try{
+            if(retConnection == null){
+                retConnection = (SSHConnection) createConnection(connectionInfo, ConnectionType.SSH);
+            }
+        }catch (Exception e) {
+            _log.info("Failed creating connection to the host {}", connectionInfo.get_hostname());
+            throw new ConnectionManagerException(MessageFormatter.format(
+                    "Failed creating connection to the host {}", hostName).getMessage(), e);
+        }
+
+        /*try {
             if (_connections != null && _connections.size() > 0) {
-                
+
                 for (SSHConnection connection : _connections) {
                     String connectedHostName = connection.getHostname();
                     if (hostName.equals(connectedHostName)) {
@@ -112,15 +168,26 @@ public class ConnectionManager {
                     }
                 }
             } else {
-                retConnection = createConnection(connectionInfo, ConnectionType.SSH);
+                retConnection = (SSHConnection) createConnection(connectionInfo, ConnectionType.SSH);
             }
         } catch (Exception e) {
             _log.info("Failed creating connection to the host {}", connectionInfo.get_hostname());
             throw new ConnectionManagerException(MessageFormatter.format(
                     "Failed creating connection to the host {}", hostName).getMessage(), e);
-        }
+        }*/
 
         _log.info("Returning the retrieved connection from the Connection Pool to the host {}", hostName);
+
+        if(retConnection != null){
+            Session clientSession = retConnection.getClientSession();
+            if (clientSession == null || !clientSession.isConnected()) {
+                //clientSession.connect fails as reconnecting the same disconnected session throws error - com.jcraft.jsch.JSchException: Packet corrupt
+                retConnection.connect();
+            }
+        }
+
+
+
         return retConnection;
     }
 
@@ -145,13 +212,22 @@ public class ConnectionManager {
             throw new ConnectionManagerException("Passed host is null or blank.");
         }
 
-        Connection retConnection = null;
+        SSHConnection retConnection = null;
         for (SSHConnection connection : _connections) {
             String connectedHostName = connection.getHostname();
             if (hostName.equals(connectedHostName)) {
                 retConnection = connection;
                 _log.info("Retrieved connection from the Connection Pool to the host {}", hostName);
                 break;
+            }
+        }
+
+        // Ensure session is connected
+        if(retConnection != null){
+            Session clientSession = retConnection.getClientSession();
+            if (clientSession == null || !clientSession.isConnected()) {
+                //clientSession.connect fails as reconnecting the same disconnected session throws error - com.jcraft.jsch.JSchException: Packet corrupt
+                retConnection.connect();
             }
         }
 
@@ -282,5 +358,138 @@ public class ConnectionManager {
 
         }
     }
+
+    /**
+     * Get connection info from registry
+     *
+     * @param systemNativeId
+     * @param attrName
+     *            use string constants in the IBMSVCConstants.java. e.g.
+     *            IBMSVCConstants.IP_ADDRESS
+     * @return Ip_address, port, username or password for given systemId and
+     *         attribute name
+     */
+    public String getConnInfoFromRegistry(String systemNativeId, String attrName) {
+
+        _log.info(String.format(" DriverRegistry %s.%n", this.driverRegistry.getDriverAttributes(IBMSVCConstants.DRIVER_NAME)));
+
+        Map<String, List<String>> attributes = this.driverRegistry
+                .getDriverAttributesForKey(IBMSVCConstants.DRIVER_NAME, systemNativeId);
+        if (attributes == null) {
+            _log.info("Connection info for " + systemNativeId + " is not set up in the registry");
+            return null;
+        } else if (attributes.get(attrName) == null) {
+            _log.info(attrName + "is not found in the registry");
+            return null;
+        } else {
+            return attributes.get(attrName).get(0);
+        }
+    }
+
+    /**
+     * Set connection information to registry
+     *
+     * @param systemNativeId
+     * @param ipAddress
+     * @param port
+     * @param username
+     * @param password
+     */
+    public void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username,
+                                      String password) {
+        Map<String, List<String>> attributes = new HashMap<>();
+        List<String> listIP = new ArrayList<>();
+        List<String> listPort = new ArrayList<>();
+        List<String> listUserName = new ArrayList<>();
+        List<String> listPwd = new ArrayList<>();
+
+        listIP.add(ipAddress);
+        attributes.put(IBMSVCConstants.IP_ADDRESS, listIP);
+        listPort.add(Integer.toString(port));
+        attributes.put(IBMSVCConstants.PORT_NUMBER, listPort);
+        listUserName.add(username);
+        attributes.put(IBMSVCConstants.USER_NAME, listUserName);
+        listPwd.add(password);
+        attributes.put(IBMSVCConstants.PASSWORD, listPwd);
+
+        _log.info(String.format("Setting client connection for the Storage System %s - %s.%n", IBMSVCConstants.DRIVER_NAME, systemNativeId));
+
+        this.driverRegistry.setDriverAttributesForKey(IBMSVCConstants.DRIVER_NAME, systemNativeId, attributes);
+        _log.info(String.format(" DriverRegistry %s.%n", this.driverRegistry.getDriverAttributes(IBMSVCConstants.DRIVER_NAME)));
+    }
+
+    /**
+     * Get SSH Client
+     *
+     * @param systemId
+     *            storage system id
+     * @return ssh client handler
+     */
+    public SSHConnection getClientBySystemId(String systemId) {
+        String ip_address, port, username, password;
+        SSHConnection client;
+
+        if (systemId != null) {
+            systemId = systemId.trim();
+        }
+
+        _log.info(String.format("Getting client connection for the Storage System %s.\n", systemId));
+
+        _log.info(String.format(" IBMSVCSSHClientMap %s.\n", IBMSVCSSHClientMap.toString()));
+
+        synchronized (syncObject) {
+
+            if (!IBMSVCSSHClientMap.containsKey(systemId)) {
+
+                _log.info(String.format("Before getting the connection details from the Registry %s.%n", systemId));
+
+                ip_address = getConnInfoFromRegistry(systemId, IBMSVCConstants.IP_ADDRESS);
+                port = getConnInfoFromRegistry(systemId, IBMSVCConstants.PORT_NUMBER);
+                username = getConnInfoFromRegistry(systemId, IBMSVCConstants.USER_NAME);
+                password = getConnInfoFromRegistry(systemId, IBMSVCConstants.PASSWORD);
+
+                _log.info(String.format("After getting the connection details from the Registry %s.%n", systemId));
+
+                _log.info(String.format("Get conn info in registry %s - %s - %s - %s", ip_address, port, username, password));
+
+                if (ip_address != null && username != null && password != null) {
+
+                    ConnectionInfo connectionInfo = new ConnectionInfo(ip_address, Integer.parseInt(port), username,
+                            password,systemId);
+                    try {
+
+                        client = (SSHConnection) getConnection(connectionInfo);
+
+                        IBMSVCSSHClientMap.put(systemId, client);
+
+                        _log.info(String.format("Connection has been established for the host {}", ip_address));
+
+                    } catch (Exception e) {
+                        _log.error("Exception when creating ssh client instance for storage system {} ", systemId, e);
+                        e.printStackTrace();
+                    }
+                } else {
+                    _log.error(
+                            "Some of the following for storage system {} are Missing: IP Address, username, password.",
+                            systemId);
+                }
+            }
+        }
+
+        client = IBMSVCSSHClientMap.get(systemId);
+
+        if(client != null){
+            Session clientSession = client.getClientSession();
+            if (clientSession == null || !clientSession.isConnected()) {
+                //clientSession.connect fails as reconnecting the same disconnected session throws error - com.jcraft.jsch.JSchException: Packet corrupt
+                client.connect();
+                IBMSVCSSHClientMap.put(systemId, client);
+            }
+        }
+
+        return client;
+
+    }
+
 
 }

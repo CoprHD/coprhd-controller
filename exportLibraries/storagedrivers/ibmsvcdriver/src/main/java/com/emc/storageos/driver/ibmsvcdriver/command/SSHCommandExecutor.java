@@ -97,9 +97,10 @@ public class SSHCommandExecutor implements CommandExecutor {
                 _log.error(String.format("SSH '%s' command failed: ", command.getCommandLine()), e);
                 throw new CommandException(e);
             } finally {
-                if (isAutoDisconnect()) {
+                /*if (isAutoDisconnect()) {
                     clientSession.disconnect();
-                }
+                    connection.disconnect();
+                }*/
             }
         }
         _log.info("Executed the command on the host {}", connection.getHostname());

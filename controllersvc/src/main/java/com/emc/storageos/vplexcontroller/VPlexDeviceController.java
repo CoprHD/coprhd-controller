@@ -2428,7 +2428,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.createObject(exportMask);
             
             if (!initsToAdd.isEmpty()) {
-                _log.info("Assigning new storage ports for added initiators.");
                 ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                         blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
     
@@ -2441,10 +2440,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
                             exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
-            } else {
-                _log.info("No intiator to add to the storage view.");
-            }
-
+            } 
             exportMasksToUpdateOnDevice.add(exportMask);
             exportGroup.addExportMask(exportMask.getId());
             _dbClient.updateObject(exportGroup);

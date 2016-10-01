@@ -2188,17 +2188,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             _dbClient.createObject(exportMask);
 
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                    blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
-
-            // Try to assign new ports by passing in existingMap
-            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
-                    initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
-            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
-            if (assignments != null && !assignments.isEmpty()) {
-                // Update zoningMap if there are new assignments
-                exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
-                        exportMasksToUpdateOnDeviceWithStoragePorts);
+            if (!initsToAdd.isEmpty()) {
+                ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                        blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
+    
+                // Try to assign new ports by passing in existingMap
+                Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                        initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
+                // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
+                if (assignments != null && !assignments.isEmpty()) {
+                    // Update zoningMap if there are new assignments
+                    exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
+                            exportMasksToUpdateOnDeviceWithStoragePorts);
+                }
             }
 
             exportMasksToUpdateOnDevice.add(exportMask);

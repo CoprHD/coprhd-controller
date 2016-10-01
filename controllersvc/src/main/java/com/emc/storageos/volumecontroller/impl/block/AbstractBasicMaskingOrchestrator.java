@@ -925,7 +925,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
             }
 
-            _log.warn("Error Message {}", errorMessage);
+            if (errorMessage != null && !errorMessage.toString().isEmpty()) {
+                _log.warn("Error Message {}", errorMessage);
+            }
 
             if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),

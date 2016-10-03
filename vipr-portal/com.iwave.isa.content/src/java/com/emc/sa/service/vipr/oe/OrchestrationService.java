@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public class OrchestrationService extends ViPRService
 {
 
-    Map<String, Object> params = null;
+    Map<String, Object> params;
     final HashMap<String, Map<String, String>> inputPerStep = new HashMap<String, Map<String, String>>();
     final HashMap<String, Map<String, String>> outputPerStep = new HashMap<String, Map<String, String>>();
     final HashMap<String, OEJson.Step> stepsHash = new HashMap<String, OEJson.Step>();

@@ -16,6 +16,8 @@
  */
 package com.emc.sa.service.vipr.oe.gson;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -25,67 +27,78 @@ import java.util.Map;
 
 public class OEJson
 {
-    String WorkflowName;
-    String Description;
-    ArrayList<Step> Steps;
+    @SerializedName("WorkflowName")
+    String workflowName;
+    @SerializedName("Description")
+    String description;
+    @SerializedName("Steps")
+    ArrayList<Step> steps;
 
     public String getWorkflowName() {
-        return WorkflowName;
+        return workflowName;
     }
 
     public void setWorkflowName(String workflowName) {
-        workflowName = workflowName;
+        this.workflowName = workflowName;
     }
 
     public String getDescription() {
-        return Description;
+        return description;
     }
 
     public void setDescription(String description) {
-        this.Description = description;
+        this.description = description;
     }
 
     public ArrayList<Step> getSteps() {
-        return Steps;
+        return steps;
     }
 
     public void setSteps(ArrayList<Step> steps) {
-        this.Steps = steps;
+        this.steps = steps;
     }
 
     public  class Input
     {
-        String Type;
-        String FriendlyName;
-        String Required;
+        @SerializedName("Type")
+        String type;
+        @SerializedName("FriendlyName")
+        String friendlyName;
+        @SerializedName("Required")
+        String required;
+        @SerializedName("Default")
         String Default;
-        String AssetValue;
-        String OtherStepValue;
-        String Group;
-        String Lockdown;
+        @SerializedName("AssetValue")
+        String assetValue;
+        @SerializedName("OtherStepValue")
+        String otherStepValue;
+        @SerializedName("Group")
+        String group;
+        @SerializedName("Lockdown")
+        String lockdown;
 
         public String getType() {
-            return Type;
+            return type;
         }
 
-        public void setType(String Type) {
-            this.Type = Type;
+        public void setType(String type) {
+            this.type = type;
         }
 
         public String getFriendlyName() {
-            return FriendlyName;
+            return friendlyName;
         }
 
-        public void setFriendlyName(String FriendlyName) {
-            this.FriendlyName = FriendlyName;
+        public void setFriendlyName(String friendlyName) {
+            this.friendlyName = friendlyName;
         }
 
         public String getRequired() {
-            return Required;
+            return required;
         }
 
-        public void setRequired(String Required) {
-            this.Required = Required;
+        public void setRequired(String required) {
+            this.required = required;
         }
 
         public String getDefault() {
@@ -97,164 +110,177 @@ public class OEJson
         }
 
         public String getAssetValue() {
-            return AssetValue;
+            return assetValue;
         }
 
-        public void setAssetValue(String AssetValue) {
-            this.AssetValue = AssetValue;
+        public void setAssetValue(String assetValue) {
+            this.assetValue = assetValue;
         }
 
         public String getOtherStepValue() {
-            return OtherStepValue;
+            return otherStepValue;
         }
 
         public void setOtherStepValue(String otherStepValue) {
-            OtherStepValue = otherStepValue;
+            this.otherStepValue = otherStepValue;
         }
 
         public String getGroup() {
-            return Group;
+            return group;
         }
 
-        public void setGroup(String Group) {
-            this.Group = Group;
+        public void setGroup(String group) {
+            this.group = group;
         }
 
         public String getLockdown() {
-            return Lockdown;
+            return lockdown;
         }
 
         public void setLockdown(String lockdown) {
-            this.Lockdown = lockdown;
+            this.lockdown = lockdown;
         }
     }
 
     public  class StepAttribute
     {
-        Boolean WaitForTask;
-        int Timeout;
+        @SerializedName("WaitForTask")
+        boolean waitForTask;
+        @SerializedName("Timeout")
+        long timeout;
 
-        public Boolean getWaitForTask() {
-            return WaitForTask;
+        public boolean getWaitForTask() {
+            return waitForTask;
         }
 
-        public void setWaitForTask(Boolean WaitForTask) {
-            this.WaitForTask = WaitForTask;
+        public void setWaitForTask(boolean waitForTask) {
+            this.waitForTask = waitForTask;
         }
 
-        public int getTimeout() {
-            return Timeout;
+        public long getTimeout() {
+            return timeout;
         }
 
-        public void setTimeout(int Timeout) {
-            this.Timeout = Timeout;
+        public void setTimeout(long timeout) {
+            this.timeout = timeout;
         }
     }
 
     public  class Step
     {
-        String StepId;
-        String OpName;
-        String Description;
-        String Type;
-        Map<String, Input> Input;
-        Map<String, String> Output;
-        StepAttribute StepAttribute;
-        String SuccessCritera;
-        Next Next;
+        @SerializedName("StepId")
+        String stepId;
+        @SerializedName("OpName")
+        String opName;
+        @SerializedName("Description")
+        String description;
+        @SerializedName("Type")
+        String type;
+        @SerializedName("Input")
+        Map<String, Input> input;
+        @SerializedName("Output")
+        Map<String, String> output;
+        @SerializedName("StepAttribute")
+        StepAttribute stepAttribute;
+        @SerializedName("SuccessCritera")
+        String successCritera;
+        @SerializedName("Next")
+        Next next;
 
         public String getStepId() {
-            return StepId;
+            return stepId;
         }
 
-        public void setStepId(String StepId) {
-            this.StepId = StepId;
+        public void setStepId(String stepId) {
+            this.stepId = stepId;
         }
 
         public String getOpName() {
-            return OpName;
+            return opName;
         }
 
         public void setOpName(String OpName) {
-            this.OpName = OpName;
+            this.opName = OpName;
         }
 
         public String getDescription() {
-            return Description;
+            return description;
         }
 
-        public void setDescription(String Description) {
-            Description = Description;
+        public void setDescription(String description) {
+            this.description = description;
         }
 
         public String getType() {
-            return Type;
+            return type;
         }
 
-        public void setType(String Type) {
-            Type = Type;
+        public void setType(String type) {
+            this.type = type;
         }
 
         public Map<String, Input> getInput() {
-            return Input;
+            return input;
         }
 
         public void setInput(Map<String, Input> input) {
-            this.Input = input;
+            this.input = input;
         }
 
         public Map<String, String> getOutput() {
-            return Output;
+            return output;
         }
 
-        public void setOutput(Map<String, String> Output) {
-            this.Output = Output;
+        public void setOutput(Map<String, String> output) {
+            this.output = output;
         }
 
         public StepAttribute getStepAttribute() {
-            return StepAttribute;
+            return stepAttribute;
         }
 
         public void setStepAttribute(StepAttribute StepAttribute) {
-            this.StepAttribute = StepAttribute;
+            this.stepAttribute = stepAttribute;
         }
 
         public String getSuccessCritera() {
-            return SuccessCritera;
+            return successCritera;
         }
 
         public void setSuccessCritera(String successCritera) {
-            SuccessCritera = successCritera;
+            successCritera = successCritera;
         }
 
         public Next getNext() {
-            return Next;
+            return next;
         }
 
         public void setNext(Next next) {
-            this.Next = next;
+            this.next = next;
         }
     }
 
     public  class Next
     {
-        String Default;
-        String Condition;
+        @SerializedName("Default")
+        String defaultstep;
+        @SerializedName("Condition")
+        String condition;
 
         public String getDefault() {
-            return Default;
+            return defaultstep;
         }
 
-        public void setDefault(String Default) {
-            this.Default = Default;
+        public void setDefault(String defaultstep) {
+            this.defaultstep = defaultstep;
         }
 
         public String getCondition() {
-            return Condition;
+            return condition;
         }
 
         public void setCondition(String condition) {
-            this.Condition = condition;
+            this.condition = condition;
         }
     }
 }

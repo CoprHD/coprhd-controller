@@ -2700,11 +2700,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             taskCompleter = new RPCGExportCompleter(exportGroupID, token);
 
-            if (!snapshots.isEmpty()) {
-                // Ensure the bookmarks actually exist before creating the export group
-                searchForBookmarks(protectionDevice, snapshots.keySet());
-            }
-
             // Create a new token/taskid and use that in the workflow. Multiple threads entering this method might
             // collide with each others
             // workflows in cassandra if the taskid is not unique.
@@ -2713,10 +2708,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, newToken);
 
-            // Tasks 1: Activate the bookmarks
-            //
-            // Enable image access on the target volumes
             if (!snapshots.isEmpty()) {
+                // Ensure the bookmarks actually exist before creating the export group
+                searchForBookmarks(protectionDevice, snapshots.keySet());
+
+                // Tasks 1: Activate the bookmarks
+                //
+                // Enable image access on the target volumes
                 addEnableImageAccessStep(workflow, rpSystem, snapshots, null);
             } else {
                 _log.info(String
@@ -3284,11 +3282,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             taskCompleter = new RPCGExportCompleter(exportGroupID, token);
 
-            if (!snapshots.isEmpty()) {
-                // Ensure the bookmarks actually exist before creating the export group
-                searchForBookmarks(protectionDevice, snapshots.keySet());
-            }
-
             // Create a new token/taskid and use that in the workflow. Multiple threads entering this method might
             // collide with each others
             // workflows in cassandra if the taskid is not unique.
@@ -3297,10 +3290,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolume", true, newToken);
 
-            // Tasks 1: Activate the bookmark
-            //
-            // Enable image access on the target volume
             if (!snapshots.isEmpty()) {
+                // Ensure the bookmarks actually exist before creating the export group
+                searchForBookmarks(protectionDevice, snapshots.keySet());
+
+                // Tasks 1: Activate the bookmark
+                //
+                // Enable image access on the target volume
                 addEnableImageAccessStep(workflow, rpSystem, snapshots, null);
             } else {
                 _log.info(String

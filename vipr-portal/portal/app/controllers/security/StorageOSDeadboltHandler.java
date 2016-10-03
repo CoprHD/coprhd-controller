@@ -4,6 +4,7 @@
  */
 package controllers.security;
 
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 
@@ -23,6 +24,7 @@ import org.apache.http.HttpStatus;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
+import util.AuthSourceType;
 import util.MessagesUtils;
 
 import java.util.Collection;
@@ -42,12 +44,8 @@ public class StorageOSDeadboltHandler extends Controller implements controllers.
             if (request.params._contains("auth-redirected")) {
                 Security.noCookies();
             }
-            if (request.path.contains("locallogin")) {
-                String service = String.format("https://%s", request.domain);
-                Security.redirectToAuthPage(service);
-            } else {
-                Security.redirectToOIDCAuth();
-            }
+
+            redirectToAuthService(request);
         }
 
         try {
@@ -70,6 +68,18 @@ public class StorageOSDeadboltHandler extends Controller implements controllers.
             Logger.warn(e, "Error retrieving user info. Session may have expired");
             Security.clearAuthToken();
             Security.redirectToAuthPage();
+        }
+    }
+
+    private void redirectToAuthService(Http.Request request) {
+        String service = String.format("https://%s", request.domain);
+
+        if (request.path.contains("locallogin")) {
+            Security.redirectToAuthPage(service);
+        } else if ( Security.authMode().equals(AuthSourceType.oidc) ) {
+            Security.redirectToOIDCAuth();
+        } else { // ad, ldap or keystore
+            Security.redirectToAuthPage(service);
         }
     }
 

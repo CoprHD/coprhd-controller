@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/init.d/boot.InstallSimulator
+#
+# 
+# To run the simulator install script "/aio-simulators/AIO_scripts/simulatorInstall.sh" on the firstboot
+#
+### BEGIN INIT INFO
+# Provides:          boot.InstallSimulator
+# Required-Start:    boot.localfs
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Description:       Run the simulator install script
+### END INIT INFO
+
+export PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+# Execute the script only if "/data/simulators" is not existed yet..
+if [ ! -f /data/simulators ]; then
+   chmod 777 /aio-simulators/AIO_scripts/simulatorInstall.sh
+   /aio-simulators/AIO_scripts/simulatorInstall.sh /aio-simulators
+fi

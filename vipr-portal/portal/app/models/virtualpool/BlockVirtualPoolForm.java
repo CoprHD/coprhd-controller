@@ -453,11 +453,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setContinuousCopies(maxContinuousCopies, uri(continuousCopyVirtualPool));
         builder.setPlacementPolicy(placementPolicy);
                 
-        if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
-            if (!isLocked()) {
-                builder.setRecoverPointRemoteCopyMode(rpRemoteCopyMode);
-                builder.setRecoverPointRpo(rpRpoValue, rpRpoType);
-            }
+        if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {            
+            builder.setRecoverPointRemoteCopyMode(rpRemoteCopyMode);
+            builder.setRecoverPointRpo(rpRpoValue, rpRpoType);            
             builder.setRecoverPointJournalSize(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));         
             Set<VirtualPoolProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
             for (RPCopyForm rpCopy : rpCopies) {
@@ -492,7 +490,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                 // Reset the standby varray/vpool values
                 builder.setStandByJournalVArrayVpool(null, null);
             }
-            if (!isLocked()) {
+            if (!isLocked() || ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
                 builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, uri(haVirtualArray), uri(haVirtualPool),
                         activeProtectionAtHASite, metroPoint);
             }

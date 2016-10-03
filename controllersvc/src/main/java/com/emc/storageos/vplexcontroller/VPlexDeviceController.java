@@ -2756,7 +2756,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Handles adding ExportMask updates into the export workflow.
      *
-     * @param export
+     * @param exportGroupURI
      *            the ViPR ExportGroup in question
      * @param blockObjectMap
      *            the map of URIs to block volumes for export
@@ -2770,34 +2770,34 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            map of ExportMasks to update to storage ports
      * @param storageViewStepId
      *            the current workflow step id, to be updated on return
-     * @param exportMask
+     * @param exportMaskURI
      *            the ExportMask object to be updated
      * @param sharedVplexExportMask
      *            boolean that indicates whether passed exportMask is shared for multiple host
      * @return
      */
-    private String handleExportMaskUpdate(URI export,
+    private String handleExportMaskUpdate(URI exportGroupURI,
             Map<URI, Integer> blockObjectMap, Workflow workflow, StorageSystem vplexSystem,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
-            String storageViewStepId, ExportMask exportMask, boolean sharedVplexExportMask) {
-        _log.info("adding step to update export mask: " + exportMask.getMaskName());
+            String storageViewStepId, ExportMask exportMaskURI, boolean sharedVplexExportMask) {
+        _log.info("adding step to update export mask: " + exportMaskURI.getMaskName());
 
         String addVolumeStepId = workflow.createStepId();
 
         // Add a step to update export mask on the VPlex.
-        Workflow.Method storageViewExecuteMethod = storageViewAddVolumesMethod(vplexSystem.getId(), export, exportMask.getId(),
+        Workflow.Method storageViewExecuteMethod = storageViewAddVolumesMethod(vplexSystem.getId(), exportGroupURI, exportMaskURI.getId(),
                 blockObjectMap);
-        Workflow.Method storageViewRollbackMethod = storageViewAddVolumesRollbackMethod(vplexSystem.getId(), export, exportMask.getId(),
+        Workflow.Method storageViewRollbackMethod = storageViewAddVolumesRollbackMethod(vplexSystem.getId(), exportGroupURI, exportMaskURI.getId(),
                 new ArrayList<URI>(blockObjectMap.keySet()), addVolumeStepId);
         storageViewStepId = workflow.createStep("storageView",
-                String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
+                String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", exportGroupURI, exportMaskURI.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
                 this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, addVolumeStepId);
 
-        if (exportMasksToUpdateOnDeviceWithInitiators.get(exportMask.getId()) != null) {
+        if (exportMasksToUpdateOnDeviceWithInitiators.get(exportMaskURI.getId()) != null) {
 
-            List<Initiator> initiatorsToAdd = exportMasksToUpdateOnDeviceWithInitiators.get(exportMask.getId());
+            List<Initiator> initiatorsToAdd = exportMasksToUpdateOnDeviceWithInitiators.get(exportMaskURI.getId());
             List<URI> initiatorURIs = new ArrayList<URI>();
             for (Initiator initiator : initiatorsToAdd) {
                 initiatorURIs.add(initiator.getId());
@@ -2805,30 +2805,30 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             String stepId = workflow.createStepId();
 
-            Workflow.Method addInitiatorMethod = storageViewAddInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
+            Workflow.Method addInitiatorMethod = storageViewAddInitiatorsMethod(vplexSystem.getId(), exportGroupURI, exportMaskURI.getId(),
                     initiatorURIs, null, sharedVplexExportMask);
 
-            Workflow.Method initiatorRollback = storageViewAddInitiatorsRollbackMethod(vplexSystem.getId(), export, exportMask.getId(),
+            Workflow.Method initiatorRollback = storageViewAddInitiatorsRollbackMethod(vplexSystem.getId(), exportGroupURI, exportMaskURI.getId(),
                     new ArrayList<>(blockObjectMap.keySet()), initiatorURIs, stepId);
 
             storageViewStepId = workflow.createStep("storageView",
-                    String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
+                    String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", exportGroupURI, exportMaskURI.getMaskName()),
                     storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
                     this.getClass(), addInitiatorMethod, initiatorRollback, stepId);
         }
 
-        if (exportMasksToUpdateOnDeviceWithStoragePorts.containsKey(exportMask.getId())) {
-            List<URI> storagePortURIsToAdd = exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId());
+        if (exportMasksToUpdateOnDeviceWithStoragePorts.containsKey(exportMaskURI.getId())) {
+            List<URI> storagePortURIsToAdd = exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMaskURI.getId());
 
             // Create a Step to add storage ports to the Storage View
-            Workflow.Method addPortsToViewMethod = storageViewAddStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
+            Workflow.Method addPortsToViewMethod = storageViewAddStoragePortsMethod(vplexSystem.getId(), exportGroupURI, exportMaskURI.getId(),
                     storagePortURIsToAdd);
 
-            Workflow.Method addToViewRollbackMethod = storageViewRemoveStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
+            Workflow.Method addToViewRollbackMethod = storageViewRemoveStoragePortsMethod(vplexSystem.getId(), exportGroupURI, exportMaskURI.getId(),
                     storagePortURIsToAdd);
 
             storageViewStepId = workflow.createStep("storageView",
-                    String.format("Updating VPLEX Storage View StoragePorts for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
+                    String.format("Updating VPLEX Storage View StoragePorts for ExportGroup %s Mask %s", exportGroupURI, exportMaskURI.getMaskName()),
                     storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
                     this.getClass(), addPortsToViewMethod, addToViewRollbackMethod, null);
         }
@@ -3485,12 +3485,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
                     VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName),
                     _networkDeviceController);
+            exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
 
             for (Map.Entry<URI, Integer> entry : volumeMap.entrySet()) {
                 if (exportMask.hasVolume(entry.getKey())) {
-                    _log.info(String
-                            .format(
-                                    "Volume %s is already in Exportmask %s %s hence skipping adding volume again. This must be shared exportmask. ",
+                    _log.info(String.format(
+                                    "Volume %s is already in Exportmask %s %s hence skipping adding volume again. This is a shared export or the volume was added outside of controller",
                                     entry.getKey(), exportMask.getMaskName(), exportMask.getId()));
                     continue;
                 }
@@ -3517,11 +3517,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // If duplicate HLU are found then return, completer is set to error above
             if (duplicateHLU) {
+                _log.info("attempting to fail if failure_002_late_in_add_volume_to_mask is set");
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
                 return;
             }
 
             // If deviceLabelToHLU map is empty then volumes already exists in the storage view hence return.
             if (deviceLabelToHLU.isEmpty()) {
+                _log.info("attempting to fail if failure_002_late_in_add_volume_to_mask is set");
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
                 completer.ready(_dbClient);
                 return;
             }
@@ -3720,9 +3724,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
 
                     // Remove the volumes from the storage view
-                    // TODO: This should be a step in the workflow
-                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
-                    
+                    // Add a step to update export mask on the VPlex.
+                    Workflow.Method storageViewRemoveVolumesExecuteMethod = storageViewRemoveVolumesMethod(vplexURI,
+                            exportMask, volumeURIList, null);
+                    Workflow.Method storageViewRemoveVolumesRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+                    previousStep = workflow.createStep("storageView",
+                            String.format("Removing volume(s) from VPLEX Storage View for ExportGroup %s Mask %s", exportURI,
+                                    exportMask.getMaskName()),
+                            previousStep, vplex.getId(), vplex.getSystemType(),
+                            this.getClass(), storageViewRemoveVolumesExecuteMethod, storageViewRemoveVolumesRollbackMethod, null);
+
                     // Invoke the zoning code directly, i.e. inline, not in a workflow
                     String stepId = workflow.createStepId();
                     _networkDeviceController.zoneExportRemoveVolumes(zoningParam, volumeURIList, stepId);

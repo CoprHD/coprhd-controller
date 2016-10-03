@@ -662,7 +662,32 @@ public class VPlexControllerUtils {
 
             // Check the volumes and update the lists as necessary
             Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(exportMask, discoveredVolumes);
+            Map<URI, Integer> volumesInDbToAdd = new HashMap<>();
+
             boolean addVolumes = !volumesToAdd.isEmpty();
+
+            // Update the volume list to include existing volumes if we know about them.
+            if (addVolumes) {
+                for (String wwn : volumesToAdd.keySet()) {
+                    URIQueryResultList results = new URIQueryResultList();
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getVolumeWwnConstraint(wwn.toUpperCase()), results);
+                    if (results != null && results.iterator() != null && results.iterator().hasNext()) {
+                        Iterator<URI> resultsIter = results.iterator();
+                        Volume volume = dbClient.queryObject(Volume.class, resultsIter.next());
+                        Integer hlu = volumesToAdd.get(wwn);
+                        if (volume != null) {
+                            if (hlu == null) {
+                                log.warn(String.format(
+                                        "The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
+                                        wwn));
+                                hlu = -1;
+                            }
+                            volumesInDbToAdd.put(volume.getId(), hlu);
+                        }
+                    }
+                }
+            }
 
             boolean removeVolumes = false;
             List<String> volumesToRemoveFromExisting = new ArrayList<String>();
@@ -757,6 +782,7 @@ public class VPlexControllerUtils {
                 exportMask.addToUserCreatedInitiators(initiatorObjectsForComputeResourceToAdd);
                 exportMask.addInitiators(initiatorObjectsForComputeResourceToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
+                exportMask.addVolumes(volumesInDbToAdd);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);
                 exportMask.getStoragePorts().removeAll(storagePortsToRemove);

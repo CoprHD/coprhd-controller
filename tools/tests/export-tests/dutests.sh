@@ -3787,7 +3787,7 @@ test_26() {
     set_artificial_failure failure_003_late_in_add_volume_to_mask
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2
+    echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
     resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2`
 
     if [ $? -ne 0 ]; then
@@ -3832,7 +3832,7 @@ test_26() {
     set_artificial_failure none
 
     # Now add that volume into the mask, this time it should pass
-    runcmd export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2
+    runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
 
     # Verify the mask is "normal" after that command
     verify_export ${expname}1 ${HOST1} 2 2

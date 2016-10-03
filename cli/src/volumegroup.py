@@ -62,6 +62,18 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_LIST = URI_VOLUME_GROUP_SNAPSHOT_SESSION
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_SHOW= URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/{1}"
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_GET_COPY_SETS = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/copy-sets"
+    
+    # URIs for VolumeGroup migraitons
+    URI_VOLUME_GROUP_MIGRATION = URI_VOLUME_GROUP + "/migration"
+    URI_VOLUME_GROUP_MIGRATION_CREATE = URI_VOLUME_GROUP_MIGRATION + "/create"
+    URI_VOLUME_GROUP_MIGRATION_MIGRATE = URI_VOLUME_GROUP_MIGRATION + "/migrate"
+    URI_VOLUME_GROUP_MIGRATION_COMMIT = URI_VOLUME_GROUP_MIGRATION + "/commit"
+    URI_VOLUME_GROUP_MIGRATION_CANCEL = URI_VOLUME_GROUP_MIGRATION + "/cancel"
+    URI_VOLUME_GROUP_MIGRATION_RECOVER = URI_VOLUME_GROUP_MIGRATION + "/recover"
+    URI_VOLUME_GROUP_MIGRATION_REFRESH = URI_VOLUME_GROUP_MIGRATION + "/refresh"
+    URI_VOLUME_GROUP_MIGRATION_SYNCSTOP = URI_VOLUME_GROUP_MIGRATION + "/syncstop"
+    URI_VOLUME_GROUP_MIGRATION_SYNCSTART = URI_VOLUME_GROUP_MIGRATION + "/syncstart"
+    URI_VOLUME_GROUP_MIGRATION_REMOVE_ENV = URI_VOLUME_GROUP_MIGRATION + "/remove-environment"
 
     def __init__(self, ipAddr, port):
         '''
@@ -1003,6 +1015,160 @@ class VolumeGroup(object):
         else:
             return result
 
+    def volume_group_migration_create(self, name, varrayId, vpoolId, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+        
+        request = {
+            'target-virtual-array': varrayId,
+            'target-virtual-pool': vpoolId
+        }
+
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_CREATE.format(volumeGroupUri),
+                                             body)
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_migrate(self, name, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_MIGRATE.format(volumeGroupUri))
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_commit(self, name, removeEnv, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        if (removeEnv):
+            request = {
+                'remove-environment': True
+            }
+        else:
+            request = {
+                'remove-environment': False
+            }
+            
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_COMMIT.format(volumeGroupUri),
+                                             body)
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_cancel(self, name, removeEnv, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        if (removeEnv):
+            request = {
+                'remove-environment': True
+            }
+        else:
+            request = {
+                'remove-environment': False
+            }
+            
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_CANCEL.format(volumeGroupUri),
+                                             body)
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_refresh(self, name, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_REFRESH.format(volumeGroupUri))
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_recover(self, name, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_RECOVER.format(volumeGroupUri))
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_syncstop(self, name, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_SYNCSTOP.format(volumeGroupUri))
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_syncstart(self, name, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_SYNCSTART.format(volumeGroupUri))
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
+
+    def volume_group_migration_remove_environment(self, name, sync):
+        
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_REMOVE_ENV.format(volumeGroupUri))
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o   
 
 
 #SHOW resource parser
@@ -2870,6 +3036,390 @@ def volume_group_snapshotsession_get(args):
                 "snapshot session by set name",
                 e.err_text,
                 e.err_code)
+            
+# create_migration_parser
+def migration_create_parser(subcommand_parsers, common_parser):
+    create_migration_parser = subcommand_parsers.add_parser(
+        'create-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Create migration for a volume group',
+        description='Create a migration for a volume group')
+
+    mandatory_args = create_migration_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-virtual-array', '-varray',
+                                metavar='<varray>',
+                                dest='varray',
+                                help='Virtual array URI for target volumes',
+                                required=True)
+    mandatory_args.add_argument('-virtual-pool', '-vpool',
+                                metavar='<vpool>',
+                                dest='vpool',
+                                help='Virtual pool URI for target volumes',
+                                required=True)
+    create_migration_parser.set_defaults(func=volume_group_migration_create)
+
+# Create migration function
+def volume_group_migration_create(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_create(args.name, args.varray, args.vpool)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Create migration for volume group" +
+                args.name + " with varray " + args.varray + " and vpool " + args.vpool +
+                " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "create migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_migrate_parser(subcommand_parsers, common_parser):
+    migrate_parser = subcommand_parsers.add_parser(
+        'migrate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Migrate a volume group',
+        description='Migrate a volume group')
+
+    mandatory_args = migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    migrate_parser.set_defaults(func=volume_group_migration_migrate)
+
+# Create migration function
+def volume_group_migration_migrate(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_migrate(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Migrate for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "migrate",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_commit_parser(subcommand_parsers, common_parser):
+    commit_migrate_parser = subcommand_parsers.add_parser(
+        'commit-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Commit a migration for a volume group',
+        description='Commit a migration for a volume group')
+
+    mandatory_args = commit_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    optional_args = commit_migrate_parser.add_argument_group('optional arguments')
+    optional_args.add_argument('-remove-migration-env', '-rmenv',
+                                metavar='<remove_env>',
+                                dest='remove_env',
+                                help='Remove migration environment after commit',
+                                required=False)
+    commit_migrate_parser.set_defaults(func=volume_group_migration_commit)
+
+# Create migration function
+def volume_group_migration_commit(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_commit(args.name, args.remove_env)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Commit migration for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "commit migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_cancel_parser(subcommand_parsers, common_parser):
+    cancel_migrate_parser = subcommand_parsers.add_parser(
+        'cancel-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Cancel a migration for a volume group',
+        description='Cancel a migration for a volume group')
+
+    mandatory_args = cancel_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    optional_args = cancel_migrate_parser.add_argument_group('optional arguments')
+    optional_args.add_argument('-remove-migration-env', '-rmenv',
+                                metavar='<remove_env>',
+                                dest='remove_env',
+                                help='Remove migration environment after cancel',
+                                required=False)
+    cancel_migrate_parser.set_defaults(func=volume_group_migration_cancel)
+
+# Create migration function
+def volume_group_migration_cancel(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_cancel(args.name, args.remove_env)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Cancel migration for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "cancel migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_refresh_parser(subcommand_parsers, common_parser):
+    refresh_migrate_parser = subcommand_parsers.add_parser(
+        'refresh-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Refreshes migration status for a volume group',
+        description='Refreshes migration status for a volume group')
+
+    mandatory_args = refresh_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    refresh_migrate_parser.set_defaults(func=volume_group_migration_refresh)
+
+# Create migration function
+def volume_group_migration_refresh(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_refresh(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Refresh migration for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "refresh migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_recover_parser(subcommand_parsers, common_parser):
+    recover_migrate_parser = subcommand_parsers.add_parser(
+        'recover-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Recover migration for a volume group',
+        description='Recover migration for a volume group')
+
+    mandatory_args = recover_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    recover_migrate_parser.set_defaults(func=volume_group_migration_recover)
+
+# Create migration function
+def volume_group_migration_recover(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_recover(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Recover migration for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "recover migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_syncstop_parser(subcommand_parsers, common_parser):
+    recover_migrate_parser = subcommand_parsers.add_parser(
+        'syncstop-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Syncstop migration for a volume group',
+        description='Syncstop migration for a volume group')
+
+    mandatory_args = recover_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    recover_migrate_parser.set_defaults(func=volume_group_migration_syncstop)
+
+# Create migration function
+def volume_group_migration_syncstop(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_syncstop(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Syncstop migration for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "syncstop migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_syncstart_parser(subcommand_parsers, common_parser):
+    recover_migrate_parser = subcommand_parsers.add_parser(
+        'syncstart-migration',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Syncstart migration for a volume group',
+        description='Syncstart migration for a volume group')
+
+    mandatory_args = recover_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    recover_migrate_parser.set_defaults(func=volume_group_migration_syncstart)
+
+# Create migration function
+def volume_group_migration_syncstart(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_syncstart(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Syncstart migration for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "syncvstart migration",
+                e.err_text,
+                e.err_code)
+            
+# migrate_parser
+def migration_remove_env_parser(subcommand_parsers, common_parser):
+    recover_migrate_parser = subcommand_parsers.add_parser(
+        'remove-migration-env',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Remove migration environment for a volume group',
+        description='Remove environment migration for a volume group')
+
+    mandatory_args = recover_migrate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    recover_migrate_parser.set_defaults(func=volume_group_migration_remove_env)
+
+# Create migration function
+def volume_group_migration_remove_env(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+            
+        res= obj.volume_group_migration_remove_environment(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Remove migration environment for volume group " + args.name + " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "POST",
+                "remove env migration",
+                e.err_text,
+                e.err_code)
 
 # VolumeGroup Main parser routine
 def volume_group_parser(parent_subparser, common_parser):
@@ -2993,3 +3543,31 @@ def volume_group_parser(parent_subparser, common_parser):
 
     # Get snapshot session with set name of a volume group command parser
     snapshotsession_get_parser(subcommand_parsers, common_parser)
+    
+    # Create migration parser
+    migration_create_parser(subcommand_parsers, common_parser)
+    
+    # Migrate parser
+    migration_migrate_parser(subcommand_parsers, common_parser)
+    
+    # Commit migration parser
+    migration_commit_parser(subcommand_parsers, common_parser)
+    
+    # Cancel migration parser
+    migration_cancel_parser(subcommand_parsers, common_parser)
+    
+    # Refresh migration parser
+    migration_refresh_parser(subcommand_parsers, common_parser)
+    
+    # Recover migration parser
+    migration_recover_parser(subcommand_parsers, common_parser)
+    
+    # Syncstop migration parser
+    migration_syncstop_parser(subcommand_parsers, common_parser)
+    
+    # Syncstart migration parser
+    migration_syncstart_parser(subcommand_parsers, common_parser)
+    
+    # Remove migration env parser
+    migration_remove_env_parser(subcommand_parsers, common_parser)
+    

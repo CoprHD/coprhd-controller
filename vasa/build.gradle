@@ -57,7 +57,7 @@ configurations {
     warextras
     axis.transitive = false
     jettyDistribution.transitive = false
-    compile.exclude group: 'javax.mail'
+    //compile.exclude group: 'javax.mail'
 }
 
 dependencies {

@@ -335,6 +335,7 @@ ext {
         "com.vmware.vasa:vasa-api-common:1.0",
         "com.vmware.vasa:vasa-api-jwinauth:1.0",
         "com.vmware.vasa:vasa-api:1.0",
+		"javax.mail:mail:1.4.3",		
 
     ]
     axis2_war = [

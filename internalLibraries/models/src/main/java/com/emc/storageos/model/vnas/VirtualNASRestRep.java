@@ -5,6 +5,7 @@
 
 package com.emc.storageos.model.vnas;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -87,6 +88,15 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     // Indicate, whether the vNAS is overloaded or not!!!
     private Boolean isOverloaded;
+
+    // whether this vnas is a replication destination remote or local
+    private Boolean replicationDestination = false;
+
+    // source vNas if replication destination, null if not
+    private List<URI> sourceVirtualNasIds;
+
+    // destination vNas if replication source, null if not
+    private List<URI> destinationVirtualNasIds;
 
     public VirtualNASRestRep() {
     }
@@ -295,6 +305,33 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     public void setPercentLoad(String percentLoad) {
         this.percentLoad = percentLoad;
+    }
+
+    @XmlElement(name = "is_replication_destination")
+    public Boolean getReplicationDestination() {
+        return replicationDestination;
+    }
+
+    public void setReplicationDestination(Boolean replicationDestination) {
+        this.replicationDestination = replicationDestination;
+    }
+
+    @XmlElement(name = "source_vnas_list")
+    public List<URI> getSourceVirtualNasIds() {
+        return sourceVirtualNasIds;
+    }
+
+    public void setSourceVirtualNasIds(List<URI> sourceVirtualNasIds) {
+        this.sourceVirtualNasIds = sourceVirtualNasIds;
+    }
+
+    @XmlElement(name = "destination_vnas_list")
+    public List<URI> getDestinationVirtualNasIds() {
+        return destinationVirtualNasIds;
+    }
+
+    public void setDestinationVirtualNasIds(List<URI> destinationVirtualNasIds) {
+        this.destinationVirtualNasIds = destinationVirtualNasIds;
     }
 
 }

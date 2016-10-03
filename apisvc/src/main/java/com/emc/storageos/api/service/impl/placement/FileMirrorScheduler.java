@@ -112,8 +112,7 @@ public class FileMirrorScheduler implements Scheduler {
         List<FileMirrorRecommendation> fileMirrorRecommendations = new ArrayList<FileMirrorRecommendation>();
         // Get the source file system recommendations!!!
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE);
-        Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings =
-                    VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient);
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient);
 
         List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
         // For vPool change get the recommendations from source file system!!!
@@ -125,7 +124,7 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
 
-            sourceFileRecommendations = _fileScheduler.placeFileShare(vArray,  vPool, capabilities, project, null, null );
+            sourceFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, null, null);
         }
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
@@ -150,10 +149,13 @@ public class FileMirrorScheduler implements Scheduler {
 
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
                             VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
-                    Map<String, Object> replicationConfiguration = new HashMap<String,Object>();
+                    Map<String, Object> replicationConfiguration = new HashMap<String, Object>();
                     replicationConfiguration.put("SOURCE_NAS_SERVER", sourceFileRecommendation.getvNAS());
+                    replicationConfiguration.put("FILE_REPLICATION_TARGET", true);
+
                     // Get target recommendations!!!
-                    targetFileRecommendations = _fileScheduler.placeFileShare(targetArray, targetPool, capabilities, project, attributeMap, replicationConfiguration);
+                    targetFileRecommendations = _fileScheduler.placeFileShare(targetArray, targetPool, capabilities, project, attributeMap,
+                            replicationConfiguration);
 
                     String copyMode = vPool.getFileReplicationCopyMode();
                     if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
@@ -206,16 +208,17 @@ public class FileMirrorScheduler implements Scheduler {
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(sourceFileRecommendation.getSourceStorageSystem().toString());
             attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
-
             Set<String> virtualArraySet = new HashSet<String>();
             virtualArraySet.add(vArray.getId().toString());
             attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
 
             // get target recommendations -step2
-            Map<String, Object> replicationConfiguration = new HashMap<String,Object>();
+            Map<String, Object> replicationConfiguration = new HashMap<String, Object>();
             replicationConfiguration.put("SOURCE_NAS_SERVER", sourceFileRecommendation.getvNAS());
+            replicationConfiguration.put("FILE_REPLICATION_TARGET", true);
 
-            targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap, replicationConfiguration);
+            targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap,
+                    replicationConfiguration);
 
             String copyMode = vPool.getFileReplicationCopyMode();
             if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
@@ -287,7 +290,7 @@ public class FileMirrorScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
+
     private FileRecommendation getSourceRecommendationParameters(FileShare sourceFs, StorageSystem storageSystem) {
 
         FileRecommendation fileRecommendation = new FileRecommendation();
@@ -342,7 +345,7 @@ public class FileMirrorScheduler implements Scheduler {
     @Override
     public String getSchedulerName() {
         return SCHEDULER_NAME;
-}
+    }
 
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {

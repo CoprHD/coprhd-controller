@@ -10,11 +10,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -48,14 +48,13 @@ import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
+import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -102,7 +101,7 @@ public class FileStorageScheduler implements Scheduler {
         this.permissionsHelper = permissionsHelper;
     }
 
-/**
+    /**
      * Schedule storage for fileshare in the varray with the given CoS
      * capabilities.
      * 
@@ -113,11 +112,11 @@ public class FileStorageScheduler implements Scheduler {
      * @return list of recommended storage ports for VNAS
      */
 
-     public List<FileRecommendation> placeFileShare(VirtualArray vArray,
+    public List<FileRecommendation> placeFileShare(VirtualArray vArray,
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
             Project project, Map<String, Object> optionalAttributes) {
 
-     return placeFileShare(vArray,vPool, capabilities,project,optionalAttributes, null);
+        return placeFileShare(vArray, vPool, capabilities, project, optionalAttributes, null);
 
     }
 
@@ -143,7 +142,7 @@ public class FileStorageScheduler implements Scheduler {
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
                 vPool, capabilities, optionalAttributes);
-        
+
         if (CollectionUtils.isEmpty(candidatePools)) {
             StringBuffer errorMessage = new StringBuffer();
             if (optionalAttributes.get(AttributeMatcher.ERROR_MESSAGE) != null) {
@@ -395,7 +394,8 @@ public class FileStorageScheduler implements Scheduler {
      * 6. Pick the overlapping StorageHADomian recommended by vPool.
      * 
      * @param vPool
-     * @param vArrayURI virtual array URI
+     * @param vArrayURI
+     *            virtual array URI
      * @param candidatePools
      * @param project
      * @param invalidNasServers
@@ -406,7 +406,8 @@ public class FileStorageScheduler implements Scheduler {
     private Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
             VirtualPool vPool, URI vArrayURI,
             List<StoragePool> candidatePools, Project project,
-            List<VirtualNAS> invalidNasServers, Map<String,Object> replicationConfiguration, VirtualPoolCapabilityValuesWrapper capabilities) {
+            List<VirtualNAS> invalidNasServers, Map<String, Object> replicationConfiguration,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
 
         Map<VirtualNAS, List<StoragePool>> map = new LinkedHashMap<VirtualNAS, List<StoragePool>>();
 
@@ -423,12 +424,13 @@ public class FileStorageScheduler implements Scheduler {
                     vArrayURI);
             vNASList = getUnassignedVNASServers(vArrayURI, vPool, project, invalidNasServers);
         }
-         //If vpool specifies replication, choose only nas servers that support it
-         // Or if placing target file share for a replicated file share, choose only nas servers suitable to be destination
+        // If vpool specifies replication, choose only nas servers that support it
+        // Or if placing target file share for a replicated file share, choose only nas servers suitable to be
+        // destination
 
-         if (vNASList != null && !vNASList.isEmpty()) {
-             vNASList = filterVNASServersByReplicationConfiguration(vPool, vNASList,  replicationConfiguration,capabilities, project);
-         }
+        if (vNASList != null && !vNASList.isEmpty()) {
+            vNASList = filterVNASServersByReplicationConfiguration(vPool, vNASList, replicationConfiguration, capabilities, project);
+        }
 
         if (vNASList != null && !vNASList.isEmpty()) {
 
@@ -474,130 +476,153 @@ public class FileStorageScheduler implements Scheduler {
         return map;
     }
 
-   private List<VirtualNAS> filterVNASServersByReplicationConfiguration(VirtualPool vpool, List<VirtualNAS> vNASList, Map<String, Object> replicationConfiguration, VirtualPoolCapabilityValuesWrapper capabilities, Project project){
-       List<VirtualNAS> virtualNasServers = new ArrayList<VirtualNAS>();
+    private List<VirtualNAS> filterVNASServersByReplicationConfiguration(VirtualPool vpool, List<VirtualNAS> vNASList,
+            Map<String, Object> replicationConfiguration, VirtualPoolCapabilityValuesWrapper capabilities, Project project) {
+        List<VirtualNAS> virtualNasServers = new ArrayList<VirtualNAS>();
 
-        Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings =
-                    VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
-       
-           for (VirtualNAS vNAS: vNASList){
-                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vNAS.getStorageDeviceURI());
-                
-		  if (storage !=null && storage.getSystemType().equals(Type.unity.toString())) { 
-                     
-                     if (!VirtualPool.vPoolSpecifiesFileReplication(vpool)){
-                         if (vNAS.getReplicationDestination()){
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
+        boolean replicationTarget = false;
+
+        if (replicationConfiguration != null && replicationConfiguration.get("FILE_REPLICATION_TARGET") != null) {
+            replicationTarget = true;
+        }
+
+        for (VirtualNAS vNAS : vNASList) {
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vNAS.getStorageDeviceURI());
+
+            if (storage != null && storage.getSystemType().equals(Type.unity.toString())) {
+
+                if (replicationTarget) {
+                    // Trying to place a replication target
+
+                    if (vNAS.getReplicationDestination()) {
+                        URI sourceNasId = (URI) replicationConfiguration.get("SOURCE_NAS_SERVER");
+                        if (vNAS.getSrcVNASList() != null && !vNAS.getSrcVNASList().isEmpty() && sourceNasId != null
+                                && vNAS.getSrcVNASList().contains(sourceNasId)) {
+                            virtualNasServers.add(vNAS);
+                            _log.info("vNAS {} matches the selected source vnas and is suitable", vNAS.getId());
+                        } else {
+                            _log.info("vNAS {} does not match the selected source vnas and is NOT suitable", vNAS.getId());
+
+                        }
+                    } else {
+                        _log.info("vNAS {} is not a replication destination and hence is not suitable", vNAS.getId());
+                    }
+                } else {
+
+                    if (!VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
+                        if (vNAS.getReplicationDestination()) {
                             _log.info("vNAS {} is a replication destination nas server and is not suitable", vNAS.getId());
-                         }else{
+                        } else {
                             virtualNasServers.add(vNAS);
                             _log.info("vNAS {} is suitable", vNAS.getId());
-                         }                       
-                     }else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
-                         //For unity local replication, nas server selected must be configured for local replication                        
-                         if (!NullColumnValueGetter.isNullURI(vNAS.getDstVNASList().get(0))){
-                              VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDstVNASList().get(0));
-                              if (destinationNAS != null && destinationNAS.getStorageDeviceURI().equals(storage.getId())){
-                                   virtualNasServers.add(vNAS);
-                                   _log.info("vNAS {} is configured for local replication and is suitable", vNAS.getId());
-                              }else {
-                                   _log.info("Replication destination for vNAS {} is not local and so is not suitable.", vNAS.getId());
-                              }
-                         }else {
-                             _log.info("vNAS {} does not have a replication destination configured and so is not suitable.", vNAS.getId());
-                         }
-                          
-                     }else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
-			    //For unity remote replication, nas server selected must be configured for remote replication to target vpool
-				 VirtualNAS selectedDestination = null;
+                        }
+                    } else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
+                        // For unity local replication, nas server selected must be configured for local replication
+                        if (vNAS.getDstVNASList() != null && !vNAS.getDstVNASList().isEmpty()) {
+                            boolean localReplication = false;
+                            for (URI nasId : vNAS.getDstVNASList()) {
+                                VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, nasId);
 
-                          if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
-               	    
-                        	 // for unity, one resource can only be replicated to one target.
-                                Iterator<VpoolRemoteCopyProtectionSettings> iter = remoteCopySettings.values().iterator();
-     
-				VpoolRemoteCopyProtectionSettings targetCopy = null;
-                                if (iter.hasNext()){
-                                      targetCopy = iter.next();
+                                if (destinationNAS != null && destinationNAS.getStorageDeviceURI().equals(vNAS.getStorageDeviceURI())) {
+                                    virtualNasServers.add(vNAS);
+                                    _log.info("vNAS {} is configured for local replication and is suitable", vNAS.getId());
+                                    localReplication = true;
+                                    break;
                                 }
+                            }
+                            if (!localReplication) {
+                                _log.info("Replication destination for vNAS {} is not local and so is not suitable.", vNAS.getId());
+                            }
+                        } else {
+                            _log.info("vNAS {} does not have a replication destination configured and so is not suitable.", vNAS.getId());
+                        }
+
+                    } else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
+                        // For unity remote replication, nas server selected must be configured for remote replication
+                        // to target vpool
+                        VirtualNAS selectedDestination = null;
+
+                        if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
+
+                            // for unity, one resource can only be replicated to one target.
+                            Iterator<VpoolRemoteCopyProtectionSettings> iter = remoteCopySettings.values().iterator();
+
+                            VpoolRemoteCopyProtectionSettings targetCopy = null;
+                            if (iter.hasNext()) {
+                                targetCopy = iter.next();
+                            }
                             Map<String, Object> destinationConfiguration = new HashMap<String, Object>();
-                            destinationConfiguration.put("SOURCE_NAS_SERVER",vNAS); 
-				selectedDestination = selectDestinationNasServer(targetCopy, storage, capabilities,destinationConfiguration, project);
-                         }
+                            destinationConfiguration.put("SOURCE_NAS_SERVER", vNAS.getId());
+                            selectedDestination = selectDestinationNasServer(targetCopy, storage, capabilities, destinationConfiguration,
+                                    project);
+                            if (vNAS.getDstVNASList() != null && !vNAS.getDstVNASList().isEmpty()) {
 
+                                if (vNAS.getDstVNASList().contains(selectedDestination.getId())) {
+                                    // destinationNas must match the Nas server that will be picked for placing the
+                                    // target
 
-			    if (!NullColumnValueGetter.isNullURI(vNAS.getDstVNASList().get(0))){
-                              VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, vNAS.getDstVNASList().get(0));
-                              if (destinationNAS != null && selectedDestination != null && selectedDestination.getId().equals(destinationNAS.getId())){
-                                  //destinationNas must match the Nas server that will be picked for placing the target
-                                
-                                   virtualNasServers.add(vNAS);
-                                   _log.info("vNAS {} is configured for remote replication and is suitable", vNAS.getId());
-                              }else{
-                                   _log.info("vNAS {} is configured for remote replication but is not suitable as destination nas server does not match target vpool", vNAS.getId());
-                              }                          
-                         }else {
-                             _log.info("vNAS {} does not have a replication destination configured and so is not suitable.", vNAS.getId());
-                         }
+                                    virtualNasServers.add(vNAS);
+                                    _log.info("vNAS {} is configured for remote replication and is suitable", vNAS.getId());
+                                } else {
+                                    _log.info("vNAS {} is not suitable as destination nas server does not match target vpool",
+                                            vNAS.getId());
+                                }
+                            } else {
+                                _log.info("vNAS {} does not have a replication destination configured and so is not suitable.",
+                                        vNAS.getId());
+                            }
+                        }
 
+                    }
 
-                     }else {
-                       //we are trying to find a destination VNAS to place a target file share.
-                          if (vNAS.getReplicationDestination()){
-                               VirtualNAS sourceNAS = (VirtualNAS)replicationConfiguration.get("SOURCE_NAS_SERVER");
-                              if (!NullColumnValueGetter.isNullURI(vNAS.getSrcVNASList().get(0)) && sourceNAS!=null && vNAS.getSrcVNASList().get(0).equals(sourceNAS.getId())){
-                                  virtualNasServers.add(vNAS);
-                                  _log.info("vNAS {} matches the selected source vnas and is suitable", vNAS.getId());
-                              }else{
-                                  _log.info("vNAS {} does not match the selected source vnas and is NOT suitable", vNAS.getId());
+                }
+            } else {
+                // Not unity nas server, so no need for checks
+                virtualNasServers.add(vNAS);
+            }
+        }
 
-                              }
-                         }else{
-                               _log.info("vNAS {} is not a replication destination and hence is not suitable", vNAS.getId());
-		            }
-                     }
+        return virtualNasServers;
+    }
 
-                } else {
-                    //Not unity nas server, so  no need for checks
-                    virtualNasServers.add(vNAS);
-                }         
-           }
-       
-       return virtualNasServers;
-   }
-
-   // Run the placement algorithm for the replication target copy to determine the destination. The placement will run again when placing the target FS and will pick this same nas server as destination.
+    // Run the placement algorithm for the replication target copy to determine the destination. The placement will run
+    // again when placing the target FS and will pick this same nas server as destination.
     private VirtualNAS selectDestinationNasServer(VpoolRemoteCopyProtectionSettings targetCopy, StorageSystem sourceStorageSystem,
-						VirtualPoolCapabilityValuesWrapper capabilities, Map<String,Object> replicationConfiguration,Project project){
-                   VirtualNAS destinationNAS = null;
-                   VirtualPool targetPool = _dbClient.queryObject(VirtualPool.class, targetCopy.getVirtualPool());
-                    VirtualArray targetArray = _dbClient.queryObject(VirtualArray.class, targetCopy.getVirtualArray());
-                   String srcSystemType = sourceStorageSystem.getSystemType().toString();
-            		Set<String> systemTypes = new StringSet();
-            		systemTypes.add(srcSystemType);
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> replicationConfiguration, Project project) {
+        VirtualNAS destinationNAS = null;
+        VirtualPool targetPool = _dbClient.queryObject(VirtualPool.class, targetCopy.getVirtualPool());
+        VirtualArray targetArray = _dbClient.queryObject(VirtualArray.class, targetCopy.getVirtualArray());
+        String srcSystemType = sourceStorageSystem.getSystemType().toString();
+        Set<String> systemTypes = new StringSet();
+        systemTypes.add(srcSystemType);
 
+        // Filter the target storage pools!!!
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
 
-                    // Filter the target storage pools!!!
-                    Map<String, Object> attributeMap = new HashMap<String, Object>();
+        attributeMap.put(Attributes.system_type.toString(), systemTypes);
+        attributeMap.put(Attributes.remote_copy_mode.toString(), targetCopy.getCopyMode());
+        attributeMap.put(Attributes.source_storage_system.name(), sourceStorageSystem.getId().toString());
 
-                    attributeMap.put(Attributes.system_type.toString(), systemTypes);
-                    attributeMap.put(Attributes.remote_copy_mode.toString(), targetCopy.getCopyMode());
-                    attributeMap.put(Attributes.source_storage_system.name(), sourceStorageSystem.getId().toString());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
+                VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
+        _log.info("Source file system placement: Checking which nas server the target file share would be placed on");
+        List<FileRecommendation> targetFileRecommendations = this.placeFileShare(targetArray, targetPool, capabilities, project,
+                attributeMap, replicationConfiguration);
+        _log.info("Source file system placement: DONE Checking which nas server the target file share would be placed on");
+        if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
+            FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
+            destinationNAS = _dbClient.queryObject(VirtualNAS.class, targetRecommendation.getvNAS());
 
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
-                            VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
-                    List<FileRecommendation> targetFileRecommendations = this.placeFileShare(targetArray, targetPool, capabilities, project, attributeMap, replicationConfiguration);
-                    if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
-                        FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
-                        destinationNAS = _dbClient.queryObject(VirtualNAS.class, targetRecommendation.getvNAS());
-
-			}
-          return destinationNAS;
+        }
+        return destinationNAS;
     }
 
     /**
      * Sort list of VNAS servers based on dynamic load on each VNAS
      * 
-     * @param vNASList list of VNAS servers
+     * @param vNASList
+     *            list of VNAS servers
      * 
      */
     private void sortVNASListOnDyanamicLoad(List<VirtualNAS> vNASList) {
@@ -638,7 +663,8 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * Sort list of VNAS servers based on static load on each VNAS
      * 
-     * @param vNASList list of VNAS servers
+     * @param vNASList
+     *            list of VNAS servers
      * 
      */
     private void sortVNASListOnStaticLoad(List<VirtualNAS> vNASList) {
@@ -731,8 +757,7 @@ public class FileStorageScheduler implements Scheduler {
                         iterator.remove();
                         invalidNasServers.add(vNAS);
                     }
-                } else if (!ProjectUtility.
-                        doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
+                } else if (!ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
                     _log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
                             vNAS.getNasName(), projectDomains);
                     iterator.remove();
@@ -782,7 +807,7 @@ public class FileStorageScheduler implements Scheduler {
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                .equals(StoragePort.OperationalStatus.NOT_OK)
+                                        .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())
@@ -929,8 +954,7 @@ public class FileStorageScheduler implements Scheduler {
     private List<StoragePort> getStorageSystemPortsInVarray(
             URI storageSystemUri, URI varray) {
         List<URI> allPorts = _dbClient
-                .queryByConstraint(ContainmentConstraint.Factory
-                        .getStorageDeviceStoragePortConstraint(storageSystemUri));
+                .queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystemUri));
         List<StoragePort> ports = _dbClient.queryObject(StoragePort.class,
                 allPorts);
         Iterator<StoragePort> itr = ports.iterator();
@@ -939,17 +963,11 @@ public class FileStorageScheduler implements Scheduler {
             temp = itr.next();
             if (temp.getInactive()
                     || temp.getTaggedVirtualArrays() == null
-                    || !temp.getTaggedVirtualArrays().contains(
-                            varray.toString())
-                    || !RegistrationStatus.REGISTERED.toString()
-                            .equalsIgnoreCase(temp.getRegistrationStatus())
-                    || (StoragePort.OperationalStatus.valueOf(temp
-                            .getOperationalStatus()))
-                            .equals(StoragePort.OperationalStatus.NOT_OK)
-                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
-                            .name().equals(temp.getCompatibilityStatus())
-                    || !DiscoveryStatus.VISIBLE.name().equals(
-                            temp.getDiscoveryStatus())) {
+                    || !temp.getTaggedVirtualArrays().contains(varray.toString())
+                    || !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(temp.getRegistrationStatus())
+                    || (StoragePort.OperationalStatus.valueOf(temp.getOperationalStatus())).equals(StoragePort.OperationalStatus.NOT_OK)
+                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(temp.getCompatibilityStatus())
+                    || !DiscoveryStatus.VISIBLE.name().equals(temp.getDiscoveryStatus())) {
                 itr.remove();
             }
         }
@@ -1050,15 +1068,16 @@ public class FileStorageScheduler implements Scheduler {
             // TODO: normalize behavior across file arrays so that this check is
             // not required.
             // TODO: Implement fake storageHADomain for DD to fit the viPR model
-            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no vnas servers were found
+            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no
+            // vnas servers were found
             if (storage.getSystemType().equals(Type.unity.toString())) {
-                 continue;
+                continue;
             }
 
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
-                    && !storage.getSystemType().equals(Type.vnxfile.toString()) 
+                    && !storage.getSystemType().equals(Type.vnxfile.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);
@@ -1151,15 +1170,24 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * create fileshare from the Recommendation object
      * 
-     * @param param -file share create param
-     * @param task -task id
-     * @param taskList - task list
-     * @param project -project
-     * @param varray - Virtual Array
-     * @param vpool - Virtual Pool
-     * @param recommendations - recommendation structure
-     * @param cosCapabilities - Virtual pool wrapper
-     * @param createInactive - create device sync inactive
+     * @param param
+     *            -file share create param
+     * @param task
+     *            -task id
+     * @param taskList
+     *            - task list
+     * @param project
+     *            -project
+     * @param varray
+     *            - Virtual Array
+     * @param vpool
+     *            - Virtual Pool
+     * @param recommendations
+     *            - recommendation structure
+     * @param cosCapabilities
+     *            - Virtual pool wrapper
+     * @param createInactive
+     *            - create device sync inactive
      * @return
      */
     public List<FileShare> prepareFileSystems(FileSystemParam param, String task, TaskList taskList,
@@ -1240,9 +1268,12 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * Convenience method to return a file from a task list with a pre-labeled fileshare.
      * 
-     * @param dbClient dbclient
-     * @param taskList task list
-     * @param label base label
+     * @param dbClient
+     *            dbclient
+     * @param taskList
+     *            task list
+     * @param label
+     *            base label
      * @return file object
      */
     public FileShare getPrecreatedFile(TaskList taskList, String label) {

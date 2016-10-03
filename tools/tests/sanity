@@ -175,6 +175,14 @@ do
     fi
 done
 
+# The VPLEX quick parameter can also choose xio vs. vnx
+if [ "$VPLEX_QUICK_PARAM" = "xio" ]; then
+    VPLEX_USE_XIO=1
+fi
+if [ "$VPLEX_QUICK_PARAM" = "vnx" -o "$VPLEX_QUICK_PARAM" = "quick" ]; then
+    VPLEX_USE_XIO=0
+fi
+
 case $SS in
     all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|custvolname|arrayaffinity)
     ;;
@@ -845,6 +853,12 @@ brocade_setup_once()
 
     run transportzone assign FABRIC_losam082-fabric $NH
     run transportzone assign FABRIC_vplex154nbr2 $NH2
+    if [ $VPLEX_USE_XIO -eq 1 ]; then
+        # The XIO arrays that will be used in place of VNX only have connectivity to one network each
+        run transportzone assign FABRIC_vplex154nbr2 $NH
+        run transportzone assign FABRIC_losam082-fabric $NH2
+        run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
+    fi
     VPLEX_TZ1=$NH/FABRIC_losam082-fabric
     VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
     FC_ZONE_A=FABRIC_losam082-fabric
@@ -2458,9 +2472,17 @@ vplex_cos_setup()
                      --expandable false 
 
     else
-	run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+	    run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
+        else 
+	    run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        fi
 	if [ "$AUTH" != 'ipv6' ] ; then
-	    run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+            if [ $VPLEX_USE_XIO -eq 1 ]; then
+	        run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
+            else
+	        run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+            fi
 	fi
 	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2507,7 +2529,11 @@ vplex_cos_setup()
                      --expandable false
 
 	run cos allow cosvplexdist block $TENANT
-	run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+	    run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
+        else
+	    run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+	fi
 	run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
 }
@@ -2540,11 +2566,6 @@ vplex_setup_once()
 	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
 	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
-
-	# Discover the Brocade SAN switch.
-	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
-	transportzone listall
 
 	# Discover the storage systems 
 	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
@@ -2590,17 +2611,25 @@ vplex_setup_once()
 	echo "Discovering Storage Assets"
 	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
 	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
-	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+            run storageprovider create $VPLEX_XIO1_SMIS_DEV_NAME $VPLEX_XIO1_SMIS_IP $VPLEX_XIO1_SMIS_PORT $VPLEX_XIO1_SMIS_USER "$VPLEX_XIO1_SMIS_PASSWD" xtremio
+            run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
+        else
+	    run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
+	    run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
 	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+        fi
 	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
 	run storagedevice discover_all
 	storagedevice list
-	storageport list $VPLEX_VNX1_NATIVEGUID --v
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+	    storageport list $VPLEX_XIO1_NATIVEGUID --v
+	    storageport list $VPLEX_XIO2_NATIVEGUID --v
+        else
+	    storageport list $VPLEX_VNX1_NATIVEGUID --v
+	    storageport list $VPLEX_VNX2_NATIVEGUID --v
+        fi
 	storageport list $VPLEX_VMAX_NATIVEGUID --v
-	storageport list $VPLEX_VNX2_NATIVEGUID --v
-	storageport list $VPLEX_GUID --v
-	sleep 90
 	storageport list $VPLEX_GUID --v
 
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
@@ -2610,8 +2639,13 @@ vplex_setup_once()
 	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
 	storageport list $VPLEX_GUID --v
 	# The arrays are assigned to individual varrays as well.
-	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+	    run storageport update $VPLEX_XIO1_NATIVEGUID FC --addvarrays $NH
+	    run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
+        else
+	    run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+	    run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+        fi
 	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
 	vplex_cos_setup
 	storageport list $VPLEX_GUID --v
@@ -2719,7 +2753,11 @@ vplex_tests()
 	run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
 	run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
 	run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-	run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        if [ $VPLEX_USE_XIO -eq 0 ]; then
+	    run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        else
+            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
+        fi
 
 	echo "**** Deleting VPLEX volume snapshots"
 	run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot

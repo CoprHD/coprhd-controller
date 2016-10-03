@@ -590,11 +590,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String subDirectory = fileExport.getSubDirectory();
 
             // Validate parameters for permissions and root user mapping.
-            if (permissions.equals(FileShareExport.Permissions.root.name()) && !root_user.equals("root")) {
-                String msg = "The root_user mapping is not set to root but the permission is.";
-                _log.error(msg);
-                throw IsilonException.exceptions.invalidParameters();
-            }
+            /*
+             * if (permissions.equals(FileShareExport.Permissions.root.name()) && !root_user.equals("root")) {
+             * String msg = "The root_user mapping is not set to root but the permission is.";
+             * _log.error(msg);
+             * throw IsilonException.exceptions.invalidParameters();
+             * }
+             */
 
             List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,

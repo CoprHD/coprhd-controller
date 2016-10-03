@@ -108,6 +108,14 @@ public class IBMSVCCLI {
         return command.getResults();
     }
 
+    public static IBMSVCQueryHostVolMapResult queryHostVolMap(SSHConnection connection, String hostId) {
+        _log.info("Starting IBMSVCQueryHostVolMapCommand() for Querying IBM-SVC Host Mapped Volumes information...");
+        IBMSVCQueryHostVolMapCommand command = new IBMSVCQueryHostVolMapCommand(hostId);
+        executeCommand(connection, command);
+        _log.info("Ending IBMSVCQueryHostVolMapCommand() for Querying IBM-SVC Host Mapped Volumes information.");
+        return command.getResults();
+    }
+
     public static IBMSVCCreateHostResult createHost(SSHConnection connection, String hostName, String hbawwpns, String ioGrp){
         _log.info("Starting createHost() for Creating IBM-SVC Host ...");
         IBMSVCCreateHost command = new IBMSVCCreateHost(hostName, hbawwpns, ioGrp);
@@ -174,6 +182,14 @@ public class IBMSVCCLI {
         IBMSVCUnExportVolumeCommand command = new IBMSVCUnExportVolumeCommand(volumeId, volumeName, hostName);
         executeCommand(connection, command);
         _log.info("Ending unexportStorageVolumes() for UnExporting IBM-SVC Storage Volume.");
+        return command.getResults();
+    }
+
+    public static IBMSVCDeleteHostResult deleteHost(SSHConnection connection, String hostName) {
+        _log.info("Starting DeleteHost() for deleting IBM-SVC Storage Host...");
+        IBMSVCDeleteHostCommand command = new IBMSVCDeleteHostCommand(hostName);
+        executeCommand(connection, command);
+        _log.info("Ending DeleteHost() for deleting IBM-SVC Storage Host.");
         return command.getResults();
     }
 

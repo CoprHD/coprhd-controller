@@ -343,51 +343,52 @@ public class RecoverPointClient {
 
             for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
                     .getClustersConfigurations()) {
-            	try {
-	                // TODO: Support multiple management IPs per site
-	                String siteIP = siteSettings.getManagementIPs().get(0).getIp();
-	                String siteName = siteSettings.getClusterName();
-	                if (siteIP == null) {
-	                    throw RecoverPointException.exceptions.cannotDetermineMgmtIPSite(siteName);
-	                }
-	
-	                List<RpaConfiguration> rpaList = siteSettings.getRpasConfigurations();
-	                discoveredSite = new RPSite();
-	                discoveredSite.setSiteName(siteName);
-	                discoveredSite.setSiteManagementIPv4(siteIP);
-	                discoveredSite.setSiteVersion(functionalAPI.getRecoverPointVersion().getVersion());
-	                discoveredSite.setSiteVolumes(functionalAPI.getClusterSANVolumes(siteSettings.getCluster(), true));
-	                discoveredSite.setInternalSiteName(siteSettings.getInternalClusterName());
-	                discoveredSite.setSiteUID(siteSettings.getCluster().getId());
-	                if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
-	                    localSiteName = siteName;
-	                }
-	                discoveredSite.setNumRPAs(rpaList.size());
-	
-	                String siteGUID = installationId + ":" + siteSettings.getCluster().getId();
-	                logger.info("SITE GUID:  " + siteGUID);
-	                discoveredSite.setSiteGUID(siteGUID);
-	                if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
-	                    logger.info("Discovered local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
-	                            + discoveredSite.getSiteVersion() + ", num RPAs: "
-	                            + discoveredSite.getNumRPAs());
-	
-	                } else {
-	                    logger.info("Discovered non-local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
-	                            + discoveredSite.getSiteVersion()
-	                            + ", num RPAs: " + discoveredSite.getNumRPAs());
-	                }
-	
-	                returnSiteSet.add(discoveredSite);
-            	} catch (FunctionalAPIInternalError_Exception | FunctionalAPIActionFailedException_Exception fe) {
-            		StringBuffer buf = new StringBuffer();
-            		buf.append(String.format("Internal Error during discover of RP Cluster %s, Skipping discovery of this site.", localSiteName));
-            		if (fe != null) {
-            			buf.append('\n');
-            			buf.append(String.format("Exception returned : %s", fe.getMessage()));
-            		}  
-            		logger.warn(buf.toString());
-        	    }
+                try {
+                    // TODO: Support multiple management IPs per site
+                    String siteIP = siteSettings.getManagementIPs().get(0).getIp();
+                    String siteName = siteSettings.getClusterName();
+                    if (siteIP == null) {
+                        throw RecoverPointException.exceptions.cannotDetermineMgmtIPSite(siteName);
+                    }
+
+                    List<RpaConfiguration> rpaList = siteSettings.getRpasConfigurations();
+                    discoveredSite = new RPSite();
+                    discoveredSite.setSiteName(siteName);
+                    discoveredSite.setSiteManagementIPv4(siteIP);
+                    discoveredSite.setSiteVersion(functionalAPI.getRecoverPointVersion().getVersion());
+                    discoveredSite.setSiteVolumes(functionalAPI.getClusterSANVolumes(siteSettings.getCluster(), true));
+                    discoveredSite.setInternalSiteName(siteSettings.getInternalClusterName());
+                    discoveredSite.setSiteUID(siteSettings.getCluster().getId());
+                    if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
+                        localSiteName = siteName;
+                    }
+                    discoveredSite.setNumRPAs(rpaList.size());
+
+                    String siteGUID = installationId + ":" + siteSettings.getCluster().getId();
+                    logger.info("SITE GUID:  " + siteGUID);
+                    discoveredSite.setSiteGUID(siteGUID);
+                    if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
+                        logger.info("Discovered local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
+                                + discoveredSite.getSiteVersion() + ", num RPAs: "
+                                + discoveredSite.getNumRPAs());
+
+                    } else {
+                        logger.info("Discovered non-local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
+                                + discoveredSite.getSiteVersion()
+                                + ", num RPAs: " + discoveredSite.getNumRPAs());
+                    }
+
+                    returnSiteSet.add(discoveredSite);
+                } catch (FunctionalAPIInternalError_Exception | FunctionalAPIActionFailedException_Exception fe) {
+                    StringBuffer buf = new StringBuffer();
+                    buf.append(String.format("Internal Error during discover of RP Cluster %s, Skipping discovery of this site.",
+                            localSiteName));
+                    if (fe != null) {
+                        buf.append('\n');
+                        buf.append(String.format("Exception returned : %s", fe.getMessage()));
+                    }
+                    logger.warn(buf.toString());
+                }
             }
 
             // 99% of unlicensed RP system errors will be caught here
@@ -395,7 +396,7 @@ public class RecoverPointClient {
                 throw RecoverPointException.exceptions.siteNotLicensed(localSiteName);
             }
 
-            return returnSiteSet;            
+            return returnSiteSet;
         } catch (RecoverPointException e) {
             throw e;
         } catch (Exception e) {
@@ -2711,7 +2712,7 @@ public class RecoverPointClient {
                                 String secondCopyName = functionalAPI.getGroupCopyName(secondCopyUID);
 
                                 logger.info(String
-                                        .format("Generate new link settings between %s and %s based on existing link settings between copy %s and %s.",
+                                        .format("Generating new link settings between [%s] and [%s] based on existing link settings between copy [%s] and [%s].",
                                                 newProductionCopyName, copyName, firstCopyName, secondCopyName));
 
                                 ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();

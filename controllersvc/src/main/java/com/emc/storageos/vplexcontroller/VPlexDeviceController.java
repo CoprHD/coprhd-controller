@@ -187,6 +187,7 @@ import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskComplet
 import com.emc.storageos.vplexcontroller.job.VPlexCacheStatusJob;
 import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -2774,14 +2775,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String storageViewStepId, ExportMask exportMask, boolean sharedVplexExportMask) {
         _log.info("adding step to update export mask: " + exportMask.getMaskName());
 
+        String addVolumeStepId = workflow.createStepId();
+
         // Add a step to update export mask on the VPlex.
-        Workflow.Method storageViewExecuteMethod = new Workflow.Method("exportMaskAddVolumes",
-                vplexSystem.getId(), export, exportMask.getId(), blockObjectMap);
-        Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+        Workflow.Method storageViewExecuteMethod = storageViewAddVolumesMethod(vplexSystem.getId(), export, exportMask.getId(),
+                blockObjectMap);
+        Workflow.Method storageViewRollbackMethod = storageViewAddVolumesRollbackMethod(vplexSystem.getId(), export, exportMask.getId(),
+                blockObjectMap, addVolumeStepId);
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, null);
+                this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, addVolumeStepId);
 
         if (exportMasksToUpdateOnDeviceWithInitiators.get(exportMask.getId()) != null) {
 
@@ -3409,6 +3413,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
+     * @param vplexURI
+     *            vplex system
+     * @param exportGroupURI
+     *            export group
+     * @param exportMaskURI
+     *            export mask
+     * @param volumeMap
+     *            volumes
+     * @return method
+     */
+    private Method storageViewAddVolumesMethod(URI vplexURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap) {
+        return new Workflow.Method("storageViewAddVolumes", vplexURI, exportGroupURI, exportMaskURI, volumeMap);
+    }
+
+    /**
      * Method for adding volumes to a single ExportMask.
      *
      * @param vplexURI
@@ -3418,7 +3437,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param opId
      * @throws ControllerException
      */
-    public void exportMaskAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
+    public void storageViewAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap,
             String opId) throws ControllerException {
         String volListStr = Joiner.on(',').join(volumeMap.keySet());
@@ -3432,19 +3451,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
 
             // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just
-            // commented it for
-            // now, because i am no expert in this
-            // area and a discussion with the experts would make sense).
-            // This step is already done prior to calling this method as a workflow. (look in
-            // assembleExportMasksWorkflow)
-            // Also, one problem with this call, if we are going to need it later on is : This call updates workflow
-            // objects, but there is
-            // no step or workflow created for this call and passed in.
+            // commented it for now, because i am no expert in this area and a discussion with the experts would make
+            // sense). This step is already done prior to calling this method as a workflow. (look in
+            // assembleExportMasksWorkflow) Also, one problem with this call, if we are going to need it later on is :
+            // This call updates workflow objects, but there is no step or workflow created for this call and passed in.
             // From my observation this call was inadvertently setting the workflow completer to success that operations
-            // waiting on this
-            // would kick off prior to actually adding the volumes
-            // to the storage view. In case of RP, the createCg call would fire off and fail because it would execute
-            // before all the volumes
+            // waiting on this would kick off prior to actually adding the volumes to the storage view. In case of RP,
+            // the createCg call would fire off and fail because it would execute before all the volumes
             // made it to the storageview on the VPLEX.
             // Maybe consider some workflow here if this call needs to be included.
             // _networkDeviceController.zoneExportAddVolumes(exportGroupURI, exportMaskURIs, volumeMap.keySet(), opId);
@@ -3484,10 +3497,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 volumesToAdd.put(entry.getKey(), entry.getValue());
             }
 
-            // Add volumes to exportmask, so that rollback works in case of any errors
-            exportMask.addVolumes(volumesToAdd);
-            _dbClient.updateObject(exportMask);
-
             // If duplicate HLU are found then return, completer is set to error above
             if (duplicateHLU) {
                 return;
@@ -3502,6 +3511,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
             VPlexStorageViewInfo svInfo = client.addVirtualVolumesToStorageView(
                     exportMask.getMaskName(), vplexClusterName, deviceLabelToHLU);
+            ExportOperationContext.insertContextOperation(completer,
+                    VPlexExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW,
+                    volumesToAdd.keySet());
 
             // When VPLEX volumes are exported to a storage view, they get a WWN,
             // so set the WWN from the returned storage view information.
@@ -3526,12 +3538,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
 
-            // We also need to update the volume/lun id map in the export mask
-            // to those assigned by the VPLEX.
-            _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
-            exportMask.addVolumes(updatedVolumeMap);
-            _dbClient.updateObject(exportMask);
-
             _log.info("attempting to fail if failure_002_late_in_add_volume_to_mask is set");
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
@@ -3549,6 +3555,72 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ServiceError serviceError = VPlexApiException.errors.exportGroupAddVolumesFailed(
                     volListStr, exportGroupURI.toString(), opName, ex);
             completer.error(_dbClient, serviceError);
+        }
+    }
+
+    /**
+     * Method declaration method for storage view add volume rollback.
+     * 
+     * @param vplexURI
+     *            vplex
+     * @param exportGroupURI
+     *            export group
+     * @param exportMaskURI
+     *            export mask
+     * @param volumeMap
+     *            volume map
+     * @param contextKey
+     *            context key for rollback processing
+     * @return method
+     */
+    private Method storageViewAddVolumesRollbackMethod(URI vplexURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap,
+            String contextKey) {
+        return new Workflow.Method("storageViewAddVolumesRollback", vplexURI, exportGroupURI, exportMaskURI, volumeMap, contextKey);
+    }
+
+    /**
+     * Rollback entry point. This is a wrapper around the exportRemoveVolumes
+     * operation, which requires that we create a specific completer using the token
+     * that's passed in. This token is generated by the rollback processing.
+     *
+     * @param storageURI
+     *            [in] - StorageSystem URI
+     * @param exportGroupURI
+     *            [in] - ExportGroup URI
+     * @param exportMaskURI
+     *            [in] - ExportMask URI
+     * @param volumeURIs
+     *            [in] - Impacted volume URIs
+     * @param initiatorURIs
+     *            [in] - List of Initiator URIs
+     * @param contextKey
+     *            [in] - context token
+     * @param token
+     *            [in] - String token generated by the rollback processing
+     * @throws ControllerException
+     */
+    public void storageViewAddVolumesRollback(URI storageURI, URI exportGroupURI,
+            URI exportMaskURI, List<URI> volumeURIs,
+            List<URI> initiatorURIs,
+            String contextKey, String token) throws ControllerException {
+        ExportTaskCompleter taskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
+                initiatorURIs, token);
+        // Take the context of the step in flight and feed it into our current step
+        // in order to only perform rollback of operations we successfully performed.
+        try {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, storageURI, _dbClient);
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            removeVolumesFromStorageViewAndMask(client, mask, volumeURIs);
+        } catch (Exception e) {
+            String message = String.format("Failed to remove Volume(s) %s on rollback from ExportGroup %s",
+                    Joiner.on(",").join(volumeURIs), exportGroupURI);
+            _log.error(message, e);
+            String opName = ResourceOperationTypeEnum.DELETE_EXPORT_VOLUME.getName();
+            ServiceError serviceError = VPlexApiException.errors.exportGroupRemoveVolumesFailed(
+                    Joiner.on(",").join(volumeURIs), exportGroupURI.toString(), opName, e);
+            taskCompleter.error(_dbClient, serviceError);
         }
     }
 
@@ -3633,6 +3705,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
 
                     // Remove the volumes from the storage view
+                    // TODO: This should be a step in the workflow
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                     
                     // Invoke the zoning code directly, i.e. inline, not in a workflow
@@ -3765,7 +3838,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 completer.ready(_dbClient);
             }
         } catch (VPlexApiException vae) {
-
             String message = String.format("Failed to remove Volume %s from ExportGroup %s",
                     volListStr, exportURI);
             _log.error(message, vae);

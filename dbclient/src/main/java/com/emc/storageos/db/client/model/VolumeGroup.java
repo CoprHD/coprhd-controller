@@ -7,8 +7,6 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlElement;
-
 
 @Cf("VolumeGroup")
 public class VolumeGroup extends DataObject {
@@ -61,23 +59,23 @@ public class VolumeGroup extends DataObject {
         COMMITCOMPLETED,
         OTHER
     }
-
-    public static class MigrationOptions {
-
-        // private List<String> unamagedVolumeWWNs;
-        private URI targetStorageSystem;
-
-        @XmlElement(name = "target_storage_system")
-        public URI getTargetStorageSystem() {
-            return targetStorageSystem;
-        }
-
-        public void setTargetStorageSystem(URI targetStorageSystem) {
-            this.targetStorageSystem = targetStorageSystem;
-        }
-    }
-
-    private MigrationOptions migrationOptions;
+//
+//    public static class MigrationOptions {
+//
+//        // private List<String> unamagedVolumeWWNs;
+//        private URI targetStorageSystem;
+//
+//        @XmlElement(name = "target_storage_system")
+//        public URI getTargetStorageSystem() {
+//            return targetStorageSystem;
+//        }
+//
+//        public void setTargetStorageSystem(URI targetStorageSystem) {
+//            this.targetStorageSystem = targetStorageSystem;
+//        }
+//    }
+//
+//    private MigrationOptions migrationOptions;
 
     public void setMigrationGroupBy(String migrationGroupBy) {
         this.migrationGroupBy = migrationGroupBy;
@@ -108,14 +106,14 @@ public class VolumeGroup extends DataObject {
      * Migration Attributes of the volume group
      * 
      */
-    @XmlElement(name = "migration_attributes")
-    public MigrationOptions getMigrationOptions() {
-        return migrationOptions;
-    }
+//    @XmlElement(name = "migration_attributes")
+//    public MigrationOptions getMigrationOptions() {
+//        return migrationOptions;
+//    }
 
-    public void setMigrationOptions(MigrationOptions migrationOptions) {
-        this.migrationOptions = migrationOptions;
-    }
+//    public void setMigrationOptions(MigrationOptions migrationOptions) {
+//        this.migrationOptions = migrationOptions;
+//    }
 
     @Name("migrationGroupBy")
 

@@ -1751,10 +1751,36 @@ test_4() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 1 volume
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 2
 
+    if [ "$SS" != "xio" ]; then
+        PWWN=`echo ${H2PI1} | sed 's/://g'`
+
+        # Add another initiator to the mask (done differently per array type)
+        arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+        # Verify the mask has the new initiator in it
+        verify_export ${expname}1 ${HOST1} 3 2
+
+        # Run the export group command.  Expect it to fail with validation
+	fail export_group delete $PROJECT/${expname}1
+
+        # Run the export group command.  Expect it to fail with validation
+        fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+
+        # Verify the mask wasn't touched
+        verify_export ${expname}1 ${HOST1} 3 2
+
+        # Now remove the initiator from the export mask
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 2 2
+    fi
+
+    # Reset test: test lower levels (original test_4 test)
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
@@ -1783,7 +1809,7 @@ test_4() {
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
     # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 3 1
+    verify_export ${expname}1 ${HOST1} 3 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
@@ -1793,19 +1819,79 @@ test_4() {
     fail task follow $task
 
     # Verify the mask wasn't touched
-    verify_export ${expname}1 ${HOST1} 3 1
+    verify_export ${expname}1 ${HOST1} 3 2
 
     # Now remove the initiator from the export mask
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 2
 
-    # Turn off suspend of export after orchestration
-    set_suspend_on_class_method "none"
+    # Reset the test, now try to add initiators from other hosts we know about
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
 
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	cleanup
+	finish 4
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    PWWN=`echo ${H2PI1} | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    if [ "$SS" != "xio" ] 
+    then
+        # Follow the task.  It should fail because of Poka Yoke validation
+        echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+        fail task follow $task
+        # Verify the mask wasn't touched
+        verify_export ${expname}1 ${HOST1} 3 2
+        # Now remove the initiator from the export mask
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 2 2
+
+        # Turn off suspend of export after orchestration
+        set_suspend_on_class_method "none"
+
+        # Delete the export group
+        runcmd export_group delete $PROJECT/${expname}1
+
+    else
+	# For XIO, extra initiator of different host but same cluster results in delete initiator call
+	sleep 60
+	verify_export ${expname}1 ${HOST1} 1 2
+	# Now remove the volumes from the storage group (masking view)
+        device_id=`get_device_id ${PROJECT}/${VOLNAME}-1`
+        arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+        device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
+        arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}	
+        # Now delete the export mask
+        arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}        
+    fi
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
@@ -1880,11 +1966,56 @@ test_5() {
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
 
+    if [ "$SS" != "xio" ]; then    
+        # Run the export group command TODO: Do this more elegantly
+        echo === export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+        resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"`
+
+        if [ $? -ne 0 ]; then
+	    echo "export group command failed outright"
+       	    cleanup
+	    finish 4
+        fi
+
+        # Show the result of the export group command for now (show the task and WF IDs)
+        echo $resultcmd
+
+        # Parse results (add checks here!  encapsulate!)
+        taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+        answersarray=($taskworkflow)
+        task=${answersarray[0]}
+        workflow=${answersarray[1]}
+
+        PWWN=`echo ${H2PI1} | sed 's/://g'`
+    
+        # Add another initiator to the mask (done differently per array type)
+        arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+        # Verify the mask has the new initiator in it
+        verify_export ${expname}1 ${HOST1} 3 2
+
+        # Resume the workflow
+        runcmd workflow resume $workflow
+
+        # Follow the task.  It should fail because of Poka Yoke validation
+        echo "*** Following the export_group remove volume task to verify it FAILS because of the additional initiator"
+        fail task follow $task
+
+        # Verify the mask wasn't touched
+        verify_export ${expname}1 ${HOST1} 3 2
+
+        # Now remove the initiator from the export mask
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 2 2
+    fi
+
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
 
-    # Rerun the command
-    runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    # Remove the volume (make sure the mask is OK now)
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
     # Make sure it worked this time
     verify_export ${expname}1 ${HOST1} 2 1
@@ -1923,6 +2054,68 @@ test_6() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    known_device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Run the export group command.  Expect it to fail with validation
+    fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+    # Now remove the volume from the storage group (masking view)
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	cleanup
+	finish 6
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
+    fail task follow $task
+
+    # Now remove the volume from the storage group (masking view)
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Reset the test and run with a volume outside of ViPR
     HIJACK=du-hijack-volume-${RANDOM}
 
     # Create another volume that we will inventory-only delete
@@ -1931,7 +2124,26 @@ test_6() {
     # Get the device ID of the volume we created
     device_id=`get_device_id ${PROJECT}/${HIJACK}`
 
+    # Inventory-only delete of the volume
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Run the export group command.  Expect it to fail with validation
+    fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+    # Now remove the volume from the storage group (masking view)
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
@@ -1965,17 +2177,17 @@ test_6() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
-    # Delete the volume we created.
-    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
@@ -3421,10 +3633,10 @@ test_24() {
     # Inventory-only delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
-    # Add an unrelated initiator to the mask (done differently per array type)
+    # Add an unrelated volumer to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
-    # Verify the mask has the new initiator in it
+    # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Remove the vipr volume from the export group
@@ -3565,18 +3777,18 @@ test_26() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 1 initiator
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
-    set_artificial_failure failure_003_late_in_add_volume_to_mask
+    set_artificial_failure failure_002_late_in_add_volume_to_mask
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2`
+    echo === export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+    resultcmd=`export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"`
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
@@ -3620,7 +3832,7 @@ test_26() {
     set_artificial_failure none
 
     # Now add that volume into the mask, this time it should pass
-    runcmd export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2
+    runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
 
     # Verify the mask is "normal" after that command
     verify_export ${expname}1 ${HOST1} 2 2
@@ -3789,9 +4001,14 @@ then
     shift
 fi
 
+test_start=0
+test_end=25
+
 # If there's a last parameter, take that
 # as the name of the test to run
-if [ "$1" != "" ]
+# To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
+# ./dutest.sh sanity.conf vplex local test_7+
+if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
    echo Request to run $*
    for t in $*
@@ -3803,13 +4020,20 @@ then
       reset_system_props
    done
 else
+   if [ "${1:(-1)}" = "+" ]
+   then
+      num=`echo $1 | sed 's/test_//g' | sed 's/+//g'`
+   else
+      num=${test_start}
+   fi
    # Passing tests:
-   for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+   while [ ${num} -le ${test_end} ]; 
    do
      reset_system_props
      prerun_tests
      test_${num}
      reset_system_props
+     num=`expr ${num} + 1`
    done
 fi
 

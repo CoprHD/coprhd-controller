@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.placement;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -50,6 +51,7 @@ import com.emc.storageos.model.vpool.ObjectVirtualPoolParam;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.RaidLevelChanges;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
+import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.collect.Sets;
 
@@ -438,14 +440,6 @@ public class VirtualPoolUtil {
                 }
             }
 
-            // Check for source journal size updates
-            if (to.getRecoverPoint().getSourcePolicy() != null && to.getRecoverPoint().getSourcePolicy().getJournalSize() != null) {
-                if (!to.getRecoverPoint().getSourcePolicy().getJournalSize().equals(from.getJournalSize())) {
-                    _log.info("The source policy journal size is being updated on virtual pool {}", from.getId());
-                    return true;
-                }
-            }
-
             // Check if the source policy has been removed
             if (to.getRecoverPoint().getSourcePolicy() != null && to.getRecoverPoint().getSourcePolicy().getJournalSize() == null) {
                 if (from.getJournalSize() != null && !from.getJournalSize().equals(NullColumnValueGetter.getNullStr())) {
@@ -455,15 +449,43 @@ public class VirtualPoolUtil {
             }
 
             // Check if there are RP protection copies being added
-            if (to.getRecoverPoint().getAdd() != null && !to.getRecoverPoint().getAdd().isEmpty()) {
-                _log.info("Adding/updating RP protection copies to virtual pool {}", from.getId());
+            if (to.getRecoverPoint().getAdd() != null 
+                    && !to.getRecoverPoint().getAdd().isEmpty()
+                    && from.getProtectionVarraySettings() != null 
+                    && !from.getProtectionVarraySettings().isEmpty()
+                    && to.getRecoverPoint().getAdd().size() != from.getProtectionVarraySettings().size()) {
+                _log.info("Adding RP protection copies to virtual pool {}", from.getId());
                 return true;
             }
 
             // Check if there are RP protection copies being removed
             if (to.getRecoverPoint().getRemove() != null && !to.getRecoverPoint().getRemove().isEmpty()) {
-                _log.info("Removing RP protection copies from virtual pool {}", from.getId());
-                return true;
+                // Check to see if this is an allowed update.
+                // The update is Ok when the add and remove params are the same size
+                // and there are no changes to the varray/vpool entries.
+                if (to.getRecoverPoint().getAdd() != null 
+                        && !to.getRecoverPoint().getAdd().isEmpty()
+                        && to.getRecoverPoint().getAdd().size() == to.getRecoverPoint().getRemove().size()) {
+                    List<String> addKeys = new ArrayList<String>();
+                    for (VirtualPoolProtectionVirtualArraySettingsParam addParam : to.getRecoverPoint().getAdd()) {
+                        String varray = NullColumnValueGetter.getStringValue(addParam.getVarray());
+                        String vpool = NullColumnValueGetter.getStringValue(addParam.getVpool());
+                        String addKey = varray + vpool;
+                        addKeys.add(addKey);
+                    }
+                    for (VirtualPoolProtectionVirtualArraySettingsParam removeParam : to.getRecoverPoint().getRemove()) {
+                        String varray = NullColumnValueGetter.getStringValue(removeParam.getVarray());
+                        String vpool = NullColumnValueGetter.getStringValue(removeParam.getVpool());
+                        String removeKey = varray + vpool;
+                        if (!addKeys.contains(removeKey)) {
+                            _log.info("Updating RP protection copies from virtual pool {}", from.getId());
+                            return true;
+                        }
+                    }                        
+                } else {                
+                    _log.info("Removing RP protection copies from virtual pool {}", from.getId());
+                    return true;
+                }
             }
         }
 

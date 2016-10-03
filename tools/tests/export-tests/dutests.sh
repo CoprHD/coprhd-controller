@@ -3777,7 +3777,7 @@ test_26() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 1 initiator
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1

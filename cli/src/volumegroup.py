@@ -1042,7 +1042,7 @@ class VolumeGroup(object):
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_MIGRATE.format(volumeGroupUri))
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_MIGRATE.format(volumeGroupUri), "")
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
@@ -1106,7 +1106,7 @@ class VolumeGroup(object):
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_REFRESH.format(volumeGroupUri))
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_REFRESH.format(volumeGroupUri), "")
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
@@ -1120,7 +1120,7 @@ class VolumeGroup(object):
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_RECOVER.format(volumeGroupUri))
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_RECOVER.format(volumeGroupUri), "")
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
@@ -1134,7 +1134,7 @@ class VolumeGroup(object):
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_SYNCSTOP.format(volumeGroupUri))
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_SYNCSTOP.format(volumeGroupUri), "")
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
@@ -1148,7 +1148,7 @@ class VolumeGroup(object):
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_SYNCSTART.format(volumeGroupUri))
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_SYNCSTART.format(volumeGroupUri), "")
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
@@ -1162,7 +1162,7 @@ class VolumeGroup(object):
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_REMOVE_ENV.format(volumeGroupUri))
+                                             VolumeGroup.URI_VOLUME_GROUP_MIGRATION_REMOVE_ENV.format(volumeGroupUri), "")
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
@@ -3070,7 +3070,7 @@ def volume_group_migration_create(args):
 
     try:
             
-        res= obj.volume_group_migration_create(args.name, args.varray, args.vpool)
+        res= obj.volume_group_migration_create(args.name, args.varray, args.vpool, False)
 
         return common.format_json_object(res)
 
@@ -3112,7 +3112,7 @@ def volume_group_migration_migrate(args):
 
     try:
             
-        res= obj.volume_group_migration_migrate(args.name)
+        res= obj.volume_group_migration_migrate(args.name, False)
 
         return common.format_json_object(res)
 
@@ -3158,7 +3158,7 @@ def volume_group_migration_commit(args):
 
     try:
             
-        res= obj.volume_group_migration_commit(args.name, args.remove_env)
+        res= obj.volume_group_migration_commit(args.name, args.remove_env, False)
 
         return common.format_json_object(res)
 
@@ -3204,7 +3204,7 @@ def volume_group_migration_cancel(args):
 
     try:
             
-        res= obj.volume_group_migration_cancel(args.name, args.remove_env)
+        res= obj.volume_group_migration_cancel(args.name, args.remove_env, False)
 
         return common.format_json_object(res)
 
@@ -3244,7 +3244,7 @@ def volume_group_migration_refresh(args):
 
     try:
             
-        res= obj.volume_group_migration_refresh(args.name)
+        res= obj.volume_group_migration_refresh(args.name, False)
 
         return common.format_json_object(res)
 
@@ -3284,7 +3284,7 @@ def volume_group_migration_recover(args):
 
     try:
             
-        res= obj.volume_group_migration_recover(args.name)
+        res= obj.volume_group_migration_recover(args.name, False)
 
         return common.format_json_object(res)
 
@@ -3324,7 +3324,7 @@ def volume_group_migration_syncstop(args):
 
     try:
             
-        res= obj.volume_group_migration_syncstop(args.name)
+        res= obj.volume_group_migration_syncstop(args.name, False)
 
         return common.format_json_object(res)
 
@@ -3364,7 +3364,7 @@ def volume_group_migration_syncstart(args):
 
     try:
             
-        res= obj.volume_group_migration_syncstart(args.name)
+        res= obj.volume_group_migration_syncstart(args.name, False)
 
         return common.format_json_object(res)
 
@@ -3404,7 +3404,7 @@ def volume_group_migration_remove_env(args):
 
     try:
             
-        res= obj.volume_group_migration_remove_environment(args.name)
+        res= obj.volume_group_migration_remove_environment(args.name, False)
 
         return common.format_json_object(res)
 

@@ -14,6 +14,8 @@ LOCAL_LDAP_AUTHN_MANAGER_PWD=secret
 LOCAL_LDAP_AUTHN_DOMAINS=VIPRSANITY.COM
 LOCAL_LDAP_SUPERUSER_USERNAME=ldapViPRUser1@${LOCAL_LDAP_AUTHN_DOMAINS}
 
+. volumegroup_migration
+
 usage()
 {
     echo "Usage: volumegroup [create | list | show | delete | update | add-volumes | remove-volumes | show-volumes]"
@@ -40,6 +42,15 @@ usage()
     echo "           list-full-copy-sets <name>"
     echo "           list_copy_volumes <name> <copy-set-name>"
     echo "           verify-copy-set <name> <copy-set-name>"
+    echo "           create-migration <name> <target-varray> <target-vpool>"
+    echo "           migrate <name>"
+    echo "           commit-migration <name> [remove-env]"
+    echo "           cancel-migration <name> [remove-env]"
+    echo "           refresh-migration <name>"
+    echo "           recover-migration <name>"
+    echo "           syncstop-migration <name>"
+    echo "           syncstart-migration <name>"
+    echo "           remove-migration-env <name>"
     exit 2
 }
 
@@ -941,7 +952,42 @@ elif [ $1 == 'verify-copy-set' ]; then
     [ $# -ge 2 ] || usage
     shift
     volume_group_verify_copy_set "$@"
+elif [ $1 == 'create-migration' ]; then
+    [ $# -ge 4 ] || usage
+    shift
+    volume_group_create_migration "$@"
+elif [ $1 == 'migrate' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_migrate "$@"
+elif [ $1 == 'commit-migration' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_commit_migration "$@"
+elif [ $1 == 'cancel-migration' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_cancel_migration "$@"
+elif [ $1 == 'refresh-migration' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_refresh_migration "$@"
+elif [ $1 == 'recover-migration' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_recover_migration "$@"
+elif [ $1 == 'syncstop-migration' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_syncstop_migration "$@"
+elif [ $1 == 'syncstart-migration' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_syncstart_migration "$@"
+elif [ $1 == 'remove-migration-env' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_remove_migration_env "$@"
 else
    usage
 fi
-

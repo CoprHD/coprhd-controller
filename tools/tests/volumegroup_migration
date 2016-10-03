@@ -1,0 +1,148 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+# ==============================================================
+# Uncomment the below line to get tracing output for this script
+#set -x
+
+#
+# create migration
+#
+volume_group_create_migration()
+{
+    name=$1
+    varray=$2
+    vpool=$3
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup create-migration -name ${name} -varray ${varray} -vpool ${vpool}"
+    viprcli volumegroup create-migration -name ${name} -varray ${varray} -vpool ${vpool}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+
+}
+#
+# migrate/cutover
+#
+volume_group_migrate()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup migrate -name ${name}"
+    viprcli volumegroup migrate -name ${name}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# commit migration
+#
+volume_group_commit_migration()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    if [[ $2 == "remove-env" ]]; then
+        remove_env="true"
+    else
+        remove_env="false"
+    fi
+    echo "viprcli volumegroup commit-migration -name ${name} -remove-migration-env ${remove_env}"
+    viprcli volumegroup commit-migration -name ${name} -remove-migration-env ${remove_env}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# cancel migration
+#
+volume_group_cancel_migration()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    if [[ $2 == "remove-env" ]]; then
+        remove_env="true"
+    else
+        remove_env="false"
+    fi
+    echo "viprcli volumegroup cancel-migration -name ${name} -remove-migration-env ${remove_env}"
+    viprcli volumegroup cancel-migration -name ${name} -remove-migration-env ${remove_env}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# refresh migration
+#
+volume_group_refresh_migration()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup refresh-migration -name ${name}"
+    viprcli volumegroup refresh-migration -name ${name}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# recover migration
+#
+volume_group_recover_migration()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup recover-migration -name ${name}"
+    viprcli volumegroup recover-migration -name ${name}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# syncstop migration
+#
+volume_group_syncstop_migration()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup syncstop-migration -name ${name}"
+    viprcli volumegroup syncstop-migration -name ${name}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# syncstart migration
+#
+volume_group_syncstart_migration()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup syncstart-migration -name ${name}"
+    viprcli volumegroup syncstart-migration -name ${name}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# remove migration env
+#
+volume_group_remove_migration_env()
+{
+    name=$1
+    viprcli_authenticate >$ dev/null
+    echo "viprcli volumegroup remove-migration-env -name ${name}"
+    viprcli volumegroup remove-migration-env -name ${name}
+    retval=$?
+    viprcli_logout >$ dev/null
+    return $retval
+}
+

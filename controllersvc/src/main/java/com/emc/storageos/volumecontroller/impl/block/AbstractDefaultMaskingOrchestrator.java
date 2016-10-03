@@ -2213,7 +2213,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Initiator initiator, List<String> portsForComputeResource) {
         boolean result = false;
         if (exportGroup.forHost() || exportGroup.forCluster()) {
-            result = mask.hasExactlyTheseInitiators(portsForComputeResource);
+            result = ExportMaskUtils.hasExactlyTheseInitiators(mask, portsForComputeResource, _dbClient);
         } else if (mask.hasInitiator(initiator.getId().toString()) || mask.hasExistingInitiator(initiator)) {
             result = true;
         }
@@ -2245,12 +2245,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Set<URI> partialMasks) {
         Set<String> foundPorts = new HashSet<>();
         if (exportGroup.forHost() || exportGroup.forCluster()) {
-            if (mask.hasExactlyTheseInitiators(portsForComputeResource)) {
+            if (ExportMaskUtils.hasExactlyTheseInitiators(mask, portsForComputeResource, _dbClient)) {
                 return true;
             }
 
             // Make sure the mask in question contains only ports in the compute resource in order to qualify
-            if (mask.hasAnyInitiators() && mask.hasExactlySubsetOfTheseInitiators(portsForComputeResource)) {
+            if (mask.hasAnyInitiators() && ExportMaskUtils.hasExactlySubsetOfTheseInitiators(mask, portsForComputeResource, _dbClient)) {
                 // Specifically for cluster: Either we have a mask that already works for multiple hosts (the case of
                 // cluster),
                 // but maybe not all of the hosts in the cluster, or this mask is a non-cascaded IG mask that only works
@@ -2286,7 +2286,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 // hosts
                 // when a cluster export is requested and a cluster masking view is available.
                 if (!exportGroup.forCluster() || !maskAppliesToMultipleHosts(otherMask)) {
-                    if (otherMask.hasAnyInitiators() && otherMask.hasExactlySubsetOfTheseInitiators(portsForComputeResource)) {
+                    if (otherMask.hasAnyInitiators()
+                            && ExportMaskUtils.hasExactlySubsetOfTheseInitiators(otherMask, portsForComputeResource, _dbClient)) {
                         partialMasks.add(otherMask.getId());
                         foundPorts.addAll(ExportUtils.getExportMaskAllInitiatorPorts(otherMask, _dbClient));
                     }

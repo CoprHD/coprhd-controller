@@ -729,7 +729,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("setIsilonExport called with {}", expRule.toString());
         String mountPath = expRule.getExportPath();
         String comments = "";
-        String secType = expRule.getSecFlavor();
         String root_user = expRule.getAnon();
 
         IsilonExport newIsilonExport = new IsilonExport();
@@ -742,21 +741,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // Empty list of clients means --- all clients.
         if (expRule.getReadOnlyHosts() != null) {
-            newIsilonExport.addClients(new ArrayList(expRule.getReadOnlyHosts()));
+            newIsilonExport.addClients(new ArrayList<String>(expRule.getReadOnlyHosts()));
             roHosts = expRule.getReadOnlyHosts().size();
-            newIsilonExport.addReadOnlyClients(new ArrayList(expRule.getReadOnlyHosts()));
+            newIsilonExport.addReadOnlyClients(new ArrayList<String>(expRule.getReadOnlyHosts()));
         }
 
         if (expRule.getReadWriteHosts() != null) {
-            newIsilonExport.addClients(new ArrayList(expRule.getReadWriteHosts()));
+            newIsilonExport.addClients(new ArrayList<String>(expRule.getReadWriteHosts()));
             rwHosts = expRule.getReadWriteHosts().size();
-            newIsilonExport.addReadWriteClients(new ArrayList(expRule.getReadWriteHosts()));
+            newIsilonExport.addReadWriteClients(new ArrayList<String>(expRule.getReadWriteHosts()));
         }
 
         if (expRule.getRootHosts() != null) {
-            newIsilonExport.addClients(new ArrayList(expRule.getRootHosts()));
+            newIsilonExport.addClients(new ArrayList<String>(expRule.getRootHosts()));
             rootHosts = expRule.getRootHosts().size();
-            newIsilonExport.addRootClients(new ArrayList(expRule.getRootHosts()));
+            newIsilonExport.addRootClients(new ArrayList<String>(expRule.getRootHosts()));
         }
 
         // set security type
@@ -772,19 +771,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             secFlavors.add(securityType);
         }
         newIsilonExport.setSecurityFlavors(secFlavors);
+        newIsilonExport.setMapRoot(root_user);
 
         if (roHosts > 0 && rwHosts == 0 && rootHosts == 0) {
             // RO Export
             newIsilonExport.setReadOnly();
-            newIsilonExport.setMapRoot(root_user);
         } else if (roHosts == 0 && rwHosts > 0 && rootHosts == 0) {
             // RW Export
             newIsilonExport.resetReadOnly();
-            newIsilonExport.setMapRoot(root_user);
         } else if (roHosts == 0 && rootHosts > 0) {
             // ROOT export
             newIsilonExport.resetReadOnly();
-            newIsilonExport.setMapAll("root");
         }
 
         _log.info("setIsilonExport completed with creating {}", newIsilonExport.toString());
@@ -1660,9 +1657,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             _log.info("Add this export rule {}", exportRule.toString());
 
-            String root_user = exportRule.getAnon();
-            Set<String> rootHosts = exportRule.getRootHosts();
-
             String isilonExportId = exportRule.getDeviceExportId();
             String zoneName = getZoneName(args.getvNAS());
             if (isilonExportId != null) {
@@ -1671,7 +1665,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 modifyRules.add(exportRule);
             } else {
                 // Create the Export
-                List<String> allClients = new ArrayList<>();
                 _log.info("Export rule does not exist on the device so create it: {}", exportRule);
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
                 String expId = null;
@@ -1688,7 +1681,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 processIsiExport(isi, args, modifyRules);
             }
         }
-        _log.info("ProcessAddExport  Completed");
+        _log.info("ProcessAddExport completed.");
     }
 
     /**
@@ -1900,8 +1893,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             throws IsilonException {
 
         _log.info("processRemoveIsiExport  Start");
-
-        List<ExportRule> modifyRules = new ArrayList<>();
 
         // process and export each NFSExport independently.
         for (ExportRule exportRule : exports) {

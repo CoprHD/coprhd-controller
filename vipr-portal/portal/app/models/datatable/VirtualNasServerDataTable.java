@@ -3,15 +3,17 @@ package models.datatable;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
-
-import util.datatable.DataTable;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
+
+import util.datatable.DataTable;
 
 public class VirtualNasServerDataTable extends DataTable {
 
@@ -91,6 +93,15 @@ public class VirtualNasServerDataTable extends DataTable {
         private final String avgPercentagebusy;
         private final String percentLoad;
 
+        // whether this vnas is a replication destination remote or local
+        private Boolean replicationDestination = false;
+
+        // source vNas if replication destination
+        private Set<String> sourceVirtualNasIds;
+
+        // destination vNas if replication source
+        private Set<String> destinationVirtualNasIds;
+
         public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep, boolean isProjectAccessible) {
 
             StringBuffer projectListWithIds = new StringBuffer();
@@ -149,7 +160,67 @@ public class VirtualNasServerDataTable extends DataTable {
             } else {
                 this.id = vNasRestRep.getId().toString() + "~~~";
             }
+            // Setting Source and destination NAS names
+            List<URI> nasList = vNasRestRep.getSourceVirtualNasIds();
+            if (nasList != null) {
+                if (this.sourceVirtualNasIds == null) {
+                    this.sourceVirtualNasIds = new HashSet<String>();
+                }
+                for (URI nasUri : nasList) {
+                    this.sourceVirtualNasIds.add(getViprClient().virtualNasServers().get(nasUri).getName());
+                }
+            }
+            nasList = vNasRestRep.getDestinationVirtualNasIds();
+            if (nasList != null) {
+                if (this.destinationVirtualNasIds == null) {
+                    this.destinationVirtualNasIds = new HashSet<String>();
+                }
+                for (URI nasUri : nasList) {
+                    this.destinationVirtualNasIds.add(getViprClient().virtualNasServers().get(nasUri).getName());
+                }
+            }
         }
     }
 
+    public static class VNasMoreInfo {
+        private String storageObjects;
+        private String storageCapacity;
+        private String avgPercentagebusy;
+        private String percentLoad;
+        private String usedStorageCapacity;
+
+        private Set<String> sourceVNASs;
+        private Set<String> destinationVNASs;
+
+        public VNasMoreInfo(VirtualNASRestRep vNasRestRep) {
+            this.storageObjects = vNasRestRep.getStorageObjects();
+            this.storageCapacity = vNasRestRep.getUsedStorageCapacity();
+            this.avgPercentagebusy = vNasRestRep.getAvgPercentagebusy();
+            this.percentLoad = vNasRestRep.getPercentLoad();
+            this.usedStorageCapacity = vNasRestRep.getUsedStorageCapacity();
+            // Setting Source and destination NAS names
+            List<URI> nasList = vNasRestRep.getSourceVirtualNasIds();
+            if (nasList != null) {
+                if (this.sourceVNASs == null) {
+                    this.sourceVNASs = new HashSet<String>();
+                }
+                for (URI nasUri : nasList) {
+                    VirtualNASRestRep nasServer = getViprClient().virtualNasServers().get(nasUri);
+                    this.sourceVNASs.add(nasServer.getName() + "-"
+                            + getViprClient().storageSystems().get(nasServer.getStorageDeviceURI()).getName());
+                }
+            }
+            nasList = vNasRestRep.getDestinationVirtualNasIds();
+            if (nasList != null) {
+                if (this.destinationVNASs == null) {
+                    this.destinationVNASs = new HashSet<String>();
+                }
+                for (URI nasUri : nasList) {
+                    VirtualNASRestRep nasServer = getViprClient().virtualNasServers().get(nasUri);
+                    this.destinationVNASs.add(nasServer.getName() + "-"
+                            + getViprClient().storageSystems().get(nasServer.getStorageDeviceURI()).getName());
+                }
+            }
+        }
+    }
 }

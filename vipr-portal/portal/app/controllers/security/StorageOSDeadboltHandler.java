@@ -17,6 +17,7 @@ import controllers.deadbolt.RestrictedResourcesHandler;
 import controllers.deadbolt.Restrictions;
 import models.deadbolt.Role;
 import models.deadbolt.RoleHolder;
+import jobs.vipr.AuthModeBootstrap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
@@ -76,7 +77,7 @@ public class StorageOSDeadboltHandler extends Controller implements controllers.
 
         if (request.path.contains("locallogin")) {
             Security.redirectToAuthPage(service);
-        } else if ( Security.authMode().equals(AuthSourceType.oidc) ) {
+        } else if ( Security.authMode().equals(AuthModeBootstrap.AuthModeType.oidc) ) {
             Security.redirectToOIDCAuth();
         } else { // ad, ldap or keystore
             Security.redirectToAuthPage(service);

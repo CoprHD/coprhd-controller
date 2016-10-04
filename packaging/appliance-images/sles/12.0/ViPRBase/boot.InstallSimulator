@@ -28,6 +28,25 @@ export PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 # Execute the script only if "/data/simulators" is not existed yet..
 if [ ! -f /data/simulators ]; then
+   # Run the simulator install script
    chmod 777 /aio-simulators/AIO_scripts/simulatorInstall.sh
    /aio-simulators/AIO_scripts/simulatorInstall.sh /aio-simulators
+   
+   # Other changes during the firstboot requested from Jai
+   IP4Addr=`/sbin/ifconfig | egrep -A 1 "ens|eth0" | tail -1 | awk -F":" '{print $2}' | awk -F" " '{print $1}'`
+
+   # General change:
+   mv /data/simulators/vplex-sim_2/vplex_config_2.properties /data/simulators/vplex-sim_2/vplex_config.properties
+   rm -f /data/simulators/vplex-sim/vplex_config_2.properties
+   mv /data/simulators/ecom462/providers/OSLSProvider.conf.462 /data/simulators/ecom462/providers/OSLSProvider.conf
+   rm -f /data/simulators/ecom80/providers/OSLSProvider.conf.462
+   sed -i "s|standalone\tstandalone|standalone winhost1 winhost2 winhost3 winhost4 winhost5|g" /etc/hosts
+
+   # Change IP on the configuration files
+   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim/vplex_config.properties
+   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim_2/vplex_config.properties
+   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio/xio_config.properties
+   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio_2/xio_config.properties
+   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/rp-sim/rp_config.properties
+   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vmware/vmw_config.properties
 fi

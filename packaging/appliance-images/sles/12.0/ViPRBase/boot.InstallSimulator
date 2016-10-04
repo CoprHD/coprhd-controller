@@ -41,6 +41,9 @@ if [ ! -f /data/simulators ]; then
    mv /data/simulators/ecom462/providers/OSLSProvider.conf.462 /data/simulators/ecom462/providers/OSLSProvider.conf
    rm -f /data/simulators/ecom80/providers/OSLSProvider.conf.462
    sed -i "s|standalone\tstandalone|standalone winhost1 winhost2 winhost3 winhost4 winhost5|g" /etc/hosts
+   ln -s /data/simulators/cisco-sim /cisco-sim
+   cp /data/simulators/cisco-sim/bashrc /root/.bashrc
+   cp /data/simulators/cisco-sim/db/fcns.db.rp /data/simulators/cisco-sim/db/fcns.db
 
    # Change IP on the configuration files
    sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim/vplex_config.properties

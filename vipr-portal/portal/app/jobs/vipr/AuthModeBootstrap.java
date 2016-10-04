@@ -35,16 +35,17 @@ public class AuthModeBootstrap extends Job {
             coordinator = StorageOsPlugin.getInstance().getCoordinatorClient();
             coordinator.addNodeListener(new AuthModeListener());
 
-            Logger.info("AuthModeListener gets started. The current auth mode is ", Cache.get(Security.AUTH_MODE));
+            Logger.info("AuthModeListener gets started. The current auth mode is " + Cache.get(Security.AUTH_MODE));
         } catch (Exception e) {
-            Logger.error("Error to start AuthModeListener.", e);
+            Logger.error("Error to start AuthModeListener: " + e);
         }
     }
 
     private class AuthModeListener implements NodeListener {
         @Override
         public String getPath() {
-            return null;
+            String path = String.format("/config/authmode");
+            return path;
         }
 
         @Override

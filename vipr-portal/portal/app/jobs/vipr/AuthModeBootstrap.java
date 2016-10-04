@@ -32,10 +32,6 @@ public class AuthModeBootstrap extends Job {
     private CoordinatorClient coordinator;
     ConfigurationUtil configurationUtil = new ConfigurationUtil(coordinator);
 
-    public enum AuthModeType {
-        oidc, normal;
-    }
-
     public void doJob() {
         try {
             Cache.set(Security.AUTH_MODE_CACHE_KEY, AuthSourceType.oidc.name());
@@ -60,7 +56,7 @@ public class AuthModeBootstrap extends Job {
 
         if (Cache.get(Security.AUTH_MODE_CACHE_KEY) == null) {
             Logger.info("There is no Authmode set in cache, setting default one.");
-            Cache.set(Security.AUTH_MODE_CACHE_KEY, AuthModeType.normal.name());
+            Cache.set(Security.AUTH_MODE_CACHE_KEY, Security.AuthModeType.normal.name());
         }
 
         Logger.info("Authmode is %s", Cache.get(Security.AUTH_MODE_CACHE_KEY));

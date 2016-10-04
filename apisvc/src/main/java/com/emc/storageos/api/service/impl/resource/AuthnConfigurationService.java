@@ -39,6 +39,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
 import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.coordinator.client.service.ConfigurationUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
@@ -93,6 +94,14 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
+    private static String AUTH_KIND = "auth";
+    private static String AUTH_ID = "auth";
+    private static String AUTHMODE_KEY = "authmode";
+    private static String AUTH_LOCK_NAME = "auth_lock";
+
+    public enum AuthModeType {
+        oidc, normal;
+    }
 
     @Autowired
     private TenantsService _tenantsService;
@@ -105,6 +114,8 @@ public class AuthnConfigurationService extends TaggedResource {
     private OpenStackSynchronizationTask _openStackSynchronizationTask;
 
     private static final String EVENT_SERVICE_TYPE = "authconfig";
+
+    private ConfigurationUtil configUtil = new ConfigurationUtil(_coordinator);
 
     @Override
     public String getServiceType() {
@@ -239,8 +250,8 @@ public class AuthnConfigurationService extends TaggedResource {
                     provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
                 }
             }
-        } if (null != mode && AuthnProvider.ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
-            buildOIDCParameters(provider);
+        } else if (null != mode && AuthnProvider.ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
+            provider = buildOIDCParameters(provider);
         } else {
             // Now validate the authn provider to make sure
             // either both group object classes and
@@ -253,6 +264,8 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
 
+        notifyAuthModeChanged(provider.getMode());
+
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
 
@@ -261,6 +274,27 @@ public class AuthnConfigurationService extends TaggedResource {
         // "Authentication Profile created", provider.getId());
 
         return map(provider);
+    }
+
+    private void notifyAuthModeChanged(String providerMode) {
+        String authMode = getAuthModeFromProviderMode(providerMode);
+
+        try {
+            configUtil.write(_coordinator.getSiteId(), AUTH_KIND, null, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
+        } catch (Exception e) {
+            // Failure is allowed here and there will be periodical query to db
+            _log.warn("Fail to notify authmode change via zk", e);
+        }
+    }
+
+    private String getAuthModeFromProviderMode(String providerMode) {
+        String authMode = AuthModeType.normal.name();
+
+        if (providerMode.equals(ProvidersType.oidc)) {
+            authMode = AuthModeType.oidc.name();
+        }
+
+        return authMode;
     }
 
     private AuthnProvider buildOIDCParameters(AuthnProvider provider) {

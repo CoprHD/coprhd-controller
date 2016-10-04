@@ -4,7 +4,6 @@
  */
 package controllers.security;
 
-import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import controllers.deadbolt.Deadbolt;
@@ -42,7 +41,7 @@ public class Security extends Controller {
     public static final String PROJECT_ADMIN = "PROJECT_ADMIN";
     public static final String RESTRICTED_SYSTEM_ADMIN = "RESTRICTED_SYSTEM_ADMIN";
     public static final String RESTRICTED_SECURITY_ADMIN = "RESTRICTED_SECURITY_ADMIN";
-    public static final String AUTH_MODE = "authmode";
+    public static final String AUTH_MODE_CACHE_KEY = "authmode";
 
     // These are Portal only Roles!
     // Members who have admin over any tenant will get the TENANT_ADMIN role,
@@ -362,6 +361,6 @@ public class Security extends Controller {
 
     @Util
     public static AuthSourceType authMode() {
-        return AuthSourceType.valueOf( (String) Cache.get(AUTH_MODE) );
+        return AuthSourceType.valueOf( (String) Cache.get(AUTH_MODE_CACHE_KEY) );
     }
 }

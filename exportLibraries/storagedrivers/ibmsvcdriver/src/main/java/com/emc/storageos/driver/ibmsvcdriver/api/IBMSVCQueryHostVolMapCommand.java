@@ -51,11 +51,10 @@ public class IBMSVCQueryHostVolMapCommand extends AbstractIBMSVCQueryCommand<IBM
         switch (spec.getPropertyName()) {
 
             case HOST_VOLMAP_PARAMS_INFO:
-
+                // not called if query returned empty.
                 String[] hostVolData = capturedStrings.get(0).split(":");
-                int volCount = hostVolData.length; // not called if query returned empty.
 
-                results.setVolCount(volCount);
+                results.setVolCount(results.getVolCount() + 1);
                 results.setSuccess(true);
                 break;
         }

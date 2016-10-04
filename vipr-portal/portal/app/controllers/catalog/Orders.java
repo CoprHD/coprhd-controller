@@ -23,6 +23,8 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
+import com.emc.sa.engine.ExecutionContext;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.TaskResourceRep;
@@ -81,7 +83,9 @@ import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
+
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.sa.service.*;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -293,7 +297,9 @@ public class Orders extends OrderExecution {
         fetchData(details);
         ServiceDescriptorRestRep descriptor = details.catalogService.getServiceDescriptor();
         addBreadCrumbToRenderArgs(id(details.order.getTenant()), details.catalogService);
-        render(orderId, details, descriptor);
+        ExecutionUtils context = new ExecutionUtils();
+        ExecutionContext heavyTrail = context.currentContext();
+        render(orderId, details, descriptor, heavyTrail);
     }
 
     private static void addBreadCrumbToRenderArgs(URI tenant, CatalogServiceRestRep service) {
@@ -620,4 +626,7 @@ public class Orders extends OrderExecution {
             alterColumn("submittedBy").setVisible(true);
         }
     }
+    
 }
+
+

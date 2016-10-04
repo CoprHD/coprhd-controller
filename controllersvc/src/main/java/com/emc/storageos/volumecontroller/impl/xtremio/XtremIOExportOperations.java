@@ -565,8 +565,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     storage.getSerialNumber(), initiators,
                     null, xioClusterName, client);
 
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiators);
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
-                    .removeVolumes(storage, exportMask.getId(), initiators);
+                    .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
             initiatorsValidator.validate();
 
@@ -719,8 +723,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     null, xioClusterName, client);
             ArrayListMultimap<String, Initiator> knownInitiatorsToIGMap = ArrayListMultimap.create();
             // DU validations for removing volumes from IG.
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiators);
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
-                    .removeVolumes(storage, exportMask.getId(), initiators);
+                    .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
             initiatorsValidator.setKnownInitiatorToIGMap(knownInitiatorsToIGMap);
             initiatorsValidator.validate();
@@ -833,7 +841,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     if (removeInitiator) {
                         _log.info("Removing requested intiators from IG instead of deleting LunMap"
                                 + " as the IG contains other Host's initiators belonging to same Cluster.");
-                        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                        ctx = new ExportMaskValidationContext();
                         ctx.setStorage(storage);
                         ctx.setExportMask(exportMask);
                         ctx.setBlockObjects(volumes, dbClient);

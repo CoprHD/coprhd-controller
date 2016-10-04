@@ -1123,7 +1123,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
-            validator.removeVolumes(storage, exportMaskURI, initiatorList, blockObjects).validate();
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(blockObjects);
+            ctx.setInitiators(initiatorList);
+            validator.removeVolumes(ctx).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();

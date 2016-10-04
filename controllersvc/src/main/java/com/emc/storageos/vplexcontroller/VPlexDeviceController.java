@@ -3811,7 +3811,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // Remove volumes from the storage view.
-                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
+                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList, opId);
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
@@ -3898,26 +3898,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (taskCompleter != null) {
                 ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
                         .loadStepData(taskCompleter != null ? taskCompleter.getOpId() : null);
-                if (context != null && context.getOperations() != null) {
-                    _log.info("Handling removeVolumess as a result of rollback");
+                if (context != null) {
+                    // A non-null context means this step is running as part of a rollback.
                     List<URI> addedVolumes = new ArrayList<>();
-                    ListIterator<ExportOperationContextOperation> li = context.getOperations()
-                            .listIterator(context.getOperations().size());
-                    while (li.hasPrevious()) {
-                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                        if (operation != null
-                                && VPlexExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW.equals(operation.getOperation())) {
-                            addedVolumes = (List<URI>) operation.getArgs().get(0);
-                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                    if (context.getOperations() != null) {
+                        _log.info("Handling removeVolumess as a result of rollback");
+                        ListIterator<ExportOperationContextOperation> li = context.getOperations()
+                                .listIterator(context.getOperations().size());
+                        while (li.hasPrevious()) {
+                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                            if (operation != null
+                                    && VPlexExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW.equals(operation.getOperation())) {
+                                addedVolumes = (List<URI>) operation.getArgs().get(0);
+                                _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                            }
+                        }
+
+                        if (addedVolumes == null || addedVolumes.isEmpty()) {
+                            _log.info("There was no context found for add volumes. So there is nothing to rollback.");
+                            WorkflowStepCompleter.stepSucceded(stepId);
+                            return;
                         }
                     }
-
-                    if (addedVolumes == null || addedVolumes.isEmpty()) {
-                        _log.info("There was no context found for add volumes. So there is nothing to rollback.");
-                        WorkflowStepCompleter.stepSucceded(stepId);
-                        return;
-                    }
-
                     // Change the list of initiators to process to the list that successfully were added during
                     // addInitiators.
                     volumeIdsToProcess.clear();
@@ -3930,7 +3932,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Removes the specified volumes from the storage view
             // and updates the export mask.
-            removeVolumesFromStorageViewAndMask(client, exportMask, volumeIdsToProcess);
+            removeVolumesFromStorageViewAndMask(client, exportMask, volumeIdsToProcess, stepId);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
@@ -3957,7 +3959,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws Exception
      */
     private void removeVolumesFromStorageViewAndMask(
-            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList) throws Exception {
+            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList, String stepId) throws Exception {
 
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
@@ -3969,7 +3971,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
         StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
-        validator.removeVolumes(vplex, exportMask.getId(), initiators).validate();
+        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+        ctx.setStorage(vplex);
+        ctx.setExportMask(exportMask);
+        ctx.setBlockObjects(volumeURIList, _dbClient);
+        ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+        validator.removeVolumes(ctx).validate();
 
         // If no volumes to remove, just return.
         if (volumeURIList.isEmpty()) {
@@ -4856,7 +4863,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     lastStep = addStepsForRemoveInitiators(
                             vplex, workflow, exportGroup, exportMask, initsToRemove,
-                            hostURI, initiatorsAlreadyRemovedFromExportGroup, lastStep);
+                            hostURI, initiatorsAlreadyRemovedFromExportGroup, lastStep, opId);
                     if (lastStep != null) {
                         hasStep = true;
                     }
@@ -4907,7 +4914,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private String addStepsForRemoveInitiators(StorageSystem vplex, Workflow workflow,
             ExportGroup exportGroup, ExportMask exportMask, List<Initiator> initiators,
-            URI hostURI, List<URI> initiatorsAlreadyRemovedFromExportGroup, String previousStep) throws Exception {
+            URI hostURI, List<URI> initiatorsAlreadyRemovedFromExportGroup, String previousStep, String opId) throws Exception {
         String lastStep = previousStep;
 
         // assemble a list of other ExportGroups that reference this ExportMask
@@ -5028,7 +5035,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // single StorageView volume remove would require a change to the
                         // MaskingOrchestrator.exportGroupRemoveVolumes interface
                         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-                        removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
+                        removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList, opId);
 
                         // clean up zoning for this export mask
                         List<URI> exportMaskURIs = new ArrayList<URI>();
@@ -5351,26 +5358,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (taskCompleter != null) {
                 ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
                         .loadStepData(taskCompleter != null ? taskCompleter.getOpId() : null);
-                if (context != null && context.getOperations() != null) {
-                    _log.info("Handling removeInitiators as a result of rollback");
+                if (context != null) {
+                    // A non-null context means this step is running as part of a rollback.
                     List<URI> addedInitiators = new ArrayList<>();
-                    ListIterator<ExportOperationContextOperation> li = context.getOperations()
-                            .listIterator(context.getOperations().size());
-                    while (li.hasPrevious()) {
-                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                        if (operation != null
-                                && VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW.equals(operation.getOperation())) {
-                            addedInitiators = (List<URI>) operation.getArgs().get(0);
-                            _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                    if (context.getOperations() != null) {
+                        _log.info("Handling removeInitiators as a result of rollback");
+                        ListIterator<ExportOperationContextOperation> li = context.getOperations()
+                                .listIterator(context.getOperations().size());
+                        while (li.hasPrevious()) {
+                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                            if (operation != null
+                                    && VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW
+                                            .equals(operation.getOperation())) {
+                                addedInitiators = (List<URI>) operation.getArgs().get(0);
+                                _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                            }
+                        }
+
+                        if (addedInitiators == null || addedInitiators.isEmpty()) {
+                            _log.info("There was no context found for add initiator. So there is nothing to rollback.");
+                            WorkflowStepCompleter.stepSucceded(stepId);
+                            return;
                         }
                     }
-
-                    if (addedInitiators == null || addedInitiators.isEmpty()) {
-                        _log.info("There was no context found for add initiator. So there is nothing to rollback.");
-                        WorkflowStepCompleter.stepSucceded(stepId);
-                        return;
-                    }
-
                     // Change the list of initiators to process to the list that successfully were added during
                     // addInitiators.
                     initiatorIdsToProcess.clear();

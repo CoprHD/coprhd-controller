@@ -81,6 +81,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
 /**
@@ -1033,6 +1034,30 @@ public class ControllerUtils {
             }
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
+    }
+    
+    /**
+     * 
+     * @param snapshotURIs
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> ensureOneSnapshotPerReplicationGroup(List<URI> snapshotURIs, DbClient dbClient) {
+        List<URI> filteredSnapshotURIs = new ArrayList<>();
+        Set<String> replicationGroups = new HashSet<>();
+        Iterator<BlockSnapshot> snapshotIter = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+        while (snapshotIter.hasNext()) {
+            BlockSnapshot snapshot = snapshotIter.next();
+            String repGrpInstance = snapshot.getReplicationGroupInstance();
+            if (replicationGroups.contains(repGrpInstance)) {
+                continue;
+            }
+
+            replicationGroups.add(repGrpInstance);
+            filteredSnapshotURIs.add(snapshot.getId());
+        }
+        
+        return filteredSnapshotURIs;
     }
 
     /**

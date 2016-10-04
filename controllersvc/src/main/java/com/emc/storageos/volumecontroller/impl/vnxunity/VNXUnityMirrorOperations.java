@@ -81,8 +81,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
 
             VNXeApiClient apiClient = getVnxUnityClient(system);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(
-                        dbClient.queryObject(FileShare.class, target.getParentFileShare()).getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.syncReplicationSession(session.getId()); // sync for the first time
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "startMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -103,8 +103,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         if (target.getParentFileShare() != null) {
             VNXeApiClient apiClient = getVnxUnityClient(system);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(
-                        dbClient.queryObject(FileShare.class, target.getParentFileShare()).getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.pauseReplicationSession(session.getId());
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "pauseMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -126,8 +126,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         if (target.getParentFileShare() != null) {
             VNXeApiClient apiClient = getVnxUnityClient(system);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(
-                        dbClient.queryObject(FileShare.class, target.getParentFileShare()).getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.resumeReplicationSession(session.getId(), false);
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "resumeMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -174,7 +174,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             StorageSystem sourceStorageSystem = dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
             VNXeApiClient apiClient = getVnxUnityClient(sourceStorageSystem);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(sourceStorageSystem.getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.failoverReplicationSession(session.getId(), true);
                 VNXeJob replicationJob = new VNXeJob(job.getId(), sourceStorageSystem.getId(), completer, "failoverMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -198,7 +199,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             StorageSystem sourceStorageSystem = dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
             VNXeApiClient apiClient = getVnxUnityClient(sourceStorageSystem);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(sourceStorageSystem.getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.failbackReplicationSession(session.getId(), false);
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "failbackMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -220,8 +222,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         if (target.getParentFileShare() != null) {
             VNXeApiClient apiClient = getVnxUnityClient(primarySystem);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(
-                        dbClient.queryObject(FileShare.class, target.getParentFileShare()).getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.syncReplicationSession(session.getId());
                 VNXeJob replicationJob = new VNXeJob(job.getId(), primarySystem.getId(), completer, "resyncMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -243,8 +245,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         if (target.getParentFileShare() != null) {
             VNXeApiClient apiClient = getVnxUnityClient(system);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(
-                        dbClient.queryObject(FileShare.class, target.getParentFileShare()).getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.modifyReplicationSession(session.getId(), convertToMinutes(rpoValue, rpoType));
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "doModifyReplicationRPO");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -266,7 +268,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         VNXeApiClient apiClient = getVnxUnityClient(system);
         try {
             ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
-                    target.getNativeId());
+                    getResIdByFileShareURI(target.getId()));
             VNXeCommandJob job = apiClient.deleteReplicationSession(session.getId());
             VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "refreshMirrorFileShareLink");
             ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -287,8 +289,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         if (target.getParentFileShare() != null) {
             VNXeApiClient apiClient = getVnxUnityClient(system);
             try {
-                ReplicationSession session = apiClient.getReplicationSession(
-                        dbClient.queryObject(FileShare.class, target.getParentFileShare()).getNativeId(), target.getNativeId());
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.syncReplicationSession(session.getId());
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "refreshMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));

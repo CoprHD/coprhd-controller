@@ -382,6 +382,7 @@ public class ApiClientTest {
         for (ReplicationSession session : sessions) {
             System.out.println(session.getReplicationResourceType());
             System.out.println(session.getName());
+            System.out.println(session.getSrcResourceId() + " " + session.getDstResourceId());
             if (session.getRemoteSystem() != null) {
                 System.out.println(session.getRemoteSystem().getId());
             }

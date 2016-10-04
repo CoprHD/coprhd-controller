@@ -24,3 +24,17 @@
 	  </dl>
 	</div>
 </div>
+<table class='table table-condensed table-striped'>
+	<tbody>
+		<tr>
+			<td colspan="8">
+				<dl class="dl-horizontal">
+					<dt>&{'vNasServers.sourceVirtualNASs'}:</dt>
+					<dd>${vNas?.sourceVNASs != null? vNas?.sourceVNASs : messages.get('vNasServersDataTable.notApplicable') }</dd>
+					<dt>&{'vNasServers.destinationVirtualNASs'}:</dt>
+					<dd>${vNas?.destinationVNASs != null? vNas?.destinationVNASs : messages.get('vNasServersDataTable.notApplicable') }</dd>
+				</dl>
+			</td>
+		</tr>
+	</tbody>
+</table>

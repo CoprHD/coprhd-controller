@@ -25,6 +25,9 @@ public class SchedulePolicy extends DiscoveredDataObject {
     // Name of the policy
     private String policyName;
 
+    // Policy - schedule parameters!! 
+    // schedule parameters are applicable only for snapshot and replication
+   
     // Type of schedule policy e.g days, weeks or months
     private String scheduleFrequency;
 
@@ -40,17 +43,43 @@ public class SchedulePolicy extends DiscoveredDataObject {
     // Day of month when policy run
     private Long scheduleDayOfMonth;
 
+    // Snap shot expire/retention parameters!!
     // Snapshot expire type e.g hours, days, weeks, months or never
     private String snapshotExpireType;
-
+    
     // Snapshot expire at
     private Long snapshotExpireTime;
 
     // List of resources associated with schedule policy
     private StringSet assignedResources;
+    
+    // Replication policy parameters!!
+    // replication type
+    private String replicationType;
+    
+    //copy mode - sync or async
+    private String copyMode;
+    
+    // Quota parameters!!
+    // Quota policy does not require schedule parameters.
+    // Soft limit in percentage of hard limit
+    private Integer softLimit; 
 
-    public static enum SchedulePolicyType {
-        file_snapshot
+    // notification limit in percentage of hard limit
+    private Integer advisoryLimit; 
+
+    // soft grace period in days
+    private Integer softGrace; 
+    
+   
+
+	public void setSoftGrace(Integer softGrace) {
+		this.softGrace = softGrace;
+		setChanged("softGrace");
+	}
+
+	public static enum SchedulePolicyType {
+        file_snapshot, file_replication, file_quota
     }
 
     public static enum ScheduleFrequency {
@@ -174,6 +203,51 @@ public class SchedulePolicy extends DiscoveredDataObject {
         this.assignedResources = assignedResources;
         setChanged("assignedResources");
     }
+    
+    @Name("replicationType")
+    public String getReplicationType() {
+		return replicationType;
+	}
+
+	public void setReplicationType(String replicationType) {
+		this.replicationType = replicationType;
+		setChanged("replicationType");
+	}
+
+	@Name("copyMode")
+	public String getCopyMode() {
+		return copyMode;
+	}
+
+	public void setCopyMode(String copyMode) {
+		this.copyMode = copyMode;
+		setChanged("copyMode");
+	}
+
+	@Name("softLimit")
+	public Integer getSoftLimit() {
+		return softLimit;
+	}
+
+	public void setSoftLimit(Integer softLimit) {
+		this.softLimit = softLimit;
+		setChanged("softLimit");
+	}
+
+	@Name("advisoryLimit")
+	public Integer getAdvisoryLimit() {
+		return advisoryLimit;
+	}
+
+	public void setAdvisoryLimit(Integer advisoryLimit) {
+		this.advisoryLimit = advisoryLimit;
+		setChanged("advisoryLimit");
+	}
+
+	@Name("softGrace")
+	public Integer getSoftGrace() {
+		return softGrace;
+	}
 
     @Override
     public String toString() {

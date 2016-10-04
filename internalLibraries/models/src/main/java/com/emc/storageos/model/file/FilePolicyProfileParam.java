@@ -30,6 +30,9 @@ public class FilePolicyProfileParam {
     // Which level associated policies should apply!!
     private String applyAt;
     
+    // This is applicable only for project level policies.
+    private Boolean applyToAllProjects;
+    
     // List of projects associated to this profile
     // applicable, if the profile apply at project level.
     private List<String> associatedProjects;
@@ -63,6 +66,15 @@ public class FilePolicyProfileParam {
 
 	public void setApplyAt(String applyAt) {
 		this.applyAt = applyAt;
+	}
+	
+	@XmlElement(name = "apply_to_all_projects")
+	public Boolean getApplyToAllProjects() {
+		return applyToAllProjects;
+	}
+
+	public void setApplyToAllProjects(Boolean applyToAllProjects) {
+		this.applyToAllProjects = applyToAllProjects;
 	}
 
 	@XmlElement(name = "associated_projects")

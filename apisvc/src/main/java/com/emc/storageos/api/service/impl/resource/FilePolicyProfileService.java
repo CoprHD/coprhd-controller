@@ -54,7 +54,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
  * @author lakhiv
  * 
  */
-@Path("/file/policy-profile")
+@Path("/file/file-policy-profile")
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.TENANT_ADMIN })
 public class FilePolicyProfileService extends TaggedResource {

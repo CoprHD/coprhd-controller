@@ -25,14 +25,23 @@ public class FilePolicyProfile extends DataObject {
     private NamedURI tenantOrg;
     
     // Which level associated policies should apply!!
-    private String applyAt;
+    //private String applyAt;
+    
+    // This is applicable only for project level policies.
+    private Boolean applyToAllProjects;
     
     // List of projects associated to this profile
     // applicable, if the profile apply at project level.
     private StringSet associateProjects;
     
-    // List of policies associated to this profile
-    private StringSet associatePolicies;
+    // List of policies associated at vpool level
+    private StringSet associatevPoolPolicies;
+    
+    // List of policies associated  at project level
+    private StringSet associatePojectPolicies;
+    
+    // List of policies associated  at file system level
+    private StringSet associateFsPolicies;
     
     @Name("profileName")
     public String getProfileName() {
@@ -41,6 +50,7 @@ public class FilePolicyProfile extends DataObject {
 
 	public void setProfileName(String profileName) {
 		this.profileName = profileName;
+		setChanged("profileName");
 	}
 
 	@NamedRelationIndex(cf = "NamedRelation", type = VirtualPool.class)
@@ -51,6 +61,7 @@ public class FilePolicyProfile extends DataObject {
 
 	public void setVirtualPool(NamedURI virtualPool) {
 		this.virtualPool = virtualPool;
+		setChanged("virtualPool");
 	}
 	
 	@NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
@@ -64,31 +75,64 @@ public class FilePolicyProfile extends DataObject {
         setChanged("tenantOrg");
     }
 
-	@Name("applyAt")
+	/*@Name("applyAt")
 	public String getApplyAt() {
 		return applyAt;
 	}
 
 	public void setApplyAt(String applyAt) {
 		this.applyAt = applyAt;
-	}
+		setChanged("applyAt");
+	}*/
 
-	@Name("associatedProjects")
+	@Name("associateProjects")
 	public StringSet getAssociateProjects() {
 		return associateProjects;
 	}
 
 	public void setAssociateProjects(StringSet associateProjects) {
 		this.associateProjects = associateProjects;
+		setChanged("associateProjects");
 	}
 
-	@Name("associatedPolicies")
-	public StringSet getAssociatePolicies() {
-		return associatePolicies;
+	@Name("applyToAllProjects")
+	public Boolean getApplyToAllProjects() {
+		return applyToAllProjects;
 	}
 
-	public void setAssociatePolicies(StringSet associatePolicies) {
-		this.associatePolicies = associatePolicies;
+	public void setApplyToAllProjects(Boolean applyToAllProjects) {
+		this.applyToAllProjects = applyToAllProjects;
+		setChanged("applyToAllProjects");
+	}
+
+	@Name("associatevPoolPolicies")
+	public StringSet getAssociatevPoolPolicies() {
+		return associatevPoolPolicies;
+	}
+
+	public void setAssociatevPoolPolicies(StringSet associatevPoolPolicies) {
+		this.associatevPoolPolicies = associatevPoolPolicies;
+		setChanged("associatevPoolPolicies");
+	}
+
+	@Name("associatePojectPolicies")
+	public StringSet getAssociatePojectPolicies() {
+		return associatePojectPolicies;
+	}
+
+	public void setAssociatePojectPolicies(StringSet associatePojectPolicies) {
+		this.associatePojectPolicies = associatePojectPolicies;
+		setChanged("associatePojectPolicies");
+	}
+
+	@Name("associateFsPolicies")
+	public StringSet getAssociateFsPolicies() {
+		return associateFsPolicies;
+	}
+
+	public void setAssociateFsPolicies(StringSet associateFsPolicies) {
+		this.associateFsPolicies = associateFsPolicies;
+		setChanged("associateFsPolicies");
 	}
 	
 }

@@ -3138,6 +3138,7 @@ order.submitFailed=Your order was unable to be submitted due to an internal erro
 order.submitFailedWithDetail=Your order was unable to be submitted due to %s.
 order.processingFailed=Error processing order
 order.PausedResume=Your order task is in suspended state. You may resume the order using the options available in the Tasks section below
+order.logResources=Resource Log
 
 OrderStatus.PENDING=Preparing Order
 OrderStatus.EXECUTING=Executing...

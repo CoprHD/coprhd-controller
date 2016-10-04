@@ -45,4 +45,8 @@ public interface OrderManager {
 
     public void processOrder(Order order);
 
+    public void writeMessgeBoard(Order order);
+
+    public List<ExecutionLog> readMessageBoard(Order order);
+
 }

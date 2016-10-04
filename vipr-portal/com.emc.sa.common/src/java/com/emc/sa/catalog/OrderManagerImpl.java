@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.vipr.model.catalog.OrderRestRep;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -699,5 +700,19 @@ public class OrderManagerImpl implements OrderManager {
             }
         }
         return;
+    }
+
+    @Override
+    public void writeMessgeBoard(Order order) {
+        ExecutionState executionState = getOrderExecutionState(order.getExecutionStateId());
+        List<ExecutionLog> logs = client.executionLogs().findByIds(executionState.getLogIds());
+    }
+
+    @Override
+    public List<ExecutionLog>  readMessageBoard(Order order) {
+        ExecutionState executionState = getOrderExecutionState(order.getExecutionStateId());
+        List<ExecutionLog> logs = client.executionLogs().findByIds(executionState.getLogIds());
+        return logs;
+        
     }
 }

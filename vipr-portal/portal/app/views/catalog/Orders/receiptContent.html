@@ -212,6 +212,13 @@
   #{/if}
   </div>
   
+    
+  <div id="logsResources">
+    <div class="section-header"><h1>&{'order.logResources'}</h1></div>
+    <div class="content"><textarea style="width:1072px"readonly>${logs}</textarea>
+    </div>
+  </div>
+  
   <div id="affectedResources" #{if !details.affectedResources}style="display:none"#{/if}>
     <div class="section-header"><h1>&{'order.affectedResources'}</h1></div>
     <div class="content">
@@ -220,12 +227,7 @@
       #{/list}
     </div>
   </div>
-  
-  <div id="logsResources" #{if !details.affectedResources}style="display:none"#{/if}>
-    <div class="section-header"><h1>&{'order.logResources'}</h1></div>
-    <div class="content"><textarea readonly>${heavyTrail}</textarea>
-    </div>
-  </div>
+
   
   #{include 'catalog/Orders/executionLogs.html'/}
   

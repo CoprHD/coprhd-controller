@@ -23,10 +23,11 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
-import com.emc.sa.engine.ExecutionContext;
-import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.catalog.OrderManager;
 import com.emc.sa.util.TextUtils;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.Tags;
@@ -85,6 +86,7 @@ import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.*;
 
 @With(Common.class)
@@ -94,6 +96,8 @@ public class Orders extends OrderExecution {
     private static final int LONG_DELAY = 15000;
     private static final int DEFAULT_DELAY = 60000;
     private static final int RECEIPT_UPDATE_ATTEMPTS = 5;
+    private static OrderManager orderManager;
+    private static ModelClient client;
 
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
@@ -297,9 +301,9 @@ public class Orders extends OrderExecution {
         fetchData(details);
         ServiceDescriptorRestRep descriptor = details.catalogService.getServiceDescriptor();
         addBreadCrumbToRenderArgs(id(details.order.getTenant()), details.catalogService);
-        ExecutionUtils context = new ExecutionUtils();
-        ExecutionContext heavyTrail = context.currentContext();
-        render(orderId, details, descriptor, heavyTrail);
+        Order order = client.orders().findById(orderId);
+        List<ExecutionLog> logs = orderManager.readMessageBoard(order);
+        render(orderId, details, descriptor, logs);
     }
 
     private static void addBreadCrumbToRenderArgs(URI tenant, CatalogServiceRestRep service) {

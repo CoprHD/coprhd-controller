@@ -52,7 +52,6 @@ dependencies {
             project(":com.iwave.ext.windows"),
             project(":com.iwave.ext.linux"),
             project(":com.iwave.ext.vmware.vcenter"),
-            project(":com.emc.sa.engine"),
             project(":processmonitor"),
             project(":vipr-client"),
             "org.lesscss:lesscss:1.7.0.1.1"

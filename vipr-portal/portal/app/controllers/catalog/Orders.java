@@ -166,7 +166,7 @@ public class Orders extends OrderExecution {
     }
 
     @FlashException(referrer = { "receiptContent" })
-    public static void rollbackTask(String orderId, String taskId) {
+    public void rollbackTask(String orderId, String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             client.tasks().rollback(uri(taskId));
@@ -176,7 +176,7 @@ public class Orders extends OrderExecution {
     }
 
     @FlashException(referrer = { "receiptContent" })
-    public static void retryTask(String orderId, String taskId) {
+    public void retryTask(String orderId, String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             client.tasks().resume(uri(taskId));
@@ -186,7 +186,7 @@ public class Orders extends OrderExecution {
     }
 
     @FlashException(referrer = { "receiptContent" })
-    public static void resumeTask(String orderId, String taskId) {
+    public void resumeTask(String orderId, String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             client.tasks().resume(uri(taskId));
@@ -238,7 +238,7 @@ public class Orders extends OrderExecution {
         }
     }
 
-    public static void submitOrder(String serviceId) {
+    public void submitOrder(String serviceId) {
         checkAuthenticity();
 
         OrderCreateParam order = createAndValidateOrder(serviceId);
@@ -295,7 +295,7 @@ public class Orders extends OrderExecution {
         return createOrder(service, descriptor, parameters);
     }
 
-    public static void receipt(String orderId) {
+    public void receipt(String orderId) {
         OrderDetails details = new OrderDetails(orderId);
         Models.checkAccess(details.order.getTenant());
         fetchData(details);
@@ -311,7 +311,7 @@ public class Orders extends OrderExecution {
         renderArgs.put("breadcrumbs", breadcrumbs);
     }
 
-    public static void receiptContent(String orderId, Long lastUpdated) {
+    public void receiptContent(String orderId, Long lastUpdated) {
         OrderDetails details = waitForUpdatedOrder(orderId, lastUpdated);
         Models.checkAccess(details.order.getTenant());
         fetchData(details);

@@ -640,12 +640,21 @@ public class IBMSVCProvisioning {
                                 storageVolume.getNativeId(), storageVolume.getDeviceLabel(), hostName);
 
                         if (result.isSuccess()) {
-                            _log.info(String.format("UnExported the storage volume %s to the host %s.\n",
-                                    storageVolume.getDeviceLabel(), result.getHostName()));
-                            task.setMessage(String.format("UnExported the storage volume %s to the host %s.",
-                                    storageVolume.getDeviceLabel(), result.getHostName()));
-                            task.setStatus(DriverTask.TaskStatus.READY);
 
+                            String logString = String.format("UnExported the storage volume %s to the host %s",
+                                    storageVolume.getDeviceLabel(), result.getHostName());
+
+                            // remove host if no volumes remain mapped
+                            IBMSVCQueryHostVolMapResult vol_result = IBMSVCCLI.queryHostVolMap(connection, hostName);
+                            if (vol_result.isSuccess() && vol_result.getVolCount() == 0) {
+                                IBMSVCDeleteHostResult host_result = IBMSVCCLI.deleteHost(connection, hostName);
+                                logString += " & Host removed from array";
+                            }
+
+                            logString += ".\n";
+                            _log.info(String.format(logString));
+                            task.setMessage(logString);
+                            task.setStatus(DriverTask.TaskStatus.READY);
                         } else {
                             _log.error(String.format("UnExport the storage volume %s to the host %s failed : %s\n",
                                             storageVolume.getDeviceLabel(), result.getHostName(), result.getErrorString()),
@@ -672,7 +681,7 @@ public class IBMSVCProvisioning {
                         storageVolume.getDeviceLabel(), storageVolume.getStorageSystemId()) + e.getMessage());
                 task.setStatus(DriverTask.TaskStatus.FAILED);
                 e.printStackTrace();
-            } finally {
+            }finally {
                 if(connection != null){
                     connection.disconnect();
                 }

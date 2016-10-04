@@ -89,7 +89,8 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
         super.setDriverRegistry(driverRegistry);
 
         // Make sure our helper class gets updated with the right info
-        connectionManager.setDriverRegistry(driverRegistry);
+        ConnectionManager.getInstance().setDriverRegistry(driverRegistry);
+
     }
 
 	@Override
@@ -236,94 +237,6 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 	@Override
 	public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
 		return ibmsvcProvisioningHelper.unexportVolumesFromInitiators(initiators, volumes);
-
-		DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
-
-		for (StorageVolume storageVolume : volumes) {
-
-			_log.info("unexportVolumesFromInitiators() for storage system {} - start",
-					storageVolume.getStorageSystemId());
-
-			try {
-				SSHConnection connection = getClientBySystemId(storageVolume.getStorageSystemId());
-
-				List<Initiator> ibmHostInitiatorList = getIBMSVCHostInitiatorList(connection,
-						storageVolume.getStorageSystemId());
-
-				Set<String> uniqueHostSet = new HashSet<>();
-
-				for (Initiator initiator : initiators) {
-
-					for (Initiator hostInitiator : ibmHostInitiatorList) {
-
-						if (initiator.getPort().equals(hostInitiator.getPort())) {
-							uniqueHostSet.add(hostInitiator.getHostName());
-						}
-					}
-				}
-
-				if (uniqueHostSet.size() > 0) {
-
-					// create an iterator
-
-					// check values
-					for (Object anUniqueHostSet : uniqueHostSet) {
-
-						String hostName = anUniqueHostSet.toString();
-
-						_log.info("UnExporting the volume Id {} to the host {}", storageVolume.getNativeId(), hostName);
-
-						IBMSVCUnExportVolumeResult result = IBMSVCCLI.unexportStorageVolumes(connection,
-                                storageVolume.getNativeId(), storageVolume.getDeviceLabel(), hostName);
-
-						if (result.isSuccess()) {
-
-							String logString = String.format("UnExported the storage volume %s to the host %s",
-							storageVolume.getDeviceLabel(), result.getHostName());
-
-							// remove host if no volumes remain mapped
-							IBMSVCQueryHostVolMapResult vol_result = IBMSVCCLI.queryHostVolMap(connection, hostName);
-							if (vol_result.isSuccess() && vol_result.getVolCount() == 0) {
-								IBMSVCDeleteHostResult host_result = IBMSVCCLI.deleteHost(connection, hostName);
-								logString += " & Host removed from array";
-							}
-
-							logString += ".\n";
-							_log.info(String.format(logString));
-							task.setMessage(logString);
-							task.setStatus(DriverTask.TaskStatus.READY);
-						} else {
-							_log.error(String.format("UnExport the storage volume %s to the host %s failed : %s\n",
-									storageVolume.getDeviceLabel(), result.getHostName(), result.getErrorString()),
-									result.isSuccess());
-							task.setMessage(String.format("UnExport the storage volume to the host %s failed : %s.",
-									storageVolume.getDeviceLabel(), result.getHostName()) + result.getErrorString());
-							task.setStatus(DriverTask.TaskStatus.FAILED);
-                        }
-                    }
-
-                } else {
-                    _log.info("None of the initiator port hosts are not registered with the storage system {}.",
-							storageVolume.getStorageSystemId());
-					task.setMessage(String.format(
-							"None of the initiator port hosts are not registered with the storage system %s.",
-							storageVolume.getStorageSystemId()));
-					task.setStatus(DriverTask.TaskStatus.FAILED);
-				}
-
-			} catch (Exception e) {
-				_log.error("Unable to unexport the storage volume {} on the storage system {}\n",
-						storageVolume.getDeviceLabel(), storageVolume.getStorageSystemId());
-				task.setMessage(String.format("Unable to unexport the storage volume %s on the storage system %s",
-						storageVolume.getDeviceLabel(), storageVolume.getStorageSystemId()) + e.getMessage());
-				task.setStatus(DriverTask.TaskStatus.FAILED);
-				e.printStackTrace();
-			}
-
-			_log.info("unexportVolumesFromInitiators() for storage system {} - end\n",
-					storageVolume.getStorageSystemId());
-		}
-		return task;
 	}
 
 	@Override

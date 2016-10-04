@@ -70,7 +70,7 @@ public class SSHCommandExecutor implements CommandExecutor {
         if (command != null) {
 
             try {
-                if (!clientSession.isConnected()) {
+                if (clientSession == null || !clientSession.isConnected()) {
                     //clientSession.connect fails as reconnecting the same disconnected session throws error - com.jcraft.jsch.JSchException: Packet corrupt
                     connection.connect();
                     clientSession = connection.getClientSession();

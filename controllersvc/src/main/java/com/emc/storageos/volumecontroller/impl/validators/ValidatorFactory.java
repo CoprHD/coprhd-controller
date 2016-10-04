@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -118,14 +117,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators);
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
-        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators, volumes);
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).removeVolumes(ctx);
     }
 
     @Override

@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -156,25 +155,8 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-            Collection<Initiator> initiators) {
-        return removeVolumes(storage, exportMaskURI, initiators, null);
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);  // FIXME
-
-        // TODO Update removeVolumes to accept a ctx
-        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-        ctx.setStorage(storage);
-        ctx.setExportMask(exportMask);
-        ctx.setInitiators(initiators);
-        ctx.setBlockObjects(volumes);
-
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
         ValidatorLogger sharedLogger = createValidatorLogger(ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
-
         AbstractSMISValidator initiatorValidator = createExportMaskInitiatorValidator(ctx);
         AbstractSMISValidator maskValidator = createMultipleExportMasksForBlockObjectsValidator(ctx);
 

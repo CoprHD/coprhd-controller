@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -33,26 +32,9 @@ public interface StorageSystemValidatorFactory {
      * Create an {@link Validator} instance for validating removal of a volume from an
      * export group.
      *
-     * @param storage
-     * @param exportMaskURI
-     * @param initiators
      * @return
      */
-    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-            Collection<Initiator> initiators);
-
-    /**
-     * Create an {@link Validator} instance for validating removal of a volume from an
-     * export group.
-     *
-     * @param storage
-     * @param exportMaskURI
-     * @param initiators
-     * @param volumes
-     * @return
-     */
-    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-                            Collection<Initiator> initiators, Collection<? extends BlockObject> volumes);
+    Validator removeVolumes(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating addition of initiators to an

@@ -9,8 +9,10 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -25,6 +27,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class BlockConsistencyGroupUtils {
@@ -425,5 +428,23 @@ public class BlockConsistencyGroupUtils {
         }
 
         return result;
+    }
+    
+    /**
+     * Given a list of volumes find all unique CGs from that list.
+     * 
+     * @param volumes List of volumes to parse over and find all CGs related to the volumes
+     * @return Unique sets of CG Ids
+     */
+    public static Set<URI> getAllCGsFromVolumes(List<Volume> volumes) {
+        Set<URI> cgs = new HashSet<URI>();
+        
+        for (Volume vol :  volumes) {
+            if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                cgs.add(vol.getConsistencyGroup());
+            }
+        }
+        
+        return cgs; 
     }
 }

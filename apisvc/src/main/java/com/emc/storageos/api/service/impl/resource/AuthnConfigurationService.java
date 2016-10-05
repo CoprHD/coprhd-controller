@@ -280,7 +280,7 @@ public class AuthnConfigurationService extends TaggedResource {
         String authMode = getAuthModeFromProviderMode(providerMode);
 
         try {
-            getConfigUtil().write(_coordinator.getSiteId(), AUTH_KIND, AUTH_ID, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
+            getConfigUtil().write(null, AUTH_KIND, AUTH_ID, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
         } catch (Exception e) {
             // Failure is allowed here and there will be periodical query to db
             _log.warn("Fail to notify authmode change via zk", e);

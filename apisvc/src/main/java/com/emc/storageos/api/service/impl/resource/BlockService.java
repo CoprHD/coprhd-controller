@@ -742,7 +742,11 @@ public class BlockService extends TaskResourceService {
             	throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
             }
     		String task = UUID.randomUUID().toString();
+<<<<<<< HEAD
             TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project, varray , vpool);
+=======
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project,varray,vpool);
+>>>>>>> be057edec994a868ee7a202296821d6cd51fe0c3
             ArrayList<String> requestedTypes = new ArrayList<String>();
             CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
             return taskList;

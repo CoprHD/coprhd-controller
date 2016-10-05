@@ -26,6 +26,7 @@
     <div class="canvas" id="js-canvas"></div>
     <div id="js-properties-panel"></div>
   </div>
+ #{form @saveDiagram(), id:'diagramSave', class:'form form-horizontal', autocomplete:"off"}
    <ul class="buttons">
     <li>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -33,20 +34,49 @@
      <li>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     </li> 
+   
+    <li>
+      <input type="text" class="form-control span6" name="fileName" value="Workflow"/>
+      </li>
+    <li>
+      <input type="hidden" id="xmlContent" name="diagramData"/>
+      <input type="hidden" name="xmlData" value="<![CDATA[<root>test me</root>]]>"/>
+      
+  
+     <button type="submit" class="btn btn-primary btn-large"> <span class="glyphicon glyphicon-ok-sign " ></span> ${messages.get('button.save')}</button>
     
-    <li>
-     <a id="js-download-diagram">
-       <button class="btn btn-info btn-large" name="save" > ${messages.get('button.save')}</button>
-     </a>
     </li>
-    <li>
+     <li>
+     <button class="btn btn-default btn-large" name="cancel" onclick="cancel()"> <span class="glyphicon glyphicon-trash "></span> ${messages.get('button.cancel')}</button>
+    </li>
+    
+    
 
   </ul>
-
+  #{/form}
  <script>
     window.onload = function(){
       document.getElementById("js-create-diagram").click();
     }
  </script>
+ 
+ <script type="text/javascript">
+     function cancel() {
+        var url = #{jsAction  @catalog.CustomWorkflow.diagrams() /};
+        window.location.href = url();   
+     }
+     
+     function save() {
+    	 var  fileName = $("#fileName").val();
+    	 var  fileName = $("#xmlContent").text();
+    	// alert(fileName + " : "+xmlContent);
+    	 //var url = #{jsAction  @catalog.CustomWorkflow.saveDiagram(fileName) /};
+         //window.location.href = url();   
+    	 //$("#diagramData").val(xmlContent);
+    	 var  data = fileName + "~~~~~" + fileName;
+    	 $("#xmlData").text(data);
+    	 return true;
+      }
+  </script>
   
   #{script 'workflow.js'/}

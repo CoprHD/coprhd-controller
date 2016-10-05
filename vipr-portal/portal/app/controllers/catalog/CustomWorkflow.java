@@ -51,4 +51,14 @@ public class CustomWorkflow extends Controller {
         renderJSON(DataTablesSupport.createJSON(diagrams, params));
 	}
 	
+	public static void saveDiagram(String fileName, String xmlData){
+		
+		
+			String a= fileName;
+			String b = xmlData;
+		
+		diagrams();
+		
+	}
+	
 }

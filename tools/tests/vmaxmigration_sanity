@@ -1,0 +1,231 @@
+#!/bin/bash
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+# ==============================================================
+# Uncomment the below line to get tracing output for this script
+#set -x
+
+#Configuration file to be used
+
+VMAXMIGR_TGT_VARRAY=${NH}_tgt
+VMAXMIGR_TGT_VPOOL=cosvmaxb_fc_tgt
+VMAXMIGR_RANDOM=${RANDOM}
+VMAXMIGR_VOLNAME=vmaxmigr${VMAXMIGR_RANDOM}
+VMAXMIGR_SRC_VARRAY=$NH
+VMAXMIGR_SRC_VPOOL=$COS_VMAXBLOCK_FC
+# TODO what will the group name be???
+VMAXMIGR_GROUP_NAME="dummystoragegroupname${VMAXMIGR_RANDOM}"
+
+vmaxmigration_setup()
+{
+    secho "beginning vmaxmigration setup"
+
+    # do this setup only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    # set up the target environment
+    TGT_VARRAY=$VMAXMIGR_TGT_VARRAY
+    TGT_VPOOL=$VMAXMIGR_TGT_VPOOL
+
+    run neighborhood create $TGT_VARRAY
+    run smisprovider create $VMAX3_SMIS_AFA_DEV $VMAX3_SMIS_AFA_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagepool update $VMAX3_AFA_NATIVEGUID --nhadd $TGT_VARRAY --type block --volume_type THIN_ONLY
+    run storageport update $VMAX3_AFA_NATIVEGUID FC --addvarrays $TGT_VARRAY
+
+    # create the target vpool
+    run cos create block $TGT_VPOOL                              \
+        --description 'Target-Virtual-Pool-for-VMAX-block-FC' true     \
+                         --protocols FC                         \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vmax \
+                         --provisionType 'Thin' \
+                         --neighborhoods $TGT_VARRAY
+
+    # set up the source environment
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+
+    # source vpool
+    vmax_cos_setup
+
+    run storagedevice discover_all --ignore_error
+}
+
+#
+# refresh migration in a loop until complete
+#
+vmaxmigration_test_refresh()
+{
+    GROUP=$1
+    # TODO add looping and check for status
+    run volumegroup refresh-migration $GROUP
+}
+
+#
+# create migration, migrate, commit, remove environment
+#
+vmaxmigration_test1()
+{
+    secho "create migration, migrate, commit, remove environment"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup migrate $GROUP
+
+    # refresh until migration is complete
+    vmaxmigration_test_refresh $GROUP
+
+    run volumegroup commit-migration $GROUP
+    run volumegroup remove-migration-env $GROUP
+}
+
+#
+# create migration, migrate, commit with remove migration flag
+#
+vmaxmigration_test2()
+{
+    secho "create migration, migrate, commit with remove migration flag"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup migrate $GROUP
+
+    # refresh until migration is complete
+    vmaxmigration_test_refresh $GROUP
+
+    run volumegroup commit-migration $GROUP remove-env
+}
+
+#
+# create migration, cancel, remove env
+#
+vmaxmigration_test3()
+{
+    secho "create migration, cancel, remove env"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup cancel-migration $GROUP
+    run volumegroup remove-migration-env $GROUP
+}
+
+#
+# create migration, migrate, cancel, remove env
+#
+vmaxmigration_test4()
+{
+    secho "create migration, migrate, cancel, remove env"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup migrate $GROUP
+    run volumegroup cancel-migration $GROUP
+    run volumegroup remove-migration-env $GROUP
+}
+
+#
+# create migration, migrate, poll until migration complete, cancel, remove env
+#
+vmaxmigration_test5()
+{
+    secho "create migration, migrate, poll until migration complete, cancel, remove env"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup migrate $GROUP
+    vmaxmigration_test_refresh $GROUP
+    run volumegroup cancel-migration $GROUP
+    run volumegroup remove-migration-env $GROUP
+}
+
+#
+# create migration, cancel with remove env
+#
+vmaxmigration_test6()
+{
+    secho "create migration, cancel with remove env"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup cancel-migration $GROUP remove-env
+}
+
+#
+# create migration, migrate, syncstop, syncstart, commit with remove env
+#
+vmaxmigration_test7()
+{
+    secho "create migration, migrate, syncstop, syncstart, commit with remove env"
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    run volumegroup create-migration $GROUP $VARRAY $VPOOL
+    run volumegroup migrate $GROUP
+    run volumegroup syncstop-migration $GROUP
+    run volumegroup syncstart-migration $GROUP
+
+    # wait for migration complete
+    vmaxmigration_test_refresh $GROUP
+
+    run volumegroup commit-migration $GROUP remove-env
+}
+
+vmaxmigration_all_tests() {
+    GROUP=$1
+    VARRAY=$2
+    VPOOL=$3
+    vmaxmigration_test1 $GROUP $TGT_VARRAY $TGT_VPOOL
+    vmaxmigration_test2 $GROUP $TGT_VARRAY $TGT_VPOOL
+    vmaxmigration_test3 $GROUP $TGT_VARRAY $TGT_VPOOL
+    vmaxmigration_test4 $GROUP $TGT_VARRAY $TGT_VPOOL
+    vmaxmigration_test5 $GROUP $TGT_VARRAY $TGT_VPOOL
+    vmaxmigration_test6 $GROUP $TGT_VARRAY $TGT_VPOOL
+    vmaxmigration_test7 $GROUP $TGT_VARRAY $TGT_VPOOL
+}
+
+vmaxmigration_tests()
+{
+    secho "beginning vmaxmigration tests"
+
+    VOLNAME=$VMAXMIGR_VOLNAME
+
+    # source varray and vpool that the vmax2 volumes are provisioned with
+    SRC_VARRAY=$VMAXMIGR_SRC_VARRAY
+    SRC_VPOOL=$VMAXMIGR_SRC_VPOOL
+
+    secho "creating a pre-migration volume now"
+    secho "run volume create ${VOLNAME} ${PROJECT} ${SRC_VARRAY} ${SRC_VPOOL} ${BLK_SIZE} --thinVolume true --count 1"
+    run volume create $VOLNAME $PROJECT ${SRC_VARRAY} ${SRC_VPOOL} $BLK_SIZE --thinVolume true --count 1
+
+    # TODO export the volume to a host
+
+    # do a discovery to get the mobility group
+    run storagedevice discover_all --ignore_error
+
+    GROUP=$VMAXMIGR_GROUP_NAME
+    TGT_VARRAY=$VMAXMIGR_TGT_VARRAY
+    TGT_VPOOL=$VMAXMIGR_TGT_VPOOL
+
+    # TODO remove this once discover is able to discover the groups
+    run volumegroup create $GROUP "dummygroup" COPY
+
+    # start the migration tests
+    vmaxmigration_all_tests $GROUP $TGT_VARRAY $TGT_VPOOL
+
+    # TODO add validateion to tests -- did the volume really get migrated; check exports, etc
+
+    run volume delete $PROJECT/$VOLNAME --wait
+ 
+}
+
+

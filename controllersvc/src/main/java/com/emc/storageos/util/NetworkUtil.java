@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class NetworkUtil {
@@ -592,23 +591,5 @@ public class NetworkUtil {
         }
 
         return networkToEndPoints;
-    }
-
-    /**
-     * Checks if zoning is enabled for any of the mask export groups.
-     * 
-     * @param exportMask the export mask
-     * @return true if zoning is enabled for any of the mask export groups.
-     */
-    public static boolean isZoningEnabled(ExportMask exportMask, DbClient dbClient) {
-        if (NetworkUtil.areNetworkSystemDiscovered(dbClient)) {
-            List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
-            for (ExportGroup exportGroup : exportGroups) {
-                if (NetworkScheduler.isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

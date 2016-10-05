@@ -25,7 +25,7 @@ import util.AuthSourceType;
 @OnApplicationStart
 public class AuthModeBootstrap extends Job {
 
-    private final static String AUTH_MODE_ZK_PATH = "/config/auth";
+    private final static String AUTH_MODE_ZK_PATH = "/config/auth/auth";
     private static String AUTH_KIND = "auth";
     private static String AUTH_ID = "auth";
 
@@ -48,7 +48,7 @@ public class AuthModeBootstrap extends Job {
     private void getAuthModeFromZKandUpdateToCache() {
         Logger.info("Reading authmode from ZK");
         try {
-            String authMode = configurationUtil.read(AUTH_KIND, null, Security.AUTH_MODE_CACHE_KEY);
+            String authMode = configurationUtil.read(AUTH_KIND, AUTH_ID, Security.AUTH_MODE_CACHE_KEY);
             Cache.set(Security.AUTH_MODE_CACHE_KEY, authMode);
         } catch (Exception e) {
             Logger.warn(e, "Fail to read authmode from ZK");

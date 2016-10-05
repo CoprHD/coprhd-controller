@@ -314,7 +314,8 @@ public class Orders extends OrderExecution {
         OrderDetails details = waitForUpdatedOrder(orderId, lastUpdated);
         Models.checkAccess(details.order.getTenant());
         fetchData(details);
-        render(orderId, details);
+        List<ExecutionLogRestRep> logs = getCatalogClient().orders().getResourcesLogs(uri(orderId));
+        render(orderId, details, logs);
     }
 
     /**

@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
+
 import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -472,7 +473,7 @@ public class OrderService extends CatalogTaggedResourceService {
     @GET
     @Path("/{id}/resources-logs")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderLogList getResourceLogs(@PathParam("id") String orderId) throws DatabaseException {
+    public ExecutionLogList getResourceLogs(@PathParam("id") String orderId) throws DatabaseException {
 
         Order order = queryResource(uri(orderId));
 
@@ -480,9 +481,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
 
-        List<ExecutionLog> executionLogs = orderManager.readMessageBoard(order);
+        List<ExecutionTaskLog> executionLogs = orderManager.readMessageBoard(order);
 
-        return toOrderLogList(executionLogs);
+        return toExecutionLogList(executionLogs);
     }
 
     /**

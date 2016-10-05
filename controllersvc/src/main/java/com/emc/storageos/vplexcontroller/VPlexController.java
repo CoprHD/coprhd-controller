@@ -50,9 +50,11 @@ public interface VPlexController extends Controller {
             String failMsg, OperationTypeEnum opType, String opId, String wfStepId) throws InternalException;
 
     /**
-     * This code handles two use cases:
+     * This code handles 4 use cases:
      * 1. Importing a non-vplex volume to either vplex_local or vplex_distributed.
      * 2. Upgrading a vplex_local to vplex_distributed.
+     * 3. Creating local or distributed VPLEX full copies by importing a backend full copy.
+     * 4. Creating a local or distributed VPLEX volume from a backend snapshot by importing the snapshot target volume.
      * 
      * @param vplexURI
      * @param descriptors -- A list of VolumeDescriptor. This will have multiple descriptors:
@@ -64,13 +66,15 @@ public interface VPlexController extends Controller {
      * @param vplexSystemTenant -- The imported volume will be moved to this Tenant if successful.
      * @param newCos -- the new CoS that will be applied to the volume after an import.
      * @param newLabel -- the new label that will be applied to the volume after an import.
-     * 
+     * @param setTransferSpeed -- The desired transfer speed for rebuilds or null.
+     * @param markInactive -- true to mark volumes inactive if WF construction fails, false otherwise
      * @param opId -- The task id.
+     * 
      * @throws InternalException
      */
     public abstract void importVolume(URI vplexURI, List<VolumeDescriptor> descriptors,
             URI vplexSystemProject, URI vplexSystemTenant, URI newCos, String newLabel, String setTransferSpeed, 
-            String opId) throws InternalException;
+            Boolean markInactive, String opId) throws InternalException;
 
     /**
      * Expands the virtual volume by migrating the backend volumes to new

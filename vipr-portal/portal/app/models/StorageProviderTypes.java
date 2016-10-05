@@ -55,6 +55,10 @@ public class StorageProviderTypes {
         }
     };
 
+    public static boolean isXIV(String type) {
+        return IBMXIV.equals(type);
+    }
+    
     public static boolean isScaleIOApi(String type) {
     	return SCALEIOAPI.equals(type);
     }
@@ -79,6 +83,19 @@ public class StorageProviderTypes {
                 if (!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
                     allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                             storagetypeRest.getStorageTypeDispName()));
+                }
+            }
+        }
+        return allproviders;
+    }
+
+    public static List<StringOption> getAllFlashProviderOption() {
+        List<StringOption> allproviders = new ArrayList<StringOption>();
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+            if (storagetypeRest.getIsSmiProvider()) {
+                if (StringUtils.equals(SMIS, storagetypeRest.getStorageTypeName()) || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName()) ) {
+                    allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
                 }
             }
         }

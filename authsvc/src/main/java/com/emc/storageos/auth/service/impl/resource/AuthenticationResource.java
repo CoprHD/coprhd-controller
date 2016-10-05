@@ -965,7 +965,7 @@ public class AuthenticationResource {
         sbFinal.append("\" ");
         String loginBannerString = Matcher.quoteReplacement(_passwordUtils.getConfigProperty(LOGIN_BANNER_KEY));
         String _cachedLoginPagePart2Tmp = "";
-        _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll("\\\\n", "<br>");
+        _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll(Matcher.quoteReplacement("\\\\n"), "<br>");
 
         sbFinal.append(error == null ? _cachedLoginPagePart2Tmp : _cachedLoginPagePart2Tmp.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
@@ -1009,7 +1009,7 @@ public class AuthenticationResource {
         String newPart2 = _cachedChangePasswordPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, passwordRuleInfo + "$1");
 
         String loginBannerString = Matcher.quoteReplacement(_passwordUtils.getConfigProperty(LOGIN_BANNER_KEY));
-        newPart2 = newPart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll("\\\\n", "<br>");
+        newPart2 = newPart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll(Matcher.quoteReplacement("\\\\n"), "<br>");
 
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();

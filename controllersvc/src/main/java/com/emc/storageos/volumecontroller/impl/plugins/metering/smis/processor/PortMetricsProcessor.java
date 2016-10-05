@@ -605,6 +605,9 @@ public class PortMetricsProcessor {
                     // The metrics are not valid for this array. Log it and return 50.0%.
                     _log.info(String.format("Port metrics not valid for array %s (%s), using 50.0 percent for array metric",
                             storageDevice.getLabel(), storageSystemURI.toString()));
+                    // clear the previous value
+                    storageDevice.setAveragePortMetrics(-1.0);
+                    _dbClient.updateObject(storageDevice);
                     return 50.0;
                 }
 
@@ -636,6 +639,9 @@ public class PortMetricsProcessor {
                     // The metrics are not valid for this array. Log it and return 50.0%.
                     _log.info(String.format("CPU usage metrics not valid for array %s (%s), using 50.0 percent for array metric",
                             storageDevice.getLabel(), storageSystemURI.toString()));
+                    // clear the previous value
+                    storageDevice.setAveragePortMetrics(-1.0);
+                    _dbClient.updateObject(storageDevice);
                     return 50.0;
                 }
 

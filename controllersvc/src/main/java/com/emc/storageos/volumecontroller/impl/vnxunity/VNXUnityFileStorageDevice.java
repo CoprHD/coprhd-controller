@@ -235,6 +235,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             String fsId = args.getFs().getNativeId();
+            String fsName = args.getFsName();
             String permission = exp.getPermissions();
 
             String path = "/";
@@ -323,7 +324,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         path += subdirName;
                     }
 
-                    String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
+                    String shareName = VNXeUtils.buildNfsShareName(fsName, subdirName);
 
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
@@ -340,7 +341,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
                 } else {
                     String snapId = args.getSnapNativeId();
-                    String shareName = VNXeUtils.buildNfsShareName(snapId, path);
+                    String snapName = args.getSnapshotName();
+                    String shareName = VNXeUtils.buildNfsShareName(snapName, path);
                     job = apiClient.createNfsShareForSnap(snapId, roClients, rwClients, rootClients, access, path, shareName, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
@@ -1060,7 +1062,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
                 } else {
 
-                    shareName = VNXeUtils.buildNfsShareName(args.getSnapNativeId(), path);
+                    shareName = VNXeUtils.buildNfsShareName(args.getSnapshotName(), path);
 
                     if (isDeleteRule) {
                         job = apiClient.deleteNfsShareForSnapshot(rule.getDeviceExportId());
@@ -1254,7 +1256,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         return BiosCommandResult.createErrorResult(error);
                     }
                 }
-                
+
             } else if (subDir != null && !subDir.isEmpty()) {
                 // Filter for a specific Sub Directory export
                 _logger.info("Deleting all subdir exports rules at ViPR and  sub directory export at device {}", subDir);
@@ -1586,7 +1588,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy" , "Unity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy", "Unity"));
     }
 
     @Override

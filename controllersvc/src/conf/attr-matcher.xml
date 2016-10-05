@@ -21,6 +21,7 @@
 		 <ref bean="deviceTypeMatcher"/>
 		 <ref bean="protocolsMatcher" />
 		 <ref bean="fastPolicyMatcher" />
+		 <ref bean="compressionMatcher" />
 		 <ref bean="raidLevelMatcher" />
          <ref bean="driveTypeMatcher"/>
 		 <ref bean="multiVolumeConsistencyMatcher" />
@@ -45,6 +46,7 @@
         <ref bean="capacityMatcher" />
         <ref bean="vnxBlockFastPolicyMatcher" />
         <ref bean="storageSystemMatcher" />
+        <ref bean="excludeStorageSystemsMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
         <ref bean="softLimitMatcher"/>
@@ -84,6 +86,7 @@
 	<bean id="provisionTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProvisioningTypeMatcher" />
 	<bean id="raidLevelMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RaidLevelMatcher" />
 	<bean id="fastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.AutoTieringPolicyMatcher" />
+	<bean id="compressionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompressionMatcher" />
 	<bean id="thinVolumePreAllocateMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ThinVolumePreAllocationMatcher" />
 	<bean id="vnxBlockFastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VNXBlockAutoTieringPolicyMatcher" />
 	<bean id="capacityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher"/>
@@ -96,6 +99,7 @@
 	<bean id="maxResourcesMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher" />
 	<bean id="protectionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProtectionAttrMatcher" />
 	<bean id="storageSystemMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.StorageSystemMatcher" />
+    <bean id="excludeStorageSystemsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ExcludeStorageSystemsMatcher" />
 	<bean id="multiVolumeConsistencyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MultiVolumeConsistencyMatcher" />
 	<bean id="haMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher" />
     <bean id="numPathsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NumPathsMatcher">

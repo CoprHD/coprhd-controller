@@ -134,18 +134,27 @@ public class CustomConfigHandler {
                 }
             }
         }
+
+        String scopeKey = "none";
+        String scopeValue = "none";
+        if (scope != null && scope.keySet() != null && scope.keySet().iterator() != null && scope.keySet().iterator().hasNext()) {
+            scopeKey = scope.keySet().iterator().next();
+            scopeValue = scope.get(scopeKey) != null ? scope.get(scopeKey) : "no value";
+        }
+
         if (customConfig != null) {
-            logger.info("Found the custom config {} for {}", configName, scope);
+            logger.info(String.format("Found the custom config %s for %s:%s", configName, scopeKey, scopeValue));
             value = customConfig.getValue();
         } else if (globalConfig != null) {
-            logger.info("Could not find custom config {} for {}. The global custom config will be used.", configName, scope);
+            logger.info(String.format("Could not find custom config %s for %s:%s. The global custom config will be used.",
+                    configName, scopeKey, scopeValue));
             value = globalConfig.getValue();
         } else if (systemDefaultConfig != null) {
-            logger.info("Could not find custom config {} for {}. The system default config will be used.", configName, scope);
+            logger.info(String.format("Could not find custom config %s for %s:%s. The system default config will be used.",
+                    configName, scopeKey, scopeValue));
             value = systemDefaultConfig.getValue();
         } else {
-            String key = scope.keySet().iterator().next();
-            throw CustomConfigControllerException.exceptions.customConfigScopeWithNoDefault(configName, key, scope.get(key));
+            throw CustomConfigControllerException.exceptions.customConfigScopeWithNoDefault(configName, scopeKey, scopeValue);
         }
 
         return value;

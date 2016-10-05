@@ -23,8 +23,8 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
 
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileFailoverTaskCompleter.class);
 
-    public MirrorFileFailoverTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFileFailoverTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
     }
 
     public MirrorFileFailoverTaskCompleter(Class clazz, URI id, String opId) {
@@ -50,8 +50,14 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        return this.mirrorSyncStatus = MirrorStatus.FAILED_OVER;
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        if(!fs.getStorageDevice().equals(getStorageUri())) {
+        	_log.info("failover op is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.FAILED_OVER.name());
+            return MirrorStatus.FAILED_OVER.name();
+        } else {
+        	_log.info("failover op on device is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
+            return MirrorStatus.UNKNOWN.name();
+        }
     }
 
 }

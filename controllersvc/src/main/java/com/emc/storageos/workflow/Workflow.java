@@ -122,6 +122,8 @@ public class Workflow implements Serializable {
         public String foundingStepId;
         /** Mark this step for suspend **/
         public boolean suspendStep = false;
+        /** Special message to be displayed if step is suspended. */
+        public String suspendedMessage = null;
 
         /**
          * Created COP-37 to track hashCode() implementation in this class.
@@ -767,7 +769,7 @@ public class Workflow implements Serializable {
             case SUSPENDED_NO_ERROR:
                 return WorkflowState.SUSPENDED_NO_ERROR;
             case CANCELLED:
-                return WorkflowState.SUSPENDED_NO_ERROR;
+                return WorkflowState.ERROR;
             default:
                 return getWorkflowState();
         }
@@ -912,6 +914,10 @@ public class Workflow implements Serializable {
         return _stepStatusMap;
     }
 
+    public void setStepStatusMap(Map<String, StepStatus> stepStatusMap) {
+        this._stepStatusMap = stepStatusMap;
+    }
+
     public Boolean getRollbackContOnError() {
         return _rollbackContOnError;
     }
@@ -966,6 +972,20 @@ public class Workflow implements Serializable {
 
     public void setSuspendSteps(Set<URI> suspendSteps) {
         this._suspendSteps = suspendSteps;
+    }
+    
+    /**
+     * If the step is defined in this workflow, attachs the suspendedMessage to it,
+     * which will be displayed when this step is suspended.
+     * @param stepId -- The step id of the step to be annotated
+     * @param suspendedMessage -- The message to be displayed if the step is suspended
+     */
+    public void setSuspendedStepMessage(String stepId, String suspendedMessage) {
+        Step step = getStepMap().get(stepId);
+        if (step == null) {
+            return;
+        }
+        step.suspendedMessage = suspendedMessage;
     }
 
 }

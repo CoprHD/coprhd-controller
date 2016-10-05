@@ -63,6 +63,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     private static final String SUBDIRECTORY_PARAM = "subDirectory";
     private static final String SUBDIR_PARAM = "subDir";
     private static final String ALLDIR_PARAM = "allDirs";
+    private static final String UNMOUNTEXPORT_PARAM = "unmountExport";
 
     public FileSystems(ViPRCoreClient parent, RestClient client) {
         super(parent, client, FileShareRestRep.class, PathConstants.FILESYSTEM_URL);
@@ -133,12 +134,12 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Gets the base URL for NFS mounts for a host: <tt>/file/filesystems/mounts</tt>
+     * Gets the base URL for NFS mounts for a host: <tt>/compute/hosts/{id}/filesystem-mounts</tt>
      * 
      * @return the NFS mounts URL.
      */
     protected String getNfsHostMountsUrl() {
-        return "/file/filesystems/mounts";
+        return "/compute/hosts/{id}/filesystem-mounts";
     }
 
     @Override
@@ -275,7 +276,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call:
+     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -435,8 +437,32 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return deleteTaskURI(targetUri);
     }
 
+    public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir, Boolean unmountExport) {
+        UriBuilder builder = client.uriBuilder(getExportUrl());
+        if (subDir != null) {
+            builder.queryParam(SUBDIR_PARAM, subDir);
+        }
+        if (unmountExport) {
+            builder.queryParam(UNMOUNTEXPORT_PARAM, unmountExport);
+        }
+        URI targetUri = builder.build(id);
+        return deleteTaskURI(targetUri);
+    }
+
     public Task<FileShareRestRep> deleteAllExport(URI id, Boolean allDir) {
         URI targetUri = client.uriBuilder(getExportUrl()).queryParam(ALLDIR_PARAM, allDir).build(id);
+        return deleteTaskURI(targetUri);
+    }
+
+    public Task<FileShareRestRep> deleteAllExport(URI id, Boolean allDir, Boolean unmountExport) {
+        UriBuilder builder = client.uriBuilder(getExportUrl());
+        if (unmountExport) {
+            builder.queryParam(UNMOUNTEXPORT_PARAM, unmountExport);
+        }
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        }
+        URI targetUri = builder.build(id);
         return deleteTaskURI(targetUri);
     }
 
@@ -858,19 +884,17 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Gets the NFS mounts for the given host by ID.
+     * Gets the NFS mounts for the given host
      * <p>
-     * API Call: <tt>GET /file/filesystems/mounts/?host</tt>
+     * API Call: <tt>GET /compute/hosts/{id}/filesystem-mounts</tt>
      * 
      * @param id
-     *            the ID of the file system.
-     * @return the list of NFS mounts for the given file system.
+     *            the ID of the host.
+     * @return the list of NFS mounts for the host.
      */
-    public List<MountInfo> getNfsHostMounts(String id) {
+    public List<MountInfo> getNfsMountsByHost(URI id) {
         MountInfoList response;
-        Properties queryParam = new Properties();
-        queryParam.setProperty("host", id);
-        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), queryParam, id);
+        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), id);
         return defaultList(response.getMountList());
     }
 }

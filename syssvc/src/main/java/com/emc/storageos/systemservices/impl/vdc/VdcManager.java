@@ -377,19 +377,29 @@ public class VdcManager extends AbstractManager {
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
-        
+
         if (opHandler.isRollingRebootNeeded()) {
             log.info("Step5: Rolling reboot detected for vdc operation {}", action);
             rollingReboot(svcId); // keep same behaviour as previous releases. always do rolling reboot
         } else if (opHandler.isConcurrentRebootNeeded()) {
-            log.info("Step5: Concurent reboot for operation handler {}", action);
+            log.info("Step5: Concurrent reboot for operation handler {}", action);
+            commitVdcConfigVersionToLocal();
+            reboot();
+        } else if (isGeoConfigChange()) {
+            log.info("Step5: Geo configuration changed, so concurrent reboot");
             commitVdcConfigVersionToLocal();
             reboot();
         } else {
             commitVdcConfigVersionToLocal();
         }
     }
-    
+
+    private boolean isGeoConfigChange() {
+        boolean isGeo =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                    || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
+        return isGeo && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
+    }
+
     private void commitVdcConfigVersionToLocal() {
         // Flush vdc properties includes VDC_CONFIG_VERSION to disk
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());

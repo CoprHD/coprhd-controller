@@ -20,7 +20,9 @@ public class TimeUtils {
 
     // Constant defines the date/time format for a request parameter.
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
-
+    
+    public static final String DATE_TIME_PATTERN = "{datetime}";
+    
     public static long getCurrentTime() {
         return Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTimeInMillis();
     }
@@ -71,5 +73,23 @@ public class TimeUtils {
             throw APIException.badRequests.invalidDate(timestampStr);
         }
         return timestamp;
+    }
+    
+    /**
+     * 
+     * Format a string against current date time if it includes pattern string {datetime}
+     * 
+     * @param source - source string including pattern {datetime} 
+     * @return formatted string
+     */
+    public static String formatDateForCurrent(String source) {
+        if (source.contains(DATE_TIME_PATTERN)) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
+            Date current = getCurrentDate();
+            String formattedDate = dateFormat.format(current);
+            return source.replace(DATE_TIME_PATTERN, formattedDate);
+        } else {
+            return source;
+        }
     }
 }

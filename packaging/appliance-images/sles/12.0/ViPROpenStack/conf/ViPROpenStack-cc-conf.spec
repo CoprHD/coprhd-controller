@@ -34,7 +34,7 @@
 
 Name:       ViPROpenStack-cc-conf
 Version:    2
-Release:    1
+Release:    2 
 Summary:    Default configuration for ViPROpenStack appliances
 Vendor:     EMC
 Group:      emc/asd/adg
@@ -73,12 +73,11 @@ cp %{sourceDir}/rabbitmq/%{rabbitmqLICENSEMPL} ${RPM_BUILD_ROOT}%{rabbitmqLicDir
 ################################################################################
 # Copying the MPL-2.0 license files to rabbitmq installation folders
 
-for rabbitmqDir in $(ls -d /usr/lib64/rabbitmq/lib/rabbitmq_server*/)
+for rabbitmqDocDir in $(ls -d /usr/share/doc/rabbitmq-server*/)
 do
-	cp -f %{rabbitmqLicDir}/* ${rabbitmqDir}
+       cp -f %{rabbitmqLicDir}/* ${rabbitmqDocDir}
 done
 
-cp -f %{rabbitmqLicDir}/* /usr/share/doc/packages/rabbitmq-server
 ################################################################################
 
 %files
@@ -102,6 +101,10 @@ cp -f %{rabbitmqLicDir}/* /usr/share/doc/packages/rabbitmq-server
 ################################################################################
 
 %changelog
+* Wed Aug 17 2016 Padmakumar G Pillai <ApplianceDevelopmentGroup@emc.com> 0:2-2
+- Updated the ViPROpenStackConfig.sh to update admin_token in /etc/keystone/keystone.conf
+- Updated the post install script to copy LICENSE files to the new rabbitmq doc folder
+
 * Fri Mar 11 2016 Padmakumar G Pillai <ApplianceDevelopmentGroup@emc.com> 0:2-1
 - Added RabbitMQ MPL-2.0 license files
 

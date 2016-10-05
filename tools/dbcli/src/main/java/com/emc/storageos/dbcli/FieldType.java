@@ -76,6 +76,18 @@ public class FieldType {
         }
         return longNum;
     }
+    
+    public static Double toDouble(String str) {
+        Double doubleNum = null;
+        try {
+            doubleNum = Double.valueOf(str);
+        } catch (Exception e) {
+            System.err.println("Caught Exception: " + e);
+            log.error("Exception: ", e);
+            return null;
+        }
+        return doubleNum;
+    }
 
     public static Boolean toBoolean(String str) {
         Boolean boolVal = null;

@@ -8,9 +8,29 @@ package com.emc.storageos.db.server;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.ref.SoftReference;
 import java.net.URI;
 import java.util.*;
 
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.IndexCleaner;
+import com.emc.storageos.db.client.impl.IndexCleanupList;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.PrefixDbIndex;
+import com.emc.storageos.db.client.impl.RowMutator;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.query.ColumnFamilyQuery;
+import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 import org.junit.After;
@@ -761,5 +781,185 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 this.dbClient, Volume.class,
                 new String[] { "provisionedCapacity" }, volFromPools.iterator());
         Assert.assertTrue((long) aggregator.getAggregate("provisionedCapacity") == 17500L);
+    }
+    
+    @Test
+    public void testQueryByFieldThenDelete() throws Exception {
+        Volume volume = new Volume();
+        URI id = URIUtil.createId(Volume.class);
+        URI pool = URIUtil.createId(StoragePool.class);
+        volume.setId(id);
+        volume.setLabel("volume");
+        volume.setPool(pool);
+        volume.setNativeGuid("native_guid");
+        volume.setNativeId("native_id");
+        volume.setCompositionType("compositionType");
+        volume.setInactive(false);
+        volume.setAllocatedCapacity(1000L);
+        volume.setProvisionedCapacity(2000L);
+        
+        dbClient.updateObject(volume);
+        
+        List<Volume> volumes = dbClient.queryObjectField(Volume.class, "compositionType", Arrays.asList(id));
+        Assert.assertTrue(volumes.size() == 1);
+        Assert.assertEquals("compositionType", volumes.get(0).getCompositionType());
+
+        dbClient.markForDeletion(volumes.get(0));
+        
+        URIQueryResultList result1 = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeNativeGuidConstraint(volume.getNativeGuid()), result1);
+        Assert.assertFalse(result1.iterator().hasNext());
+        
+        URIQueryResultList result2 = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+        		.getVolumeNativeIdConstraint(volume.getNativeId()), result2);
+        Assert.assertFalse(result2.iterator().hasNext());
+        
+        Volume queryVolumeResult = (Volume) dbClient.queryObject(id);
+        Assert.assertTrue(queryVolumeResult == null || queryVolumeResult.getInactive());
+    }
+
+    @Test
+    public void testCleanupSoftReference() throws ConnectionException {
+        Volume volume = new Volume();
+        URI id = URIUtil.createId(Volume.class);
+        URI pool = URIUtil.createId(StoragePool.class);
+        volume.setId(id);
+        volume.setLabel("origin");
+        volume.setPool(pool);
+        volume.setNativeGuid("native_guid");
+        volume.setNativeId("native_id");
+        volume.setCompositionType("compositionType");
+        volume.setInactive(false);
+        volume.setAllocatedCapacity(1000L);
+        volume.setProvisionedCapacity(2000L);
+
+        dbClient.updateObject(volume);
+
+        // Search the label index directly
+        String labelFieldName = "label";
+        int labelCount = getIndexRecordCount(labelFieldName);
+        Assert.assertEquals(2, labelCount); // By default, label index contains one record for VirtualDataCenter
+
+        List<URI> volumes = dbClient.queryByType(Volume.class, true);
+        int size = 0;
+        for (URI uri : volumes) {
+            Volume entry = dbClient.queryObject(Volume.class, uri);
+            _log.info("{}, URI={}, Label={}", ++size, uri, entry.getLabel());
+            Assert.assertEquals("origin", entry.getLabel());
+        }
+        Assert.assertEquals(1, size);
+
+        _log.info("\nStart to update with new label");
+        // Mock warning when listToCleanRef is null in indexCleaner
+        this.dbClient = super.getDbClient(new DbClientTest.DbClientImplUnitTester() {
+            @Override
+            public synchronized void start() {
+                super.start();
+                _indexCleaner = new IndexCleaner() {
+                    @Override
+                    public void cleanIndex(RowMutator mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
+                        listToCleanRef.clear();
+                        super.cleanIndex(mutator, doType, listToCleanRef);
+                    }
+                };
+            }
+        });
+        volume = dbClient.queryObject(Volume.class, id);
+        volume.setLabel("new");
+
+        dbClient.updateObject(volume);
+
+        // Search the label index directly
+        labelCount = getIndexRecordCount(labelFieldName);
+        Assert.assertEquals(3, labelCount); // We mocked indexCleaner, so that old label index couldn't be removed, still in DB
+
+        volumes = dbClient.queryByType(Volume.class, true);
+        size = 0;
+        for (URI uri : volumes) {
+            Volume entry = dbClient.queryObject(Volume.class, uri);
+            _log.info("{}, URI={}, Label={}", ++size, uri, entry.getLabel());
+            Assert.assertEquals("new", entry.getLabel());
+        }
+        Assert.assertEquals(1, size);
+
+        // Remove the object
+        _log.info("\nStart to remove volume");
+        this.dbClient = super.getDbClient(new DbClientTest.DbClientImplUnitTester());
+        volume = dbClient.queryObject(Volume.class, id);
+        dbClient.removeObject(volume);
+
+        // Search the label index directly
+        labelCount = getIndexRecordCount(labelFieldName);
+        Assert.assertEquals(1, labelCount);// All the label index related to volume should be removed.
+
+        volumes = dbClient.queryByType(Volume.class, true);
+        size = 0;
+        for (URI uri : volumes) {
+            Volume entry = dbClient.queryObject(Volume.class, uri);
+            _log.info("{}, URI={}, Label={}", ++size, uri, entry.getLabel());
+        }
+        Assert.assertEquals(0, size);
+    }
+
+    private int getIndexRecordCount(String fieldName) throws ConnectionException {
+        Keyspace keyspace = ((DbClientTest.DbClientImplUnitTester) dbClient).getLocalContext().getKeyspace();
+        DataObjectType doType = TypeMap.getDoType(Volume.class);
+        ColumnField field = doType.getColumnField(fieldName);
+        ColumnFamilyQuery<String, IndexColumnName> query = keyspace.prepareQuery(field.getIndexCF());
+        OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows().execute();
+        int count = 0;
+        for (Row<String, IndexColumnName> row : result.getResult()) {
+            _log.debug("{}, RowKey={}, Columns Size={}", ++count, row.getKey(), row.getColumns().size());
+            for (Column<IndexColumnName> column : row.getColumns()) {
+                _log.debug("\t, Column Name={}, String Value={}.", column.getName(), column.getStringValue());
+            }
+        }
+        return count;
+    }
+
+    @Test
+    public void testStringSetMapRemove() throws Exception {
+        UnManagedVolume unManagedVolume = new UnManagedVolume();
+        URI id = URIUtil.createId(UnManagedVolume.class);
+
+        unManagedVolume.setId(id);
+
+        StringSet set1 = new StringSet();
+        set1.add("test1");
+        set1.add("test2");
+        set1.add("test3");
+        set1.add("test4");
+
+        StringSet set2 = new StringSet();
+        set2.add("test5");
+        set2.add("test6");
+        set2.add("test7");
+        set2.add("test8");
+
+        String key1 = "key1";
+        String key2 = "key2";
+
+        unManagedVolume.putVolumeInfo("key1", set1);
+        unManagedVolume.putVolumeInfo("key2", set2);
+
+        dbClient.createObject(unManagedVolume);
+
+        unManagedVolume = dbClient.queryObject(UnManagedVolume.class, id);
+
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().containsKey(key1));
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().containsKey(key2));
+
+        unManagedVolume.getVolumeInformation().remove(key1);
+        unManagedVolume.getVolumeInformation().get(key2).remove("test6");
+
+        dbClient.updateObject(unManagedVolume);
+
+        unManagedVolume = dbClient.queryObject(UnManagedVolume.class, id);
+        Assert.assertFalse(unManagedVolume.getVolumeInformation().containsKey(key1));
+
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().get(key2).contains("test7"));
+        Assert.assertFalse(unManagedVolume.getVolumeInformation().get(key2).contains("test6"));
     }
 }

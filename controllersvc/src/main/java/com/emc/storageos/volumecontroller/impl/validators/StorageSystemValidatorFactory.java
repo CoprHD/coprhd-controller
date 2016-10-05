@@ -8,11 +8,13 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 
 /**
  * Abstract factory interface containing methods for building validators across various storage systems.
@@ -22,19 +24,10 @@ public interface StorageSystemValidatorFactory {
     /**
      * Create an {@link Validator} instance for validating an export mask delete operation.
      *
-     * @param storage
-     *            StorageSystem
-     * @param exportMask
-     *            ExportMask
-     * @param volumeURIList
-     *            Expected Volume URI list
-     * @param initiatorList
-     *            Expected Initiator list
-     * @return An {@link Validator} instance.
+     * @param ctx   ExportMaskValidationContext
+     * @return      Validator
      */
-    Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
-            Collection<URI> volumeURIList,
-            Collection<Initiator> initiatorList);
+    Validator exportMaskDelete(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating removal of a volume from an
@@ -47,6 +40,19 @@ public interface StorageSystemValidatorFactory {
      */
     Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
             Collection<Initiator> initiators);
+
+    /**
+     * Create an {@link Validator} instance for validating removal of a volume from an
+     * export group.
+     *
+     * @param storage
+     * @param exportMaskURI
+     * @param initiators
+     * @param volumes
+     * @return
+     */
+    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
+                            Collection<Initiator> initiators, Collection<? extends BlockObject> volumes);
 
     /**
      * Create an {@link Validator} instance for validating addition of initiators to an
@@ -63,12 +69,10 @@ public interface StorageSystemValidatorFactory {
     /**
      * Create an {@link Validator} instance for validating an export mask remove initiators operation
      *
-     * @param storage
-     * @param exportMask
-     * @param volumeURIList
-     * @return
+     * @param ctx   ExportMaskValidationContext
+     * @return      Validator
      */
-    Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList);
+    Validator removeInitiators(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating an export mask add initiators operation

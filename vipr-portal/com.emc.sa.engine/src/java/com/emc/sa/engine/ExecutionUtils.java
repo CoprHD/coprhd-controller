@@ -4,6 +4,7 @@
  */
 package com.emc.sa.engine;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -21,9 +22,12 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.google.common.collect.Maps;
 
 public class ExecutionUtils {
@@ -48,7 +52,13 @@ public class ExecutionUtils {
         context.setOrder(order);
         context.setModelClient(modelClient);
         context.setExecutionState(state);
-
+        
+        URI scheduledEventId = order.getScheduledEventId();
+        if (scheduledEventId != null) {
+        	ScheduledEvent event = modelClient.findById(ScheduledEvent.class, scheduledEventId);
+        	context.setScheduledEvent(event);
+        }
+        
         CatalogService catalogService = modelClient.catalogServices().findById(order.getCatalogServiceId());
         context.setServiceName(catalogService.getLabel());
         List<OrderParameter> orderParameters = modelClient.orderParameters().findByOrderId(order.getId());

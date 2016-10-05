@@ -337,8 +337,6 @@
         <property name="srdfOperations" ref="vmaxSrdfOperations" />
         <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
-        <property name="locker" ref="locker"/>
-        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.smis.SmisMetaVolumeOperations">
@@ -362,8 +360,6 @@
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vnxMetaVolumeOperations"/>
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
-        <property name="validator" ref="validatorFactory"/>
-        <property name="locker" ref="locker"/>
     </bean>
 
     <bean id="cinderStorageDevice" class="com.emc.storageos.volumecontroller.impl.cinder.CinderStorageDevice">
@@ -449,6 +445,8 @@
                 <entry key="providersystem" value-ref="storageDriverSimulator"/>
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
                 <entry key="hp3par" value-ref="hp3Par"/>
+                <entry key="dellscprovider" value-ref="dellsc"/>
+                <entry key="dellscsystem" value-ref="dellsc"/>
             </map>
         </property>
     </bean>
@@ -462,6 +460,8 @@
      <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
     </bean>
 	
+    <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
+
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="externalDevice" ref="externalBlockStorageDevice" />
@@ -625,11 +625,13 @@
     <bean id="vnxeExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="workflowService" ref="workflowService" />
     </bean>
     
     <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="workflowService" ref="workflowService" />
     </bean>
 
     <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">
@@ -910,6 +912,7 @@
         <property name="eventManager" ref="recordableEventMgr"/>
         <property name="auditLogManager" ref="auditLogManager"/>
         <property name="workflowService" ref="workflowService"/>
+        <property name="computeSystemOrchestrationDeviceController" ref="computeSystemOrchestrationDeviceController" />
     </bean>
     
 	<bean id="fileReplicationDeviceController" class="com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController">

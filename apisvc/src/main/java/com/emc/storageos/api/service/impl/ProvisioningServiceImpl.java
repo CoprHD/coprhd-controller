@@ -7,6 +7,8 @@ package com.emc.storageos.api.service.impl;
 import com.emc.storageos.api.service.ProvisioningService;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.security.AbstractSecuredWebServer;
 import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.authentication.StorageOSUserRepository;
@@ -30,12 +32,23 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
     @Autowired
     ServiceBeacon _svcBeacon;
 
+    private OpenStackSynchronizationTask _openStackSynchronizationTask;
+
+    public void setOpenStackSynchronizationTask(OpenStackSynchronizationTask openStackSynchronizationTask) {
+        this._openStackSynchronizationTask = openStackSynchronizationTask;
+    }
+
     @Override
     public synchronized void start() throws Exception {
         initValidator();
         initServer();
         _server.start();
         _svcBeacon.start();
+        // Launch OpenStack synchronization task if Keystone Authentication Provider exists.
+        AuthnProvider keystoneProvider = _openStackSynchronizationTask.getKeystoneProvider();
+        if (keystoneProvider != null && keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
+             _openStackSynchronizationTask.start(_openStackSynchronizationTask.getTaskInterval(keystoneProvider));
+        }
     }
 
     private void initValidator() {
@@ -48,5 +61,9 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
     public synchronized void stop() throws Exception {
         _server.stop();
         _dbClient.stop();
+        AuthnProvider keystoneProvider = _openStackSynchronizationTask.getKeystoneProvider();
+        if (keystoneProvider != null && keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
+            _openStackSynchronizationTask.stop();
+        }
     }
 }

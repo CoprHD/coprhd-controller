@@ -37,15 +37,14 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.TenantCreateParam;
-import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.security.authorization.Role;
@@ -65,7 +64,6 @@ import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.AuthnProvider.SearchScope;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderBaseParam;
@@ -103,6 +101,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private KeystoneUtils _keystoneUtils;
 
+    private OpenStackSynchronizationTask _openStackSynchronizationTask;
+
     private static final String EVENT_SERVICE_TYPE = "authconfig";
 
     @Override
@@ -118,9 +118,13 @@ public class AuthnConfigurationService extends TaggedResource {
         this._keystoneUtils = keystoneUtils;
     }
 
+    public void setOpenStackSynchronizationTask(OpenStackSynchronizationTask openStackSynchronizationTask) {
+        this._openStackSynchronizationTask = openStackSynchronizationTask;
+    }
+
     /**
      * Get detailed information for the authentication provider with the given URN
-     * 
+     *
      * @param id authentication provider URN
      * @brief Show authentication provider
      * @return Provider details
@@ -142,7 +146,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * List authentication providers in the zone.
-     * 
+     *
      * @brief List authentication providers
      * @return List of authentication providers
      */
@@ -191,7 +195,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * The minimal set of parameters include: mode, server_urls, manager_dn, manager_password, domains, search_base, search_filter and
      * group_attribute
      * <p>
-     * 
+     *
      * @param param AuthnCreateParam The provider representation with all necessary elements.
      * @brief Create an authentication provider
      * @return Newly created provider details as AuthnProviderRestRep
@@ -225,6 +229,13 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegCoprHDNImportOSProjects()){
                 _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
+                String interval = _openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions());
+                // Set default interval time when chosen interval is lower than minimal value.
+                if (Integer.parseInt(interval) < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
+                    _log.debug("Setting default interval time as chosen interval is lower than minimal value.");
+                    provider.getTenantsSynchronizationOptions().remove(interval);
+                    provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
+                }
             }
         } else {
             // Now validate the authn provider to make sure
@@ -240,14 +251,6 @@ public class AuthnConfigurationService extends TaggedResource {
 
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
-
-        // We have to create tenants and projects after the creation of AuthProvider.
-        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
-            // If the checkbox is checked, then register CoprHD.
-            if (provider.getAutoRegCoprHDNImportOSProjects()){
-                createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
-            }
-        }
 
         // TODO:
         // recordTenantEvent(RecordableEventManager.EventType.ProfiletCreated,
@@ -279,51 +282,50 @@ public class AuthnConfigurationService extends TaggedResource {
         return password;
     }
 
-    private void createTenantsAndProjectsForAutomaticKeystoneRegistration(AuthnProvider provider) {
-        // Create a new KeystoneAPI.
-        KeystoneApiClient keystoneApi = _keystoneUtils.getKeystoneApi(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
+    public void createTenantsAndProjectsForAutomaticKeystoneRegistration() {
 
-        // Retrieve tenants from OpenStack via Keystone API.
-        TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
+        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
+        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
 
-        for (TenantV2 tenant : tenantResponse.getTenants()) {
-            // Create mapping rules
-            List<UserMappingParam> userMappings = new ArrayList<>();
-            List<String> values = new ArrayList<>();
-            values.add(tenant.getId());
-
-            List<UserMappingAttributeParam> attributes = new ArrayList<>();
-            attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
-
-            userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
-
-            TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), userMappings);
-            if (tenant.getDescription() != null) {
-                param.setDescription(tenant.getDescription());
-            } else {
-                param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
+        while (osTenantIter.hasNext()) {
+            OSTenant osTenant = osTenantIter.next();
+            if (!osTenant.getExcluded()) {
+                createTenantAndProjectForOpenstackTenant(osTenant);
             }
-
-            // Create a tenant.
-            TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
-
-            // Create a project.
-            ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
-            ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
-
-            // Tag project with OpenStack tenant_id
-            Project project = _dbClient.queryObject(Project.class, projectElement.getId());
-            ScopedLabelSet tagSet = new ScopedLabelSet();
-            ScopedLabel tagLabel = new ScopedLabel(tenantOrgRestRep.getId().toString(), tenant.getId());
-            tagSet.add(tagLabel);
-            project.setTag(tagSet);
-            _dbClient.updateObject(project);
         }
+    }
+
+    public void createTenantAndProjectForOpenstackTenant(OSTenant tenant) {
+
+        TenantCreateParam param = prepareTenantMappingForOpenstack(tenant);
+
+        // Create a tenant.
+        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
+
+        // Create a project.
+        ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
+        ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+
+        _keystoneUtils.tagProjectWithOpenstackId(projectElement.getId(), tenant.getOsId(), tenantOrgRestRep.getId().toString());
+    }
+
+    public TenantCreateParam prepareTenantMappingForOpenstack(OSTenant tenant) {
+
+        List<UserMappingParam> userMappings = _keystoneUtils.prepareUserMappings(tenant.getOsId());
+
+        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), userMappings);
+        if (tenant.getDescription() != null) {
+            param.setDescription(tenant.getDescription());
+        } else {
+            param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
+        }
+
+        return param;
     }
 
     /**
      * Update the parameters of the target authentication provider. The ID is the URN of the authentication provider.
-     * 
+     *
      * @param param required The representation of the provider parameters to be modified.
      * @param id the URN of a ViPR authentication provider
      * @param allow Set this field to true to allow modification of the group-attribute field
@@ -356,33 +358,159 @@ public class AuthnConfigurationService extends TaggedResource {
         }
     }
 
+    /**
+     * Checks if the only options that changed were Tenants Synchronization Options.
+     *
+     * @param authnProvider old AuthnProvider
+     * @param param AuthnUpdateParam with params for updated AuthnProvider
+     * @return true if only Tenants Synchronization Options changed, false otherwise
+     */
+    private boolean isTenantsSynchronizationOptionsChanged(AuthnProvider authnProvider, AuthnUpdateParam param) {
+
+        if (param.getTenantsSynchronizationOptionsChanges().getAdd().isEmpty() &&
+            param.getTenantsSynchronizationOptionsChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (param.getLabel() != null && !param.getLabel().equals(authnProvider.getLabel())) {
+            return false;
+        }
+
+        if (param.getGroupAttribute() != null) {
+            return false;
+        }
+
+        if (param.getManagerDn() != null) {
+            return false;
+        }
+
+        if (param.getManagerPassword() != null) {
+            return false;
+        }
+
+        if (param.getSearchBase() != null) {
+            return false;
+        }
+
+        if (param.getSearchFilter() != null) {
+            return false;
+        }
+
+        if (param.getSearchScope() != null) {
+            return false;
+        }
+
+        if (param.getMode() != null && !param.getMode().equals(authnProvider.getMode())) {
+            return false;
+        }
+
+        if (param.getLabel() != null) {
+            return false;
+        }
+
+        if (param.getDescription() != null) {
+            return false;
+        }
+
+        if (param.getDisable() != null) {
+            return false;
+        }
+
+        if (param.getAutoRegCoprHDNImportOSProjects() != null) {
+            return false;
+        }
+
+        if (param.getMaxPageSize() != null) {
+            return false;
+        }
+
+        if (!param.getGroupWhitelistValueChanges().getAdd().isEmpty() || !param.getGroupWhitelistValueChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getDomainChanges().getAdd().isEmpty() || !param.getDomainChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getServerUrlChanges().getAdd().isEmpty() || !param.getServerUrlChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getGroupObjectClassChanges().getAdd().isEmpty() || !param.getGroupObjectClassChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getGroupMemberAttributeChanges().getAdd().isEmpty() || !param.getGroupMemberAttributeChanges().getRemove().isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Updates Keystone Auth Provider with given id.
+     *
+     * @param id URI of AuthnProvider
+     * @param param AuthnUpdateParam with params for updated AuthnProvider
+     * @param provider AuthnProvider to update
+     * @param validateP AuthnProviderParamsToValidate with parameters to validate the Provider.
+     * @return AuthnProviderRestRep updated Provider
+     */
     private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
-        //if the configured domain has tenant then we can't update 
-        //that domain.
-        checkForActiveTenantsUsingDomains(provider.getDomains());
+        int synchronizationInterval = OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY;
+
+        // if Auto Registration was done, get interval value from Tenant Sync Options
+        if (isAutoRegistered) {
+            synchronizationInterval = Integer
+                    .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
+        }
+
+        // if the configured domain has tenant then we can't update that domain unless
+        // the only options that changed were Tenants Synchronization Options
+        // (update to Auth Provider was done from Tenants section)
+        if (!isTenantsSynchronizationOptionsChanged(provider, param)) {
+            checkForActiveTenantsUsingDomains(provider.getDomains());
+        }
+
         overlayProvider(provider, param);
         // Set old password if new one is a blank or null.
         provider.setManagerPassword(getPassword(provider, oldPassword));
+
+        // get interval value from updated Tenant Sync Options
+        int newSynchronizationInterval = Integer
+                .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
+
+        // Whenever new interval value is below minimum, then set default interval time for keystone auth provider.
+        if (newSynchronizationInterval < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
+            _log.debug("Setting default interval time as chosen interval is lower than minimal value.");
+            provider.getTenantsSynchronizationOptions().remove(Integer.toString(newSynchronizationInterval));
+            provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
+        }
 
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
             validateP.setUrls(new ArrayList<String>(provider.getServerUrls()));
             StringBuilder errorString = new StringBuilder();
             if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
-                throw BadRequestException.badRequests.
-                        authnProviderCouldNotBeValidated(errorString.toString());
+                throw BadRequestException.badRequests.authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
-        provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(), getPassword(provider, oldPassword)));
+        provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(),
+                getPassword(provider, oldPassword)));
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
+        // if the Auto Registration was not done before, then register CoprHD in Keystone
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
-            createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
+        }
+
+        // if the Automatic Registration is selected and new interval value is not the same as the old one,
+        // then reschedule the task
+        if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval) {
+            _openStackSynchronizationTask.rescheduleTask(newSynchronizationInterval);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());
@@ -464,10 +592,10 @@ public class AuthnConfigurationService extends TaggedResource {
      * param's attribute is null or not, it will be used to overwrite existingi
      * AuthnConfiguration object's attribute or merge with existing AuthnConfiguration
      * object's attribute, because DbClient#persistObject supports partial writes.
-     * 
+     *
      * @param authn
      *            The existing AuthnConfiguration object
-     * 
+     *
      * @param param
      *            AuthnConfiguration update param to overlay existing AuthnConfiguration
      *            object
@@ -513,7 +641,9 @@ public class AuthnConfigurationService extends TaggedResource {
             authn.setDomains(ssOld);
         }
 
-        authn.setManagerDN(param.getManagerDn());
+        if (param.getManagerDn() != null) {
+            authn.setManagerDN(param.getManagerDn());
+        }
 
         authn.setManagerPassword(param.getManagerPassword());
 
@@ -541,6 +671,26 @@ public class AuthnConfigurationService extends TaggedResource {
             authn.setServerUrls(ssOld);
         }
 
+        if (param.getMode() != null
+                && param.getMode().equals(AuthnProvider.ProvidersType.keystone.toString())
+                && param.getTenantsSynchronizationOptionsChanges() != null) {
+            StringSet oldOptions = authn.getTenantsSynchronizationOptions();
+            if (oldOptions == null) {
+                oldOptions = new StringSet();
+            }
+            if (param.getTenantsSynchronizationOptionsChanges().getAdd() != null) {
+                oldOptions.addAll(param.getTenantsSynchronizationOptionsChanges().getAdd());
+            }
+            if (param.getTenantsSynchronizationOptionsChanges().getRemove() != null) {
+                oldOptions.removeAll(new HashSet<String>(param.getTenantsSynchronizationOptionsChanges().getRemove()));
+            }
+            if (oldOptions.isEmpty()) {
+                ArgValidator.checkFieldNotEmpty(oldOptions,
+                        "Interval cannot be empty. Please provide the value.");
+            }
+            authn.setTenantsSynchronizationOptions(oldOptions);
+        }
+
         if (param.getMode() != null) {
             authn.setMode(param.getMode());
         }
@@ -550,7 +700,7 @@ public class AuthnConfigurationService extends TaggedResource {
         authn.setDescription(param.getDescription());
 
         authn.setDisable(param.getDisable() != null ? param.getDisable() : authn.getDisable());
-        
+
         authn.setAutoRegCoprHDNImportOSProjects(param.getAutoRegCoprHDNImportOSProjects() != null ? param.getAutoRegCoprHDNImportOSProjects()
                 : authn.getAutoRegCoprHDNImportOSProjects());
 
@@ -593,9 +743,9 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * check if given domains are in use or not,
-     * 
+     *
      * if any of them is in use, throw exception.
-     * 
+     *
      * @param domains
      */
     private void verifyDomainsIsNotInUse(StringSet domains) {
@@ -616,7 +766,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * Queries all tenants in the system for which the passed in domain set
      * has a match in their user mapping. If so, will throw an exception.
      * Else will just return normally.
-     * 
+     *
      * @param domains the domains to check
      */
     private void checkForActiveTenantsUsingDomains(StringSet domains) {
@@ -652,7 +802,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * check local vdc to see if any vdc role assignments belongs to the passed in domain set.
      * if so, throw an exception;
      * else, return silently.
-     * 
+     *
      * @param domains the domains to check
      */
     private void checkForVdcRolesUsingDomains(StringSet domains) {
@@ -672,7 +822,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * check tenants to see if any tenant role assignments belongs to the passed in domain set.
      * if so, throw an exception;
      * else, return silently.
-     * 
+     *
      * @param domains the domains to check
      */
     private void checkForTenantRolesUsingDomains(StringSet domains) {
@@ -694,7 +844,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * compare role assignments against domain(s), return matching users.
-     * 
+     *
      * @param roleAssignments
      * @param domains
      */
@@ -726,7 +876,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /**
      * Delete the provider with the provided id.
      * Authentication services will no longer use this provider for authentication.
-     * 
+     *
      * @param id the URN of a ViPR provider authentication to be deleted
      * @brief Delete authentication provider
      * @return No data returned in response body
@@ -745,6 +895,13 @@ public class AuthnConfigurationService extends TaggedResource {
             checkForUserGroupsUsingDomains(provider.getDomains());
             verifyDomainsIsNotInUse(provider.getDomains());
         } else {
+            _openStackSynchronizationTask.stopSynchronizationTask();
+            // Remove all OSTenant objects from DB when Keystone Provider is deleted.
+            List<URI> osTenantURIs = _dbClient.queryByType(OSTenant.class, true);
+            List<OSTenant> tenants = _dbClient.queryObject(OSTenant.class, osTenantURIs);
+            for (OSTenant osTenant : tenants) {
+                _dbClient.removeObject(osTenant);
+            }
             // Delete Cinder endpoints.
             _keystoneUtils.deleteCinderEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }
@@ -776,7 +933,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * Checks if an authn provider exists for the given domain
-     * 
+     *
      * @param domain
      * @return true if a provider exists, false otherwise
      */
@@ -1024,7 +1181,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /***
      * Make sure all the VDCs in the federation are in the minimum expected version
      * for using the ldap group support.
-     * 
+     *
      * @param createParam set of group object classes.
      */
     private void checkIfCreateLDAPGroupPropertiesSupported(AuthnCreateParam createParam) {
@@ -1049,7 +1206,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /***
      * Make sure all the VDCs in the federation are in the minimum expected version
      * for using the ldap group support.
-     * 
+     *
      * @param updateParam set of group object classes.
      */
     private void checkIfUpdateLDAPGroupPropertiesSupported(AuthnUpdateParam updateParam) {

@@ -89,10 +89,6 @@ public class VolumeExpandCompleter extends VolumeTaskCompleter {
                 _log.info(String.format("VolumeExpand failed - Volume Id: %s, NativeId: %s, OpId: %s, status: %s, New size: %d",
                         getId().toString(), volume.getNativeId(), getOpId(), status.name(), _size));
             }
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
             recordBlockVolumeOperation(dbClient, OperationTypeEnum.EXPAND_BLOCK_VOLUME, status, getId().toString(), String.valueOf(_size));
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for VolumeExpand - Volume Id: %s, OpId: %s",

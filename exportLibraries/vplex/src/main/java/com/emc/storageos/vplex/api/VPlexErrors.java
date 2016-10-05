@@ -124,8 +124,8 @@ public interface VPlexErrors {
     public ServiceError commitMigrationFailed(final String opName,
             final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public ServiceError rollbackCommitMigration(final String opName);
+    @DeclareServiceCode(ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION)
+    public ServiceError cantRollbackCommittedMigration();
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError importVolumeFailedException(final String opName,
@@ -241,4 +241,7 @@ public interface VPlexErrors {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError operateMigrationFailed(final String opName,
             final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError cantRollbackExceptionDeterminingCommitState(final Throwable cause);
 }

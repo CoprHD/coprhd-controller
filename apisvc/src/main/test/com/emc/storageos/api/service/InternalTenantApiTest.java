@@ -5,7 +5,7 @@
 package com.emc.storageos.api.service;
 
 import com.emc.storageos.model.search.SearchResultResourceRep;
-import com.emc.storageos.api.service.impl.resource.utils.InternalTenantServiceClient;
+import com.emc.storageos.security.authentication.InternalTenantServiceClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.model.tenant.*;
 import com.emc.storageos.security.authentication.RequestProcessingUtils;

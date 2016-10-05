@@ -148,7 +148,8 @@ public class SmisSnapShotJob extends SmisJob {
                     // then we just return that session as we already created it when another
                     // snapshot in the group was processed.
                     String sessionInstance = groupSnapSession.getSessionInstance();
-                    if (sessionInstance.equals(snapshot.getSettingsInstance())) {
+                    if ((NullColumnValueGetter.isNotNullValue(sessionInstance)) &&
+                            (sessionInstance.equals(snapshot.getSettingsInstance()))) {
                         result = groupSnapSession;
                         break;
                     }

@@ -38,10 +38,10 @@ import com.google.common.collect.Collections2;
  */
 public class ArrayAffinityDiscoveryUtils {
     private static final Logger _log = LoggerFactory.getLogger(ArrayAffinityDiscoveryUtils.class);
-    public static final List<String> HOST_PROPERTIES = Arrays.asList("preferredPoolIds", "label");
+    public static final List<String> HOST_PROPERTIES = Arrays.asList("preferredPools", "label");
 
     /**
-     * update preferredPoolIds for a host
+     * update preferredPools for a host
      *
      * @param Host host to be update
      * @param systemIds IDs of the systems
@@ -50,7 +50,7 @@ public class ArrayAffinityDiscoveryUtils {
      * @return true if host's preferred pools have been changed
      */
     public static boolean updatePreferredPools(Host host, Set<String> systemIds, DbClient dbClient, Map<String, String> poolToTypeMap) {
-        StringMap existingPreferredPools = host.getPreferredPoolIds();
+        StringMap existingPreferredPools = host.getPreferredPools();
         List<String> poolsToRemove = new ArrayList<String>();
 
         // find out pools on the system were preferred, but not anymore

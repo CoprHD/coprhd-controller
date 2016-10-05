@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.net.ssl.SSLException;
@@ -21,9 +22,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.ComputeSystemDialogProperties;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryVersionValidator;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
@@ -36,13 +40,13 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.util.EventUtil;
-import com.emc.storageos.util.EventUtil.EventCode;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscoveryAdapter {
     private Logger log;
@@ -219,7 +223,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.removeHostsFromExport(hostIds, clusterURI, false, taskId);
+            controller.removeHostsFromExport(hostIds, clusterURI, false, NullColumnValueGetter.getNullURI(), taskId);
         }
     }
 
@@ -263,7 +267,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return null;
     }
 
-    protected Initiator getOrCreateInitiator(List<Initiator> initiators, String port) {
+    protected Initiator getOrCreateInitiator(URI hostId, List<Initiator> initiators, String port) {
         Initiator initiator = findInitiatorByPort(initiators, port);
         if (initiator == null) {
             initiator = new Initiator();
@@ -271,6 +275,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             initiator.setLabel(EndpointUtility.changeCase(port));
         } else {
             initiators.remove(initiator);
+        }
+
+        if (!NullColumnValueGetter.isNullURI(initiator.getHost()) && !initiator.getHost().equals(hostId)) {
+            Host host = dbClient.queryObject(Host.class, hostId);
+            Host initiatorHost = dbClient.queryObject(Host.class, initiator.getHost());
+            throw ComputeSystemControllerException.exceptions.illegalInitiator(host != null ? host.forDisplay() : hostId.toString(),
+                    initiator.getInitiatorPort(), initiatorHost != null ? initiatorHost.forDisplay() : initiator.getHost().toString());
         }
         initiator.setIsManualCreation(false);
         return initiator;
@@ -517,7 +528,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 List<URI> hostInitiators = ComputeSystemHelper.getChildrenUris(dbClient, host.getId(), Initiator.class, "host");
                 if (hostInitiators.size() == oldInitiatorObjects.size()) {
                     log.info("No initiators were re-discovered for host " + host.getId() + " so we will not delete its initiators");
-                    oldInitiatorObjects.clear();
+                    DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "No initiators were discovered", null);
+                    continue;
                 }
             }
 
@@ -542,28 +554,37 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 }
 
-                if (!oldDatacenter.getVcenter().toString().equals(currentDatacenter.toString())) {
+                if (!oldDatacenter.getVcenter().toString().equals(currentDatacenter.getVcenter().toString())) {
                     Vcenter oldVcenter = dbClient.queryObject(Vcenter.class, oldDatacenter.getVcenter());
                     Vcenter currentVcenter = dbClient.queryObject(Vcenter.class, currentDatacenter.getVcenter());
-                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_VCENTER_CHANGE, host.getTenant(),
-                            "Host " + host.getLabel() + " changed vcenter from " + oldVcenter.getLabel()
-                                    + " to " + currentVcenter.getLabel(),
-                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                    + (cluster == null ? " N/A " : cluster.getLabel()),
-                            host,
-                            "hostVcenterChange",
+                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_VCENTER_CHANGE, host.getTenant(),
+
+                    ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeLabel", oldVcenter.getLabel(),
+                            currentVcenter.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDescription", host.getLabel(),
+                                    oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeWarning"),
+                            host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            EventUtils.hostVcenterChange,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter },
+                            EventUtils.hostVcenterChangeDecline,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     currentDatacenter.getId(), isVCenter });
                 } else {
-                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
-                            "Host " + host.getLabel() + " changed datacenter from " + oldDatacenter.getLabel()
-                                    + " to " + currentDatacenter.getLabel(),
-                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                    + (cluster == null ? " N/A " : cluster.getLabel()),
-                            host,
-                            "hostDatacenterChange",
+                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeLabel", oldDatacenter.getLabel(),
+                                    currentDatacenter.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDescription", host.getLabel(),
+                                    oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeWarning"),
+                            host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            EventUtils.hostDatacenterChange,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter },
+                            EventUtils.hostDatacenterChangeDecline,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     currentDatacenter.getId(), isVCenter });
                 }
@@ -587,20 +608,48 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 boolean newClusterInUse = cluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, cluster.getId());
 
                 if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
-                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
-                            "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
-                                    + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
-                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                    + (cluster == null ? " N/A " : cluster.getLabel()),
-                            host,
-                            "hostClusterChange",
+                    String name = null;
+                    String description = null;
+
+                    if (cluster != null && oldCluster == null) {
+                        name = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeAddedLabel", cluster.getLabel());
+                        description = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeAddedDescription",
+                                host.getLabel(), cluster.getLabel());
+                    } else if (cluster == null && oldCluster != null) {
+                        name = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeRemovedLabel",
+                                oldCluster.getLabel());
+                        description = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeRemovedDescription",
+                                host.getLabel(),
+                                oldCluster.getLabel());
+                    } else {
+                        name = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeMovedLabel", oldCluster.getLabel(),
+                                cluster.getLabel());
+                        description = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeMovedDescription",
+                                host.getLabel(), oldCluster.getLabel(),
+                                cluster.getLabel());
+                    }
+                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
+                            name, description, ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeWarning"), host,
+                            Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            EventUtils.hostClusterChange,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
+                                            : change.getNewDatacenter(),
+                                    isVCenter },
+                            EventUtils.hostClusterChangeDecline,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
+                                            : change.getNewDatacenter(),
                                     isVCenter });
                 } else {
                     host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
                     dbClient.updateObject(host);
-                    ComputeSystemHelper.updateInitiatorClusterName(dbClient, host.getCluster(), host.getId());
+                    ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, host.getCluster(), host.getId());
+                    if (cluster != null) {
+                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
+                                cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
+                    }
                 }
             } else if (!NullColumnValueGetter.isNullURI(change.getNewDatacenter())) {
                 VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
@@ -611,25 +660,71 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
             if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
-                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
-                            "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorPort(),
-                            "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
-                            oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
+                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorLabel", oldInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDescription",
+                                    oldInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorWarning"),
+                            host, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtils.removeInitiator,
+                            new Object[] { oldInitiator.getId() }, EventUtils.removeInitiatorDecline,
+                            new Object[] { oldInitiator.getId() });
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
-                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_ADD, host.getTenant(),
-                            "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorPort(),
-                            "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
-                            newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_ADD, host.getTenant(),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorLabel", newInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDescription",
+                                    newInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorWarning"),
+                            host, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtils.addInitiator,
+                            new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
+                            new Object[] { newInitiator.getId() });
                 }
             }
         }
 
-        log.info("Number of deleted hosts: " + deletedHosts.size()
-                + ". These hosts will remain in our database and must be deleted manually.");
+        log.info("Number of undiscovered hosts: " + deletedHosts.size());
 
-        log.info("Number of deleted clusters: " + deletedClusters.size()
-                + ". These clusters will remain in our database and must be deleted manually.");
+        Set<URI> incorrectDeletedHosts = Sets.newHashSet();
+        for (URI deletedHost : deletedHosts) {
+            Host host = dbClient.queryObject(Host.class, deletedHost);
+            URI clusterId = host.getCluster();
+            List<URI> clusterHosts = Lists.newArrayList();
+            if (!NullColumnValueGetter.isNullURI(clusterId)) {
+                clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+            }
+            if (clusterHosts.contains(deletedHost)
+                    && deletedHosts.containsAll(clusterHosts)) {
+                incorrectDeletedHosts.add(deletedHost);
+                DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "Error discovering host cluster", null);
+                log.info("Host " + host.getId()
+                        + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
+
+            } else {
+                Vcenter vcenter = ComputeSystemHelper.getHostVcenter(dbClient, host);
+                EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignLabel",
+                                vcenter == null ? "N/A" : vcenter.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel(),
+                                vcenter == null ? "N/A" : vcenter.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignWarning"),
+                        host, Lists.newArrayList(host.getId(), host.getCluster()),
+                        EventUtils.hostVcenterUnassign, new Object[] { deletedHost },
+                        EventUtils.hostVcenterUnassignDecline, new Object[] { deletedHost });
+            }
+        }
+
+        // delete clusters that don't contain any hosts, don't have any exports, and don't have any pending events
+        for (URI clusterId : deletedClusters) {
+            List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+            if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
+                    && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
+                Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
+                info("Deactivating Cluster: " + clusterId);
+                ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+            } else {
+                info("Unable to delete cluster " + clusterId);
+            }
+        }
 
     }
 

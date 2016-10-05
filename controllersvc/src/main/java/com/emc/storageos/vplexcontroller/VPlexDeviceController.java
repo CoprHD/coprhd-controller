@@ -12527,13 +12527,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     /**
+     * Create a step in the passed workflow to call the block controller to natively
+     * relink the passed linked targets to the passed target snapshot session.
      * 
-     * @param workflow
-     * @param tgtSnapSession
-     * @param snapshotURIs
-     * @param waitFor
-     * @param rollbackMethod
-     * @return
+     * @param workflow A reference to a workflow.
+     * @param tgtSnapSession A reference to the target snapshot session.
+     * @param snapshotURIs The URIs of the block snapshot targets
+     * @param waitFor The step this step should wait for, or null to wait for nothing
+     * @param rollbackMethod A reference to a rollback method, or null.
+     * 
+     * @return RELINK_SNAPSHOT_SESSION_TARGET_STEP
      */
     private String createWorkflowStepForRelinkNativeTargets(Workflow workflow,
             BlockSnapshotSession tgtSnapSession, List<URI> snapshotURIs, String waitFor, Workflow.Method rollbackMethod) {

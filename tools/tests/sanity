@@ -556,7 +556,7 @@ srdf_generate_rdfg_name() {
     echo $(date +"S"%m%d$RANDOM | cut -c1-10)
 }
 
-SRDF_SLEEPING_SECONDS=300
+SRDF_SLEEPING_SECONDS=180
 srdf_sleep() {
     secho "Sleeping ${SRDF_SLEEPING_SECONDS} seconds"
     sleep ${SRDF_SLEEPING_SECONDS}
@@ -2006,8 +2006,9 @@ srdf_v3_cos_setup()
     secho "SRDF V3 Virtual Pool setup" 
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
+    # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block $COS_VMAXBLOCK_V3_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' true \
+	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
@@ -2122,12 +2123,18 @@ srdf_v3_cos_change()
    echo "Created volume, now sleeping..."
    srdf_sleep
    echo "Changing cos..."
+   # Workaround for COP-25718, remove the cos update once it is fixed
+   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched true
+   run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+
    run volume change_cos $SRDF_PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
    echo "Changed cos"
    srdf_sleep
    echo "Deleting volume"
    run volume delete $SRDF_PROJECT/${srdfvolumecc} --wait
    run_noundo blockconsistencygroup delete $cg
+   # Workaround for COP-25718, remove the cos update once it is fixed
+   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched false
 }
 
 srdf_cos_change_meta()
@@ -2185,8 +2192,6 @@ srdf_basic_active_test()
    srdfvolume="${SRDF_VOLUME}_active"
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
-   echo "Rediscovering storage systems"
-   storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait

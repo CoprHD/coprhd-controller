@@ -58,7 +58,7 @@ public class OEJson
         this.steps = steps;
     }
 
-    public  class Input
+    public  static class Input
     {
         @SerializedName("Type")
         String type;
@@ -142,8 +142,13 @@ public class OEJson
         }
     }
 
-    public  class StepAttribute
+    public  static class StepAttribute
     {
+ 	public StepAttribute()
+        {
+            waitForTask = true;
+            timeout = OrchestrationServiceConstants.TIMEOUT;
+        }
         @SerializedName("WaitForTask")
         boolean waitForTask;
         @SerializedName("Timeout")
@@ -166,7 +171,7 @@ public class OEJson
         }
     }
 
-    public  class Step
+    public  static class Step
     {
         @SerializedName("StepId")
         String stepId;
@@ -260,7 +265,7 @@ public class OEJson
         }
     }
 
-    public  class Next
+    public  static class Next
     {
         @SerializedName("Default")
         String defaultstep;

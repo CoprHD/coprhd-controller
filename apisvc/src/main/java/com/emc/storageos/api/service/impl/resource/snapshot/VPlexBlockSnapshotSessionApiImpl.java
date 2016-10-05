@@ -199,8 +199,8 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // VPLEX volume. If that is the case, then what this essentially amounts to
             // is that the linked target is being restored with the data from the target 
             // session. As such, the same restrictions for restoring a snapshot session apply
-            // here, not for the snapshot session source objects, but for the VPLEX volumes
-            // built on top of the linked targets.
+            // here, but not for the snapshot session source objects, and instead for the
+            // VPLEX volumes built on top of the linked targets.
             List<Volume> vplexVolumesBuiltOnSnapshots = VPlexUtil.getVPlexVolumesBuiltOnSnapshots(allSnapshots, _dbClient);
             for (Volume vplexVolumesBuiltOnSnapshot : vplexVolumesBuiltOnSnapshots) {
                 // Check for pending tasks on the VPLEX source volume.

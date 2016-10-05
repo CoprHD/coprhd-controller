@@ -30,13 +30,13 @@ public class AuthModeBootstrap extends Job {
     private static String AUTH_ID = "auth";
 
     private CoordinatorClient coordinator;
-    ConfigurationUtil configurationUtil = new ConfigurationUtil(coordinator);
+    private ConfigurationUtil configurationUtil;
 
     public void doJob() {
         try {
-            Cache.set(Security.AUTH_MODE_CACHE_KEY, AuthSourceType.oidc.name());
-
             coordinator = StorageOsPlugin.getInstance().getCoordinatorClient();
+            configurationUtil = new ConfigurationUtil(coordinator);
+	    getAuthModeFromZKandUpdateToCache(); 
             coordinator.addNodeListener(new AuthModeListener());
 
             Logger.info("AuthModeListener gets started. The current auth mode is %s", Cache.get(Security.AUTH_MODE_CACHE_KEY));

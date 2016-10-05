@@ -19,6 +19,7 @@ import controllers.deadbolt.Restrictions;
 import jobs.vipr.AuthModeBootstrap;
 import models.deadbolt.Role;
 import models.deadbolt.RoleHolder;
+import jobs.vipr.AuthModeBootstrap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;

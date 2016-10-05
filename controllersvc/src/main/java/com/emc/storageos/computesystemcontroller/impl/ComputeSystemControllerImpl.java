@@ -634,15 +634,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         String newWaitFor = waitFor;
         List<URI> addedClusters = new ArrayList<>();
         List<URI> removedClusters = new ArrayList<>();
-        List<URI> addedHosts = new ArrayList<>(hostIds);
-        List<URI> removedHosts = new ArrayList<>();
+        List<URI> addedHosts = new ArrayList<>();
+        List<URI> removedHosts = new ArrayList<>(hostIds);
         List<URI> addedInitiators = new ArrayList<>();
         List<URI> removedInitiators = new ArrayList<>();
 
         if (export != null) {
+            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             for (URI hostId : hostIds) {
+                updatedHosts.remove(hostId);
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (Initiator initiator : hostInitiators) {
                     removedInitiators.add(initiator.getId());
@@ -662,7 +664,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         updateExportGroupMethod(export.getId(),
-                                updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
+                                CollectionUtils.isEmpty(export.getInitiators()) ? new HashMap<URI, Integer>() : updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                         null, null);
             }

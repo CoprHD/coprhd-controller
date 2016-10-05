@@ -4,7 +4,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-@Cf("VirtualPool")
+@Cf("ClassOfService")
 public class ClassOfService extends DataObject{
 	
 

@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -488,7 +487,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 if (!storageControllerUri.equals(bo.getStorageController())) {
                     controllerKey.setProtectionControllerUri(storageControllerUri);
                 }
-                Log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
+                _log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
                 // add an entry in each map for the storage system if not already exists
                 getOrAddStorageMap(controllerKey, addedBlockObjects);
                 getOrAddStorageMap(controllerKey, removedBlockObjects);

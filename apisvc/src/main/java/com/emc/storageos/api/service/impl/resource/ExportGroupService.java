@@ -851,7 +851,9 @@ public class ExportGroupService extends TaskResourceService {
         }
         validateInitiatorHostOS(addedInitiators);
         List<URI> connectStorageSystems = new ArrayList<>();
-        filterOutInitiatorsNotAssociatedWithVArray(exportGroup, storageSystems, connectStorageSystems, addedInitiators);
+        newInitiators.addAll(addedInitiators);
+        newInitiators.removeAll(removedInitiators);
+        filterOutInitiatorsNotAssociatedWithVArray(exportGroup, storageSystems, connectStorageSystems, newInitiators);
 
         // Validate if we're adding new Volumes to the export. If so, we want to make sure that there
         // connections from the volumes to the StorageSystems. If the newInitiators list is empty, then
@@ -860,7 +862,7 @@ public class ExportGroupService extends TaskResourceService {
         // the necessary connections before proceeding.
         List<VolumeParam> addVolumeParams = param.getVolumes().getAdd();
         if (exportGroup.hasInitiators() && !CollectionUtils.isEmpty(addVolumeParams) &&
-                !CollectionUtils.isEmpty(newInitiators)) {
+                CollectionUtils.isEmpty(newInitiators)) {
             Set<URI> uniqueStorageSystemSet = new HashSet<>();
             for (VolumeParam addVolumeParam : addVolumeParams) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, addVolumeParam.getId());

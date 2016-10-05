@@ -266,11 +266,11 @@ public class ExportGroupService extends TaskResourceService {
                 .userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
-
+        
         // Validate the varray and check its permissions
         VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
         _permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
-        
+
         //Add check for PassThroughParam
         if (param.getExportPassThroughParam() != null && !param.getExportPassThroughParam().isEmpty()){
 
@@ -298,7 +298,7 @@ public class ExportGroupService extends TaskResourceService {
 
                         TaskResourceRep taskRes = toTask(exportGroup, task, op);
 
-                        CreateExportGroupSchedulingThread.executePassThroughApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,neighborhood, project,
+                        CreateExportGroupSchedulingThread.executePassThroughApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood , project,
                         exportGroup, storageMap, param.getClusters(), param.getHosts(),
                         param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
 
@@ -310,6 +310,7 @@ public class ExportGroupService extends TaskResourceService {
                         throw APIException.badRequests.parameterValueIsNotValid("passThroughParam");
                 }
         }
+
         // Validate that the create is not attempting to add VPLEX
         // backend volumes to a group.
         if (param.getVolumes() != null && !param.getVolumes().isEmpty()) {
@@ -976,7 +977,9 @@ public class ExportGroupService extends TaskResourceService {
             Set<URI> initiatorsHost = new HashSet<URI>(1);
             for (URI initiatorUri : initiators) {
                 Initiator initiator = queryObject(Initiator.class, initiatorUri, true);
+		_log.info("IN EGS initiator :  {}" , initiator);
                 if (initiator.getHost() == null || NullColumnValueGetter.isNullURI(initiator.getHost())) {
+		    _log.info("IN ExportGroupService initiator.host :{}     isNullURI : {} " , initiator.getHost() , NullColumnValueGetter.isNullURI(initiator.getHost()));
                     throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
                 }
                 validateInitiatorRegistered(initiator);

@@ -18,6 +18,8 @@ import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.PassThroughParam;
+import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -46,10 +48,12 @@ class CreateExportGroupSchedulingThread implements Runnable {
     private String task;
     private TaskResourceRep taskRes;
     private ExportPathParameters pathParam;
+    private VolumeCreate param;
+    private boolean isDirect = false;
 
     public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project, ExportGroup exportGroup,
             Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
-            ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
+            ExportPathParameters pathParam, String task, TaskResourceRep taskRes, boolean isDirect) {
         this.exportGroupService = exportGroupService;
         this.virtualArray = virtualArray;
         this.project = project;
@@ -62,6 +66,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
         this.task = task;
         this.taskRes = taskRes;
         this.pathParam = pathParam;
+	this.isDirect = isDirect;
     }
 
     @Override
@@ -72,7 +77,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
             // validate clients (initiators, hosts clusters) input and package them
             // This call may take a long time.
         	List<URI> affectedInitiators = null;
-        	if (project == null || virtualArray == null) {
+        	if (isDirect) {
         		affectedInitiators = this.exportGroupService.validatePassThroughClientsAndPopulate(exportGroup,
                         storageMap.keySet(), clusters, hosts, initiators, volumeMap.keySet(), pathParam);
                 
@@ -153,7 +158,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
             ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
 
         CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, virtualArray,
-                project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
+                project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes, false);
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {
@@ -172,8 +177,11 @@ class CreateExportGroupSchedulingThread implements Runnable {
                 Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap, 
                 ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
 
+    	for (URI initiator : initiators ){
+    		_log.info("IN executePassThroughApiTask  initiator : " + initiator);
+    	}
         CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, virtualArray, 
-        		project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
+        		project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes, true);
         try {
                 executorService.execute(schedulingThread);
         } catch (Exception e) {

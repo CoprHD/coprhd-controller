@@ -710,7 +710,7 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
    
-        ArgValidator.checkFieldNotNull(param, "volume_create");
+      ArgValidator.checkFieldNotNull(param, "volume_create");
 
         // CQECC00604134
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
@@ -723,14 +723,14 @@ public class BlockService extends TaskResourceService {
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
         // Get and validate the varray
-        ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
-        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+	       	ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
+        	VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
                 param.getVarray(), uriInfo, _permissionsHelper, _dbClient);
-        ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
+        	ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
 
         // Get and validate the VirtualPool.
-        VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
-    	
+	VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
+
 	//Direct-VPLEX-TO-PASS-VOLUME
         if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
     			&& !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("volumeId")){
@@ -742,7 +742,7 @@ public class BlockService extends TaskResourceService {
             	throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
             }
     		String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project, varray , vpool);
             ArrayList<String> requestedTypes = new ArrayList<String>();
             CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
             return taskList;
@@ -772,7 +772,7 @@ public class BlockService extends TaskResourceService {
     		}
     		
     		String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project,varray,vpool);
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project, varray , vpool);
     		
             ArrayList<String> requestedTypes = new ArrayList<String>();
             // call thread that does the work.
@@ -807,7 +807,7 @@ public class BlockService extends TaskResourceService {
 
 
             String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project,varray,vpool);
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(), project, varray , vpool);
 
             ArrayList<String> requestedTypes = new ArrayList<String>();
             // call thread that does the work.
@@ -818,7 +818,6 @@ public class BlockService extends TaskResourceService {
 
 
         }
-
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         // Get the count indicating the number of volumes to create. If not

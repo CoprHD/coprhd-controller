@@ -6,6 +6,7 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -24,6 +25,7 @@ import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.mail.MailHelper;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
@@ -399,12 +401,28 @@ public class SchedulerConfig {
     }
 
     private boolean isClusterUpgrading() {
+        try {
+            RepositoryInfo target = coordinator.getTargetInfo(RepositoryInfo.class);
+            SoftwareVersion targetVersion = target.getCurrentVersion();
+            SoftwareVersion currentVersion = new LocalRepository().getRepositoryInfo().getCurrentVersion();
+            log.info("The current version={} target version={}", currentVersion, targetVersion);
+            if (!currentVersion.equals(targetVersion)) {
+                log.info("The current version is NOT equals to target version");
+                return true;
+            }
+        }catch (Exception e ) {
+            log.error("Failed to get versions e=", e);
+            return true; // failed to read data from zk, so no need to do backup at this time
+        }
+
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        String currentVersion = coordinatorClient.getCurrentDbSchemaVersion();
-        String targetVersion = coordinatorClient.getTargetDbSchemaVersion();
-        log.info("Current version: {}, target version: {}.", currentVersion,
-                targetVersion);
-        if (!currentVersion.equalsIgnoreCase(targetVersion)) {
+        String currentDbSchemaVersion = coordinatorClient.getCurrentDbSchemaVersion();
+        String targetDbSchemaVersion = coordinatorClient.getTargetDbSchemaVersion();
+
+        log.info("Current db schema version: {}, target db schema version: {}.",
+                currentDbSchemaVersion, targetDbSchemaVersion);
+
+        if (currentDbSchemaVersion == null || !currentDbSchemaVersion.equalsIgnoreCase(targetDbSchemaVersion)) {
             log.warn("Current version is not equal to the target version");
             return true;
         }

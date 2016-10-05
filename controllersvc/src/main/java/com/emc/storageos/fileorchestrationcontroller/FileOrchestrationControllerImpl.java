@@ -59,8 +59,9 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId) throws ControllerException {
-        execOrchestration("updateExportRules", storage, fsURI, param, opId);
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
+            throws ControllerException {
+        execOrchestration("updateExportRules", storage, fsURI, param, unmountExport, opId);
     }
 
     @Override
@@ -80,8 +81,9 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws ControllerException {
-        execOrchestration("deleteExportRules", storage, uri, allDirs, subDirs, taskId);
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId)
+            throws ControllerException {
+        execOrchestration("deleteExportRules", storage, uri, allDirs, subDirs, unmountExport, taskId);
     }
 
     @Override

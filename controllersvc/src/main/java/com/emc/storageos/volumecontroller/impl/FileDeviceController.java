@@ -12,15 +12,20 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
+import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -32,8 +37,10 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -52,6 +59,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -62,6 +70,8 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileShareExportUpdateParams;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
@@ -72,6 +82,7 @@ import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -106,10 +117,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
     private Map<String, FileStorageDevice> _devices;
 
+    private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
+    private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
+
     private WorkflowService _workflowService;
 
     private RecordableEventManager _eventManager;
     private AuditLogManager _auditMgr;
+
+    private static ComputeSystemOrchestrationDeviceController computeSystemOrchestrationDeviceController;
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -135,12 +151,24 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _workflowService = workflowService;
     }
 
+    public static ComputeSystemOrchestrationDeviceController getComputeSystemOrchestrationDeviceController() {
+        return computeSystemOrchestrationDeviceController;
+    }
+
+    public static void setComputeSystemOrchestrationDeviceController(
+            ComputeSystemOrchestrationDeviceController computeSystemOrchestrationDeviceController) {
+        FileDeviceController.computeSystemOrchestrationDeviceController = computeSystemOrchestrationDeviceController;
+    }
+
     /**
      * Create a nice event based on the File Share
      * 
-     * @param fs FileShare for which the event is about
-     * @param type Type of event such as FileShareCreated or FileShareDeleted
-     * @param description Description for the event if needed
+     * @param fs
+     *            FileShare for which the event is about
+     * @param type
+     *            Type of event such as FileShareCreated or FileShareDeleted
+     * @param description
+     *            Description for the event if needed
      */
     public static void recordFsEvent(DbClient dbClient, FileShare fs, String type, String description, String extensions) {
         if (fs == null) {
@@ -163,10 +191,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Create a nice event based on the FileShare
      * 
-     * @param snap Snapshot for which the event is about
-     * @param fs FileShare from which the snapshot was created
-     * @param type Type of event such as FileShareCreated or FileShareDeleted
-     * @param description Description for the event if needed
+     * @param snap
+     *            Snapshot for which the event is about
+     * @param fs
+     *            FileShare from which the snapshot was created
+     * @param type
+     *            Type of event such as FileShareCreated or FileShareDeleted
+     * @param description
+     *            Description for the event if needed
      */
     public static void recordSnapshotEvent(DbClient dbClient, Snapshot snap, FileShare fs, String type,
             String description, String extensions) {
@@ -180,7 +212,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID when AAA fixed
+                URI.create("ViPR-User"), // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -212,7 +244,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID when AAA fixed
+                URI.create("ViPR-User"), // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -235,10 +267,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Record audit log for file service
      * 
-     * @param auditType Type of AuditLog
-     * @param operationalStatus Status of operation
-     * @param description Description for the AuditLog
-     * @param descparams Description paramters
+     * @param auditType
+     *            Type of AuditLog
+     * @param operationalStatus
+     *            Status of operation
+     * @param description
+     *            Description for the AuditLog
+     * @param descparams
+     *            Description paramters
      */
     public static void auditFile(DbClient dbClient, OperationTypeEnum auditType,
             boolean operationalStatus,
@@ -368,12 +404,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType))) {
                     fsObj.setInactive(true);
                     if (forceDelete) {
-                        doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
+                        doDeleteSnapshotsFromDB(fsObj, true, null, args); // Delete Snapshot and its references from DB
                         args.addQuotaDirectory(null);
-                        doFSDeleteQuotaDirsFromDB(args);                   // Delete Quota Directory from DB
-                        deleteShareACLsFromDB(args);                       // Delete CIFS Share ACLs from DB
-                        doDeleteExportRulesFromDB(true, null, args);       // Delete Export Rules from DB
-                        doDeletePolicyReferenceFromDB(fsObj);              // Remove FileShare Reference from Schedule Policy
+                        doFSDeleteQuotaDirsFromDB(args); // Delete Quota Directory from DB
+                        deleteShareACLsFromDB(args); // Delete CIFS Share ACLs from DB
+                        doDeleteExportRulesFromDB(true, null, args); // Delete Export Rules from DB
+                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                     }
                     generateZeroStatisticsRecord(fsObj);
                     WorkflowStepCompleter.stepSucceded(opId);
@@ -412,7 +448,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             return;
                         }
                     }
-                    doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
+                    doDeleteSnapshotsFromDB(fsObj, true, null, args); // Delete Snapshot and its references from DB
                     args.addQuotaDirectory(null);
                     doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
@@ -532,7 +568,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Generate zero statistics record.
      * 
-     * @param fsObj the file share object
+     * @param fsObj
+     *            the file share object
      */
     private void generateZeroStatisticsRecord(FileShare fsObj) {
         try {
@@ -666,9 +703,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     }
                 }
             }
-            if (result.isCommandSuccess()) {
-                WorkflowStepCompleter.stepSucceded(opId);
-            }
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             OperationTypeEnum auditType = null;
             auditType = (isFile) ? OperationTypeEnum.EXPORT_FILE_SYSTEM : OperationTypeEnum.EXPORT_FILE_SNAPSHOT;
@@ -683,7 +717,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         getExportClientExtensions(fileExports), snapshotObj, fs, storageObj);
             }
             _dbClient.updateObject(fsObj);
-
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
@@ -713,7 +749,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * 
      * ExtensionName=client1, client2, ..., client3
      * 
-     * @param fExports The list of FileSystem export maps.
+     * @param fExports
+     *            The list of FileSystem export maps.
      * 
      * @return A string specifying export/unexport clients.
      */
@@ -1191,7 +1228,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * 
      * ExtensionName=name1, name2, ...,name3
      * 
-     * @param smbFileShares The list of file system SMB shares.
+     * @param smbFileShares
+     *            The list of file system SMB shares.
      * 
      * @return extension names in the format as above
      */
@@ -1441,10 +1479,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * Creates a connection to monitor events generated by the storage
      * identified by the passed URI.
      * 
-     * @param storage A database client URI that identifies the storage to be
+     * @param storage
+     *            A database client URI that identifies the storage to be
      *            monitored.
      * 
-     * @throws ControllerException When errors occur connecting the storage for
+     * @throws ControllerException
+     *             When errors occur connecting the storage for
      *             event monitoring.
      */
     @Override
@@ -1483,10 +1523,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * Removes a connection that was previously established for monitoring
      * events from the storage identified by the passed URI.
      * 
-     * @param storage A database client URI that identifies the storage to be
+     * @param storage
+     *            A database client URI that identifies the storage to be
      *            disconnected.
      * 
-     * @throws ControllerException When errors occur disconnecting the storage
+     * @throws ControllerException
+     *             When errors occur disconnecting the storage
      *             for event monitoring.
      */
     @Override
@@ -2133,7 +2175,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         String exportPath = args.getExportPath();
         // This export path is the one that is figured out at the device.
-        // Make sure you set the path on args object while doing the operation. Check for <Device>FileStorageDeviceXXX.java
+        // Make sure you set the path on args object while doing the operation. Check for
+        // <Device>FileStorageDeviceXXX.java
         dest.setExportPath(exportPath);
         dest.setSecFlavor(orig.getSecFlavor());
         dest.setAnon(orig.getAnon());
@@ -2254,7 +2297,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 _dbClient.updateObject(snapshot);
             }
         }
-        args.setFileOperation(true);       // restoring back
+        args.setFileOperation(true); // restoring back
     }
 
     private void doCRUDExports(FileExportUpdateParams param, FileShare fs, FileDeviceInputOutput args) throws Exception {
@@ -2318,6 +2361,33 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         _dbClient.updateObject(rule);
                     }
                 }
+                // Delete the ExportMap entry if there are no export rules for this file system or sub directory
+                FSExportMap fsNFSExportMap = fs.getFsExports();
+                ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
+                List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        FileExportRule.class, containmentConstraint);
+                Set<String> fileExportMapKeys = fsNFSExportMap.keySet();
+                Iterator<String> keySetIterator = fileExportMapKeys.iterator();
+                HashSet<String> keystoRemove = new HashSet<String>();
+                while (keySetIterator.hasNext()) {
+                    String fileExportMapKey = keySetIterator.next();
+                    FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
+                    boolean exportRuleExists = false;
+                    for (FileExportRule fileExportRule : fileExportRules) {
+                        if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
+                            exportRuleExists = true;
+                            break;
+                        }
+                    }
+                    if (!exportRuleExists) {
+                        keystoRemove.add(fileExportMapKey);
+                    }
+                }
+                for (String key : keystoRemove) {
+                    _log.info("Deleting file export map entry : {} for key : {}", fsNFSExportMap.get(key), key);
+                    fsNFSExportMap.remove(key);
+                }
+                _dbClient.updateObject(fs);
             }
         } catch (Exception e) {
             _log.info("Error While executing CRUD Operations {}", e);
@@ -2331,7 +2401,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * 
      * ExtensionName=client1, client2, ..., client3
      * 
-     * @param fExports The list of FileSystem export maps.
+     * @param fExports
+     *            The list of FileSystem export maps.
      * 
      * @return A string specifying export/unexport clients.
      */
@@ -2844,10 +2915,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Create the DB object from the NfsACE object
      * 
-     * @param ace given NfsACE object
-     * @param dbShareAcl DB object need to be formed
-     * @param fs FileShare object
-     * @param args FileDeviceInputOutput object
+     * @param ace
+     *            given NfsACE object
+     * @param dbShareAcl
+     *            DB object need to be formed
+     * @param fs
+     *            FileShare object
+     * @param args
+     *            FileDeviceInputOutput object
      */
     private void copyToPersistNfsACL(NfsACE ace, NFSShareACL dbShareAcl,
             FileShare fs, FileDeviceInputOutput args) {
@@ -2889,8 +2964,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Get the DB object to modify it
      * 
-     * @param dbShareAcl the DB object which need to be searched
-     * @param isFile it is file or snapshot operation
+     * @param dbShareAcl
+     *            the DB object which need to be searched
+     * @param isFile
+     *            it is file or snapshot operation
      * @return
      */
     private NFSShareACL getExistingNfsAclFromDB(NFSShareACL dbShareAcl,
@@ -3149,7 +3226,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Creates default share ACE for fileshares on VNXe, VXFile and Datadomain
      * 
-     * @param id URI of filesystem or snapshot
+     * @param id
+     *            URI of filesystem or snapshot
      * @param fileShare
      * @param storageType
      */
@@ -3287,9 +3365,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * Update the DB object, this method need to be called after the success of
      * back end command
      * 
-     * @param param object of NfsACLUpdateParams
-     * @param fs FileShare object
-     * @param args FileDeviceInputOutput object
+     * @param param
+     *            object of NfsACLUpdateParams
+     * @param fs
+     *            FileShare object
+     * @param args
+     *            FileDeviceInputOutput object
      */
     private void updateNFSACLsInDB(NfsACLUpdateParams param,
             FileShare fs, FileDeviceInputOutput args) {
@@ -3452,8 +3533,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * To get all the ACLs of File System or a mention subDir.
      * 
-     * @param fs File System
-     * @param subDir Sub directory
+     * @param fs
+     *            File System
+     * @param subDir
+     *            Sub directory
      * @return List of NFS ACL present in DB.
      */
     private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir, FileDeviceInputOutput args) {
@@ -3506,8 +3589,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Convert list of NfsACE to list of DB object for ACL
      * 
-     * @param nfsAcls list of the NfsACE object
-     * @param dbNfsAclTemp converted DB object List
+     * @param nfsAcls
+     *            list of the NfsACE object
+     * @param dbNfsAclTemp
+     *            converted DB object List
      */
     private void makeNfsAceFromDB(List<NfsACE> nfsAcls, List<NFSShareACL> dbNfsAclTemp) {
 
@@ -3548,8 +3633,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Set is the vNAS entity in args only if vNASURI is not null
      * 
-     * @param vNASURI the URI of VirtualNAS
-     * @param args instance of FileDeviceInputOutput
+     * @param vNASURI
+     *            the URI of VirtualNAS
+     * @param args
+     *            instance of FileDeviceInputOutput
      */
     private void setVirtualNASinArgs(URI vNASURI, FileDeviceInputOutput args) {
 
@@ -3562,7 +3649,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * Get the deviceType for a StorageSystem.
      * 
-     * @param deviceURI -- StorageSystem URI
+     * @param deviceURI
+     *            -- StorageSystem URI
      * @return deviceType String
      */
     public String getDeviceType(URI deviceURI) throws ControllerException {
@@ -3647,6 +3735,20 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<URI> fileshareURIs = FileDescriptor.getFileSystemURIs(filesystems);
             for (URI uriFile : fileshareURIs) {
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
+                // unmount exports only if FULL delete
+                if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(filesystems.get(0).getDeleteType())) {
+                    // get all the mounts and generate steps for unmounting them
+                    List<MountInfo> mountList = getAllMountedExports(uriFile, null, true);
+                    for (MountInfo mount : mountList) {
+                        Object[] args = new Object[] { mount.getHostId(), mount.getFsId(), mount.getMountPath() };
+                        waitFor = createMethod(workflow, waitFor, UNMOUNT_FILESYSTEM_EXPORT_METHOD, null,
+                                "Unmounting path:" + mount.getMountPath(), fsObj.getStorageDevice(), args);
+                    }
+                } else {// Only remove the mounts from CoPRHD database if Inventory Only delete
+                    Object[] args = new Object[] { uriFile };
+                    waitFor = createMethod(workflow, waitFor, CHECK_IF_MOUNT_EXISTS_ON_HOST, null,
+                            "Confirming mount dependencies for fs:" + fsObj.getId(), fsObj.getStorageDevice(), args);
+                }
                 if (fsObj != null && fsObj.getMirrorfsTargets() != null) {
                     for (String mirrorTarget : fsObj.getMirrorfsTargets()) {
                         URI targetURI = URI.create(mirrorTarget);
@@ -3686,7 +3788,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * (non-Javadoc)
      * 
      * @see
-     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForExpandFileSystems(com.emc.storageos.workflow.
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForExpandFileSystems(com.emc.
+     * storageos.workflow.
      * Workflow, java.lang.String, java.util.List, java.lang.String)
      */
     @Override
@@ -3974,7 +4077,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
      * 
-     * @param stepId The id of the step being rolled back.
+     * @param stepId
+     *            The id of the step being rolled back.
      * 
      * @throws WorkflowException
      */
@@ -4033,16 +4137,183 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     }
 
+    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Unmounting mount dependency:", mountPath);
+            computeSystemOrchestrationDeviceController.unmountDevice(hostId, resId, mountPath, opId);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (ControllerException ex) {
+            WorkflowStepCompleter.stepFailed(opId, ex);
+            _log.error("Failed to unmount:", mountPath);
+            throw ex;
+        }
+    }
+
+    public void verifyMountDependencies(URI fsId, FileShareExportUpdateParams param, String opId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Verifying mount dependencies:", fsId);
+            List<MountInfo> unmountList = getMountedExports(fsId, param.getSubDir(), param);
+            if (!unmountList.isEmpty()) {
+                WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
+                throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
+            }
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (ControllerException ex) {
+            WorkflowStepCompleter.stepFailed(opId, ex);
+            _log.error("Couldn't verify dependencies: ", fsId);
+            throw ex;
+        }
+    }
+
+    public List<MountInfo> getAllMountedExports(URI id, String subDir, boolean allDirs) {
+        List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(id, _dbClient);
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        if (allDirs) {
+            return mountList;
+        }
+        for (MountInfo mount : mountList) {
+            if ((StringUtils.isEmpty(mount.getSubDirectory()) && StringUtils.isEmpty(subDir))
+                    || (!StringUtils.isEmpty(subDir) && subDir.equalsIgnoreCase(mount.getSubDirectory()))) {
+                unmountList.add(mount);
+            }
+        }
+        return unmountList;
+    }
+
+    public void CheckIfExportIsMounted(URI fsId, String subDir, boolean allDirs, String opId) {
+        WorkflowStepCompleter.stepExecuting(opId);
+        List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
+        if (mountList == null || mountList.isEmpty()) {
+            WorkflowStepCompleter.stepSucceded(opId);
+        }
+        if (allDirs) {
+            WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
+        }
+        if (subDir != null) {
+            for (MountInfo mount : mountList) {
+                if (subDir.equalsIgnoreCase(mount.getSubDirectory())) {
+                    WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
+                }
+            }
+        } else {
+            for (MountInfo mount : mountList) {
+                if (StringUtils.isEmpty(mount.getSubDirectory())) {
+                    WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
+                }
+            }
+        }
+        WorkflowStepCompleter.stepSucceded(opId);
+    }
+
+    public List<MountInfo> getMountedExports(URI fsId, String subDir, FileExportUpdateParams param) {
+        List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        if (param.getExportRulesToDelete() != null) {
+            unmountList.addAll(getRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
+        }
+        if (param.getExportRulesToModify() != null) {
+            unmountList.addAll(getRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
+        }
+
+        return unmountList;
+    }
+
+    private List<MountInfo> getRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<ExportRule> exportList = new ArrayList<ExportRule>();
+        exportList.addAll(rules.getExportRules());
+        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList,
+                FileOperationUtils.getExportRules(fsId, false, subDir, _dbClient));
+        for (MountInfo mount : mountList) {
+            String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+            if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory())
+                    || (!StringUtils.isEmpty(mount.getSubDirectory()) && mount.getSubDirectory().equals(subDir))) {
+                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
+                        unmountList.add(mount);
+                    }
+                }
+            }
+        }
+        return unmountList;
+    }
+
+    private Map<ExportRule, List<String>> filterExportRules(List<ExportRule> newExportList, List<ExportRule> existingExportList) {
+        Map<ExportRule, List<String>> filteredExports = new HashMap<ExportRule, List<String>>();
+        _log.info("filtering export rules");
+        for (ExportRule newExport : newExportList) {
+            for (ExportRule oldExport : existingExportList) {
+                if (newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {
+                    List<String> hosts = new ArrayList<String>();
+                    if (oldExport.getReadOnlyHosts() != null) {
+                        hosts.addAll(oldExport.getReadOnlyHosts());
+                    }
+                    if (oldExport.getReadWriteHosts() != null) {
+                        hosts.addAll(oldExport.getReadWriteHosts());
+                    }
+                    if (oldExport.getRootHosts() != null) {
+                        hosts.addAll(oldExport.getRootHosts());
+                    }
+                    if (newExport.getReadOnlyHosts() != null) {
+                        hosts.removeAll(newExport.getReadOnlyHosts());
+                    }
+                    if (newExport.getReadWriteHosts() != null) {
+                        hosts.removeAll(newExport.getReadWriteHosts());
+                    }
+                    if (newExport.getRootHosts() != null) {
+                        hosts.removeAll(newExport.getRootHosts());
+                    }
+                    filteredExports.put(oldExport, hosts);
+                }
+            }
+        }
+        return filteredExports;
+    }
+
+    public void checkIfMountExistsOnHost(URI fsId, String opId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(fsId);
+            List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            FileShare fs = _dbClient.queryObject(FileShare.class, fsId);
+            for (FileMountInfo fsMount : fsDBMounts) {
+                LinuxMountUtils mountUtils = new LinuxMountUtils(_dbClient.queryObject(Host.class, fsMount.getHostId()));
+                ExportRule export = FileOperationUtils.findExport(fs, fsMount.getSubDirectory(), fsMount.getSecurityType(), _dbClient);
+                if (mountUtils.verifyMountPoints(export.getMountPoint(), fsMount.getMountPath())) {
+                    String errMsg = new String("delete file system from ViPR database failed because mounts exist for file system "
+                            + fs.getLabel() + " and once deleted the mounts cannot be ingested into ViPR");
+                    final ServiceCoded serviceCoded = DeviceControllerException.errors
+                            .jobFailedOpMsg(OperationTypeEnum.DELETE_FILE_SYSTEM.toString(), errMsg);
+                    WorkflowStepCompleter.stepFailed(opId, serviceCoded);
+                }
+            }
+            for (FileMountInfo fsMount : fsDBMounts) {
+                fsMount.setInactive(true);
+            }
+            _dbClient.updateObject(fsDBMounts);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (ControllerException ex) {
+            WorkflowStepCompleter.stepFailed(opId, ex);
+            _log.error("Couldn't verify dependencies: ", fsId);
+            throw ex;
+        }
+    }
+
     /**
      * Common method used to create Controller methods that would be executed by workflow service
      * 
      * @param workflow
      * @param waitFor
-     * @param methodName - Name of the method to be executed
+     * @param methodName
+     *            - Name of the method to be executed
      * @param stepId
      * @param stepDescription
      * @param storage
-     * @param args - Parameters of the method that has to be excecuted by workflow
+     * @param args
+     *            - Parameters of the method that has to be excecuted by workflow
      * @return waitForStep
      */
     public String createMethod(Workflow workflow, String waitFor, String methodName, String stepId, String stepDescription, URI storage,
@@ -4056,14 +4327,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /**
      * Acquire Work flow Distributed Owner Lock for a Step.
-     * This method is used to acquire lock at a particular work flow step.Currently we are acquiring lock only for VNXFILE.
+     * This method is used to acquire lock at a particular work flow step.Currently we are acquiring lock only for
+     * VNXFILE.
      * This lock would be released after the step completion (either failure or success).
      * 
-     * @param storageObj -Storage System object's native id is used to generate key for the lock
+     * @param storageObj
+     *            -Storage System object's native id is used to generate key for the lock
      * @param opId
      */
     public void acquireStepLock(StorageSystem storageObj, String opId) {
-        if (storageObj.deviceIsType(Type.vnxfile)) {
+        Workflow workflow = _workflowService.getWorkflowFromStepId(opId);
+        if (workflow != null && storageObj.deviceIsType(Type.vnxfile)) {
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(storageObj.getNativeGuid());
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,

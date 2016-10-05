@@ -12,6 +12,8 @@ import java.util.*;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.*;
@@ -96,30 +98,47 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
-
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
         ServiceDescriptor serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), catalogService.getBaseService());
 
         order.setOrderNumber(getNextOrderNumber());
         order.setSummary(catalogService.getTitle());
-        if (catalogService.getExecutionWindowRequired()) {
-            order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
-            if (order.getScheduledEventId() == null) {
-                if (order.getExecutionWindowId() == null ||
-                        order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+
+        if (order.getScheduledEventId() == null) {
+            // Order is scheduled with traditional way but not the new scheduler framework
+
+            if (catalogService.getExecutionWindowRequired()) {
+                if (catalogService.getDefaultExecutionWindowId() == null ||
+                    catalogService.getDefaultExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                    // For default execution window, null is deemed as NEXT window as well.
+                    // But we always need to set order execution window to NEXT explicitly to different it
+                    // with INFINITE window in new scheduler framework.
+
+                    // Set schedule time to latest updated time.  It would still be scheduled in executed window
                     Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-                    scheduleTime.setTime(order.getLastUpdated());
+                    scheduleTime.setTime(new Date());
                     order.setScheduledTime(scheduleTime);
+                    order.setExecutionWindowId(new NamedURI(ExecutionWindow.NEXT, "NEXT"));
                 } else {
-                    // Not created via new scheduler, so set schedule time to
+                    // Set schedule time to
                     // either 1) the next execution window starting time
                     // or     2) the current time if it is in current execution window
-                    ExecutionWindow executionWindow = client.findById(order.getExecutionWindowId().getURI());
+                    ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
                     ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
                     order.setScheduledTime(helper.getScheduledTime());
+                    order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
                 }
+            } else {
+                // In traditional order procedure,
+                // If no execution window is indicated, order will be submitted to DQ immediately.
+                ;
             }
+        } else {
+            // Order is scheduled with new scheduler framework
+            // ExecutionWindow and ScheduleTime are already set via Parameter
+            ;
         }
+
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());
         order.setOrderStatus(OrderStatus.PENDING.name());

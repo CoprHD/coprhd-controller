@@ -1443,13 +1443,13 @@ public class IsilonApi {
      */
     public void modifyNFSACL(String fspath, IsilonNFSACL acl) throws IsilonException {
         try {
+            fspath = fspath.substring(1);// remove '/' prefix
             fspath = URLEncoder.encode(fspath, "UTF-8");
+            fspath = fspath.concat("?acl");// add suffix ?acl
         } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        String aclUrl = fspath.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
-        put(_baseUrl.resolve(URI_IFS), aclUrl, "ACL", acl);
+        put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
     }
 
     /**
@@ -1462,13 +1462,13 @@ public class IsilonApi {
      */
     public IsilonNFSACL getNFSACL(String fspath) throws IsilonException {
         try {
+            fspath = fspath.substring(1);// remove '/' prefix
             fspath = URLEncoder.encode(fspath, "UTF-8");
+            fspath = fspath.concat("?acl");// add suffix ?acl
         } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        String aclUrl = fspath.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
-        return getObj(_baseUrl.resolve(URI_IFS), aclUrl, IsilonNFSACL.class);
+        return getObj(_baseUrl.resolve(URI_IFS), fspath, IsilonNFSACL.class);
     }
 
     /**

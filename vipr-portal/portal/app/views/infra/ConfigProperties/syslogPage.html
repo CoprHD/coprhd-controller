@@ -24,17 +24,16 @@
         e.preventDefault();
         this.disabled = 'true';
         validateExternalServerIpPort();
+        window.scrollTo(0,0);
         });
     });
     function checkIfDisableTestButton() {
-        var validateButton = $('#validateButtonIpPort');
+        var validateControl = $('#ValidatConnectiontrolGroup');
         var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
         if ( protocol === 'UDP') {
-            validateButton.prop('disabled', true);
-            validateButton.addClass('disabled');
+            validateControl.hide();
         } else {
-            validateButton.prop('disabled', false);
-            validateButton.removeClass('disabled');
+            validateControl.show();
         }
     }
     function validateExternalServerIpPort() {
@@ -135,6 +134,9 @@
         var ni = document.getElementById('server-group');
         var numi = document.getElementById('theValue');
         var num = (document.getElementById('theValue').value -1)+ 2;
+        if (num > 6) {
+            return;
+        }
         numi.value = num;
         var newdiv = document.createElement('tr');
         var divIdName = 'server_'+num;
@@ -284,7 +286,8 @@ disabled:unstable;
 
 <fieldset>
     <legend>&{'configProperties.syslog.servers'}
-        <p class="help-block clear" style="font-size:13px;">Make sure the remote syslog is configured to accept client connections.Ask your syslog server admin for inputs.
+        <p class="help-block clear" style="font-size:13px;">Make sure the remote syslog is configured to accept client connections.Ask your syslog server admin for inputs.For more details click
+            <a href="${util.DocUtils.getDocumentationLink()}" target="_blank">here</a>.
         </p>
     </legend>
 #{ConfigProperties.property property:page.syslogTransportProtocol, disabled:unstable/}

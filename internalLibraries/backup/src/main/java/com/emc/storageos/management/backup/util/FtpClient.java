@@ -185,7 +185,11 @@ public class FtpClient implements BackupClient {
         builder.command().add("-I");
         builder.command().add("--connect-timeout");
         builder.command().add("30");
-        builder.command().add(uri);
+        if (uri.endsWith("/")) {
+            builder.command().add(uri);
+        }else {
+            builder.command().add(uri + "/");
+        }
         int exitCode;
         StringBuilder errText;
         try {

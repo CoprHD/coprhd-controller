@@ -38,7 +38,9 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
 import org.apache.commons.codec.binary.*;
@@ -96,7 +98,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
 
-    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 60; // TODO: change default to 5m
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
 
     private static final String LOCK_NAME = "orderscheduler";
@@ -703,10 +705,37 @@ public class OrderService extends CatalogTaggedResourceService {
                 StorageOSUser user = StorageOSUser.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getStorageOSUser().getBytes(UTF_8)));
 
                 OrderCreateParam createParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
-                Calendar nextScheduledTime = ScheduleTimeHelper.getNextScheduledTime(order.getScheduledTime(),
-                        ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getScheduleInfo().getBytes(UTF_8))));
+                ScheduleInfo scheduleInfo = ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getScheduleInfo().getBytes(UTF_8)));
+                Calendar nextScheduledTime = ScheduleTimeHelper.getNextScheduledTime(order.getScheduledTime(), scheduleInfo);
+
+                int retry = 0;
+                if (order.getExecutionWindowId() != null &&
+                        !order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                    ExecutionWindow window = client.executionWindows().findById(order.getExecutionWindowId().getURI());
+                    if (window != null) {
+                        ExecutionWindowHelper helper = new ExecutionWindowHelper(window);
+                        if (nextScheduledTime!=null && !helper.isActive(nextScheduledTime)) {
+                            log.warn("Execution window {} might be changed after the event is scheduled.", order.getExecutionWindowId().getURI());
+                            log.warn("Otherwise it is a HOURLY scheduled event");
+
+                            do {
+                                nextScheduledTime = ScheduleTimeHelper.getNextScheduledTime(nextScheduledTime, scheduleInfo);
+                                retry++;
+                            } while (nextScheduledTime!=null && !helper.isActive(nextScheduledTime) && retry<ScheduleTimeHelper.SCHEDULE_TIME_RETRY_THRESHOLD);
+
+                            if (retry == ScheduleTimeHelper.SCHEDULE_TIME_RETRY_THRESHOLD) {
+                                log.error("Failed to find next scheduled time that match with {}", order.getExecutionWindowId().getURI());
+                                nextScheduledTime = null;
+                            }
+                        }
+
+                    } else {
+                        log.error("Execution window {} does not exist.", order.getExecutionWindowId().getURI());
+                    }
+                }
+
                 if (nextScheduledTime == null) {
-                    log.info("Scheduled event {} is already finished.", event.getId());
+                    log.info("Scheduled event {} should be set finished.", event.getId());
                     event.setEventStatus(ScheduledEventStatus.FINISHED);
                 } else {
                     createParam.setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(nextScheduledTime));

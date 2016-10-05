@@ -1585,8 +1585,7 @@ def update_parser(subcommand_parsers, common_parser):
                                nargs='+')
 
     update_parser.add_argument('-placementpolicy', '-pp',
-                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
-                               'if not set, default_policy will be used for the virtual pool',
+                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool',
                                dest='placementpolicy',
                                metavar='<placementpolicy>',
                                choices=VirtualPool.PLACEMENT_POLICY_TYPE_LIST)

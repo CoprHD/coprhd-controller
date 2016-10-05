@@ -692,8 +692,6 @@ public class VirtualArrayService extends TaggedResource {
         for (URI uri : storagePortURIs) {
             StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
             if ((storagePort != null)
-                    && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                            .equals(storagePort.getCompatibilityStatus())
                     && (RegistrationStatus.REGISTERED.toString().equals(storagePort
                             .getRegistrationStatus()))
                     && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {

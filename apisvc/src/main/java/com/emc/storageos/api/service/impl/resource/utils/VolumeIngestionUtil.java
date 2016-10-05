@@ -1395,10 +1395,8 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         List<UnManagedExportMask> unManagedMasks = new ArrayList<UnManagedExportMask>();
         for (UnManagedExportMask mask : masks) {
-            @SuppressWarnings("deprecation")
-            List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getExportMaskByNameConstraint(mask.getLabel()));
-            if (null == maskUris || maskUris.isEmpty()) {
+            ExportMask exportMask = getExportsMaskAlreadyIngested(mask, dbClient);
+            if (null == exportMask) {
                 unManagedMasks.add(mask);
             } else {
                 _logger.info("Export Mask {} already ingested ", mask.getLabel());
@@ -1415,15 +1413,52 @@ public class VolumeIngestionUtil {
      * @return a ExportMask if present, or null
      */
     public static ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
-        ExportMask exportMask = null;
         @SuppressWarnings("deprecation")
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(mask.getMaskName()));
         if (null != maskUris && !maskUris.isEmpty()) {
-            return dbClient.queryObject(ExportMask.class, maskUris.get(0));
+            for (URI maskUri : maskUris) {
+                ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                if (null == exportMask) {
+                    continue;
+                }
+                if (hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                    continue;
+                }
+                return exportMask;
+            }
         }
 
-        return exportMask;
+        return null;
+    }
+
+    /**
+     * Checks an UnManagedExportMask against an existing ExportMask to make sure
+     * their nativeId (storage view paths) are the same.  This is to handle cases
+     * where a VPLEX could have the same storage view name on both VPLEX clusters.
+     * 
+     * If the UnManagedExportMask is not on a VPLEX, it will always return false.
+     * 
+     * @param mask the UnManagedExportMask to check
+     * @param exportMask the existing ExportMask to compare against
+     * @param dbClient a reference to the database client
+     * @return true if the masks don't match
+     */
+    public static boolean hasIncorrectMaskPathForVplex(UnManagedExportMask mask, ExportMask exportMask, DbClient dbClient) {
+        // if this is a vplex system,
+        // it could be the case that there are storage views on each vplex cluster
+        // with the same name, so we need to check the full unmanaged export mask path
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
+        boolean checkMaskPathForVplex = storageSystem != null && ConnectivityUtil.isAVPlex(storageSystem);
+        if (checkMaskPathForVplex && (exportMask.getNativeId() != null 
+                && !exportMask.getNativeId().equalsIgnoreCase(mask.getNativeId()))){
+            // this is not the right mask
+            _logger.info("found an existing mask with the same name or initiators {}, but the mask view paths are different. "
+                    + "UnManagedExportMask: {} Existing ExportMask: {}", mask.getMaskName(),
+                    mask.getNativeId(), exportMask.getNativeId());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -4694,6 +4729,74 @@ public class VolumeIngestionUtil {
         }
 
         return false;
+    }
+
+    /**
+     * Validates that all the selected UnManagedExportMasks are compatible for ingestion.
+     * 
+     * Currently only VPLEX volumes are checked for presence of a 
+     * single storage view per VPLEX cluster per host initiator. 
+     * 
+     * @param unManagedVolume the UnManagedVolume being ingested
+     * @param unManagedMasks the UnManagedExportMasks being ingested
+     */
+    public static void validateUnManagedExportMasks(UnManagedVolume unManagedVolume, 
+            List<UnManagedExportMask> unManagedMasks) {
+        if (isVplexVolume(unManagedVolume)) {
+            Map<String, Set<String>> initToMaskMap = new HashMap<String, Set<String>>();
+            // vplex brownfield requires initiators to only be in one storage view.
+            // assemble a map of initiators to UnManagedExportMask paths
+            for (UnManagedExportMask mask : unManagedMasks) {
+                mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getKnownInitiatorNetworkIds());
+                mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getUnmanagedInitiatorNetworkIds());
+            }
+            _logger.info("initiator to UnManagedExportMask map is " + initToMaskMap);
+            // filter out any initiator to mask entries that satisfy the requirements of 1 storage view per initiator
+            Iterator<Entry<String, Set<String>>> mapEntries = initToMaskMap.entrySet().iterator();
+            while (mapEntries.hasNext()) {
+                Entry<String, Set<String>> entry = mapEntries.next();
+                if (entry.getValue().size() <= 1) {
+                    mapEntries.remove();
+                }
+            }
+            // if any are left in the map, they violate the single storage view per initiator rule
+            if (!initToMaskMap.isEmpty()) {
+                StringBuilder errorDetails = new StringBuilder();
+                for (Entry<String, Set<String>> mapEntry : initToMaskMap.entrySet()) {
+                    errorDetails.append("Initiator port ").append(mapEntry.getKey());
+                    errorDetails.append(" is contained in the following storage views: ");
+                    errorDetails.append(Joiner.on(", ").join(mapEntry.getValue())).append(". ");
+                }
+                _logger.error(errorDetails.toString());
+                throw IngestionException.exceptions.invalidExportConfiguration(errorDetails.toString());
+            }
+        }
+    }
+
+    /**
+     * Maps a set of initiator port wwns to VPLEX UnManagedExportMask masking view paths that contain
+     * that port.  Ports can be in no more than one storage view on each VPLEX cluster to be valid 
+     * for ingestion.
+     * 
+     * @param initToMaskMap a map of initiator port wwns to masking view paths that contain it
+     * @param mask the UnManagedExportMask being processed
+     * @param portList a set of port wwns in the mask
+     */
+    private static void mapInitsToVplexStorageViews(Map<String, Set<String>> initToMaskMap, UnManagedExportMask mask, StringSet portList) {
+        // path is in the format /clusters/cluster-1/exports/storage-views/V1_lglw7112lssemccom_001
+        // where the second token will be the cluster name, which we can use to uniquely identify
+        // the initiator port on each VPLEX cluster. trim off the leading / before splitting.
+        String[] maskPathParts = mask.getMaskingViewPath().substring(1).split(VPlexApiConstants.SLASH);
+        String maskClusterName = maskPathParts[1];
+        for (String initPort : portList) {
+            String initPortKey = maskClusterName + VPlexApiConstants.SLASH + initPort;
+            Set<String> maskSet = initToMaskMap.get(initPortKey);
+            if (null == maskSet) {
+                maskSet = new HashSet<String>();
+                initToMaskMap.put(initPortKey, maskSet);
+            }
+            maskSet.add(mask.getMaskingViewPath());
+        }
     }
 
 }

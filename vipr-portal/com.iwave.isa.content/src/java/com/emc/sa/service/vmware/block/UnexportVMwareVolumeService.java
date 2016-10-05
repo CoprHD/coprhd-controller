@@ -21,6 +21,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -102,7 +103,16 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             vmware.detachLuns(host, cluster, volume);
         }
+
         vmware.disconnect();
+        ExecutionUtils.clearRollback();
+
+        for (BlockObjectRestRep volume : volumes) {
+            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
+            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
+                vmware.removeVmfsDatastoreTag(volume, hostId);
+            }
+        }
 
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);
@@ -132,12 +142,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
                 ExecutionUtils.addAffectedResource(hostOrClusterId.toString());
             }
         }
-        for (BlockObjectRestRep volume : volumes) {
-            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
-            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
-                vmware.removeVmfsDatastoreTag(volume, hostId);
-            }
-        }
+
         connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
     }

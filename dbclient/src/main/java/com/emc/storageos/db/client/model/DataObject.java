@@ -217,7 +217,7 @@ public abstract class DataObject implements Serializable {
     }
 
     /**
-     * Tag settter
+     * Tag setter
      *
      * @param tags
      */
@@ -427,7 +427,8 @@ public abstract class DataObject implements Serializable {
         // As an alternate, we can change the BlockFullCopyManager method signatures
         // to accept multiple URIs but doing it will result in changes in too many Impl classes
         // and the real meaning of those methods may not indicate the same.
-        VOLUME_GROUP_PARTIAL_REQUEST(8); // 0x40
+        VOLUME_GROUP_PARTIAL_REQUEST(8),   // 0x100
+        TASK_IN_PROGRESS(9); // 0x200
 
         private final long mask;
 

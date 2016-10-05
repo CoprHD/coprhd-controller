@@ -5,8 +5,6 @@
 package com.emc.storageos.computesystemorchestrationcontroller;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -17,11 +15,7 @@ import com.emc.storageos.computesystemcontroller.hostmountadapters.MountComplete
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.locking.LockTimeoutValue;
-import com.emc.storageos.locking.LockType;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 
@@ -64,14 +58,6 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this, MOUNT_DEVICE_WF_NAME, false, opId);
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
-            Boolean isLockAcquired = _workflowService.acquireWorkflowLocks(workflow, lockKeys,
-                    LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
-            if (!isLockAcquired) {
-                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        String.format("acquire lock for mount %s", hostId.toString()));
-            }
             _computeSystemControllerImpl.addStepsForMountDevice(workflow, args);
 
             // Finish up and execute the plan.
@@ -101,14 +87,6 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this, UNMOUNT_DEVICE_WF_NAME, false, opId);
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
-            Boolean isLockAcquired = _workflowService.acquireWorkflowLocks(workflow, lockKeys,
-                    LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
-            if (!isLockAcquired) {
-                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        String.format("acquire lock for unmount %s", hostId.toString()));
-            }
             _computeSystemControllerImpl.addStepsForUnmountDevice(workflow, args);
 
             // Finish up and execute the plan.

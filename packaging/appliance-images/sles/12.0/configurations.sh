@@ -1183,6 +1183,15 @@ vipr_fix_add_strongswan() {
 }
 
 #======================================
+# Fix /etc/profile
+#--------------------------------------
+vipr_fix_etc_profile() {
+    if [ -f /etc/profile ] ; then
+        xsed /etc/profile 's/^mesg n/mesg n \&> \/dev\/null/'
+    fi
+}
+
+#======================================
 # Fix /etc/devkit.README
 #--------------------------------------
 fix_devkit_readme() {

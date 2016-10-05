@@ -14,13 +14,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -53,7 +54,9 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
             // no such export mask, ignore, but don't indicate pass
             return false;
         }
+
         log.info("Initiating validation of Vplex ExportMask: " + id);
+
         VPlexStorageViewInfo storageView = null;
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, getDbClient());
@@ -70,19 +73,20 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         } catch (Exception ex) {
             if (storageView == null) {
                 // Not finding the storage view is not an error, so delete can be idempotent
-                log.info(String.format("Storage View %s cannot be located on VPLEX", id));
+                log.warn(String.format("Storage View %s cannot be located on VPLEX", id));
                 return false;
             }
-            log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            if (getValidatorConfig().validationEnabled()) {
+            log.error("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
+            if (getValidatorConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask: " + ex.getMessage());
             }
         }
-        if (getValidatorLogger().hasErrors() && getValidatorConfig().validationEnabled()) {
-            throw DeviceControllerException.exceptions.validationError(
-                    "Export Mask", getValidatorLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+
+        if (getValidatorLogger().hasErrors()) {
+            return false;
         }
+
         log.info("Vplex ExportMask validation complete: " + id);
 
         return true;
@@ -96,25 +100,26 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      *            -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalVolumes(VPlexStorageViewInfo storageView) {
-        List<Volume> volumes = getDbClient().queryObject(Volume.class, volumesToValidate);
+        List<? extends BlockObject> bos = BlockObject.fetchAll(getDbClient(), volumesToValidate);
         Set<String> storageViewWwns = storageView.getWwnToHluMap().keySet();
-        for (Volume volume : volumes) {
-            if (volume == null || volume.getInactive()) {
+        for (BlockObject bo : bos) {
+            if (bo == null || bo.getInactive()) {
                 continue;
             }
-            String volumeWwn = volume.getWWN();
-            if (NullColumnValueGetter.isNotNullValue(volumeWwn)) {
-                if (storageViewWwns.contains(volumeWwn)) {
+            String boWwn = bo.getWWN();
+            if (NullColumnValueGetter.isNotNullValue(boWwn)) {
+                if (storageViewWwns.contains(boWwn)) {
                     // Remove matched WWNs
-                    storageViewWwns.remove(volumeWwn);
+                    storageViewWwns.remove(boWwn);
                 } else {
-                    log.info(String.format("Database volume %s (%s) not in StorageView", volume.getId(), volume.getWWN()));
+                    log.info(String.format("Database volume/snap %s (%s) is not in StorageView [%s]", bo.getId(), bo.getWWN(),
+                            storageView.getName()));
                 }
             }
         }
         // Any remaining WWNs in storageViewWwns had no matching volume, and therefore are error
         for (String wwn : storageViewWwns) {
-            getValidatorLogger().logDiff(id, "virtual-volume WWN", ValidatorLogger.NO_MATCHING_ENTRY, wwn);
+            getValidatorLogger().logDiff(id, "virtual-volume/snap WWN", ValidatorLogger.NO_MATCHING_ENTRY, wwn);
         }
     }
 
@@ -127,6 +132,13 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      */
     private void validateNoAdditionalInitiators(VPlexStorageViewInfo storageView) {
         Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns());
+
+        // Don't validate against RP masks
+        if (ExportMaskUtils.isBackendExportMask(getDbClient(), mask)) {
+            log.info("validation against RP masks is disabled.");
+            return;
+        }
+
         for (Initiator initiator : initiatorsToValidate) {
             if (initiator == null || initiator.getInactive()) {
                 continue;

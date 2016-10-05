@@ -174,7 +174,7 @@ public class VirtualArrays extends ViprResourceController {
 						}
                         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                             String modelType = storageSystem.getModel();
-                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                                 ids.add(storageSystem.getId().toString());
                             }
                         }
@@ -323,7 +323,7 @@ public class VirtualArrays extends ViprResourceController {
 			}
             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                 String modelType = storageSystem.getModel();
-                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                     ids.add(storageSystem.getId().toString());
                 }
             }
@@ -966,6 +966,11 @@ public class VirtualArrays extends ViprResourceController {
 				for (Object virtualarray : varrays) {
 					JsonObject varrayobject = (JsonObject) virtualarray;
 					String varrayid = varrayobject.get("id").getAsString();
+                    VirtualArrayRestRep virtualArrayRestRep = VirtualArrayUtils.getVirtualArray(varrayid);
+                    if (virtualArrayRestRep == null || virtualArrayRestRep.getInactive()) {
+                        // ignore for now
+                        continue;
+                    }
 					for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(varrayid)) {
 						connectedstoragesystems.add(storageSystem.getId().toString());
 					}

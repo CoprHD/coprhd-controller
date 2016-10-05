@@ -57,6 +57,7 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -77,6 +78,8 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -85,6 +88,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -124,6 +128,8 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -149,6 +155,13 @@ public class ExportGroupService extends TaskResourceService {
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
 
     private static volatile BlockStorageScheduler _blockStorageScheduler;
+
+    // From KnownMachineTypes, which is upstream so re-defining here.
+    // Used in ensuring unexport isn't happening to mounted volumes.
+    private static String ISA_NAMESPACE = "vipr";
+    private static String ISA_SEPARATOR = ":";
+    private static String MOUNTPOINT = ISA_NAMESPACE + ISA_SEPARATOR + "mountPoint";
+    private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
 
     public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
         if (_blockStorageScheduler == null) {
@@ -417,21 +430,23 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup
      */
     private void validateUpdateRemoveInitiators(ExportUpdateParam param, ExportGroup exportGroup) {
-        if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup.getExportMasks() != null) {
+        if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup != null && 
+        		exportGroup.getExportMasks() != null) {
             for (URI initiatorId : param.getInitiators().getRemove()) {
                 // Check all export masks associated with this export group
-                if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
+                if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                     // This logic is changed in 3.5 to do two things:
                     // 1. Check to make sure none of the Export Group's masks have initiators in its existing list
                     // 2. Allow user to remove an initiator that isn't part of any ExportMask (because of pathing)
                     boolean okToRemove = true;
                     ExportMask mask = null;
-                    for (String maskIdStr : exportGroup.getExportMasks()) {
-                        mask = _dbClient.queryObject(ExportMask.class, URI.create(maskIdStr));
-                        if (mask.hasExistingInitiator(initiatorId.toString())) {
+                    for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
+                    	mask = exportMask;
+                        if (exportMask.hasExistingInitiator(initiatorId.toString())) {
                             okToRemove = false;
                         }
                     }
+                    
                     if (!okToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
                         throw APIException.badRequests.invalidParameterRemovePreexistingInitiator(mask.getMaskName(),
@@ -1348,16 +1363,16 @@ public class ExportGroupService extends TaskResourceService {
                 initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                 String name = null;
                 if (initiator != null && !initiator.getInactive()) {
-                    if (!initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
+                    if (!VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
                             && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                        if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
+                        if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
                             name = initiator.getClusterName();
-                        } else if (StringUtils.hasText(initiator.getHostName())) {
-                            name = initiator.getHostName();
-                        } else {
-                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                        } else if (!StringUtils.hasText(initiator.getHostName())
+                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
+                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
                             throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
                         }
+
                         Set<URI> set = null;
                         if (initiatorMap.get(name) == null) {
                             set = new HashSet<URI>();
@@ -1379,7 +1394,7 @@ public class ExportGroupService extends TaskResourceService {
                 _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
             }
             _log.info("{}", initiatorMap);
-            if (initiatorMap.size() > 1) {
+            if (exportGroup.getType().equals(ExportGroupType.Cluster.name()) && initiatorMap.size() > 1) {
                 _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
                         exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
                 throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),
@@ -1433,6 +1448,8 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
         validateInitiatorsInExportGroup(exportGroup);
+        validateExportGroupNoPendingEvents(exportGroup);
+
         /**
          * ExportGroup Add/Remove volume should have valid nativeId
          */
@@ -1447,6 +1464,7 @@ public class ExportGroupService extends TaskResourceService {
                 for (URI volURI : param.getVolumes().getRemove()) {
                     boURIList.add(volURI);
                 }
+                validateVolumesNotMounted(exportGroup, param.getVolumes().getRemove());
             }
         }
         validateBlockObjectNativeId(boURIList);
@@ -1477,6 +1495,50 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Kicked off thread to perform export update scheduling. Returning task: " + taskRes.getId());
 
         return taskRes;
+    }
+
+    /**
+     * Validate there are no pending or failed events (actionable events) against the hosts or clusters
+     * associated with this export group.
+     * 
+     * @param exportGroup
+     *            export group we wish to update/delete
+     */
+    private void validateExportGroupNoPendingEvents(ExportGroup exportGroup) {
+        // Find the compute resource and see if there are any pending or failed events
+        List<URI> computeResourceIDs = new ArrayList<>();
+
+        if (exportGroup == null) {
+            return;
+        }
+
+        // Grab all clusters from the export group
+        if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
+            computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getClusters()));
+        }
+
+        // Grab all hosts from the export group
+        if (exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
+            computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getHosts()));
+        }
+
+        StringBuffer errMsg = new StringBuffer();
+        // Query for actionable events with these resources
+        for (URI computeResourceID : computeResourceIDs) {
+            List<ActionableEvent> events = EventUtils.findAffectedResourceEvents(_dbClient, computeResourceID);
+            if (events != null && !events.isEmpty()) {
+                for (ActionableEvent event : events) {
+                    if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name())) {
+                        errMsg.append(event.forDisplay() + "\n");
+                    }
+                }
+            }
+        }
+
+        if (errMsg.length() != 0) {
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
+        }
     }
 
     /**
@@ -1670,29 +1732,27 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     // This was originally in the ExportGroupRestRep
-    private Map<String, Integer> getVolumes(ExportGroup export) {
+    private Map<String, Integer> getVolumes(ExportGroup exportGroup) {
         Map<String, Integer> volumesMap = new HashMap<String, Integer>();
-        StringMap volumes = export.getVolumes();
-        if (export.getExportMasks() != null) {
-            for (String exportMaskIdStr : export.getExportMasks()) {
-                URI exportMaskId = URI.create(exportMaskIdStr);
-                try {
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskId);
-                    if (exportMask != null && exportMask.getVolumes() != null) {
-                        for (Map.Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
-                            if (!volumesMap.containsKey(entry.getKey()) && (entry.getValue() != null)) {
-                                // ensure that this volume is referenced by this export group
-                                if (volumes != null && volumes.containsKey(entry.getKey())) {
-                                    volumesMap.put(entry.getKey(), Integer.valueOf(entry.getValue()));
-                                }
+        StringMap volumes = exportGroup.getVolumes();
+        
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {               
+            try {
+                if (exportMask != null && exportMask.getVolumes() != null) {
+                    for (Map.Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
+                        if (!volumesMap.containsKey(entry.getKey()) && (entry.getValue() != null)) {
+                            // ensure that this volume is referenced by this export group
+                            if (volumes != null && volumes.containsKey(entry.getKey())) {
+                                volumesMap.put(entry.getKey(), Integer.valueOf(entry.getValue()));
                             }
                         }
                     }
-                } catch (Exception e) {
-                    _log.error("Error getting volumes for export group {}", export.getId(), e);
                 }
+            } catch (Exception e) {
+                _log.error("Error getting volumes for export group {}", exportGroup.getId(), e);
             }
         }
+        
         /*
          * Now include any volumes that might be a part of the Export Group
          * but not of the Export Mask.
@@ -1767,6 +1827,12 @@ public class ExportGroupService extends TaskResourceService {
          * Added extra validation for the initiators in ExportGroup
          */
         validateInitiatorsInExportGroup(exportGroup);
+        validateExportGroupNoPendingEvents(exportGroup);
+
+        // Validate that none of the volumes are mounted (datastores, etc)
+        if (exportGroup.getVolumes() != null) {
+            validateVolumesNotMounted(exportGroup, URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+        }
 
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();
@@ -3021,4 +3087,65 @@ public class ExportGroupService extends TaskResourceService {
             exportGroup.addToPathParameters(blockObjectURI, pathParamURI);
         }
     }
+
+    /**
+     * Verify that none of the volumes in the export group are mounted.
+     * Unexporting a mounted volume is dangerous and should be avoided.
+     * 
+     * @param exportGroup
+     *            export group
+     * @param boURIList
+     *            URI list of block objects
+     */
+    private void validateVolumesNotMounted(ExportGroup exportGroup, List<URI> boURIList) {
+        if (exportGroup == null) {
+            throw APIException.badRequests.exportGroupContainsMountedVolumesInvalidParam();
+        }
+
+        Map<URI, String> boToLabelMap = new HashMap<>();
+        // It is valid for there to be no storage volumes in the EG, so only perform the check if there are volumes
+        if (boURIList != null) {
+            for (URI boID : boURIList) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boID);
+                if (bo != null && bo.getTag() != null) {
+                    ScopedLabelSet tagSet = bo.getTag();
+                    Iterator<ScopedLabel> tagIter = tagSet.iterator();
+                    while (tagIter.hasNext()) {
+                        ScopedLabel sl = tagIter.next();
+                        if (sl.getLabel() != null && (sl.getLabel().startsWith(MOUNTPOINT) || sl.getLabel().startsWith(VMFS_DATASTORE))) {
+
+                            if (exportGroup.getClusters() != null) {
+                                for (String clusterID : exportGroup.getClusters()) {
+                                    if (sl.getLabel().contains(clusterID)) {
+                                        boToLabelMap.put(boID, bo.forDisplay());
+                                    }
+                                }
+                            }
+
+                            if (exportGroup.getHosts() != null) {
+                                for (String hostID : exportGroup.getHosts()) {
+                                    if (sl.getLabel().contains(hostID)) {
+                                        boToLabelMap.put(boID, bo.forDisplay());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!boToLabelMap.isEmpty()) {
+            _log.error(
+                    "Export Group {} has volumes {} that are marked as mounted.  It is recommended to unmount via controller before unexport.  This validation check can be disabled if needed.  Contact EMC Support.",
+                    exportGroup.getId(), Joiner.on(",").join(boToLabelMap.values()));
+            ValidatorConfig vc = new ValidatorConfig();
+            vc.setCoordinator(_coordinator);
+            if (vc.isValidationEnabled()) {
+                throw APIException.badRequests.exportGroupContainsMountedVolumes(exportGroup.getId(),
+                    Joiner.on(",").join(boToLabelMap.values()));
+            }
+        }
+    }
+
 }

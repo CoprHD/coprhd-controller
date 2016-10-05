@@ -25,6 +25,9 @@ function post(event, url) {
       <td>#{Resources.link task?.resource?.id}#{Resources.image task.resource.id /} ${task?.resource?.name}#{/Resources.link}</a></td>
       <td>#{Tasks.progress task.progress, state:task.state/}</td>
       #{if task.state == 'suspended_no_error' }
+		<script>
+	              $('#migrationAlert').show();
+	    </script>
       	<td>#{Tasks.state task.state/}
       	        #{if task.allowedOperations == 'none_specified' || task.allowedOperations == 'retry_only' || task.allowedOperations == 'retry_rollback'}
       			<a href="#" onclick="post(event, '@{retryTask(_order.id, task.id)}');"
@@ -49,6 +52,9 @@ function post(event, url) {
 	            </td>
       #{/elseif}
       #{else}
+		<script>
+	              $('#migrationAlert').hide();
+	    </script>
       	<td>#{Tasks.state task.state/}</td>
       #{/else}
       <td><span data-relative-time="${task?.startTime?.timeInMillis}"></span></td>

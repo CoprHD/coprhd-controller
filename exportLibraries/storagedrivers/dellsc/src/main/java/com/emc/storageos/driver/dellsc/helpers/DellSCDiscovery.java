@@ -17,8 +17,10 @@
 package com.emc.storageos.driver.dellsc.helpers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -30,8 +32,10 @@ import com.emc.storageos.driver.dellsc.DellSCUtil;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPIException;
 import com.emc.storageos.driver.dellsc.scapi.objects.EmDataCollector;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScCopyMirrorMigrate;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
@@ -97,7 +101,7 @@ public class DellSCDiscovery {
                     storageProvider.getProviderHost(),
                     storageProvider.getPortNumber(),
                     storageProvider.getUsername(),
-                    storageProvider.getPassword());
+                    storageProvider.getPassword(), true);
 
             LOG.info("Connected to DSM {} as user {}",
                     storageProvider.getProviderHost(), storageProvider.getUsername());
@@ -170,7 +174,7 @@ public class DellSCDiscovery {
                     storageSystem.getIpAddress(),
                     port,
                     storageSystem.getUsername(),
-                    storageSystem.getPassword());
+                    storageSystem.getPassword(), false);
 
             // Populate the SC information
             StorageCenter sc = api.findStorageCenter(sn);
@@ -232,35 +236,19 @@ public class DellSCDiscovery {
         DellSCDriverTask task = new DellSCDriverTask("discoverStoragePorts");
 
         try {
-            StorageCenterAPI api = connectionManager.getConnection(storageSystem.getNativeId());
+            String ssn = storageSystem.getNativeId();
+            StorageCenterAPI api = connectionManager.getConnection(ssn);
 
-            ScControllerPort[] scPorts = api.getTargetPorts(storageSystem.getNativeId(), null);
-            for (ScControllerPort scPort : scPorts) {
-                if (!ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType) &&
-                        !ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
-                    LOG.info("Skipping unsupported port transport type of {}", scPort.transportType);
-                    continue;
+            Map<String, List<ScControllerPort>> ports = getPortList(api, ssn);
+            for (Entry<String, List<ScControllerPort>> entry : ports.entrySet()) {
+                for (ScControllerPort scPort : entry.getValue()) {
+                    StoragePort port = util.getStoragePortForControllerPort(api, scPort, entry.getKey());
+                    LOG.info("Discovered Port {}, storageSystem {}",
+                            scPort.instanceId, scPort.scSerialNumber);
+                    storagePorts.add(port);
                 }
-
-                if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType) &&
-                        (EMPTY_IPADDR.equals(scPort.iscsiIpAddress) ||
-                                scPort.iscsiIpAddress.length() == 0)) {
-                    // This isn't necessarily, so no need to log
-                    continue;
-                }
-
-                StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
-
-                // One more check needed for iSCSI ports after getting their iSCSI settings
-                if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType) &&
-                        EMPTY_IPADDR.equals(port.getIpAddress())) {
-                    continue;
-                }
-
-                LOG.info("Discovered Port {}, storageSystem {}",
-                        scPort.instanceId, scPort.scSerialNumber);
-                storagePorts.add(port);
             }
+
             task.setStatus(DriverTask.TaskStatus.READY);
         } catch (Exception e) {
             String failureMessage = String.format("Error getting port information: %s", e);
@@ -268,6 +256,57 @@ public class DellSCDiscovery {
             LOG.warn(failureMessage);
         }
         return task;
+
+    }
+
+    /**
+     * Gets the ScControllerPorts for a system.
+     *
+     * @param api The API connection.
+     * @param ssn The system serial number.
+     * @return The ports.
+     */
+    private Map<String, List<ScControllerPort>> getPortList(StorageCenterAPI api, String ssn) {
+        Map<String, List<ScControllerPort>> ports = new HashMap<>();
+
+        try {
+            ScConfiguration scConfig = api.getScConfig(ssn);
+            ScFaultDomain[] faultDomains = api.getFaultDomains(ssn);
+
+            for (ScFaultDomain fd : faultDomains) {
+                // See what kind of fault domain this is
+                boolean virtualMode;
+                if (ScControllerPort.FC_TRANSPORT_TYPE.equals(fd.transportType)) {
+                    virtualMode = "VirtualPort".equals(scConfig.fibreChannelTransportMode);
+                } else if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(fd.transportType)) {
+                    virtualMode = "VirtualPort".equals(scConfig.iscsiTransportMode);
+                } else {
+                    // Not a currently supported transport type
+                    continue;
+                }
+
+                // Now get the actual ports
+                if (!ports.containsKey(fd.name)) {
+                    ports.put(fd.name, new ArrayList<>());
+                }
+
+                ScControllerPort[] fdPorts = api.getFaultDomainPorts(fd.instanceId, virtualMode);
+                for (ScControllerPort fdPort : fdPorts) {
+                    // See if we need to inherit the IP settings from the fault domain
+                    if (EMPTY_IPADDR.equals(fdPort.iscsiSubnetMask)) {
+                        fdPort.iscsiSubnetMask = fd.subnetMask;
+                    }
+                    if (EMPTY_IPADDR.equals(fdPort.iscsiIpAddress)) {
+                        fdPort.iscsiIpAddress = fd.targetIpv4Address;
+                    }
+                    ports.get(fd.name).add(fdPort);
+                }
+            }
+        } catch (Exception e) {
+            LOG.error(String.format("Error getting system controller ports: %s", e));
+        }
+
+        return ports;
     }
 
     /**

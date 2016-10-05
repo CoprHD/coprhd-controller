@@ -207,7 +207,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
-            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup.getExportMasks() != null) {
+            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token);
@@ -216,9 +216,8 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Map<URI, List<URI>> exportToInitiatorsToRemove = new HashMap<>();
                 Map<URI, List<URI>> exportToVolumesToRemove = new HashMap<>();
                 Map<URI, Integer> volumeMap = null;
-                for (String exportMaskURIStr : exportGroup.getExportMasks()) {
-                    URI exportMaskURI = URI.create(exportMaskURIStr);
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                for (ExportMask exportMask : exportMasks) {                  
                     if (exportMask == null) {
                         continue;
                     }
@@ -231,7 +230,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             List<URI> initiators = exportToInitiatorsToRemove.get(exportGroupURI);
                             if (initiators == null) {
                                 initiators = new ArrayList<>();
-                                exportToInitiatorsToRemove.put(exportMaskURI, initiators);
+                                exportToInitiatorsToRemove.put(exportMask.getId(), initiators);
                             }
                             initiators.add(initiatorURI);
                         } else {
@@ -241,7 +240,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             List<URI> volumeURIs = exportToVolumesToRemove.get(exportGroupURI);
                             if (volumeURIs == null) {
                                 volumeURIs = new ArrayList<>();
-                                exportToVolumesToRemove.put(exportMaskURI, volumeURIs);
+                                exportToVolumesToRemove.put(exportMask.getId(), volumeURIs);
                             }
                             for (URI volumeURI : volumeMap.keySet()) {
                                 // Only add to the remove list for the ExportMask if

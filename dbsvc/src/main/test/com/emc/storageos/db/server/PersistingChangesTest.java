@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.PrefixDbIndex;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -916,5 +917,49 @@ public class PersistingChangesTest extends DbsvcTestBase {
             }
         }
         return count;
+    }
+
+    @Test
+    public void testStringSetMapRemove() throws Exception {
+        UnManagedVolume unManagedVolume = new UnManagedVolume();
+        URI id = URIUtil.createId(UnManagedVolume.class);
+
+        unManagedVolume.setId(id);
+
+        StringSet set1 = new StringSet();
+        set1.add("test1");
+        set1.add("test2");
+        set1.add("test3");
+        set1.add("test4");
+
+        StringSet set2 = new StringSet();
+        set2.add("test5");
+        set2.add("test6");
+        set2.add("test7");
+        set2.add("test8");
+
+        String key1 = "key1";
+        String key2 = "key2";
+
+        unManagedVolume.putVolumeInfo("key1", set1);
+        unManagedVolume.putVolumeInfo("key2", set2);
+
+        dbClient.createObject(unManagedVolume);
+
+        unManagedVolume = dbClient.queryObject(UnManagedVolume.class, id);
+
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().containsKey(key1));
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().containsKey(key2));
+
+        unManagedVolume.getVolumeInformation().remove(key1);
+        unManagedVolume.getVolumeInformation().get(key2).remove("test6");
+
+        dbClient.updateObject(unManagedVolume);
+
+        unManagedVolume = dbClient.queryObject(UnManagedVolume.class, id);
+        Assert.assertFalse(unManagedVolume.getVolumeInformation().containsKey(key1));
+
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().get(key2).contains("test7"));
+        Assert.assertFalse(unManagedVolume.getVolumeInformation().get(key2).contains("test6"));
     }
 }

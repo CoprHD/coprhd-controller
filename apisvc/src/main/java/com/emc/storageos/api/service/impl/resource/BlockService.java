@@ -340,20 +340,17 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     *
-     * Start continuous copies.
-     *
+     * Start continuous copies. Continuous copies will be created when <i>NATIVE</i> type is specified and
+     * <i>copyID</i> fields are omitted.
      *
      * @prereq none
      *
-     * @param id
-     *            the URN of a ViPR Source volume
-     * @param param
-     *            List of copies to start
+     * @param id URN of a ViPR Source volume
+     * @param param List of copies to start or create.
      *
-     * @brief Start continuous copies.
+     * @brief Start or create continuous copies.
+     *
      * @return TaskList
-     *
      * @throws ControllerException
      *
      */
@@ -417,7 +414,7 @@ public class BlockService extends TaskResourceService {
                 taskList.getTaskList().add(taskResp);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 if (URIUtil.isValid(copyID) && URIUtil.isType(copyID, BlockMirror.class)) {
-                    /**
+                    /*
                      * To establish group relationship between volume group and mirror group
                      */
                     taskResp = establishVolumeMirrorGroupRelation(id, copy, ProtectionOp.START.getRestOp());
@@ -879,6 +876,8 @@ public class BlockService extends TaskResourceService {
                 }
             }
 
+            Volume existingRpSourceVolume = null;
+
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
                 // If an RP protected vpool is specified, ensure that the CG selected is empty or contains only RP
@@ -890,18 +889,17 @@ public class BlockService extends TaskResourceService {
 
                 if (!activeCGVolumes.isEmpty()) {
                     // Find the first existing source volume for source/target varray comparison.
-                    Volume existingSourceVolume = null;
                     for (Volume cgVolume : activeCGVolumes) {
                         if (cgVolume.getPersonality() != null &&
                                 cgVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                            existingSourceVolume = cgVolume;
+                            existingRpSourceVolume = cgVolume;
                             break;
                         }
                     }
 
-                    if (existingSourceVolume != null) {
+                    if (existingRpSourceVolume != null) {
                         VirtualPool existingVpool = _dbClient.queryObject(
-                                VirtualPool.class, existingSourceVolume.getVirtualPool());
+                                VirtualPool.class, existingRpSourceVolume.getVirtualPool());
                         VirtualPool requestedVpool = _dbClient.queryObject(
                                 VirtualPool.class, param.getVpool());
 
@@ -970,7 +968,12 @@ public class BlockService extends TaskResourceService {
             // attached or has volumes that are full copies that
             // are still attached to their source volumes.
             if (!activeCGVolumes.isEmpty()) {
-                if (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(consistencyGroup, activeCGVolumes.get(0), _dbClient)) {
+                // Pass in an active CG volume for validation. If we are dealing with a RecoverPoint
+                // consistency group, we need to use an RP source volume. Otherwise we can use any arbitrary
+                // CG volume.
+                Volume activeCGVolume = existingRpSourceVolume == null ? activeCGVolumes.get(0) : existingRpSourceVolume;
+
+                if (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(consistencyGroup, activeCGVolume, _dbClient)) {
                     checkCGForMirrors(consistencyGroup, activeCGVolumes);
                     checkCGForSnapshots(consistencyGroup);
                     getFullCopyManager().verifyNewVolumesCanBeCreatedInConsistencyGroup(consistencyGroup,
@@ -3486,12 +3489,19 @@ public class BlockService extends TaskResourceService {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
             _log.error(errorMsg, e);
-            for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-                volumeTask.setState(Operation.Status.error.name());
-                volumeTask.setMessage(errorMsg);
-                _dbClient.updateTaskOpStatus(Volume.class, volumeTask
-                        .getResource().getId(), taskId,
-                        new Operation(Operation.Status.error.name(), errorMsg));
+            if (!taskList.getTaskList().isEmpty()) {
+                for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+                    volumeTask.setState(Operation.Status.error.name());
+                    volumeTask.setMessage(errorMsg);
+                    _dbClient.updateTaskOpStatus(Volume.class, volumeTask
+                            .getResource().getId(), taskId,
+                            new Operation(Operation.Status.error.name(), errorMsg));
+                }
+            } else {
+                for (Volume volume : volumes) {
+                    _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskId,
+                            new Operation(Operation.Status.error.name(), errorMsg));
+                }
             }
             throw e;
         }

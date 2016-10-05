@@ -43,20 +43,20 @@ public class ValidatorLogger {
      *            -- Hardware value
      */
     public void logDiff(String id, String field, String db, String hw) {
-        StringBuffer diffBuffer = new StringBuffer(String.format("Controller database object ID %s, field \"%s\": ", id, field));
+        StringBuffer diffBuffer = new StringBuffer(String.format("Controller database object ID [%s], field [%s]: ", id, field));
 
         // Craft a message depending on whether the db field is non-existent, or if the hw field wasn't found
         if (db == null || db.isEmpty() || db.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
             diffBuffer.append(String.format(
-                    "The hardware reported entry %s, whereas the controller is not managing or does not have a reference to the same resource",
-                    hw, db));
+                    "The hardware reported entry [%s], whereas the controller is not managing or does not have a reference to the same resource\n",
+                    hw));
         } else if (hw == null || hw.isEmpty() || hw.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
             diffBuffer.append(String.format(
-                    "The controller is managing resource %s, whereas the hardware reported did not report that resource",
-                    db, hw));
+                    "The controller is managing resource [%s], whereas the hardware did not report that resource\n",
+                    db));
         } else {
             diffBuffer.append(String.format(
-                    "The controller references resource: %s, whereas the hardware reported the actual resource as: %s",
+                    "The controller references resource: [%s], whereas the hardware reported the actual resource as: [%s]\n",
                     db != null ? db : "null",
                     hw != null ? hw : "null"));
         }

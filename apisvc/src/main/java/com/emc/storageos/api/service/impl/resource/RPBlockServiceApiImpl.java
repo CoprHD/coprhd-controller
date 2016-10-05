@@ -9,8 +9,6 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -28,6 +26,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -48,7 +47,6 @@ import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -77,7 +75,6 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -1828,6 +1825,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throws InternalException {
         _log.info("Request to delete {} volume(s) with RP Protection", volumeURIs.size());
         try {
+            // check to make sure no target volumes were passed in
+            Iterator<Volume> dbVolumeIter = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+            while (dbVolumeIter.hasNext()) {
+                Volume vol = dbVolumeIter.next();
+                if (vol.checkPersonality(Volume.PersonalityTypes.TARGET)) {
+                    throw APIException.badRequests.deactivateRPTargetNotSupported(vol.getLabel());
+                }
+            }
             super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
         } catch (Exception e) {
             // Set the task to failed
@@ -2059,6 +2064,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (vpoolChangeParam.getConsistencyGroup() == null) {
                 throw APIException.badRequests.addRecoverPointProtectionRequiresCG();
             }
+            
+            if (!CollectionUtils.isEmpty(getSnapshotsForVolume(changeVpoolVolume))) {
+                throw APIException.badRequests.cannotAddProtectionWhenSnapshotsExist(changeVpoolVolume.getLabel());
+            }
         }
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -2140,7 +2149,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {        
-        TaskList taskList = new TaskList();
+        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
@@ -2168,7 +2177,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
                 _dbClient, notSuppReasonBuff, validMigrations)) {
-            taskList = rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam);
+            taskList.getTaskList().addAll(rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam).getTaskList());
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
@@ -2180,9 +2189,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 + "Please select one volume at a time.");
             }
         }
-        
-        taskList.getTaskList().addAll(
-                createTasksForVolumes(vpool, volumes, taskId).getTaskList());
         
         return taskList;
     }
@@ -3056,7 +3062,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Method to determine whether the capacities for all the volumes being provisioned
-     * can match. Currently the capacities for vmax and xtremio cannot match exactly.
+     * can match. Currently the capacities for vmax, vmax3, and xtremio cannot match exactly.
      *
      * @param volumeStorageSystems
      *            - map indicating storage system types required to fulfill this request
@@ -3065,9 +3071,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     protected boolean capacitiesCanMatch(Map<URI, StorageSystem> volumeStorageSystems) {
         String systemToCompare = null;
         for (Map.Entry<URI, StorageSystem> entry : volumeStorageSystems.entrySet()) {
-            _log.info("Request requires provisioning on storage array of type: " + entry.getValue().getSystemType());
+            StorageSystem storageSystem = entry.getValue();
+            String storageType = storageSystem.getSystemType();
+            if (storageSystem.isV3AllFlashArray()) {
+                storageType = DiscoveredDataObject.Type.vmax3AFA.name();;
+            } else if (storageSystem.checkIfVmax3()) {
+                storageType = DiscoveredDataObject.Type.vmax3.name();
+            }
+            _log.info(String.format("Request requires provisioning on storage array of type: %s", storageType));
             if (NullColumnValueGetter.isNullValue(systemToCompare)) {
-                systemToCompare = entry.getValue().getSystemType();
+                systemToCompare = storageSystem.getSystemType();
                 continue;
             }
             if (!capacityCalculatorFactory.getCapacityCalculator(systemToCompare).capacitiesCanMatch(entry.getValue().getSystemType())) {
@@ -3090,6 +3103,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     protected Map<Volume.PersonalityTypes, Long> setUnMatchedCapacities(List<Volume> allVolumesToUpdateCapacity,
             Map<URI, String> associatedVolumePersonalityMap, boolean isExpand, Long capacityToUseInCalculation) {
+        _log.info("Capacities for RP Source and Target can not match. Capacities will be calculated so Source <= Target.");
         Long srcCapacity = 0L;
         Long tgtCapacity = 0L;
         Map<Volume.PersonalityTypes, Long> capacities = new HashMap<Volume.PersonalityTypes, Long>();

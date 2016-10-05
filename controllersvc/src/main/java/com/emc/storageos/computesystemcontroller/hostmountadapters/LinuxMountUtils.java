@@ -73,13 +73,16 @@ public class LinuxMountUtils {
         _log.info("mount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
         CommandOutput output = command.getOutput();
-        try {
-            if (output.getStderr().contains("TIMEOUT")) {
-                throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
-            }
-        } catch (Exception ex) {
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
+        if (output.getStderr().contains("TIMEOUT")) {
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getHostName());
             throw exception;
+        } else {
+            String errMessage = output.getStderr().replace("SUCCESSFUL", "").replace("\n", "");
+            if (!errMessage.isEmpty()) {
+                ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.unableToMount(host.getHostName(),
+                        new Exception(errMessage));
+                throw exception;
+            }
         }
     }
 
@@ -136,13 +139,16 @@ public class LinuxMountUtils {
         _log.info("unmount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
         CommandOutput output = command.getOutput();
-        try {
-            if (output.getStderr().contains("TIMEOUT")) {
-                throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
-            }
-        } catch (Exception ex) {
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
+        if (output.getStderr().contains("TIMEOUT")) {
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getHostName());
             throw exception;
+        } else {
+            String errMessage = output.getStderr().replace("SUCCESSFUL", "").replace("\n", "");
+            if (!errMessage.isEmpty()) {
+                ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.unableToUnmount(host.getHostName(),
+                        new Exception(errMessage));
+                throw exception;
+            }
         }
     }
 
@@ -163,6 +169,19 @@ public class LinuxMountUtils {
                 throw new IllegalStateException("Mount point already exists: " + mountPoint);
             }
         }
+    }
+
+    public boolean verifyMountPoints(String mountPoint, String mountPath) throws InternalException {
+        ListMountPointsCommand command = new ListMountPointsCommand();
+        _log.info("check existing command:" + command.getResolvedCommandLine());
+        cli.executeCommand(command);
+        Map<String, MountPoint> mountPoints = command.getResults();
+        for (MountPoint mp : mountPoints.values()) {
+            if (StringUtils.equals(mp.getDevice(), mountPoint) && StringUtils.equals(mp.getPath(), mountPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static LinuxSystemCLI convertHost(Host host) {
@@ -186,5 +205,4 @@ public class LinuxMountUtils {
     public String generateMountTag(URI hostId, String mountPath, String subDirectory, String securityType) {
         return "mountNFS;" + hostId.toString() + ";" + mountPath + ";" + subDirectory + ";" + securityType;
     }
-
 }

@@ -89,19 +89,19 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
         log.info("Initiating Vplex Volume validation: " + volumeId);
         VPlexVirtualVolumeInfo vvinfo = null;
         try {
-            vvinfo = client.findVirtualVolumeAndUpdateInfo(virtualVolume.getDeviceLabel());
+            vvinfo = client.findVirtualVolume(virtualVolume.getDeviceLabel(), virtualVolume.getNativeId());
         } catch (VPlexApiException ex) {
             log.info(ex.getMessage());
         }
         if (vvinfo == null) {
             try {
                 // Didn't find the virtual volume. Look at the storage volume, and from that determine
-                // the deviceName. Then lookup the Deivce or DistributedDevice and check to see if
+                // the deviceName. Then lookup the Device or DistributedDevice and check to see if
                 // the device has been reassigned to a different virtual volume.
                 Volume storageVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, true, getDbClient(), false);
                 if (storageVolume != null) {
                     StorageSystem system = getDbClient().queryObject(StorageSystem.class, storageVolume.getStorageController());
-                    // Look up the corresponding device name to our Storage Volumej
+                    // Look up the corresponding device name to our Storage Volume
                     String deviceName = client.getDeviceForStorageVolume(storageVolume.getNativeId(),
                             storageVolume.getWWN(), system.getSerialNumber());
                     if (deviceName == null) {
@@ -139,7 +139,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 }
             } catch (VPlexApiException ex) {
                 log.error("Unable to determine if VPLEX device reused: " + volumeId, ex);
-                if (getValidatorConfig().validationEnabled()) {
+                if (getValidatorConfig().isValidationEnabled()) {
                     throw ex;
                 }
             }
@@ -161,11 +161,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
             if (!NullColumnValueGetter.isNullValue(virtualVolume.getWWN()) && vvinfo.getWwn() != null
                     && !virtualVolume.getWWN().equalsIgnoreCase(vvinfo.getWwn())) {
                 getValidatorLogger().logDiff(volumeId, "wwn", virtualVolume.getWWN(), vvinfo.getWwn());
-            }
-            if (!virtualVolume.getProvisionedCapacity().equals(vvinfo.getCapacityBytes())) {
-                getValidatorLogger().logDiff(volumeId, "capacity", virtualVolume.getAllocatedCapacity().toString(),
-                        vvinfo.getCapacityBytes().toString());
-            }
+            }            
             if (virtualVolume.getAssociatedVolumes() != null && !virtualVolume.getAssociatedVolumes().isEmpty()) {
                 String locality = virtualVolume.getAssociatedVolumes().size() > 1 ? VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME
                         : VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;
@@ -175,7 +171,8 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
             }
         }
 
-        if (checkList.contains(ValCk.VPLEX)) {
+        if (checkList.contains(ValCk.VPLEX)
+                && !virtualVolume.isIngestedVolumeWithoutBackend(getDbClient())) {
             try {
                 String drillDownInfo = client.getDrillDownInfoForDevice(vvinfo.getSupportingDevice());
                 VPlexDrillDownParser parser = new VPlexDrillDownParser(drillDownInfo);

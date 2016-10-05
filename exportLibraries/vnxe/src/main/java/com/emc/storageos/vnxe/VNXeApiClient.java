@@ -501,6 +501,9 @@ public class VNXeApiClient {
 
         if (nfsShareId == null) {
             // not found, new export
+            if (!isUnityClient()) {
+                shareParm.setDefaultAccess(NFSShareDefaultAccessEnum.NONE);
+            }
             NfsShareCreateParam nfsShareCreateParm = new NfsShareCreateParam();
             nfsShareCreateParm.setName(shareName);
             nfsShareCreateParm.setPath(path);
@@ -1270,7 +1273,7 @@ public class VNXeApiClient {
             if (isUnityClient()) {
                 ConsistencyGroupRequests cgRequest = new ConsistencyGroupRequests(_khClient);
                 job = cgRequest.modifyConsistencyGroupAsync(lunGroupID, param);
-                
+
             } else {
                 LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
                 job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
@@ -1885,13 +1888,13 @@ public class VNXeApiClient {
     }
 
     public boolean isFASTVPEnabled() {
-        
+
         boolean result = false;
         try {
-            if(_khClient.isUnity()) {
+            if (_khClient.isUnity()) {
                 FeatureRequest req = new FeatureRequest(_khClient, VNXeConstants.FASTVP_FEATURE);
                 Feature fastVP = req.get();
-                if (fastVP != null && fastVP.getState()==FeatureStateEnum.FeatureStateEnabled.getValue()) {
+                if (fastVP != null && fastVP.getState() == FeatureStateEnum.FeatureStateEnabled.getValue()) {
                     result = true;
                 } else {
                     _logger.info("FASTVP is disabled");
@@ -1903,11 +1906,11 @@ public class VNXeApiClient {
                 if (fastVP != null && !fastVP.isEmpty()) {
                     result = true;
                 }
-                
+
             }
         } catch (Exception e) {
             result = false;
-        } 
+        }
         _khClient.setFastVPEnabled(result);
         return result;
     }
@@ -2036,7 +2039,7 @@ public class VNXeApiClient {
      * given host name and initiators, find/create hosts/initiators in the
      * 
      * @param hostInitiators
-     * @return 
+     * @return
      */
     private VNXeBase prepareHostsForExport(List<VNXeHostInitiator> hostInitiators) {
 
@@ -2053,7 +2056,7 @@ public class VNXeApiClient {
             if (existingInit != null && existingInit.getParentHost() != null) {
                 hostId = existingInit.getParentHost().getId();
 
-            } else if (existingInit != null)  {
+            } else if (existingInit != null) {
                 existingNoHostInits.add(existingInit);
             } else {
                 notExistingInits.add(init);
@@ -2092,7 +2095,7 @@ public class VNXeApiClient {
             try {
                 req.createHostInitiator(initCreateParam);
             } catch (VNXeException e) {
-                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the host 
+                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the host
                 // initiator with the created host, it would throw error, saying the initiator exists. ignore the error.
                 String message = e.getMessage();
                 if (message != null && message.contains(VNXeConstants.INITIATOR_EXISITNG)) {
@@ -2103,7 +2106,7 @@ public class VNXeApiClient {
             }
 
         }
-        
+
         for (VNXeHostInitiator exitInit : existingNoHostInits) {
             HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
             VNXeBase host = new VNXeBase(hostId);
@@ -2883,9 +2886,10 @@ public class VNXeApiClient {
         req.createHostInitiator(initCreateParam);
 
     }
-    
+
     /**
      * Check if the lun exists in the array
+     * 
      * @param lunId
      * @return
      */

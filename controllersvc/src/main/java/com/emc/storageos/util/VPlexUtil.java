@@ -503,8 +503,7 @@ public class VPlexUtil {
      */
     public static ExportMask getExportMaskForHostInVarray(DbClient dbClient,
             ExportGroup exportGroup, URI hostURI, URI vplexURI, URI varrayURI) throws Exception {
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
             return null;
         }
         ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, dbClient, varrayURI, null, null);
@@ -789,10 +788,10 @@ public class VPlexUtil {
         // Map of Storage view name to list of ExportMasks that represent same storage view on VPLEX.
         Map<String, Set<ExportMask>> exportGroupExportMasks = new HashMap<>();
         Map<String, Set<ExportMask>> sharedExportMasks = new HashMap<>();
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (exportGroup.getExportMasks() == null) {
             return null;
         }
+        
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
         for (ExportMask exportMask : exportMasks) {
             if (!exportMask.getInactive()) {
@@ -906,8 +905,7 @@ public class VPlexUtil {
     public static ExportMask getSharedExportMaskInDb(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
             URI varrayUri, String vplexCluster, Map<URI, List<Initiator>> hostInitiatorMap) throws Exception {
         ExportMask sharedExportMask = null;
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (exportGroup.getExportMasks() == null) {
             return null;
         }
         StringSet exportGrouphosts = exportGroup.getHosts();
@@ -1519,7 +1517,7 @@ public class VPlexUtil {
             throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
         }
 
-        return client.getClusterName(vplexClusterId);
+        return client.getClusterNameForId(vplexClusterId);
     }
 
     /**
@@ -1541,7 +1539,7 @@ public class VPlexUtil {
             throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
         }
 
-        return client.getClusterName(vplexClusterId);
+        return client.getClusterNameForId(vplexClusterId);
     }
 
     /**

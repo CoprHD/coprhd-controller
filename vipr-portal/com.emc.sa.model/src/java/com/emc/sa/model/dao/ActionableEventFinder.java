@@ -24,7 +24,8 @@ public class ActionableEventFinder extends TenantResourceFinder<ActionableEvent>
         List<ActionableEvent> result = Lists.newArrayList();
         for (ActionableEvent event : findByIds(toURIs(events))) {
             if (event != null && event.getEventStatus() != null
-                    && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+                    && (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString()))) {
                 result.add(event);
             }
         }
@@ -40,7 +41,8 @@ public class ActionableEventFinder extends TenantResourceFinder<ActionableEvent>
         List<ActionableEvent> result = Lists.newArrayList();
         for (ActionableEvent event : findByIds(toURIs(events))) {
             if (event != null && event.getEventStatus() != null
-                    && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+                    && (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString()))) {
                 result.add(event);
             }
         }

@@ -115,6 +115,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -127,6 +128,7 @@ import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ControllerOperationValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
@@ -724,7 +726,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     associatedVolumes.add(assocVolume);
 
                     // Remove the associated volume form any export groups/masks.
-                    cleanBlockObjectFromExports(assocVolumeURI, true);
+                    ExportUtils.cleanBlockObjectFromExports(assocVolumeURI, true, _dbClient);
                 }
             }
         }
@@ -1238,7 +1240,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
-        TaskList taskList = new TaskList();
+        TaskList taskList = createTasksForVolumes(vpool, Arrays.asList(volume), taskId);
 
         String transferSpeed = null;
         ArrayList<Volume> volumes = new ArrayList<Volume>();
@@ -1332,10 +1334,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
-        
-        taskList.getTaskList().addAll(
-                createTasksForVolumes(vpool, Arrays.asList(volume), taskId).getTaskList());
-        
+
         return taskList;
     }
 
@@ -1347,9 +1346,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         TaskList taskList = new TaskList();
 
-        // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
+
+        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), volumeVirtualPool, vpool,
+                _dbClient, notSuppReasonBuff) ||
+                VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volumes.get(0), volumeVirtualPool, vpool,
+                        _dbClient, notSuppReasonBuff)) {
+            taskList = createTasksForVolumes(vpool, volumes, taskId);
+            checkCommonVpoolUpdates(volumes, vpool, taskId);
+            return taskList;
         }
 
         // Check if any of the volumes passed is a VPLEX volume
@@ -1958,8 +1964,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         // Retain any previous RP fields on the new target volumes
-        targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
-        targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
+            targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+        }
+
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
+            targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+        }
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 
@@ -2210,9 +2221,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egUri);
             List<URI> inits = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             initiators.addAll(inits);
-            List<URI> exportMaskuris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
-            for (URI exportMaskUri : exportMaskuris) {
-                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {
                 storagePorts.addAll(StringSetUtil.stringSetToUriList(exportMask.getStoragePorts()));
             }
         }

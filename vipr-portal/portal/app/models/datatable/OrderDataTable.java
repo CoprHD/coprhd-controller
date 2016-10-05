@@ -29,6 +29,7 @@ public class OrderDataTable extends DataTable {
         addColumn("summary");
         addColumn("submittedBy").hidden();
         addColumn("createdDate").setRenderFunction("render.localDate");
+        addColumn("scheduledTime").setRenderFunction("render.localDate");
 
         setDefaultSort("createdDate", "desc");
         setRowCallback("createRowLink");
@@ -70,6 +71,7 @@ public class OrderDataTable extends DataTable {
         public Long createdDate;
         public String submittedBy;
         public String scheduledEventId;
+        public Long scheduledTime;
 
         public OrderInfo(OrderRestRep o) {
             this.id = o.getId().toString();
@@ -85,6 +87,9 @@ public class OrderDataTable extends DataTable {
             }
             if (o.getScheduledEventId() != null) {
                 this.scheduledEventId = o.getScheduledEventId().toString();
+            }
+            if (o.getScheduledTime() != null) {
+                this.scheduledTime = o.getScheduledTime().getTime().getTime();
             }
         }
     }

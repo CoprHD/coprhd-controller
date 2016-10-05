@@ -19,7 +19,7 @@
     
     replicateConfFailover:{
       type: "boolean",
-      initialValue: "false",
+      initialValue: "true",
       required: "false",
       lockable: true
     }

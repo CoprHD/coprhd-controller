@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.model.BlockMirror;
 
@@ -118,17 +119,10 @@ public class VplexDBCkr {
                 }
             }
 
-            StringSet exportMaskIds = exportGroup.getExportMasks();
-            for (String exportMaskId : exportMaskIds) {
-                ExportMask exportMask = null;
-                if (exportMaskMap.containsKey(exportMaskId)) {
-                    exportMask = exportMaskMap.get(exportMaskId);
-                } else {
-                    exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
-                    exportMaskMap.put(exportMaskId, exportMask);
-                }
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {              
                 if (exportMask.hasVolume(boURI)) {
-                    writeLog(String.format("Cleaning block object from export mask %s", exportMaskId));
+                    writeLog(String.format("Cleaning block object from export mask %s", exportMask.getId().toString()));
 					StringMap exportMaskVolumeMap = exportMask.getVolumes();
                     String hluStr = exportMaskVolumeMap.get(boURI.toString());
                     exportMask.removeVolume(boURI);
@@ -140,8 +134,8 @@ public class VplexDBCkr {
                         writeLog(String.format("Adding to existing volumes"));
 						exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
                     }
-                    if (!updatedExportMaskMap.containsKey(exportMaskId)) {
-                        updatedExportMaskMap.put(exportMaskId, exportMask);
+                    if (!updatedExportMaskMap.containsKey(exportMask.getId().toString())) {
+                        updatedExportMaskMap.put(exportMask.getId().toString(), exportMask);
                     }
                 }
             }
@@ -177,13 +171,11 @@ public class VplexDBCkr {
                 continue;
             }
 			
-            StringSet exportMaskIds = exportGroup.getExportMasks();
-			for (String exportMaskId : exportMaskIds) {
-                ExportMask exportMask = null;
-                exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+			for (ExportMask exportMask : exportMasks) {
                 if (exportMask.hasVolume(boURI)) {
-                   if (!exportMaskMap.containsKey(exportMaskId)) {
-				   exportMaskMap.put(exportMaskId, exportMask);
+                   if (!exportMaskMap.containsKey(exportMask.getId().toString())) {
+                	   exportMaskMap.put(exportMask.getId().toString(), exportMask);
 				   }
                 }
             }
@@ -256,7 +248,7 @@ public class VplexDBCkr {
         // we will spend time below getting details.
         writeLog("Retrieving all virtual volumes... this will take some time...");
         Map<String, VPlexVirtualVolumeInfo> vvInfoMap = client.getVirtualVolumes(true);
-		List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
+		List<VPlexStorageViewInfo> storageViews = client.getStorageViewsLite();
         writeLog("... done");
        
 	   try {

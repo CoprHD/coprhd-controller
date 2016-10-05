@@ -401,6 +401,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidIscsiInitiatorPort();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidRBDInitiatorPort();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameter(final String parameterName,
             final String parameterValue);
 
@@ -909,6 +912,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidNodeForiScsiPort();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeForRBDPort();
 
     @DeclareServiceCode(ServiceCode.API_INVALID_PROTECTION_VPOOLS)
     public BadRequestException invalidProtectionVirtualPools();
@@ -3140,7 +3146,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deactivateRPTargetNotSupported(final String string);
-
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddProtectionWhenSnapshotsExist(final String volumeLabel);
 

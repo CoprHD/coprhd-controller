@@ -1037,10 +1037,13 @@ public class ControllerUtils {
     }
     
     /**
+     * From the passed list group snapshot URIs, filters the list so that only one snapshot
+     * per replication group is in the returned, filtered list.
      * 
-     * @param snapshotURIs
-     * @param dbClient
-     * @return
+     * @param snapshotURIs A list of group snapshots
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The filtered list of snapshot URIs.
      */
     public static List<URI> ensureOneSnapshotPerReplicationGroup(List<URI> snapshotURIs, DbClient dbClient) {
         List<URI> filteredSnapshotURIs = new ArrayList<>();

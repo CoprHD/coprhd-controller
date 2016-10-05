@@ -18,7 +18,10 @@ LOCAL_LDAP_SUPERUSER_USERNAME=ldapViPRUser1@${LOCAL_LDAP_AUTHN_DOMAINS}
 
 usage()
 {
-    echo "Usage: volumegroup [create | list | show | delete | update | add-volumes | remove-volumes | show-volumes]"
+    echo "Usage: volumegroup [create | list | show | delete | update | add-volumes | remove-volumes | show-volumes | create-copy | "
+    echo "      delete-copy | detach-copy | resync-copy | restore-copy | link-copy | relink-copy | unlink-copy | activate-copy | list-full-copy-sets | "
+    echo "      list_copy_volumes | verify-copy-set | create-migration | migrate | commit-migration | cancel-migration | refresh-migration | "
+    echo "      recover-migration | syncstop-migration | syncstart-migration | remove-migration-env]"
     echo "           create <name> <description> <role> <parent>"
     echo "           update <name> <newname> <description> <parent>"
     echo "           delete <name>"

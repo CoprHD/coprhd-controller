@@ -4,52 +4,17 @@
   fields:{
  
     mobilityGroup:{
-      type:"assetType.vipr.application"
+      type:"assetType.vipr.vmaxMobilityGroup"
     },
-  
-    targetStorageSystem:{
-      type:"assetType.vipr.unmanagedBlockStorageSystem"
+            
+    targetVirtualArray:{
+      type:"assetType.vipr.migrationTgtVirtualArray",
+      required:"true"
     },
-    
-        virtualPoolPairs:{
-          type:"table",
-          items:{
-            sourceVirtualPool:{
-              type:"text",
-              validation:{
-                min:2,
-                max:128
-              },
-              required:"false"
-            },
-            targetVirtualPool:{
-              type:"assetType.vipr.sourceMigrationVirtualPool",
-              required:"false"
-            }
-          }
-        },
-        
-    advanced:{
-      type:"group",
-      collapsed:true,
-      items:{
-        targetStoragePool:{
-          type:"text",
-           required:"false"
-        },
-        
-        targetStoragePort:{
-          type:"text",
-           required:"false"
-        },
-        
-        compression:{
-          type:"boolean",
-          initialValue:"true",
-          required:"false"
-        }
-      }
+            
+    targetVirtualPool:{
+      type:"assetType.vipr.migrationTgtVirtualPool",
+      required:"true"
     }
-
   }
 }

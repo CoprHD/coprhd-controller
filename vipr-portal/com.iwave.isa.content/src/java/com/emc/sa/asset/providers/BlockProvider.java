@@ -9,9 +9,9 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSuppo
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -2356,19 +2356,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         });
         return createBaseResourceOptions(volumeGroups);
     }
-    
-    @Asset("sourceMigrationVirtualPool")
-    @AssetDependencies("application")
-    public List<AssetOption> getSourceMigrationVirtualPool(AssetOptionsContext ctx, URI applicationId) {
-        List<String> virtualPoolNames = new ArrayList<String>();
-        virtualPoolNames.add("default");
-        return createOptions(virtualPoolNames.toArray());
-    }
-    
-    @Asset("discoverApplicationResource")
-    public List<AssetOption> getDiscoverApplicationResources(AssetOptionsContext ctx) {
-        return getAddMobilityGroupResources(ctx, null);
-    }
 
     @Asset("addMobilityGroupResource")
     @AssetDependencies("mobilityGroup")
@@ -2787,6 +2774,49 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             options.add(newAssetOption(URI.create("none"), "None"));
         }
         return options;
+    }
+    
+    @Asset("vmaxMobilityGroup")
+    public List<AssetOption> getVmaxMobilityGroups(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        List<VolumeGroupRestRep> volumeGroups = client.application().getApplications(new DefaultResourceFilter<VolumeGroupRestRep>() {
+            @Override
+            public boolean accept(VolumeGroupRestRep volumeGroup) {
+                if (volumeGroup.getRoles() != null && volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY.name())
+                        && StringUtils.equalsIgnoreCase(volumeGroup.getMigrationType(), VolumeGroup.MigrationType.VMAX.toString())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+        return createBaseResourceOptions(volumeGroups);
+    }
+    
+    @Asset("migrationTgtVirtualArray")
+    @AssetDependencies("vmaxMobilityGroup")
+    public List<AssetOption> getMigrationTgtVirtualArray(AssetOptionsContext ctx, URI groupId) {
+        final ViPRCoreClient client = api(ctx);
+        List<VirtualArrayRestRep> varrays = client.varrays().getByTenant(ctx.getTenant());
+        
+        // TODO : filter varray list by target storage array in the application
+
+        return createBaseResourceOptions(varrays);
+    }
+    
+    @Asset("migrationTgtVirtualPool")
+    @AssetDependencies("migrationTgtVirtualArray")
+    public List<AssetOption> getSourceMigrationVirtualPool(AssetOptionsContext ctx, URI varrayId) {
+        final ViPRCoreClient client = api(ctx);
+        List<BlockVirtualPoolRestRep> vpools = client.blockVpools().getByVirtualArray(varrayId);
+
+        return createBaseResourceOptions(vpools);
+    }
+
+    
+    @Asset("discoverApplicationResource")
+    public List<AssetOption> getDiscoverApplicationResources(AssetOptionsContext ctx) {
+        return getAddMobilityGroupResources(ctx, null);
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

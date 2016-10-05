@@ -1,0 +1,20 @@
+{
+  baseKey:"CreateMigration.Application",
+  serviceId:"CreateMigration",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    },
+            
+    targetVirtualArray:{
+      type:"assetType.vipr.migrationTgtVirtualArray",
+      required:"true"
+    },
+            
+    targetVirtualPool:{
+      type:"assetType.vipr.migrationTgtVirtualPool",
+      required:"true"
+    }
+  }
+}

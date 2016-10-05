@@ -26,6 +26,10 @@
         },
         {
           "image": "icon_VPLEX_data_migration.png",
+          "baseService": "CreateMigration"
+        },
+        {
+          "image": "icon_VPLEX_data_migration.png",
           "baseService": "MigrateApplication"
         },
         {

@@ -506,9 +506,12 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                         continue;
                     }
                 } else {
+                    // try assigning port form its associated initiator.
                     boolean assigned = assignPortsToInitiatorFromAssociatedInitiator(initiator, assignments, entry.getValue());
                     if (assigned) {
+                        // Remove this initiator from further provisioning consideration
                         addedThisPass = true;
+                        entry.getValue().remove(0);
                         continue;
                     }
                 }
@@ -538,7 +541,18 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             for (Map.Entry<URI, List<Initiator>> entry : netToInitiatorsToProvision.entrySet()) {
                 List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
                 // See if we can map the yet unprovisioned initiators to already used ports
-                for (Initiator initiator : entry.getValue()) {
+                // Using iterator to avoid ConcurrentModificationException
+                List<Initiator> initiatorList = entry.getValue();
+                Iterator<Initiator> iterator = initiatorList.iterator();
+                while (iterator.hasNext()) {
+                    Initiator initiator = iterator.next();
+                    Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
+                    if (associatedInitiator != null && initiatorList.contains(associatedInitiator)) {
+                        // remove current initiator, it get ports assigned along which its associatedInitiator.
+                            iterator.remove();
+                            continue;
+                    }
+
                     List<StoragePort> availPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap,
                             allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator(),
                             pathParams.getMaxInitiatorsPerPort() - 1);
@@ -662,7 +676,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * 
      * @param initiator
      * @param assignments the map of initiator - storage ports
-     * @return the associated initiator
+     * @return the associated initiator. Null if associated initiator is not in the assignment map.
      */
     private Initiator getAssociatedInitiator(Initiator initiator, Map<Initiator, List<StoragePort>> assignments) {
 
@@ -712,9 +726,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     }
 
     /**
-     * Assigns the storage ports to associated initiator
+     * Assigns the storage ports to associated initiator, it do not increase the port use count
      * 
-     * @param initiator the initiator. Storage ports of this initiator will be assigned to its associated initiator iff associated initiator
+     * @param initiator the initiator. Storage ports of this initiator will be assigned to its associated initiator if associated initiator
      *            is present in the map of assignments.
      * @param assignedPorts the storage ports to be assigned
      * @param assignments the map of initiator - storage ports
@@ -730,14 +744,12 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             } else {
                 assignments.put(associatedInitiator, assignedPorts);
             }
-            if (initiatorList != null) {
-                initiatorList.remove(associatedInitiator);
-            }
+
         }
     }
 
     /**
-     * Assigns the storage ports to the initiator passed from associated initiator iff associated initiator is in the map of assignments.
+     * Assigns the storage ports to the initiator passed from associated initiator if associated initiator is in the map of assignments.
      * 
      * @param initiator the initiator to which storage ports are assigned.
      * @param assignments the map of assignments
@@ -761,9 +773,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 }
                 assigned = true;
             }
-            if (initiatorList != null) {
-                initiatorList.remove(initiator);
-            }
+
         }
         return assigned;
     }

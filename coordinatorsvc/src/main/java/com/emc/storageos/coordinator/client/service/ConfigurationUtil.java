@@ -33,15 +33,15 @@ public class ConfigurationUtil {
 
         try {
             Configuration config = coordinator.queryConfiguration(siteId, configKind, configId);
-            ConfigurationImpl configImpl = null;
             if (config == null) {
-                configImpl = new ConfigurationImpl();
+                ConfigurationImpl configImpl = new ConfigurationImpl();
                 configImpl.setId(configId);
                 configImpl.setKind(configKind);
+                config = (Configuration) configImpl;
                 log.debug("Creating new config");
             }
-            configImpl.setConfig(configKey, configVal);
-            coordinator.persistServiceConfiguration(siteId, configImpl);
+            config.setConfig(configKey, configVal);
+            coordinator.persistServiceConfiguration(siteId, config);
             log.info("Write config successfully");
         } finally {
             releaseLock(lock);

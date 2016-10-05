@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
+import com.emc.storageos.services.util.PlatformUtils;
 
 public class StorageSystemTypesInitUtils {
 
@@ -48,7 +49,6 @@ public class StorageSystemTypesInitUtils {
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
     private static final String VNXFILE_SMIS = "vnxfile_smis";
-    private static final String HP3PAR = "hp3par";
     private static final String DELLSCSYSTEM = "dellscsystem";
     private static final String DELLSCPROVIDER = "dellscprovider";
 
@@ -68,7 +68,7 @@ public class StorageSystemTypesInitUtils {
     static {
         SYSTEMS_AND_PROVIDERS = new HashMap<META_TYPE, List<String>>();
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN,
-                HP3PAR, DELLSCSYSTEM));
+                DELLSCSYSTEM));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE, asList(VNX_FILE, ISILON, NETAPP, NETAPPC));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
@@ -78,7 +78,6 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
         DISPLAY_NAME_MAP.put(VNX_BLOCK, "EMC VNX Block");
-        DISPLAY_NAME_MAP.put(HP3PAR, "HPE 3PAR");
         DISPLAY_NAME_MAP.put(VNX_FILE, "EMC VNX File");
         DISPLAY_NAME_MAP.put(ISILON, "EMC Isilon");
         DISPLAY_NAME_MAP.put(NETAPP, "NetApp 7-mode");
@@ -108,7 +107,6 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(SCALEIOAPI, "443");
         SSL_PORT_MAP.put(VNX_BLOCK, "5989");
         SSL_PORT_MAP.put(VMAX, "5989");
-        SSL_PORT_MAP.put(HP3PAR, "8080");
         SSL_PORT_MAP.put(SMIS, "5989");
         SSL_PORT_MAP.put(HITACHI, "2001");
         SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -142,7 +140,6 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(XTREMIO, "443");
         NON_SSL_PORT_MAP.put(VNX_BLOCK, "5988");
         NON_SSL_PORT_MAP.put(VMAX, "5988");
-        NON_SSL_PORT_MAP.put(HP3PAR, "8008");
         NON_SSL_PORT_MAP.put(ISILON, "8080");
         NON_SSL_PORT_MAP.put(NETAPP, "443");
         NON_SSL_PORT_MAP.put(NETAPPC, "443");
@@ -212,18 +209,37 @@ public class StorageSystemTypesInitUtils {
         return STORAGE_PROVIDER_MAP;
     }
 
+    /**
+     * Keep consistent with previous design so to avoid possible regression.
+     * For block providers, use block as meta type.
+     * For file providers, use file as meta type.
+     */
+    private String mapType(META_TYPE metaType) {
+        if (metaType == META_TYPE.BLOCK_PROVIDER) {
+            return META_TYPE.BLOCK.toString().toLowerCase();
+        }
+        if (metaType == META_TYPE.FILE_PROVIDER) {
+            return META_TYPE.FILE.toString().toLowerCase();
+        }
+        return metaType.toString().toLowerCase();
+    }
+
     private void insertStorageSystemTypes() {
         for (Map.Entry<META_TYPE, List<String>> entry : SYSTEMS_AND_PROVIDERS.entrySet()) {
             META_TYPE metaType = entry.getKey();
             List<String> systems = entry.getValue();
             for (String system : systems) {
+                if (!PlatformUtils.isOssBuild() && system.equals(CEPH)) {
+                    log.info("Skip inserting ceph meta data in non-oss build");
+                    continue;
+                }
                 StorageSystemType type = new StorageSystemType();
                 URI uri = URIUtil.createId(StorageSystemType.class);
                 type.setId(uri);
                 type.setStorageTypeId(uri.toString());
                 type.setStorageTypeName(system);
                 type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(system));
-                type.setMetaType(metaType.toString().toLowerCase());
+                type.setMetaType(mapType(metaType));
                 type.setDriverClassName(metaType.toString().toLowerCase());
                 type.setIsSmiProvider(metaType.isProvider());
                 type.setIsDefaultSsl(SSL_ENABLE_TYPE_LIST.contains(system));

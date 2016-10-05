@@ -8,6 +8,8 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -257,7 +259,9 @@ public abstract class ViPRService extends AbstractExecutionService {
      * @param resourceId
      * @return the replica to be removed. Otherwise null in case of no removal required
      */
-    protected RetainedReplica findObsoleteReplica(String resourceId) {
+    protected List<RetainedReplica> findObsoleteReplica(String resourceId) {
+        List<RetainedReplica> obsoleteReplicas = new ArrayList<RetainedReplica>();
+        
         ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
         Integer maxNumOfCopies = Integer.MAX_VALUE;
         try {
@@ -267,10 +271,9 @@ public abstract class ViPRService extends AbstractExecutionService {
             maxNumOfCopies = Integer.parseInt(additionalScheduleInfo);
         } catch (Exception ex) {
             error("Unexpected exception when checking scheduler retention", ex);
-            return null;
+            return obsoleteReplicas;
         }
         
-        ModelClient modelClient = getModelClient();
         List<NamedElement> replicaIdList = modelClient.findBy(RetainedReplica.class, "scheduledEventId", event.getId());
         List<RetainedReplica> replicas = new ArrayList<RetainedReplica>();
         for (NamedElement uri : replicaIdList) {
@@ -279,19 +282,18 @@ public abstract class ViPRService extends AbstractExecutionService {
                 replicas.add(retention);
             }
         }
+        
         if (replicas.size() >= maxNumOfCopies) {
-            // find the oldest one to remove
-            Calendar oldest = Calendar.getInstance();
-            RetainedReplica oldestReplica = null;
-            for(RetainedReplica replica : replicas) {
-                Calendar creationTime = replica.getCreationTime();
-                if (creationTime.before(oldest)) {
-                    oldestReplica = replica;
-                    oldest = creationTime;
+            Collections.sort(replicas, new Comparator<RetainedReplica>() {
+                public int compare(RetainedReplica o1, RetainedReplica o2){
+                    return o1.getCreationTime().compareTo(o2.getCreationTime());
                 }
-            }
-            return oldestReplica;
+            });
+            // get top oldest records  
+            
+            int endIndex =  replicas.size() - maxNumOfCopies + 1;
+            obsoleteReplicas.addAll(replicas.subList(0, endIndex));
         }
-        return null;
+        return obsoleteReplicas;
     }
 }

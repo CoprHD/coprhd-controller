@@ -70,6 +70,9 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -494,7 +497,7 @@ public class RPHelper {
                 }
 
                 // If this is a virtual volume, add a descriptor for the virtual volume
-                if (RPHelper.isVPlexVolume(volume)) {
+                if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                     // VPLEX virtual volume
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
@@ -1513,7 +1516,9 @@ public class RPHelper {
         String standbyInternalSite = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume)) {
+            if (isMetroPointVolume(dbClient, sourceVolume) 
+                    && (null != sourceVolume.getAssociatedVolumes()
+                    && (!sourceVolume.getAssociatedVolumes().isEmpty()))) {
                 // Check the associated volumes to find the non-matching internal site and return that one.
                 for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
@@ -1576,20 +1581,11 @@ public class RPHelper {
      * Determines if a volume is a VPLEX volume.
      *
      * @param volume the volume.
+     * @param dbClient the database client.
      * @return true if this is a VPLEX volume, false otherwise.
      */
-    public static boolean isVPlexVolume(Volume volume) {
-        return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
-    }
-
-    /**
-     * Determines if a volume is a VPLEX Distributed (aka Metro) volume.
-     *
-     * @param volume the volume.
-     * @return true if this is a VPLEX Distributed (aka Metro) volume, false otherwise.
-     */
-    public static boolean isVPlexDistributedVolume(Volume volume) {
-        return (isVPlexVolume(volume) && (volume.getAssociatedVolumes().size() > 1));
+    public static boolean isVPlexVolume(Volume volume, DbClient dbClient) {
+        return volume.isVPlexVolume(dbClient);
     }
 
     /**
@@ -1683,16 +1679,25 @@ public class RPHelper {
 
             // If this is a VPLEX volume, update the virtual pool references to the old vpool on
             // the backing volumes if they were set to the new vpool.
-            if (RPHelper.isVPlexVolume(volume)) {
-                for (String associatedVolId : volume.getAssociatedVolumes()) {
-                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
-                            associatedVolume.setVirtualPool(oldVpool.getId());
-                            _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
-                                    associatedVolume.getLabel(),
-                                    oldVpool.getLabel()));
+            if (RPHelper.isVPlexVolume(volume, dbClient)) {
+                if (null == volume.getAssociatedVolumes()) {
+                    // this is a rollback situation, so we probably don't want to
+                    // throw another exception...
+                    _log.warn("VPLEX volume {} has no backend volumes.", 
+                            volume.forDisplay());
+                } else {
+                    for (String associatedVolId : volume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {
+                            if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                    && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                                associatedVolume.setVirtualPool(oldVpool.getId());
+                                _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
+                                        associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                            }
+                            associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.updateObject(associatedVolume);
                         }
                         // If the old vpool did not specify multi volume consistency,
                         // remove the CG reference of the volume since we are rolling back
@@ -1746,7 +1751,7 @@ public class RPHelper {
             }
 
             // Rollback any VPLEX backing volumes too
-            if (RPHelper.isVPlexVolume(volume)) {
+            if (RPHelper.isVPlexVolume(volume, dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
@@ -1820,11 +1825,43 @@ public class RPHelper {
                 newStyleJournals.add(journalVol);
             }
         }
+        
+        // For some platforms volume names with blank spaces are not allowed. 
+        // If the varray and/or CG name has spaces they may have been removed from
+        // the volume label. If this is the case, we would not have added them
+        // to the new style journal list. If the list is empty, try again with
+        // the blank spaces removed from the journal name prefix.
+        if (newStyleJournals.isEmpty()) {
+            journalPrefix = journalPrefix.replaceAll("\\s+","");
+            for (Volume journalVol : existingJournals) {
+                String volName = journalVol.getLabel();
+                if (volName != null && volName.length() >= journalPrefix.length() &&
+                        volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+                    newStyleJournals.add(journalVol);
+                }
+            }
+        }
 
         // calculate the largest index
         int largest = 0;
         for (Volume journalVol : newStyleJournals) {
-            String[] parts = StringUtils.split(journalVol.getLabel(), VOL_DELIMITER);
+            String journalVolName = journalVol.getLabel();
+            // For journal volumes that are VPLEX volumes, if custom naming was enabled,
+            // then the journal volume may have an unexpected name. However, the backend
+            // volume is not custom named and will have the expected label, but with a 
+            // well-known suffix. We simply remove the suffix and compare against the backend
+            // volume name. If we use the VPLEX volume name and its name was customized, then
+            // we could end up with a duplicate name error when we go to prepare the backend
+            // volume for a new journal volume, such as when journal capacity is added to
+            // an RP protected volume. See Jira COP-24930.
+            if (journalVol.isVPlexVolume(_dbClient)) {
+                Volume journalBackendVol = VPlexUtil.getVPLEXBackendVolume(journalVol, true, _dbClient);
+                if (journalBackendVol != null) {
+                    journalVolName = journalBackendVol.getLabel();
+                    journalVolName = journalVolName.substring(0, journalVolName.lastIndexOf("-0"));
+                }
+            }
+            String[] parts = StringUtils.split(journalVolName, VOL_DELIMITER);
             try {
                 int idx = Integer.parseInt(parts[parts.length - 1]);
                 if (idx > largest) {
@@ -2269,6 +2306,99 @@ public class RPHelper {
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Validate the CG before performing destructive operations.
+     * If additional volumes appear in the RP CG on the hardware, this method returns false
+     * Clerical errors (such as missing DB entries) result in an Exception
+     * 
+     * @param dbClient
+     *            dbclient
+     * @param system
+     *            protection system
+     * @param cgId
+     *            BlockConsistencyGroup ID
+     * @param volumes
+     *            list of volumes
+     * @return true if CG is what we expect on the hardware, false otherwise
+     */
+    public static boolean validateCGForDelete(DbClient dbClient, ProtectionSystem system, URI cgId, Set<URI> volumes) {
+        _log.info("validateCGForDelete {} - start", system.getId());
+
+        // Retrieve all of the RP CGs, their RSets, and their volumes
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+        Set<GetCGsResponse> cgList = rp.getAllCGs();
+        if (cgList == null || cgList.isEmpty()) {
+            String errMsg = "Could not retrieve CGs from the RPA to perform validation."; 
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Grab all of the source volumes from the CG according to ViPR
+        List<Volume> srcVolumes = RPHelper.getCgVolumes(dbClient, cgId, PersonalityTypes.SOURCE.toString());
+        if (srcVolumes == null || srcVolumes.isEmpty()) {
+            String errMsg = "Could not retrieve volumes from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Get the protection set ID from the first source volume. All volumes will have the same pset ID.
+        URI psetId = srcVolumes.get(0).getProtectionSet().getURI();
+        if (NullColumnValueGetter.isNullURI(psetId)) {
+            String errMsg = "Could not retrieve protection set ID from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Get the protection set, which is required to get the CG ID on the RPA
+        ProtectionSet pset = dbClient.queryObject(ProtectionSet.class, psetId);
+        if (pset == null) {
+            String errMsg = "Could not retrieve protection set from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Pre-populate the wwn fields for comparisons later.
+        List<String> srcVolumeWwns = new ArrayList<>();
+        for (Volume srcVolume : srcVolumes) {
+            srcVolumeWwns.add(srcVolume.getWWN());
+        }
+        
+        // This loop finds the CG on the hardware from the list of all CGs. Ignores all CGs that don't match our ID.
+        for (GetCGsResponse cgResponse : cgList) {
+            // Compare the stored CG ID (unique per RP System, doesn't change even if CG name changes)
+            if (Long.parseLong(pset.getProtectionId()) != cgResponse.getCgId()) {
+                continue;
+            }
+
+            // Make sure we have rsets before we continue. If the CG has no RSets on the hardware, throw
+            if (cgResponse.getRsets() == null || cgResponse.getRsets().isEmpty()) {
+                String errMsg = "Could not retrieve replication sets from the hardware to perform validation";
+                throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+            }
+            
+            // Find one of our volumes
+            for (GetRSetResponse rsetResponse : cgResponse.getRsets()) {
+                
+                // Make sure we have volumes in the RSet before we continue
+                if (rsetResponse == null || rsetResponse.getVolumes() == null || rsetResponse.getVolumes().isEmpty()) {
+                    String errMsg = "Could not retrieve the volumes in the replication set from the hardware to perform validation";
+                    throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+                }
+            
+                // Check all of the volumes in the replication set. At least ONE volume needs to match one of our source
+                // volumes. An RSet contains one source (or an active and stand-by source) and multiple targets. Our
+                // list of WWNs is the list of source volumes we know about.
+                for (GetVolumeResponse volumeResponse : rsetResponse.getVolumes()) {
+                    // This hardware volume should be represented in the list of srcVolumes
+                    if (!srcVolumeWwns.contains(volumeResponse.getWwn())) {
+                        _log.warn(
+                                "Found at least one volume that isn't in our list of source volumes {}, therefore we can not delete the entire CG.",
+                                volumeResponse.getWwn());
+                        return false;
+                    }
+                }
+            }
+        }
+        _log.info("validateCGForDelete {} - end", system.getId());
         return true;
     }
 }

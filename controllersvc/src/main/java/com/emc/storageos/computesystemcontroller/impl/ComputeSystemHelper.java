@@ -35,18 +35,26 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.EventUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.DatastoreSummary;
+import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
+import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeSystemHelper {
 
@@ -95,20 +103,20 @@ public class ComputeSystemHelper {
         for (IpInterface hostInterface : hostInterfaces) {
             hostInterface.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             dbClient.markForDeletion(hostInterface);
-            EventUtil.deleteResourceEvents(dbClient, hostInterface.getId());
+            EventUtils.deleteResourceEvents(dbClient, hostInterface.getId());
         }
         List<Initiator> initiators = queryInitiators(dbClient, host.getId());
         for (Initiator initiator : initiators) {
             initiator.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             dbClient.markForDeletion(initiator);
-            EventUtil.deleteResourceEvents(dbClient, initiator.getId());
+            EventUtils.deleteResourceEvents(dbClient, initiator.getId());
         }
         host.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
         host.setProvisioningStatus(Host.ProvisioningJobStatus.COMPLETE.toString());
         dbClient.persistObject(host);
         _log.info("marking host for deletion: {} {}", host.getLabel(), host.getId());
         dbClient.markForDeletion(host);
-        EventUtil.deleteResourceEvents(dbClient, host.getId());
+        EventUtils.deleteResourceEvents(dbClient, host.getId());
     }
 
     /**
@@ -173,13 +181,13 @@ public class ComputeSystemHelper {
                 }
                 else {
                     dbClient.markForDeletion(cluster);
-                    EventUtil.deleteResourceEvents(dbClient, cluster.getId());
+                    EventUtils.deleteResourceEvents(dbClient, cluster.getId());
                 }
             }
         }
         _log.info("marking DC for deletion: {} {}", dataCenter.getLabel(), dataCenter.getId());
         dbClient.markForDeletion(dataCenter);
-        EventUtil.deleteResourceEvents(dbClient, dataCenter.getId());
+        EventUtils.deleteResourceEvents(dbClient, dataCenter.getId());
     }
 
     /**
@@ -215,7 +223,7 @@ public class ComputeSystemHelper {
         }
         _log.info("marking cluster for deletion: {} {}", cluster.getLabel(), cluster.getId());
         dbClient.markForDeletion(cluster);
-        EventUtil.deleteResourceEvents(dbClient, cluster.getId());
+        EventUtils.deleteResourceEvents(dbClient, cluster.getId());
     }
 
     /**
@@ -702,4 +710,74 @@ public class ComputeSystemHelper {
         }
         return false;
     }
+
+    /**
+     * Verify that datastore can be unmounted
+     * 
+     * @param datastore the datastore to check
+     * @param vCenterApi the api for connecting to vCenter
+     * @throws Exception if an error occurs
+     */
+    public static void verifyDatastore(Datastore datastore, VCenterAPI vCenterApi) throws Exception {
+        DatastoreSummary summary = datastore.getSummary();
+        if (summary == null) {
+            throw new Exception("Summary unavailable for datastore " + datastore.getName());
+        }
+        if (!summary.isAccessible()) {
+            throw new Exception("Datastore " + datastore.getName() + " is not accessible");
+        }
+        checkMaintenanceMode(datastore, summary);
+        checkVirtualMachines(datastore);
+    }
+
+    /**
+     * Check maintenance mode of a datastore and fail if datastore is entering maintenance mode
+     * 
+     * @param datastore the datastore to check
+     * @param summary the datastore summary
+     * @throws Exception if datastore is entering maintenance mode
+     */
+    private static void checkMaintenanceMode(Datastore datastore, DatastoreSummary summary) throws Exception {
+        String mode = summary.getMaintenanceMode();
+        // If a datastore is already entering maintenance mode, fail
+        if (DatastoreSummaryMaintenanceModeState.enteringMaintenance.name().equals(mode)) {
+            throw new Exception("Datastore " + datastore.getName() + " is entering maintenance mode");
+        }
+    }
+
+    /**
+     * Checks if Virtual Machines are running on the datastore and fail if any are found
+     * 
+     * @param datastore the datastore to check
+     * @throws Exception if datastore contains any virtual machines
+     */
+    private static void checkVirtualMachines(Datastore datastore) throws Exception {
+        VirtualMachine[] vms = datastore.getVms();
+        if ((vms != null) && (vms.length > 0)) {
+            Set<String> names = Sets.newTreeSet();
+            for (VirtualMachine vm : vms) {
+                names.add(vm.getName());
+            }
+            throw new Exception(
+                    "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
+        }
+    }
+
+    /**
+     * Get the vcenter that the host belongs to or null if it doesn't belong to one
+     * 
+     * @param dbClient the dbclient
+     * @param host the host to check
+     * @return vcenter that the host belongs to or null if it doesn't belong to one
+     */
+    public static Vcenter getHostVcenter(DbClient dbClient, Host host) {
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+            VcenterDataCenter datacenter = dbClient.queryObject(VcenterDataCenter.class, host.getVcenterDataCenter());
+            if (datacenter != null && !NullColumnValueGetter.isNullURI(datacenter.getVcenter())) {
+                return dbClient.queryObject(Vcenter.class, datacenter.getVcenter());
+            }
+        }
+        return null;
+    }
+
 }

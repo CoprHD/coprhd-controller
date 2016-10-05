@@ -121,10 +121,6 @@ public class HostUtils {
         return getViprClient().hosts().deactivate(hostId, detachStorage);
     }
 
-    public static Task<HostRestRep> detachStorage(URI hostId) {
-        return getViprClient().hosts().detachStorage(hostId);
-    }
-
     public static Task<HostRestRep> discover(URI hostId) {
         return getViprClient().hosts().discover(hostId);
     }

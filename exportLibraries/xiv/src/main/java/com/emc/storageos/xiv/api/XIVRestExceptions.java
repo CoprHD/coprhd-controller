@@ -71,5 +71,8 @@ public interface XIVRestExceptions {
 
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
     public XIVRestException queryExistingMasksFailure(final String message, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.XIV_REST_REQUEST_FAILURE)
+    public XIVRestException errorInHSMHostConfiguration(final String message);
 
 }

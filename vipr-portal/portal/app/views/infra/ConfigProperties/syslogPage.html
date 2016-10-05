@@ -12,12 +12,70 @@
         
         $syslogProtocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}");
         $syslogProtocol.on('change', function () {
+            checkIfDisableTestButton();
             changeLayout(this.value);
         });
 
+        checkIfDisableTestButton();
         initialServerPortCert();
 
+
+        $('#validateButtonIpPort').on('click', function(e) {
+        e.preventDefault();
+        this.disabled = 'true';
+        validateExternalServerIpPort();
+        window.scrollTo(0,0);
+        });
     });
+    function checkIfDisableTestButton() {
+        var validateControl = $('#ValidatConnectiontrolGroup');
+        var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
+        if ( protocol === 'UDP') {
+            validateControl.hide();
+        } else {
+            validateControl.show();
+        }
+    }
+    function validateExternalServerIpPort() {
+       var ipPortListStr = $("#${util.ConfigProperty.SYSLOG_REMOTE_SERVERS_PORTS}").val();
+
+       $('#alerts_success').hide();
+       $('#alerts_error').hide();
+
+       var data = {
+            authenticityToken: '${session.authenticityToken}',
+            ipPortListStr: ipPortListStr
+                }
+       var url = #{jsAction @infra.ConfigProperties.connectExternalServerIpPort()/}();
+       $.post(url, data, function(result) {
+               showIpPortValidationResult(result);
+               });
+
+    }
+    function showIpPortValidationResult(result) {
+        var success = false;
+        var message = "";
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (i > 0) {
+                    message += "<br>";
+                }
+            message += result[i].message;
+            success = success || result[i].success;
+            }
+        }else {
+            message = result.message;
+            success = result.success;
+        }
+        if (success) {
+            $('#alerts_success .message').html(message);
+            $('#alerts_success').slideDown('fast');
+        }else {
+            $('#alerts_error .message').html(message);
+            $('#alerts_error').slideDown('fast');
+        }
+        $('#validateButtonIpPort').prop('disabled',false);
+    }
     function initialServerPortCert() {
         var urlValue = '${page.syslogRemoteServersPorts.value}';
         var servers = urlValue.split(',');
@@ -76,6 +134,9 @@
         var ni = document.getElementById('server-group');
         var numi = document.getElementById('theValue');
         var num = (document.getElementById('theValue').value -1)+ 2;
+        if (num > 6) {
+            return;
+        }
         numi.value = num;
         var newdiv = document.createElement('tr');
         var divIdName = 'server_'+num;
@@ -225,7 +286,8 @@ disabled:unstable;
 
 <fieldset>
     <legend>&{'configProperties.syslog.servers'}
-        <p class="help-block clear" style="font-size:13px;">Make sure the remote syslog is configured to accept client connections.Ask your syslog server admin for inputs.
+        <p class="help-block clear" style="font-size:13px;">Make sure the remote syslog is configured to accept client connections.Ask your syslog server admin for inputs.For more details click
+            <a href="${util.DocUtils.getDocumentationLink()}" target="_blank">here</a>.
         </p>
     </legend>
 #{ConfigProperties.property property:page.syslogTransportProtocol, disabled:unstable/}
@@ -277,4 +339,14 @@ disabled:unstable;
         <span class="help-inline clearfix">${error}</span>
     </div>
 </div>
+    <div id="ValidatConnectiontrolGroup" class="form-group">
+        <div class="col-sm-3">
+            &nbsp;
+        </div>
+        <div class="col-sm-6">
+            <button id="validateButtonIpPort" type="button" class="btn btn-info">
+                &{'configProperties.syslog.serverPort.validate'}
+            </button>
+        </div>
+    </div>
 </fieldset>

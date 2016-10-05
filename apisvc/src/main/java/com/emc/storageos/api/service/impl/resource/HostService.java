@@ -95,6 +95,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExp
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
@@ -115,6 +116,7 @@ import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
+import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostBulkRep;
@@ -151,9 +153,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
  * interfaces by authorized users.
  *
  */
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        writeRoles = { Role.TENANT_ADMIN },
-        readAcls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
+        Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/compute/hosts")
 public class HostService extends TaskResourceService {
 
@@ -202,10 +203,12 @@ public class HostService extends TaskResourceService {
     /**
      * Gets the information for one host.
      *
-     * @param id the URN of a ViPR Host
+     * @param id
+     *            the URN of a ViPR Host
      * @brief Show Host
      * @return All the non-null attributes of the host.
-     * @throws DatabaseException when a DB error occurs.
+     * @throws DatabaseException
+     *             when a DB error occurs.
      */
     @GET
     @Path("/{id}")
@@ -220,11 +223,13 @@ public class HostService extends TaskResourceService {
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
      *
-     * @param tid the URN of a ViPR tenant organization
+     * @param tid
+     *            the URN of a ViPR tenant organization
      * @prereq none
      * @brief List hosts
      * @return a list of hosts that belong to the tenant organization.
-     * @throws DatabaseException when a DB error occurs
+     * @throws DatabaseException
+     *             when a DB error occurs
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -252,8 +257,10 @@ public class HostService extends TaskResourceService {
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
      *
-     * @param id the URN of a ViPR Host
-     * @param updateParam the parameter that has the attributes to be
+     * @param id
+     *            the URN of a ViPR Host
+     * @param updateParam
+     *            the parameter that has the attributes to be
      *            updated.
      * @brief Update Host Attributes
      * @return the host discovery async task representation.
@@ -265,7 +272,8 @@ public class HostService extends TaskResourceService {
     @Path("/{id}")
     public TaskResourceRep updateHost(@PathParam("id") URI id,
             HostUpdateParam updateParam,
-            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
+            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
+            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports) {
         // update the host
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);
@@ -283,22 +291,22 @@ public class HostService extends TaskResourceService {
 
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
-            if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+            if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
                         taskId);
-            } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
+            } else if (updateExports && NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
-            } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                            || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
@@ -331,7 +339,8 @@ public class HostService extends TaskResourceService {
     /**
      * Discovers (refreshes) a host. This is an asynchronous call.
      *
-     * @param id The URI of the host.
+     * @param id
+     *            The URI of the host.
      * @prereq none
      * @brief Discover host
      * @return TaskResourceRep (asynchronous call)
@@ -350,7 +359,8 @@ public class HostService extends TaskResourceService {
     /**
      * Host Discovery
      *
-     * @param the Host to be discovered.
+     * @param the
+     *            Host to be discovered.
      *            provided, a new taskId is generated.
      * @return the task used to track the discovery job
      */
@@ -383,7 +393,8 @@ public class HostService extends TaskResourceService {
      * Discovers the array affinity information on all supported storage systems for the given hosts.
      * This is an asynchronous call.
      *
-     * @param param ArrayAffinityHostParam
+     * @param param
+     *            ArrayAffinityHostParam
      * @return the task list
      */
     @POST
@@ -406,7 +417,8 @@ public class HostService extends TaskResourceService {
     /**
      * Create array affinity tasks for hosts.
      *
-     * @param hostIds the hosts whose preferred systems need to be discovered
+     * @param hostIds
+     *            the hosts whose preferred systems need to be discovered
      */
     public TaskList createHostArrayAffinityTasks(List<URI> hostIds) {
         TaskList taskList = new TaskList();
@@ -472,8 +484,10 @@ public class HostService extends TaskResourceService {
     /**
      * Validates the create/update host input data
      *
-     * @param hostParam the input parameter
-     * @param host the host being updated in case of update operation.
+     * @param hostParam
+     *            the input parameter
+     * @param host
+     *            the host being updated in case of update operation.
      *            This parameter must be null for create operations.n
      */
     protected void validateHostData(HostParam hostParam, URI tenanUri, Host host, Boolean validateConnection) {
@@ -547,12 +561,14 @@ public class HostService extends TaskResourceService {
         }
 
         // Find out if the host should be discoverable by checking input and current values
-        Boolean discoverable = hostParam.getDiscoverable() == null ?
-                (host == null ? Boolean.FALSE : host.getDiscoverable()) :
-                hostParam.getDiscoverable();
+        Boolean discoverable = hostParam.getDiscoverable() == null ? (host == null ? Boolean.FALSE : host.getDiscoverable())
+                : hostParam.getDiscoverable();
+
+        boolean vCenterManaged = host == null ? false : Host.HostType.Esx.name().equals(host.getType())
+                && !NullColumnValueGetter.isNullURI(host.getVcenterDataCenter());
 
         // If discoverable, ensure username and password are set in the current host or parameters
-        if (discoverable != null && discoverable) {
+        if (!vCenterManaged && discoverable != null && discoverable) {
             String username = hostParam.getUserName() == null ?
                     (host == null ? null : host.getUsername()) :
                     hostParam.getUserName();
@@ -562,14 +578,12 @@ public class HostService extends TaskResourceService {
             ArgValidator.checkFieldNotNull(username, "username");
             ArgValidator.checkFieldNotNull(password, "password");
 
-            Host.HostType hostType = Host.HostType.valueOf(hostParam.getType() == null ?
-                    (host == null ? null : host.getType()) :
-                    hostParam.getType());
+            Host.HostType hostType = Host.HostType
+                    .valueOf(hostParam.getType() == null ? (host == null ? null : host.getType()) : hostParam.getType());
 
             if (hostType != null && hostType == Host.HostType.Windows) {
-                Integer portNumber = hostParam.getPortNumber() == null ?
-                        (host == null ? null : host.getPortNumber()) :
-                        hostParam.getPortNumber();
+                Integer portNumber = hostParam.getPortNumber() == null ? (host == null ? null : host.getPortNumber())
+                        : hostParam.getPortNumber();
 
                 ArgValidator.checkFieldNotNull(portNumber, "port_number");
             }
@@ -585,16 +599,19 @@ public class HostService extends TaskResourceService {
     /**
      * Deactivates the host and all its interfaces.
      *
-     * @param id the URN of a ViPR Host to be deactivated
+     * @param id
+     *            the URN of a ViPR Host to be deactivated
      * @param detachStorage
      *            if true, will first detach storage.
      * @param detachStorageDeprecated
      *            Deprecated. Use detachStorage instead.
      * @param deactivateBootVolume
-     *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be deactivated
+     *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be
+     *            deactivated
      * @brief Deactivate Host
      * @return OK if deactivation completed successfully
-     * @throws DatabaseException when a DB error occurs
+     * @throws DatabaseException
+     *             when a DB error occurs
      */
     @POST
     @Path("/{id}/deactivate")
@@ -646,10 +663,12 @@ public class HostService extends TaskResourceService {
      * Updates export groups and fileshare exports that are referenced by the given host by removing
      * the host reference, initiators and IP interfaces belonging to this host. Volumes are left intact.
      *
-     * @param id the URN of a ViPR Host
+     * @param id
+     *            the URN of a ViPR Host
      * @brief Detach storage from Host
      * @return OK if detaching completed successfully
-     * @throws DatabaseException when a DB error occurs
+     * @throws DatabaseException
+     *             when a DB error occurs
      */
     @POST
     @Path("/{id}/detach-storage")
@@ -675,12 +694,15 @@ public class HostService extends TaskResourceService {
     /**
      * Creates a new ip interface for a host.
      *
-     * @param id the URN of a ViPR Host
-     * @param createParam the details of the interfaces
+     * @param id
+     *            the URN of a ViPR Host
+     * @param createParam
+     *            the details of the interfaces
      * @brief Create Host Interface Ip
      * @return the details of the host interface, including its id and link,
      *         when creation completes successfully.
-     * @throws DatabaseException when a database error occurs
+     * @throws DatabaseException
+     *             when a database error occurs
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -704,13 +726,14 @@ public class HostService extends TaskResourceService {
     /**
      * Validates the create/update IP interface operation input data.
      *
-     * @param param the input parameter
-     * @param ipInterface the IP interface being updated in case of update operation.
+     * @param param
+     *            the input parameter
+     * @param ipInterface
+     *            the IP interface being updated in case of update operation.
      *            This parameter must be null for create operations.
      */
     public void validateIpInterfaceData(IpInterfaceParam param, IpInterface ipInterface) {
-        String protocol = param.findProtocol() != null ?
-                param.findProtocol() : ipInterface.getProtocol();
+        String protocol = param.findProtocol() != null ? param.findProtocol() : ipInterface.getProtocol();
         if (!HostInterface.Protocol.IPV4.toString().equals(protocol) && !HostInterface.Protocol.IPV6.toString().equals(protocol)) {
             throw APIException.badRequests.invalidIpProtocol();
         }
@@ -735,10 +758,12 @@ public class HostService extends TaskResourceService {
     /**
      * Gets the id and name for all the interfaces of a host.
      *
-     * @param id the URN of a ViPR Host
+     * @param id
+     *            the URN of a ViPR Host
      * @brief List Host Interfaces
      * @return a list of interfaces that belong to the host
-     * @throws DatabaseException when a DB error occurs
+     * @throws DatabaseException
+     *             when a DB error occurs
      */
     @GET
     @Path("/{id}/ip-interfaces")
@@ -760,12 +785,15 @@ public class HostService extends TaskResourceService {
     /**
      * Creates a new initiator for a host.
      *
-     * @param id the URN of a ViPR Host
-     * @param createParam the details of the initiator
+     * @param id
+     *            the URN of a ViPR Host
+     * @param createParam
+     *            the details of the initiator
      * @brief Create Host Initiator
      * @return the details of the host initiator when creation
      *         is successfully.
-     * @throws DatabaseException when a database error occurs.
+     * @throws DatabaseException
+     *             when a database error occurs.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -796,7 +824,7 @@ public class HostService extends TaskResourceService {
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorToExport(initiator.getHost(), initiator.getId(), taskId);
+            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {
             // No updates were necessary, so we can close out the task.
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
@@ -806,7 +834,8 @@ public class HostService extends TaskResourceService {
                 initiator.auditParameters());
         return toTask(initiator, taskId, op);
     }
-
+    
+    
     /**
      * Creates a new paired initiator for a host.
      *
@@ -879,20 +908,20 @@ public class HostService extends TaskResourceService {
 
     }
 
+
     /**
      * Validates the create/update initiator operation input data.
      *
-     * @param param the input parameter
-     * @param initiator the initiator being updated in case of update operation.
+     * @param param
+     *            the input parameter
+     * @param initiator
+     *            the initiator being updated in case of update operation.
      *            This parameter must be null for create operations.n
      */
     public void validateInitiatorData(BaseInitiatorParam param, Initiator initiator) {
-        String protocol = param.getProtocol() != null ?
-                param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
-        String node = param.getNode() != null ? param.getNode() :
-                (initiator != null ? initiator.getInitiatorNode() : null);
-        String port = param.getPort() != null ? param.getPort() :
-                (initiator != null ? initiator.getInitiatorPort() : null);
+        String protocol = param.getProtocol() != null ? param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
+        String node = param.getNode() != null ? param.getNode() : (initiator != null ? initiator.getInitiatorNode() : null);
+        String port = param.getPort() != null ? param.getPort() : (initiator != null ? initiator.getInitiatorPort() : null);
         ArgValidator.checkFieldValueWithExpected(param == null
                 || HostInterface.Protocol.FC.toString().equals(protocol)
                 || HostInterface.Protocol.iSCSI.toString().equals(protocol),
@@ -932,10 +961,12 @@ public class HostService extends TaskResourceService {
     /**
      * Gets the id and name for all the host initiators of a host.
      *
-     * @param id the URN of a ViPR Host
+     * @param id
+     *            the URN of a ViPR Host
      * @brief List Host Initiators
      * @return a list of initiators that belong to the host
-     * @throws DatabaseException when a DB error occurs
+     * @throws DatabaseException
+     *             when a DB error occurs
      */
     @GET
     @Path("/{id}/initiators")
@@ -957,8 +988,10 @@ public class HostService extends TaskResourceService {
     /**
      * Populates the interface using values in the parameter
      *
-     * @param param the interface creation/update parameter that contains all the attributes
-     * @param the IP interface to be to be populated with data.
+     * @param param
+     *            the interface creation/update parameter that contains all the attributes
+     * @param the
+     *            IP interface to be to be populated with data.
      */
     public void populateIpInterface(
             IpInterfaceParam param, IpInterface ipInterface) {
@@ -981,8 +1014,10 @@ public class HostService extends TaskResourceService {
     /**
      * Populates the initiator using values in the parameter
      *
-     * @param param the initiator creation/update parameter that contains all the attributes
-     * @param the initiator to be to be populated with data.
+     * @param param
+     *            the initiator creation/update parameter that contains all the attributes
+     * @param the
+     *            initiator to be to be populated with data.
      */
     public void populateInitiator(Initiator initiator, BaseInitiatorParam param) {
         initiator.setInitiatorPort(param.getPort());
@@ -1000,8 +1035,10 @@ public class HostService extends TaskResourceService {
     /**
      * Creates a new instance of host.
      *
-     * @param tenant the host parent tenant organization
-     * @param param the input parameter containing the host attributes
+     * @param tenant
+     *            the host parent tenant organization
+     * @param param
+     *            the input parameter containing the host attributes
      * @return an instance of {@link Host}
      */
     protected Host createNewHost(TenantOrg tenant, HostParam param) {
@@ -1026,8 +1063,10 @@ public class HostService extends TaskResourceService {
     /**
      * Populate an instance of host with the provided host parameter
      *
-     * @param host the host to be populated
-     * @param param the parameter that contains the host attributes.
+     * @param host
+     *            the host to be populated
+     * @param param
+     *            the parameter that contains the host attributes.
      */
     private void populateHostData(Host host, HostParam param) {
         if (param.getName() != null) {
@@ -1066,8 +1105,8 @@ public class HostService extends TaskResourceService {
         // NullColumnValueGetter.getNullURI() : param.project);
         // }
         if (param.getVcenterDataCenter() != null) {
-            host.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
-                    NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
+            host.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ? NullColumnValueGetter.getNullURI()
+                    : param.getVcenterDataCenter());
         }
         Cluster cluster = null;
         // make sure host data is consistent with the cluster
@@ -1085,7 +1124,7 @@ public class HostService extends TaskResourceService {
             host.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
                     .getNullURI() : param.getBootVolume());
         }
-
+        
         if (param.getVirtualMachine() != null) {
             host.setVirtualMachine(param.getVirtualMachine());
         }
@@ -1093,14 +1132,18 @@ public class HostService extends TaskResourceService {
     }
 
     /**
-     * Returns the instance of host for the given id. Throws {@link DatabaseException} when id is not a valid URI. Throws
+     * Returns the instance of host for the given id. Throws {@link DatabaseException} when id is not a valid URI.
+     * Throws
      * {@link NotFoundException} when the host has
      * been delete.
      *
-     * @param dbClient an instance of {@link DbClient}
-     * @param id the URN of a ViPR Host to be fetched.
+     * @param dbClient
+     *            an instance of {@link DbClient}
+     * @param id
+     *            the URN of a ViPR Host to be fetched.
      * @return the instance of host for the given id.
-     * @throws DatabaseException when a DB error occurs
+     * @throws DatabaseException
+     *             when a DB error occurs
      */
     protected Host queryHost(DbClient dbClient, URI id) throws DatabaseException {
         return queryObject(Host.class, id, false);
@@ -1109,11 +1152,13 @@ public class HostService extends TaskResourceService {
     /**
      * Retrieve resource representations based on input ids.
      *
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @brief List data of host resources
      * @return list of representations.
      *
-     * @throws DatabaseException When an error occurs querying the database.
+     * @throws DatabaseException
+     *             When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
@@ -1149,15 +1194,13 @@ public class HostService extends TaskResourceService {
     @Override
     public HostBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<Host> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance()));
     }
 
     @Override
     public HostBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        Iterator<Host> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.HostFilter(getUserFromContext(), _permissionsHelper);
         return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance(), filter));
     }
@@ -1202,17 +1245,18 @@ public class HostService extends TaskResourceService {
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper)
-    {
+            PermissionsHelper permissionsHelper) {
         return new HostResRepFilter(user, permissionsHelper);
     }
 
     /**
      * Gets the UnManagedVolumes exposed to a Host.
      *
-     * @param id the URI of a ViPR Host
+     * @param id
+     *            the URI of a ViPR Host
      * @return a list of UnManagedVolumes exposed to this host
-     * @throws DatabaseException when a database error occurs
+     * @throws DatabaseException
+     *             when a database error occurs
      */
     @GET
     @Path("/{id}/unmanaged-volumes")
@@ -1224,7 +1268,7 @@ public class HostService extends TaskResourceService {
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
 
         // get the unmanaged volumes
-        List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient);
+        List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient, _coordinator);
 
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {
@@ -1238,9 +1282,11 @@ public class HostService extends TaskResourceService {
     /**
      * Gets the UnManagedExportMasks found for a Host.
      *
-     * @param id the URI of a ViPR Host
+     * @param id
+     *            the URI of a ViPR Host
      * @return a list of UnManagedExportMasks found for the Host
-     * @throws DatabaseException when a database error occurs
+     * @throws DatabaseException
+     *             when a database error occurs
      */
     @GET
     @Path("/{id}/unmanaged-export-masks")
@@ -1261,6 +1307,32 @@ public class HostService extends TaskResourceService {
         }
 
         return list;
+    }
+
+    /**
+     * Get list of file system mounts for the specified host.
+     * 
+     * @param id
+     *            the URN of a host
+     * @brief List file system mounts
+     * @return List of file system mounts.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/filesystem-mounts")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MountInfoList getHostNFSMounts(@PathParam("id") URI id) {
+
+        ArgValidator.checkFieldUriType(id, Host.class, "id");
+        _log.info(String.format("Get list of mounts for host %1$s", id));
+        Host host = queryObject(Host.class, id, false);
+
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(FileOperationUtils.queryDBHostMounts(id, _dbClient));
+        return mountList;
     }
 
     /**
@@ -1383,8 +1455,7 @@ public class HostService extends TaskResourceService {
             hostName = EndpointUtility.changeCase(hostName);
             if (EndpointUtility.isValidHostName(hostName)) {
                 param.getHostNames().set(i, hostName);
-            }
-            else {
+            } else {
                 throw APIException.badRequests.invalidHostName(hostName);
             }
         }
@@ -1446,8 +1517,7 @@ public class HostService extends TaskResourceService {
             List<ComputeElement> usedComputeElements;
             if (computeSystemToComputeElementMap.containsKey(computeSystem)) {
                 usedComputeElements = computeSystemToComputeElementMap.get(computeSystem);
-            }
-            else {
+            } else {
                 usedComputeElements = new ArrayList<ComputeElement>();
             }
             usedComputeElements.add(ce);
@@ -1589,8 +1659,7 @@ public class HostService extends TaskResourceService {
                     selectedCEsList.addAll(availableCEList);
                     numRequiredCEs = numRequiredCEs - availableCEList.size();
                     _log.debug("Picked all available " + availableCEList.size() + " blades from compute system");
-                }
-                else {
+                } else {
                     List<URI> selections = pickBladesByStrafingAlgorithm(availableCEList, numRequiredCEs,
                             usedComputeElementsMap.get(uri));
                     selectedCEsList.addAll(selections);
@@ -1621,8 +1690,7 @@ public class HostService extends TaskResourceService {
                 selectedCEsList.addAll(computeElements);
                 numRequiredCEs = 0;
                 break;
-            }
-            else if (numHosts < count) {
+            } else if (numHosts < count) {
                 _log.debug("Taking " + numHosts + " blades from compute system: " + key + " . Need no more.");
                 // pick n blades from m available blades.
                 if (availableCEList == null) {
@@ -1651,8 +1719,7 @@ public class HostService extends TaskResourceService {
                         _log.debug("Need no more");
                         break;
                     }
-                }
-                else {
+                } else {
                     if (availableCEList == null) {
                         availableCEList = new ArrayList<URI>();
                     }
@@ -1702,7 +1769,8 @@ public class HostService extends TaskResourceService {
         // ///Build slot availabilityMap availableSlotsCount to Set of slotIds.
         // boolean useUsedSlots = false if usedCEsList is empty
         // For each chassisCount in chassisUsageMap, loop through the chassises wit that count
-        // if useUsedSlots is true, On each of those chassis, find the slot that is available and has maximum usage count
+        // if useUsedSlots is true, On each of those chassis, find the slot that is available and has maximum usage
+        // count
         // if useUsedSlots is false, on each of those chassis, find the slot that has maximum available slots
         for (URI uri : availableList) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, uri);
@@ -1826,7 +1894,8 @@ public class HostService extends TaskResourceService {
                     if (sum > maxSum) {
                         selectedSlotId = slotId;
                         maxSum = sum;
-                        if (sum >= numRequiredBlades) { // Stop when we find first slot that enough free blades to satisfy numRequiredBlades
+                        if (sum >= numRequiredBlades) { // Stop when we find first slot that enough free blades to
+                                                        // satisfy numRequiredBlades
                             break;
                         }
                     }
@@ -1859,9 +1928,11 @@ public class HostService extends TaskResourceService {
                         /*
                          * This is not part of the blade strafing algorithm in UIM. Hence commenting out.
                          * Uncomment if this modification to algorithm is required.
-                         * //Order these slots that have same slotUSageCount, in descending order of number of available blades on unused
+                         * //Order these slots that have same slotUSageCount, in descending order of number of available
+                         * blades on unused
                          * chassis.
-                         * NavigableMap<Integer,Set<Integer> >slotIdAvailabilityMap = new TreeMap<Integer,Set<Integer>>();
+                         * NavigableMap<Integer,Set<Integer> >slotIdAvailabilityMap = new
+                         * TreeMap<Integer,Set<Integer>>();
                          * for (int slotId : preferredSlotIds){
                          * int availabilityCount = 0;
                          * for (int chassisId : preferredChassisIds){
@@ -1876,13 +1947,14 @@ public class HostService extends TaskResourceService {
                          * slotIdSet.add(slotId);
                          * slotIdAvailabilityMap.put(availabilityCount,slotIdSet);
                          * }
-                         * 
+                         *
                          * Iterator<Integer> iterator = slotIdAvailabilityMap.keySet().iterator();
                          * while(iterator.hasNext()){
                          * Integer availabilityCount = iterator.next();
                          * Set<Integer> mostPreferredSlotIds = slotIdAvailabilityMap.get(availabilityCount);
                          * for (int slotId : mostPreferredSlotIds){
-                         * Comment the next statement - for(int slotId : preferredSlotIds) when uncommenting this section
+                         * Comment the next statement - for(int slotId : preferredSlotIds) when uncommenting this
+                         * section
                          */
                         for (int slotId : preferredSlotIds) {
                             _log.debug("preferred slotId: " + slotId + " with usage count: " + slotUsageCount);
@@ -1924,7 +1996,8 @@ public class HostService extends TaskResourceService {
                                     _log.debug("selected blade: " + chassisId + "/" + slotId);
                                     selectedBlades.add(chassisId + "," + slotId);
                                     count++;
-                                    if (preferredChassisIds.size() > 1) { // pick one from each if there are multiple preferred chassis
+                                    if (preferredChassisIds.size() > 1) { // pick one from each if there are multiple
+                                                                          // preferred chassis
                                         break;
                                     }
                                     if (numRequiredBlades == 0) {
@@ -2102,8 +2175,7 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(param.getVolume())) {
                 vol = queryObject(Volume.class, param.getVolume(), true);
                 host.setBootVolumeId(vol.getId());
-            }
-            else {
+            } else {
                 vol = queryObject(Volume.class, host.getBootVolumeId(), true);
             }
             job.setVolumeId(vol.getId());
@@ -2113,8 +2185,7 @@ public class HostService extends TaskResourceService {
             if (st != null && DiscoveredDataObject.Type.xtremio.name().equals(st.getSystemType())) {
                 _log.info("xtremio volume id {}", vol.getNativeId());
                 job.setBootDevice(vol.getNativeId());
-            }
-            else {
+            } else {
                 _log.info("volume id {}", vol.getWWN());
                 job.setBootDevice(ImageServerUtils.uuidFromString(vol.getWWN()).toString());
             }
@@ -2149,8 +2220,10 @@ public class HostService extends TaskResourceService {
      * Method to check if the selected image is present on the
      * ComputeImageServer which is associated with the CoputeSystem
      *
-     * @param cs {@link ComputeSystem}
-     * @param img {@link ComputeImage} instance selected
+     * @param cs
+     *            {@link ComputeSystem}
+     * @param img
+     *            {@link ComputeImage} instance selected
      * @throws APIException
      */
     private void verifyImagePresentOnImageServer(ComputeSystem cs,

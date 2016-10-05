@@ -9,6 +9,7 @@ import static controllers.Common.angularRenderArgs;
 import static controllers.Common.backToReferrer;
 import static util.BourneUtil.getCatalogClient;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -104,7 +105,13 @@ public class ScheduledOrders extends Controller {
 
             for (String orderId : ids) {
                 if (StringUtils.isNotBlank(orderId)) {
-                    OrderUtils.cancelOrder(uri(orderId));
+                    OrderRestRep order = OrderUtils.getOrder(uri(orderId));
+                    URI scheduledEventId = order.getScheduledEventId();
+                    if (scheduledEventId == null) {
+                        OrderUtils.cancelOrder(uri(orderId));
+                    } else {
+                        getCatalogClient().orders().cancelScheduledEvent(scheduledEventId);
+                    }
                 }
             }
         }

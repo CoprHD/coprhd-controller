@@ -8,13 +8,9 @@
                       expandable:true,
                       actions:['HostClusters.hosts': @editHosts(':id')]}
   #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}
-    #{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
-                data:['enabled':'selected']/}
   #{/DataTable.baseCrudButtonBar}
 #{/DataTable.baseCrudTable}
 #{DataTable.expandHtml @itemDetails(':id'), table:'cluster'/}
-#{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'cluster',
-            confirm:messages.get('HostClusters.detachStorageConfirm')/}
 
 
 #{DataTable.formAction @delete(), id:'deleteModalForm', class:'show form form-horizontal', table:'cluster'}
@@ -24,7 +20,7 @@
         &{'HostClusters.deleteConfirm'}
         #{field 'detachStorage'}
           %{
-            field.value = 'true'
+            field.value = 'false'
             field.cssClass = 'checkbox'
             field.label = messages.get('HostClusters.detachStorageModal')
             field.helpText = messages.get('HostClusters.detachStorageModal.help')

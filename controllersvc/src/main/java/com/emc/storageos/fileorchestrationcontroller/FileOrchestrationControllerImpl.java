@@ -59,8 +59,9 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId) throws ControllerException {
-        execOrchestration("updateExportRules", storage, fsURI, param, opId);
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
+            throws ControllerException {
+        execOrchestration("updateExportRules", storage, fsURI, param, unmountExport, opId);
     }
 
     @Override
@@ -80,8 +81,9 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws ControllerException {
-        execOrchestration("deleteExportRules", storage, uri, allDirs, subDirs, taskId);
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId)
+            throws ControllerException {
+        execOrchestration("deleteExportRules", storage, uri, allDirs, subDirs, unmountExport, taskId);
     }
 
     @Override
@@ -94,6 +96,22 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     public void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws ControllerException {
         execOrchestration("failbackFileSystem", fsURI, nfsPort, cifsPort, replicateConfiguration, taskId);
+    }
+
+    @Override
+    public void restoreFS(URI storage, URI fs, URI snapshot, String opId) throws ControllerException {
+        execOrchestration("restoreFS", storage, fs, snapshot, opId);
+    }
+
+    @Override
+    public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
+            throws ControllerException {
+        execOrchestration("deleteSnapshot", storage, pool, uri, forceDelete, deleteType, opId);
+    }
+
+    @Override
+    public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws ControllerException {
+        execOrchestration("deleteShareACLs", storage, uri, shareName, taskId);
     }
 
     // getter and setter methods
@@ -125,4 +143,5 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
     }
+
 }

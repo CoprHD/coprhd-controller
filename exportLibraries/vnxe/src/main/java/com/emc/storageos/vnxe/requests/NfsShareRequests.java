@@ -144,9 +144,12 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
      */
     public VNXeCommandJob deleteShareForSnapshot(String shareId) {
         _url = URL_NFS + shareId;
-        return deleteRequestAsync(null);
-
-    }
+        if (getShareById(shareId) != null) {
+            unsetQueryParameters();
+            return deleteRequestAsync(null);
+        } 
+            throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
+        }
 
     /**
      * Get the specific NFS share's details

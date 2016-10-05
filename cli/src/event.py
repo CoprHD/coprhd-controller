@@ -171,10 +171,14 @@ def event_list(args):
         for event_uri in events:
             clobj = obj.event_show_uri(event_uri['id'])
             if(clobj):
+		# Sometimes resource/name isn't filled in, and that trips up the table generator
+		if (clobj['resource']['name'] == ""):
+		    clobj['resource']['name'] = "No resource specified"
                 output.append(clobj)
 
         if(len(output) > 0):
-            return common.format_json_object(output)            
+	    from common import TableGenerator
+            TableGenerator(output, ['module/id', 'event_status', 'resource/name', 'warning']).printTable()
 
     except SOSError as e:
         common.format_err_msg_and_raise("list", "event",

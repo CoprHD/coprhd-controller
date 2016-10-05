@@ -9,9 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,18 +335,16 @@ public class RecoverPointImageManagementUtils {
         String cgCopyName = null;
 
         try {
-
-            Map<String, String> disabledWWNs = new HashMap<String, String>();
             cgCopyName = impl.getGroupCopyName(cgCopy);
             cgName = impl.getGroupName(cgCopy.getGroupUID());
 
             boolean startTransfer = true;
-            logger.info("Disable the image on copy name: " + cgCopyName + " for CG Name: " + cgName);
+            logger.info(String.format("Attempting to disable the image for copy %s in consistency group %s", cgCopyName, cgName));
             try {
                 impl.disableImageAccess(cgCopy, startTransfer);
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 // Try again
-                logger.info("Disable the image failed for copy name: " + cgCopyName + " for CG Name: " + cgName + ". Try again");
+                logger.info(String.format("Disable the image failed for copy %s in consistency group %s. Try again", cgCopyName, cgName));
                 try {
                     Thread.sleep(Long.valueOf(disableRetrySleepTimeSeconds * numMillisInSecond));
                 } catch (InterruptedException e1) {
@@ -357,11 +353,9 @@ public class RecoverPointImageManagementUtils {
                 impl.disableImageAccess(cgCopy, startTransfer);
             }
 
-            waitForDisableToComplete(impl, cgCopyName, cgName, cgCopy);
-            logger.info("Successful disable of " + disabledWWNs.size() + " target LUNs.");
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToDisableCopy(cgCopyName, cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
+            waitForCGCopyState(impl, cgCopy, StorageAccessState.NO_ACCESS);
+            logger.info(String.format("Successfully disabled image for copy %s in consistency group %s", cgCopyName, cgName));
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
             throw RecoverPointException.exceptions.failedToDisableCopy(cgCopyName, cgName, e);
         }
     }
@@ -468,6 +462,7 @@ public class RecoverPointImageManagementUtils {
             throws RecoverPointException {
         String cgCopyName = NAME_UNKNOWN;
         String cgName = NAME_UNKNOWN;
+        String accessState = "N/A";
 
         // Not checking cgCopUID for null because RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID
         // ensures it will not be null.
@@ -478,11 +473,21 @@ public class RecoverPointImageManagementUtils {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
+            // Get the storage access state prior to enabling direct access. In the event of a failure,
+            // we want to present the current state of the copy to the user.
+            ConsistencyGroupCopyState copyState = getCopyState(impl, cgCopyUID);
+            if (copyState != null && copyState.getStorageAccessState() != null) {
+                accessState = copyState.getStorageAccessState().name();
+            }
+
             impl.enableDirectAccess(cgCopyUID);
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+
+            // Wait for the CG copy state to change to DIRECT_ACCESS
+            logger.info(String.format("Waiting for copy %s in consistency group %s to change access state to DIRECT_ACCESS.", cgCopyName,
+                    cgName));
+            waitForCGCopyState(impl, cgCopyUID, false);
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
+            throw RecoverPointException.exceptions.failedToEnableDirectAccessForCopy(cgCopyName, cgName, e, accessState);
         }
     }
 
@@ -1007,11 +1012,13 @@ public class RecoverPointImageManagementUtils {
         final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
 
         List<ImageAccessMode> accessModes = new ArrayList<ImageAccessMode>();
+        if (accessMode != null) {
+            accessModes = Arrays.asList(accessMode);
+        }
 
         logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
-        if (accessMode != null) {
-            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessMode);
-            accessModes = Arrays.asList(accessMode);
+        if (!accessModes.isEmpty()) {
+            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessModes.toString());
         } else {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: DIRECT_ACCESS or NO_ACCESS");
         }
@@ -1066,6 +1073,66 @@ public class RecoverPointImageManagementUtils {
                 logger.info("Copy image " + cgCopyName + " of group " + cgName + " not in correct state.  Sleeping " + sleepTimeSeconds
                         + " seconds");
                 Thread.sleep(Long.valueOf(sleepTimeSeconds * numMillisInSecond));
+            }
+        }
+        throw RecoverPointException.exceptions.stateChangeNeverCompleted();
+    }
+
+    /**
+     * Wait for a CG copy to change state
+     *
+     * @param impl - the FAPI implementation
+     * @param groupCopy - RP group copy we are looking at
+     * @param accessState - Access modes we are waiting for
+     *
+     * @return void
+     *
+     * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
+     *             InterruptedException
+     **/
+    public void waitForCGCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID groupCopy, StorageAccessState accessState)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException,
+            RecoverPointException {
+
+        if (accessState == null) {
+            throw RecoverPointException.exceptions.waitForInvalidCopyState("null");
+        }
+
+        ConsistencyGroupUID groupUID = groupCopy.getGroupUID();
+        List<ConsistencyGroupCopyState> groupCopyStateList;
+        String cgName = impl.getGroupName(groupCopy.getGroupUID());
+        String cgCopyName = impl.getGroupCopyName(groupCopy);
+        final int maxMinutes = 30;
+        final int sleepTimeSeconds = 15; // seconds
+        final int secondsPerMin = 60;
+        final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
+
+        logger.info(String.format(
+                "Waiting up to %d minutes for consistency group copy state to change to %s.  Copy name: %s, consistency group name: %s.",
+                maxMinutes, accessState.toString(), cgCopyName, cgName));
+
+        for (int minIter = 0; minIter < maxMinutes; minIter++) {
+            for (int perMinIter = 0; perMinIter < numItersPerMin; perMinIter++) {
+                groupCopyStateList = impl.getGroupState(groupUID).getGroupCopiesStates();
+                for (ConsistencyGroupCopyState groupCopyState : groupCopyStateList) {
+                    if (RecoverPointUtils.copiesEqual(groupCopyState.getCopyUID(), groupCopy)) {
+                        StorageAccessState copyAccessState = groupCopyState.getStorageAccessState();
+                        logger.info("Current Copy Access State: " + copyAccessState);
+
+                        if (copyAccessState.equals(accessState)) {
+                            logger.info(String.format("Copy %s of group %s is in %s state.", cgCopyName, cgName, copyAccessState.toString()));
+                            return;
+                        }
+                    }
+                }
+                logger.info("Copy image " + cgCopyName + " of group " + cgName + " not in correct state.  Sleeping " + sleepTimeSeconds
+                        + " seconds");
+                try {
+                    Thread.sleep(Long.valueOf(sleepTimeSeconds * numMillisInSecond));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
             }
         }
         throw RecoverPointException.exceptions.stateChangeNeverCompleted();
@@ -1275,7 +1342,7 @@ public class RecoverPointImageManagementUtils {
                     }
 
                     PipeState pipeState = linkstate.getPipeState();
-                    logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+                    logger.info("Copy link state is " + pipeState.toString() + "; desired states are: " + desiredPipeStates.toString());
 
                     if (desiredPipeStates.contains(pipeState.name())) {
                         logger.info("Copy link state matches the desired state.");

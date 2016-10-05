@@ -235,7 +235,7 @@ class VcenterDatacenter(object):
     def vcenterdatacenter_create_cluster(self, name, vcenter, cluster,
                                                         tenantname):
         from cluster import Cluster
-        cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster)
+        cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, name ,vcenter, tenantname)
 
         dc_uri = self.vcenterdatacenter_query(name, vcenter, tenantname)
 
@@ -255,7 +255,7 @@ class VcenterDatacenter(object):
     def vcenterdatacenter_update_cluster(self, name, vcenter, cluster,
                                                         tenantname):
         from cluster import Cluster
-        cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster)
+        cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, name, vcenter, tenantname)
 
         dc_uri = self.vcenterdatacenter_query(name, vcenter, tenantname)
 

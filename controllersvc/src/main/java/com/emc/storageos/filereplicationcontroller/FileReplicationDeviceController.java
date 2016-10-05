@@ -15,6 +15,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileCancelTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileModifyRPOTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileStopTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,19 +50,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.FileMirrorCancelTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileModifyRPOTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileStopTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
@@ -350,41 +352,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitFor;
     }
 
-    private Workflow.Method cancelMirrorLinkMethod(URI systemURI, URI sourceURI, URI targetURI) {
-        return new Workflow.Method(CANCEL_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
-    }
-
-    /**
-     * Cancel Mirror session
-     * 
-     * @param systemURI
-     * @param sourceURI
-     * @param targetURI
-     * @param opId
-     * @return
-     */
-    public boolean cancelMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, String opId) {
-        log.info("START Suspend Mirror link");
-        TaskCompleter completer = null;
-
-        try {
-            WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem system = getStorageSystem(systemURI);
-            FileShare target = dbClient.queryObject(FileShare.class, targetURI);
-            List<URI> combined = Arrays.asList(sourceURI, targetURI);
-            completer = new FileMirrorCancelTaskCompleter(combined, opId);
-            getRemoteMirrorDevice(system).doCancelMirrorLink(system, target, completer);
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
-        }
-
-        return true;
-    }
 
     private Method detachMirrorPairMethod(URI systemURI, URI sourceURI, URI targetURI) {
         return new Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
@@ -441,14 +408,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         TaskCompleter completer = null;
         try {
             if (opType.equalsIgnoreCase("pause")) {
-                completer = new MirrorFilePauseTaskCompleter(FileShare.class, combined, opId);
+                completer = new MirrorFilePauseTaskCompleter(FileShare.class, copyId, opId, storage);
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     getRemoteMirrorDevice(system).doSuspendLink(system, targetFileShare, completer);
                 }
 
             } else if (opType.equalsIgnoreCase("resume")) {
-                completer = new MirrorFileResumeTaskCompleter(FileShare.class, combined, opId);
+                completer = new MirrorFileResumeTaskCompleter(FileShare.class, copyId, opId, storage);
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     getRemoteMirrorDevice(system).doResumeLink(system, targetFileShare, completer);
@@ -458,7 +425,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
 
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                    completer = new MirrorFileStartTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                    completer = new MirrorFileStartTaskCompleter(FileShare.class, copyId, opId, storage);
                     completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer, null);
                 }
@@ -522,18 +489,21 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String FAILOVER_MIRROR_FILESHARE_STEP = "failoverMirrorFilePairStep";
     private static final String RESYNC_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
     private static final String START_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
+    private static final String CANCEL_MIRROR_FILESHARE_STEP = "cancelPrepMirrorFilePairStep";
 
     private static final String FAILOVER_MIRROR_FILESHARE_METH = "failoverMirrorFilePair";
     private static final String RESYNC_MIRROR_FILESHARE_METH = "resyncPrepMirrorFilePair";
     private static final String START_MIRROR_FILESHARE_METH = "startPrepMirrorFilePair";
+    private static final String CANCEL_MIRROR_FILESHARE_METH = "cancelPrepMirrorFilePair";
 
     private static final String FAILOVER_FILE_MIRRORS_STEP_DESC = "failover MirrorFileShare Link";
     private static final String RESYNC_MIRROR_FILESHARE_STEP_DESC = "resync MirrorFileShare Link";
     private static final String START_MIRROR_FILESHARE_STEP_DES = "start MirrorFileShare Link";
+    private static final String CANCEL_MIRROR_FILESHARE_STEP_DES = "cancel previous Resync task";
 
     public void doFailBackMirrorSessionWF(URI systemURI, URI fsURI, String taskId) {
         log.info("start doFailBackMirrorSession operation");
-        TaskCompleter taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, fsURI, taskId);
+        TaskCompleter taskCompleter = null;
         FileShare sourceFileShare = dbClient.queryObject(FileShare.class, fsURI);
         StorageSystem primarysystem = dbClient.queryObject(StorageSystem.class, systemURI);
         try {
@@ -554,6 +524,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 if (primarysystem.getSystemType().equalsIgnoreCase("isilon")) {
                     combined.add(sourceFileShare.getId());
                     combined.add(targetFileShare.getId());
+                    taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId, systemURI);
+
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();
@@ -589,17 +561,27 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         // secondary storagesystem
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
+        //cancel step
+        Workflow.Method cancelMethodStep = cancelMirrorPairMeth(secondarysystem.getId(),
+                targetFileShare.getId(), mirrorPolicyName);
+
+        String waitForCancel = workflow.createStep(
+                CANCEL_MIRROR_FILESHARE_STEP,
+                CANCEL_MIRROR_FILESHARE_STEP_DES,
+                waitFor, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
+                cancelMethodStep,
+                rollbackMethodNullMethod(), null);
+
+        // resync step -1
         Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
                 targetFileShare.getId(), policyName);
-
         String descresyncPrepStep1 = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
                 secondarysystem.getLabel());
 
-        // resync step -1
         String waitForResync = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
                 descresyncPrepStep1,
-                waitFor, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                waitForCancel, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
                 resyncMethodStep1,
                 rollbackMethodNullMethod(), null);
 
@@ -661,8 +643,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             combined.add(fileshareURI);
             if (targetFileShare.getParentFileShare() != null) {
                 combined.add(targetFileShare.getParentFileShare().getURI());
+            } else {
+            	for (String fsId : targetFileShare.getMirrorfsTargets()) {
+            		combined.add(URI.create(fsId));
+                }
             }
-            completer = new MirrorFileResyncTaskCompleter(FileShare.class, combined, opId);
+            completer = new MirrorFileResyncTaskCompleter(FileShare.class, combined, opId, primarysystemURI);
 
             WorkflowStepCompleter.stepExecuting(opId);
             completer.setNotifyWorkflow(true);
@@ -704,7 +690,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 combined.add(fileShare.getParentFileShare().getURI());
             }
 
-            completer = new MirrorFileStartTaskCompleter(FileShare.class, combined, opId);
+            completer = new MirrorFileStartTaskCompleter(FileShare.class, fileshareURI, opId, storage);
             WorkflowStepCompleter.stepExecuting(opId);
             getRemoteMirrorDevice(system).doStartMirrorLink(system, fileShare, completer, policyName);
         } catch (Exception e) {
@@ -742,13 +728,44 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             if (fileShare.getParentFileShare() != null) {
                 combined.add(fileShare.getParentFileShare().getURI());
             }
-            completer = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, opId);
+            completer = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, opId, storage);
             WorkflowStepCompleter.stepExecuting(opId);
             getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, policyName);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+            return false;
+        }
+        return true;
+    }
+
+    // Cancel Mirror Policy -step
+    public static Workflow.Method
+    cancelMirrorPairMeth(URI storage, URI fsURI, String policyName) {
+        return new Workflow.Method(CANCEL_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+    }
+    /* Cancel the running Mirror policy.
+     * @param storage
+     * @param fileshareURI
+     * @param policyName
+     * @param opId
+     */
+    public boolean cancelPrepMirrorFilePair(URI storage, URI fileshareURI, String policyName, String opId) {
+        MirrorFileCancelTaskCompleter cancelTaskCompleter = null;
+        try {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
+            FileShare fileShare = dbClient.queryObject(FileShare.class, fileshareURI);
+            cancelTaskCompleter = new MirrorFileCancelTaskCompleter(FileShare.class, fileshareURI, opId, storage);
+
+            WorkflowStepCompleter.stepExecuting(opId);
+            getRemoteMirrorDevice(system).doCancelMirrorLink(system, fileShare, cancelTaskCompleter, policyName);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != cancelTaskCompleter) {
+                cancelTaskCompleter.error(dbClient, error);
             }
             WorkflowStepCompleter.stepFailed(opId, error);
             return false;

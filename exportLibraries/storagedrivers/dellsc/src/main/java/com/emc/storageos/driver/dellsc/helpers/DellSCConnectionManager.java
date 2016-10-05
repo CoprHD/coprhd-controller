@@ -136,7 +136,7 @@ public class DellSCConnectionManager {
                     connectionInfo.get(HOST_KEY).get(0),
                     Integer.parseInt(connectionInfo.get(PORT_KEY).get(0)),
                     connectionInfo.get(USER_KEY).get(0),
-                    connectionInfo.get(PASS_KEY).get(0));
+                    connectionInfo.get(PASS_KEY).get(0), false);
         } catch (Exception e) {
             LOG.error(String.format("Error getting saved connection information: %s", e), e);
             throw new DellSCDriverException("Error getting saved connection information.", e);
@@ -150,11 +150,12 @@ public class DellSCConnectionManager {
      * @param port The connection port.
      * @param user The connection user name.
      * @param password The connection password.
+     * @param isProvider The isProvider flag to indicate the provider call
      * @return The API connection.
      * @throws StorageCenterAPIException
      */
     @SuppressWarnings("resource")
-    public StorageCenterAPI getConnection(String host, int port, String user, String password) throws StorageCenterAPIException {
+    public StorageCenterAPI getConnection(String host, int port, String user, String password, boolean isProvider) throws StorageCenterAPIException {
         // First see if we already have a connection for this system
         StorageCenterAPI result = connectionMap.get(host);
 
@@ -175,6 +176,20 @@ public class DellSCConnectionManager {
         } else {
             // Make sure our connection is still good
             result = validateConnection(result, result.getHost());
+            
+            /*
+             * Update the SC Connection Info only during storage provider discovery
+             * bugfix-COP-25081-dell-sc-fail-to-recognize-new-arrays
+             */
+            if(isProvider) {
+            	StorageCenter[] scs = result.getStorageCenterInfo();
+            	for (StorageCenter sc : scs) {
+            		// Saving per system for backward compatibility
+            		saveConnectionInfo(sc.scSerialNumber, host, port, user, password);
+            		systemLookup.put(sc.scSerialNumber, host);
+            	}
+            }
+            
         }
 
         return result;

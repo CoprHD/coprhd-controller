@@ -42,6 +42,7 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerOperatingSystem;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeConfiguration;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.HostExportInfo;
@@ -219,7 +220,10 @@ public class DellSCProvisioning {
         StringBuilder errBuffer = new StringBuilder();
         int volumesMapped = 0;
         Set<StoragePort> usedPorts = new HashSet<>();
-        List<String> discoveredPorts = new ArrayList<>();
+        String preferredController = null;
+
+        // Cache of controller port instance IDs to StoragePort objects
+        Map<String, StoragePort> discoveredPorts = new HashMap<>();
 
         // See if a max port count has been specified
         int maxPaths = -1;
@@ -267,6 +271,26 @@ public class DellSCProvisioning {
                     throw new DellSCDriverException(SERVER_CREATE_FAIL_MSG);
                 }
 
+                // See if we have a preferred controller
+                if (preferredController == null && scVol.active) {
+                    // At least first volume is active somewhere, so we need to try to
+                    // use that controller for all mappings
+                    ScVolumeConfiguration volConfig = api.getVolumeConfig(scVol.instanceId);
+                    if (volConfig != null) {
+                        preferredController = volConfig.controller.instanceId;
+                    }
+                }
+
+                // Next try to get a preferred controller based on what's requested
+                if (preferredController == null && !recommendedPorts.isEmpty()) {
+                    try {
+                        ScControllerPort scPort = api.getControllerPort(recommendedPorts.get(0).getNativeId());
+                        preferredController = scPort.controller.instanceId;
+                    } catch (Exception e) {
+                        LOG.warn("Failed to get recommended port controller.", e);
+                    }
+                }
+
                 int preferredLun = -1;
                 if (volumeToHLUMap.containsKey(volume.getNativeId())) {
                     String hlu = volumeToHLUMap.get(volume.getNativeId());
@@ -288,18 +312,23 @@ public class DellSCProvisioning {
                 } else {
                     profile = api.createVolumeMappingProfile(
                             scVol.instanceId, server.instanceId, preferredLun,
-                            new String[0], maxPaths);
+                            new String[0], maxPaths, preferredController);
                 }
 
                 ScMapping[] maps = api.getMappingProfileMaps(profile.instanceId);
                 for (ScMapping map : maps) {
                     volumeToHLUMap.put(volume.getNativeId(), String.valueOf(map.lun));
-                    ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
-                    StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
-                    usedPorts.add(port);
-                    if (!discoveredPorts.contains(map.controllerPort.instanceId)) {
-                        discoveredPorts.add(scPort.instanceId);
+
+                    StoragePort port;
+                    if (discoveredPorts.containsKey(map.controllerPort.instanceId)) {
+                        port = discoveredPorts.get(map.controllerPort.instanceId);
+                    } else {
+                        ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
+                        port = util.getStoragePortForControllerPort(api, scPort);
+                        discoveredPorts.put(map.controllerPort.instanceId, port);
                     }
+
+                    usedPorts.add(port);
                 }
 
                 volumesMapped++;
@@ -317,11 +346,11 @@ public class DellSCProvisioning {
         }
 
         // See if we were able to use all of the recommended ports
+        // TODO: Expand this to do more accurate checking
         usedRecommendedPorts.setValue(recommendedPorts.size() == usedPorts.size());
         if (!usedRecommendedPorts.isTrue()) {
             selectedPorts.addAll(usedPorts);
         }
-        usedRecommendedPorts.setValue(true);
 
         task.setMessage(errBuffer.toString());
 
@@ -373,15 +402,10 @@ public class DellSCProvisioning {
      */
     private ScServer createOrFindScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators, List<ScServerHba> matchedHbas,
             boolean createIfNotFound) {
-        boolean isCluster = false;
-        String clusterName = "";
         ScServerOperatingSystem os = null;
 
         Map<String, ScServer> serverLookup = new HashMap<>();
         for (Initiator init : initiators) {
-            boolean cluster = init.getInitiatorType().equals(Type.Cluster);
-            isCluster = isCluster || cluster;
-            clusterName = init.getClusterName();
 
             if (os == null) {
                 os = findOsType(api, ssn, init.getHostOsType());
@@ -436,57 +460,14 @@ public class DellSCProvisioning {
             }
         }
 
-        if (isCluster) {
-            // Find our cluster server definition
-            ScServer server = null;
-            for (ScServer scServer : serverLookup.values()) {
-                ScPhysicalServer phyServer = null;
-                if (scServer instanceof ScPhysicalServer) {
-                    phyServer = (ScPhysicalServer) scServer;
-                } else {
-                    phyServer = api.getPhysicalServerDefinition(scServer.instanceId);
-                }
+        if (serverLookup.size() != 1) {
+            LOG.warn("Looking for server returned {} servers.",
+                    serverLookup.size());
+        }
 
-                if (phyServer == null || phyServer.parent == null) {
-                    continue;
-                }
-
-                server = api.getServerDefinition(phyServer.parent.instanceId);
-                break;
-            }
-
-            if (server == null) {
-                try {
-                    // Create cluster server definition
-                    server = api.createClusterServer(
-                            ssn,
-                            clusterName,
-                            os.instanceId);
-                } catch (StorageCenterAPIException e) {
-                    LOG.warn(String.format("Error creating cluster: %s", e));
-                    return null;
-                }
-            }
-
-            // Now make sure all servers are set to be under this cluster
-            for (ScServer scServer : serverLookup.values()) {
-                LOG.info("Adding server '{}' to cluster '{}', result: {}",
-                        scServer.name,
-                        server.name,
-                        api.setAddServerToCluster(scServer.instanceId, server.instanceId));
-            }
-
-            return server;
-        } else {
-            if (serverLookup.size() != 1) {
-                LOG.warn("Looking for server returned {} servers.",
-                        serverLookup.size());
-            }
-
-            for (ScServer scServer : serverLookup.values()) {
-                // Just return the first one
-                return scServer;
-            }
+        for (ScServer scServer : serverLookup.values()) {
+            // Just return the first one
+            return scServer;
         }
 
         return null;
@@ -714,7 +695,7 @@ public class DellSCProvisioning {
             port = portCache.get(map.controllerPort.instanceId);
         } else {
             ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
-            port = util.getStoragePortForControllerPort(api, scPort, null);
+            port = util.getStoragePortForControllerPort(api, scPort);
             portCache.put(scPort.instanceId, port);
         }
 

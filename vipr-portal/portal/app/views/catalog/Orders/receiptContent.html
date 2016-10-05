@@ -85,6 +85,7 @@
 <div id="orderDetails" class="container" style="margin-bottom: 2em;">
   #{Orders.serviceHeader service:details.catalogService /}
   
+  <p id="migrationAlert" class="alert alert-info" style="display:none">&{'order.PausedResume'}</p>
   #{alerts disappear:true, duration:10 /}
 
   <div id="lastUpdated" style="display:none">${details.lastUpdated}</div>
@@ -115,10 +116,17 @@
          #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
             &{'order.occurrences.indefinite'}
          #{/if}
-                
+
       </dd>
       #{/if}
-      
+
+      #{if details.scheduledEvent != null}
+        #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+        <dt>&{'order.currentScheduleTime'}:</dt>
+        <dd>#{localDateTime details.order.scheduledTime/}</dd>
+        #{/if}
+      #{/if}
+
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
       

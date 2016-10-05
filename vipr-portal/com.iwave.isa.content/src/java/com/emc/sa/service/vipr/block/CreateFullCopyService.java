@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
@@ -72,19 +73,18 @@ public class CreateFullCopyService extends ViPRService {
         if (!isRetentionRequired()) {
             return;
         }
-        RetainedReplica replica = findObsoleteReplica(volumeOrCgId);
-        if (replica == null) {
-            return;
-        }
-        for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
-            info("Delete full copy %s since it exceeds max number of copies allowed", obsoleteCopyId);
-
-            if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-                BlockStorageUtils.removeFullCopy(uri(obsoleteCopyId), VolumeDeleteTypeEnum.FULL);
-            } else {
-                ConsistencyUtils.removeFullCopy(uri(volumeOrCgId), uri(obsoleteCopyId));
+        List<RetainedReplica> replicas = findObsoleteReplica(volumeOrCgId);
+        for (RetainedReplica replica : replicas) {
+            for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
+                info("Delete full copy %s since it exceeds max number of copies allowed", obsoleteCopyId);
+    
+                if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+                    BlockStorageUtils.removeFullCopy(uri(obsoleteCopyId), VolumeDeleteTypeEnum.FULL);
+                } else {
+                    ConsistencyUtils.removeFullCopy(uri(volumeOrCgId), uri(obsoleteCopyId));
+                }
             }
+            getModelClient().delete(replica);
         }
-        getModelClient().delete(replica);
     }
 }

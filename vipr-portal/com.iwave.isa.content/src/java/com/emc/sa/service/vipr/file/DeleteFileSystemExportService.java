@@ -4,12 +4,15 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.ALLDDIRECTORY;
+import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
+import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
+
 import java.net.URI;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import static com.emc.sa.service.ServiceParams.*;
 
 @Service("DeleteFileSystemExport")
 public class DeleteFileSystemExportService extends ViPRService {
@@ -25,6 +28,6 @@ public class DeleteFileSystemExportService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.deactivateFileSystemExport(fileSystems, allDirectory, subDirectory);
+        FileStorageUtils.deactivateFileSystemExport(fileSystems, allDirectory, subDirectory, false);
     }
 }

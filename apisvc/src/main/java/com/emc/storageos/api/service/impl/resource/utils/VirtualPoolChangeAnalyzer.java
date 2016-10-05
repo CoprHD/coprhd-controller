@@ -189,7 +189,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (!analyzeChanges(currentVpool, newVpool, include, null, null).isEmpty()) {
             // An ingested local VPLEX volume can't be converted to distributed.
             // The backend volumes would need to be migrated first.
-            if (volume.isIngestedVolume(dbClient)) {
+            if (volume.isIngestedVolumeWithoutBackend(dbClient)) {
                 notSuppReasonBuff.append("The high availability of an ingested VPLEX volume cannot be modified.");
                 return null;
             }
@@ -447,8 +447,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // require a migration of the data: protocols,
         // provisioningType, useMatchedPools, arrayInfo, driveType,
         // autoTierPolicyName, host io limits, host io bandwidth,
-        // thin volume allocation, assigned storage pools.
-                
+        // thin volume allocation, assigned storage pools.                
         String[] include = new String[] { PROTOCOLS, PROVISIONING_TYPE,
                 USE_MATCHED_POOLS, ARRAY_INFO,
                 DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED,
@@ -690,7 +689,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] include = new String[] { TYPE, VARRAYS,
                 REF_VPOOL, MIRROR_VPOOL,
                 FAST_EXPANSION, ACLS,
-                INACTIVE };
+                INACTIVE, PROTOCOLS, PROVISIONING_TYPE,
+                USE_MATCHED_POOLS, ARRAY_INFO,
+                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, 
+                HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED,
+                IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED,
+                ASSIGNED_STORAGE_POOLS };
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
@@ -1260,7 +1264,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                 && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
 
-            if (!volume.getAssociatedVolumes().isEmpty()
+            if (null != volume.getAssociatedVolumes() 
+                    && !volume.getAssociatedVolumes().isEmpty()
                     && volume.getAssociatedVolumes().size() > 1) {
 
                 // Return false if any of the following properties are different
@@ -1730,24 +1735,29 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String newSourceJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
                 .getJournalVpool());
 
-        // If the current Source Journal varray/vpool are not set, default them to known values.
+        // If the current and new Source Journal varray/vpool are not set, default them to known values.
         if (currentSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
             currentSourceJournalVarrayId = volume.getVirtualArray().toString();
         }
+        
         if (currentSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
             currentSourceJournalVpoolId = currentVpool.getId().toString();
         }
 
-        // If the new Source Journal varray/vpool is not set, default it to the known value.        
-        if (newSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-            newSourceJournalVarrayId = volume.getVirtualArray().toString();
-        }
+        VirtualPool currentSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentSourceJournalVpoolId));
+                       
         if (newSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
             newSourceJournalVpoolId = newVpool.getId().toString();
         }
-        
-        VirtualPool currentSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentSourceJournalVpoolId));
+                
         VirtualPool newSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newSourceJournalVpoolId));
+        
+        if (newSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            if (newSourceJournalVpool.getVirtualArrays() != null 
+                    && newSourceJournalVpool.getVirtualArrays().contains(volume.getVirtualArray().toString())) {
+                newSourceJournalVarrayId = volume.getVirtualArray().toString();
+            }
+        }
         
         // Only consider the Source Journal migration if the varrays are the same and the vpools
         // are different and both specify HA.
@@ -1764,6 +1774,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 notSuppReasonBuff.append("Not valid for migration due to changes in RP Source Journal virtual pool / virtual array.");
                 invalidMigration = true;
             }                        
+        } else {
+            if (!currentSourceJournalVarrayId.equals(newSourceJournalVarrayId)) {
+                notSuppReasonBuff.append("Not valid for migration due to changes in RP Source Journal virtual array.");
+                invalidMigration = true;
+            }
         }
         
         return invalidMigration;
@@ -1798,21 +1813,25 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         // If the current Standby Journal varray/vpool are not set, default them to known values.
         if (currentStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-            currentStandbyJournalVarrayId = getHaVarrayURI(currentVpool).toString();
+            URI haVarrayURI = getHaVarrayURI(currentVpool);
+            currentStandbyJournalVarrayId = (haVarrayURI != null ? haVarrayURI.toString() : NullColumnValueGetter.getNullStr());
         }
+        
         if (currentStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
             currentStandbyJournalVpoolId = currentVpool.getId().toString();
         }
-
-        // If the new Standby Journal varray/vpool is not set, default it to the known value.
+        
+        VirtualPool currentStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentStandbyJournalVpoolId));
+       
         if (newStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-            newStandbyJournalVarrayId = getHaVarrayURI(newVpool).toString();
+            URI haVarrayURI = getHaVarrayURI(newVpool);
+            newStandbyJournalVarrayId = (haVarrayURI != null ? haVarrayURI.toString() : NullColumnValueGetter.getNullStr());
         }
+        
         if (newStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
             newStandbyJournalVpoolId = newVpool.getId().toString();
         }
-        
-        VirtualPool currentStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentStandbyJournalVpoolId));
+                
         VirtualPool newStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newStandbyJournalVpoolId));                
         
         // Only consider the Standby Journal migration if the varrays are the same and the vpools
@@ -1830,7 +1849,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 notSuppReasonBuff.append("Not valid for migration due to changes in RP Standby Journal virtual pool / virtual array.");
                 invalidMigration = true;
             }                        
-        }            
+        } else {
+            if (!currentStandbyJournalVarrayId.equals(newStandbyJournalVarrayId)) {
+                notSuppReasonBuff.append("Not valid for migration due to changes in RP Standby Journal virtual array.");
+                invalidMigration = true;
+            }
+        }
         
         return invalidMigration;
     }
@@ -1850,6 +1874,13 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static boolean determineRPTargetMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
             List<RPVPlexMigration> potentialMigrations, StringBuffer notSuppReasonBuff, DbClient dbClient) {
         boolean invalidMigration = false;
+        
+        if (currentVpool.getProtectionVarraySettings() == null 
+                || newVpool.getProtectionVarraySettings() == null
+                || (currentVpool.getProtectionVarraySettings().size() != newVpool.getProtectionVarraySettings().size())) {
+            notSuppReasonBuff.append("RP Targets are mismatched.");
+            return true;
+        }
         
         // Check the Targets for potential candidates for migration
         for (Map.Entry<String, String> entry : currentVpool.getProtectionVarraySettings().entrySet()) {
@@ -1871,10 +1902,16 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 // Current Target vpool
                 String currentTargetVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
                         .getVirtualPool());
+                if (currentTargetVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+                    currentTargetVpoolId = currentVpool.getId().toString();
+                }
                 VirtualPool currentTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetVpoolId));
 
                 // New Target vpool
                 String newTargetVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
+                if (newTargetVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+                    newTargetVpoolId = newVpool.getId().toString();
+                }
                 VirtualPool newTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetVpoolId));
 
                 // Only allow migrations when both vpools specify HA.
@@ -1885,10 +1922,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                         potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.TARGET, 
                                 URI.create(targetVarrayId), currentTargetVpool, newTargetVpool));                            
                     } else {
-                        // If the Target vpools are different and both of the Target vpools do not specify HA, 
-                        // then exclude this new vpool for RP+VPLEX migration.
-                        notSuppReasonBuff.append("RP Target virtual pool does not specify High Availability.");
-                        return false;
+                        // This Target is not a candidate for migration and the vpools are not the exact
+                        // same so we can not allow the migration. The Targets could potentially get misaligned
+                        // in the new vpool and we can not allow that.                        
+                        notSuppReasonBuff.append("No RP Target migration detected, so RP Target virtual pools must match.");
+                        invalidMigration = true;
+                        break;
                     }                        
                 }
                 
@@ -1896,13 +1935,14 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 invalidMigration = determineRPTargetJournalMigration(volume, currentTargetVpool, newTargetVpool, potentialMigrations, 
                         notSuppReasonBuff, dbClient, currentProtectionVarraySetting, newProtectionVarraySetting, targetVarrayId);
                 if (invalidMigration) {
-                    return invalidMigration;
+                    break;
                 }
             } else {
                 notSuppReasonBuff.append("Target virtual arrays do not match.");
                 invalidMigration = true;
+                break;
             }
-        }            
+        }
         
         return invalidMigration;
     }
@@ -1940,24 +1980,29 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String newTargetJournalVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
                 .getJournalVpool());
 
-        // If the current Target Journal varray/vpool are not set, default them to known values.
+        // If the current and new Target Journal varray/vpool are not set, default them to known values.
         if (currentTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
             currentTargetJournalVarrayId = targetVarrayId;
         }
+        
         if (currentTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
             currentTargetJournalVpoolId = currentVpool.getId().toString();
         }
-
-        // If the current Target Journal varray/vpool is not set, default it to the known value.
-        if (newTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-            newTargetJournalVarrayId = targetVarrayId;
-        }
+        
+        VirtualPool currentTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetJournalVpoolId));
+        
         if (newTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
             newTargetJournalVpoolId = newVpool.getId().toString();
         }
-        
-        VirtualPool currentTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetJournalVpoolId));
+                
         VirtualPool newTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetJournalVpoolId));
+                
+        if (newTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            if (newTargetJournalVpool.getVirtualArrays() != null 
+                    && newTargetJournalVpool.getVirtualArrays().contains(targetVarrayId)) {
+                newTargetJournalVarrayId = targetVarrayId;
+            }
+        }
         
         // Only consider the Target Journal migration if the varrays are the same and the vpools
         // are different and both specify HA.
@@ -1974,7 +2019,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 notSuppReasonBuff.append("Not valid for migration due to changes in RP Target Journal virtual pool / virtual array.");
                 invalidMigration = true;
             }                        
-        }             
+        } else {
+            if (!currentTargetJournalVarrayId.equals(newTargetJournalVarrayId)) {
+                notSuppReasonBuff.append("Not valid for migration due to changes in RP Target Journal virtual array.");
+                invalidMigration = true;
+            }
+        }
         
         return invalidMigration;
     }

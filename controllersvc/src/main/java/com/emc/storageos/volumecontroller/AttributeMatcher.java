@@ -86,8 +86,8 @@ public abstract class AttributeMatcher {
         source_storage_system,
         remote_copy_mode,
         array_affinity,
-        dedup
-
+        dedup,
+        exclude_storage_system
     }
 
     /**

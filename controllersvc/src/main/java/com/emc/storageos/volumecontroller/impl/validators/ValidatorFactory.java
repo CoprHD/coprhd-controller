@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -18,6 +21,8 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 
 /**
  * Top-level factory class for building {@link Validator} instances.
@@ -26,6 +31,7 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
 
     private DbClient dbClient;
     private Map<String, StorageSystemValidatorFactory> systemFactories;
+    private static final Logger log = LoggerFactory.getLogger(ValidatorFactory.class);
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -60,10 +66,22 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
         // Partition volumes by StorageSystem
         Map<URI, List<Volume>> systemUriToVolumeList = new HashMap<URI, List<Volume>>();
         for (Volume volume : volumes) {
-            if (!systemUriToVolumeList.containsKey(volume.getStorageController())) {
-                systemUriToVolumeList.put(volume.getStorageController(), new ArrayList<Volume>());
+            // In many cases this method is called with ViPR volumes that have been
+            // pre-created for a request. These volumes don't yet exist on the
+            // storage system. Upon successful execution of the request, these volumes
+            // are updated with the native ids, wwns, etc, of the now existing volumes.
+            // We do not want to validate these volume as they do not yet exist and
+            // will surely fail validation.
+            String nativeGuid = volume.getNativeGuid();
+            if (!NullColumnValueGetter.isNullValue(nativeGuid)) {
+                if (!systemUriToVolumeList.containsKey(volume.getStorageController())) {
+                    systemUriToVolumeList.put(volume.getStorageController(), new ArrayList<Volume>());
+                }
+                systemUriToVolumeList.get(volume.getStorageController()).add(volume);
+            } else {
+                log.info("Skipping validation of volume {}:{} which does not have a native guid",
+                        volume.getId(), volume.getLabel());
             }
-            systemUriToVolumeList.get(volume.getStorageController()).add(volume);
         }
         // For each Storage System, do the validations
         for (Map.Entry<URI, List<Volume>> entry : systemUriToVolumeList.entrySet()) {
@@ -95,9 +113,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
-            Collection<Initiator> initiatorList) {
-        return getSystemValidator(storage).exportMaskDelete(storage, exportMask, volumeURIList, initiatorList);
+    public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).exportMaskDelete(ctx);
     }
 
     @Override
@@ -112,13 +129,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
-        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList);
-    }
-
-    @Override
-    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiators) {
-        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList, initiators);
+    public Validator removeInitiators(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).removeInitiators(ctx);
     }
 
     @Override

@@ -685,7 +685,8 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 // This means, the snapshot is not present on the back-end device
                 log.info(String.format("Snapshot %s already deleted: ", snapshot.getNativeId()));
                 snapshot.setInactive(true);
-                dbClient.persistObject(snapshot);
+                dbClient.updateObject(snapshot);
+                taskCompleter.ready(dbClient);
             }
 
             // Now - trigger the delete

@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 }
 
                 exportMask.setCreatedBySystem(true);
+                ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
                 exportMask.addVolumes(_volumeMap);
                 exportGroup.addExportMask(exportMask.getId());
                 ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
@@ -87,14 +89,14 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
      * @return          true, if the status is ready or the volumes were added despite error status.
      */
     private boolean shouldUpdateDatabase(Operation.Status status) {
-        return wereVolumesAdded() || status == Operation.Status.ready;
+        return status == Operation.Status.ready || wereVolumesAdded();
     }
 
     private boolean wereVolumesAdded() {
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
+        Object context = WorkflowService.getInstance().loadStepData(getOpId());
 
-        if (context != null) {
-            List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
+        if (context != null && context instanceof ExportOperationContext) {
+            List<ExportOperationContext.ExportOperationContextOperation> operations = ((ExportOperationContext)context).getOperations();
 
             if (operations != null) {
                 for (ExportOperationContext.ExportOperationContextOperation operation : operations) {

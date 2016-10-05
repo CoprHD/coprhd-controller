@@ -259,6 +259,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
         } finally {
             String lockPath = ZKPaths.makePath(_lockPath, itemName);
             try {
+                _log.info("delete lock {}", lockPath);
                 _zkClient.delete().guaranteed().forPath(lockPath);
             } catch (KeeperException.NoNodeException ex) {
                 _log.warn("The lock {} has been removed e={}", lockPath, ex);
@@ -295,6 +296,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                             // Note:
                             // It needs to ALWAYS wait under "watch armed". Because WATCH is one-time trigger,
                             // after it is waked, it needs to re-arm watch during getChildren() again.
+                            _log.info("The consumer {} is busy", _consumer);
                             wait();
                             needRescan = true;
                         } else {
@@ -302,6 +304,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                         }
                     } while (needRescan);
                 }
+
                 if (!children.isEmpty()) {
                     // Note: multiple zkClients might see the same child at the same time,
                     // if one processChildren finish(deleted both queue item and lock) quickly,
@@ -341,6 +344,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             _log.warn("Problem seen while processing queue item which might be already handled by other workers. ", e);
             final String lockPath = ZKPaths.makePath(_lockPath, child);
             try {
+                _log.info("delete lock {}", lockPath);
                 _zkClient.delete().guaranteed().inBackground().forPath(lockPath);
             } catch (KeeperException.NoNodeException ex) {
                 _log.warn("The lock {} has been removed e={}", lockPath, ex);
@@ -370,10 +374,12 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                     }
                 }
                 );
+
         for (int i = 0; i < children.size(); i++) {
             // only grab tasks when the consumer is not busy
             // we need to check it before each one is processed.
             if (_consumer.isBusy(_queueName)) {
+                _log.info("The consumer {} is busy", _consumer);
                 return;
             }
 
@@ -381,16 +387,15 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             final String lockPath = ZKPaths.makePath(_lockPath, child);
             try {
                 _zkClient.create().withMode(CreateMode.EPHEMERAL).forPath(lockPath);
-                _log.debug("processChildren(): Created lock zNode {} for Queue {}",
-                        new Object[] { child, _queuePath });
+                _log.info("processChildren(): Created lock zNode {} for Queue {}", child, _queuePath);
                 spawnWork(child);
             } catch (KeeperException.NodeExistsException nee) {
-                _log.debug("processChildren(): For Queue: {}, ZNodes already exist", _queuePath, nee);
+                _log.info("processChildren(): For Queue: {}, ZNodes already exist", _queuePath, nee);
             } catch (KeeperException ke) {
-                _log.debug("processChildren(): For Queue: {}, Problem while creating ZNodes: {}",
+                _log.info("processChildren(): For Queue: {}, Problem while creating ZNodes: {}",
                         new Object[] { _queuePath, lockPath }, ke);
             } catch (Exception e) {
-                _log.debug("processChildren(): For Queue: {}, Failed processing ZNodes: {}",
+                _log.info("processChildren(): For Queue: {}, Failed processing ZNodes: {}",
                         new Object[] { _queuePath, lockPath }, e);
             }
         }

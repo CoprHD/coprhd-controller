@@ -17,7 +17,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ import com.emc.storageos.workflow.Workflow.StepState;
  * The controllersvc is started from within setup().
  *
  */
+@Ignore
 public class WorkflowTest extends ControllersvcTestBase implements Controller {
     private static final int SLEEP_MILLIS = 3000;
     private static final URI nullURI = NullColumnValueGetter.getNullURI();
@@ -954,6 +957,54 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         sleepMillis = 0;
         printLog(testname + " completed");
     }
+    
+    @Test
+    /**
+     * This test generates a simple two step workflow to validate all type of step saved data. The first step
+     * saves data, and the second step validates it was retrieved.
+     */
+    public void test16_validate_step_data() {
+        String taskId = UUID.randomUUID().toString();
+        String[] args = new String[1];
+        args[0] = taskId;
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate_step_data", false, taskId);
+        String  storerId = workflow.createStep("null", "save data", null, nullURI, this.getClass().getName(), false, this.getClass(),
+                stepStoreDataMethod(), null, false, null);
+        String loaderId = workflow.createStep(null, "load  data", storerId, nullURI, this.getClass().getName(), false, this.getClass(), 
+                stepLoadDataMethod(storerId), null, false, null);
+        WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state: " + state);
+        assertTrue(state == WorkflowState.SUCCESS);
+    }
+    
+    @Test
+    /**
+     * This test generates a simple two step workflow to validate all type of step saved data. The first step
+     * saves data, and the second step validates it was retrieved.
+     */
+    public void test17_big_workflow() {
+        int nsteps = 100;
+        byte[] bigArgs = new byte[2500];
+        String taskId = UUID.randomUUID().toString();
+        String[] args = new String[1];
+        args[0] = taskId;
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate big workflow", false, taskId);
+        String lastStepId = null;
+        for (int i=0; i < nsteps; i++) {
+            String message = String.format("Step %d of %d steps", i+1, nsteps);
+            lastStepId = workflow.createStep("null", message, lastStepId, nullURI, this.getClass().getName(), false, this.getClass(),
+                    stepBigArgsMethod(bigArgs), stepBigArgsMethod(bigArgs), false, null);
+        }
+        WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state: " + state);
+        assertTrue(state == WorkflowState.SUCCESS);
+    }
 
     private Task toTask(DataObject resource, String taskId, Operation operation) {
         // If the Operation has been serialized in this request, then it should have the corresponding task embedded in
@@ -1168,6 +1219,72 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
     private String genMsg(int level, int step, String msg) {
         return String.format("L%dS%d %s", level, step, msg);
     }
+    
+    public Workflow.Method stepStoreDataMethod() {
+        return new Workflow.Method("stepStoreData");
+    }
+    
+    /**
+     * Saves al forms of workflow step data.
+     * @param stepId -- this step
+     */
+    public void stepStoreData(String stepId) {
+        try {
+            URI workflowURI = workflowService.getWorkflowFromStepId(stepId).getWorkflowURI();
+            workflowService.storeStepData(workflowURI.toString(), "workflow-data");
+            workflowService.storeStepData(stepId, "step-data");
+            workflowService.storeStepData(stepId, "keya", "keya-data");
+            workflowService.storeStepData(stepId, "keyb", "keyb-data");
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            log.error("Exception in stepSaveData: ", ex.getMessage(), ex);
+            ServiceCoded coded = WorkflowException.errors.unforeseen();
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+        }
+    }
+    
+    public Workflow.Method stepLoadDataMethod(String storerStepId) {
+        return new Workflow.Method("stepLoadData", storerStepId);
+    }
+    
+    /**
+     * Verifies all forms of workflow step data.
+     * @param storerStepId -- step of storing routine
+     * @param stepId -- this step
+     */
+    public void stepLoadData(String storerStepId, String stepId) {
+        try {
+            URI workflowURI = workflowService.getWorkflowFromStepId(stepId).getWorkflowURI();
+            String workflowData = (String) workflowService.loadStepData(workflowURI.toString());
+            Assert.assertEquals("workflow-data", workflowData);
+            String stepData = (String) workflowService.loadStepData(storerStepId);
+            Assert.assertEquals("step-data", stepData);;
+            String keyaData = (String) workflowService.loadStepData(storerStepId, "keya");
+            Assert.assertEquals("keya-data", keyaData);
+            String keybData = (String) workflowService.loadStepData(storerStepId, "keyb");
+            Assert.assertEquals("keyb-data", keybData);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            log.error("Exception in stepLoadData: ", ex.getMessage(), ex);
+            ServiceCoded coded = WorkflowException.errors.unforeseen();
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+        }
+    }
+    
+    private Workflow.Method stepBigArgsMethod(byte[] arg) {
+        return new Workflow.Method("stepBigArgs", arg);
+    }
+    
+    public void stepBigArgs(byte[] arg, String stepId) {
+        try {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            log.error("Exception in stepLoadData: ", ex.getMessage(), ex);
+            ServiceCoded coded = WorkflowException.errors.unforeseen();
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+        }
+    }
+    
 
     /**
      * Reads a workflow from the database. Called recursively for sub-workflows.

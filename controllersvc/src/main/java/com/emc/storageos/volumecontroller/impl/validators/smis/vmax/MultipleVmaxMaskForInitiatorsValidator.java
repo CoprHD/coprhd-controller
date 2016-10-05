@@ -4,12 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,16 +22,20 @@ import javax.cim.CIMObjectPath;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
  * {@link Initiator} is not shared by another masking view out of management.
  */
 class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
+
+    private static final String FAILING_MSG = "Failing validation: %s.";
 
     private static final Logger log = LoggerFactory.getLogger(MultipleVmaxMaskForInitiatorsValidator.class);
     private static final String INSTANCE_ID_PREFIX = "W-+-";
@@ -46,24 +54,54 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
     }
 
     /**
-     * Initiators are not to be shared across multiple masks, so this should simply
-     * return false.
+     * Initiators are not to be shared across multiple masks, unless ALL the following
+     * criteria are met:
+     *
+     * <ol>
+     *     <li>Associated mask is under ViPR management</li>
+     *     <li>Both masks must be contained within the same ExportGroup</li>
+     *     <li>Both masks must reference the same set of Initiators</li>
+     * </ol>
      *
      * @param mask      The export mask in the ViPR request
      * @param assocMask An export mask found to be associated with {@code mask}
-     * @return          false, always
+     * @return          true if validation passes, false otherwise.
      * @throws IllegalArgumentException if {@code mask} and {@code assocMask} are equal
      */
     @Override
-    protected boolean validate(CIMInstance mask, CIMInstance assocMask) {
+    protected boolean validate(Initiator initiator, CIMInstance mask, CIMInstance assocMask) {
         if (mask.equals(assocMask)) {
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
         
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
-        log.warn("MV {} is sharing an initiator with MV {}", name, assocName);
-        return false;
+
+        log.info("MV {} is sharing an initiator with MV {}", name, assocName);
+
+        URI maskURI = getExportMaskURI(name);
+        URI assocMaskURI = getExportMaskURI(assocName);
+
+        // Associated mask is under ViPR management
+        if (assocMaskURI == null) {
+            logFailure("associated mask is not under ViPR management");
+            return false;
+        }
+
+        List<ExportMask> masks = getMasks(maskURI, assocMaskURI);
+
+        URI groupURI = getExportGroupURI(maskURI);
+        URI assocGroupURI = getExportGroupURI(assocMaskURI);
+        // If the mask's export groups are different
+        if (groupURI == null || !groupURI.equals(assocGroupURI)) {
+            // ...and both masks reference the same set of Initiators
+            if (exportMasksHaveMatchingInitiators(masks)) {
+                logFailure("masks share the same initiators but exist in different export groups");
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -95,7 +133,7 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         }
 
         StringMap userAddedInitiators = exportMask.getUserAddedInitiators();
-        List<URI> initURIs = Lists.newArrayList();
+        List<URI> initURIs = newArrayList();
 
         if (userAddedInitiators == null || userAddedInitiators.isEmpty()) {
             return Collections.emptyList();
@@ -107,6 +145,11 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
 
         dataObjects = getDbClient().queryObject(Initiator.class, initURIs);
         return dataObjects;
+    }
+
+    private List<ExportMask> getMasks(URI... masks) {
+        Iterator<ExportMask> it = getDbClient().queryIterativeObjects(ExportMask.class, newArrayList(masks), true);
+        return newArrayList(it);
     }
 
     private void checkRequestedInitiatorsBelongToMask() {
@@ -125,5 +168,34 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
                 throw new IllegalArgumentException(msg);
             }
         }
+    }
+    
+    private URI getExportMaskURI(String maskName) {
+        QueryResultList<URI> result = new URIQueryResultList();
+        getDbClient().queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(maskName), result);
+        return result.iterator().next();
+    }
+    
+    private URI getExportGroupURI(URI maskURI) {
+        QueryResultList<URI> result = new URIQueryResultList();
+        getDbClient().queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(maskURI),
+                result);
+
+        Iterator<URI> iterator = result.iterator();
+        if (iterator.hasNext()) {
+            return result.iterator().next();
+        }
+        return null;
+    }
+
+    private boolean exportMasksHaveMatchingInitiators(Collection<ExportMask> exportMasks) {
+        Iterator<ExportMask> iterator = exportMasks.iterator();
+        ExportMask first = iterator.next();
+        ExportMask second = iterator.next();
+        return StringSetUtil.areEqual(first.getInitiators(), second.getInitiators());
+    }
+
+    private void logFailure(String reason) {
+        log.warn(String.format(FAILING_MSG, reason));
     }
 }

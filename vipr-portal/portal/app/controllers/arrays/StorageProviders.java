@@ -79,6 +79,9 @@ public class StorageProviders extends ViprResourceController {
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String GUIDE_COMPLETED_STEP = "completedSteps";
+    private static final String UNREGESTERD = "UNREGISTERED";
+    private static final String PROVIDER_TYPE = "StorageProvider";
+
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
@@ -132,7 +135,7 @@ public class StorageProviders extends ViprResourceController {
         for (String id:ids) {
             StorageProviderRestRep storageProvider = StorageProviderUtils
                     .getStorageProvider(uri(id));
-            if (storageProvider == null || storageProvider.getRegistrationStatus().equals("UNREGISTERED")) {
+            if (storageProvider == null || storageProvider.getRegistrationStatus().equals(UNREGESTERD)) {
                 //ignore for now
                 continue;
             }
@@ -168,7 +171,7 @@ public class StorageProviders extends ViprResourceController {
     public static void getAllFlashStorageSystemsList(@As(",") String[] ids) {
         List<Map<String,String>> storagesystemslist = new ArrayList<Map<String,String>>();
         for (String id:ids) {
-            if(id.contains("StorageProvider")) {
+            if(id.contains(PROVIDER_TYPE)) {
                 StorageProviderRestRep storageProvider = StorageProviderUtils.getStorageProvider(uri(id));
                 if (storageProvider == null) {
                     continue;
@@ -177,7 +180,7 @@ public class StorageProviders extends ViprResourceController {
 
                 for (NamedRelatedResourceRep storageSystem : storageSystems) {
                     StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
-                    if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                    if (ss != null && !ss.getRegistrationStatus().equals(UNREGESTERD)) {
                         Map<String, String> ssMap = new HashMap<String, String>();
                         // Check if storage system is of type UNITY, VMAX or XtremIO
                         if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
@@ -187,23 +190,17 @@ public class StorageProviders extends ViprResourceController {
                         }
                         if (StringUtils.equals(VMAX, ss.getSystemType())) {
                             String modelType = ss.getModel();
-                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                                 ssMap.put("id", ss.getId().toString());
                                 ssMap.put("name", ss.getName());
                                 storagesystemslist.add(ssMap);
                             }
                         }
-                        if (StringUtils.equals(UNITY, ss.getSystemType())) {
-                            ssMap.put("id", ss.getId().toString());
-                            ssMap.put("name", ss.getName());
-                            storagesystemslist.add(ssMap);
-                        }
                     }
                 }
             } else {
                 StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(id);
-                Logger.info("Occurred");
-                if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                if (ss != null && !ss.getRegistrationStatus().equals(UNREGESTERD)) {
                     Logger.info(ss.getId()+"-----"+ss.getSystemType());
                     Map<String, String> ssMap = new HashMap<String, String>();
                     // Check if storage system is of type UNITY, VMAX or XtremIO
@@ -212,19 +209,14 @@ public class StorageProviders extends ViprResourceController {
                         ssMap.put("name", ss.getName());
                         storagesystemslist.add(ssMap);
                     }
-                    if (StringUtils.equals(VMAX, ss.getSystemType())) {
+                    if (StringUtils.equals(VMAX, ss.getSystemType()) || StringUtils.equals(UNITY, ss.getSystemType())) {
                         String modelType = ss.getModel();
-                        if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                        if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                             ssMap.put("id", ss.getId().toString());
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
                         }
                     }
-					if (StringUtils.equals(UNITY, ss.getSystemType())) {
-						ssMap.put("id", ss.getId().toString());
-						ssMap.put("name", ss.getName());
-						storagesystemslist.add(ssMap);
-					}
                 }
             }
         }
@@ -260,7 +252,6 @@ public class StorageProviders extends ViprResourceController {
         // put all "initial create only" defaults here rather than field initializers
         smisProvider.interfaceType = StorageProviderTypes.SMIS;
         smisProvider.portNumber = getDefaultPort(DefaultStorageProviderPortMap.smis_useSSL);
-        smisProvider.hyperScalePort = HYPERSCALEPORT;
         smisProvider.useSSL = true;
         copyRenderArgsToAngular();
         angularRenderArgs().put("smisProvider", smisProvider);
@@ -445,6 +436,10 @@ public class StorageProviders extends ViprResourceController {
             return StringUtils.isBlank(id);
         }
         
+        private boolean isXIV() {
+            return StorageProviderTypes.isXIV(interfaceType);
+        }
+        
         public boolean isScaleIOApi() {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
@@ -463,13 +458,16 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+            if (StringUtils.isNotEmpty(this.hyperScaleHost) && StringUtils.isNotEmpty(this.hyperScalePort)) {
                 try {
-                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
-                }catch(Exception e) {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort), "");
+                } catch (Exception e) {
                     flash.error("Unable to parse Hyper Scale Manager URL");
                 }
                 this.secondaryURL = url.toString();
+            } else if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))){
+                flash.error("Secondary Host or Port is Missing");
+                edit(id);
             }
         }
 
@@ -551,6 +549,11 @@ public class StorageProviders extends ViprResourceController {
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".confirmPassword",
                         this.confirmPassword);
+            } else if (isXIV()) {
+                if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))) {
+                    Validation.addError(fieldName + ".hyperScaleHost","Either Secondary Host or Port details is missing");
+                    Validation.addError(fieldName + ".hyperScalePort","Either Secondary Host or Port details is missing");
+                }
             }
             
             if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
@@ -558,6 +561,7 @@ public class StorageProviders extends ViprResourceController {
                         MessagesUtils
                                 .get("smisProvider.confirmPassword.not.match"));
             }
+            
 
             if (!StringUtils.equals(StringUtils.trim(secondaryPassword),
                     StringUtils.trim(secondaryPasswordConfirm))) {
@@ -568,7 +572,6 @@ public class StorageProviders extends ViprResourceController {
                                         .get("smisProvider.secondaryPassword.confirmPassword.not.match"));
             }
         }
-        
     }
 
     @SuppressWarnings("rawtypes")

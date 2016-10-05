@@ -9,19 +9,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexUtil;
 import com.google.common.base.Joiner;
 
@@ -82,6 +84,24 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             serviceCoded.getMessage());                    
                     // We either are using a single old Vpool URI or a map of Volume URI to old Vpool URI
                     for (URI id : getIds()) {
+                        Volume volume = dbClient.queryObject(Volume.class, id);
+                        
+                        // Vpool changes prepare ViPR volumes for new volumes that will
+                        // be created on the hardware as a result of a vpool change. For
+                        // example, a vpool change may migrate the backend volumes for a 
+                        // VPLEX volume. If this fails, then we need to be sure that the 
+                        // target volumes prepared for the migration are marked for deletion.
+                        // however, we only want to do this if the actual volume has yet to
+                        // be created on the array. We check for a native GUID for
+                        // the volume. If not set, the volume has not yet been created.
+                        if ((volume != null) && (!volume.isVPlexVolume(dbClient))
+                                && (volume.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT))
+                                && (NullColumnValueGetter.isNullValue(volume.getNativeGuid()))
+                                && (!volume.getInactive())) {
+                            volume.setInactive(true);
+                            volumesToUpdate.add(volume);
+                        }
+                        
                         URI oldVpoolURI = oldVpool;
                         if ((useOldVpoolMap) && (!oldVpools.containsKey(id))) {
                             continue;
@@ -89,7 +109,6 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             oldVpoolURI = oldVpools.get(id);
                         }
                                                 
-                        Volume volume = dbClient.queryObject(Volume.class, id);
                         _log.info("Rolling back virtual pool on volume {}({})", id, volume.getLabel());
                         
                         URI newVpoolURI = volume.getVirtualPool();
@@ -102,9 +121,13 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                                                                         
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
-                       
-                        volume.setVirtualPool(oldVpoolURI);
-                        _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
+                        
+                        if (serviceCoded.getServiceCode() == ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                            _log.info("Migration already commited, leaving virtual pool for volume: " + volume.forDisplay());
+                        }  else {
+                            volume.setVirtualPool(oldVpoolURI);
+                            _log.info("Set volume's virtual pool back to {}", oldVpoolURI); 
+                        }
                         
                         // Only rollback protection on the volume if the volume specifies RP and the 
                         // old vpool did not have protection and the new one does (so we were trying to add
@@ -120,11 +143,13 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
                         } 
                         
-                        if (RPHelper.isVPlexVolume(volume)) {
-                            // Special rollback for VPLEX to update the backend vpools to the old vpools
-                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                        if (RPHelper.isVPlexVolume(volume, dbClient)) {
+                            if (serviceCoded.getServiceCode() != ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                                // Special rollback for VPLEX to update the backend vpools to the old vpools
+                                rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            }
                         }
-
+                        
                         // Add the volume to the list of volumes to be updated in the DB so that the
                         // old vpool reference can be restored.
                         volumesToUpdate.add(volume);                        

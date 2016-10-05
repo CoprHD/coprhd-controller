@@ -62,7 +62,7 @@ class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends Abstrac
      * @return          True, if validation passed, false otherwise.
      */
     @Override
-    protected boolean validate(CIMInstance mask, CIMInstance assocMask) throws WBEMException {
+    protected boolean validate(BlockObject blockObject, CIMInstance mask, CIMInstance assocMask) throws WBEMException {
         boolean isSharingStorageGroups;
         boolean assocMaskHasExportGroup = false;
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
@@ -128,12 +128,12 @@ class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends Abstrac
     }
 
     @Override
-    protected String getFriendlyId(T blockObject) {
+    protected String getFriendlyId(BlockObject blockObject) {
         return format("%s/%s", blockObject.getId(), blockObject.getNativeGuid());
     }
 
     @Override
-    protected CIMObjectPath getCIMObjectPath(T obj) {
+    protected CIMObjectPath getCIMObjectPath(BlockObject obj) {
         return getCimPath().getBlockObjectPath(storage, obj);
     }
 

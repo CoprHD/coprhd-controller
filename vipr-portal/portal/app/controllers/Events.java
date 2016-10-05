@@ -88,12 +88,13 @@ public class Events extends Controller {
         renderJSON(DataTablesSupport.createJSON(events, params));
     }
 
-    public static void getPendingCount() {
+    public static void getPendingAndFailedCount() {
         ViPRCoreClient client = getViprClient();
-
-        int activeCount = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant())).getPending();
+        EventStatsRestRep eventStats = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant()));
+        int activeCount = eventStats.getPending() + eventStats.getFailed();
         if (Security.isSystemAdmin()) {
-            activeCount += client.events().getStatsByTenant(SYSTEM_TENANT).getPending();
+            EventStatsRestRep systemEventStats = client.events().getStatsByTenant(SYSTEM_TENANT);
+            activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
         }
 
         renderJSON(activeCount);
@@ -137,7 +138,8 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
@@ -250,7 +252,8 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();

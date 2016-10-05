@@ -779,6 +779,13 @@ public class BlockSnapshotSessionManager {
         if (volumes.isEmpty()) {
             return result;
         }
+        
+        // if any of the source volumes are in an application, replica management must be done via the application
+        for (Volume srcVol : volumes) {
+            if (srcVol.getApplication(_dbClient) != null) {
+                return result;
+            }
+        }
 
         Volume sourceVolume = volumes.get(0);
 

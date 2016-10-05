@@ -4,19 +4,19 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_ID;
+
+import java.util.Collection;
+import java.util.Set;
+
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
-
-import java.util.Collection;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_ID;
 
 /**
  * This subclass of {@link AbstractExportMaskValidator} will:
@@ -29,7 +29,7 @@ public class ExportMaskInitiatorsValidator extends AbstractExportMaskValidator {
     private final Collection<Initiator> expectedInitiators;
 
     public ExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask, Collection<Initiator> expectedInitiators) {
-        super(storage, exportMask, "initiators");
+        super(storage, exportMask, FIELD_INITIATORS);
         this.expectedInitiators = expectedInitiators;
     }
 

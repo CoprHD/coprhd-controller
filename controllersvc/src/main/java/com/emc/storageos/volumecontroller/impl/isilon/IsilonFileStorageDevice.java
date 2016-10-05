@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -871,7 +870,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, capacity, false, null, capacity,
                 notificationLimit, softLimit, softGracePeriod);
     }
 
@@ -925,7 +924,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // set quota - save the quota id to extensions
             String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
-                    args.getFsNotificationLimit(), softGrace, isi);
+                    args.getFsNotificationLimit(), softGrace, null, isi);
 
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
@@ -1263,7 +1262,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
+            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, args.getFsCapacity(), isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1339,13 +1338,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, isi);
+                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
             } else {
                 // Create a new Quota
-                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
+                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, null, isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();
@@ -1361,7 +1360,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, IsilonApi isi) {
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
         Long notificationLimit = 0L;
         Long softlimit = 0L;
         Long softGrace = 0L;
@@ -1378,11 +1377,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
 
-    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, IsilonApi isi) {
+    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, Long fsSize, IsilonApi isi) {
         Long notificationLimit = 0L;
         Long softlimit = 0L;
         Long softGrace = 0L;
@@ -1400,11 +1399,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         return createQuotaWithThreshold(qDirPath, qDirSize,
-                softlimit, notificationLimit, softGrace, isi);
+                softlimit, notificationLimit, softGrace, fsSize, isi);
     }
 
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
-            Long softGracePeriod, IsilonApi isi) {
+            Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;
         boolean bIncludeSnapshots = true;
 
@@ -1419,7 +1418,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         // set quota - save the quota id to extensions
-        String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
+        String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
                 softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
@@ -2260,8 +2259,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Set the clients to isilon export based on type
      * 
-     * @param type one of "rw", "root" or "ro"
-     * @param hosts the clients to be set
+     * @param type
+     *            one of "rw", "root" or "ro"
+     * @param hosts
+     *            the clients to be set
      * @param isilonExport
      */
     private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
@@ -2296,8 +2297,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.cancelMirrorFileShareLink(system, target, completer);
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        if (devSpecificPolicyName == null) {
+            devSpecificPolicyName = gerneratePolicyName(system, target);
+        }
+        mirrorOperations.cancelMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
     }
 
     @Override
@@ -2553,8 +2557,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Gets the file system custom path value from controller configuration
      * 
-     * @param storage Isilon storage system
-     * @param args FileDeviceInputOutput object
+     * @param storage
+     *            Isilon storage system
+     * @param args
+     *            FileDeviceInputOutput object
      * @return evaluated custom path
      */
     private String getCustomPath(StorageSystem storage, FileDeviceInputOutput args) {

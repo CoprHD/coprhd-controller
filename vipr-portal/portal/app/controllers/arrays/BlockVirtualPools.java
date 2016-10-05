@@ -100,7 +100,6 @@ public class BlockVirtualPools extends ViprResourceController {
     protected static final String DELETED_ERROR = "VirtualPools.delete.error";
     protected static final String UNKNOWN = "VirtualPools.unknown";
 
-    private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String VARRAYS = "varrays";
@@ -109,16 +108,12 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String UNITY = "unity";
     private static final String VMAX = "vmax";
     private static final String XTREMIO = "xtremio";
-    private static final String VP_ALL_FLASH = "vp-all-flash-diamond";
-    private static final String VP_VMAX_DIAMOND = "vp-vmax-diamond";
-    private static final String VP_XIO_DIAMOND = "vp-xio-diamond";
-    private static final String VP_UNITY_DIAMOND = "vp-unity-diamond";
-    private static final String ALL_FLASH_DESC = "Virtual Pool for All-Flash Storage";
-    private static final String VMAX_DIAMOND_DESC = "Virtual Pool for EMC VMAX All-Flash Storage";
-    private static final String XIO_DIAMOND_DESC = "Virtual Pool for EMC XtremIO Storage";
-    private static final String UNITY_DIAMOND_DESC = "Virtual Pool for EMC UNITY Storage";
+    private static final String VP_ALL_FLASH = "all-flash-diamond";
+    private static final String VP_VMAX_DIAMOND = "vmax-diamond";
+    private static final String VP_VMAX_DIAMOND_COMPRESSED = "vmax-diamond-compressed";
+    private static final String VP_XIO_DIAMOND = "xio-diamond";
+    private static final String VP_UNITY_DIAMOND = "unity-diamond";
     private static final String DEFAULT_AUTO_TIER = "Diamond SLO (0.8ms)";
- 
 
     public static void list() {
         VirtualPoolDataTable dataTable = createVirtualPoolDataTable();
@@ -158,12 +153,16 @@ public class BlockVirtualPools extends ViprResourceController {
         for (String id:ids) {
             StorageSystemRestRep storageSystem =StorageSystemUtils.getStorageSystem(id);
             if (storageSystem != null && !storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+                boolean found = false;
                 List<StoragePoolRestRep> storagepools = StoragePoolUtils.getStoragePools(id);
                 for (StoragePoolRestRep storagepool : storagepools) {
-                    if (!connectedstoragepools.contains(storagepool.getId().toString())) {
-                        failedArrays.add(storageSystem.getName());
+                    if (connectedstoragepools.contains(storagepool.getId().toString())) {
+                        found = true;
                         break;
                     }
+                }
+                if (!found) {
+                    failedArrays.add(storageSystem.getName());
                 }
             }
         }
@@ -200,7 +199,6 @@ public class BlockVirtualPools extends ViprResourceController {
         vpool.rpRpoType = RpoType.SECONDS;
         vpool.protectSourceSite = true;
         vpool.enableAutoCrossConnExport = true;
-
         edit(vpool);
     }
 
@@ -230,54 +228,56 @@ public class BlockVirtualPools extends ViprResourceController {
      * @param types : List of storage system types discovered
      */
     public static void createAllFlashAuto(List<String> types) {
-
-    	Map<String, String> virtualpoolAllFlashMap = allFlashVirtualPool();
-    	// Read cookies for storage systems and virtual pools
-		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
-		JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
-
 		List<String> vaIds4allflash = new ArrayList<String>();
 		List<String> vaIds4vmax = new ArrayList<String>();
 		List<String> vaIds4xio = new ArrayList<String>();
 		List<String> vaIds4unity = new ArrayList<String>();
         JsonArray vpools = new JsonArray();
 
-		for(Object varray: varrays) {
-			JsonObject jsonvarray = (JsonObject) varray;
-			String varrayid = jsonvarray.get("id").getAsString();
+    	// Read cookies for storage systems and virtual pools
+		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+		if(dataObject != null) {
+			JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+			if (varrays != null) {
+				for (Object varray : varrays) {
+					JsonObject jsonvarray = (JsonObject) varray;
+					String varrayid = jsonvarray.get("id").getAsString();
 
-			// Check virtual array first
-			VirtualArrayRestRep varrayRest = VirtualArrayUtils.getVirtualArray(varrayid);
-			if(varrayRest != null) {
-				// Get virtual array attributes
-				Map<String, Set<String>> attributes = VirtualArrayUtils.getAvailableAttributes(uris(varrayid));
-				Set <String> system_type = attributes.get(ATTRIBUTE_SYSTEM_TYPES);
+					// Check virtual array first
+					VirtualArrayRestRep varrayRest = VirtualArrayUtils.getVirtualArray(varrayid);
+					if (varrayRest != null) {
+						// Get virtual array attributes
+						Map<String, Set<String>> attributes = VirtualArrayUtils.getAvailableAttributes(uris(varrayid));
+						Set<String> system_type = attributes.get(ATTRIBUTE_SYSTEM_TYPES);
 
-				if(system_type != null && !system_type.isEmpty()) {
-					if(system_type.size() > 1) {
-						vaIds4allflash.add(varrayid);
-					}
-					else { //It has one system type
-						for(String vasystemtype: system_type) {
-							if(StringUtils.equals(UNITY, vasystemtype)) {
-								vaIds4unity.add(varrayid);
+						if (system_type != null && !system_type.isEmpty()) {
+							if (system_type.size() > 1) {
+								vaIds4allflash.add(varrayid);
 							}
-							if(StringUtils.equals(VMAX, vasystemtype)) {
-								vaIds4vmax.add(varrayid);
-							}
-							if(StringUtils.equals(XTREMIO, vasystemtype)) {
-								vaIds4xio.add(varrayid);
+							else { // It has one system type
+								for (String vasystemtype : system_type) {
+									if (StringUtils.equals(UNITY, vasystemtype)) {
+										vaIds4unity.add(varrayid);
+									}
+									if (StringUtils.equals(VMAX, vasystemtype)) {
+										vaIds4vmax.add(varrayid);
+									}
+									if (StringUtils.equals(XTREMIO, vasystemtype)) {
+										vaIds4xio.add(varrayid);
+									}
+								}
 							}
 						}
+						else { //Control should not reach here but let add in all flash
+							vaIds4allflash.add(varrayid);
+						}
 					}
-				}
-				else { //Control should not reach here but incase let add in all flash
-					vaIds4allflash.add(varrayid);
 				}
 			}
 		}
 
 		if(!vaIds4allflash.isEmpty()){
+			Map<String, String> virtualpoolAllFlashMap = allFlashVirtualPool();
 			String vpid = virtualpoolAllFlashMap.get(VP_ALL_FLASH);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
@@ -291,13 +291,16 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, ALL_FLASH_DESC, vpools);
+				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, Messages.get("gettingStarted.vpool.allflash.desc"), vpools);
 			}
 		}
 
-		if(!vaIds4vmax.isEmpty() ){
+		if(!vaIds4vmax.isEmpty()) {
+			Map<String, String> virtualpoolAllFlashMap = allFlashVirtualPool();
+			// Check if we should add in existing compressed vpool
+			boolean isCompression = isCompressionEnable(vaIds4vmax);
 			String vpid = virtualpoolAllFlashMap.get(VP_VMAX_DIAMOND);
-			if(vpid != null) {
+			if(vpid != null && !isCompression) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
 				List<RelatedResourceRep> virtualarrays = blockvpool.getVirtualArrays();
 				for(String vaid:vaIds4vmax) {
@@ -309,11 +312,27 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, VMAX_DIAMOND_DESC, vpools);
+				//Check compressed vpool
+				vpid = virtualpoolAllFlashMap.get(VP_VMAX_DIAMOND_COMPRESSED);
+				if(vpid != null && isCompression) {
+					BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
+					List<RelatedResourceRep> virtualarrays = blockvpool.getVirtualArrays();
+					for(String vaid:vaIds4vmax) {
+						RelatedResourceRep newVaId = new RelatedResourceRep(); 
+						newVaId.setId(URI.create(vaid));
+						virtualarrays.add(newVaId);
+					}
+					blockvpool.setVirtualArrays(virtualarrays);
+					updateAutoVirtualPool(vpid, blockvpool,vpools);
+				}
+				else {
+					createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, Messages.get("gettingStarted.vpool.vmax.desc"), vpools);
+				}
 			}
 		}
 
-		if(!vaIds4xio.isEmpty() ){
+		if(!vaIds4xio.isEmpty()) {
+			Map<String, String> virtualpoolAllFlashMap = allFlashVirtualPool();
 			String vpid = virtualpoolAllFlashMap.get(VP_XIO_DIAMOND);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
@@ -327,11 +346,12 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, XIO_DIAMOND_DESC, vpools);
+				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, Messages.get("gettingStarted.vpool.xio.desc"), vpools);
 			}
 		}
 
-		if(!vaIds4unity.isEmpty() ){
+		if(!vaIds4unity.isEmpty()) {
+			Map<String, String> virtualpoolAllFlashMap = allFlashVirtualPool();
 			String vpid = virtualpoolAllFlashMap.get(VP_UNITY_DIAMOND);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
@@ -345,7 +365,7 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, UNITY_DIAMOND_DESC, vpools);
+				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, Messages.get("gettingStarted.vpool.unity.desc"), vpools);
 			}
 		}
         dataObject.add(VPOOL_COOKIES, vpools);
@@ -793,6 +813,9 @@ public class BlockVirtualPools extends ViprResourceController {
     		if(StringUtils.equalsIgnoreCase(VP_VMAX_DIAMOND, blockvp.getName())) {
     			virtualpoolAllFlashMap.put(VP_VMAX_DIAMOND, blockvp.getId().toString());
     		}
+    		if(StringUtils.equalsIgnoreCase(VP_VMAX_DIAMOND_COMPRESSED, blockvp.getName())) {
+    			virtualpoolAllFlashMap.put(VP_VMAX_DIAMOND_COMPRESSED, blockvp.getId().toString());
+    		}
     		if(StringUtils.equalsIgnoreCase(VP_XIO_DIAMOND, blockvp.getName())) {
     			virtualpoolAllFlashMap.put(VP_XIO_DIAMOND, blockvp.getId().toString());
     		}
@@ -810,7 +833,6 @@ public class BlockVirtualPools extends ViprResourceController {
         JsonObject jsonvarray = new JsonObject();
         jsonvarray.addProperty("id", vpoolid);
         jsonvarray.addProperty("name", vpoolname);
-
         vpools.add(jsonvarray);
     }
 
@@ -836,6 +858,7 @@ public class BlockVirtualPools extends ViprResourceController {
 		vpool.systemType = storageType;
 		vpool.virtualArrays = virtualarrayIds;
 		vpool.description = vpdesc;
+		vpool.enableCompression = false;
 
 		// Check if creating a vmax AFA virtual pool, need to set auto-tiering
 		if(StringUtils.equals(VMAX, storageType)) {
@@ -861,6 +884,8 @@ public class BlockVirtualPools extends ViprResourceController {
 				for(StoragePoolRestRep sp: spList) {
 					if(sp.getCompressionEnabled() != null && sp.getCompressionEnabled()) {
 						vpool.enableCompression = true;
+						//rename with compression enable
+						vpool.name = VP_VMAX_DIAMOND_COMPRESSED;
 						break;
 					}
 				}
@@ -874,6 +899,23 @@ public class BlockVirtualPools extends ViprResourceController {
 		if (vpoolTask != null) {
             buildVpoolCookies(vpoolTask.getId().toString(), vpool.name,vpools);
 		}
+    }
+
+    private static boolean isCompressionEnable(List<String> virtualarrayIds) {
+    	boolean enableCompression = false;
+    	for(String virtualArrayId: virtualarrayIds) {
+			List<StoragePoolRestRep> spList = StoragePoolUtils.getStoragePoolsAssignedToVirtualArray(virtualArrayId);
+			for(StoragePoolRestRep sp: spList) {
+				if(sp.getCompressionEnabled() != null && sp.getCompressionEnabled()) {
+					enableCompression = true;
+					break;
+				}
+			}
+			if(enableCompression) {
+				break;
+			}
+		}
+    	return enableCompression;
     }
 
     private static void updateAutoVirtualPool(String vpid, BlockVirtualPoolRestRep blockvpool,JsonArray vpools) {

@@ -437,14 +437,14 @@ public class BlockConsistencyGroupUtils {
      * @return Unique sets of CG Ids
      */
     public static Set<URI> getAllCGsFromVolumes(List<Volume> volumes) {
-        Set<URI> cgs = new HashSet<URI>();
+        Set<URI> cgURIs = new HashSet<URI>();
         
-        for (Volume vol :  volumes) {
+        for (Volume vol : volumes) {
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
-                cgs.add(vol.getConsistencyGroup());
+                cgURIs.add(vol.getConsistencyGroup());
             }
         }
         
-        return cgs; 
+        return cgURIs; 
     }
 }

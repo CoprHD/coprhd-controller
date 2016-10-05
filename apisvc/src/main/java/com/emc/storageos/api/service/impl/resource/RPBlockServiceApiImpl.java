@@ -4071,10 +4071,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Journals
             //
             // Journals will never be in RGs so they will always be treated as single migrations.
-            // Journal volumes must be checked against the CG. A new task will be needed to track the migration.            
-            Set<URI> allCGs = BlockConsistencyGroupUtils.getAllCGsFromVolumes(volumes);
+            // Journal volumes must be checked against the CG. So we need to gather all affected 
+            // CGs in the request.
+            // A new task will be generated to track each Journal migration.            
+            Set<URI> cgURIs = BlockConsistencyGroupUtils.getAllCGsFromVolumes(volumes);
             rpVPlexJournalMigrations(journalMigrationsExist, journalVpoolMigrations, singleMigrations, 
-                    allCGs, logMigrations, taskList, taskId);
+                    cgURIs, logMigrations, taskList, taskId);
             
             logMigrations.append("\n");
             _log.info(logMigrations.toString());
@@ -4288,17 +4290,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param journalMigrationsExist Boolean to determine if journal migrations exist
      * @param journalVpoolMigrations List of RPVPlexMigrations for Journals
      * @param singleMigrations Container to store all single migrations
-     * @param allCGs Set of URIs of all the CGs from the request
+     * @param cgURIs Set of URIs of all the CGs from the request
      * @param logMigrations String buffer for logging
      * @param taskList Task list
      * @param taskId Task id
      */
     private void rpVPlexJournalMigrations(boolean journalMigrationsExist, List<RPVPlexMigration> journalVpoolMigrations, 
             Map<Volume, VirtualPool> singleMigrations, 
-            Set<URI> allCGs, StringBuffer logMigrations, TaskList taskList, String taskId) {
+            Set<URI> cgURIs, StringBuffer logMigrations, TaskList taskList, String taskId) {
         if (journalMigrationsExist) {            
-            for (URI cgId : allCGs) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            for (URI cgURI : cgURIs) {
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 // Get all Journal volumes from the CG.
                 List<Volume> journalVolumes = RPHelper.getCgVolumes(_dbClient, cg.getId(), 
                         Volume.PersonalityTypes.METADATA.name());            

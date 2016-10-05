@@ -98,7 +98,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
 
-    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 60; // TODO: change default to 5m
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
 
     private static final String LOCK_NAME = "orderscheduler";

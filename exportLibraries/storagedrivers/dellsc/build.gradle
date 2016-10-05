@@ -2,7 +2,6 @@ dependencies {
     compile project(":storagedriver"),
         library(google_gson),
         library(httpclient4),
-        library(log4j),
         library(slf4j),
         library(commons_lang)
 

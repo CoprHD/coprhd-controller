@@ -12,8 +12,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -22,6 +20,10 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -232,21 +234,21 @@ public abstract class ViPRService extends AbstractExecutionService {
         
         for (Task<? extends DataObjectRestRep> task : tasks) {
             URI resourceId = task.getResourceId();
-            if (resourceId != null && !volumeOrCGId.equals(resourceId) && !URIUtil.getModelClass(resourceId).equals(BlockConsistencyGroup.class)) {
+            if (resourceId != null && !volumeOrCGId.equals(resourceId)) {
                 retainedResource.add(resourceId.toString());
             }
 
             if (task.getAssociatedResources() != null
                     && !task.getAssociatedResources().isEmpty()) {
                 for (URI id : ResourceUtils.refIds(task.getAssociatedResources())) {
-                    if (volumeOrCGId.equals(id) || URIUtil.getModelClass(resourceId).equals(BlockConsistencyGroup.class)) {
+                    if (volumeOrCGId.equals(id)) {
                         continue;
                     }
                     retainedResource.add(id.toString());
                 }
             }
         }
-
+        
         modelClient.save(retention);
     }
     

@@ -323,7 +323,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 }
                 if (!exportMaskstoDelete.isEmpty()) {
                     for (ExportMask exportMask : exportMaskstoDelete) {
-                        List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
+                        List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
                         List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                                 exportGroup, exportMask, volumesInMask, initiators, null);
@@ -413,7 +413,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             // AddInitiatorWorkFlow
                             masksToInitiators.put(exportMaskUri,
                                     computeResourceToInitiators.get(computeKey));
-                            List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
+                            List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
                             // all masks will be always created by system = true, hence port allocation will happen
                             addIniStep = generateExportMaskAddInitiatorsWorkflow(workflow, null,
                                     storage, exportGroup, exportMask, initiatorURIs, new HashSet<URI>(volumesInMask),
@@ -598,7 +598,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 }
                 if (!exportMaskRemoveInitiator.isEmpty()) {
                     for (ExportMask exportMask : exportMaskRemoveInitiator) {
-                        Collection<URI> volumeURIs = (Collections2.transform(exportMask.getUserAddedVolumes().values(),
+                        Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
                         previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep,
                                 storage, exportGroup, exportMask, new ArrayList<URI>(volumeURIs), initiatorURIs, true);
@@ -606,7 +606,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 }
                 if (!exportMaskDelete.isEmpty()) {
                     for (ExportMask exportMask : exportMaskDelete) {
-                        List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
+                        List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
                         List<URI> initiators = maskToInitiatorsMap.get(exportMask.getId());
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                                 exportGroup, exportMask, volumesInMask, initiators, null);
@@ -705,7 +705,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             for (ExportMask exportMask : exportMasks) {
                 refreshExportMask(storage, getDevice(), exportMask);
                 List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
-                List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
+                List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
                 previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
                         exportMask, volumesInMask, initiators, null);
             }

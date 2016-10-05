@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.plugins.metering.vplex.VPlexCollectionException;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -51,6 +52,7 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
@@ -538,7 +540,7 @@ public class VPlexControllerUtils {
      * @param networkDeviceController the NetworkDeviceController, used for refreshing the zoning map
      * @param isRemoveOperation flag to indicate whether the caller is a operation that removes inits or vols
      */
-    private static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
+    public static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
             ExportMask exportMask, Map<String, String> targetPortToPwwnMap, 
             NetworkDeviceController networkDeviceController, boolean isRemoveOperation) {
         try {
@@ -600,7 +602,7 @@ public class VPlexControllerUtils {
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
             List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorObjectsForComputeResourceToAdd = new ArrayList<Initiator>();
+            List<Initiator> initiatorObjectsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -608,11 +610,8 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
-
-                    // If the initiator is in our DB, and it's in our compute resource, it gets added to to the initiator list.
-                    // Otherwise it gets added to the existing list.
-                    if (knownInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, knownInitiator)) {
-                        initiatorObjectsForComputeResourceToAdd.add(knownInitiator);
+                    if (knownInitiator != null) {
+                        initiatorObjectsToAdd.add(knownInitiator);
                     } else {
                         initiatorPortWwnsToAdd.add(normalizedPort);
                     }
@@ -706,9 +705,9 @@ public class VPlexControllerUtils {
                         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
                         if (volumeList.iterator().hasNext()) {
                             URI volumeURI = volumeList.iterator().next();
-                            if (exportMask.hasUserCreatedVolume(volumeURI)) {
+                            if (exportMask.hasVolume(volumeURI)) {
                                 log.info("\texisting volumes contain wwn {}, but it is also in the "
-                                        + "export mask's user added volumes, so removing from existing volumes", wwn);
+                                        + "export mask's volumes, so removing from existing volumes", wwn);
                                 volumesToRemoveFromExisting.add(wwn);
                             }
                         }
@@ -776,11 +775,10 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsForComputeResourceToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
                 exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
-                exportMask.addToUserCreatedInitiators(initiatorObjectsForComputeResourceToAdd);
-                exportMask.addInitiators(initiatorObjectsForComputeResourceToAdd);
+                exportMask.addInitiators(initiatorObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addVolumes(volumesInDbToAdd);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);

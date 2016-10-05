@@ -284,9 +284,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             return msg;
         }
 
-        if (scheduleInfo.getReoccurrence() == 1)
-            return msg;
-
         switch (scheduleInfo.getCycleType()) {
             case MINUTELY:
             case HOURLY:
@@ -588,7 +585,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 if (param.getLabel().equals(LINKED_SNAPSHOT_NAME)) {
                     if (param.getValue() != null) {
                         String snapshotName = param.getValue();
-                        if (!(snapshotName.isEmpty() || snapshotName.equals("\"\""))) {
+                        if (!(snapshotName.isEmpty() || snapshotName.equals(""))) {
                             throw APIException.badRequests.scheduleInfoNotAllowedWithSnapshotSessionTarget();
                         }
                     }

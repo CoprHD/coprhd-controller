@@ -878,9 +878,6 @@ def host_list(args):
             if(args.verbose):
                 return common.format_json_object(hostListDetails)
             else:
-                for element in hostListDetails:
-                    del element['preferred_pools']
-
                 if(args.largetable):
                     TableGenerator(hostListDetails, ['name', 'host_name',
                                    'type', 'user_name',

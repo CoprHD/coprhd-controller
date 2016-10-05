@@ -180,7 +180,7 @@ public class ScheduledOrders extends Controller {
                     rangeOfRecurrence = recurrence;
                     recurrence = -1;
                 } else {
-                    rangeOfRecurrence = 10;
+                    rangeOfRecurrence = 1;
                 }
                 
                 cycleType = schedulerInfo.getCycleType().toString();

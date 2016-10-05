@@ -730,7 +730,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
                     .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
-            initiatorsValidator.setKnownInitiatorToIGMap(knownInitiatorsToIGMap);
             initiatorsValidator.validate();
 
             Set<String> igNames = groupInitiatorsByIG.keySet();
@@ -1145,7 +1144,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             // TODO we might need a list of HLU for each Volume URI
                             hluNumberFound = hluNumber.intValue();
                             exportMask.addVolume(blockObj.getId(), hluNumberFound);
-                            exportMask.addToUserCreatedVolumes(blockObj);
 
                         }
                     }

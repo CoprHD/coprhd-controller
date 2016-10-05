@@ -20,9 +20,6 @@ import com.sun.jersey.api.client.WebResource;
 // the name
 public class AuthSvcInternalApiClientIterator extends AuthSvcBaseClientIterator {
 
-    private int clientReadTimeout = 300 * 1000;
-    private int clientConnectTimeout = 300 * 1000;
-
     /**
      * Constructor when using signature based api calls which will need a
      * signature using the coordinator
@@ -33,7 +30,7 @@ public class AuthSvcInternalApiClientIterator extends AuthSvcBaseClientIterator 
     public AuthSvcInternalApiClientIterator(EndPointLocator authSvcEndPointLocator,
             CoordinatorClient coordinator) {
         super(authSvcEndPointLocator);
-        setClientRequestHelper(new ClientRequestHelper(coordinator, clientReadTimeout, clientConnectTimeout));
+        setClientRequestHelper(new ClientRequestHelper(coordinator));
     }
 
     /**

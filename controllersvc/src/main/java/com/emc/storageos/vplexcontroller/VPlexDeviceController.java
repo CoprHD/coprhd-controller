@@ -3258,10 +3258,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
-                    List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values());
+                    List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
                     List<Initiator> initiators = new ArrayList<>();
-                    if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
-                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values());
+                    if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
                         initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
                     }
 
@@ -3977,9 +3977,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
-        if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
+        if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
             Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class,
-                    URIUtil.toURIList(exportMask.getUserAddedInitiators().values()), true);
+                URIUtil.toURIList(exportMask.getInitiators()), true);
             while (initItr.hasNext()) {
                 initiators.add(initItr.next());
             }
@@ -4735,8 +4735,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // validate the remove storage port operation against the export mask volumes
             // this is conceptually the same as remove initiators, so will validate with volumes
-            List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
-                    ? URIUtil.toURIList(exportMask.getUserAddedVolumes().values())
+            List<URI> volumeURIList = (exportMask.getVolumes() != null) ? URIUtil.toURIList(exportMask.getVolumes().keySet())
                     : new ArrayList<URI>();
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
@@ -4862,8 +4861,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // validate the remove initiator operation against the export mask volumes
-                    List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
-                            ? URIUtil.toURIList(exportMask.getUserAddedVolumes().values())
+                    List<URI> volumeURIList = (exportMask.getVolumes() != null) ? URIUtil.toURIList(exportMask.getVolumes().keySet())
                             : new ArrayList<URI>();
                     if (volumeURIList.isEmpty()) {
                         _log.warn("volume URI list for validating remove initiators is empty...");
@@ -5403,8 +5401,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // validate the remove initiator operation against the export mask volumes
-            List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
-                    ? URIUtil.toURIList(exportMask.getUserAddedVolumes().values())
+            List<URI> volumeURIList = (exportMask.getVolumes() != null) ? URIUtil.toURIList(exportMask.getVolumes().keySet())
                     : new ArrayList<URI>();
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");

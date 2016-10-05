@@ -20,7 +20,7 @@ public class AllowRecurringSchedulerMigration extends BaseCustomMigrationCallbac
     private static final Logger log = LoggerFactory.getLogger(AllowRecurringSchedulerMigration.class);
 
     public static final List RECURRING_ALLOWED_CATALOG_SERVICES = Lists.newArrayList("CreateBlockSnapshot", 
-            "CreateFileSnapshot", "CreateFullCopy");
+            "CreateFileSnapshot", "CreateFullCopy", "CreateSnapshotOfApplication", "CreateCloneOfApplication");
     @Override
     public void process() {
         List<URI> catalogServiceIds = dbClient.queryByType(CatalogService.class, true);

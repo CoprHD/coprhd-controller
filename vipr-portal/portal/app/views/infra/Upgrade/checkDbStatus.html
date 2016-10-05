@@ -24,7 +24,7 @@
                     %{
                         style = "success"
                         if (isDbCheckStatus.equals("FAILED")) {
-                        	style="warning"
+                        	style="danger"
                         }
                       }%
                       #{progressBar name:"Status", percentage:checkProgress, style:style/}</td>
@@ -112,16 +112,16 @@ function checkDbProgressUpdate() {
     			$('#cancelDbButton').attr('disabled',false);
     		}
 			if(result.status != "FAILED"){
-				if($('.progress-bar').hasClass('progress-bar-warning')){
-					$('.progress-bar').removeClass('progress-bar-warning');
+				if($('.progress-bar').hasClass('progress-bar-danger')){
+					$('.progress-bar').removeClass('progress-bar-danger');
 				}
 				$("#checkDbStatus").css("color", "#333333");
 				$("#checkDbStatus").css("font-weight", "normal");
 				$("#checkDetailMsg").text("");
 			}else {
 				$("#checkDbStatus").text('&{'upgrade.checkDb.failed'}');
-        		updateProgressBarStyle("Status", "warning");
-        		$("#checkDbStatus").css("color", "#f0ad4e");
+        		updateProgressBarStyle("Status", "danger");
+        		$("#checkDbStatus").css("color", "#d9534f");
         		$("#checkDbStatus").css("font-weight", "bold");
         		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());

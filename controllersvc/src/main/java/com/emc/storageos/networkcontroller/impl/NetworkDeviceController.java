@@ -2256,7 +2256,7 @@ public class NetworkDeviceController implements NetworkController {
             Collection<String> removedPorts, boolean maskUpdated, boolean persist) {
         try {
             // check if zoning is enabled for the mask
-            if (!zoningEnabled(exportMask, _dbClient)) {
+            if (!zoningEnabled(exportMask)) {
                 _log.info("Zoning not enabled for export mask {}. Zoning refresh will not be done",
                         exportMask.getMaskName());
                 return;
@@ -2407,11 +2407,11 @@ public class NetworkDeviceController implements NetworkController {
      * @param exportMask the export mask
      * @return true if zoning is enabled for any of the mask export groups.
      */
-    public static boolean zoningEnabled(ExportMask exportMask, DbClient dbClient) {
-        if (NetworkUtil.areNetworkSystemDiscovered(dbClient)) {
-            List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
+    private boolean zoningEnabled(ExportMask exportMask) {
+        if (NetworkUtil.areNetworkSystemDiscovered(_dbClient)) {
+            List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(exportMask.getId(), _dbClient);
             for (ExportGroup exportGroup : exportGroups) {
-                if (NetworkScheduler.isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
+                if (NetworkScheduler.isZoningRequired(_dbClient, exportGroup.getVirtualArray())) {
                     return true;
                 }
             }

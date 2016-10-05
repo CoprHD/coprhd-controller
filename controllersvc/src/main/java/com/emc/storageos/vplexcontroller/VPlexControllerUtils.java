@@ -756,10 +756,8 @@ public class VPlexControllerUtils {
                 exportMask.addInitiators(initiatorObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
-                if (NetworkDeviceController.zoningEnabled(exportMask, dbClient)) {
-                    exportMask.getStoragePorts().addAll(storagePortsToAdd);
-                    exportMask.getStoragePorts().removeAll(storagePortsToRemove);
-                }
+                exportMask.getStoragePorts().addAll(storagePortsToAdd);
+                exportMask.getStoragePorts().removeAll(storagePortsToRemove);
                 // update native id (this is the context path to the storage view on the vplex)
                 exportMask.setNativeId(storageView.getPath());
                 ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);

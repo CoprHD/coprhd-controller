@@ -7,6 +7,7 @@ package controllers.security;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import controllers.deadbolt.Deadbolt;
+import jobs.vipr.AuthModeBootstrap;
 import models.security.UserInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
@@ -16,6 +17,7 @@ import play.cache.Cache;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Util;
+import util.AuthSourceType;
 import util.BourneUtil;
 import util.MessagesUtils;
 
@@ -40,6 +42,12 @@ public class Security extends Controller {
     public static final String PROJECT_ADMIN = "PROJECT_ADMIN";
     public static final String RESTRICTED_SYSTEM_ADMIN = "RESTRICTED_SYSTEM_ADMIN";
     public static final String RESTRICTED_SECURITY_ADMIN = "RESTRICTED_SECURITY_ADMIN";
+
+    public static final String AUTH_MODE_CACHE_KEY = "authmode";
+
+    public static enum AuthModeType {
+        oidc, normal
+    }
 
     // These are Portal only Roles!
     // Members who have admin over any tenant will get the TENANT_ADMIN role,
@@ -355,5 +363,10 @@ public class Security extends Controller {
     @Util
     private static void removeResponseCookie(String name) {
         response.setCookie(name, "", null, "/", 0, true, true);
+    }
+
+    @Util
+    public static AuthModeType authMode() {
+        return AuthModeType.valueOf( (String) Cache.get(AUTH_MODE_CACHE_KEY) );
     }
 }

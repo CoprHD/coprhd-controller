@@ -21,6 +21,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ClassOfService;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -267,6 +268,28 @@ public class ImplicitPoolMatcher {
                 VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap),
                 VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), fileRemoteSettingsMap));
         Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
+        _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
+        List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
+                matcherGroupName);
+        _logger.info("Ended matching pools with vpool attributes. Found {} matching pools", filterPools.size());
+        return filterPools;
+    }
+    
+    /**
+     * Matches given COS with list of pools provided and return list of matched pools from give COS profiles
+     * 
+     */
+    public static List<StoragePool> getMatchedPoolWithStoragePools(ClassOfService cos,
+            List<StoragePool> pools,
+            DbClient dbClient,
+            CoordinatorClient coordinator, String matcherGroupName) {
+        // By default use all vpool matchers.
+        if (matcherGroupName == null) {
+            matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
+        }
+        _logger.info("Started matching pools with {} vpool, matcher group {}", cos.getId(), matcherGroupName);
+        AttributeMapBuilder cosMapBuilder = new ClassOfServiceAttributeMapBuilder(cos);
+        Map<String, Object> attributeMap = cosMapBuilder.buildMap();
         _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
         List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
                 matcherGroupName);

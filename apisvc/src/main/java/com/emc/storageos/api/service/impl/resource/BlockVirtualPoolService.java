@@ -107,6 +107,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.volumecontroller.impl.utils.CosBaseProfileWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -1821,7 +1822,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/cos")
-    public Response createClassOfService(Map<String,Object> capabilities)
+    public Response createClassOfService(BlockVirtualPoolParam param)
     		throws DatabaseException {
 
     	Gson gson = new Gson(); 
@@ -1832,13 +1833,12 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     		baseProfile = (Map<String,Object>) gson.fromJson(new FileReader("..\\conf\\baseProfile.json"), baseProfile.getClass());
     	}catch (FileNotFoundException ex) {
     		_log.error("baseProfile.json file not found " + ex);
+    		// Get default capabilities!!!
+    		initializeDefaultCapablities(baseProfile);
     	}
 
-    	//Over write the default values with given capabilities
-    	for (Entry<String, Object> entry : capabilities.entrySet() ) {
-    		baseProfile.put(entry.getKey(), entry.getValue());
-    	}
-
+    	// Update the default values with given parameters
+    	updateBaseProfilCapabilities(baseProfile, param);
     	ClassOfService cos = new ClassOfService();
     	cos.setId(URIUtil.createId(ClassOfService.class));
 
@@ -1848,6 +1848,66 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     }
     
+    private void initializeDefaultCapablities(Map<String,Object> baseProfile) {
+    	baseProfile.put(CosBaseProfileWrapper.AUTO_TIER__POLICY_NAME, "");
+    	baseProfile.put(CosBaseProfileWrapper.RAID_LEVEL, "");
+    	baseProfile.put(CosBaseProfileWrapper.SYSTEM_TYPE, "NONE");
+    	baseProfile.put(CosBaseProfileWrapper.PROTOCOLS, "FC");
+    	baseProfile.put(CosBaseProfileWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, 0);
+    	baseProfile.put(CosBaseProfileWrapper.RESOURCE_COUNT, 1);
+    	baseProfile.put(CosBaseProfileWrapper.THIN_PROVISIONING, true);
+    	baseProfile.put(CosBaseProfileWrapper.BLOCK_CONSISTENCY_GROUP, true);
+    	baseProfile.put(CosBaseProfileWrapper.MIN_PATHS, 1);
+    	baseProfile.put(CosBaseProfileWrapper.PATHS_PER_INITIATOR, 1);
+    	baseProfile.put(CosBaseProfileWrapper.DRIVE_TYPE, "NONE");
+    	baseProfile.put(CosBaseProfileWrapper.PROVISIONING_TYPE, "Thin");
+    	baseProfile.put(CosBaseProfileWrapper.MULTI_VOLUME_CONSISTENCY, true);
+    	baseProfile.put(CosBaseProfileWrapper.HOST_IO_BANDWIDTH, 1000);
+    	baseProfile.put(CosBaseProfileWrapper.HOST_IO_IOPS, 200);
+    } 
+    
+    private void updateBaseProfilCapabilities(Map<String,Object> baseProfile, BlockVirtualPoolParam param) {
+    	if(param.getMaxPaths() != null && param.getMaxPaths() > 0) {
+    		baseProfile.put(CosBaseProfileWrapper.MAX_PATHS, param.getMaxPaths());
+    	}
+    	
+    	if(param.getMinPaths() != null && param.getMinPaths() > 0) {
+    		baseProfile.put(CosBaseProfileWrapper.MIN_PATHS, param.getMinPaths());
+    	}
+    	
+    	if(param.getRaidLevels() != null && !param.getRaidLevels().isEmpty()) {
+    		baseProfile.put(CosBaseProfileWrapper.RAID_LEVEL, param.getRaidLevels());
+    	}
+    	
+    	if(param.getSystemType() != null && !param.getSystemType().isEmpty()) {
+    		baseProfile.put(CosBaseProfileWrapper.SYSTEM_TYPE, param.getSystemType());
+    	}
+    	
+    	if(param.getProtocols() != null && !param.getProtocols().isEmpty()) {
+    		baseProfile.put(CosBaseProfileWrapper.PROTOCOLS, param.getProtocols());
+    	}
+    	
+    	if(param.getPathsPerInitiator() != null && param.getPathsPerInitiator() > 0) {
+    		baseProfile.put(CosBaseProfileWrapper.PATHS_PER_INITIATOR, param.getPathsPerInitiator());
+    	}
+    	
+    	if(param.getDriveType() != null && !param.getDriveType().isEmpty()) {
+    		baseProfile.put(CosBaseProfileWrapper.DRIVE_TYPE, param.getDriveType());
+    	}
+    	
+    	if(param.getMultiVolumeConsistency() != null ) {
+    		baseProfile.put(CosBaseProfileWrapper.MULTI_VOLUME_CONSISTENCY, param.getMultiVolumeConsistency());
+    	}
+    	
+    	if(param.getHostIOLimitBandwidth() != null && param.getHostIOLimitBandwidth() > 0) {
+    		baseProfile.put(CosBaseProfileWrapper.HOST_IO_BANDWIDTH, param.getHostIOLimitBandwidth());
+    	}
+    	
+    	if(param.getHostIOLimitIOPs() != null && param.getHostIOLimitIOPs() > 0) {
+    		baseProfile.put(CosBaseProfileWrapper.HOST_IO_IOPS, param.getHostIOLimitIOPs());
+    	}
+    }
+                           
     /**
      * Creates a class of service
      *

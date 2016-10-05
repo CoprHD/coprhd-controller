@@ -18,30 +18,27 @@ package com.emc.sa.service.vipr.oe.primitive;
 
 public class Parameter extends AbstractParameter<String> {
 
-    private static final long serialVersionUID = 1L;
-
     public enum Type {
         STRING, INTEGER, ASSET
     };
 
-    private String _value;
-    private Type _type;
+    private final String _value;
+    private final Type _type;
+
+    public Parameter(final String name, final String friendlyName,
+            final String value, final Type type, final boolean locked,
+            final boolean required) {
+        super(name, friendlyName, locked, required);
+        _value = value;
+        _type = type;
+    }
 
     @Override
-    public String getValue() {
+    public String value() {
         return _value;
     }
 
-    @Override
-    public void setValue(final String value) {
-        _value = value;
-    }
-
-    public void setType(final Type t) {
-        _type = t;
-    }
-
-    public Type getType() {
+    public Type type() {
         return _type;
     }
 

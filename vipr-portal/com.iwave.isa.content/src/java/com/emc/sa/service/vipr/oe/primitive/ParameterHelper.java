@@ -16,139 +16,298 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
+import java.net.URI;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.sa.service.vipr.oe.primitive.Parameter.Type;
-import com.emc.storageos.db.client.model.OEParameterMetaData;
-import com.emc.storageos.db.client.model.StringMap;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OEAbstractParameter;
+import com.emc.storageos.db.client.model.OEParameter;
+import com.emc.storageos.db.client.model.OEParameterList;
+import com.emc.storageos.db.client.model.StringSet;
 
 public class ParameterHelper {
 
     private ParameterHelper() {
     }
 
+    /**
+     * @param input
+     * @return
+     */
     public static Map<String, AbstractParameter<?>> toParameterMap(
-            final Map<String, String> stringMap) {
-        final Map<String, AbstractParameter<?>> parameterMap = new HashMap<String, AbstractParameter<?>>();
-        final Map<String, Map<String, Parameter>> lists = new HashMap<String, Map<String, Parameter>>();
-        final Gson gson = new Gson();
-        for (final String parameterName : stringMap.keySet()) {
-            final OEParameterMetaData metaData;
-            try {
-                metaData = gson.fromJson(stringMap.get(parameterName),
-                        OEParameterMetaData.class);
-            } catch (final JsonSyntaxException e) {
-                // TODO throw a better exception? or don't bother catching this
-                throw new RuntimeException();
-            }
+            final DbClient dbClient, final StringSet input) {
+        final Map<String, AbstractParameter<?>> parameters = new HashMap<String, AbstractParameter<?>>();
+        if (null == input || input.isEmpty()) {
+            return parameters;
+        } else {
+            for (final URI inputUri : URIUtil.toURIList(input)) {
+                final Class<?> type = URIUtil.getModelClass(inputUri);
+                if (type.isAssignableFrom(OEParameter.class)) {
+                    final OEParameter oeParameter = dbClient.queryObject(
+                            OEParameter.class, inputUri);
+                    parameters.put(oeParameter.getName(),
+                            toParameter(oeParameter));
 
-            final AbstractParameter<?> parameter;
-            switch (metaData.getType()) {
-            case "LIST":
-                parameter = new ParameterList();
-                ((ParameterList) parameter)
-                        .setValue(new HashMap<String, Parameter>());
-                break;
-            default:
-                parameter = new Parameter();
-                ((Parameter) parameter).setValue(metaData.getValue());
-                ((Parameter) parameter)
-                        .setType(Type.valueOf(metaData.getType()));
-                break;
-            }
-            parameter.setFriendlyName(metaData.getFriendlyName());
-            parameter.setLocked(metaData.isLocked());
-            parameter.setRequired(metaData.isRequired());
-
-            // If this parameter is a member of a list add it to the list value
-            // otherwise add it into the parameter map
-            if (metaData.getListName() != null
-                    && !metaData.getListName().isEmpty()) {
-                if (parameter.isParameterList()) {
-                    throw new RuntimeException(
-                            "Parameter list cannot contain lists");
+                } else if (type.isAssignableFrom(OEParameterList.class)) {
+                    final OEParameterList oeParameterList = dbClient
+                            .queryObject(OEParameterList.class, inputUri);
+                    parameters.put(oeParameterList.getName(),
+                            toParameterList(dbClient, oeParameterList));
                 }
-                if (!lists.containsKey(metaData.getListName())) {
-                    lists.put(metaData.getListName(),
-                            new HashMap<String, Parameter>());
-                }
-                lists.get(metaData.getListName()).put(parameterName,
-                        (Parameter) parameter);
-            } else {
-                if (null != parameterMap.putIfAbsent(parameterName, parameter))
-                    throw new RuntimeException("Duplicate parameter name");
             }
-        }
 
-        for (final String list : lists.keySet()) {
-            final AbstractParameter<?> parameterList = parameterMap.get(list);
-            if (null == parameterList) {
-                throw new RuntimeException(
-                        "Invalid primitive parameter list does not exist");
-            } else if (!parameterList.getClass().isAssignableFrom(
-                    ParameterList.class)) {
-                throw new RuntimeException(
-                        "Invalid primitive paramater is not a list");
-            }
-            ((ParameterList) parameterList).setValue(lists.get(list));
+            return parameters;
         }
-
-        return parameterMap;
     }
 
-    public static StringMap toStringMap(
-            final Map<String, AbstractParameter<?>> parameterMap) {
-        final StringMap stringMap = new StringMap();
-        final Gson gson = new Gson();
-        for (final String parameterName : parameterMap.keySet()) {
-            final OEParameterMetaData metaData = new OEParameterMetaData();
-            final AbstractParameter<?> parameterValue = parameterMap
-                    .get(parameterName);
-            if (parameterValue.isParameterList()) {
-                metaData.setType("LIST");
-                metaData.setValue("");
-                for (final String listMemberName : parameterValue
-                        .asParameterList().getValue().keySet()) {
-                    final Parameter listMemberValue = parameterValue
-                            .asParameterList().getValue().get(listMemberName);
-                    final OEParameterMetaData listMemberMetaData = new OEParameterMetaData();
-                    listMemberMetaData.setFriendlyName(listMemberValue
-                            .getFriendlyName());
-                    listMemberMetaData.setListName(parameterName);
-                    listMemberMetaData.setLocked(listMemberValue.isLocked());
-                    listMemberMetaData
-                            .setRequired(listMemberValue.isRequired());
-                    listMemberMetaData
-                            .setType(listMemberValue.getType().name());
-                    listMemberMetaData.setValue(listMemberValue.getValue());
-                    stringMap.put(listMemberName,
-                            gson.toJson(listMemberMetaData));
-                }
-            } else {
-                metaData.setType(parameterValue.asParameter().getType().name());
-                metaData.setValue(parameterValue.asParameter().getValue());
-            }
-            metaData.setFriendlyName(parameterValue.getFriendlyName());
-            metaData.setLocked(parameterValue.isLocked());
-            metaData.setRequired(parameterValue.isRequired());
+    private static ParameterList toParameterList(final DbClient dbClient,
+            final OEParameterList oeParameterList) {
+        return new ParameterList(oeParameterList.getName(),
+                oeParameterList.getFriendlyName(), toParameterMap(dbClient,
+                        oeParameterList.getParameters()),
+                oeParameterList.getLocked(), oeParameterList.getRequired());
+    }
 
-            stringMap.put(parameterName, gson.toJson(metaData));
-        }
-        return stringMap;
+    private static Parameter toParameter(final OEParameter oeParameter) {
+        return new Parameter(oeParameter.getName(),
+                oeParameter.getFriendlyName(), oeParameter.getValue(),
+                Type.valueOf(oeParameter.getType()), oeParameter.getLocked(),
+                oeParameter.getRequired());
     }
 
     /**
      * @param input
      * @param input2
+     */
+    public static boolean updateParameterStringSet(final DbClient dbClient,
+            final NamedURI primitive,
+            final Map<String, AbstractParameter<?>> parameterMap,
+            StringSet stringSet) {
+
+        final Set<String> found = new HashSet<String>();
+        final Set<String> added = new HashSet<String>();
+        final Set<String> removed = new HashSet<String>();
+        if (stringSet == null) {
+            stringSet = new StringSet();
+        } else if (!stringSet.isEmpty()) {
+            for (final URI uri : URIUtil.toURIList(stringSet)) {
+                final Class<?> type = URIUtil.getModelClass(uri);
+
+                if (type.isAssignableFrom(OEParameter.class)) {
+                    final OEParameter oeParameter = dbClient.queryObject(
+                            OEParameter.class, uri);
+                    found.add(oeParameter.getName());
+                    if (parameterMap.containsKey(oeParameter.getName())) {
+                        if (!parameterMap.get(oeParameter.getName())
+                                .isParameter())
+                            throw new RuntimeException();
+                        final Parameter parameter = parameterMap.get(
+                                oeParameter.getName()).asParameter();
+                        if (!equal(parameter, oeParameter)) {
+                            if (primitive.equals(oeParameter.getPrimitive())) {
+                                dbClient.updateObject(toOEParameter(
+                                        oeParameter.getId(), primitive,
+                                        parameter));
+                            } else {
+                                final URI id = URIUtil
+                                        .createId(OEParameter.class);
+                                dbClient.createObject(toOEParameter(
+                                        URIUtil.createId(OEParameter.class),
+                                        primitive, parameter));
+                                added.add(id.toString());
+                                removed.add(oeParameter.getId().toString());
+                            }
+                        }
+
+                    } else {
+                        removed.add(uri.toString());
+                        if (primitive.equals(oeParameter.getPrimitive())) {
+                            dbClient.markForDeletion(oeParameter);
+                        }
+                    }
+
+                } else if (type.isAssignableFrom(OEParameterList.class)) {
+                    final OEParameterList oeParameterList = dbClient
+                            .queryObject(OEParameterList.class, uri);
+                    found.add(oeParameterList.getName());
+                    if (parameterMap.containsKey(oeParameterList.getName())) {
+                        if (!parameterMap.get(oeParameterList.getName())
+                                .isParameterList())
+                            throw new RuntimeException();
+                        final ParameterList parameterList = parameterMap.get(
+                                oeParameterList.getName()).asParameterList();
+
+                        if (!equal(parameterList, oeParameterList)
+                                || updateParameterStringSet(dbClient,
+                                        primitive, parameterList.value(),
+                                        oeParameterList.getParameters())) {
+                            if (primitive.equals(oeParameterList.getName())) {
+                                dbClient.updateObject(toOEParameterList(
+                                        oeParameterList.getId(), primitive,
+                                        parameterList,
+                                        oeParameterList.getParameters()));
+                            } else {
+                                final URI id = URIUtil
+                                        .createId(OEParameterList.class);
+                                dbClient.createObject(toOEParameterList(
+                                        URIUtil.createId(OEParameterList.class),
+                                        primitive, parameterList,
+                                        oeParameterList.getParameters()));
+                                added.add(id.toString());
+                                removed.add(oeParameterList.getId().toString());
+                            }
+                        }
+
+                    } else {
+                        removed.add(uri.toString());
+                        if (primitive.equals(oeParameterList.getPrimitive())) {
+                            deleteList(dbClient, primitive, oeParameterList);
+                        }
+                    }
+                }
+            }
+        }
+        final Set<String> newParameters = parameterMap.keySet();
+        newParameters.removeAll(found);
+        for (final String parameterName : newParameters) {
+            final URI id;
+            if (parameterMap.get(parameterName).isParameter()) {
+                id = URIUtil.createId(OEParameter.class);
+                dbClient.createObject(toOEParameter(id, primitive, parameterMap
+                        .get(parameterName).asParameter()));
+            } else {
+                final StringSet parameters = new StringSet();
+                updateParameterStringSet(dbClient, primitive,
+                        parameterMap.get(parameterName).asParameterList()
+                                .value(), parameters);
+                id = URIUtil.createId(OEParameterList.class);
+                dbClient.createObject(toOEParameterList(id, primitive,
+                        parameterMap.get(parameterName).asParameterList(),
+                        parameters));
+            }
+            added.add(id.toString());
+        }
+
+        return stringSet.removeAll(removed) || stringSet.addAll(added);
+    }
+
+    /**
+     * @param parameterList
+     * @param oeParameterList
      * @return
      */
-    public static Map<String, AbstractParameter<?>> merge(
-            final Map<String, AbstractParameter<?>> child,
-            final Map<String, AbstractParameter<?>> parent) {
+    private static boolean baseEqual(final AbstractParameter<?> parameter,
+            final OEAbstractParameter oeParameter) {
+        return parameter.name().equals(oeParameter.getName())
+                && parameter.friendlyName().equals(
+                        oeParameter.getFriendlyName())
+                && parameter.locked() == oeParameter.getLocked()
+                && parameter.required() == oeParameter.getRequired();
+    }
 
-        return null;
+    /**
+     * @param parameterList
+     * @param oeParameterList
+     * @return
+     */
+    private static boolean equal(final ParameterList parameterList,
+            final OEParameterList oeParameterList) {
+
+        if (null == parameterList) {
+            return null == oeParameterList;
+        }
+
+        if (null == oeParameterList) {
+            return null == parameterList;
+        }
+
+        return baseEqual(parameterList, oeParameterList);
+    }
+
+    /**
+     * @param parameter
+     * @param oeParameter
+     * @return
+     */
+    private static boolean equal(final Parameter parameter,
+            final OEParameter oeParameter) {
+        if (null == parameter) {
+            return null == oeParameter;
+        }
+
+        if (null == oeParameter) {
+            return null == parameter;
+        }
+        return baseEqual(parameter, oeParameter)
+                && parameter.value().equals(oeParameter.getValue())
+                && parameter.type().name().equals(oeParameter.getType());
+    }
+
+    /**
+     * @param dbClient
+     * @param primitive
+     * @param list
+     */
+    private static void deleteList(final DbClient dbClient,
+            final NamedURI primitive, final OEParameterList list) {
+        for (final URI uri : URIUtil.toURIList(list.getParameters())) {
+            final Class<?> type = URIUtil.getModelClass(uri);
+
+            if (type.isAssignableFrom(OEParameter.class)) {
+                final OEParameter oeParameter = dbClient.queryObject(
+                        OEParameter.class, uri);
+                if (primitive.equals(oeParameter.getPrimitive())) {
+                    dbClient.markForDeletion(oeParameter);
+                }
+
+            } else {
+                final OEParameterList oeParameterList = dbClient.queryObject(
+                        OEParameterList.class, uri);
+                if (primitive.equals(oeParameterList.getPrimitive())) {
+                    deleteList(dbClient, primitive, oeParameterList);
+                }
+            }
+        }
+        dbClient.markForDeletion(list);
+    }
+
+    /**
+     * @param id
+     * @param primitive
+     * @param parameterList
+     * @return
+     */
+    private static OEParameterList toOEParameterList(final URI id,
+            final NamedURI primitive, final ParameterList parameterList,
+            final StringSet parameterStringSet) {
+        final OEParameterList oeParameterList = new OEParameterList();
+        oeParameterList.setId(id);
+        oeParameterList.setPrimitive(primitive);
+        oeParameterList.setName(parameterList.name());
+        oeParameterList.setFriendlyName(parameterList.friendlyName());
+        oeParameterList.setLocked(parameterList.locked());
+        oeParameterList.setRequired(parameterList.required());
+        oeParameterList.setParameters(parameterStringSet);
+        return oeParameterList;
+    }
+
+    private static OEParameter toOEParameter(final URI id,
+            final NamedURI primitive, final Parameter parameter) {
+        final OEParameter oeParameter = new OEParameter();
+        oeParameter.setId(id);
+        oeParameter.setPrimitive(primitive);
+        oeParameter.setName(parameter.name());
+        oeParameter.setFriendlyName(parameter.friendlyName());
+        oeParameter.setLocked(parameter.locked());
+        oeParameter.setRequired(parameter.required());
+        oeParameter.setValue(parameter.value());
+        oeParameter.setType(parameter.type().name());
+        return oeParameter;
     }
 }

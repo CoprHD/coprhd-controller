@@ -16,12 +16,10 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
-import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OERestCall;
-import com.emc.storageos.db.client.model.StringSet;
 
 public class RestPrimitive extends Primitive {
 
@@ -32,24 +30,9 @@ public class RestPrimitive extends Primitive {
     private final String _scheme;
     private final String _contentType;
     private final String _accept;
-    private final StringSet _extraHeaders;
+    private final Set<String> _extraHeaders;
     private final String _body;
-    private final StringSet _query;
-
-    public RestPrimitive(final OERestCall restPrimitive)
-            throws ClassNotFoundException, IOException {
-        super(restPrimitive);
-        _hostname = restPrimitive.getHostname();
-        _port = restPrimitive.getPort();
-        _uri = restPrimitive.getUri();
-        _method = restPrimitive.getMethod();
-        _scheme = restPrimitive.getScheme();
-        _contentType = restPrimitive.getContentType();
-        _accept = restPrimitive.getAccept();
-        _extraHeaders = restPrimitive.getExtraHeaders();
-        _body = restPrimitive.getBody();
-        _query = restPrimitive.getQuery();
-    }
+    private final Set<String> _query;
 
     public RestPrimitive(final NamedURI name, final NamedURI parent,
             final String description, final String successCriteria,
@@ -57,8 +40,8 @@ public class RestPrimitive extends Primitive {
             final Map<String, AbstractParameter<?>> output,
             final String hostname, final String port, final String uri,
             final String method, final String scheme, final String contentType,
-            final String accept, final StringSet extraHeaders,
-            final String body, final StringSet query) {
+            final String accept, final Set<String> extraHeaders,
+            final String body, final Set<String> query) {
         super(name, parent, description, successCriteria, input, output);
         _hostname = hostname;
         _port = port;
@@ -110,7 +93,7 @@ public class RestPrimitive extends Primitive {
         return _accept;
     }
 
-    public StringSet extraHeaders() {
+    public Set<String> extraHeaders() {
         return _extraHeaders;
     }
 
@@ -118,7 +101,7 @@ public class RestPrimitive extends Primitive {
         return _body;
     }
 
-    public StringSet query() {
+    public Set<String> query() {
         return _query;
     }
 }

@@ -16,15 +16,20 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
-import java.io.IOException;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OEAttribute;
 import com.emc.storageos.db.client.model.OEPrimitive;
 import com.emc.storageos.db.client.model.OERestCall;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 public class PrimitiveHelper {
 
@@ -32,151 +37,270 @@ public class PrimitiveHelper {
     };
 
     public static Primitive loadPrimitive(final NamedURI uri,
-            final DbClient dbClient) throws InstantiationException,
-            IllegalAccessException, ClassNotFoundException, IOException {
-        return makePrimitive(uri, dbClient);
+            final DbClient dbClient) {
+        return query(uri, dbClient);
     }
 
     public static void savePrimitive(final Primitive primitive,
-            final DbClient dbClient) throws InstantiationException,
-            IllegalAccessException, ClassNotFoundException, IOException {
-        final Primitive diff;
-        if (primitive.parent().toString().isEmpty()) {
-            diff = primitive;
+            final DbClient dbClient) {
+        final OEPrimitive existing = dbClient.queryObject(OEPrimitive.class,
+                primitive.name());
+
+        if (null != existing) {
+            dbClient.updateObject(makeOEPrimitive(dbClient, primitive, existing));
         } else {
-            diff = diff(primitive, makePrimitive(primitive.parent(), dbClient));
+            final OEPrimitive basePrimitive;
+            if (!NullColumnValueGetter.isNullNamedURI(primitive.parent())) {
+                basePrimitive = dbClient.queryObject(OEPrimitive.class,
+                        primitive.parent());
+            } else {
+                if (primitive.isRestPrimitive()) {
+                    basePrimitive = new OERestCall();
+                } else {
+                    throw new RuntimeException("Invalid primitive type");
+                }
+                final OEPrimitive temp = makeOEPrimitive(dbClient, primitive,
+                        basePrimitive);
+                dbClient.createObject(temp);
+            }
         }
-        // final OEPrimitive existing = dbClient.queryObject(
-        // oePrimitive.getClass(), oePrimitive.getName());
-        // if (null != existing) {
-        // oePrimitive.setId(existing.getId());
-        // dbClient.updateObject(oePrimitive);
-        // } else {
-        // oePrimitive.setId(URIUtil.createId(oePrimitive.getClass()));
-        // dbClient.createObject(oePrimitive);
-        // }
+
     }
 
-    private static Primitive makePrimitive(final NamedURI uri,
-            final DbClient dbClient) throws ClassNotFoundException, IOException {
-        final Primitive primitive = query(uri, dbClient);
+    /**
+     * @param dbClient
+     * @param primitive
+     * @param basePrimitive
+     */
+    private static OEPrimitive makeOEPrimitive(final DbClient dbClient,
+            final Primitive primitive, final OEPrimitive basePrimitive) {
 
-        return (primitive.parent().toString().isEmpty()) ? primitive : merge(
-                primitive, makePrimitive(primitive.parent(), dbClient));
-    }
-
-    private static Primitive merge(final Primitive child, final Primitive parent) {
-        final PrimitiveBuilder primitiveBuilder = new PrimitiveBuilder();
-        primitiveBuilder.name(child.name());
-        primitiveBuilder.parent(parent.name());
-        primitiveBuilder.description(child.description().isEmpty() ? parent
-                .description() : child.description());
-        primitiveBuilder
-                .successCriteria(child.successCriteria().isEmpty() ? parent
-                        .successCriteria() : child.successCriteria());
-        primitiveBuilder.input(ParameterHelper.merge(child.input(),
-                parent.input()));
-        primitiveBuilder.output(ParameterHelper.merge(child.output(),
-                parent.output()));
-        if (child.isRestPrimitive()) {
-            return makeRestPrimitive(primitiveBuilder, child.asRestPrimitive(),
-                    parent.asRestPrimitive());
-        } else {
-            throw new RuntimeException();
+        final OEPrimitive oePrimitive;
+        try {
+            oePrimitive = basePrimitive.getClass().newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
+        oePrimitive.setId(primitive.name().getURI());
+        oePrimitive.setName(primitive.name());
+        oePrimitive.setParent(primitive.parent());
+        oePrimitive.setDescription(createOrUpdateAttribute(dbClient,
+                primitive.name(), basePrimitive.getDescription(),
+                primitive.description()));
+        oePrimitive.setSuccessCriteria(createOrUpdateAttribute(dbClient,
+                primitive.name(), basePrimitive.getSuccessCriteria(),
+                primitive.successCriteria()));
+
+        if (null == basePrimitive.getInput()) {
+            basePrimitive.setInput(new StringSet());
+        }
+        if (null == basePrimitive.getOutput()) {
+            basePrimitive.setOutput(new StringSet());
+        }
+        ParameterHelper.updateParameterStringSet(dbClient, primitive.name(),
+                primitive.input(), basePrimitive.getInput());
+        oePrimitive.setInput(basePrimitive.getInput());
+
+        ParameterHelper.updateParameterStringSet(dbClient, primitive.name(),
+                primitive.output(), basePrimitive.getOutput());
+        oePrimitive.setOutput(basePrimitive.getOutput());
+
+        if (primitive.isRestPrimitive()) {
+            if (!basePrimitive.isRestCall())
+                throw new RuntimeException();
+            final OERestCall baseRestCall = basePrimitive.asRestCall();
+            final OERestCall oeRestCall = oePrimitive.asRestCall();
+            final RestPrimitive restPrimitive = primitive.asRestPrimitive();
+
+            oeRestCall.setHostname(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getHostname(),
+                    restPrimitive.hostname()));
+            oeRestCall.setPort(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getPort(),
+                    restPrimitive.port()));
+            oeRestCall.setUri(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getUri(),
+                    restPrimitive.uri()));
+            oeRestCall.setMethod(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getMethod(),
+                    restPrimitive.method()));
+            oeRestCall.setScheme(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getScheme(),
+                    restPrimitive.scheme()));
+            oeRestCall.setContentType(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getContentType(),
+                    restPrimitive.contentType()));
+            oeRestCall.setAccept(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getAccept(),
+                    restPrimitive.accept()));
+            oeRestCall.setExtraHeaders(createOrUpdateAttributeSet(dbClient,
+                    primitive.name(), baseRestCall.getExtraHeaders(),
+                    restPrimitive.extraHeaders()));
+            oeRestCall.setQuery(createOrUpdateAttributeSet(dbClient,
+                    primitive.name(), baseRestCall.getQuery(),
+                    restPrimitive.query()));
+            oeRestCall.setBody(createOrUpdateAttribute(dbClient,
+                    primitive.name(), baseRestCall.getBody(),
+                    restPrimitive.body()));
+        }
+        return oePrimitive;
+
     }
 
-    private static RestPrimitive makeRestPrimitive(final PrimitiveBuilder base,
-            final RestPrimitive child, final RestPrimitive parent) {
-        final RestPrimitiveBuilder builder = new RestPrimitiveBuilder(base);
-        builder.hostname(child.hostname().isEmpty() ? parent.hostname() : child
-                .hostname());
-        builder.port(child.port().isEmpty() ? parent.port() : child.port());
-        builder.uri(child.uri().isEmpty() ? parent.uri() : child.uri());
-        builder.method(child.method().isEmpty() ? parent.method() : child
-                .method());
-        builder.scheme(child.scheme().isEmpty() ? parent.scheme() : child
-                .scheme());
-        builder.contentType(child.contentType().isEmpty() ? parent
-                .contentType() : child.contentType());
-        builder.accept(child.accept().isEmpty() ? parent.accept() : child
-                .accept());
-        builder.body(child.body().isEmpty() ? parent.body() : child.body());
+    /**
+     * @param dbClient
+     * @param name
+     * @param extraHeaders
+     * @param extraHeaders2
+     * @return
+     */
+    private static StringSet createOrUpdateAttributeSet(
+            final DbClient dbClient, final NamedURI name, StringSet uris,
+            final Set<String> values) {
+        final Set<String> present = new HashSet<String>();
+        final Set<String> newValues = new HashSet<String>(values);
+        final Set<URI> removed = new HashSet<URI>();
+        if (null == uris) {
+            uris = new StringSet();
+        } else if (!uris.isEmpty()) {
+            final List<OEAttribute> attributes = dbClient.queryObject(
+                    OEAttribute.class, URIUtil.toURIList(uris));
 
-        final StringSet extraHeaders = new StringSet(parent.extraHeaders());
-        extraHeaders.addAll(child.extraHeaders());
-        builder.extraHeaders(extraHeaders);
+            for (final OEAttribute attribute : attributes) {
+                if (values.contains(attribute.getValue())) {
+                    present.add(attribute.getValue());
+                } else {
+                    removed.add(attribute.getId());
+                    if (attribute.getPrimitive().equals(name)) {
+                        dbClient.markForDeletion(attribute);
+                    }
+                }
+            }
+        }
+        newValues.removeAll(present);
+        for (final String newValue : newValues) {
+            final OEAttribute attribute = new OEAttribute();
+            attribute.setId(URIUtil.createId(OEAttribute.class));
+            attribute.setPrimitive(name);
+            attribute.setValue(newValue);
+            dbClient.createObject(attribute);
+            uris.add(attribute.getId().toString());
+        }
 
-        final StringSet query = new StringSet(parent.query());
-        query.addAll(child.query());
-        builder.query(query);
-
-        return builder.build();
+        for (final URI removedValue : removed) {
+            uris.remove(removedValue);
+        }
+        return uris;
     }
 
-    private static Primitive query(final NamedURI uri, final DbClient dbClient)
-            throws ClassNotFoundException, IOException {
+    /**
+     * @param description
+     * @param description2
+     * @return
+     */
+    private static URI createOrUpdateAttribute(final DbClient dbClient,
+            final NamedURI primitive, final URI attribute, final String value) {
+
+        OEAttribute oeAttribute = dbClient.queryObject(OEAttribute.class,
+                attribute);
+        if (null == oeAttribute) {
+            oeAttribute = new OEAttribute();
+            oeAttribute.setId(URIUtil.createId(OEAttribute.class));
+            oeAttribute.setValue(value);
+            oeAttribute.setPrimitive(primitive);
+            dbClient.createObject(oeAttribute);
+        } else if (!oeAttribute.getValue().equals(value)) {
+            if (oeAttribute.getPrimitive().equals(primitive)) {
+                oeAttribute.setValue(value);
+                dbClient.updateObject(oeAttribute);
+            } else {
+                oeAttribute.setId(URIUtil.createId(OEAttribute.class));
+                oeAttribute.setValue(value);
+                oeAttribute.setPrimitive(primitive);
+                dbClient.createObject(oeAttribute);
+            }
+        }
+
+        return oeAttribute.getId();
+    }
+
+    private static Primitive query(final NamedURI uri, final DbClient dbClient) {
         final Class<? extends OEPrimitive> type = type(uri);
         final OEPrimitive oePrimitive = dbClient.queryObject(type, uri);
+
+        final PrimitiveBuilder primitiveBuilder = new PrimitiveBuilder();
+        primitiveBuilder.name(oePrimitive.getName());
+        primitiveBuilder.description(queryAttribute(dbClient,
+                oePrimitive.getDescription()));
+        primitiveBuilder.parent(oePrimitive.getParent());
+        primitiveBuilder.successCriteria(queryAttribute(dbClient,
+                oePrimitive.getSuccessCriteria()));
+        primitiveBuilder.input(ParameterHelper.toParameterMap(dbClient,
+                oePrimitive.getInput()));
+        primitiveBuilder.output(ParameterHelper.toParameterMap(dbClient,
+                oePrimitive.getOutput()));
         if (oePrimitive.isRestCall()) {
-            return new RestPrimitive(oePrimitive.asRestCall());
+            final RestPrimitiveBuilder builder = new RestPrimitiveBuilder(
+                    primitiveBuilder);
+            final OERestCall oeRestCall = oePrimitive.asRestCall();
+            builder.hostname(queryAttribute(dbClient, oeRestCall.getHostname()));
+            builder.port(queryAttribute(dbClient, oeRestCall.getPort()));
+            builder.uri(queryAttribute(dbClient, oeRestCall.getUri()));
+            builder.method(queryAttribute(dbClient, oeRestCall.getMethod()));
+            builder.scheme(queryAttribute(dbClient, oeRestCall.getScheme()));
+            builder.contentType(queryAttribute(dbClient,
+                    oeRestCall.getContentType()));
+            builder.accept(queryAttribute(dbClient, oeRestCall.getAccept()));
+            builder.extraHeaders(queryAttributeSet(dbClient,
+                    oeRestCall.getExtraHeaders()));
+            builder.body(queryAttribute(dbClient, oeRestCall.getBody()));
+            builder.query(queryAttributeSet(dbClient, oeRestCall.getQuery()));
+            return builder.build();
+
         } else {
             throw new RuntimeException();
         }
+    }
+
+    /**
+     * @param dbClient
+     * @param query
+     * @return
+     */
+    private static Set<String> queryAttributeSet(final DbClient dbClient,
+            final StringSet uris) {
+        if (uris == null || uris.isEmpty()) {
+            return new HashSet<String>();
+        } else {
+            final List<OEAttribute> attributes = dbClient.queryObject(
+                    OEAttribute.class, URIUtil.toURIList(uris));
+            final Set<String> attributeValues = new HashSet<String>();
+            for (final OEAttribute attribute : attributes) {
+                attributeValues.add(attribute.getValue());
+            }
+            return attributeValues;
+        }
+    }
+
+    /**
+     * @param dbClient
+     * @param description
+     * @return
+     */
+    private static String queryAttribute(final DbClient dbClient, final URI uri) {
+        final OEAttribute attribute = dbClient.queryObject(OEAttribute.class,
+                uri);
+
+        return null == attribute ? "" : attribute.getValue();
     }
 
     private static Class<? extends OEPrimitive> type(final NamedURI uri) {
         final Class<?> type = URIUtil.getModelClass(uri.getURI());
-        if (!type.isAssignableFrom(OEPrimitive.class)) {
+        if (!OEPrimitive.class.isAssignableFrom(type)) {
             throw new RuntimeException(uri
                     + " is not an identifier for a primitive");
         }
         return type.asSubclass(OEPrimitive.class);
-    }
-
-    private static Primitive diff(final Primitive child, final Primitive parent) {
-        final PrimitiveBuilder primitiveBuilder = new PrimitiveBuilder();
-        primitiveBuilder.name(child.name());
-        primitiveBuilder.parent(child.parent());
-        if (child.description().isEmpty()
-                || child.description().equals(parent.description())) {
-            primitiveBuilder.description("");
-        } else {
-            primitiveBuilder.description(child.description());
-        }
-        // TODO rest of the fields
-        // TODO make the rest part
-    }
-
-    public static OEPrimitive toOEPrimitive(final Primitive primitive) {
-        final OEPrimitive oePrimitive;
-        if (primitive.isRestPrimitive()) {
-            oePrimitive = makeOERestCall(primitive.asRestPrimitive());
-
-        } else {
-            throw new RuntimeException();
-        }
-        oePrimitive.setParent(primitive.parent());
-        oePrimitive.setName(primitive.name());
-        oePrimitive.setDescription(primitive.description());
-        oePrimitive.setSuccessCriteria(primitive.successCriteria());
-        oePrimitive.setInput(ParameterHelper.toStringMap(primitive.input()));
-        oePrimitive.setOutput(ParameterHelper.toStringMap(primitive.output()));
-        return oePrimitive;
-    }
-
-    private static OERestCall makeOERestCall(final RestPrimitive primitive) {
-        final OERestCall restCall = new OERestCall();
-        restCall.setHostname(primitive.hostname());
-        restCall.setPort(primitive.port());
-        restCall.setUri(primitive.uri());
-        restCall.setMethod(primitive.method());
-        restCall.setScheme(primitive.scheme());
-        restCall.setContentType(primitive.contentType());
-        restCall.setAccept(primitive.accept());
-        restCall.setExtraHeaders(primitive.extraHeaders());
-        restCall.setQuery(primitive.query());
-        return restCall;
     }
 
     private static class RestPrimitiveBuilder {
@@ -189,9 +313,9 @@ public class PrimitiveHelper {
         private String _scheme;
         private String _contentType;
         private String _accept;
-        private StringSet _extraHeaders;
+        private Set<String> _extraHeaders;
         private String _body;
-        private StringSet _query;
+        private Set<String> _query;
 
         public RestPrimitiveBuilder(final PrimitiveBuilder primitiveBuilder) {
             _primitiveBuilder = primitiveBuilder;
@@ -225,7 +349,7 @@ public class PrimitiveHelper {
             _accept = accept;
         }
 
-        public void extraHeaders(final StringSet extraHeaders) {
+        public void extraHeaders(final Set<String> extraHeaders) {
             _extraHeaders = extraHeaders;
         }
 
@@ -233,7 +357,7 @@ public class PrimitiveHelper {
             _body = body;
         }
 
-        public void query(final StringSet query) {
+        public void query(final Set<String> query) {
             _query = query;
         }
 
@@ -249,12 +373,12 @@ public class PrimitiveHelper {
     }
 
     private static class PrimitiveBuilder {
-        protected NamedURI _name;
-        protected NamedURI _parent;
-        protected String _description;
-        protected String _successCriteria;
-        protected Map<String, AbstractParameter<?>> _input;
-        protected Map<String, AbstractParameter<?>> _output;
+        private NamedURI _name;
+        private NamedURI _parent;
+        private String _description;
+        private String _successCriteria;
+        private Map<String, AbstractParameter<?>> _input;
+        private Map<String, AbstractParameter<?>> _output;
 
         public NamedURI name() {
             return _name;

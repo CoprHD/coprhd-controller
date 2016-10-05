@@ -18,24 +18,21 @@ package com.emc.sa.service.vipr.oe.primitive;
 
 import java.util.Map;
 
-public class ParameterList extends AbstractParameter<Map<String, Parameter>> {
+public class ParameterList extends
+        AbstractParameter<Map<String, AbstractParameter<?>>> {
 
-    private static final long serialVersionUID = 1L;
+    final Map<String, AbstractParameter<?>> _parameters;
 
-    Map<String, Parameter> _parameters;
-
-    public ParameterList() {
-
+    public ParameterList(final String name, final String friendlyName,
+            final Map<String, AbstractParameter<?>> parameters,
+            final boolean locked, final boolean required) {
+        super(name, friendlyName, locked, required);
+        _parameters = parameters;
     }
 
     @Override
-    public Map<String, Parameter> getValue() {
+    public Map<String, AbstractParameter<?>> value() {
         return _parameters;
-    }
-
-    @Override
-    public void setValue(final Map<String, Parameter> map) {
-        _parameters = map;
     }
 
     @Override

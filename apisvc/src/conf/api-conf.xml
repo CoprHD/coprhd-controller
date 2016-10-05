@@ -239,6 +239,9 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
+    <bean id="dockerService" class="com.emc.storageos.api.service.impl.resource.docker.DockerVolumeService">
+    </bean>
+    
     <bean id="tenantsService" class="com.emc.storageos.api.service.impl.resource.TenantsService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -510,6 +513,7 @@
                 <ref bean="openStackSynchronizationTask"/>
                 <ref bean="blockService"/>
                 <ref bean="tenantService"/>
+                <ref bean="dockerService"/>
                 <ref bean="tenantsService"/>
                 <ref bean="hostService"/>
                 <ref bean="eventService"/>
@@ -926,4 +930,3 @@
   
   <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
 </beans>
-

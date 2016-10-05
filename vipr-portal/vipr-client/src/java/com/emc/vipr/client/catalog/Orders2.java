@@ -181,6 +181,18 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         ExecutionLogList response = client.get(ExecutionLogList.class, PathConstants.ORDER2_EXECUTION_LOGS_URL, orderId);
         return response.getExecutionLogs();
     }
+    
+    /**
+     * Return resources logs for an order
+     * <p>
+     * API Call: <tt>GET /catalog/orders/{id}/resources-logs</tt>
+     * 
+     * @return order's execution logs
+     */
+    public List<ExecutionLogRestRep> getResourcesLogs(URI orderId) {
+        ExecutionLogList response = client.get(ExecutionLogList.class, PathConstants.ORDER2_RESOURCE_LOGS_URL, orderId);
+        return response.getExecutionLogs();
+    }
 
     /**
      * Return logs for an order

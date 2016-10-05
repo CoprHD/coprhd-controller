@@ -460,6 +460,30 @@ public class OrderService extends CatalogTaggedResourceService {
 
         return toOrderLogList(executionLogs);
     }
+    
+    /**
+     * Gets the resource order logs
+     * 
+     * @param orderId the URN of an order
+     * @brief List Order Logs
+     * @return a list of order logs
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("/{id}/resources-logs")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public OrderLogList getResourceLogs(@PathParam("id") String orderId) throws DatabaseException {
+
+        Order order = queryResource(uri(orderId));
+
+        StorageOSUser user = getUserFromContext();
+
+        verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
+
+        List<ExecutionLog> executionLogs = orderManager.readMessageBoard(order);
+
+        return toOrderLogList(executionLogs);
+    }
 
     /**
      * Gets the order execution

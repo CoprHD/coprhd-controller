@@ -47,6 +47,6 @@ public interface OrderManager {
 
     public void writeMessgeBoard(URI order);
 
-    public List<ExecutionLog> readMessageBoard(URI order);
+    public List<ExecutionLog> readMessageBoard(Order order);
 
 }

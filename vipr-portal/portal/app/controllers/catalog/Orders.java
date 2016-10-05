@@ -24,6 +24,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.emc.sa.catalog.OrderManager;
+import com.emc.sa.catalog.OrderManagerImpl;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -94,7 +95,8 @@ public class Orders extends OrderExecution {
     private static final int LONG_DELAY = 15000;
     private static final int DEFAULT_DELAY = 60000;
     private static final int RECEIPT_UPDATE_ATTEMPTS = 5;
-    private static OrderManager orderManager;
+    private static OrderManager orderManager = new OrderManagerImpl();
+    
 
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
@@ -298,7 +300,8 @@ public class Orders extends OrderExecution {
         fetchData(details);
         ServiceDescriptorRestRep descriptor = details.catalogService.getServiceDescriptor();
         addBreadCrumbToRenderArgs(id(details.order.getTenant()), details.catalogService);
-        List<ExecutionLog> logs = orderManager.readMessageBoard(uri(orderId));
+        List<ExecutionLogRestRep> logs = getCatalogClient().orders().getResourcesLogs(uri(orderId));
+        //List<ExecutionLog> logs = orderManager.readMessageBoard(uri(orderId));
         render(orderId, details, descriptor, logs);
     }
 
@@ -311,8 +314,7 @@ public class Orders extends OrderExecution {
         OrderDetails details = waitForUpdatedOrder(orderId, lastUpdated);
         Models.checkAccess(details.order.getTenant());
         fetchData(details);
-        List<ExecutionLog> logs = orderManager.readMessageBoard(uri(orderId));
-        render(orderId, details, logs);
+        render(orderId, details);
     }
 
     /**

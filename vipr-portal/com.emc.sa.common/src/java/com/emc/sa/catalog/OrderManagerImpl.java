@@ -710,8 +710,8 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     @Override
-    public List<ExecutionLog> readMessageBoard(URI orderId) {
-        Order order = client.orders().findById(orderId);
+    public List<ExecutionLog> readMessageBoard(Order order) {
+        //Order order = getOrderById(orderId);
         ExecutionState executionState = getOrderExecutionState(order.getExecutionStateId());
         List<ExecutionLog> logs = client.executionLogs().findByIds(executionState.getLogIds());
         return logs;

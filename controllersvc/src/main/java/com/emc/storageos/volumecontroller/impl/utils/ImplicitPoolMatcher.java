@@ -21,6 +21,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ClassOfService;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -285,6 +286,29 @@ public class ImplicitPoolMatcher {
         return filterPools;
     }
 
+    /**
+     * Matches given COS with list of pools provided and return list of matched pools from give COS profiles
+     * 
+     */
+    public static List<StoragePool> getMatchedPoolWithStoragePools(ClassOfService cos,
+            List<StoragePool> pools,
+            DbClient dbClient,
+            CoordinatorClient coordinator, String matcherGroupName) {
+        // By default use all vpool matchers.
+        if (matcherGroupName == null) {
+            matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
+        }
+        _logger.info("Started matching pools with {} vpool, matcher group {}", cos.getId(), matcherGroupName);
+        AttributeMapBuilder cosMapBuilder = new ClassOfServiceAttributeMapBuilder(cos);
+        Map<String, Object> attributeMap = cosMapBuilder.buildMap();
+        _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
+        StringBuffer errorMessage = new StringBuffer();
+        List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
+                matcherGroupName, errorMessage);
+        _logger.info("Ended matching pools with vpool attributes. Found {} matching pools", filterPools.size());
+        return filterPools;
+    }
+    
     /**
      * 1. Loop thru each processed pool. 2. Get the previously matched VirtualPool for this pool by
      * doing constraint query. 3. If the pool is not in any of the previously matched VirtualPool,

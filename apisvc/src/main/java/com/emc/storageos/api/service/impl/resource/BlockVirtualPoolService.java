@@ -22,6 +22,8 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toBlockVirtualPool;
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toPoolRecommendation;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -54,6 +57,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ClassOfService;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -107,6 +111,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Function;
+import com.google.gson.Gson;
 
 @Path("/block/vpools")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
@@ -1800,5 +1805,75 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
 
         return vpool;
+    }
+    
+    /**
+     * Creates a class of service
+     *
+     * @prereq none
+     * @param param list of capabilities
+     * @brief Create class of service
+     * @return response
+     * @throws Exception
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/cos")
+    public Response createClassOfService(Map<String,Object> capabilities)
+    		throws DatabaseException {
+
+    	Gson gson = new Gson(); 
+    	Map<String,Object> baseProfile = new HashMap<String,Object>();
+
+    	try {
+
+    		baseProfile = (Map<String,Object>) gson.fromJson(new FileReader("..\\conf\\baseProfile.json"), baseProfile.getClass());
+    	}catch (FileNotFoundException ex) {
+    		_log.error("baseProfile.json file not found " + ex);
+    	}
+
+    	//Over write the default values with given capabilities
+    	for (Entry<String, Object> entry : capabilities.entrySet() ) {
+    		baseProfile.put(entry.getKey(), entry.getValue());
+    	}
+
+    	ClassOfService cos = new ClassOfService();
+    	cos.setId(URIUtil.createId(ClassOfService.class));
+
+    	cos.setBasicProfile(baseProfile);
+    	_dbClient.createObject(cos);
+    	return Response.ok().build();
+
+    }
+    
+    /**
+     * Creates a class of service
+     *
+     * @prereq none
+     * @param param list of capabilities
+     * @brief Create class of service
+     * @return response
+     * @throws Exception
+     */
+    @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/cos/{id}/recommendations")
+    public StoragePoolRecommendations getCosRecommendations(@PathParam("id") URI id)
+            throws DatabaseException {
+    	
+    	List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+        List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
+    	ClassOfService cos = _dbClient.queryObject(ClassOfService.class, id);
+    	
+    	 List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
+                 _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+    	 
+    	StoragePoolRecommendations to = new StoragePoolRecommendations();
+        return toPoolRecommendation("source_data", matchedPools, to);
+    	
     }
 }

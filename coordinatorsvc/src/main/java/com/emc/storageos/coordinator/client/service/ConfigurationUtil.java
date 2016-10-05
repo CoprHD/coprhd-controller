@@ -37,7 +37,7 @@ public class ConfigurationUtil {
                 ConfigurationImpl configImpl = new ConfigurationImpl();
                 configImpl.setId(configId);
                 configImpl.setKind(configKind);
-                config = (Configuration) configImpl;
+                config = configImpl;
                 log.debug("Creating new config");
             }
             config.setConfig(configKey, configVal);

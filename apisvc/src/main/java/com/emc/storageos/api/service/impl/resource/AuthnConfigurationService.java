@@ -115,7 +115,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private static final String EVENT_SERVICE_TYPE = "authconfig";
 
-    private ConfigurationUtil configUtil = new ConfigurationUtil(_coordinator);
+    private ConfigurationUtil configUtil;
 
     @Override
     public String getServiceType() {
@@ -280,11 +280,18 @@ public class AuthnConfigurationService extends TaggedResource {
         String authMode = getAuthModeFromProviderMode(providerMode);
 
         try {
-            configUtil.write(_coordinator.getSiteId(), AUTH_KIND, null, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
+            getConfigUtil().write(_coordinator.getSiteId(), AUTH_KIND, null, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
         } catch (Exception e) {
             // Failure is allowed here and there will be periodical query to db
             _log.warn("Fail to notify authmode change via zk", e);
         }
+    }
+
+    private ConfigurationUtil getConfigUtil() {
+        if (configUtil == null) {
+            configUtil = new ConfigurationUtil(_coordinator);
+        }
+        return configUtil;
     }
 
     private String getAuthModeFromProviderMode(String providerMode) {

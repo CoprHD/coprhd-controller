@@ -1139,7 +1139,7 @@ public class AuthnConfigurationService extends TaggedResource {
         // The domains tag must be present in any new profile
         ArgValidator.checkFieldNotNull(param.getDomains(), "domains");
 
-        if (param.getMode().equalsIgnoreCase(ProvidersType.oidc.name())) { // for ad, ldap or keystone
+        if ( ! param.getMode().equalsIgnoreCase(ProvidersType.oidc.name()) ) { // for ad, ldap or keystone
             ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
             ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
             // The syntax for search_filter will be checked in the following section of this function

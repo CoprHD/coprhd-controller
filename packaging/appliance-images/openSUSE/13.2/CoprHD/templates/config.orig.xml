@@ -162,7 +162,7 @@
         <package name="vim"/>
         <package name="virtualbox"/>
         <package name="virtualbox-guest-tools"/>
-        <package name="virtualbox-guest-kmp-default"/>
+        <package name="virtualbox-host-kmp-default"/>
         <package name="wget"/>
         <package name="xbitmaps"/>
         <package name="xfsprogs"/>

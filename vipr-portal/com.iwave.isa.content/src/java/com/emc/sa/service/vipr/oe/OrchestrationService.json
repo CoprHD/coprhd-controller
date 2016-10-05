@@ -5,7 +5,8 @@
     workflow:{
       type:"text",
       lockable: true,
-      required: "false"
+      required: "false",
+      initialValue: "/tmp/oe_sample.json"
     }
   }
 }

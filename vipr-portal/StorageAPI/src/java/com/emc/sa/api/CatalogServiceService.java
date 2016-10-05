@@ -12,6 +12,8 @@ import static com.emc.sa.api.mapper.CatalogServiceMapper.updateObject;
 import static com.emc.sa.api.mapper.CatalogServiceMapper.updateObjectList;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -31,6 +32,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.sa.api.utils.CatalogConfigUtils;
+
+import org.apache.commons.collections.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CatalogServiceFilter;
@@ -76,6 +79,11 @@ import com.emc.vipr.model.catalog.CatalogServiceFieldParam;
 import com.emc.vipr.model.catalog.CatalogServiceList;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceUpdateParam;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 @DefaultPermissions(
         readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
@@ -219,6 +227,8 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(createParam.getCatalogCategory());
         verifyAuthorizedInTenantOrg(uri(parentCatalogCategory.getTenant()), user);
 
+        createParam = addWorkflowInputFields(createParam);
+
         validateParam(createParam, null);
 
         CatalogService catalogService = createNewObject(createParam, parentCatalogCategory);
@@ -252,6 +262,9 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @Path("/{id}")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public CatalogServiceRestRep updateCatalogService(@PathParam("id") URI id, CatalogServiceUpdateParam param) {
+
+        param = addWorkflowInputFields(param);
+
         CatalogService catalogService = getCatalogServiceById(id, true);
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(id);
 
@@ -565,5 +578,88 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
         catalogServiceRestReps = SortedIndexUtils.createSortedList(catalogServiceRestReps.iterator());
         return new CatalogServiceBulkRep(catalogServiceRestReps);
+    }
+
+    private CatalogServiceUpdateParam addWorkflowInputFields(CatalogServiceUpdateParam param) {
+        //TODO: get workflow def from DB using ID when available
+        String workflowDefinitionFile = getFieldValue(param.getCatalogServiceFields(),"workflow");  // temp file with JSON
+        List<CatalogServiceFieldParam> newFieldList = getWorkflowInputs(workflowDefinitionFile);
+        if(!newFieldList.isEmpty()) {
+            param.setCatalogServiceFields(
+                    ListUtils.union(param.getCatalogServiceFields(), newFieldList) );
+        }
+        return param;
+    }
+
+    private  CatalogServiceCreateParam addWorkflowInputFields(CatalogServiceCreateParam param) {
+        //TODO: get workflow def from DB using ID when available
+        String workflowDefinitionFile = getFieldValue(param.getCatalogServiceFields(),"workflow");  // temp file with JSON
+        List<CatalogServiceFieldParam> newFieldList = getWorkflowInputs(workflowDefinitionFile);
+        if(!newFieldList.isEmpty()) {
+            param.setCatalogServiceFields(
+                    ListUtils.union(param.getCatalogServiceFields(), newFieldList) );
+        }
+        return param;
+    }
+
+    List<CatalogServiceFieldParam> getWorkflowInputs(String workflowDefinitionFile) {
+        List<CatalogServiceFieldParam> newFieldList = new ArrayList<>();
+
+        if (workflowDefinitionFile != null) {
+            try {
+                //TODO: move this parsing code into OrchestrationService class, if appropriate (OrchestrationService
+                //   may already have method to do this parsing)
+                JsonParser parser = new JsonParser();
+                JsonObject rootObj = parser.parse(new FileReader(workflowDefinitionFile)).getAsJsonObject();
+                //TODO: change to get DB ID from 'workflow' field and parse JSON from DB
+                if(rootObj.has("Steps")) {
+                    JsonArray steps = rootObj.getAsJsonArray("Steps");
+                    for(JsonElement stepElement:steps) {
+                        JsonObject step = stepElement.getAsJsonObject();
+                        if(!step.has("Input")) {
+                            continue;
+                        }
+                        JsonObject inputs = step.getAsJsonObject("Input");
+                        for(java.util.Map.Entry<String, JsonElement> inputPropertiesMap : inputs.entrySet()) {
+                            JsonObject inputProperties = inputPropertiesMap.getValue().getAsJsonObject();
+                            if(inputProperties.has("Type") &&
+                                    inputProperties.get("Type").getAsString().equals("inputFromUser")) {
+                                CatalogServiceFieldParam newParam = new CatalogServiceFieldParam();
+                                newParam.setName(inputPropertiesMap.getKey());
+                                if(inputProperties.has("Default")) {
+                                    newParam.setValue(inputProperties.get("Default").getAsString());
+                                }
+                                if(inputProperties.has("LockDown")) {
+                                    newParam.setOverride(inputProperties.get("LockDown").getAsBoolean());
+                                } else {
+                                    newParam.setOverride(false);
+                                }
+                                //TODO: implement other input properties for fields (e.g.:validation etc)
+                                newFieldList.add(newParam);
+                            }
+                        }
+                    }
+                }
+            }
+            catch(FileNotFoundException e) {
+                //TODO: change when JSON is in DB
+                throw APIException.internalServerErrors.updateObjectError("Json File '" + workflowDefinitionFile +
+                        "' with workflow definition not found.", e);
+            }
+            catch(JsonParseException e2) {
+                throw APIException.internalServerErrors.updateObjectError("Error parsing JSON Workflow definition.", e2);
+
+            }
+        }
+        return newFieldList;
+    }
+
+    private String getFieldValue(List<CatalogServiceFieldParam> params, String fieldName){
+        for(CatalogServiceFieldParam field: params){
+            if(field.getName().equals(fieldName)) {
+                return field.getValue();
+            }
+        }
+        return null;
     }
 }

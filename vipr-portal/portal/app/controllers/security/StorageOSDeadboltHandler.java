@@ -4,6 +4,7 @@
  */
 package controllers.security;
 
+import com.emc.storageos.api.service.impl.resource.AuthnConfigurationService;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
@@ -15,6 +16,7 @@ import controllers.deadbolt.ExternalizedRestrictionsAccessor;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.RestrictedResourcesHandler;
 import controllers.deadbolt.Restrictions;
+import jobs.vipr.AuthModeBootstrap;
 import models.deadbolt.Role;
 import models.deadbolt.RoleHolder;
 import jobs.vipr.AuthModeBootstrap;
@@ -77,7 +79,7 @@ public class StorageOSDeadboltHandler extends Controller implements controllers.
 
         if (request.path.contains("locallogin")) {
             Security.redirectToAuthPage(service);
-        } else if ( Security.authMode().equals(AuthModeBootstrap.AuthModeType.oidc) ) {
+        } else if ( Security.authMode().equals(Security.AuthModeType.oidc) ) {
             Security.redirectToOIDCAuth();
         } else { // ad, ldap or keystore
             Security.redirectToAuthPage(service);

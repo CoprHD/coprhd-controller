@@ -1629,8 +1629,14 @@ public class StorageScheduler implements Scheduler {
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
 
-        volume.setVirtualPool(vpool.getId());
-        volume.setVirtualArray(varray.getId());
+	if(vpool != null)
+	{
+	        volume.setVirtualPool(vpool.getId());
+	}
+        if(varray != null)
+        {
+                volume.setVirtualArray(varray.getId());
+        }
 
         volume.setOpStatus(new OpStatusMap());
         dbClient.createObject(volume);

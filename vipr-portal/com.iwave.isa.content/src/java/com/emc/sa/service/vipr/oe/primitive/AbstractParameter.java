@@ -16,15 +16,22 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
-import java.io.Serializable;
-
-public abstract class AbstractParameter<T> implements Serializable {
+public abstract class AbstractParameter<T> {
 
     private static final long serialVersionUID = 1L;
 
-    private String _friendlyName;
-    private boolean _locked;
-    private boolean _required;
+    private final String _name;
+    private final String _friendlyName;
+    private final boolean _locked;
+    private final boolean _required;
+
+    public AbstractParameter(final String name, final String friendlyName,
+            final boolean locked, final boolean required) {
+        _name = name;
+        _friendlyName = friendlyName;
+        _locked = locked;
+        _required = required;
+    }
 
     public abstract boolean isParameterList();
 
@@ -34,31 +41,22 @@ public abstract class AbstractParameter<T> implements Serializable {
 
     public abstract Parameter asParameter();
 
-    public abstract T getValue();
+    public String name() {
+        return _name;
+    }
 
-    public abstract void setValue(T value);
+    public abstract T value();
 
-    public boolean isLocked() {
+    public boolean locked() {
         return _locked;
     }
 
-    public void setLocked(final boolean locked) {
-        _locked = locked;
-    }
-
-    public boolean isRequired() {
+    public boolean required() {
         return _required;
     }
 
-    public void setRequired(final boolean required) {
-        _required = required;
-    }
-
-    public String getFriendlyName() {
+    public String friendlyName() {
         return _friendlyName;
     }
 
-    public void setFriendlyName(final String friendlyName) {
-        _friendlyName = friendlyName;
-    }
 }

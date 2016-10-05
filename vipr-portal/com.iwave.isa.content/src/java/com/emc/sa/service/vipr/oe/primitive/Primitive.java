@@ -16,11 +16,9 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
-import java.io.IOException;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OEPrimitive;
 
 public abstract class Primitive {
 
@@ -35,16 +33,6 @@ public abstract class Primitive {
 
     public abstract RestPrimitive asRestPrimitive();
 
-    public Primitive(final OEPrimitive oePrimitive)
-            throws ClassNotFoundException, IOException {
-        _name = oePrimitive.getName();
-        _parent = oePrimitive.getParent();
-        _description = oePrimitive.getDescription();
-        _successCriteria = oePrimitive.getSuccessCriteria();
-        _input = ParameterHelper.toParameterMap(oePrimitive.getInput());
-        _output = ParameterHelper.toParameterMap(oePrimitive.getOutput());
-    }
-
     public Primitive(final NamedURI name, final NamedURI parent,
             final String description, final String successCriteria,
             final Map<String, AbstractParameter<?>> input,
@@ -54,7 +42,7 @@ public abstract class Primitive {
         _description = description;
         _successCriteria = successCriteria;
         _input = input;
-        _output = input;
+        _output = output;
     }
 
     public NamedURI name() {

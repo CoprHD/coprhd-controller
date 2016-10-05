@@ -16,15 +16,17 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 public abstract class OEPrimitive extends DataObject {
 
     private static final long serialVersionUID = 1L;
     private NamedURI _name;
-    private String _description;
+    private URI _description;
     private NamedURI _parent;
-    private String _successCriteria;
-    private StringMap _input;
-    private StringMap _output;
+    private URI _successCriteria;
+    private StringSet _input;
+    private StringSet _output;
 
     @Name("name")
     public NamedURI getName() {
@@ -35,12 +37,12 @@ public abstract class OEPrimitive extends DataObject {
         _name = name;
     }
 
-    @Name("description")
-    public String getDescription() {
+    @RelationIndex(cf = "DescriptionRelation", type = OEAttribute.class)
+    public URI getDescription() {
         return _description;
     }
 
-    public void setDescription(final String description) {
+    public void setDescription(final URI description) {
         _description = description;
     }
 
@@ -54,30 +56,34 @@ public abstract class OEPrimitive extends DataObject {
         _parent = parent;
     }
 
-    @Name("successCriteria")
-    public String getSuccessCriteria() {
+    @RelationIndex(cf = "SuccessRelation", type = OEAttribute.class)
+    public URI getSuccessCriteria() {
         return _successCriteria;
     }
 
-    public void setSuccessCriteria(final String successCriteria) {
+    public void setSuccessCriteria(final URI successCriteria) {
         _successCriteria = successCriteria;
     }
 
     @Name("input")
-    public StringMap getInput() {
+    @RelationIndex(cf = "InputRelation", types = { OEParameter.class,
+            OEParameterList.class }, type = DataObject.class)
+    public StringSet getInput() {
         return _input;
     }
 
-    public void setInput(final StringMap input) {
+    public void setInput(final StringSet input) {
         _input = input;
     }
 
     @Name("output")
-    public StringMap getOutput() {
+    @RelationIndex(cf = "OutputRelation", types = { OEParameter.class,
+            OEParameterList.class }, type = DataObject.class)
+    public StringSet getOutput() {
         return _output;
     }
 
-    public void setOutput(final StringMap output) {
+    public void setOutput(final StringSet output) {
         _output = output;
     }
 

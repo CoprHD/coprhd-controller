@@ -2663,7 +2663,6 @@ public class RecoverPointClient {
      * @throws RecoverPointException
      */
     private void prepareLinkSettings(ConsistencyGroupCopyUID newProductionCopyUID) throws RecoverPointException {
-        logger.info("Preparing link settings between new production copy and local/remote copies after failover.");
         String cgName = null;
         String newProductionCopyName = null;
 
@@ -2672,6 +2671,10 @@ public class RecoverPointClient {
             List<ConsistencyGroupLinkSettings> cgLinkSettings = groupSettings.getActiveLinksSettings();
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = groupSettings.getProductionCopiesUIDs();
             newProductionCopyName = functionalAPI.getGroupCopyName(newProductionCopyUID);
+
+            logger.info(String.format("Preparing link settings between new production copy [%s] and local/remote copies after failover.",
+                    newProductionCopyName));
+
             cgName = functionalAPI.getGroupName(newProductionCopyUID.getGroupUID());
 
             // Go through the existing production copies
@@ -2681,7 +2684,7 @@ public class RecoverPointClient {
 
                 for (ConsistencyGroupCopySettings copySetting : copySettings) {
                     // We need to set the link settings for all orphaned copies. Orphaned copies
-                    // are identified by not being the existing production copy or the new production copy.
+                    // are identified by not being any existing production copy or the new production copy.
                     if (!RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), existingProductionCopyUID) &&
                             !RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());

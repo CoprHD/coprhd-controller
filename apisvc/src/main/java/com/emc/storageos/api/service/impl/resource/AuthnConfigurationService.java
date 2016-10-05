@@ -297,7 +297,7 @@ public class AuthnConfigurationService extends TaggedResource {
     private String getAuthModeFromProviderMode(String providerMode) {
         String authMode = AuthModeType.normal.name();
 
-        if (providerMode.equals(ProvidersType.oidc)) {
+        if (providerMode.equals(ProvidersType.oidc.name())) {
             authMode = AuthModeType.oidc.name();
         }
 

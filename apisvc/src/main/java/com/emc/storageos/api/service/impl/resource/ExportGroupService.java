@@ -764,7 +764,7 @@ public class ExportGroupService extends TaskResourceService {
             ExportUpdateParam param, List<URI> newClusters,
             List<URI> newHosts, List<URI> newInitiators, List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators) {
         if (param.getClusters() != null) {
-            if (param.getClusters().getRemove() != null) {
+            if (!CollectionUtils.isEmpty(param.getClusters().getRemove())) {
                 for (URI uri : param.getClusters().getRemove()) {
                     if (!removedClusters.contains(uri)) {
                         removedClusters.add(uri);
@@ -773,7 +773,7 @@ public class ExportGroupService extends TaskResourceService {
 
                 }
             }
-            if (param.getClusters().getAdd() != null) {
+            if (!CollectionUtils.isEmpty(param.getClusters().getAdd())) {
                 for (URI uri : param.getClusters().getAdd()) {
                     Cluster cluster = queryObject(Cluster.class, uri, true);
                     validateClusterData(cluster, exportGroup, storageSystems, project, newHosts, newInitiators);
@@ -788,13 +788,13 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Updated list of Removed clusters: {}", removedClusters.toArray());
 
         if (param.getHosts() != null) {
-            if (param.getHosts().getRemove() != null) {
+            if (!CollectionUtils.isEmpty(param.getHosts().getRemove())) {
                 for (URI uri : param.getHosts().getRemove()) {
                     removedHosts.add(uri);
-                    removeHostData(uri, newInitiators);
+                    // removeHostData(uri, newInitiators);
                 }
             }
-            if (param.getHosts().getAdd() != null) {
+            if (!CollectionUtils.isEmpty(param.getHosts().getAdd())) {
                 for (URI uri : param.getHosts().getAdd()) {
                     Host host = queryObject(Host.class, uri, true);
                     // If the export type is cluster
@@ -815,12 +815,12 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Updated list of Removed Hosts: {}", removedHosts.toArray());
 
         if (param.getInitiators() != null) {
-            if (param.getInitiators().getRemove() != null) {
+            if (!CollectionUtils.isEmpty(param.getInitiators().getRemove())) {
                 for (URI uri : param.getInitiators().getRemove()) {
                     removedInitiators.add(uri);
                 }
             }
-            if (param.getInitiators().getAdd() != null) {
+            if (!CollectionUtils.isEmpty(param.getInitiators().getAdd())) {
                 // TODO - Temporarily commented out for backward compatibility
                 URI initiatorHostUri = getInitiatorExportGroupHost(exportGroup);
                 for (URI uri : param.getInitiators().getAdd()) {
@@ -859,8 +859,8 @@ public class ExportGroupService extends TaskResourceService {
         // the add volumes should fail. The user would need to make sure that the StorageSystem has
         // the necessary connections before proceeding.
         List<VolumeParam> addVolumeParams = param.getVolumes().getAdd();
-        if (exportGroup.hasInitiators() && addVolumeParams != null && !addVolumeParams.isEmpty() &&
-                newInitiators != null && newInitiators.isEmpty()) {
+        if (exportGroup.hasInitiators() && !CollectionUtils.isEmpty(addVolumeParams) &&
+                !CollectionUtils.isEmpty(newInitiators)) {
             Set<URI> uniqueStorageSystemSet = new HashSet<>();
             for (VolumeParam addVolumeParam : addVolumeParams) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, addVolumeParam.getId());

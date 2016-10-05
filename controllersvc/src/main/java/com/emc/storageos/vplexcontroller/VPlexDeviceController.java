@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
@@ -532,11 +533,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public String addStepsForCreateVolumes(Workflow workflow, String waitFor,
-            List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
+            List<VolumeDescriptor> volDescriptors, String taskId) throws ControllerException {
 
         try {
             // Get only the VPlex volumes from the descriptors.
-            List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volumes,
+            List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volDescriptors,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
                     new VolumeDescriptor.Type[] {});
 
@@ -557,20 +558,60 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
                 // Build some needed maps to get started.
-                Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volumes, Type.BLOCK_DATA);
-                Map<URI, Volume> volumeMap = buildVolumeMap(vplexSystem, volumes, Type.VPLEX_VIRT_VOLUME);
+		_log.info("In VPlexDevice.addStepsForCreateVolumes, vplexSystem ->{}  volDescriptors -> {}",vplexSystem,volDescriptors);
+                Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volDescriptors, Type.BLOCK_DATA);
+                Map<URI, Volume> volumeMap = buildVolumeMap(vplexSystem, volDescriptors, Type.VPLEX_VIRT_VOLUME);
+		_log.info("Inside, VPlexDC.addStepsforCV,,, volumeMap-> {}",volumeMap);
+                Map<URI, List<URI>> networkMap = null;
+                Map<Volume, List<URI>> volumeNetworkMap = new HashMap<Volume,List<URI>>();
+                boolean isDirect = false;
+
+		// If direct call, From volume descriptor extract the BE networks to use for each storage system associated
+              VolumeDescriptor firstDescriptor = vplexDescMap.get(vplexURI).iterator().next();
+              Object descriptorParam = firstDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPLEX_BE_NETWORKS);
+		if (descriptorParam!=null){
+                  isDirect = true;
+		    networkMap = buildBENetworkMap(vplexSystem, volDescriptors, Type.VPLEX_VIRT_VOLUME);
+                  //Determine which backend volume should use which backend network
+                  if (networkMap!=null){
+                      for (Volume volume: volumeMap.values()){
+                           URI storageControllerURI = volume.getStorageController();
+                           if (networkMap.get(storageControllerURI) != null){ 
+				   volumeNetworkMap.put(volume,networkMap.get(storageControllerURI));
+                           }else {
+                                _log.error("No backend network specified for volume " + volume.getId() +" on array :"+ storageControllerURI);
+                           }
+                      }
+                  }
+              }
+
 
                 // Set the project and tenant to those of an underlying volume.
                 // These are used to set the project and tenant of a new ExportGroup if needed.
                 Volume firstVolume = volumeMap.values().iterator().next();
-                URI projectURI = firstVolume.getProject().getURI();
-                URI tenantURI = firstVolume.getTenant().getURI();
+                _log.info("IN VPlexDeviceCOntroller.addStepsForCV firstVolume -> {}",firstVolume.forDisplay());
+                URI projectURI = null;
+                URI tenantURI = null;
+                if (firstVolume.getProject()!=null){
+                	projectURI = firstVolume.getProject().getURI();
+                }
+                if (firstVolume.getTenant()!=null){
+                	tenantURI = firstVolume.getTenant().getURI();
+                }
 
                 try {
                     // Now we need to do the necessary zoning and export steps to ensure
                     // the VPlex can see these new backend volumes.
+                   if (isDirect){
+               	   	if (!volumeNetworkMap.isEmpty()){
+                         lastStep = createWorkflowStepsForDirectBEExport(workflow, vplexSystem, arrayMap,
+                            volumeNetworkMap, projectURI, tenantURI, lastStep);
+                	}                    
+		    }else {
+
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
                             volumeMap, projectURI, tenantURI, lastStep);
+		     }
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);
                     TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,
@@ -685,6 +726,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             volume.getStorageController().toString()
                                     .equals(vplexSystem.getId().toString())) {
                         StringSet backingVolumes = volume.getAssociatedVolumes();
+			_log.info("Inside VPlexDeviceCOntroller.buildVolumeMap, backingVolumes {}",backingVolumes );
                         // Add all backing volumes found to the volumeMap
                         for (String backingVolumeId : backingVolumes) {
                             URI backingVolumeURI = URI.create(backingVolumeId);
@@ -697,6 +739,43 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return volumeMap;
     }
+/*
+* Build a map of StorageSystem URI to Network URI to use to export backend volumes on this array to the Vplex 
+*/
+    private Map<URI, List<URI>> buildBENetworkMap(StorageSystem vplexSystem,
+            List<VolumeDescriptor> descriptors, VolumeDescriptor.Type type) {
+        Map<URI, List<URI>> networkMap = new HashMap<URI, List<URI>>();
+        // Get only the descriptors for the type if specified.
+        if (type != null) {
+            descriptors = VolumeDescriptor.filterByType(descriptors,
+                    new VolumeDescriptor.Type[] { type },
+                    new VolumeDescriptor.Type[] {});
+        }
+        // Loop through all the descriptors / filtered descriptors
+        for (VolumeDescriptor desc : descriptors) {
+                // Load the volume from the descriptor
+                Volume volume = getDataObject(Volume.class, desc.getVolumeURI(), _dbClient);
+
+                if (vplexSystem != null) {
+                   
+                    // The vplexSystem is present, so we want to only pass back the backing volumes
+                    // associated to this VPlex.
+                    // Check the storage controller of this Virtual Volume
+                    if (desc.getType().equals(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME) &&
+                            volume.getStorageController().toString()
+                                    .equals(vplexSystem.getId().toString())) {
+                         Object descriptorParam = desc.getParameters().get(VolumeDescriptor.PARAM_VPLEX_BE_NETWORKS);
+           		 if (descriptorParam != null) {
+                              Map<URI,List<URI>> beNetworkMap = (Map<URI,List<URI>>)descriptorParam; 
+				  networkMap.putAll(beNetworkMap);
+                         }
+                       
+                    }
+                }
+        }
+        return networkMap;
+    }
+
 
     /**
      * Build a map of URI to cached StorageSystem for the underlying arrays.
@@ -773,6 +852,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, String stepId) throws WorkflowException {
         List<List<VolumeInfo>> rollbackData = new ArrayList<List<VolumeInfo>>();
         List<URI> createdVplexVolumeURIs = new ArrayList<URI>();
+	String clusterId = null ;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -823,9 +903,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 URI vplexVolumeId = vplexVolume.getId();
                 _log.info(String.format("Creating virtual volume: %s (%s)", vplexVolume.getLabel(), vplexVolumeId));
                 URI vplexVolumeVarrayURI = vplexVolume.getVirtualArray();
-                String clusterId = ConnectivityUtil.getVplexClusterForVarray(
+                if(vplexVolumeVarrayURI == null){
+                	StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
+                	Iterator<String> iter = associatedVolumes.iterator();
+                	if (iter.hasNext()){
+                		clusterId = ConnectivityUtil.getDirectVplexClusterForVolume(URI.create(iter.next()), vplexURI, _dbClient);
+                	}else {
+                		_log.error("Vplex volume has no assoicated volumes!");
+                	}
+		} else {
+			clusterId = ConnectivityUtil.getVplexClusterForVarray(
                         vplexVolumeVarrayURI, vplexVolume.getStorageController(), _dbClient);
-                List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
+                }
+		List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
                 for (Volume storageVolume : volumeMap.get(vplexVolume)) {
                     StorageSystem storage = storageMap.get(storageVolume.getStorageController());
                     List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
@@ -833,7 +923,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             storageVolume.getWWN().toUpperCase().replaceAll(":", ""),
                             storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);
 
-                    if (storageVolume.getVirtualArray().equals(vplexVolumeVarrayURI)) {
+                    if (storageVolume.getVirtualArray()!=null && storageVolume.getVirtualArray().equals(vplexVolumeVarrayURI)) {
                         // We always want the source backend volume identified first. It
                         // may not be first in the map as the map is derived from the
                         // VPLEX volume's associated volumes list which is an unordered
@@ -4769,6 +4859,99 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         return lastStep;
     }
+  /**
+     * Returns the BE Network to export these volumes to the vplex on.
+     *
+     * @param volumeMap
+     *            
+     * @return list of URIs of networks to use for backend export
+     */
+    private List<URI> getVolumesNetwork(StorageSystem array, Map<Volume, List<URI>> volumeMap)
+            throws ControllerException {
+        List<URI> networkURIs = new ArrayList<URI>();
+        for (Map.Entry<Volume, List<URI>> volumeEntry : volumeMap.entrySet()) {
+            Volume volume = volumeEntry.getKey();
+            if (volume.getStorageController().equals(array.getId())) {
+                networkURIs.addAll(volumeEntry.getValue());
+                break;
+            }
+        }
+        if (networkURIs.size() != 2){
+              
+		DeviceControllerException ex = DeviceControllerException.exceptions.incorrectNumberOfNetworksInVPLEXExportGroup(
+                           array.getId().toString(), String.valueOf(networkURIs.size()));
+                    _log.error("There should be exactly two backend networks connecting array to VPLEX", ex);
+
+        }
+        return networkURIs;
+    }
+
+    private String createWorkflowStepsForDirectBEExport(Workflow workflow,
+            StorageSystem vplexSystem, Map<URI, StorageSystem> storageSystemMap,
+            Map< Volume, List<URI>> volumeMap, URI projectURI, URI tenantURI, String dependantStepId)
+                    throws IOException, ControllerException {
+
+        String lastStep = dependantStepId;
+        // The following adds a rollback step to forget the volumes if something
+        // goes wrong. This is a nop on provisioning.
+        List volumeURIs = new ArrayList<URI>();
+       for (Volume volume: volumeMap.keySet()){
+            volumeURIs.add(volume.getId());
+       }
+        lastStep = addRollbackStepToForgetVolumes(workflow, vplexSystem.getId(),
+                volumeURIs, lastStep);
+
+        URI vplexURI = vplexSystem.getId();
+        // Main processing containers. ExportGroup --> StorageSystem --> Volumes
+        // Populate the container for the export workflow step generation
+        for (Map.Entry<URI, StorageSystem> storageEntry : storageSystemMap.entrySet()) {
+            URI storageSystemURI = storageEntry.getKey();
+            StorageSystem storageSystem = storageEntry.getValue();
+            List<URI> networkURIs = getVolumesNetwork(storageSystem, volumeMap);
+            _log.info(String.format("Creating ExportGroup for storage system %s (%s) in Network[(%s)]",
+                    storageSystem.getLabel(), storageSystemURI, networkURIs));
+
+            if (networkURIs == null) {
+                // For whatever reason, there were no Volumes for this Storage System found, so we
+                // definitely do not want to create anything. Log a warning and continue.
+                _log.warn(String.format("No Volumes for storage system %s (%s), no need to create an ExportGroup.",
+                        storageSystem.getLabel(), storageSystemURI));
+                continue;
+            }
+
+            // Get the initiator port map for this VPLEX and storage system
+            // for this volumes virtual array.
+            VPlexBackendManager backendMgr = new VPlexBackendManager(_dbClient, this, _blockDeviceController,
+                    _blockScheduler, _networkDeviceController, projectURI, tenantURI, _vplexApiLockManager);
+            Map<URI, List<StoragePort>> initiatorPortMap = backendMgr.getDirectInitiatorPortsForArray(
+                    vplexURI, storageSystemURI, networkURIs);
+
+            // If there are no networks that can be zoned, error.
+            if (initiatorPortMap.isEmpty()) {
+                throw DeviceControllerException.exceptions
+                        .noNetworksConnectingVPlexToArray(vplexSystem.getNativeGuid(),
+                                storageSystem.getNativeGuid());
+            }
+
+            // Select from an existing ExportMask if possible
+            ExportMaskPlacementDescriptor descriptor = backendMgr.chooseDirectBackendExportMask(vplexSystem, storageSystem, networkURIs, volumeMap,
+                    lastStep);
+            // For every ExportMask in the descriptor ...
+            for (URI exportMaskURI : descriptor.getPlacedMasks()) {
+                // Create steps to place each set of volumes into its assigned ExportMask
+                ExportGroup exportGroup = descriptor.getExportGroupForMask(exportMaskURI);
+                ExportMask exportMask = descriptor.getExportMask(exportMaskURI);
+                Map<URI, Volume> placedVolumes = descriptor.getPlacedVolumes(exportMaskURI);
+
+                // Add the workflow steps.
+                lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(workflow, lastStep, exportGroup, exportMask, placedVolumes,
+                        null, vplexSystem, storageSystem);
+            }
+        }
+
+        return lastStep;
+    }
+
 
     /**
      *

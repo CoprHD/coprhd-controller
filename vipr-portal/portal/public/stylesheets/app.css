@@ -114,6 +114,17 @@ a:link {
   border-left: 1px solid #ccc;
   overflow: auto;
 }
+
+#js-properties-panel:hide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 270px;
+  z-index: 10;
+  border-left: 1px solid #ccc;
+  overflow: auto;
+}
 /* line 121, styles/app.less */
 #js-properties-panel:empty {
   display: none;

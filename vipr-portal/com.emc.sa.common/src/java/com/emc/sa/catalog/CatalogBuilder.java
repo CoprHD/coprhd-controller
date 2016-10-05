@@ -24,6 +24,8 @@ import org.apache.commons.lang.StringUtils;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.emc.sa.descriptor.ServiceDefinition;
+import com.emc.sa.descriptor.ServiceDefinitionLoader;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
@@ -31,6 +33,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
+import com.emc.sa.zookeeper.ZkServiceDescriptorLoader;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -79,7 +82,7 @@ public class CatalogBuilder {
             
             CategoryDef extCategory=loadCustomCategories();
             if (extCategory != null){
-            	root.categories.add(extCategory);
+            	root.categories.addAll(extCategory.categories);
             }
             root.version = DigestUtils.sha1Hex(catalog);
             return root;

@@ -21,13 +21,39 @@
 #{form @saveVolume(), id:'volume', class:'form form-horizontal', autocomplete:"off"}
 
   <fieldset>
+  
+  	 #{field 'volume.project'}
+  	 %{
+  	 	field.options = projectOptions
+  	 	field.required = true
+  	 	field.cssClass = 'span6 initialFocus'
+  	 }%
+	  #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+
+  	 #{field 'volume.varray'}
+  	 %{
+  	 	field.options = varrayOptions
+  	 	field.required = true
+  	 }%
+	  #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+
+  	 #{field 'volume.vpool'}
+  	 %{
+  	 	field.options = vpoolOptions
+  	 	field.required = true
+  	 }%
+	  #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+
+
 	  #{field 'volume.arrayType'}
 	    %{
 	      field.options = storageArrayTypeList
 	      field.addEmptyOption = true
     	  field.emptyOptionLabel = "Select an Option"
 	      field.required = true
-	      field.cssClass = 'span6 initialFocus'
 	    }%
 	    #{Form.selectOneControlGroup field:field /}
 	  #{/field}
@@ -49,7 +75,6 @@
 	  #{/field}
 	  
     
-<!--new editing start-->
 	  #{field 'volume.arrayTypeForVplex'}
 	    %{
 	      field.options = storageArrayTypeList
@@ -76,8 +101,7 @@
     }%
 	      #{Form.selectOneControlGroup options:poolList, field:field /}
     #{/field}
-    
- <!-- end -->   
+     
     #{field 'volume.pool'}
     %{
     	field.required = true

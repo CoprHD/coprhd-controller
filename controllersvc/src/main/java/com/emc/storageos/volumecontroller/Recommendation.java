@@ -20,7 +20,7 @@ public class Recommendation implements Serializable {
     
     // The virtual pool used to get the recommendation
     private VirtualPool virtualPool;
-    
+    private URI sourceVolume;
     private URI sourceStorageSystem;
     private URI sourceStoragePool;
     private String deviceType;
@@ -105,6 +105,22 @@ public class Recommendation implements Serializable {
         this.sourceStorageSystem = sourceStorageSystem;
     }
 
+    /**
+     * Getter for recommended Volume Id
+     * @param sourceStorageSystem Recommended Volume Id
+     */
+    public URI getSourceVolume() {
+        return sourceVolume;
+    }
+    
+    /**
+     * Setter for recommended Volume Id
+     * @param sourceStorageSystem Recommended Volume Id
+     */
+    public void setSourceVolume(URI sourceVolume) {
+        this.sourceVolume = sourceVolume;
+    }
+    
 	/**
 	 * Getter for recommended device type
 	 * @return Recommended device type

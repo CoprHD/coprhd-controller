@@ -316,8 +316,16 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = _blockScheduler.computeStoragePortUsage(candidatePorts);
-            List<StoragePort> portsAllocated = allocator.selectStoragePorts(_dbClient,
+            //List<StoragePort> portsAllocated = allocator.selectStoragePorts(_dbClient,
+
+	    List<StoragePort> portsAllocated = null;
+            if (varrayURI != null){
+		   portsAllocated = allocator.selectStoragePorts(_dbClient,
                     sportMap, net, varrayURI, portsRequested, null, false);
+            } else {
+                 portsAllocated = allocator.selectPassThroughStoragePorts(_dbClient,
+                    sportMap, net, portsRequested, null, false);
+            }
             return portsAllocated;
         }
     }

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE workflow PUBLIC "-//OpenSymphony Group//
+DTD OSWorkflow 2.8//EN"
+"http://www.opensymphony.com/
+osworkflow/workflow_2_8.dtd">
+<workflow>
+	<initial-actions>
+		<action id="100" name="Create Export Volume Workflow ">
+
+			<pre-functions>
+
+				<function type="class">
+					<arg name="class.name">com.opensymphony.workflow.util.Caller</arg>
+				</function>
+				<function type="spring">
+					<arg name="bean.name">viprWorkflowService</arg>
+					<arg name="WfInputParams">CreateExportVolume</arg>
+					<arg name="WFinputParamsClass">com.emc.ctd.workflow.vipr.GenericWFInputParams</arg>
+				</function>
+			</pre-functions>
+
+			<results>
+				<unconditional-result old-status="Starting" status="Success" owner="${caller}" step="1">
+					<post-functions>
+						<function type="beanshell">
+							<arg name="script">
+								System.out.println("CreateVolume Postfunction called "+"${FuncProcessResult}");
+							</arg>
+						</function>
+						<function type="class">
+							<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.ViPRTaskConnector</arg>
+							<arg name="sourceObject">${CurrentStepProcessResult}</arg>								
+							<arg name="sourceObjectType">${WFinputParamsClass}</arg>
+							<arg name="targetObject">IMPLICIT</arg>								
+							<arg name="targetObjectType">com.emc.storageos.model.block.VolumeCreate</arg>
+
+							<arg name="TaskInputWired">true</arg>						
+						</function>
+					</post-functions>
+				</unconditional-result>
+			</results>
+			
+		</action>
+	</initial-actions>
+
+
+	<steps>
+
+	<step id="1" name="Create Volume">
+		<actions>
+			<action id="1" name="CreateVolume">
+
+				<pre-functions>
+					<function type="beanshell">
+						<arg name="script">
+							System.out.println("CreateVolume Prefunction called");
+						</arg>
+					</function>
+					
+					<function type="class">
+						<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.ViPRTasks</arg>
+						<arg name="TaskName">CreateVolumeLite</arg>	
+						<arg name="InputParams">IMPLICIT</arg>
+						<arg name="InputParamsClass">com.emc.storageos.model.block.VolumeCreate</arg>
+						<arg name="TaskInputWired">true</arg>						
+					</function>
+					
+				</pre-functions>
+
+				<results>
+				
+					<result old-status="Executing" split="1">
+					
+						<conditions type="AND">					
+							<condition type="class">
+								<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.TaskFailedCondition</arg>
+							</condition>
+						</conditions>
+					</result>
+
+					<unconditional-result old-status="Success" 	status="Success" owner="${caller}" step="2">
+			
+					<post-functions>
+						<function type="beanshell">
+							<arg name="script">
+								System.out.println("CreateVolume Postfunction called "+"${FuncProcessResult}");
+							</arg>
+						</function>
+						<function type="class">
+							<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.ViPRTaskConnector</arg>
+							<arg name="sourceObject">${CurrentStepProcessResult}</arg>								
+							<arg name="sourceObjectType">${WFinputParamsClass}</arg>
+							<arg name="targetObject">IMPLICIT</arg>								
+							<arg name="targetObjectType">com.emc.storageos.model.block.export.ExportCreateParam</arg>
+
+							<arg name="TaskInputWired">true</arg>
+						</function>	
+					</post-functions>
+					</unconditional-result>
+				</results>
+			</action>
+
+		</actions>
+	</step>
+
+
+	<step id="2" name="Export Volume">
+		<actions>
+			<action id="2" name="ExportVolumeHost">
+				<pre-functions>
+					<function type="beanshell">
+						<arg name="script">
+							System.out.println("ExportVolumeHost Prefunction called");
+						</arg>
+					</function>
+					<function type="class">
+						<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.ViPRTasks</arg>
+						<arg name="TaskName">ExportVolumeLite</arg>	
+						<arg name="InputParams">IMPLICIT</arg>
+						<arg name="InputParamsClass">com.emc.storageos.model.block.export.ExportCreateParam</arg>
+						<arg name="TaskInputWired">true</arg>						
+					</function>					
+ 					
+				</pre-functions>
+				<results>
+				
+				<result old-status="Executing" split="1">
+					
+						<conditions type="AND">					
+							<condition type="class">
+								<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.TaskFailedCondition</arg>
+							</condition>
+						</conditions>
+					</result>
+				
+					<unconditional-result old-status="ExportVolumeStart" status="ExportVolumeEnd" owner="${caller}" step="999" />
+				</results>
+				<post-functions>
+					<function type="beanshell">
+						<arg name="script">
+							System.out.println("ExportVolumeEnd Postfunction called");
+						</arg>
+					</function>
+				</post-functions>
+			</action>
+		</actions>
+	</step>
+
+	<step id="3" name="Rollback">
+		<actions>
+			<action id="3" name="Rollback">
+				<pre-functions>
+					<function type="beanshell">
+						<arg name="script">
+							System.out.println("Rollback Prefunction called");
+						</arg>
+					</function>
+					<function type="class">
+						<arg name="class.name">com.emc.ctd.vipr.workflow.tasks.ViPRTasks</arg>
+						<arg name="TaskName">RollbackLite</arg>	
+					</function>
+				</pre-functions>
+				<results>
+					<unconditional-result old-status="Failed"
+						status="Failed" owner="${caller}" step="999" />
+				</results>
+				<post-functions>
+					<function type="beanshell">
+						<arg name="script">
+							System.out.println("Rollback Postfunction called");
+						</arg>
+					</function>
+				</post-functions>
+			</action>
+		</actions>
+	</step>
+       	
+	<step id="999" name="End">
+		<actions>
+			<action id="4" name="Rollback" finish="TRUE">
+				<pre-functions>
+					<function type="beanshell">
+						<arg name="script">
+							System.out.println("End Workflow");
+						</arg>
+					</function>
+				</pre-functions>
+				<results>
+					<unconditional-result old-status="Finished" status="LastFinished" step="-1"/>
+				</results>
+			</action>
+		</actions>
+	</step>
+	</steps>
+	
+	<splits>
+		<split id="1">
+			<unconditional-result old-status="FAILED" status="Rollback" owner="${caller}" step="3"/>
+		</split>
+	</splits>
+	
+</workflow>

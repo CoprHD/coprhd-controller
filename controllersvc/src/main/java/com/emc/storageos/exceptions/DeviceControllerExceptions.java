@@ -385,6 +385,12 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public DeviceControllerException multipleVarraysInVPLEXExportGroup(String array, String varray1, String varray2);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public DeviceControllerException multipleNetworksInVPLEXExportGroup(String array, String network1, String network2);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public DeviceControllerException incorrectNumberOfNetworksInVPLEXExportGroup(final String array, final String numNetworks);
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException srdfAsyncStepCreationfailed(String groupName);
 
@@ -428,6 +434,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_VARRAY_HAS_MIXED_CLUSTERS)
     public DeviceControllerException vplexVarrayMixedClusters(final String varray, final String vplex);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_VARRAY_HAS_MIXED_CLUSTERS)
+    public DeviceControllerException vplexNetworkMixedClusters(final String network, final String vplex);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException existingExportFoundButNotEnoughPortsToSatisfyMinPaths(String maskName, String totalPorts,

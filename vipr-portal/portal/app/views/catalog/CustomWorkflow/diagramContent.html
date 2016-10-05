@@ -25,7 +25,7 @@
     </div>
 
     <div class="canvas" id="js-canvas"></div>
-    <div id="js-properties-panel"></div>
+    <div id="js-properties-panel" ></div>
   </div>
    <ul class="buttons">
     <li>
@@ -34,20 +34,51 @@
      <li>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     </li> 
+   
+      <li>
+     <button  class="btn btn-default btn-large" id="edit"> <span class="glyphicon glyphicon-edit " ></span> ${messages.get('button.edit')}</button>
+    </li>
+    <li id="w-save">
+      <button  class="btn btn-primary btn-large" id="save"> <span class="glyphicon glyphicon-ok-sign " ></span> ${messages.get('button.save')}</button>
     
-    <li>
-     <a id="js-download-diagram">
-       <button class="btn btn-info btn-large" name="save" > ${messages.get('button.save')}</button>
-     </a>
+    </li>
+     <li>
+     <button class="btn btn-default btn-large" name="cancel" onclick="cancel()"> <span class="glyphicon glyphicon-trash "></span> ${messages.get('button.cancel')}</button>
     </li>
     <li>
+     <button  class="btn btn-primary btn-large"> <span class="glyphicon glyphicon-transfer " ></span> ${messages.get('button.deploy')}</button>
+    </li>
 
   </ul>
 
  <script>
     window.onload = function(){
       document.getElementById("js-open-vipr-diagram").click();
+      $("#w-palette").hide();
+      $("#js-properties-panel").hide();
+      $("#w-save").hide();
     }
  </script>
+ <script type="text/javascript">
+     function cancel() {
+        var url = #{jsAction  @catalog.CustomWorkflow.diagrams() /};
+        window.location.href = url();   
+     }
+ </script>
+ <script>
+  $(document).ready(function(){
+    $("#edit").click(function(){
+        $("#w-palette").show();
+        $("#js-properties-panel").show();
+        $("#w-save").show();
+    });
+    
+    $("#save").click(function(){
+        $("#w-palette").hide();
+        $("#js-properties-panel").hide();
+        $("#w-save").hide();
+    });
+  });
+</script>
   
   #{script 'workflow.js'/}

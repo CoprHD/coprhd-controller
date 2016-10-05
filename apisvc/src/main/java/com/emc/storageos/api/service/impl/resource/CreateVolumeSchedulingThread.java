@@ -78,7 +78,7 @@ class CreateVolumeSchedulingThread implements Runnable {
     private ArrayList<String> requestedTypes;
     private VolumeCreate param;
     private BlockServiceApi blockServiceImpl;
-
+   
     public CreateVolumeSchedulingThread(BlockService blockService, VirtualArray varray, Project project,
             VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities,
@@ -108,19 +108,23 @@ class CreateVolumeSchedulingThread implements Runnable {
     	
     	URI storageSystemId = null;
     	URI storagePoolId = null;
+	URI backendNetworkURI_1 = null;
+    	URI backendNetworkURI_2 = null;
     	URI HAstorageSystemId = null;
     	URI HAstoragePoolId = null;
     	URI vplexId = null;
-    	Integer count = new Integer(VplexpassThroughParam.get("Count"));
+ 	URI haBackendNetworkURI_1 = null;
+    	URI haBackendNetworkURI_2 = null;
+
+    	//Integer count = new Integer(VplexpassThroughParam.get("count"));
     	boolean isVplexHA = VplexpassThroughParam.get("isVplexHA") != null;
     	
 		try {
 			storageSystemId = new URI(VplexpassThroughParam.get("storage-system"));
 			storagePoolId = new URI(VplexpassThroughParam.get("storage-pool"));
-			HAstorageSystemId = new URI(VplexpassThroughParam.get("HA-storage-system"));
-			HAstoragePoolId = new URI(VplexpassThroughParam.get("HA-storage-pool"));
 			vplexId = new URI(VplexpassThroughParam.get("VPlex-Id"));
-			
+			backendNetworkURI_1 = new URI(VplexpassThroughParam.get("backend-network-1"));
+			backendNetworkURI_2 = new URI(VplexpassThroughParam.get("backend-network-2"));			
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
@@ -129,29 +133,39 @@ class CreateVolumeSchedulingThread implements Runnable {
 		
 		//volumeRecommendations.addAll(createVolumeRecommendations(storageSystemId,storagePoolId,param.getCount()));
 		
-		volumeRecommendations.addAll(this.createVplexRecommendations(storageSystemId,storagePoolId,vplexId,param.getCount()));
+		volumeRecommendations.addAll(this.createVplexRecommendations(storageSystemId,storagePoolId,vplexId,backendNetworkURI_1,backendNetworkURI_2,param.getCount()));
 		if (isVplexHA){
-			//volumeRecommendations.addAll(createVolumeRecommendations(HAstorageSystemId,HAstoragePoolId,param.getCount()));
-			volumeRecommendations.addAll(this.createVplexRecommendations(HAstorageSystemId,HAstoragePoolId,vplexId,param.getCount()));
+			_log.debug("isVplexHA");
+			try{
+				HAstorageSystemId = new URI(VplexpassThroughParam.get("HA-storage-system"));
+				HAstoragePoolId =new URI(VplexpassThroughParam.get("HA-storage-pool"));
+				haBackendNetworkURI_1 = new URI(VplexpassThroughParam.get("HA-backend-network-1"));
+				haBackendNetworkURI_2 = new URI(VplexpassThroughParam.get("HA-backend-network-2"));
+			} catch (URISyntaxException e){
+				e.printStackTrace();
+			}
+			volumeRecommendations.addAll(this.createVplexRecommendations(HAstorageSystemId,HAstoragePoolId,vplexId,haBackendNetworkURI_1,backendNetworkURI_2,param.getCount()));
 		}
-		  	
-    	
+	_log.info("No of Recommendations created: {} ", volumeRecommendations.size());    	
     	return volumeRecommendations;
     }
     
-    public List<VPlexRecommendation> createVplexRecommendations(URI storageSystemId, URI storagePoolId, URI vplexId, int count ){
+    public List<VPlexRecommendation> createVplexRecommendations(URI storageSystemId, URI storagePoolId, URI vplexId, URI backendNetworkURI_1, URI backendNetworkURI_2, int count ){
     	List<VPlexRecommendation> vplexRecommendations = new ArrayList<VPlexRecommendation>();
 		while (count > 0) {
 			VPlexRecommendation vplexRecommendation = new VPlexRecommendation();
 
 			vplexRecommendation.setSourceStorageSystem(storageSystemId);
 		    vplexRecommendation.setSourceStoragePool(storagePoolId);
+		    vplexRecommendation.setBackendNetworkList(backendNetworkURI_1,backendNetworkURI_2);
+		    //vplexRecommendation.setBackendNetworkList(backendNetworkURI_2);
 		    vplexRecommendation.setResourceCount(count);
 		    //vplexRecommendation.setSourceDevice(URI.create(vplexStorageSystemId));
 		    vplexRecommendation.setVPlexStorageSystem(vplexId);
 		    vplexRecommendation.setVirtualArray(null);
 		    vplexRecommendation.setVirtualPool(null);
 			vplexRecommendations.add(vplexRecommendation);
+			_log.info("VPlex recommendation {}   {}", storageSystemId.toString(), storagePoolId.toString());
 
 			count--;
 		}
@@ -159,7 +173,34 @@ class CreateVolumeSchedulingThread implements Runnable {
 		return vplexRecommendations;
     	
     }
-    
+
+        public List<VPlexRecommendation> createVplexRecommendations(URI volumeId, URI vplexId, URI backendNetworkURI_1, URI backendNetworkURI_2, int count ){
+    	List<VPlexRecommendation> vplexRecommendations = new ArrayList<VPlexRecommendation>();
+		while (count > 0) {
+			VPlexRecommendation vplexRecommendation = new VPlexRecommendation();
+			vplexRecommendation.setSourceVolume(volumeId);
+                         Volume backendVolume = this.blockService._dbClient.queryObject(Volume.class, volumeId);
+			if (backendVolume == null){
+				 _log.info("Bad volume Id sent in payload");
+				 
+			}else {
+				vplexRecommendation.setSourceStorageSystem(backendVolume.getStorageController());
+			}
+		    vplexRecommendation.setBackendNetworkList(backendNetworkURI_1, backendNetworkURI_2);
+			vplexRecommendation.setResourceCount(count);
+			vplexRecommendation.setVPlexStorageSystem(vplexId);
+			vplexRecommendation.setVirtualArray(null);
+			vplexRecommendation.setVirtualPool(null);
+			vplexRecommendations.add(vplexRecommendation);
+			_log.info("VPlex recommendation {}   {}", volumeId.toString());
+
+			count--;
+		}
+
+		return vplexRecommendations;
+    	
+    }
+
     public List<VolumeRecommendation> createVolumeRecommendations(URI storageSystemId, URI storagePoolId, int count ){
     	List<VolumeRecommendation> volumeRecommendations = new ArrayList<VolumeRecommendation>();
 		while (count > 0) {
@@ -176,11 +217,65 @@ class CreateVolumeSchedulingThread implements Runnable {
 		return volumeRecommendations;
     	
     }
+   public List<Recommendation> bypassRecommendationsForVplexVolumeResources(VolumeCreate Vplexparam){
+    	List<Recommendation> volumeRecommendations = new ArrayList<Recommendation>();
+    	
+    	List<VPlexRecommendation> VPlexRecommendations = new ArrayList<VPlexRecommendation>();
+    	VPlexRecommendation vplexRecommendation = new VPlexRecommendation();
+    	
+    	Map<String,String> VplexpassThroughParam = Vplexparam.getPassThroughParams();
+
+    	URI volumeId = null;    	
+	    URI backendNetworkURI_1 = null;
+    	URI backendNetworkURI_2 = null;
+    	    	URI volumeForHAId = null;
+    	URI vplexId = null;
+ 	URI haBackendNetworkURI_1 = null;
+    	URI haBackendNetworkURI_2 = null;
+
+    	//Integer count = new Integer(VplexVolumepassThroughParam.get("count"));
+    	boolean isVplexHA = VplexpassThroughParam.get("isVplexHA") != null;
+    	
+		try {
+			volumeId = new URI(VplexpassThroughParam.get("volumeId"));
+			vplexId = new URI(VplexpassThroughParam.get("VPlex-Id"));
+			if(VplexpassThroughParam.get("backend-network-1") != null && VplexpassThroughParam.get("backend-network-2") != null)
+			{	
+				backendNetworkURI_1 = new URI(VplexpassThroughParam.get("backend-network-1"));
+				backendNetworkURI_2 = new URI(VplexpassThroughParam.get("backend-network-2"));	
+			}		
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+    	//Create the recommendations for source and target array volumes.
+		//create the recommendations for the vplex volume - source and target
+		
+		//volumeRecommendations.addAll(createVolumeRecommendations(volumeId,param.getCount()));
+		
+		volumeRecommendations.addAll(this.createVplexRecommendations(volumeId,vplexId,backendNetworkURI_1,backendNetworkURI_2,param.getCount()));
+		if (isVplexHA){
+			_log.debug("isVplexHA");
+			try{
+				volumeForHAId = new URI(VplexpassThroughParam.get("volume-for-HA"));
+				if(VplexpassThroughParam.get("HA-backend-network-1") != null && VplexpassThroughParam.get("HA-backend-network-2") != null)
+				{
+					haBackendNetworkURI_1 = new URI(VplexpassThroughParam.get("HA-backend-network-1"));
+					haBackendNetworkURI_2 = new URI(VplexpassThroughParam.get("HA-backend-network-2"));
+				}
+			} catch (URISyntaxException e){
+				e.printStackTrace();
+			}
+			volumeRecommendations.addAll(this.createVplexRecommendations(volumeForHAId,vplexId, haBackendNetworkURI_1, haBackendNetworkURI_2, param.getCount()));
+		}
+	_log.info("No of Recommendations created: {} ", volumeRecommendations.size());    	
+    	return volumeRecommendations;
+    }
     
-	public List<VolumeRecommendation> bypassRecommendationsForResources(VolumeCreate param) {
+    
+	public List<Recommendation> bypassRecommendationsForResources(VolumeCreate param) {
 
 		//_log.debug("Schedule storage for {} resource(s) of size {}.",capabilities.getResourceCount(), capabilities.getSize());
-		List<VolumeRecommendation> volumeRecommendations = new ArrayList<VolumeRecommendation>();
+		List<Recommendation> volumeRecommendations = new ArrayList<Recommendation>();
 		try {
 
 			// Initialize a list of recommendations to be returned.
@@ -219,55 +314,11 @@ class CreateVolumeSchedulingThread implements Runnable {
 		return volumeRecommendations;
 	}
 
-	public TaskList preparedVolumes(VolumeCreate param,  List<Recommendation> recommendations, TaskList taskList,
-            String task, VirtualPoolCapabilityValuesWrapper cosCapabilities){
-		
-		List<URI> allVolumes = new ArrayList<URI>();
-		Map<String, String> vplexPassThroughParam = param.getPassThroughParams();
-		URI storageSystemId = null;
-    	URI storagePoolId = null;
-    	URI HAstorageSystemId = null;
-    	URI HAstoragePoolId = null;
-    	URI vplexId = null;
-    	URI volumeId = null;
-    	long size = Long.parseLong(vplexPassThroughParam.get("count"));
-    	
-    	Integer count = new Integer(vplexPassThroughParam.get("Count"));
-    	boolean isVplexHA = vplexPassThroughParam.get("isVplexHA") != null;
-    	
-		try {
-			storageSystemId = new URI(vplexPassThroughParam.get("storage-system"));
-			storagePoolId = new URI(vplexPassThroughParam.get("storage-pool"));
-			HAstorageSystemId = new URI(vplexPassThroughParam.get("HA-storage-system"));
-			HAstoragePoolId = new URI(vplexPassThroughParam.get("HA-storage-pool"));
-			vplexId = new URI(vplexPassThroughParam.get("VPlex-Id"));
-			volumeId = new URI(vplexPassThroughParam.get("Volume-Id"));
-			
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-		
-		//URI volumeId = volume.getId();
-		//List<VolumeDescriptor> descriptors = VPlexBlockServiceApiImpl.createVPlexVolumeDescriptors(param, project, storageSystemId, storagePoolId,
-          //      recommendations, task, cosCapabilities, taskList, allVolumes, true);
-		
-		List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-		VolumeDescriptor descriptor = new VolumeDescriptor(
-                VolumeDescriptor.Type.BLOCK_DATA, storageSystemId, volumeId,
-                storagePoolId, null, cosCapabilities, size);
-        descriptors.add(descriptor);
-		
-       
-        	List<VolumeDescriptor> descriptors1 = new ArrayList<VolumeDescriptor>();
-    		VolumeDescriptor descriptor1 = new VolumeDescriptor(
-                    VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, storageSystemId, volumeId,
-                    storagePoolId, null, cosCapabilities, size);
-            descriptors.add(descriptor1);
-        		
-		return taskList;
-	}
-		
-	 // @Override
+	
+	 
+
+
+	// @Override
 	  public TaskList createVolumes(VolumeCreate param,  List<Recommendation> recommendations, TaskList taskList,
 	            String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
 	        // Prepare the Bourne Volumes to be created and associated
@@ -316,7 +367,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 
 	            VolumeDescriptor volumeDescriptor =  new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
 	                    volume.getStorageController(), volume.getId(),
-	                    volume.getPool(), null, new VirtualPoolCapabilityValuesWrapper());
+	                    volume.getPool(), null, new VirtualPoolCapabilityValuesWrapper(), volume.getCapacity());
 	            
 	        
 
@@ -370,42 +421,66 @@ class CreateVolumeSchedulingThread implements Runnable {
 	    	URI vplexId = null;
 	    	Map<String,List<VPlexRecommendation>> arrayRecommendationsMap = sortRecommendations(recommendations);
 	    	
+		_log.info("inside prepareRVforVplex, param.getCount = {} ",param.getCount());
 	    	URI[][] arrayVolumeURIs = new URI[2][param.getCount()];
+		_log.info("Initialized  arrayVolumeURIs : {}" ,arrayVolumeURIs.length);
 	    	int arrayCounter = 0;
+	    	Map<URI,List<URI>> storageSystemNetworkMap = new HashMap<URI,List<URI>>();
 	        for (String array : arrayRecommendationsMap.keySet()){
 	        	List<VPlexRecommendation> arrayRecommendations = arrayRecommendationsMap.get(array);
+	        	_log.info("IN CVST, prepareRecoVolumesfor Vplex, arrayRecommendations: " + arrayRecommendations.size());
 	        	for (VPlexRecommendation recommendation : arrayRecommendations){
-		        	
+			  if(recommendation.getSourceVolume() != null){
+		        	storageSystemNetworkMap.put(recommendation.getSourceStorageSystem(), recommendation.getBackendNetworkList());
+				_log.info("Setting arrayVolumeURIs, volumeId :  {}",recommendation.getSourceVolume());
+	                	arrayVolumeURIs[arrayCounter][volumeCounter] = recommendation.getSourceVolume();
+ 				vplexId = recommendation.getVPlexStorageSystem();
+
+	        	  }else{
+		        	storageSystemNetworkMap.put(recommendation.getSourceStorageSystem(), recommendation.getBackendNetworkList());
 		            vplexId = recommendation.getVPlexStorageSystem();
-	        		String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(param.getName(), volumeCounter++, param.getCount());
+	        		String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(param.getName(), volumeCounter, param.getCount());
 	        		newVolumeLabel = generateBackendVolumeLabel(newVolumeLabel,arrayCounter);
-	                // Grab the existing volume and task object from the incoming task list
-	                Volume volume = getPrecreatedVolume(this.blockService._dbClient, taskList, newVolumeLabel);
+	        	_log.info(" newVolumeLabel {} ",newVolumeLabel);
+		
+	                // Grab the existing volume and task object from the incoming task list      
+ 			Volume volume = getPrecreatedVolume(this.blockService._dbClient, taskList, newVolumeLabel);
+			//_log.info("Done checking PrecreatedVolume");
 	                boolean volumePrecreated = false;
 	                if (volume != null) {
 	                    volumePrecreated = true;
 	                }
+			
 
 	                long size = SizeUtil.translateSize(param.getSize());
-	                long thinVolumePreAllocationSize = 0;
+	                _log.info("Size inside prepareRecommendedVolumesForVPlex" + size);
+			long thinVolumePreAllocationSize = 0;
 	                
 	                //Build a temp volume recommendation to pass to prepareVolume method
 	                VolumeRecommendation tmpRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,	size, null, null);
 
-					tmpRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+			tmpRecommendation.addStoragePool(recommendation.getSourceStoragePool());
 
-					tmpRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
-
+			tmpRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
+		
 	                volume = prepareVolume(this.blockService._dbClient, volume, size,  tmpRecommendation, newVolumeLabel);
+			_log.info("1 Done Preparing volumes inside prepareRecommendedVolumesForVPlex {}" , volume);
+			_log.info("2 Prepared volume Id: {} ",volume.getId());
+			_log.info("3 volume:  {}",volume.toString() );
+	                _log.info("4 volume: {}" , volume.forDisplay() );
+			_log.info("5 volume : {}" +volume.forDisplay() );
+			_log.info("6 volume:  {}"+volume.toString() );
+			_log.info("11 blockService.dbClient : {}" , this.blockService._dbClient.toString());
 	                
 	                // add volume to reserved capacity map of storage pool
-	               StorageScheduler.addVolumeCapacityToReservedCapacityMap(this.blockService._dbClient, volume);
+	              	_log.info("Inside prepareRecommendedVolumesForVPlex, adding volume to reserved capacity map of storage pool");
+			StorageScheduler.addVolumeCapacityToReservedCapacityMap(this.blockService._dbClient, volume);
+			_log.info("Inside prepareRecommendedVolumesForVPlex, DONE adding volume to reserved capacity map of storage pool");
 
 	                preparedVolumes.add(volume);
-	                arrayVolumeURIs[arrayCounter][volumeCounter++] = volume.getId();
-	                
-	               
-	                if (!volumePrecreated) {
+			_log.info("Setting arrayVolumeURIs, volume.getId : {}",volume.getId());
+	                arrayVolumeURIs[arrayCounter][volumeCounter] = volume.getId();
+			if (!volumePrecreated) {
 	                    Operation op = this.blockService._dbClient.createTaskOpStatus(Volume.class, volume.getId(),
 	                            task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
 	                    volume.getOpStatus().put(task, op);
@@ -414,18 +489,48 @@ class CreateVolumeSchedulingThread implements Runnable {
 	                    // It is good to continue to have a task associated with this volume AND store its status in the volume.
 	                    taskList.getTaskList().add(volumeTask);
 	                }
-	                
+
 	                VolumeDescriptor descriptor = prepareVolumeDescriptor(volume);
 	                descriptors.add(descriptor);
-	                
+			}
+			volumeCounter++;
 	        	}
 	        	arrayCounter++;
 	        } 
 	        
 	        for (int i=0;i<param.getCount();i++){
+
+			 
 	        	long size = SizeUtil.translateSize(param.getSize());
 	        	String vplexVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(param.getName(), volumeCounter++, param.getCount());
-            	Volume virtualVolume = prepareVplexVolume(this.blockService._dbClient,null, size, vplexId,vplexVolumeLabel);
+	 		// Grab the existing volume and task object from the incoming task list
+	                Volume virtualVolume = getPrecreatedVolume(this.blockService._dbClient, taskList, vplexVolumeLabel);
+			//_log.info("Done checking PrecreatedVolume");
+	                boolean volumePrecreated = false;
+	                if (virtualVolume != null) {
+	                    volumePrecreated = true;
+	                  }
+                        URI beNetworkURI_1= null;
+                        URI beNetworkURI_2= null;
+		        if(param.getPassThroughParams().containsKey("isVplexHA")){
+				if(param.getPassThroughParams().get("HA-backend-network-1") != null && param.getPassThroughParams().get("HA-backend-network-1") !=null)
+				{
+		            	  String HA_backend_network_1 = param.getPassThroughParams().get("HA-backend-network-1");
+		            	  String HA_backend_network_2 = param.getPassThroughParams().get("HA-backend-network-1");
+		            	  beNetworkURI_1 = URI.create(HA_backend_network_1);
+		            	  beNetworkURI_2 = URI.create(HA_backend_network_2);
+				}
+		        }else {
+		            	if(param.getPassThroughParams().get("backend-network-1") != null 
+	            			&& param.getPassThroughParams().get("backend-network-2") !=null)
+				{
+		            		String backendNetwork_1 = param.getPassThroughParams().get("backend-network-1");
+		            		String backendNetwork_2 = param.getPassThroughParams().get("backend-network-2");
+		            		beNetworkURI_1 = URI.create(backendNetwork_1);
+		            		beNetworkURI_2 = URI.create(backendNetwork_2);
+				}
+		        }
+            	virtualVolume = prepareVplexVolume(this.blockService._dbClient,null, size, vplexId,vplexVolumeLabel);
             	// set the associated volumes here
             	StringSet associatedVolumes = new StringSet();
                 associatedVolumes.add(arrayVolumeURIs[0][i].toString());
@@ -437,9 +542,11 @@ class CreateVolumeSchedulingThread implements Runnable {
                     _log.info("Associating volume {}", arrayVolumeURIs[1][i].toString());
                 }
                 virtualVolume.setAssociatedVolumes(associatedVolumes);
-                
+               _log.info("2Associated Volume {}", associatedVolumes); 
+                _log.info("22Associated Volume {}", virtualVolume.forDisplay());
+		 this.blockService._dbClient.updateObject(virtualVolume);
             	 preparedVolumes.add(virtualVolume);
-
+                _log.info("23preparedVolumes {}", preparedVolumes.toString());
 	                
                  Operation op = this.blockService._dbClient.createTaskOpStatus(Volume.class, virtualVolume.getId(),
                          task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -452,8 +559,9 @@ class CreateVolumeSchedulingThread implements Runnable {
                  VolumeDescriptor descriptor = new VolumeDescriptor(
                          VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexId, virtualVolume.getId(),
                          null, consistencyGroup == null ? null : consistencyGroup.getId(),
-                        		 new VirtualPoolCapabilityValuesWrapper(), virtualVolume.getCapacity());
-                 
+                      		 new VirtualPoolCapabilityValuesWrapper(), virtualVolume.getCapacity());
+		descriptor.getParameters().put(VolumeDescriptor.PARAM_VPLEX_BE_NETWORKS, storageSystemNetworkMap);             
+		_log.info("VPLEX Descriptor {}", descriptor.toString() );
                  descriptors.add(descriptor);
 	        }
 	        return descriptors;
@@ -545,16 +653,16 @@ class CreateVolumeSchedulingThread implements Runnable {
 	    public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label) {
 	        // The label we've been given has already been appended with the appropriate volume number
 	        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, 0, 1);
-	        if (taskList == null) {
+		if (taskList == null) {
 	            return null;
 	        }
-
-	        for (TaskResourceRep task : taskList.getTaskList()) {
-	            Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());
-	            if (volume.getLabel().equalsIgnoreCase(volumeLabel)) {
-	                return volume;
+		for (TaskResourceRep task : taskList.getTaskList()) {
+			Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());
+	        	if (volume.getLabel().equalsIgnoreCase(volumeLabel)) {
+			return volume;
 	            }
 	        }
+		
 	        return null;
 	    }
 	    
@@ -572,7 +680,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 	 
 	    public static Volume prepareVplexVolume(DbClient dbClient, Volume volume, long size,  URI vplexId, String label) {
 	    	
-
+		VolumeCreate param = null;
 	        boolean newVolume = false;
 	        if (volume == null) {
 	            newVolume = true;
@@ -612,7 +720,6 @@ class CreateVolumeSchedulingThread implements Runnable {
 	    
 	    public static Volume prepareVolume(DbClient dbClient, Volume volume, long size,    VolumeRecommendation placement, String label) {
 
-
 	        boolean newVolume = false;
 	        if (volume == null) {
 	            newVolume = true;
@@ -623,7 +730,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 	            // Reload volume object from DB
 	            volume = dbClient.queryObject(Volume.class, volume.getId());
 	        }
-
+		
 	        volume.setSyncActive(!Boolean.valueOf(false));
 	        volume.setLabel(label);
 	        volume.setCapacity(size);
@@ -640,8 +747,10 @@ class CreateVolumeSchedulingThread implements Runnable {
 
 
 	        if (newVolume) {
+                  _log.info("created volume");
 	            dbClient.createObject(volume);
 	        } else {
+                  _log.info("updated volume");
 	            dbClient.updateAndReindexObject(volume);
 	        }
 
@@ -652,9 +761,23 @@ class CreateVolumeSchedulingThread implements Runnable {
         _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
-        	List recommendations = null;
-        	if ( param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("isVplexVolume")  ){
+        	List<Recommendation> recommendations = new ArrayList<Recommendation>();
+		if ( param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()
+                   && param.getPassThroughParams().containsKey("VPlex-Id")  
+			&& param.getPassThroughParams().containsKey("volumeId")){
+        		_log.info("calling method bypassRecommendationsForVplexVolumeResources");
+        		recommendations = this.bypassRecommendationsForVplexVolumeResources(param);
+			    _log.info("Done with recommendations {} ",recommendations);
+        		_log.info("Initiating descriptors, calling createVolumes");
+        		this.createVolumes(param,  recommendations, taskList, task, capabilities);  
+        		//this.preparedVolumes(param, recommendations, taskList, task, capabilities);
+        		return;
+        	}
+        	else if ( param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("VPlex-Id")  ){
+        		_log.info("calling method bypassRecommendationsForVplexResources");
         		recommendations = this.bypassRecommendationsForVplexResources(param);
+			_log.info("Done with recommendations {} ",recommendations);
+        		_log.info("Initiating descriptors, calling createVolumes");
         		this.createVolumes(param,  recommendations, taskList, task, capabilities);  
         		//this.preparedVolumes(param, recommendations, taskList, task, capabilities);
         		return;

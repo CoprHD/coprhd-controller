@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE workflow PUBLIC 
+  "-//OpenSymphony Group//DTD OSWorkflow 2.8//EN"
+  "http://www.opensymphony.com/osworkflow/workflow_2_8.dtd">
+<workflow>
+	<initial-actions>
+		<action id="0" name="start">
+			<pre-functions>
+				<function type="class">
+					<arg name="class.name">com.opensymphony.workflow.util.Caller</arg>
+				</function>
+				<function type="spring">
+					<arg name="bean.name">mockAction</arg>
+					<arg name="action.name">t0</arg>
+				</function>
+			</pre-functions>
+			<results>
+				<unconditional-result old-status="Finished"
+					status="Queued" owner="${caller}" step="1" />
+			</results>
+		</action>
+	</initial-actions>
+	<steps>
+		<step id="1" name="p1">
+			<actions>
+				<action id="1" name="t1">
+					<results>
+						<unconditional-result old-status="Finished"
+							status="Queued" owner="${caller}" step="26" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t1</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="26" name="s26">
+			<actions>
+				<action id="26" name="split26">
+					<results>
+						<unconditional-result old-status="Finished"
+							owner="${caller}" split="26" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">split26</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="2" name="p2">
+			<actions>
+				<action id="2" name="t2">
+					<results>
+						<unconditional-result old-status="Finished"
+							status="Queued" owner="${caller}" step="34" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t2</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="34" name="s34">
+			<actions>
+				<action id="34" name="split34">
+					<results>
+						<unconditional-result old-status="Finished"
+							owner="${caller}" split="34" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">split34</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="3" name="p3">
+			<actions>
+				<action id="3" name="t3">
+					<results>
+						<unconditional-result old-status="Finished"
+							owner="${caller}" join="43" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t3</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="4" name="p4">
+			<actions>
+				<action id="4" name="t4">
+					<results>
+						<unconditional-result old-status="Finished"
+							owner="${caller}" join="43" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t4</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="5" name="p5">
+			<actions>
+				<action id="5" name="t5">
+					<results>
+						<unconditional-result old-status="Finished"
+							owner="${caller}" join="75" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t5</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="6" name="p6">
+			<actions>
+				<action id="6" name="t6">
+					<results>
+						<unconditional-result old-status="Finished"
+							status="Queued" owner="${caller}" step="7" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t6</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="7" name="p7">
+			<actions>
+				<action id="7" name="t7">
+					<results>
+						<unconditional-result old-status="Finished"
+							owner="${caller}" join="75" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t7</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="8" name="p8">
+			<actions>
+				<action id="8" name="t8">
+					<results>
+						<unconditional-result old-status="Finished"
+							status="Queued" owner="${caller}" step="9" />
+					</results>
+					<post-functions>
+						<function type="spring">
+							<arg name="bean.name">mockAction</arg>
+							<arg name="action.name">t8</arg>
+						</function>
+					</post-functions>
+				</action>
+			</actions>
+		</step>
+		<step id="9" name="stop">
+			<actions>
+				<action id="9" name="t9" finish="true">
+					<results>
+						<unconditional-result old-status="Finished"
+							status="Complete" owner="${caller}" />
+					</results>
+				</action>
+			</actions>
+		</step>
+	</steps>
+	<splits>
+		<split id="26">
+			<unconditional-result old-status="Finished"
+				status="Queued" owner="${caller}" step="2" />
+			<unconditional-result old-status="Finished"
+				status="Queued" owner="${caller}" step="6" />
+		</split>
+		<split id="34">
+			<unconditional-result old-status="Finished"
+				status="Queued" owner="${caller}" step="3" />
+			<unconditional-result old-status="Finished"
+				status="Queued" owner="${caller}" step="4" />
+		</split>
+	</splits>
+	<joins>
+		<join id="43">
+			<conditions type="AND">
+				<condition type="beanshell">
+					<arg name="script"><![CDATA[
+            "Finished".equals(jn.getStep(3).getStatus()) &&
+            "Finished".equals(jn.getStep(4).getStatus())
+          ]]>
+					</arg>
+				</condition>
+			</conditions>
+			<unconditional-result old-status="Finished"
+				status="Queued" owner="${caller}" step="5" />
+		</join>
+		<join id="75">
+			<conditions type="AND">
+				<condition type="beanshell">
+					<arg name="script"><![CDATA[
+          "Finished".equals(jn.getStep(5).getStatus()) &&
+          "Finished".equals(jn.getStep(7).getStatus())
+          ]]>
+					</arg>
+				</condition>
+			</conditions>
+			<unconditional-result old-status="Finished"
+				status="Queued" owner="${caller}" step="8" />
+		</join>
+	</joins>
+</workflow>

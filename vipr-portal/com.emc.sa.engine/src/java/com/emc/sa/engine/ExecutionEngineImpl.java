@@ -127,6 +127,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             precheck(service);
             preLaunch(service);
             execute(service);
+            executeModel(service);
             postLaunch(service);
             postcheck(service);
         } catch (ExecutionException e) {
@@ -243,6 +244,20 @@ public class ExecutionEngineImpl implements ExecutionEngine {
 		
 	}
 
+    private void executeModel(ExecutionService service) {
+   	
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("executeModel " + context.getServiceName());
+            updateExecutionStatus(ExecutionStatus.EXECUTE);
+            service.executeModelWorkflow();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
     protected void destroy(ExecutionService service) {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();

@@ -431,12 +431,14 @@ public class BlockConsistencyGroupUtils {
     }
     
     /**
-     * Given a list of volumes find all unique CGs from that list.
+     * Given a list of volumes find all unique CG URIs.
      * 
      * @param volumes List of volumes to parse over and find all CGs related to the volumes
-     * @return Unique sets of CG Ids
+     * @return Set of unique CG URIs
      */
     public static Set<URI> getAllCGsFromVolumes(List<Volume> volumes) {
+        // Using a Set to store all unique CG URIs collected from the
+        // volumes passed in.
         Set<URI> cgURIs = new HashSet<URI>();
         
         for (Volume vol : volumes) {

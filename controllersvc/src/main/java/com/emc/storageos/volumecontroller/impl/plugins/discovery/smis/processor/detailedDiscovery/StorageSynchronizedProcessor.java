@@ -67,10 +67,10 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                     rmObj.setType(RemoteMirrorObject.Types.TARGET.toString());
 
                     if (copyMode != null && !SupportedCopyModes.UNKNOWN.name().equals(copyMode)
-                            && !copyMode.equalsIgnoreCase(rmObj.getCopyMode())) {
-                        if (updateCopyModeInRAGroupObjectIfRequired(copyMode, rmObj)) {
-                            rmObj.setCopyMode(copyMode);
-                        }
+                            && !copyMode.equalsIgnoreCase(rmObj.getCopyMode())
+                            && updateSupportedCopyMode(rmObj.getCopyMode())) {
+                        rmObj.setCopyMode(copyMode);
+                        updateCopyModeInRAGroupObjectIfRequired(copyMode, rmObj);
                     }
                 }
 
@@ -103,8 +103,7 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
      * @param copyMode the copy mode from StorageSynchornized
      * @param rmObj the RemoteMirrorObject
      */
-    private boolean updateCopyModeInRAGroupObjectIfRequired(String copyMode, RemoteMirrorObject rmObj) {
-        boolean updated = false;
+    private void updateCopyModeInRAGroupObjectIfRequired(String copyMode, RemoteMirrorObject rmObj) {
         // get source array RA group
         URI raGroupURI = rmObj.getTargetRaGroupUri();
         RemoteDirectorGroup raGroup = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupURI);
@@ -115,7 +114,6 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                 && updateSupportedCopyMode(raGroup.getSupportedCopyMode())) {
             raGroup.setSupportedCopyMode(copyMode);
             _dbClient.updateObject(raGroup);
-            updated = true;
         }
 
         // get target array RA group
@@ -125,9 +123,7 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                 && updateSupportedCopyMode(targetRaGroup.getSupportedCopyMode())) {
             targetRaGroup.setSupportedCopyMode(copyMode);
             _dbClient.updateObject(targetRaGroup);
-            updated = true;
         }
-        return updated;
     }
 
     @Override

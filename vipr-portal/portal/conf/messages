@@ -3865,6 +3865,7 @@ button.modify=Modify
 button.activate=Activate
 button.restore=Restore
 button.save=Save
+button.deploy=Deploy
 button.done=Done
 button.ok=OK
 button.remove=Remove

@@ -498,8 +498,8 @@ public class OrderService extends CatalogTaggedResourceService {
      */
     @POST
     @Path("/{id}/resources-logs")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ResponseBuilder writeMessageBoard(@PathParam("id") String orderId, OrderCreateParam orderParam) throws DatabaseException {
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.APPLICATION_OCTET_STREAM })
+    public Response writeMessageBoard(@PathParam("id") String orderId, OrderCreateParam orderParam) throws DatabaseException {
 
         Order order = queryResource(uri(orderId));
 
@@ -512,11 +512,11 @@ public class OrderService extends CatalogTaggedResourceService {
         // xmlMessage.replace("//<![CDATA[", "");
         // xmlMessage.replace("//]]", "");
 
-        order.setXmlMessage(xmlMessage);
+        orderManager.writeMessgeBoard(order, xmlMessage);
 
         _dbClient.updateObject(order);
 
-        return Response.ok();
+        return Response.ok().build();
     }
 
     /**

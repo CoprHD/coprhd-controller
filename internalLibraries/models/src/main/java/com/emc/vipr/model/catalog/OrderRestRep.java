@@ -85,6 +85,17 @@ public class OrderRestRep extends DataObjectRestRep {
     
     private URI scheduledEventId;
     private Calendar scheduledTime;
+    
+    private String xmlMessage;
+
+    @XmlElement(name = "xml_message")
+    public String getXmlMessage() {
+        return xmlMessage;
+    }
+
+    public void setXmlMessage(String xmlMessage) {
+        this.xmlMessage = xmlMessage;
+    }
 
     @XmlElement(name = "order_number")
     public String getOrderNumber() {

@@ -21,7 +21,6 @@ import com.emc.storageos.vnxe.models.RemoteSystem;
 import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -45,15 +44,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
 
         VNXeApiClient apiClient = getVnxUnityClient(sourceStorageSystem);
 
-        VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
         int maxTimeOutOfSync = -1;
-        if (virtualPool != null) {
-            maxTimeOutOfSync = convertToMinutes(virtualPool.getFrRpoValue(), virtualPool.getFrRpoType());
-            if (virtualPool.getFrRpoValue() == 0) {
-                // Zero RPO value means policy has to be started manually-NO Schedule
-                maxTimeOutOfSync = -1;
-            }
-        }
         String name = targetFileShare.getLabel();
 
         try {
@@ -80,9 +71,19 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             FileShare sourceFileShare = dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
 
             VNXeApiClient apiClient = getVnxUnityClient(system);
+            VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
+            int maxTimeOutOfSync = -1;
+            if (virtualPool != null) {
+                maxTimeOutOfSync = convertToMinutes(virtualPool.getFrRpoValue(), virtualPool.getFrRpoType());
+                if (virtualPool.getFrRpoValue() == 0) {
+                    // Zero RPO value means policy has to be started manually-NO Schedule
+                    maxTimeOutOfSync = -1;
+                }
+            }
             try {
                 ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
                         getResIdByFileShareURI(target.getId()));
+                apiClient.modifyReplicationSessionSync(session.getId(), maxTimeOutOfSync);
                 VNXeCommandJob job = apiClient.syncReplicationSession(session.getId()); // sync for the first time
                 VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "startMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -152,7 +153,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(source),
                     getResIdByFileShareURI(target));
             VNXeCommandJob job = apiClient.deleteReplicationSession(session.getId());
-            VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "failoverMirrorFileShareLink");
+            VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "deleteMirrorFileShareLink");
             ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
         } catch (VNXeException ex) {
             completer.error(dbClient, ex);
@@ -270,7 +271,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
                     getResIdByFileShareURI(target.getId()));
             VNXeCommandJob job = apiClient.deleteReplicationSession(session.getId());
-            VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "refreshMirrorFileShareLink");
+            VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "cancelMirrorFileShareLink");
             ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
         } catch (VNXeException ex) {
             completer.error(dbClient, ex);
@@ -308,13 +309,22 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
 
     @Override
     public void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
-        BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-            // TODO Unity not supported
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(dbClient);
-            } else {
-                completer.error(dbClient, cmdResult.getServiceCoded());
+            VNXeApiClient apiClient = getVnxUnityClient(system);
+            try {
+                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
+                        getResIdByFileShareURI(target.getId()));
+                VNXeCommandJob job = apiClient.pauseReplicationSession(session.getId());
+                VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "pauseMirrorFileShareLink");
+                ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
+            } catch (VNXeException ex) {
+                completer.error(dbClient, ex);
+            } catch (Exception ex) {
+                _log.error("pauseMirrorFileShareLink got an exception", ex);
+                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("pauseMirrorFileShareLink", ex.getMessage());
+                if (completer != null) {
+                    completer.error(dbClient, error);
+                }
             }
         }
     }

@@ -19,6 +19,7 @@ import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
 import com.emc.storageos.vnxe.models.ReplicationSessionParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
+import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
@@ -85,6 +86,11 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
     public VNXeCommandJob modifyReplicationSession(String id, ReplicationSessionParam param) {
         _url = URL_INSTANCE + id + ACTION + "modify";
         return postRequestAsync(param);
+    }
+
+    public VNXeCommandResult modifyReplicationSessionSync(String id, ReplicationSessionParam param) {
+        _url = URL_INSTANCE + id + ACTION + "modify";
+        return postRequestSync(param);
     }
 
     public VNXeCommandJob deleteReplicationSession(String id) {

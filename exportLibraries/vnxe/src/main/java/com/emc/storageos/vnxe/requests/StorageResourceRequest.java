@@ -9,7 +9,7 @@ import com.emc.storageos.vnxe.models.StorageResource;
 
 public class StorageResourceRequest extends KHRequests<StorageResource> {
     private static final String URL = "/api/instances/storageResource/";
-    private static final String FIELDS = "name,luns,blockHostAccess";
+    private static final String FIELDS = "name,luns,blockHostAccess,isReplicationDestination";
 
     public StorageResourceRequest(KHClient client) {
         super(client);

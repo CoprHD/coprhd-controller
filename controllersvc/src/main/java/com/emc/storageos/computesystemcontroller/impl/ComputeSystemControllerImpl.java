@@ -15,8 +15,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
@@ -37,7 +37,6 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
@@ -99,7 +98,7 @@ import com.vmware.vim25.mo.Task;
 
 public class ComputeSystemControllerImpl implements ComputeSystemController {
 
-    private static final Log _log = LogFactory.getLog(ComputeSystemControllerImpl.class);
+    private static final Logger _log = LoggerFactory.getLogger(ComputeSystemControllerImpl.class);
 
     private WorkflowService _workflowService;
     private DbClient _dbClient;
@@ -776,6 +775,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
+            _log.info("Initiators to add: {}", addedInitiators);
+            _log.info("Initiators to remove: {}", removedInitiators);
+            _log.info("Hosts to add: {}", addedHosts);
+            _log.info("Hosts to remove: {}", removedHosts);
+            _log.info("Clusters to add: {}", addedClusters);
+            _log.info("Clusters to remove: {}", removedClusters);
+
             waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                     String.format("Updating export group %s", eg.getId()), waitFor,
                     eg.getId(), eg.getId().toString(),
@@ -955,17 +961,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
 
         try {
-            if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-                throw new Exception("Export group is being updated by another operation");
-            }
-            exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
-            _dbClient.updateObject(exportGroupObject);
-
             _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
                 removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
         } catch (Exception ex) {
+            _log.error("Exception occured while updating export group {}", exportGroup, ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
     }

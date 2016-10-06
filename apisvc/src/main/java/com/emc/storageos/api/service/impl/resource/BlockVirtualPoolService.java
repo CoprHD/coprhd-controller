@@ -1821,8 +1821,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Path("/cos")
-    public Response createClassOfService(BlockVirtualPoolParam param)
+    @Path("/cos/recommendations")
+    public StoragePoolRecommendations createClassOfService(BlockVirtualPoolParam param)
     		throws DatabaseException {
 
     	Gson gson = new Gson(); 
@@ -1843,8 +1843,14 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     	cos.setId(URIUtil.createId(ClassOfService.class));
 
     	cos.setBasicProfile(baseProfile);
-    	_dbClient.createObject(cos);
-    	return Response.ok().build();
+    	//_dbClient.createObject(cos);
+    	List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+        List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
+    	 List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
+                 _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+    	 
+    	StoragePoolRecommendations to = new StoragePoolRecommendations();
+        return toPoolRecommendation("source_data", matchedPools, to);
 
     }
     

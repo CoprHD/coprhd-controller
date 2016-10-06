@@ -4,15 +4,20 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-@Cf("ClassOfService")
 public class ClassOfService extends DataObject{
 	
 
-	Map<String,Object> basicProfile = new HashMap<String,Object>();
-	Map<String,Object> protectionProfile = new HashMap<String,Object>();
-	Map<String,Object> highavailabilityProfile = new HashMap<String,Object>();
-	Map<String,Object> customProfile = new HashMap<String,Object>();
+	Map<String,Object> basicProfile = null;
+	Map<String,Object> protectionProfile = null;
+	Map<String,Object> highavailabilityProfile = null;
+	Map<String,Object> customProfile = null;
 	
+	public ClassOfService() {
+		 basicProfile = new HashMap<String,Object>();
+		 protectionProfile = new HashMap<String,Object>();
+		 highavailabilityProfile = new HashMap<String,Object>();
+		 customProfile = new HashMap<String,Object>();
+	}
 	@Name("basicProfile")
 	public Map<String, Object> getBasicProfile() {
 		return basicProfile;

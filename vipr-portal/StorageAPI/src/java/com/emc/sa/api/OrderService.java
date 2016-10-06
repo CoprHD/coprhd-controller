@@ -32,6 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import com.emc.sa.engine.scheduler.SchedulerDataManager;
 import com.emc.sa.model.dao.ModelClient;
@@ -39,10 +40,12 @@ import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
+
 import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -465,14 +468,14 @@ public class OrderService extends CatalogTaggedResourceService {
      * Gets the resource order logs
      * 
      * @param orderId the URN of an order
-     * @brief List Order Logs
-     * @return a list of order logs
+     * @brief List  Logs
+     * @return a list of logs
      * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("/{id}/resources-logs")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ExecutionLogList getResourceLogs(@PathParam("id") String orderId) throws DatabaseException {
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON , MediaType.APPLICATION_OCTET_STREAM})
+    public String getMessageBoard(@PathParam("id") String orderId) throws DatabaseException {
 
         Order order = queryResource(uri(orderId));
 
@@ -480,9 +483,40 @@ public class OrderService extends CatalogTaggedResourceService {
 
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
 
-        List<ExecutionTaskLog> executionLogs = orderManager.readMessageBoard(order);
+        String message = orderManager.readMessageBoard(order);
 
-        return toExecutionLogList(executionLogs);
+        return message;
+    }
+
+    /**
+     * Post the resource order logs
+     * 
+     * @param orderId the URN of an order
+     * @brief List  Logs
+     * @return a list of logs
+     * @throws DatabaseException when a DB error occurs
+     */
+    @POST
+    @Path("/{id}/resources-logs")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ResponseBuilder writeMessageBoard(@PathParam("id") String orderId, OrderCreateParam orderParam) throws DatabaseException {
+
+        Order order = queryResource(uri(orderId));
+
+        StorageOSUser user = getUserFromContext();
+
+        verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
+
+        String xmlMessage = orderParam.getXmlMessage();
+
+        // xmlMessage.replace("//<![CDATA[", "");
+        // xmlMessage.replace("//]]", "");
+
+        order.setXmlMessage(xmlMessage);
+
+        _dbClient.updateObject(order);
+
+        return Response.ok();
     }
 
     /**

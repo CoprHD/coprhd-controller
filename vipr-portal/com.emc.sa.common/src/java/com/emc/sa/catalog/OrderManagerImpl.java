@@ -703,16 +703,14 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     @Override
-    public void writeMessgeBoard(URI orderId) {
-        Order order = client.orders().findById(orderId);
-        ExecutionState executionState = getOrderExecutionState(order.getExecutionStateId());
-        List<ExecutionLog> logs = client.executionLogs().findByIds(executionState.getLogIds());
+    public void writeMessgeBoard(Order order, String message) {
+        order.setXmlMessage(message);
     }
 
     @Override
-    public List<ExecutionTaskLog> readMessageBoard(Order order) {
-        List<ExecutionTaskLog> logs = getOrderExecutionTaskLogs(order);
-        return logs;
+    public String readMessageBoard(Order order) {
+        String message = order.getXmlMessage();
+        return message;
         
     }
 }

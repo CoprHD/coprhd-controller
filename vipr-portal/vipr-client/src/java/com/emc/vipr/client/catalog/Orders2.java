@@ -189,9 +189,9 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * 
      * @return order's execution logs
      */
-    public List<ExecutionLogRestRep> getResourcesLogs(URI orderId) {
-        ExecutionLogList response = client.get(ExecutionLogList.class, PathConstants.ORDER2_RESOURCE_LOGS_URL, orderId);
-        return response.getExecutionLogs();
+    public String getMessageBoard(URI orderId) {
+        String response = client.get(String.class, PathConstants.ORDER2_RESOURCE_LOGS_URL, orderId);
+        return response;
     }
 
     /**

@@ -293,7 +293,7 @@ public class Orders extends OrderExecution {
         fetchData(details);
         ServiceDescriptorRestRep descriptor = details.catalogService.getServiceDescriptor();
         addBreadCrumbToRenderArgs(id(details.order.getTenant()), details.catalogService);
-        List<ExecutionLogRestRep> logs = getCatalogClient().orders().getResourcesLogs(uri(orderId));
+        String logs = getCatalogClient().orders().getMessageBoard(uri(orderId));
         render(orderId, details, descriptor, logs);
     }
 
@@ -306,7 +306,7 @@ public class Orders extends OrderExecution {
         OrderDetails details = waitForUpdatedOrder(orderId, lastUpdated);
         Models.checkAccess(details.order.getTenant());
         fetchData(details);
-        List<ExecutionLogRestRep> logs = getCatalogClient().orders().getResourcesLogs(uri(orderId));
+        String logs = getCatalogClient().orders().getMessageBoard(uri(orderId));
         render(orderId, details, logs);
     }
 

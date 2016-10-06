@@ -28,6 +28,7 @@ public class Order extends ModelObject implements TenantDataObject {
     public static final String ORDER_NUMBER = "orderNumber";
     public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
     public static final String SCHEDULED_TIME = "scheduledTime";
+    public static final String XMLMESSAGE = "xmlMessage";
 
     /** User friendly Order number */
     private String orderNumber;
@@ -55,6 +56,18 @@ public class Order extends ModelObject implements TenantDataObject {
     private URI scheduledEventId;
 
     private Calendar scheduledTime;
+    
+    private String xmlMessage;
+
+    @Name(XMLMESSAGE)
+    public String getXmlMessage() {
+        return xmlMessage;
+    }
+
+    public void setXmlMessage(String xmlMessage) {
+        this.xmlMessage = xmlMessage;
+        setChanged(XMLMESSAGE);
+    }
 
     /**
      * Field used for indexing updated time

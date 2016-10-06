@@ -45,8 +45,8 @@ public interface OrderManager {
 
     public void processOrder(Order order);
 
-    public void writeMessgeBoard(URI order);
+    public String readMessageBoard(Order order);
 
-    public List<ExecutionTaskLog> readMessageBoard(Order order);
+    public void writeMessgeBoard(Order orderId, String message);
 
 }

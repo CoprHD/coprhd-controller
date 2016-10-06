@@ -24,6 +24,17 @@ public class OrderCreateParam extends OrderCommonParam {
     // order specific schedule info - for snapshot/fullcopy orders, it indicates "max number of retained copies"
     private String additionalScheduleInfo;
     
+    private String xmlMessage;
+    
+    @XmlElement(name = "xmlMessage")
+    public String getXmlMessage() {
+        return xmlMessage;
+    }
+
+    public void setXmlMessage(String xmlMessage) {
+        this.xmlMessage = xmlMessage;
+    }
+
     @XmlElement(name = "tenantId")
     public URI getTenantId() {
         return tenantId;

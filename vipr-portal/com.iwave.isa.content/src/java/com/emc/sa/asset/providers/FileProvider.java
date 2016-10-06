@@ -410,7 +410,8 @@ public class FileProvider extends BaseAssetOptionsProvider {
                 URI vpoolId = fileShare.getVirtualPool().getId();
                 FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
                 if (StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality()) &&
-                        StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name())) {
+                        (StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name())
+                                || StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.LOCAL.name()))) {
                     options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
                 }
             }

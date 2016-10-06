@@ -15,6 +15,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -51,12 +53,18 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected String getFileMirrorStatusForSuccess(FileShare fs) {
-        if(!fs.getStorageDevice().equals(getStorageUri())) {
-        	_log.info("failover op is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.FAILED_OVER.name());
-            return MirrorStatus.FAILED_OVER.name();
+        DbClient dbClient = getDbClient();
+        if (dbClient.queryObject(StorageSystem.class, fs.getStorageDevice()).getSystemType().equalsIgnoreCase(SystemType.isilon.name())) {
+            if (!fs.getStorageDevice().equals(getStorageUri())) {
+                _log.info("failover op is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.FAILED_OVER.name());
+                return MirrorStatus.FAILED_OVER.name();
+            } else {
+                _log.info("failover op on device is successful - fs name {} and mirror state {}", fs.getName(),
+                        MirrorStatus.UNKNOWN.name());
+                return MirrorStatus.UNKNOWN.name();
+            }
         } else {
-        	_log.info("failover op on device is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
-            return MirrorStatus.UNKNOWN.name();
+            return MirrorStatus.FAILED_OVER.name();
         }
     }
 

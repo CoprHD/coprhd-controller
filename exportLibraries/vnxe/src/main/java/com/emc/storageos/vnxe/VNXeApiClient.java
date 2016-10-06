@@ -364,10 +364,12 @@ public class VNXeApiClient {
         fsParm.setPool(pool);
         fsParm.setSize(size);
         fsParm.setSupportedProtocols(supportedProtocols.getValue());
-        if (getNasServer(nasServerId).getIsReplicationDestination()) {
-            ReplicationParam repParam = new ReplicationParam();
-            repParam.setIsReplicationDestination(true);
-            parm.setReplicationParameters(repParam);
+        if (isUnityClient()) {
+            if (getNasServer(nasServerId).getIsReplicationDestination()) {
+                ReplicationParam repParam = new ReplicationParam();
+                repParam.setIsReplicationDestination(true);
+                parm.setReplicationParameters(repParam);
+            }
         }
         parm.setFsParameters(fsParm);
         FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
@@ -415,6 +417,11 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteFileSystemSync(String fsId, boolean forceSnapDeletion)
             throws VNXeException {
         _logger.info("deleting file system: " + fsId);
+        if (isUnityClient()) {
+            if (getStorageResource(getStorageResourceId(fsId)).getIsReplicationDestination()) {
+                forceSnapDeletion = true;
+            }
+        }
         DeleteStorageResourceRequest req = new DeleteStorageResourceRequest(_khClient);
         return req.deleteFileSystemSync(fsId, forceSnapDeletion);
     }
@@ -2985,6 +2992,13 @@ public class VNXeApiClient {
         param.setMaxTimeOutOfSync(maxTimeOutOfSync);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.modifyReplicationSession(id, param);
+    }
+
+    public VNXeCommandResult modifyReplicationSessionSync(String id, int maxTimeOutOfSync) {
+        ReplicationSessionParam param = new ReplicationSessionParam();
+        param.setMaxTimeOutOfSync(maxTimeOutOfSync);
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.modifyReplicationSessionSync(id, param);
     }
 
     public VNXeCommandJob deleteReplicationSession(String id) {

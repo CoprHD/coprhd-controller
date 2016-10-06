@@ -7,13 +7,15 @@ package com.emc.storageos.volumecontroller.impl.file;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.FileShare;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -50,12 +52,18 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected String getFileMirrorStatusForSuccess(FileShare fs) {
-        if(fs.getStorageDevice().equals(getStorageUri())) {
-        	_log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.SYNCHRONIZED.name());
-            return MirrorStatus.FAILED_OVER.name();
+        DbClient dbClient = getDbClient();
+        if (dbClient.queryObject(StorageSystem.class, fs.getStorageDevice()).getSystemType().equalsIgnoreCase(SystemType.isilon.name())) {
+            if (fs.getStorageDevice().equals(getStorageUri())) {
+                _log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(),
+                        MirrorStatus.SYNCHRONIZED.name());
+                return MirrorStatus.FAILED_OVER.name();
+            } else {
+                _log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
+                return MirrorStatus.UNKNOWN.name();
+            }
         } else {
-        	_log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
-            return MirrorStatus.UNKNOWN.name();
+            return MirrorStatus.SYNCHRONIZED.name();
         }
     }
 

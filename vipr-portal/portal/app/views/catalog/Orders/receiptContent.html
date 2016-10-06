@@ -213,15 +213,12 @@
   </div>
   
     
-  <div id="logsResources">
+  <div id="logsResources" #{if !logs}style="display:none""#{/if}>
     <div class="section-header"><h1>&{'order.logResources'}</h1></div>
     <div class="content">
-    	<textarea style="width:1072px;overflow:hidden;min-height:250px"readonly>
-    	#{list items:logs, as:'logInfo'}
-    		${logInfo.message} ${logInfo.phase}
-    	#{/list}
+    	<textarea style="width:1072px;overflow:hidden;"readonly>
+    		${logs}
     	</textarea>
-    	
     </div>
   </div>
   

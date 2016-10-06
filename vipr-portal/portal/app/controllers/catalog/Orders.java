@@ -442,7 +442,8 @@ public class Orders extends OrderExecution {
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
         public ScheduledEventRestRep scheduledEvent;
-        public Date scheduleStartDateTime; 
+        public Date scheduleStartDateTime;
+        public String xmlMessage;
         
         public Map<URI, String> viprTaskStepMessages;
 
@@ -465,6 +466,7 @@ public class Orders extends OrderExecution {
             checkLastUpdated(viprTasks);
 
             executionState = OrderUtils.getExecutionState(order.getId());
+            xmlMessage = order.getXmlMessage();
             if (executionState != null) {
                 checkLastUpdated(executionState);
 

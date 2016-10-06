@@ -484,8 +484,8 @@ public class OrderService extends CatalogTaggedResourceService {
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
 
         String message = orderManager.readMessageBoard(order);
-
-        return message;
+        
+        return (message!=null?message:"");
     }
 
     /**
@@ -501,6 +501,8 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.APPLICATION_OCTET_STREAM })
     public Response writeMessageBoard(@PathParam("id") String orderId, OrderCreateParam orderParam) throws DatabaseException {
 
+        
+        
         Order order = queryResource(uri(orderId));
 
         StorageOSUser user = getUserFromContext();

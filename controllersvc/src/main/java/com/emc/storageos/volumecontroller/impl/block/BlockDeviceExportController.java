@@ -547,6 +547,11 @@ public class BlockDeviceExportController implements BlockExportController {
         for (URI hostURI : removedHosts) {
             removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hostURI, Initiator.class, "host"));
         }
+        // TODO we should use Set collection instead of List collection to avoid duplicate
+        StringSetUtil.removeDuplicates(addedHosts);
+        StringSetUtil.removeDuplicates(removedHosts);
+        StringSetUtil.removeDuplicates(addedInitiators);
+        StringSetUtil.removeDuplicates(removedInitiators);
 
         
         _log.info("Initiators to add: {}", addedInitiators);

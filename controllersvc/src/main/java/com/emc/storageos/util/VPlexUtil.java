@@ -1665,25 +1665,27 @@ public class VPlexUtil {
         // Group volumes by array groups
         for (Volume volume : vplexVolumes) {
             Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-            URI backStorage = backedVol.getStorageController();
-            String replicaGroup = backedVol.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
-                List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
-                if (volumeList == null) {
-                    volumeList = new ArrayList<Volume>();
-                    groupVolumes.put(backStorage, replicaGroup, volumeList);
-                }
-                volumeList.add(volume);
-                // Keeps track of the volumes that will be processed because
-                // they are in found to be in an RG.
-                if (volumesInRG != null) {
-                    volumesInRG.add(volume);
-                }
-            } else {
-                // Keeps track of the volumes that will not be processed here
-                // since they are not in a RG.
-                if (volumesNotInRG != null) {
-                    volumesNotInRG.add(volume);
+            if (backedVol != null) {
+                URI backStorage = backedVol.getStorageController();
+                String replicaGroup = backedVol.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                    List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                    if (volumeList == null) {
+                        volumeList = new ArrayList<Volume>();
+                        groupVolumes.put(backStorage, replicaGroup, volumeList);
+                    }
+                    volumeList.add(volume);
+                    // Keeps track of the volumes that will be processed because
+                    // they are in found to be in an RG.
+                    if (volumesInRG != null) {
+                        volumesInRG.add(volume);
+                    }
+                } else {
+                    // Keeps track of the volumes that will not be processed here
+                    // since they are not in a RG.
+                    if (volumesNotInRG != null) {
+                        volumesNotInRG.add(volume);
+                    }
                 }
             }
         }
@@ -1708,7 +1710,7 @@ public class VPlexUtil {
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName));
         for (Volume volume : volumes) {
             URI system = volume.getStorageController();
-            if (system.equals(storageSystemUri)) {
+            if (system != null && system.equals(storageSystemUri)) {
                 // Get the vplex virtual volume
                 List<Volume> vplexVolumes = CustomQueryUtility
                         .queryActiveResourcesByConstraint(dbClient, Volume.class,

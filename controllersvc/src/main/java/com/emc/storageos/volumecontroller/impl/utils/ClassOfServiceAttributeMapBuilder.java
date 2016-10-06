@@ -5,14 +5,17 @@
 package com.emc.storageos.volumecontroller.impl.utils;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ClassOfService;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
@@ -50,10 +53,17 @@ public class ClassOfServiceAttributeMapBuilder extends AttributeMapBuilder {
     	}
     	putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), _baseProfile.getAutoTierPolicyName());
 
+    	StringSet devType = new StringSet();
+    	devType.add(_baseProfile.getDeviceType());
+    	
     	putAttributeInMap(Attributes.drive_type.toString(), _baseProfile.getDriveType());
+    	
+    	 putAttributeInMap(Attributes.vpool_type.toString(), "block");
 
-    	putAttributeInMap(Attributes.system_type.toString(), _baseProfile.getDeviceType());
-    	putAttributeInMap(Attributes.raid_levels.toString(), _baseProfile.getRaidLevel());
+    	putAttributeInMap(Attributes.system_type.toString(), devType);
+    	if(_baseProfile.getRaidLevel() != null && !_baseProfile.getRaidLevel().isEmpty()) {
+    		putAttributeInMap(Attributes.raid_levels.toString(), _baseProfile.getRaidLevel());
+    	}
 
     	putAttributeInMap(Attributes.provisioning_type.toString(), _baseProfile.getProvisioningType());
 
@@ -65,10 +75,17 @@ public class ClassOfServiceAttributeMapBuilder extends AttributeMapBuilder {
     		putAttributeInMap(Attributes.thin_volume_preallocation_percentage.toString(), preAllocationInt);
     	}
     	putAttributeInMap(Attributes.multi_volume_consistency.toString(), _baseProfile.getMultiVolumeConsistency());
+    	
+    	Set<String> varrays = new HashSet<String>();
+    	varrays.add(_baseProfile.getVirtualArrays());
+    	putAttributeInMap(Attributes.varrays.toString(), varrays);
+    	
+    	 putAttributeInMap(Attributes.long_term_retention_policy.toString(), false);
+    	
 
     	// putAttributeInMap(Attributes.vpool_type.toString(), _vpool.getType());
     	// putAttributeInMap(Attributes.unique_policy_names.toString(), _vpool.getUniquePolicyNames());
-    	// putAttributeInMap(Attributes.varrays.toString(), _vpool.getVirtualArrays());
+    	
     	// putAttributeInMap(Attributes.max_native_snapshots.toString(), _vpool.getMaxNativeSnapshots());
     	// putAttributeInMap(Attributes.max_native_continuous_copies.toString(), _vpool.getMaxNativeContinuousCopies());
     	return _attributeMap;

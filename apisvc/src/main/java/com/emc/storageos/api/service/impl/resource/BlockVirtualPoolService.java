@@ -47,9 +47,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -61,6 +64,7 @@ import com.emc.storageos.db.client.model.ClassOfService;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -111,8 +115,10 @@ import com.emc.storageos.volumecontroller.impl.utils.CosBaseProfileWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 import com.google.common.base.Function;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 @Path("/block/vpools")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
@@ -1843,6 +1849,19 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     	cos.setId(URIUtil.createId(ClassOfService.class));
 
     	cos.setBasicProfile(baseProfile);
+    	try {
+    	String mapAsJson = new ObjectMapper().writeValueAsString(baseProfile);
+    	String ts = mapAsJson;
+    	} catch (Exception ex) {
+    		_log.error("baseProfile conversion failed" + ex);
+    	}
+    	 
+    	/*JSONObject json = new JSONObject();
+        json.putAll( baseProfile );
+        String jsonString = json.toString();*/
+        
+       
+        
     	//_dbClient.createObject(cos);
     	List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
@@ -1856,9 +1875,13 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     
     private void initializeDefaultCapablities(Map<String,Object> baseProfile) {
     	baseProfile.put(CosBaseProfileWrapper.AUTO_TIER__POLICY_NAME, "");
-    	baseProfile.put(CosBaseProfileWrapper.RAID_LEVEL, "");
+    	//StringSet raidLevel = new StringSet();
+    	//raidLevel.add("RAID0");
+    	//baseProfile.put(CosBaseProfileWrapper.RAID_LEVEL, raidLevel);
     	baseProfile.put(CosBaseProfileWrapper.SYSTEM_TYPE, "NONE");
-    	baseProfile.put(CosBaseProfileWrapper.PROTOCOLS, "FC");
+    	StringSet protocols = new StringSet();
+    	protocols.add("FC");
+    	baseProfile.put(CosBaseProfileWrapper.PROTOCOLS, protocols);
     	baseProfile.put(CosBaseProfileWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, 0);
     	baseProfile.put(CosBaseProfileWrapper.RESOURCE_COUNT, 1);
     	baseProfile.put(CosBaseProfileWrapper.THIN_PROVISIONING, true);
@@ -1912,6 +1935,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     	if(param.getHostIOLimitIOPs() != null && param.getHostIOLimitIOPs() > 0) {
     		baseProfile.put(CosBaseProfileWrapper.HOST_IO_IOPS, param.getHostIOLimitIOPs());
     	}
+    	
+    	if(param.getVarrays() != null && !param.getVarrays().isEmpty()) {
+    		baseProfile.put(CosBaseProfileWrapper.VARRAYS, param.getVarrays().toArray()[0]);
+    	}
     }
                            
     /**
@@ -1942,4 +1969,45 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         return toPoolRecommendation("source_data", matchedPools, to);
     	
     }
+    
+    @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/getConnectedVplex")
+    public Map<String, List<StoragePool>> getConnectedVplexForPool(@QueryParam("storagepool") URI spid,
+    		@QueryParam("varray") URI vaid)
+            throws DatabaseException {
+    	
+    	List<StoragePool> pools = new ArrayList<StoragePool>();
+    	StoragePool sp = _dbClient.queryObject(StoragePool.class, spid);
+    	pools.add(sp);
+    	VPlexScheduler vplexScheduler = new VPlexScheduler();
+    	vplexScheduler.setDbClient(_dbClient);
+    	
+    	
+    	Map<String, List<StoragePool>> vplexSystems = vplexScheduler.getConnectedVplexSystemsByTargetPool(pools, vaid.toString());
+    	return vplexSystems;
+    	
+    }
+    
+    @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/vplex-backend-ports")
+    public Map<URI, List<StoragePort>> getConnectedVplexForPool(@QueryParam("storagesystem") URI arrayURI,
+    		@QueryParam("vplexsystem") URI vplexURI,
+    		@QueryParam("varray") URI vaId)
+            throws DatabaseException {
+
+    	VPlexBackendManager vplexMgr = new VPlexBackendManager();
+    	vplexMgr.setDbClient(_dbClient);
+    	
+    	
+    	Map<URI, List<StoragePort>> vplexBEPorts = vplexMgr.getInitiatorPortsForArray(vplexURI, arrayURI, vaId);
+    	return vplexBEPorts;
+    	
+    }
+    
 }

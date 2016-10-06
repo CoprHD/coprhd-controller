@@ -764,6 +764,15 @@ public class VPlexScheduler implements Scheduler {
 
         return vplexPoolMapForSrcVarray;
     }
+    
+    public Map<String, List<StoragePool>> getConnectedVplexSystemsByTargetPool(List<StoragePool> storagePools, String varrayId) {
+    	Map<String, List<StoragePool>> vplexPoolMapForSrcVarray = sortPoolsByVPlexStorageSystem(
+    			storagePools, varrayId);
+    	return vplexPoolMapForSrcVarray;
+    	
+    }
+    
+    
 
     /**
      * Gets and verifies that the VirtualArray passed in the request is

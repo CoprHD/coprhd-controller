@@ -82,6 +82,10 @@ public class CosBaseProfileWrapper implements Serializable {
         if (capabilities.containsKey(THIN_VOLUME_PRE_ALLOCATE_SIZE)) {
             _baseCapabilities.put(THIN_VOLUME_PRE_ALLOCATE_SIZE, capabilities.get(THIN_VOLUME_PRE_ALLOCATE_SIZE));
         }
+        
+        if (capabilities.containsKey(VARRAYS)) {
+        	_baseCapabilities.put(VARRAYS, capabilities.get(VARRAYS));
+        }
 
         if (capabilities.containsKey(RESOURCE_COUNT)) {
             _baseCapabilities.put(RESOURCE_COUNT, capabilities.get(RESOURCE_COUNT));
@@ -144,9 +148,9 @@ public class CosBaseProfileWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
-    public String getRaidLevel() {
+    public Set<String> getRaidLevel() {
         Object value = _baseCapabilities.get(RAID_LEVEL);
-        return value != null ? (String) value : null;
+        return value != null ? (Set<String>) value : null;
     }
 
     public String getDeviceType() {
@@ -167,9 +171,9 @@ public class CosBaseProfileWrapper implements Serializable {
         return value != null ? (Long) value : 0L;
     }
 
-    public long getThinVolumePreAllocateSize() {
+    public int getThinVolumePreAllocateSize() {
         Object value = _baseCapabilities.get(THIN_VOLUME_PRE_ALLOCATE_SIZE);
-        return value != null ? (Long) value : 0L;
+        return value != null ? (Integer) value : 0;
     }
 
     public int getResourceCount() {
@@ -187,19 +191,19 @@ public class CosBaseProfileWrapper implements Serializable {
         return value != null ? (URI) value : null;
     }
     
-    public long getMinPaths() {
+    public int getMinPaths() {
         Object value = _baseCapabilities.get(MIN_PATHS);
-        return value != null ? (Long) value : 0L;
+        return value != null ? (Integer) value : 0;
     }
     
-    public long getMaxPaths() {
+    public int getMaxPaths() {
         Object value = _baseCapabilities.get(MAX_PATHS);
-        return value != null ? (Long) value : 0L;
+        return value != null ? (Integer) value : 0;
     }
     
-    public long getPathsPerInitiator() {
+    public int getPathsPerInitiator() {
         Object value = _baseCapabilities.get(PATHS_PER_INITIATOR);
-        return value != null ? (Long) value : 0L;
+        return value != null ? (Integer) value : 0;
     }
     
     public String getDriveType() {
@@ -231,6 +235,5 @@ public class CosBaseProfileWrapper implements Serializable {
         Object value = _baseCapabilities.get(PROVISIONING_TYPE);
         return value != null ? (String) value : null;
     }
-
 
 }

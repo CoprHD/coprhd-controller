@@ -121,6 +121,10 @@ public class VPlexBackendManager {
     public VPlexBackendManager() {
 
     }
+    
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
 
     /**
      * This class is not used as a bean. Rather when VPlexDeviceController needs to adjust the
@@ -407,7 +411,7 @@ public class VPlexBackendManager {
      * 
      * @return Map<URI, List<StoragePort>> A map of Network URI to a List<StoragePort>
      */
-    Map<URI, List<StoragePort>> getInitiatorPortsForArray(URI vplexURI,
+    public Map<URI, List<StoragePort>> getInitiatorPortsForArray(URI vplexURI,
             URI arrayURI, URI varray) throws ControllerException {
 
         Map<URI, List<StoragePort>> initiatorMap = new HashMap<URI, List<StoragePort>>();

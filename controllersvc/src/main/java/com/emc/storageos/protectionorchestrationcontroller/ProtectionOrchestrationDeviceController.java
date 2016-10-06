@@ -64,10 +64,11 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
         // Maps Vplex volume that needs to be flushed to underlying array volume
         Map<Volume, Volume> vplexToArrayVolumesToFlush = getVplexVolumesToBeCacheFlushed(copy, op);
+        List<URI> readOnlyVolumes = getVolumesForResume(copy);
         if (!vplexToArrayVolumesToFlush.isEmpty()) {
         	executeFlushWorkflow(vplexToArrayVolumesToFlush, storageSystem, copy, op, task);
-        } else if (op.equalsIgnoreCase(RESUME)) {
-        	executeResumeWorkflow(storageSystem, copy, op, task);
+        } else if (op.equalsIgnoreCase(RESUME) && !readOnlyVolumes.isEmpty()) {
+        	executeResumeWorkflow(storageSystem, readOnlyVolumes, copy, op, task);
         }
         else {
         	srdfDeviceController.performProtectionOperation(storageSystemId, copy, op, task);
@@ -144,7 +145,8 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
      * @param op
      * @param task
      */
-    private void executeResumeWorkflow(StorageSystem storageSystem, Copy copy, String op, String task) {
+    private void executeResumeWorkflow(StorageSystem storageSystem, List<URI> readOnlyVolumes, 
+    		Copy copy, String op, String task) {
     	String waitFor = null;
 		List<URI> volumeURIs = getCompleterVolumesForSRDFProtectionOperaton(copy);
 		VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, task);
@@ -156,7 +158,6 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
     		// If there source volumes in a CG, mark them read-only before we start if needed
     		// We don't do this for pause as we're not actually switching direction.
     		StringBuilder volNames = new StringBuilder();
-    		List<URI> readOnlyVolumes = getVolumesForResume(copy);
     		waitFor = vplexConsistencyGroupManager.addStepForUpdateConsistencyGroupReadOnlyState(
     				workflow, readOnlyVolumes, true, "Set CG state to read-only: " + volNames, waitFor);
 

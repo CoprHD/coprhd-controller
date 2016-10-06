@@ -542,6 +542,11 @@ SRDF_USED_RDFGS=()
 SRDF_RDF_NUMBER=1
 SRDF_RDF_CREATE_RETRY=1 # number of times for retry in case of group name/number collision
 
+ssleep() {
+    secho "Sleeping $1 seconds"
+    sleep $1
+}
+
 srdf_ssh(){
     SRDF_SSH_RESULT=$(sshpass -p $2 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$1 $3)
 }
@@ -551,7 +556,7 @@ srdf_generate_rdfg_name() {
     echo $(date +"S"%m%d$RANDOM | cut -c1-10)
 }
 
-SRDF_SLEEPING_SECONDS=300
+SRDF_SLEEPING_SECONDS=180
 srdf_sleep() {
     secho "Sleeping ${SRDF_SLEEPING_SECONDS} seconds"
     sleep ${SRDF_SLEEPING_SECONDS}
@@ -2001,8 +2006,9 @@ srdf_v3_cos_setup()
     secho "SRDF V3 Virtual Pool setup" 
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
+    # Workaround for COP-25718, switch to use matchedPools once it is fixed
     run cos create block $COS_VMAXBLOCK_V3_SRDF_TARGET		          \
-	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' true \
+	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
@@ -2117,12 +2123,18 @@ srdf_v3_cos_change()
    echo "Created volume, now sleeping..."
    srdf_sleep
    echo "Changing cos..."
+   # Workaround for COP-25718, remove the cos update once it is fixed
+   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched true
+   run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+
    run volume change_cos $SRDF_PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
    echo "Changed cos"
    srdf_sleep
    echo "Deleting volume"
    run volume delete $SRDF_PROJECT/${srdfvolumecc} --wait
    run_noundo blockconsistencygroup delete $cg
+   # Workaround for COP-25718, remove the cos update once it is fixed
+   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched false
 }
 
 srdf_cos_change_meta()
@@ -2180,8 +2192,6 @@ srdf_basic_active_test()
    srdfvolume="${SRDF_VOLUME}_active"
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
-   echo "Rediscovering storage systems"
-   storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
@@ -12097,7 +12107,7 @@ vplexsnap_tests()
 snapvx_vpool_setup()
 {
     secho "Creating snapvx virtual pools"
-    cos create block $COS_VMAX3BLOCK_FC true \
+    run cos create block $COS_VMAX3BLOCK_FC true \
 	--description 'Virtual-Pool-for-VMAX3-block-FC' \
                       --protocols FC \
                       --numpaths 2 \
@@ -12174,8 +12184,8 @@ snapvx_group_tests()
 
     # Create a VMAX3 volumes in CG to serve as the snapshot session sources.
     secho "Creating VMAX3 source volume"
-    volume create $VOLUME_NAME-1 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
-    volume create $VOLUME_NAME-2 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
+    run volume create $VOLUME_NAME-1 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
+    run volume create $VOLUME_NAME-2 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
 
     # Create snapvx sessions with no linked targets
     run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME1
@@ -12211,6 +12221,8 @@ snapvx_group_tests()
     run blockconsistencygroup link_targets $CG_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
 
     # Restore the source from a linked target
+    # COP-25623 [OPT 508268] workaournd. Remove the sleep once the issue fixed
+    ssleep 120
     secho "Restoring source from linked target"
     run blockconsistencygroup restore_snapshot $CG_NAME $SNAP_SESSION_TGT_NAME3-1-1
 
@@ -12220,7 +12232,7 @@ snapvx_group_tests()
     run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME2-2-1 --delete_target true
     run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME3-1-1 --delete_target true
 
-    # Create snapvx sessions with no linked targets
+    # Delete snapvx sessions with no linked targets
     run blockconsistencygroup delete_snapshot_session $CG_NAME/$SNAP_SESSION_NAME3
 
     # Delete the source volumes
@@ -12228,7 +12240,7 @@ snapvx_group_tests()
     for volume in $volumes
     do
         secho "Deleting the VMAX3 source volume $volume"
-        volume delete $volume --wait
+        run_noundo volume delete $volume --wait
     done
 
     secho "Deleting the VMAX3 CG"

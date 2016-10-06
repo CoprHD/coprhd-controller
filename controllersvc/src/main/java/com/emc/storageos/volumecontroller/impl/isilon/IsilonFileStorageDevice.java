@@ -589,15 +589,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String comments = fileExport.getComments();
             String subDirectory = fileExport.getSubDirectory();
 
-            // Validate parameters for permissions and root user mapping.
-            /*
-             * if (permissions.equals(FileShareExport.Permissions.root.name()) && !root_user.equals("root")) {
-             * String msg = "The root_user mapping is not set to root but the permission is.";
-             * _log.error(msg);
-             * throw IsilonException.exceptions.invalidParameters();
-             * }
-             */
-
             List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,
                     comments);
@@ -722,9 +713,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private IsilonExport setIsilonExport(ExportRule expRule) {
-
-        // String permissions, List<String> securityType, String root_user,
-        // String mountPath, String comments) {
 
         _log.info("setIsilonExport called with {}", expRule.toString());
         String mountPath = expRule.getExportPath();
@@ -1835,18 +1823,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     } else {
                         isilonExport.setReadOnly();
                     }
-
-                    // Do not set root_user. Isilon api allows only one of
-                    // map_root or map_all to be set.
-                    /*
-                     * if (hasrootClients) {
-                     * isilonExport.setMapRoot(null);
-                     * isilonExport.setMapAll("root");
-                     * } else {
-                     * isilonExport.setMapAll(null);
-                     * isilonExport.setMapRoot(root_user);
-                     * }
-                     */
 
                     isilonExport.setMapAll(null);
                     isilonExport.setMapRoot(root_user);

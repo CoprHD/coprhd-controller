@@ -43,7 +43,6 @@ import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
-
 import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;

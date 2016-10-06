@@ -81,7 +81,6 @@ import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
-
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
@@ -92,7 +91,6 @@ public class Orders extends OrderExecution {
     private static final int DEFAULT_DELAY = 60000;
     private static final int RECEIPT_UPDATE_ATTEMPTS = 5;
     
-
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
 
@@ -624,7 +622,4 @@ public class Orders extends OrderExecution {
             alterColumn("submittedBy").setVisible(true);
         }
     }
-    
 }
-
-

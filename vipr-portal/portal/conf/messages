@@ -2119,7 +2119,6 @@ vNasServers.dissociateFromProject=Dissociate from Project(s)
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 vNasServers.sourceVirtualNASs=Source Virtual NAS
 vNasServers.destinationVirtualNASs=Destination Virtual NAS
-vNasServers.blank= 
 
 storageArrayPool.name=Name
 storageArrayPool.maxPoolUtilizationPercentage=Maximum Utilization

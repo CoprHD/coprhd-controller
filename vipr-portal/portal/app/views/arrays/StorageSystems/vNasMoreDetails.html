@@ -30,9 +30,9 @@
 			<td colspan="8">
 				<dl class="dl-horizontal">
 					<dt>&{'vNasServers.sourceVirtualNASs'}:</dt>
-					<dd>${vNas?.sourceVNASs != null? vNas?.sourceVNASs : messages.get('vNasServers.blank') }</dd>
+					<dd>#{if vNas?.sourceVNASs != null}${vNas?.sourceVNASs}#{/if}&nbsp;</dd>
 					<dt>&{'vNasServers.destinationVirtualNASs'}:</dt>
-					<dd>${vNas?.destinationVNASs != null? vNas?.destinationVNASs : messages.get('vNasServers.blank') }</dd>
+					<dd>#{if vNas?.destinationVNASs != null}${vNas?.destinationVNASs}#{/if}&nbsp;</dd>
 				</dl>
 			</td>
 		</tr>

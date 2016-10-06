@@ -117,6 +117,13 @@ public class LinuxSystemCLI {
         command.execute();
     }
 
+    public void executeCommand(Command command, int timeout) {
+        SSHCommandExecutor executor = new SSHCommandExecutor(host, port, username, password);
+        executor.setCommandTimeout(timeout);
+        command.setCommandExecutor(executor);
+        command.execute();
+    }
+
     public Set<String> getAllDiskDevices() {
         FdiskListCommand command = new FdiskListCommand();
         executeCommand(command);

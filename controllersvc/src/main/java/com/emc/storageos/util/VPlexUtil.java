@@ -1365,6 +1365,8 @@ public class VPlexUtil {
      */
     public static boolean isVplexVolume(Volume volume, DbClient dbClient) {
         URI storageURI = volume.getStorageController();
+        _log.info("IN VPlexUtil volume: {} ", volume.forDisplay()); 
+        _log.info("IN VPlexUtil storageURI: {}", storageURI.toString());
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
         if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
             return true;

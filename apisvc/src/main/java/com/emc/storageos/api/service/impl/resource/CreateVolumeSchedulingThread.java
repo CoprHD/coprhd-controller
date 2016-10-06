@@ -530,7 +530,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 		            		beNetworkURI_2 = URI.create(backendNetwork_2);
 				}
 		        }
-            	virtualVolume = prepareVplexVolume(this.blockService._dbClient,null, size, vplexId,vplexVolumeLabel);
+            	virtualVolume = prepareVplexVolume(this.blockService._dbClient,virtualVolume, size, vplexId,vplexVolumeLabel, param.getVarray(), param.getVpool() );
             	// set the associated volumes here
             	StringSet associatedVolumes = new StringSet();
                 associatedVolumes.add(arrayVolumeURIs[0][i].toString());
@@ -678,7 +678,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                      null, null, storageDeviceURI,
                      storagePoolURI, newVolumeLabel, null, null);*/
 	 
-	    public static Volume prepareVplexVolume(DbClient dbClient, Volume volume, long size,  URI vplexId, String label) {
+	    public static Volume prepareVplexVolume(DbClient dbClient, Volume volume, long size,  URI vplexId, String label, URI virtualArray, URI virtualPool) {
 	    	
 		VolumeCreate param = null;
 	        boolean newVolume = false;
@@ -697,10 +697,10 @@ class CreateVolumeSchedulingThread implements Runnable {
 	        volume.setCapacity(size);
 
 	        volume.setThinlyProvisioned(false);
-	        volume.setVirtualPool(null);
+	        volume.setVirtualPool(virtualPool);
 	        volume.setProject(null);
 	        volume.setTenant(null);
-	        volume.setVirtualArray(null);
+	        volume.setVirtualArray(virtualArray);
 	        URI poolId = null;
 
 	        volume.setStorageController(vplexId);

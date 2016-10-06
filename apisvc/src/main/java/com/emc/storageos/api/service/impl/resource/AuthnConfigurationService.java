@@ -1059,7 +1059,9 @@ public class AuthnConfigurationService extends TaggedResource {
                 ArgValidator.checkFieldNotEmpty(groupName, "group_whitelist_values");
             }
         }
-        if (!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
+
+        if ( AuthnProvider.ProvidersType.ad.toString().equalsIgnoreCase( param.getMode() ) ||
+                AuthnProvider.ProvidersType.ldap.toString().equalsIgnoreCase( param.getMode() ) ) {
             if (server_urls != null) {
                 boolean isNonSecure = false;
                 boolean isSecure = false;
@@ -1106,10 +1108,10 @@ public class AuthnConfigurationService extends TaggedResource {
                     throw APIException.badRequests.parameterMustBeGreaterThan("max_page_size", 0);
                 }
             }
-        } if ( !ProvidersType.oidc.toString().equalsIgnoreCase( param.getMode() ) ) {
+        } else if ( ProvidersType.oidc.toString().equalsIgnoreCase( param.getMode() ) ) {
             ArgValidator.checkFieldNotEmpty(oidcAddress, "oidc_address");
             ensureSingleOidcProvider();
-        } else {
+        } else if ( AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase( param.getMode() ) ) {
             String managerDn = param.getManagerDn();
             if (managerDn != null) {
                 if (!managerDn.contains("=")) {

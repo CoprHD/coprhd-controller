@@ -259,6 +259,10 @@ public class StorageSystems extends ViprResourceController {
                 @SuppressWarnings("unchecked")
                 List<StringOption> options = (List<StringOption>)renderArgs.get("storageArrayTypeList");
                 options.add(new StringOption(VMAX, "Storage Provider for EMC VMAX, VNX Block"));
+                @SuppressWarnings("unchecked")                
+                List<StringOption> smisOptions = (List<StringOption>)renderArgs.get("smisStorageSystemTypeList");
+                smisOptions.add(new StringOption(VMAX, "Storage Provider for EMC VMAX, VNX Block"));
+                
             }
             render(storageArray);
         } else {

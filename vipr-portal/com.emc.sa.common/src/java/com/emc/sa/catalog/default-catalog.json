@@ -23,22 +23,53 @@
         {
           "image": "icon_application_remove_volumes.png",
           "baseService": "RemoveVolumesFromApplication"
-        },
-        {
-          "image": "icon_VPLEX_data_migration.png",
-          "baseService": "CreateMigration"
-        },
-        {
-          "image": "icon_VPLEX_data_migration.png",
-          "baseService": "MigrateApplication"
-        },
-        {
-          "image": "icon_VPLEX_data_migration.png",
-          "baseService": "DiscoverApplication"
         }
        ],
       "categories": [
-      {
+		{
+			"title": "applicationmigrationservices.title",
+			"image": "icon_VPLEX_data_migration.png",
+			"description": "applicationmigrationservices.description",
+			"services": [
+				{
+					"image": "icon_VPLEX_data_migration.png",
+					"baseService": "CreateMigration"
+         		},
+				{
+           			"image": "icon_VPLEX_data_migration.png",
+           			"baseService": "MigrateMigration"
+				},
+				{
+           			"image": "icon_VPLEX_data_migration.png",
+           			"baseService": "CommitMigration"
+				},
+ 				{
+           			"image": "icon_VPLEX_data_migration.png",
+           			"baseService": "RefreshMigration"
+				},
+				{
+					"image": "icon_VPLEX_data_migration.png",
+           			"baseService": "RecoverMigration"
+         		},
+				{
+					"image": "icon_VPLEX_data_migration.png",
+					"baseService": "RefreshMigration"
+				},
+				{
+					"image": "icon_VPLEX_data_migration.png",
+					"baseService": "SyncstopMigration"
+				},
+				{
+					"image": "icon_VPLEX_data_migration.png",
+					"baseService": "SyncstartMigration"
+				},
+				{
+					"image": "icon_VPLEX_data_migration.png",
+					"baseService": "RemoveMigrationEnv"
+				}
+			]
+		},
+		{
         "title": "backuprestore.title",
         "image": "icon_application_block_protection.png",
         "description": "backuprestore.description",

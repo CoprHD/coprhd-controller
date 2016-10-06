@@ -1,0 +1,10 @@
+{
+  baseKey:"RemoveMigrationEnv.Application",
+  serviceId:"RemoveMigrationEnv",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    }
+  }
+}

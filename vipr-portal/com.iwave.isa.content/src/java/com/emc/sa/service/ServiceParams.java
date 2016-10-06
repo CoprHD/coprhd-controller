@@ -168,4 +168,5 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
+    public String REMOVE_MIGRATION_ENVIRONMENT = "removeMigrationEnv";
 }

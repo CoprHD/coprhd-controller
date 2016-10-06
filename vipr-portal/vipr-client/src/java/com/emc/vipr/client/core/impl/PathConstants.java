@@ -166,6 +166,7 @@ public class PathConstants {
     public static final String ASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/assign-file-policy/{policy_id}";
     public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";
     public static final String FILE_POLICIES_BY_FILESYSTEM_URL = FILESYSTEM_URL + "/{fileSystemId}/file-policies";
+    
     public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
     public static final String APP_SUPPORT_FULL_COPY_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/full-copies";
     public static final String APP_SUPPORT_CREATE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL;
@@ -199,6 +200,19 @@ public class PathConstants {
 
     public static final String APP_SUPPORT_CLONE_SET_URL = APP_SUPPORT_CLONE_URL + "/copy-sets";
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
+    
+    // application migration URLs
+    private static final String APP_SUPPORT_MIGRATION_BASE = APP_SUPPORT_CREATE_APP_URL + "/{id}/migration";
+    public static final String APP_SUPPORT_CREATE_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/create";
+    public static final String APP_SUPPORT_MIGRATE_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/migrate";
+    public static final String APP_SUPPORT_COMMIT_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/commit";
+    public static final String APP_SUPPORT_CANCEL_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/cancel";
+    public static final String APP_SUPPORT_REFRESH_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/refresh";
+    public static final String APP_SUPPORT_RECOVER_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/recover";
+    public static final String APP_SUPPORT_SYNCSTOP_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/syncstop";
+    public static final String APP_SUPPORT_SYNCSTART_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/syncstart";
+    public static final String APP_SUPPORT_REMOVE_ENV_MIGRATION_URL = APP_SUPPORT_MIGRATION_BASE + "/remove-environment";
+    
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
 }

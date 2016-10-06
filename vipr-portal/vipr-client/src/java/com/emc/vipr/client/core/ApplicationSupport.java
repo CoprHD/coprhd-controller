@@ -4,10 +4,13 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CANCEL_MIGRATION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_COMMIT_MIGRATION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_MIGRATION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL;
@@ -18,7 +21,11 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_FULL_COPY_
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_MIGRATE_MIGRATION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RECOVER_MIGRATION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_REFRESH_MIGRATION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RELINK_SNAPSHOT_SESSION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_REMOVE_ENV_MIGRATION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_URL;
@@ -26,6 +33,8 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRON
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SYNCSTART_MIGRATION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SYNCSTOP_MIGRATION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
@@ -40,6 +49,8 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.MigrateApplicationParams;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
@@ -435,4 +446,126 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
 		return client.get(VolumeGroupList.class, VOLUME_GROUPS_BY_TENANT_URL,
 				id);
 	}
+    
+    /**
+     * generic application request with parameters
+     * 
+     * @param applicationId
+     * @param param target varray and vpool id
+     * @return
+     */
+    private TaskList sendMigrationRequest(URI applicationId, String request, MigrateApplicationParams param) {
+        UriBuilder uriBuilder = client.uriBuilder(request);
+        TaskResourceRep task = client.postURI(TaskResourceRep.class, param, uriBuilder.build(applicationId));
+        TaskList tasks = new TaskList();
+        tasks.addTask(task);
+        return tasks;
+    }
+    
+    /**
+     * generic application request without parameters
+     * 
+     * @param applicationId
+     * @return
+     */
+    private TaskList sendMigrationRequest(URI applicationId, String request) {
+        UriBuilder uriBuilder = client.uriBuilder(request);
+        TaskResourceRep task = client.postURI(TaskResourceRep.class, uriBuilder.build(applicationId));
+        TaskList tasks = new TaskList();
+        tasks.addTask(task);
+        return tasks;
+    }
+    
+    /**
+     * create application migration
+     * 
+     * @param applicationId
+     * @param param target varray and vpool id
+     * @return
+     */
+    public TaskList createMigration(URI applicationId, MigrateApplicationParams param) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_CREATE_MIGRATION_URL, param);
+    }
+    
+    /**
+     * migrate application
+     * 
+     * @param applicationId
+     * @return
+     */
+    public TaskList migrateMigration(URI applicationId) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_MIGRATE_MIGRATION_URL);
+    }
+    
+    /**
+     * commit application migration
+     * 
+     * @param applicationId
+     * @param param optional remove migration environment flag
+     * @return
+     */
+    public TaskList commitMigration(URI applicationId, MigrateApplicationParams param) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_COMMIT_MIGRATION_URL, param);
+    }
+    
+    /**
+     * cancel application migration
+     * 
+     * @param applicationId
+     * @param param optional remove migration environment flag
+     * @return
+     */
+    public TaskList cancelMigration(URI applicationId, MigrateApplicationParams param) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_CANCEL_MIGRATION_URL, param);
+    }
+    
+    /**
+     * recover application migration
+     * 
+     * @param applicationId
+     * @return
+     */
+    public TaskList recoverMigration(URI applicationId) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_RECOVER_MIGRATION_URL);
+    }
+    
+    /**
+     * refresh application migration status
+     * @param applicationId
+     * @return
+     */
+    public TaskList refreshMigration(URI applicationId) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_REFRESH_MIGRATION_URL);
+    }
+    
+    /**
+     * stop synchronization of source volumes during application migration
+     * 
+     * @param applicationId
+     * @return
+     */
+    public TaskList syncstopMigration(URI applicationId) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_SYNCSTOP_MIGRATION_URL);
+    }
+    
+    /**
+     * start synchronization of source volumes during application migration
+     * 
+     * @param applicationId
+     * @return
+     */
+    public TaskList syncstartMigration(URI applicationId) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_SYNCSTART_MIGRATION_URL);
+    }
+    
+    /**
+     * remove migration environment
+     * 
+     * @param applicationId
+     * @return
+     */
+    public TaskList removeEnvMigration(URI applicationId) {
+        return sendMigrationRequest(applicationId, APP_SUPPORT_REMOVE_ENV_MIGRATION_URL);
+    }
+    
 }

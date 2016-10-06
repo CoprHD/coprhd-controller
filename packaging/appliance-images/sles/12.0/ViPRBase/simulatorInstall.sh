@@ -219,7 +219,7 @@ mkdir -p /data/simulators/vplex-sim/
 mkdir -p /data/simulators/vplex-sim_2/
 cp -r vplex-*/* /data/simulators/vplex-sim/
 cp -r vplex-*/* /data/simulators/vplex-sim_2/
-mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION.jar
+# mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION.jar
 ./bin/setupSim --setup-default
 rm -r vplex-*
 rm -f vplex-simulators-*.zip
@@ -257,7 +257,7 @@ mkdir -p /data/simulators/xio/
 mkdir -p /data/simulators/xio_2/
 cp -r xio-*/* /data/simulators/xio/
 cp -r xio-*/* /data/simulators/xio_2/
-mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
+#mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
 rm -r xio-*
 rm -f xio-simulators-*.zip
 

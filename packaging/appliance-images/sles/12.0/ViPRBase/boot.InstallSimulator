@@ -40,10 +40,13 @@ if [ ! -f /data/simulators ]; then
    rm -f /data/simulators/vplex-sim/vplex_config_2.properties
    mv /data/simulators/ecom462/providers/OSLSProvider.conf.462 /data/simulators/ecom462/providers/OSLSProvider.conf
    rm -f /data/simulators/ecom80/providers/OSLSProvider.conf.462
+   cp /data/simulators/ecom462/conf/Port_settings2.xml /data/simulators/ecom462/conf/Port_settings.xml
    sed -i "s|standalone\tstandalone|standalone winhost1 winhost2 winhost3 winhost4 winhost5|g" /etc/hosts
    ln -s /data/simulators/cisco-sim /cisco-sim
    cp /data/simulators/cisco-sim/bashrc /root/.bashrc
    cp /data/simulators/cisco-sim/db/fcns.db.rp /data/simulators/cisco-sim/db/fcns.db
+   sed -i "s|0.0.0.0\/cimom|$IP4Addr\/cimom|g" /data/simulators/hds-sim/conf/serverConfig.groovy
+   sed -i "s|port(5989)|port(6989)|g" /data/simulators/hds-sim/conf/serverConfig.groovy
 
    # Change IP on the configuration files
    sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim/vplex_config.properties
@@ -52,4 +55,18 @@ if [ ! -f /data/simulators ]; then
    sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio_2/xio_config.properties
    sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/rp-sim/rp_config.properties
    sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vmware/vmw_config.properties
+   
+
+   # Start all the simulator services
+   systemctl restart CISCO
+   systemctl restart ECOM462
+   systemctl restart ECOM80
+   systemctl restart HDS
+   systemctl restart RP
+   systemctl restart VMWARE
+   systemctl restart VPLEX
+   systemctl restart VPLEX2
+   systemctl restart WIN
+   systemctl restart XIO
+   systemctl restart XIO2 
 fi

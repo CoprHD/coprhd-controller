@@ -271,15 +271,15 @@ public class LinuxSystemCLI implements HostRescanAdapter {
     }
 
     public String mapRBD(String monitors, String user, String key, String pool, String volume, String snapshot) {
-    	MapRBDCommand command = new MapRBDCommand(monitors, user, key);
-    	command.setVolume(pool, volume, snapshot);
+        MapRBDCommand command = new MapRBDCommand(monitors, user, key);
+        command.setVolume(pool, volume, snapshot);
         executeCommand(command);
         return command.getResults();
     }
 
     public void unmapRBD(String pool, String volume, String snapshot) {
-    	UnmapRBDCommand command = new UnmapRBDCommand();
-    	command.setVolume(pool, volume, snapshot);
+        UnmapRBDCommand command = new UnmapRBDCommand();
+        command.setVolume(pool, volume, snapshot);
         executeCommand(command);
     }
 

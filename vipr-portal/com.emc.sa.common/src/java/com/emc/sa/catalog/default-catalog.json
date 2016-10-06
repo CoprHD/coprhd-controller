@@ -45,7 +45,7 @@
 				},
  				{
            			"image": "icon_VPLEX_data_migration.png",
-           			"baseService": "RefreshMigration"
+           			"baseService": "CancelMigration"
 				},
 				{
 					"image": "icon_VPLEX_data_migration.png",

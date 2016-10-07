@@ -1828,7 +1828,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Path("/cos/recommendations")
+    @Path("/cos/recommendations2")
     public StoragePoolRecommendations createClassOfService(BlockVirtualPoolParam param)
     		throws DatabaseException {
 

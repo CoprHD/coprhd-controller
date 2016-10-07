@@ -58,6 +58,8 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     // JSON converter
     private static Gson gson = new Gson();
 
+    private Map<String,String> parentAssetParams = new HashMap<>();
+
     /** Note: this is the only provider for all OE AssetOption calls, 
      * so if there are multiple requests (i.e.: multiple drop-down menus
      * in service descriptor) then they will run serially, one after 
@@ -90,8 +92,6 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     public boolean useRawLabels(){
         return true;
     }
-
-    Map<String,String> parentAssetParams = new HashMap<>();
     
     @Override
     public List<AssetOption> getAssetOptions(AssetOptionsContext context, String assetTypeName,
@@ -128,8 +128,8 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         }
 
         thisAssetType = assetTypeName.split("\\.")[1];
-        assetTypeName = ASSET_NAMESPACE_TAG + "." + ASSET_TAG;  // force to our method name 
-        return super.getAssetOptions(context,assetTypeName,availableAssets); 
+        // force 'assetTypeName' to our method name 
+        return super.getAssetOptions(context,ASSET_NAMESPACE_TAG + "." + ASSET_TAG,availableAssets); 
     } 
 
     @Override
@@ -236,12 +236,12 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         return assetOptionList;
     }
 
-    private void sleep(int i) {
+    private void sleep(int seconds) {
         try {
-            Thread.sleep(i*1000);
+            Thread.sleep(seconds*1000);
         }
         catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
         } 
     } 
 }

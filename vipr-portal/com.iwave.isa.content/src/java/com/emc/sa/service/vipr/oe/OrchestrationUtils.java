@@ -241,7 +241,6 @@ public class OrchestrationUtils {
         } catch (IOException e) {
             ExecutionUtils.currentContext().logError("Error getting response " +
                     "from Orchestration Engine for: " + uriString + " :: "+ e.getMessage());
-            e.printStackTrace();
         }
         return responseString;
     }

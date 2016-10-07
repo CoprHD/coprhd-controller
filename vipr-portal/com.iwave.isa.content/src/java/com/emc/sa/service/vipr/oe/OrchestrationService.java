@@ -28,8 +28,8 @@ import com.emc.sa.engine.service.Service;
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
-    Map<String, Object> params = null;
-    String oeOrderJson;
+    private Map<String, Object> params = null;
+    private String oeOrderJson;
     
     @Override
 	public void precheck() throws Exception {

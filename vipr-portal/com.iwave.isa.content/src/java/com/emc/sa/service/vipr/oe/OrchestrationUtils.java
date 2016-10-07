@@ -43,6 +43,10 @@ import com.sun.jersey.api.client.ClientResponse;
 
 public class OrchestrationUtils {
 
+    private OrchestrationUtils() {
+        // no public constructor allwoed for utility classes
+    }
+    
     //TODO: externalize these values:
     private static final int OE_WORKFLOW_CHECK_INTERVAL = 10; // secs
     private static final int OE_WORKFLOW_CHECK_TIMEOUT = 600; // secs
@@ -72,9 +76,9 @@ public class OrchestrationUtils {
         return null;
     }
 
-    public static void sleep(int i) {
+    public static void sleep(int seconds) {
         try {
-            Thread.sleep(i*1000);
+            Thread.sleep(seconds*1000);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();

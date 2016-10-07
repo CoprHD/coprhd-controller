@@ -219,24 +219,44 @@ public class AuthnConfigurationService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public AuthnProviderRestRep createProvider(AuthnCreateParam param) {
+
+        // Parameter validation
         validateAuthnCreateParam(param);
-/*
-        if (param.getDisable() == null || !param.getDisable()) {
-            _log.debug("Validating manager dn credentials before provider creation...");
-            AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateCreate(param, null);
-            validateP.setUrls(new ArrayList<String>(param.getServerUrls()));
-            StringBuilder errorString = new StringBuilder();
-            if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
-                throw BadRequestException.badRequests.
-                        authnProviderCouldNotBeValidated(errorString.toString());
-            }
-        }
-*/
+
         AuthnProvider provider = map(param);
         provider.setId(URIUtil.createId(AuthnProvider.class));
-
         String mode = provider.getMode();
-        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
+
+        // This validation is applicable to ad and ldap
+        if (AuthnProvider.ProvidersType.ad.toString().equalsIgnoreCase(mode) ||
+                AuthnProvider.ProvidersType.ldap.toString().equalsIgnoreCase(mode)) {
+            // Now validate the authn provider to make sure
+            // either both group object classes and
+            // member attributes present or
+            // both of them empty. Throw bad request exception
+            // if only one of them presents.
+            validateLDAPGroupProperties(provider);
+        }
+
+        // Auth mode validate
+        validateAuthMode(mode);
+
+        // Provider state validation
+        if ( ! param.getMode().equalsIgnoreCase(ProvidersType.oidc.name()) ) { // for all ad, ldap and keystone
+            // Validate if it's valid provider
+            if (param.getDisable() == null || !param.getDisable()) {
+                _log.debug("Validating manager dn credentials before provider creation...");
+                AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateCreate(param, null);
+                validateP.setUrls(new ArrayList<String>(param.getServerUrls()));
+                StringBuilder errorString = new StringBuilder();
+                if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
+                    throw BadRequestException.badRequests.
+                            authnProviderCouldNotBeValidated(errorString.toString());
+                }
+            }
+        }
+
+        if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
            provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(), getPassword(provider, null)));
 
             // If the checkbox is checked, then register CoprHD.
@@ -250,15 +270,10 @@ public class AuthnConfigurationService extends TaggedResource {
                     provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
                 }
             }
-        } else if (null != mode && AuthnProvider.ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
+        }
+
+        if (AuthnProvider.ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
             provider = buildOIDCParameters(provider);
-        } else {
-            // Now validate the authn provider to make sure
-            // either both group object classes and
-            // member attributes present or
-            // both of them empty. Throw bad request exception
-            // if only one of them presents.
-            validateLDAPGroupProperties(provider);
         }
 
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
@@ -274,6 +289,39 @@ public class AuthnConfigurationService extends TaggedResource {
         // "Authentication Profile created", provider.getId());
 
         return map(provider);
+    }
+
+    private void validateAuthMode(String modeToAdd) {
+        if (modeToAdd.equals(ProvidersType.oidc)) {
+            ensureNoAuthnProvider();
+        } else {
+            ensureNoIDPProvider();
+        }
+    }
+
+    private void ensureNoIDPProvider() {
+        List<AuthnProvider> providers = getProvidersFromDb();
+        for (AuthnProvider provider : providers) {
+            if (provider.getMode().equals(ProvidersType.oidc)) {
+                throw new RuntimeException("IDP Authentication Provider already existed.");
+            }
+        }
+    }
+
+    private List<AuthnProvider> getProvidersFromDb() {
+        List<AuthnProvider> providers = new ArrayList<>();
+        List<URI> ids = _dbClient.queryByType(AuthnProvider.class, true);
+        for (URI id : ids) {
+            providers.add( (AuthnProvider) _dbClient.queryObject(id) );
+        }
+        return providers;
+    }
+
+    private void ensureNoAuthnProvider() {
+        List<AuthnProvider> providers = getProvidersFromDb();
+        if ( !providers.isEmpty() ) {
+            throw new RuntimeException("Authentication Provider already existed. ");
+        }
     }
 
     private void notifyAuthModeChanged(String providerMode) {

@@ -29,7 +29,7 @@ public class ViprOperation {
         task[0] = t;
     }
 
-    ViprTask[] task;
+    private ViprTask[] task;
 
     public ViprTask[] getTask() {
         return task;

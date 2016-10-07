@@ -1394,7 +1394,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
         
         StoragePoolRecommendations to = new StoragePoolRecommendations();
-        return toPoolRecommendation("source_data", matchedPools, to);
+        return toPoolRecommendation("source_data", matchedPools, null, null, to);
     }
 
 }

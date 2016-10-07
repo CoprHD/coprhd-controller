@@ -1930,6 +1930,130 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         return to;
     }
     
+    /**
+     * Creates a class of service
+     *
+     * @prereq none
+     * @param param list of capabilities
+     * @brief Create class of service
+     * @return response
+     * @throws Exception
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/cos/recommendations")
+    public StoragePoolRecommendations recommendationsForClassOfService(BlockVirtualPoolParam param)
+    		throws DatabaseException {
+
+    	Gson gson = new Gson(); 
+    	Map<String,Object> baseProfile = new HashMap<String,Object>();
+
+    	try {
+
+    		baseProfile = (Map<String,Object>) gson.fromJson(new FileReader("..\\conf\\baseProfile.json"), baseProfile.getClass());
+    	}catch (FileNotFoundException ex) {
+    		_log.error("baseProfile.json file not found " + ex);
+    		// Get default capabilities!!!
+    		initializeDefaultCapablities(baseProfile);
+    	}
+
+    	// Update the default values with given parameters
+    	updateBaseProfilCapabilities(baseProfile, param);
+    	ClassOfService cos = new ClassOfService();
+    	cos.setId(URIUtil.createId(ClassOfService.class));
+
+    	cos.setBasicProfile(baseProfile);
+
+    	List<StoragePort> site1Ports = null;
+    	Set<String> site1VplexSystems = null;
+
+    	String varray = (String)baseProfile.get("varrays");
+    	String havarray = null;
+    	if(param.getHaVarrays() != null && !param.getHaVarrays().isEmpty()) {
+    		havarray = (String)param.getHaVarrays().toArray()[0];
+    	}
+    	// Recommendations for site1
+    	List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+    	List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
+    	List<StoragePool> site1Pools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
+    			_dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+
+    	VPlexScheduler vplexScheduler = null;
+    	VPlexBackendManager vplexMgr = null;
+    	URI VplexURI = null;
+    	if(havarray != null && !havarray.isEmpty()) {
+    		//Verify the site1 pools connected to any vplex system!!
+    		vplexScheduler = new VPlexScheduler();
+    		vplexScheduler.setDbClient(_dbClient);
+
+    		URI srcSystemUri = null;
+    		Map<String, List<StoragePool>> vplexSystems = vplexScheduler.getConnectedVplexSystemsByTargetPool(site1Pools, varray);
+    		if(vplexSystems != null && !vplexSystems.isEmpty()) {
+    			site1VplexSystems = vplexSystems.keySet();
+    			for ( Entry<String, List<StoragePool>> entry :  vplexSystems.entrySet()) {
+    				VplexURI = URI.create(entry.getKey());
+    				srcSystemUri = entry.getValue().get(0).getStorageDevice();
+    				break;
+    			}
+    		}
+
+    		vplexMgr = new VPlexBackendManager();
+    		vplexMgr.setDbClient(_dbClient);
+    		Map<URI, List<StoragePort>> vplexBEPortsSite1 = vplexMgr.getInitiatorPortsForArray(VplexURI, srcSystemUri, URI.create(varray));
+    		if(vplexBEPortsSite1 != null && !vplexBEPortsSite1.isEmpty()) {
+    			for ( Entry<URI, List<StoragePort>> entry :  vplexBEPortsSite1.entrySet()) {
+    				site1Ports = entry.getValue();
+    				break;
+    			}
+    		}
+    	}
+    	//Add site1 pool to recommendations
+    	StoragePoolRecommendations to = new StoragePoolRecommendations();
+    	to = toPoolRecommendation("site1", site1Pools, site1Ports, site1VplexSystems, to);
+
+    	// Recommendations for site2!!!
+    	//Change the varray to site2 varray!!
+    	if(havarray != null && !havarray.isEmpty()) {
+
+    		baseProfile.put(CosBaseProfileWrapper.VARRAYS, havarray);
+
+    		//Re-run the recommendations 
+    		storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+    		allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
+    		List<StoragePool> site2Pools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
+    				_dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+
+    		Set<String> site2VplexSystems = null;
+    		URI dstSystemUri = null;
+    		Map<String, List<StoragePool>> vplexSystems = vplexScheduler.getConnectedVplexSystemsByTargetPool(site2Pools, havarray);
+    		if(vplexSystems != null && !vplexSystems.isEmpty()) {
+    			site2VplexSystems = vplexSystems.keySet();
+    			for ( Entry<String, List<StoragePool>> entry :  vplexSystems.entrySet()) {
+    				VplexURI = URI.create(entry.getKey());
+    				dstSystemUri = entry.getValue().get(0).getStorageDevice();
+    				break;
+    			}
+    		}
+
+    		Map<URI, List<StoragePort>> vplexBEPortsSite2 = vplexMgr.getInitiatorPortsForArray(VplexURI, dstSystemUri, URI.create(havarray));
+    		List<StoragePort> site2Ports = null;
+    		if(vplexBEPortsSite2 != null && !vplexBEPortsSite2.isEmpty()) {
+    			for ( Entry<URI, List<StoragePort>> entry :  vplexBEPortsSite2.entrySet()) {
+    				site2Ports = entry.getValue();
+    				break;
+    			}
+    		} 
+
+
+    		//Add site2 pool to recommendations
+    		to = toPoolRecommendation("site2", site2Pools, site2Ports, site2VplexSystems, to);
+    	}
+
+    	return to;
+    }
+    
     private void initializeDefaultCapablities(Map<String,Object> baseProfile) {
     	baseProfile.put(CosBaseProfileWrapper.AUTO_TIER__POLICY_NAME, "");
     	//StringSet raidLevel = new StringSet();

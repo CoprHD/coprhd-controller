@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.valid.Range;
 
@@ -49,6 +50,8 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     // resource placement policy
     private String placementPolicy;
+    
+    private Set<String> havarrays;
 
     public BlockVirtualPoolParam() {
     }
@@ -77,6 +80,16 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
         this.maxPaths = maxPaths;
     }
 
+    @XmlElement(name = "ha_varray")
+    @JsonProperty("ha_varrays")
+    public Set<String> getHaVarrays() {
+        return havarrays;
+    }
+
+    public void setHaVarrays(Set<String> varrays) {
+        this.havarrays = varrays;
+    }
+    
     /**
      * The minimum number of paths that can be used between a host and a storage volume.
      * If this many paths cannot be configured, Export requests will fail.

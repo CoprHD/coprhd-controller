@@ -117,6 +117,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMat
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 import com.google.common.base.Function;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -1849,28 +1850,84 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     	cos.setId(URIUtil.createId(ClassOfService.class));
 
     	cos.setBasicProfile(baseProfile);
-    	try {
-    	String mapAsJson = new ObjectMapper().writeValueAsString(baseProfile);
-    	String ts = mapAsJson;
-    	} catch (Exception ex) {
-    		_log.error("baseProfile conversion failed" + ex);
-    	}
-    	 
-    	/*JSONObject json = new JSONObject();
-        json.putAll( baseProfile );
-        String jsonString = json.toString();*/
-        
-       
-        
-    	//_dbClient.createObject(cos);
+    	
+    	String varray = (String)baseProfile.get("varrays");
+    	// Recommendations for site1
     	List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
-    	 List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
+    	 List<StoragePool> site1Pools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
                  _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
     	 
+    	 //Verify the site1 pools connected to any vplex system!!
+    	 VPlexScheduler vplexScheduler = new VPlexScheduler();
+     	 vplexScheduler.setDbClient(_dbClient);
+     	
+     	Set<String> site1VplexSystems = null;
+     	URI VplexURI = null;
+     	URI srcSystemUri = null;
+     	Map<String, List<StoragePool>> vplexSystems = vplexScheduler.getConnectedVplexSystemsByTargetPool(site1Pools, varray);
+     	if(vplexSystems != null && !vplexSystems.isEmpty()) {
+     		site1VplexSystems = vplexSystems.keySet();
+     		for ( Entry<String, List<StoragePool>> entry :  vplexSystems.entrySet()) {
+     			VplexURI = URI.create(entry.getKey());
+     			srcSystemUri = entry.getValue().get(0).getStorageDevice();
+     			break;
+     		}
+     	}
+    	 
+     	VPlexBackendManager vplexMgr = new VPlexBackendManager();
+    	vplexMgr.setDbClient(_dbClient);
+    	List<StoragePort> site1Ports = null;
+    	Map<URI, List<StoragePort>> vplexBEPortsSite1 = vplexMgr.getInitiatorPortsForArray(VplexURI, srcSystemUri, URI.create(varray));
+    	if(vplexBEPortsSite1 != null && !vplexBEPortsSite1.isEmpty()) {
+     		for ( Entry<URI, List<StoragePort>> entry :  vplexBEPortsSite1.entrySet()) {
+     			site1Ports = entry.getValue();
+     			break;
+     		}
+     	}
+    	
+    	 //Add site1 pool to recommendations
     	StoragePoolRecommendations to = new StoragePoolRecommendations();
-        return toPoolRecommendation("source_data", matchedPools, to);
+        to = toPoolRecommendation("site1", site1Pools, site1Ports, site1VplexSystems, to);
+        
+        // Recommendations for site2!!!
+        //Change the varray to site2 varray!!
+        if(param.getHaVarrays() != null && !param.getHaVarrays().isEmpty()) {
+    		baseProfile.put(CosBaseProfileWrapper.VARRAYS, param.getHaVarrays().toArray()[0]);
+    		varray = (String)param.getHaVarrays().toArray()[0];
+    	}
+        //Re-run the recommendations 
+    	storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+        allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);	
+    	 List<StoragePool> site2Pools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(cos, allPools,
+                 _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
 
+    	Set<String> site2VplexSystems = null;
+    	URI dstSystemUri = null;
+      	vplexSystems = vplexScheduler.getConnectedVplexSystemsByTargetPool(site2Pools, varray);
+      	if(vplexSystems != null && !vplexSystems.isEmpty()) {
+      		site2VplexSystems = vplexSystems.keySet();
+      		for ( Entry<String, List<StoragePool>> entry :  vplexSystems.entrySet()) {
+     			VplexURI = URI.create(entry.getKey());
+     			dstSystemUri = entry.getValue().get(0).getStorageDevice();
+     			break;
+     		}
+      	}
+      	
+      	Map<URI, List<StoragePort>> vplexBEPortsSite2 = vplexMgr.getInitiatorPortsForArray(VplexURI, dstSystemUri, URI.create(varray));
+      	List<StoragePort> site2Ports = null;
+    	if(vplexBEPortsSite2 != null && !vplexBEPortsSite2.isEmpty()) {
+     		for ( Entry<URI, List<StoragePort>> entry :  vplexBEPortsSite2.entrySet()) {
+     			site2Ports = entry.getValue();
+     			break;
+     		}
+     	} 
+      	
+    	
+    	//Add site2 pool to recommendations
+    	 to = toPoolRecommendation("site2", site2Pools, site2Ports, site2VplexSystems, to);
+    	 
+        return to;
     }
     
     private void initializeDefaultCapablities(Map<String,Object> baseProfile) {
@@ -1966,7 +2023,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                  _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
     	 
     	StoragePoolRecommendations to = new StoragePoolRecommendations();
-        return toPoolRecommendation("source_data", matchedPools, to);
+        return toPoolRecommendation("source_data", matchedPools, null, null, to);
     	
     }
     

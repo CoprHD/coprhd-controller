@@ -14,11 +14,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -373,7 +375,8 @@ public class VirtualPoolMapper {
         return to;
     }
     public static StoragePoolRecommendations toPoolRecommendation(String dataSourceType,
-    		List<StoragePool> matchedPools, StoragePoolRecommendations to) {
+    		List<StoragePool> matchedPools, List<StoragePort> sps, 
+    		Set<String> systems, StoragePoolRecommendations to) {
     	
     	StoragePoolRecommendation dataSourcRecs = new StoragePoolRecommendation();
     	List<StorageDeviceStoragePoolResource> storagePools = new ArrayList<StorageDeviceStoragePoolResource>();
@@ -385,11 +388,27 @@ public class VirtualPoolMapper {
     				pool.getId(), pool.getPoolName()));
     		storagePools.add(devicePool);
     	}
+    	List<NamedRelatedResourceRep> namedPorts = new ArrayList<NamedRelatedResourceRep>();
+    	if(sps != null && !sps.isEmpty()) {
+    		for (StoragePort sp : sps) {
+    			namedPorts.add(toNamedRelatedResource(ResourceTypeEnum.STORAGE_PORT,
+    					sp.getId(), sp.getPortName()));
+    		}
+    	}
+    	
+    	List<String> vplexsystems = new ArrayList<String>();
+    	if(systems != null && !systems.isEmpty()) {
+        	vplexsystems.addAll(systems);
+    	}
+
     	
     	// set the recommendations!!
     	dataSourcRecs.setDataSourceType(dataSourceType);
     	dataSourcRecs.setStoragePools(storagePools);
+    	dataSourcRecs.setStoragePorts(namedPorts);
+    	dataSourcRecs.setVplexSystems(vplexsystems);
     	to.addPoolRecommendations(dataSourcRecs);
+    	
     	return to;
     	
     	

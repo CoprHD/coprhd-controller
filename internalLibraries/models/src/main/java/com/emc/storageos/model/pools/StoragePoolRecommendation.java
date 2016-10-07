@@ -4,18 +4,28 @@
  */
 package com.emc.storageos.model.pools;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
+
 @XmlRootElement(name = "storage_pool_recommendation")
 public class StoragePoolRecommendation {
     private String dataSourceType;
     private List<StorageDeviceStoragePoolResource> storagePools;
+    private List<NamedRelatedResourceRep> storagePorts;
+    private List<String> vplexSystems;
+    
+    
+    
 
-    public StoragePoolRecommendation() {
+   
+
+	public StoragePoolRecommendation() {
     }
 
     public StoragePoolRecommendation(String type, List<StorageDeviceStoragePoolResource> pools) {
@@ -51,4 +61,24 @@ public class StoragePoolRecommendation {
     public void setStoragePools(List<StorageDeviceStoragePoolResource> storagePools) {
         this.storagePools = storagePools;
     }
+    
+    @XmlElement(name = "initiators")
+    public List<NamedRelatedResourceRep> getStoragePorts() {
+		return storagePorts;
+	}
+
+	public void setStoragePorts(List<NamedRelatedResourceRep> storagePorts) {
+		this.storagePorts = storagePorts;
+	}
+
+	@XmlElement(name = "vplex_systems")
+	public List<String> getVplexSystems() {
+		return vplexSystems;
+	}
+
+	public void setVplexSystems(List<String> vplexSystems) {
+		this.vplexSystems = vplexSystems;
+	}
+	
+	
 }

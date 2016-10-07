@@ -1902,10 +1902,16 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 // Current Target vpool
                 String currentTargetVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
                         .getVirtualPool());
+                if (currentTargetVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+                    currentTargetVpoolId = currentVpool.getId().toString();
+                }
                 VirtualPool currentTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetVpoolId));
 
                 // New Target vpool
                 String newTargetVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
+                if (newTargetVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+                    newTargetVpoolId = newVpool.getId().toString();
+                }
                 VirtualPool newTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetVpoolId));
 
                 // Only allow migrations when both vpools specify HA.

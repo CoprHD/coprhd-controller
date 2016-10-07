@@ -398,6 +398,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidIscsiInitiatorPort();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidRBDInitiatorPort();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameter(final String parameterName,
             final String parameterValue);
 
@@ -906,6 +909,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidNodeForiScsiPort();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeForRBDPort();
 
     @DeclareServiceCode(ServiceCode.API_INVALID_PROTECTION_VPOOLS)
     public BadRequestException invalidProtectionVirtualPools();
@@ -3047,6 +3053,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException schduleInfoInvalid(final String field);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException scheduleInfoNotAllowedWithSnapshotSessionTarget();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException scheduleInfoNotMatchWithExecutionWindow(final String field);

@@ -88,12 +88,13 @@ public class Events extends Controller {
         renderJSON(DataTablesSupport.createJSON(events, params));
     }
 
-    public static void getPendingCount() {
+    public static void getPendingAndFailedCount() {
         ViPRCoreClient client = getViprClient();
-
-        int activeCount = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant())).getPending();
+        EventStatsRestRep eventStats = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant()));
+        int activeCount = eventStats.getPending() + eventStats.getFailed();
         if (Security.isSystemAdmin()) {
-            activeCount += client.events().getStatsByTenant(SYSTEM_TENANT).getPending();
+            EventStatsRestRep systemEventStats = client.events().getStatsByTenant(SYSTEM_TENANT);
+            activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
         }
 
         renderJSON(activeCount);

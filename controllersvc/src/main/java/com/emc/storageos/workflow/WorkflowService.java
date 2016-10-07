@@ -1390,13 +1390,19 @@ public class WorkflowService implements WorkflowController {
         step.suspendStep = false;
         // Persist the step information in cassandra
         logStep(workflow, step);
+        
         // Change the status of the step to suspended with no error, create a good message for the user here.
-        // It would be better if we had step-specific user messages that are cataloged and I18N'able.
-        String message = String.format("Task has been suspended during step \"" + step.description +
-                "\".  The user has the opportunity to perform any manual validation before this step is executed.  " +
+        // It would be better if the step-specific user messages were I18N'able.
+        StringBuilder message = new StringBuilder();
+        message.append("Task has been suspended during step \"" + step.description + "\". ");
+        if (step.suspendedMessage != null) {
+            message.append(step.suspendedMessage);
+        } else {
+            message.append("The user has the opportunity to perform any manual validation before this step is executed. " +
                 "The user may choose to rollback the operation if manual validation failed.");
-        step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, message);
-        // Persist the workflow information to ZK
+        }
+      
+        step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, message.toString());
         persistWorkflowStep(workflow, step);
         // Add the step to the list of steps that are to be suspended
         suspendedSteps.add(step.stepId);

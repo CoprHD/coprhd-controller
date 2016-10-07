@@ -35,7 +35,8 @@ public @interface Endpoint {
         IP("IP address"), // any IP port: IPV6 or IPV4
         HOSTNAME("host name"), // any host name short or fully qualified
         HOST("IP address or host name"), // any host address IPV4, IPV6 or hostname
-        ANY("Network address"); // any valid end point: WWN, IQN, EUI, IPV4 or IPV6
+        ANY("Network address"), // any valid end point: WWN, IQN, EUI, IPV4 or IPV6
+        RBD("Ceph's RBD pseudo port"); // starts with 'rbd:'
 
         private EndpointType(String description) {
             this.description = description;

@@ -27,12 +27,6 @@
   <div class="pull-left span6" style="overflow:hidden">
      #{Orders.parameters parameters:details?.orderParameters /}
   </div>
-
-  <div id="executionWindow">
-  #{if details.catalogService.executionWindowRequired && (details.order.isPending() || details.order.isScheduled())}
-    #{Services.executionWindow details.catalogService/}
-  #{/if}
-  </div>
   
   <div id="affectedResources" #{if !details.affectedResources}style="display:none"#{/if}>
     <div class="section-header"><h1>&{'order.affectedResources'}</h1></div>
@@ -45,6 +39,12 @@
   
   <div style="padding-bottom: 1em;"></div>
   </div>
+</div>
+
+<div class="container" id="executionWindow">
+  #{if details.catalogService.executionWindowRequired && (details.order.isPending() || details.order.isScheduled())}
+  #{Services.executionWindow details.catalogService/}
+  #{/if}
 </div>
 
 <div class="container" ng-controller="schedulerEditCtrl">

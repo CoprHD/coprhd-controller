@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexUtil;
 import com.google.common.base.Joiner;
 
@@ -120,9 +121,13 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                                                                         
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
-                       
-                        volume.setVirtualPool(oldVpoolURI);
-                        _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
+                        
+                        if (serviceCoded.getServiceCode() == ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                            _log.info("Migration already commited, leaving virtual pool for volume: " + volume.forDisplay());
+                        }  else {
+                            volume.setVirtualPool(oldVpoolURI);
+                            _log.info("Set volume's virtual pool back to {}", oldVpoolURI); 
+                        }
                         
                         // Only rollback protection on the volume if the volume specifies RP and the 
                         // old vpool did not have protection and the new one does (so we were trying to add
@@ -139,8 +144,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         } 
                         
                         if (RPHelper.isVPlexVolume(volume, dbClient)) {
-                            // Special rollback for VPLEX to update the backend vpools to the old vpools
-                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            if (serviceCoded.getServiceCode() != ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                                // Special rollback for VPLEX to update the backend vpools to the old vpools
+                                rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            }
                         }
                         
                         // Add the volume to the list of volumes to be updated in the DB so that the

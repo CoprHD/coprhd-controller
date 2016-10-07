@@ -1187,17 +1187,15 @@ class Bourne:
         return obj_op
 
     def api_sync_4(self, id, showfn, ignore_error=False):
-	# Sometimes it takes a couple seconds for the task to get out of suspended states
-	# so allow some time to pass before checking the task.
-	time.sleep(2)
-
         obj_op = showfn(id)
         tmo = 0
 	seen_pending = 0
 
         while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
             time.sleep(1)
-	    if (obj_op['state'] == 'suspended_no_error'):
+	    if (obj_op['state'] == 'pending'):
+		seen_pending = 1;
+	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
 		break
 		
             obj_op = showfn(id)

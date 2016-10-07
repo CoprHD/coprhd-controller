@@ -33,11 +33,11 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -97,6 +97,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -1803,7 +1804,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 }
                             }
                         }
-
+                        if (!CollectionUtils.isEmpty(exportMask.getExistingInitiators())) {
+                            exportMask.getExistingInitiators().clear();
+                        }
                         exportMask.addToExistingInitiatorsIfAbsent(portNames);
                         exportMask.addInitiators(allInitiators);
 
@@ -1827,7 +1830,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 }
                             }
                         }
-
+                        if (!CollectionUtils.isEmpty(exportMask.getExistingVolumes())) {
+                            exportMask.getExistingVolumes().clear();
+                        }
                         exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
 
                         // Grab the storage ports that have been allocated for this

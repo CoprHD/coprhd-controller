@@ -340,17 +340,17 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * Start continuous copies.  Continuous copies will be created when <i>NATIVE</i> type is specified and
+     * Start continuous copies. Continuous copies will be created when <i>NATIVE</i> type is specified and
      * <i>copyID</i> fields are omitted.
      *
      * @prereq none
      *
-     * @param id    URN of a ViPR Source volume
+     * @param id URN of a ViPR Source volume
      * @param param List of copies to start or create.
      *
-     * @brief       Start or create continuous copies.
+     * @brief Start or create continuous copies.
      *
-     * @return      TaskList
+     * @return TaskList
      * @throws ControllerException
      *
      */
@@ -876,6 +876,8 @@ public class BlockService extends TaskResourceService {
                 }
             }
 
+            Volume existingRpSourceVolume = null;
+
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
                 // If an RP protected vpool is specified, ensure that the CG selected is empty or contains only RP
@@ -887,18 +889,17 @@ public class BlockService extends TaskResourceService {
 
                 if (!activeCGVolumes.isEmpty()) {
                     // Find the first existing source volume for source/target varray comparison.
-                    Volume existingSourceVolume = null;
                     for (Volume cgVolume : activeCGVolumes) {
                         if (cgVolume.getPersonality() != null &&
                                 cgVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                            existingSourceVolume = cgVolume;
+                            existingRpSourceVolume = cgVolume;
                             break;
                         }
                     }
 
-                    if (existingSourceVolume != null) {
+                    if (existingRpSourceVolume != null) {
                         VirtualPool existingVpool = _dbClient.queryObject(
-                                VirtualPool.class, existingSourceVolume.getVirtualPool());
+                                VirtualPool.class, existingRpSourceVolume.getVirtualPool());
                         VirtualPool requestedVpool = _dbClient.queryObject(
                                 VirtualPool.class, param.getVpool());
 
@@ -967,7 +968,12 @@ public class BlockService extends TaskResourceService {
             // attached or has volumes that are full copies that
             // are still attached to their source volumes.
             if (!activeCGVolumes.isEmpty()) {
-                if (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(consistencyGroup, activeCGVolumes.get(0), _dbClient)) {
+                // Pass in an active CG volume for validation. If we are dealing with a RecoverPoint
+                // consistency group, we need to use an RP source volume. Otherwise we can use any arbitrary
+                // CG volume.
+                Volume activeCGVolume = existingRpSourceVolume == null ? activeCGVolumes.get(0) : existingRpSourceVolume;
+
+                if (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(consistencyGroup, activeCGVolume, _dbClient)) {
                     checkCGForMirrors(consistencyGroup, activeCGVolumes);
                     checkCGForSnapshots(consistencyGroup);
                     getFullCopyManager().verifyNewVolumesCanBeCreatedInConsistencyGroup(consistencyGroup,

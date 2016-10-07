@@ -21,6 +21,15 @@
             <span style="vertical-align: middle;" class="text-info">&{'resources.events.pending'}</span>
           </a>
       </span>
+      <span class="text-danger" style="margin-right:20px" >
+        <a href="#" ng-click="filterEvents('failed')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
+              <span ng-show="dataReady">{{failed}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+            <span style="vertical-align: middle;" class="text-muted">&{'resources.events.failed'}</span>
+        </a>
+      </span>
       <span class="text-success" style="margin-right:20px" class="nounderline">
           <a href="#" ng-click="filterEvents('approved')" class="no-decoration">
             <span style="font-size: 2em;vertical-align: middle;" class="text-success">
@@ -37,15 +46,6 @@
               <span ng-show="!dataReady">--</span>
           </span>
           <span style="vertical-align: middle;" class="text-danger">&{'resources.events.declined'}</span>
-        </a>
-      </span>
-      <span class="text-danger" style="margin-right:20px" >
-        <a href="#" ng-click="filterEvents('failed')" class="no-decoration">
-          <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
-              <span ng-show="dataReady">{{failed}}</span>
-              <span ng-show="!dataReady">--</span>
-          </span>
-            <span style="vertical-align: middle;" class="text-muted">&{'resources.events.failed'}</span>
         </a>
       </span>
       <span class="text-muted" style="margin-right:20px" >

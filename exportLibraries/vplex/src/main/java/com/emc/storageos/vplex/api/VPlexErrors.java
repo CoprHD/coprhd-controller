@@ -124,7 +124,7 @@ public interface VPlexErrors {
     public ServiceError commitMigrationFailed(final String opName,
             final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    @DeclareServiceCode(ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION)
     public ServiceError cantRollbackCommittedMigration();
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

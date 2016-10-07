@@ -16,8 +16,8 @@
                         <span class="title-side-next">&{'gettingStarted.header.side.next'}</span>
                     </div>
                 </a>
-                <a ng-show="completedSteps > 2" ng-click="closeGuide();"><img class="wizard-side-close" src="/public/img/icon-guide-close.png"></a>
             </div>
+            <a ng-show="completedSteps > 2" ng-click="closeGuide();"><img ng-class="{'side-close':guideMode=='side'}" class="wizard-close" src="/public/img/icon-guide-close.png"></a>
         </div>
         <div class="{'panel-body':guideMode=='full'}">
 
@@ -104,10 +104,10 @@
                                 <h4>&{'gettingStarted.initialsetup.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.initialsetup.text'}</p>
                                 <div class="action-btn">
-                                    <button ng-show="completedSteps == currentStep-1"  ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
+                                    <button ng-show="completedSteps < 3"  ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
                                 </div>
                             </div>
                         </div>

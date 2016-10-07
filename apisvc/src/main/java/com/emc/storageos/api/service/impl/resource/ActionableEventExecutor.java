@@ -69,8 +69,15 @@ public class ActionableEventExecutor {
         }
         URI oldClusterURI = host.getCluster();
 
-        Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
-        Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        Cluster oldCluster = null;
+        if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+            oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+        }
+        Cluster newCluster = null;
+        if (!NullColumnValueGetter.isNullURI(clusterId)) {
+            newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        }
+
         if (newCluster != null && oldCluster != null) {
             result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
                     oldCluster.getLabel(), newCluster.getLabel()));

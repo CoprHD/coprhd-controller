@@ -569,6 +569,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setInitiators(initiators);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
                     .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
@@ -727,6 +728,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setInitiators(initiators);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
                     .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
@@ -844,6 +846,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         ctx.setStorage(storage);
                         ctx.setExportMask(exportMask);
                         ctx.setBlockObjects(volumes, dbClient);
+                        ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
                         // DU validation when removing initiators
                         XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
                         volumeValidator.setIgNames(groupInitiatorsByIG.keySet());

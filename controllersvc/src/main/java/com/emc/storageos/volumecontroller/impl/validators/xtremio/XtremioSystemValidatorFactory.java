@@ -95,6 +95,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     public Validator removeVolumes(ExportMaskValidationContext ctx) {
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask());
+        validator.setExceptionContext(ctx);
         configureValidators(logger, validator);
         return validator;
     }

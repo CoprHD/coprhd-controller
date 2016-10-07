@@ -51,7 +51,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
 
     /**
      * Sets the database client.
-     * 
+     *
      * @param dbClient the database client
      */
     public void setDbClient(DbClient dbClient) {
@@ -68,7 +68,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
 
     /**
      * Verify storage system connectivity
-     * 
+     *
      * @param storageSystem the VPLEX storage system to check
      */
     private void checkVplexConnectivity(StorageSystem storageSystem) {
@@ -106,6 +106,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         validator.setInitiatorsToValidate(ctx.getInitiators());
 
         DefaultValidator defaultValidator = new DefaultValidator(validator, config, logger, "Export Mask");
+        defaultValidator.setExceptionContext(ctx);
         return defaultValidator;
     }
 

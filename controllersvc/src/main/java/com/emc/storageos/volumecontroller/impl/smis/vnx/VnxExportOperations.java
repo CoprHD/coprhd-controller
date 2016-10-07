@@ -28,7 +28,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +73,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -258,6 +258,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(context == null);
             validator.exportMaskDelete(ctx).validate();
 
             CIMObjectPath protocolController = _cimPath.getClarProtocolControllers(storage, nativeId)[0];
@@ -408,6 +409,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(context == null);
             validator.removeVolumes(ctx).validate();
 
             if (null == volumeURIList || volumeURIList.isEmpty()) {
@@ -1496,7 +1498,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                     _log.info(
                             "Current and new Storage Tier Methodology Ids are same '{}'." +
                                     " No need to update it on Volume Object Path {}.",
-                            storageTierMethodologyId, volumeObject);
+                                    storageTierMethodologyId, volumeObject);
                 } else {
                     CIMInstance modifiedSettingInstance = new CIMInstance(volumeObject,
                             inArgs);

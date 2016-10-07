@@ -325,8 +325,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             newlyCreatedChildVolumeGroups, taskCompleter)
                     : createOrSelectStorageGroup(storage, exportMaskURI, initiatorList, volumeURIHLUs, csgName,
                             newlyCreatedChildVolumeGroups, taskCompleter);
-            createMaskingView(storage, exportMaskURI, maskingViewName, volumeParentGroupPath,
-                    volumeURIHLUs, targetPortGroupPath, cascadedIG, taskCompleter);
+                    createMaskingView(storage, exportMaskURI, maskingViewName, volumeParentGroupPath,
+                            volumeURIHLUs, targetPortGroupPath, cascadedIG, taskCompleter);
         } catch (Exception e) {
             _log.error(String.format("createExportMask failed - maskName: %s", exportMaskURI.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -1124,17 +1124,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+
+            // Get the context from the task completer, in case this is a rollback.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(blockObjects);
             ctx.setInitiators(initiatorList);
+            // Allow exceptions to be thrown when not rolling back, i.e. when context is null
+            ctx.setAllowExceptions(context == null);
             validator.removeVolumes(ctx).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
             if (context != null) {
                 exportMaskRollback(storage, context, taskCompleter);
                 taskCompleter.ready(_dbClient);
@@ -1367,7 +1371,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             if (_helper.isPhantomVolumeInMultipleMaskingViews(storage, volumeToRemove, childGroupName)) {
                                 Volume volume = _dbClient.queryObject(Volume.class, volumeToRemove);
                                 _log.info("Volume " + volume.getLabel()
-                                        + " is in other masking views, so we will not remove it from storage group " + storageGroupName);
+                                + " is in other masking views, so we will not remove it from storage group " + storageGroupName);
                                 inMoreViewsVolumes.add(volume.getId());
                             }
                         }
@@ -1912,10 +1916,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = maskMap.get(exportMaskURI);
                 String qualifier = (masksNotContainingAllInitiators.contains(exportMaskURI))
                         ? ", but not containing all initiators we're looking for"
-                        : (masksWithReusableIGs.contains(exportMaskURI) ? ", but it's IGs can be reused to create new masking view"
-                                : SmisConstants.EMPTY_STRING);
+                                : (masksWithReusableIGs.contains(exportMaskURI) ? ", but it's IGs can be reused to create new masking view"
+                                        : SmisConstants.EMPTY_STRING);
                 builder.append(String.format("\nXM:%s is matching%s: ", exportMask.getMaskName(), qualifier)).append('\n')
-                        .append(exportMask.toString());
+                .append(exportMask.toString());
             }
             /**
              * Needs to clean up stale EM from ViPR DB.
@@ -2415,7 +2419,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         CIMInstance toUpdate = new CIMInstance(initiatorGroupPath,
                 new CIMProperty[] {
                         factoryRef.bool(SmisConstants.CP_EMC_VSA_ENABLED, VSAFlag)
-                });
+        });
         client.modifyInstance(toUpdate, SmisConstants.PS_EMC_VSA_ENABLED);
     }
 
@@ -3303,7 +3307,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.error("Initiators have clustered and non-clustered initiators");
             taskCompleter.error(_dbClient,
                     DeviceControllerException.errors
-                            .mixingClusteredAndNonClusteredInitiators());
+                    .mixingClusteredAndNonClusteredInitiators());
             return clusterName;
         }
 
@@ -3386,7 +3390,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             if (!_helper.isFastPolicy(storageGroupPolicyLimitsParam.getAutoTierPolicyName())) {
                 _log.info("Non-FAST create a new Storage Group");
                 VolumeURIHLU[] volumeURIHLU = new VolumeURIHLU[policyToVolumeGroupEntry
-                        .getValue().size()];
+                                                               .getValue().size()];
                 volumeURIHLU = policyToVolumeGroupEntry.getValue().toArray(volumeURIHLU);
 
                 groupName = generateStorageGroupName(storage, mask, initiators, storageGroupPolicyLimitsParam);
@@ -4367,8 +4371,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits =
                 new StorageGroupPolicyLimitsParam(newPolicyName,
                         newVirtualPool.getHostIOLimitBandwidth(),
-                newVirtualPool.getHostIOLimitIOPs(),
-                newVirtualPool.getCompressionEnabled(), storage);
+                        newVirtualPool.getHostIOLimitIOPs(),
+                        newVirtualPool.getCompressionEnabled(), storage);
 
         CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
                 childGroupName,
@@ -4454,7 +4458,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         _log.info(
                                 "Changing Policy on Phantom Storage Group {} since it is requested "
                                         + "for all the volumes in the Group.",
-                                sgName);
+                                        sgName);
                         if (!currentPolicyName.equalsIgnoreCase(newPolicyName)) {
                             if (_helper.isFastPolicy(currentPolicyName)) {
                                 _helper.removeVolumeGroupFromAutoTieringPolicy(storage, sgPath);
@@ -4626,9 +4630,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         }
                         addGroupsToCascadedVolumeGroup(storage, parentGroupName, newChildGroupPath, null, null, forceFlag);
                     }
-                    
+
                     // We need a no-op if old child group is same as new child group
-                    //COP 24436: ViPR was upgraded post SMI-S upgrade to AFA due to which ViPR was not aware that 
+                    //COP 24436: ViPR was upgraded post SMI-S upgrade to AFA due to which ViPR was not aware that
                     //the SG characteristics were matching the current Virtual Pool characteristics relating to compression.
                     //We could enter the same situation if any of the SG characteristics were modified without ViPR knowledge.
                     if (childGroupName.equalsIgnoreCase(newChildGroupName)) {
@@ -4677,13 +4681,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info(
                             "Conditions for 'moveMembers' didn't meet for Storage Group {}."
                                     + " Hence, cannot move volumes to new Storage Group with new policy and limits.",
-                            childGroupName);
+                                    childGroupName);
                 }
             } else {
                 _log.info(
                         "Given Volume list is not same as the one in Storage Group {}."
                                 + " Hence, FAST policy change won't be done on it.",
-                        childGroupName);
+                                childGroupName);
             }
         }
         return policyUpdated;
@@ -4951,7 +4955,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @throws Exception
      */
     private void handleExistingInitiators(StorageSystem storage, ExportMask mask, List<Initiator> initiatorList,
-                                          TaskCompleter taskCompleter) throws Exception {
+            TaskCompleter taskCompleter) throws Exception {
         CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, mask.getMaskName());
         CIMInstance maskingViewInstance = _helper.checkExists(storage, maskingViewPath, false, false);
 

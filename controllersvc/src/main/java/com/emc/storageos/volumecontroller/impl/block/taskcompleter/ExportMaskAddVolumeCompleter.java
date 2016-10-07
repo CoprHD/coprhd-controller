@@ -5,6 +5,17 @@
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP;
+import static com.emc.storageos.vplexcontroller.VPlexExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -15,16 +26,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
-import com.emc.storageos.workflow.WorkflowService;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP;
+import com.emc.storageos.workflow.WorkflowService;;
 
 @SuppressWarnings("serial")
 public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
@@ -48,29 +50,29 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
 
-            if (exportMask == null) {
-                _log.warn("Export mask was null for task {}", getOpId());
-                return;
-            }
+                    if (exportMask == null) {
+                        _log.warn("Export mask was null for task {}", getOpId());
+                        return;
+                    }
 
-            if (shouldUpdateDatabase(status)) {
-                for (URI volumeURI : _volumes) {
-                    BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-                    _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
-                            getId().toString(), getOpId(), status.name()));
-                    exportMask.removeFromExistingVolumes(volume);
-                    exportMask.addToUserCreatedVolumes(volume);
-                }
+            if (status == Operation.Status.ready) {
+                        for (URI volumeURI : _volumes) {
+                            BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
+                            _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
+                                    getId().toString(), getOpId(), status.name()));
+                            exportMask.removeFromExistingVolumes(volume);
+                            exportMask.addToUserCreatedVolumes(volume);
+                        }
 
-                exportMask.setCreatedBySystem(true);
-                ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
-                exportMask.addVolumes(_volumeMap);
-                exportGroup.addExportMask(exportMask.getId());
-                ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                        exportMask.setCreatedBySystem(true);
+                        ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
+                        exportMask.addVolumes(_volumeMap);
+                        exportGroup.addExportMask(exportMask.getId());
+                        ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
 
-                dbClient.updateObject(exportMask);
-                dbClient.updateObject(exportGroup);
-            }
+                        dbClient.updateObject(exportMask);
+                        dbClient.updateObject(exportGroup);
+                    }
 
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskAddVolume - Id: %s, OpId: %s",
@@ -101,7 +103,8 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
             if (operations != null) {
                 for (ExportOperationContext.ExportOperationContextOperation operation : operations) {
                     // VMAX check
-                    if (OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equalsIgnoreCase(operation.getOperation())) {
+                    if (OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equalsIgnoreCase(operation.getOperation())
+                            || OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW.equalsIgnoreCase(operation.getOperation())) {
                         // TODO Check arguments.
                         return true;
                     }

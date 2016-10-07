@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -497,8 +498,9 @@ public class FileStorageScheduler implements Scheduler {
 
                     if (vNAS.getReplicationDestination()) {
                         URI sourceNasId = (URI) replicationConfiguration.get("SOURCE_NAS_SERVER");
-                        if (vNAS.getSrcVNASList() != null && !vNAS.getSrcVNASList().isEmpty() && sourceNasId != null
-                                && vNAS.getSrcVNASList().contains(sourceNasId)) {
+                        if (FileOperationUtils.getVNASList(vNAS.getSourceVirtualNasIds()) != null
+                                && !FileOperationUtils.getVNASList(vNAS.getSourceVirtualNasIds()).isEmpty() && sourceNasId != null
+                                && FileOperationUtils.getVNASList(vNAS.getSourceVirtualNasIds()).contains(sourceNasId)) {
                             virtualNasServers.add(vNAS);
                             _log.info("vNAS {} matches the selected source vnas and is suitable", vNAS.getId());
                         } else {
@@ -519,9 +521,10 @@ public class FileStorageScheduler implements Scheduler {
                         }
                     } else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                         // For unity local replication, nas server selected must be configured for local replication
-                        if (vNAS.getDstVNASList() != null && !vNAS.getDstVNASList().isEmpty()) {
+                        if (FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds()) != null
+                                && !FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds()).isEmpty()) {
                             boolean localReplication = false;
-                            for (URI nasId : vNAS.getDstVNASList()) {
+                            for (URI nasId : FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds())) {
                                 VirtualNAS destinationNAS = _dbClient.queryObject(VirtualNAS.class, nasId);
 
                                 if (destinationNAS != null && destinationNAS.getStorageDeviceURI().equals(vNAS.getStorageDeviceURI())) {
@@ -556,9 +559,11 @@ public class FileStorageScheduler implements Scheduler {
                             destinationConfiguration.put("SOURCE_NAS_SERVER", vNAS.getId());
                             selectedDestination = selectDestinationNasServer(targetCopy, storage, capabilities, destinationConfiguration,
                                     project);
-                            if (vNAS.getDstVNASList() != null && !vNAS.getDstVNASList().isEmpty()) {
+                            if (FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds()) != null
+                                    && !FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds()).isEmpty()) {
 
-                                if (vNAS.getDstVNASList().contains(selectedDestination.getId())) {
+                                if (FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds())
+                                        .contains(selectedDestination.getId())) {
                                     // destinationNas must match the Nas server that will be picked for placing the
                                     // target
 

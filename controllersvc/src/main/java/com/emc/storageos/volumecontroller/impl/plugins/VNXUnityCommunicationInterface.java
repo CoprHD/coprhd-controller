@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
@@ -445,9 +446,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             List<VirtualNAS> vnasList = _dbClient.queryObject(VirtualNAS.class, res);
             for (VirtualNAS vnas : vnasList) {
                 URI srcNas = vnas.getId();
-                URI destNas = vnas.getDstVNASList().get(0);
+                URI destNas = FileOperationUtils.getVNASList(vnas.getDestinationVirtualNasIds()).get(0);
                 if (vnas.getReplicationDestination()) {
-                    srcNas = vnas.getSrcVNASList().get(0);
+                    srcNas = FileOperationUtils.getVNASList(vnas.getSourceVirtualNasIds()).get(0);
                     destNas = vnas.getId();
                 }
                 boolean associated = false;

@@ -5,9 +5,7 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
-import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -142,14 +140,6 @@ public class VirtualNAS extends NASServer {
     public void setDestinationVirtualNasIds(StringSet destinationVirtualNasIds) {
         this.destinationVirtualNasIds = destinationVirtualNasIds;
         setChanged("destinationVirtualNasIds");
-    }
-
-    public List<URI> getSrcVNASList() {
-        return URIUtil.uris(sourceVirtualNasIds);
-    }
-
-    public List<URI> getDstVNASList() {
-        return URIUtil.uris(destinationVirtualNasIds);
     }
 
     // Defines different States of the Virtual NAS server.

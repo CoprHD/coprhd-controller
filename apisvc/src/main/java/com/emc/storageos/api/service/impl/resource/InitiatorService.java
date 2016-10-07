@@ -286,12 +286,14 @@ public class InitiatorService extends TaskResourceService {
             controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
-            _dbClient.markForDeletion(initiator);
-
-            Initiator associatedInitiator = com.emc.storageos.util.ExportUtils.getAssociatedInitiator(initiator, _dbClient);
-            if (associatedInitiator != null) {
-                _dbClient.markForDeletion(initiator);
+            URI associatedInitiatorId = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorId)) {
+                Initiator associatedInitiator = _dbClient.queryObject(Initiator.class, associatedInitiatorId);
+                if (associatedInitiator != null) {
+                    _dbClient.markForDeletion(associatedInitiator);
+                }
             }
+            _dbClient.markForDeletion(initiator);
         }
 
         auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,

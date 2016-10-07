@@ -3713,7 +3713,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 if (!remainingVolumesInMask.isEmpty()) {
                                     _log.info("this mask is not empty, so just updating: "
                                             + exportMask.getMaskName());
-                    		    hasSteps = true;
+                                    hasSteps = true;
                                     // Make a zoning paramter structure from the ExportMask
                                     List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
@@ -3737,8 +3737,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                         List<URI> storagePortURIs = ExportUtils.checkIfStoragePortsNeedsToBeRemoved(exportMask);
 
                                         if (!storagePortURIs.isEmpty()) {
-                                            hasSteps = true;
-
                                             // Create a Step to remove storage ports from the Storage View
                                             Workflow.Method removePortsFromViewMethod = storageViewRemoveStoragePortsMethod(vplexURI, exportURI,
                                                     exportMask.getId(), storagePortURIs);

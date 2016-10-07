@@ -201,7 +201,10 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @Path("/{id}")
     public CatalogServiceRestRep getCatalogService(@PathParam("id") URI id) {
         CatalogService catalogService = queryResource(id);
-        ServiceDescriptor serviceDescriptor = getBaseServiceDescriptor(catalogService);
+        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
+        if(serviceDescriptor == null) {
+            serviceDescriptor = getBaseServiceDescriptor(catalogService);
+        }
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
@@ -242,7 +245,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         // Refresh Objects
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        ServiceDescriptor serviceDescriptor = getBaseServiceDescriptor(catalogService);
+        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
@@ -286,7 +289,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         // Refresh Objects
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        ServiceDescriptor serviceDescriptor = getBaseServiceDescriptor(catalogService);
+        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }

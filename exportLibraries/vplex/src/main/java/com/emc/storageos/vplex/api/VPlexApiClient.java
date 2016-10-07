@@ -199,12 +199,12 @@ public class VPlexApiClient {
      */
     public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
-        if (vplexClusterInfoLiteCache.isEmpty()) {
-            vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
-            s_logger.info("refreshed lightweight cluster info list is " + vplexClusterInfoLiteCache.toString());
+        if (getVplexClusterInfoLiteCache().isEmpty()) {
+            getVplexClusterInfoLiteCache().addAll(_discoveryMgr.getClusterInfo(true, false));
+            s_logger.info("refreshed lightweight cluster info list is " + getVplexClusterInfoLiteCache().toString());
         }
 
-        return vplexClusterInfoLiteCache;
+        return getVplexClusterInfoLiteCache();
     }
 
     /**
@@ -1323,15 +1323,15 @@ public class VPlexApiClient {
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
     public synchronized Map<String, String> getClusterIdToNameMap() {
-        if (vplexClusterIdToNameCache.isEmpty()) {
+        if (getVplexClusterIdToNameCache().isEmpty()) {
             List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
             for (VPlexClusterInfo clusterInfo : clusterInfos) {
-                vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
+                getVplexClusterIdToNameCache().put(clusterInfo.getClusterId(), clusterInfo.getName());
             }
-            s_logger.info("refreshed cluster id to name map is " + vplexClusterIdToNameCache.toString());
+            s_logger.info("refreshed cluster id to name map is " + getVplexClusterIdToNameCache().toString());
         }
 
-        return vplexClusterIdToNameCache;
+        return getVplexClusterIdToNameCache();
     }
 
     /**
@@ -1998,7 +1998,25 @@ public class VPlexApiClient {
     }
 
     public synchronized void clearCaches() {
-        vplexClusterIdToNameCache.clear();
-        vplexClusterInfoLiteCache.clear();
+        getVplexClusterIdToNameCache().clear();
+        getVplexClusterInfoLiteCache().clear();
+    }
+
+    /**
+     * Private synchronized accessor method for vplexClusterIdToNameCache.
+     * 
+     * @return the vplexClusterIdToNameCache
+     */
+    private synchronized Map<String, String> getVplexClusterIdToNameCache() {
+        return vplexClusterIdToNameCache;
+    }
+
+    /**
+     * Private synchronized accessor method for vplexClusterInfoLiteCache.
+     * 
+     * @return the vplexClusterInfoLiteCache
+     */
+    private synchronized List<VPlexClusterInfo> getVplexClusterInfoLiteCache() {
+        return vplexClusterInfoLiteCache;
     }
 }

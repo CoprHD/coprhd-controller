@@ -9,10 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.MountInfo;
 
@@ -158,5 +160,9 @@ public class FileOperationUtils {
         }
 
         return hostMounts;
+    }
+
+    public static List<URI> getVNASList(StringSet virtualNasIds) {
+        return URIUtil.uris(virtualNasIds);
     }
 }

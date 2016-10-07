@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
@@ -239,8 +240,8 @@ public class SystemsMapper {
             to.setAvgPercentagebusy(df.format(percentBusy));
         }
         // removing null uris
-        to.setSourceVirtualNasIds(removeNullURIFromList(from.getSrcVNASList()));
-        to.setDestinationVirtualNasIds(removeNullURIFromList(from.getDstVNASList()));
+        to.setSourceVirtualNasIds(removeNullURIFromList(FileOperationUtils.getVNASList(from.getSourceVirtualNasIds())));
+        to.setDestinationVirtualNasIds(removeNullURIFromList(FileOperationUtils.getVNASList(from.getDestinationVirtualNasIds())));
 
         return to;
     }

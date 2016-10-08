@@ -201,7 +201,7 @@ public class DriverService {
     @POST
     @Path("oneshotinstall/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response oneshotInstall(@FormDataParam("driver") InputStream uploadedInputStream) throws Exception {
         File f = new File(UPLOAD_DEVICE_DRIVER + UUID.randomUUID());
         OutputStream os = new BufferedOutputStream(new FileOutputStream(f));

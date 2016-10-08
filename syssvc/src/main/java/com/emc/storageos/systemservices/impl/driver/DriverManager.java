@@ -1,6 +1,5 @@
 package com.emc.storageos.systemservices.impl.driver;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -10,8 +9,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -24,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.DriverInfo2;
+import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Service;
@@ -41,27 +44,33 @@ public class DriverManager {
 
     public static final String DRIVER_DIR = "/data/drivers";
     public static final String CONTROLLER_SERVICE = "controllersvc";
-    private static final String LISTEN_PATH = String.format("/config/%s/%s", DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID);
+    // private static final String LISTEN_PATH = String.format("/config/%s/%s",
+    // DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID);
+    // use new ZNode that only records target installed drivers
+    private static final String LISTEN_PATH = String.format("/config/%s/%s", StorageDriversInfo.KIND,
+            StorageDriversInfo.ID);
     private static final Logger log = LoggerFactory.getLogger(PropertyManager.class);
     private static final int MAX_RETRY_TIMES = 5;
     private static final String DRIVERS_UPDATE_LOCK = "driversupdatelock";
     private static final ThreadPoolExecutor EXECUTOR = new NamedThreadPoolExecutor("DriverUpdateThead", 1);
     protected volatile boolean doRun = true;
 
-    private List<String> localDrivers;
-    private List<String> targetDrivers;
+    private Set<String> localDrivers;
+    private Set<String> targetDrivers;
     private boolean needRestartControllerService = false;
-    private String initNode;
     private LocalRepository localRepository;
     private CoordinatorClientExt coordinator;
+    private CoordinatorClient coordinatorClient;
     private DbClient dbClient;
     private Service service;
+    private String initNode; // Node that has been synced with latest driver list
 
-    private List<String> toRemove;
-    private List<String> toDownload;
+    private Set<String> toRemove;
+    private Set<String> toDownload;
 
     public void setCoordinator(CoordinatorClientExt coordinator) {
         this.coordinator = coordinator;
+        this.coordinatorClient = coordinator.getCoordinatorClient();
     }
 
     public void setLocalRepository(final LocalRepository localRepository) {
@@ -81,7 +90,8 @@ public class DriverManager {
     }
 
     /**
-     * return true if no need to restart or restart succeeded, otherwise return false
+     * return true if no need to restart or restart succeeded, otherwise return
+     * false
      */
     private boolean restartControllerService() {
         if (!needRestartControllerService) {
@@ -90,7 +100,8 @@ public class DriverManager {
         try {
             localRepository.restart(CONTROLLER_SERVICE);
             log.info("Local controller service has been restarted");
-            needRestartControllerService = false; // reset restart flag after successfully restarting
+            needRestartControllerService = false; // reset restart flag after
+                                                  // successfully restarting
             return true;
         } catch (Exception e) {
             log.error("Failed to restart controller service", e);
@@ -99,15 +110,12 @@ public class DriverManager {
         }
     }
 
-    // TODO Not finall implementation, need to consider multi-sites situation
-    // to see if all nodes (except paused sites) are in the finished nodes
-    private boolean areAllNodesUpdated(DriverInfo2 info) {
-        DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
-        return drUtil.getLocalSite().getNodeCount() == info.getFinishNodes().size();
+    //TODO to see if all nodes are synced now
+    private boolean areAllNodesUpdated() {
+        return true;
     }
 
-    // TODO
-    // access cassandra database to mark driver as usable or delete driver
+    // TODO need to change storagesystemtype object definition
     private void updateMetaData() {
         if (!(toDownload != null && !toDownload.isEmpty()) && !(toRemove != null && !toRemove.isEmpty())) {
             return;
@@ -127,17 +135,18 @@ public class DriverManager {
         }
     }
 
-    private boolean removeDrivers(List<String> drivers) {
+    private boolean removeDrivers(Set<String> drivers) {
         for (String driver : drivers) {
             File driverFile = new File(DRIVER_DIR + "/" + driver);
             if (!driverFile.exists()) {
                 continue;
             }
-            if(!driverFile.delete()) {
+            if (!driverFile.delete()) {
                 log.warn("Failed to delete driver file {}", driver);
                 return false;
             } else {
-                // If driver is deleted successfully deleted, need to restart controller service
+                // If driver is deleted successfully deleted, need to restart
+                // controller service
                 needRestartControllerService = true;
                 log.info("Driver {} has been removed", driver);
             }
@@ -145,12 +154,13 @@ public class DriverManager {
         return true;
     }
 
-    private boolean downloadDrivers(List<String> drivers) {
+    private boolean downloadDrivers(Set<String> drivers) {
         for (String driver : drivers) {
-            File driverFile = new File (DRIVER_DIR + "/" + driver);
+            File driverFile = new File(DRIVER_DIR + "/" + driver);
             try {
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
-                InputStream in = SysClientFactory.getSysClient(URI.create(initNode)).get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
+                InputStream in = SysClientFactory.getSysClient(URI.create(initNode)).get(new URI(uri),
+                        InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
                 OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
                 int bytesRead = 0;
@@ -178,8 +188,8 @@ public class DriverManager {
     /**
      * @return elements who are included in original list but not in subtractor list
      */
-    private List<String> minus(List<String> original, List<String> subtractor) {
-        List<String> result = new ArrayList<String>();
+    private Set<String> minus(Set<String> original, Set<String> subtractor) {
+        Set<String> result = new HashSet<String>();
         for (String element : original) {
             if (subtractor.contains(element)) {
                 continue;
@@ -193,26 +203,29 @@ public class DriverManager {
         localDrivers = getLocalDrivers();
         log.info("Local drivers initialized: {}", Arrays.toString(localDrivers.toArray()));
 
-        DriverInfo2 targetDriversInfo = new DriverInfo2(coordinator.getCoordinatorClient().queryConfiguration(DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID));
-        targetDrivers = targetDriversInfo.getDrivers();
-        initNode = targetDriversInfo.getInitNode();
-
-        log.info("Target drivers info initialized: {}, init node: {}", Arrays.toString(targetDrivers.toArray()), initNode);
+        StorageDriversInfo targetInfo = coordinator.getTargetInfo(StorageDriversInfo.class);
+        if (targetInfo == null) {
+            targetInfo = new StorageDriversInfo();
+            targetInfo.setInstalledDrivers(localDrivers);
+            coordinator.setTargetInfo(targetInfo);
+            log.info("Can't find target storage drivers info, so init it with local drivers list");
+        }
+        targetDrivers = targetInfo.getInstalledDrivers();
+        log.info("Target drivers info initialized: {}", Arrays.toString(targetDrivers.toArray()));
     }
 
-    private List<String> getLocalDrivers() {
+    private Set<String> getLocalDrivers() {
         File driverDir = new File(DRIVER_DIR);
         if (!driverDir.exists() || !driverDir.isDirectory()) {
             driverDir.mkdir();
             log.info("Drivers directory: {} has been created", DRIVER_DIR);
-            return new ArrayList<String>();
+            return new HashSet<String>();
         }
         File[] driverFiles = driverDir.listFiles();
-        List<String> drivers = new ArrayList<String>();
+        Set<String> drivers = new HashSet<String>();
         for (File driver : driverFiles) {
             drivers.add(driver.getName());
         }
-        Collections.sort(drivers);
         return drivers;
     }
 
@@ -231,7 +244,24 @@ public class DriverManager {
     }
 
     /**
-     * Check and update local drivers asynchronously, so not to block notification thread
+     * Update locally installed drivers list to syssvc service beacon
+     */
+    public void updateLocalDriversList() {
+        localDrivers = getLocalDrivers();
+        StorageDriversInfo info = new StorageDriversInfo();
+        info.setInstalledDrivers(localDrivers);
+        coordinator.setNodeSessionScopeInfo(info);
+    }
+
+    // TODO
+    // should return a ip:9998 format string
+    private String getSyncedNode() {
+        return "TODO";
+    }
+
+    /**
+     * Check and update local drivers asynchronously, so not to block
+     * notification thread
      */
     private void checkAndUpdate() {
         EXECUTOR.submit(new Runnable() {
@@ -243,7 +273,7 @@ public class DriverManager {
                         log.error("Retry time exceeded, exit loop");
                         break;
                     }
-                    retryTimes ++;
+                    retryTimes++;
 
                     initializeLocalAndTargetInfo();
 
@@ -253,6 +283,9 @@ public class DriverManager {
                     if (toRemove != null && !toRemove.isEmpty()) {
                         try {
                             removeSuccess = removeDrivers(toRemove);
+                            if (removeSuccess) {
+                                updateLocalDriversList();
+                            }
                         } catch (Exception e) {
                             log.warn("Exception thrown when trying to remove drivers file", e);
                             continue;
@@ -270,7 +303,16 @@ public class DriverManager {
                     boolean downloadSuccess = false;
                     if (toDownload != null && !toDownload.isEmpty()) {
                         try {
+                            // need to initialize initNode first
+                            initNode = getSyncedNode();
+                            if (initNode == null) {
+                                log.error("Can't find a synced node to download driver jar files");
+                                return;
+                            }
                             downloadSuccess = downloadDrivers(toDownload);
+                            if (downloadSuccess) {
+                                updateLocalDriversList();
+                            }
                         } catch (Exception e) {
                             log.warn("Exception thrown when trying to download drivers file", e);
                             continue;
@@ -284,10 +326,11 @@ public class DriverManager {
                     }
 
                     // restart controller service if it's needed
-                    if(!restartControllerService()) {
+                    if (!restartControllerService()) {
                         continue;
                     }
-                    // It means all logic finished smoothly if thread goes here, exit loop, finish thread
+                    // It means all logic finished smoothly if thread goes here,
+                    // exit loop, finish thread
                     log.info("Update finished smoothly, congratulations");
                     if ((toRemove == null || toRemove.isEmpty()) && (toDownload == null || toDownload.isEmpty())) {
                         log.info("No change, no need to update drivers info, break to finish thread");
@@ -296,15 +339,7 @@ public class DriverManager {
                     InterProcessLock lock = null;
                     try {
                         lock = getLock(DRIVERS_UPDATE_LOCK);
-                        log.info("Acquired lock, update local node to finish nodes list");
-                        DriverInfo2 info = new DriverInfo2(coordinator.getCoordinatorClient()
-                                .queryConfiguration(DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID));
-                        if (info.getFinishNodes() == null) {
-                            info.setFinishNodes(new ArrayList<String>());
-                        }
-                        info.getFinishNodes().add(String.format("%s_%s", coordinator.getCoordinatorClient().getSiteId(), service.getId()));
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(info.toConfiguration());
-                        if (areAllNodesUpdated(info)) {
+                        if (areAllNodesUpdated()) {
                             log.info("Last update thread has finished update");
                             updateMetaData();
                         }
@@ -329,7 +364,11 @@ public class DriverManager {
         InterProcessLock lock = null;
         while (true) {
             try {
-                lock = coordinator.getCoordinatorClient().getLock(name); // global lock across all sites
+                lock = coordinator.getCoordinatorClient().getLock(name); // global
+                                                                         // lock
+                                                                         // across
+                                                                         // all
+                                                                         // sites
                 lock.acquire();
                 break; // got lock
             } catch (Exception e) {
@@ -353,13 +392,13 @@ public class DriverManager {
             if (state != State.CONNECTED) {
                 return;
             }
-            log.info("Curator (re)connected. Waking up the driver manager...");
+            log.info("Curator (re)connected. Try to pull latest info and update local driver if necessary ...");
             checkAndUpdate();
         }
 
         @Override
         public void nodeChanged() throws Exception {
-            log.info("Driver info changed. Waking up the driver manager...");
+            log.info("Driver info changed. Try to pull latest info and update local driver if necessary ...");
             checkAndUpdate();
         }
     }

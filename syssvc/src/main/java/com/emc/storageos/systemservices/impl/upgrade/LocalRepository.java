@@ -37,6 +37,7 @@ import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
+import com.emc.storageos.systemservices.impl.driver.DriverManager;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.Strings;
@@ -123,6 +124,21 @@ public class LocalRepository {
 
         _log.debug(prefix + "current={} versions={}", current, Strings.repr(versions));
         return new RepositoryInfo(current, versions);
+    }
+
+    public Set<String> getLocalDrivers() {
+        File driverDir = new File(DriverManager.DRIVER_DIR);
+        if (!driverDir.exists() || !driverDir.isDirectory()) {
+            driverDir.mkdir();
+            _log.info("Drivers directory: {} has been created", DriverManager.DRIVER_DIR);
+            return new HashSet<String>();
+        }
+        File[] driverFiles = driverDir.listFiles();
+        Set<String> drivers = new HashSet<String>();
+        for (File driver : driverFiles) {
+            drivers.add(driver.getName());
+        }
+        return drivers;
     }
 
     /**

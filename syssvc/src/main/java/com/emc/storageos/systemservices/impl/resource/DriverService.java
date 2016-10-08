@@ -21,6 +21,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -41,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.DriverInfo2;
+import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.DbClient;
@@ -50,7 +52,9 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import com.emc.storageos.systemservices.impl.util.DriverUtil;
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+//import com.emc.storageos.systemservices.impl.util.DriverUtil;
+import com.google.common.io.Files;
 import com.sun.jersey.multipart.FormDataParam;
 
 /**
@@ -72,6 +76,7 @@ public class DriverService {
     private static final String NON_SSL_PORT = "non_ssl_port";
     private static final String SSL_PORT = "ssl_port";
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
+    private static final String DRIVER_NAME = "driver_name";
     private static final Set<String> VALID_META_TYPES = new HashSet<String>(Arrays.asList(new String[] {"block", "file", "block_and_file", "object"}));
 
     private CoordinatorClient coordinator;
@@ -194,41 +199,45 @@ public class DriverService {
     }
     // ---------------------- for test only -----------------------------------
     @POST
-    @Path("storeincassandra/")
+    @Path("oneshotinstall/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response storeInCassandra(@Context HttpServletRequest request, @QueryParam("filename") String name) throws IOException {
-        log.info("Storing driver to cassandra...");
-        InputStream driver = request.getInputStream();
-        File f = new File(UPLOAD_DEVICE_DRIVER + name);
+    public Response oneshotInstall(@FormDataParam("driver") InputStream uploadedInputStream) throws Exception {
+        File f = new File(UPLOAD_DEVICE_DRIVER + UUID.randomUUID());
         OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
         int bytesRead = 0;
         while (true) {
             byte[] buffer = new byte[0x10000];
-            bytesRead = driver.read(buffer);
+            bytesRead = uploadedInputStream.read(buffer);
             if (bytesRead == -1) {
                 break;
             }
             os.write(buffer, 0, bytesRead);
         }
-        driver.close();
+        uploadedInputStream.close();
         os.close();
-        // Till now, driver file has been saved, need to parse file to get meta data and return
-        String tmpFilePath = f.getAbsolutePath();
-        DriverUtil driverUtil = new DriverUtil(dbClient);
-        driverUtil.storeDriver(tmpFilePath);
-        return Response.ok().build();
-    }
+        // May need to check file integrity in real product code
 
-    @GET
-    @Path("downloadfromcassandra/")
-    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
-    public Response downloadFromCassandra(@QueryParam("name") String name) throws FileNotFoundException {
-        log.info("download driver {} ...", name);
-        DriverUtil driverUtil = new DriverUtil(dbClient);
-        InputStream in = driverUtil.getFile(UPLOAD_DEVICE_DRIVER + "/" + name);
-        return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
+        String tmpFilePath = f.getName();
+        StorageSystemTypeAddParam params = parseDriver(tmpFilePath);
+        Files.move(f, new File(UPLOAD_DEVICE_DRIVER + params.getDriverName()));
+        // till now, file has been saved
+
+        // update target list
+        StorageDriversInfo info = coordinator.getTargetInfo(StorageDriversInfo.class);
+        if (info == null) {
+            info = new StorageDriversInfo();
+        }
+        info.getInstalledDrivers().add(params.getDriverName());
+        coordinator.setTargetInfo(info);
+
+        // update local driver list
+        Set<String> localDrivers = LocalRepository.getInstance().getLocalDrivers();
+        localDrivers.add(params.getDriverName());
+        info = new StorageDriversInfo();
+        info.setInstalledDrivers(localDrivers);
+        coordinatorExt.setNodeSessionScopeInfo(info);
+        return Response.ok().build();
     }
     // ---------------------- for test only -----------------------------------
     private StorageSystemTypeAddParam parseDriver(String path) throws Exception {
@@ -261,6 +270,13 @@ public class DriverService {
             throw new RuntimeException("Storage display name can't be null or empty");
         }
         addParam.setStorageTypeDispName(storageDispName);
+
+        // set driver name
+        String driverName = metaData.getProperty(DRIVER_NAME);
+        if (StringUtils.isEmpty(driverName)) {
+            throw new RuntimeException ("Driver name can't be null or empty");
+        }
+        addParam.setDriverName(driverName);
 
        // set storage driver class name
         String driverClassName = metaData.getProperty(DRIVER_CLASS_NAME);

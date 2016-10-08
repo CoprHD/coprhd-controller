@@ -12,6 +12,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,6 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.DriverInfo2;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -39,6 +43,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
+import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 public class DriverManager {
 
@@ -61,9 +66,11 @@ public class DriverManager {
     private LocalRepository localRepository;
     private CoordinatorClientExt coordinator;
     private CoordinatorClient coordinatorClient;
+    private DrUtil drUtil;
     private DbClient dbClient;
     private Service service;
-    private String initNode; // Node that has been synced with latest driver list
+    private URI initNode; // Node that has been synced with latest driver list
+    private LocalRepository localRepo = LocalRepository.getInstance();
 
     private Set<String> toRemove;
     private Set<String> toDownload;
@@ -71,6 +78,7 @@ public class DriverManager {
     public void setCoordinator(CoordinatorClientExt coordinator) {
         this.coordinator = coordinator;
         this.coordinatorClient = coordinator.getCoordinatorClient();
+        this.drUtil = new DrUtil(coordinatorClient);
     }
 
     public void setLocalRepository(final LocalRepository localRepository) {
@@ -110,12 +118,22 @@ public class DriverManager {
         }
     }
 
-    //TODO to see if all nodes are synced now
-    private boolean areAllNodesUpdated() {
+    private boolean areAllNodesUpdated() throws Exception {
+        
+        for (Site site : drUtil.listSites()) {
+            Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
+                    CONTROL_NODE_SYSSVC_ID_PATTERN, site.getUuid());
+            for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
+                if (!targetDrivers.equals(info.getValue().getInstalledDrivers())) {
+                    log.info("Drivers on node {} have not been updated", info.getKey().getName());
+                    return false;
+                }
+            }
+        }
+        log.info("All nodes's drivers have been updated");
         return true;
     }
 
-    // TODO need to change storagesystemtype object definition
     private void updateMetaData() {
         if (!(toDownload != null && !toDownload.isEmpty()) && !(toRemove != null && !toRemove.isEmpty())) {
             return;
@@ -125,7 +143,7 @@ public class DriverManager {
         while (iter.hasNext()) {
             StorageSystemType type = iter.next();
             if (toDownload != null && toDownload.contains(type.getDriverFileName())) {
-                type.setIsUsable(true);
+                type.setInstallStatus("active");
                 dbClient.updateObject(type);
                 log.info("update: {} done", type.getDriverFileName());
             } else if (toRemove != null && toRemove.contains(type.getDriverFileName())) {
@@ -159,7 +177,7 @@ public class DriverManager {
             File driverFile = new File(DRIVER_DIR + "/" + driver);
             try {
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
-                InputStream in = SysClientFactory.getSysClient(URI.create(initNode)).get(new URI(uri),
+                InputStream in = SysClientFactory.getSysClient(initNode).get(new URI(uri),
                         InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
                 OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
@@ -200,7 +218,7 @@ public class DriverManager {
     }
 
     private void initializeLocalAndTargetInfo() {
-        localDrivers = getLocalDrivers();
+        localDrivers = localRepo.getLocalDrivers();
         log.info("Local drivers initialized: {}", Arrays.toString(localDrivers.toArray()));
 
         StorageDriversInfo targetInfo = coordinator.getTargetInfo(StorageDriversInfo.class);
@@ -214,19 +232,10 @@ public class DriverManager {
         log.info("Target drivers info initialized: {}", Arrays.toString(targetDrivers.toArray()));
     }
 
-    private Set<String> getLocalDrivers() {
-        File driverDir = new File(DRIVER_DIR);
-        if (!driverDir.exists() || !driverDir.isDirectory()) {
-            driverDir.mkdir();
-            log.info("Drivers directory: {} has been created", DRIVER_DIR);
-            return new HashSet<String>();
-        }
-        File[] driverFiles = driverDir.listFiles();
-        Set<String> drivers = new HashSet<String>();
-        for (File driver : driverFiles) {
-            drivers.add(driver.getName());
-        }
-        return drivers;
+    public void registerLocalDrivers() {
+        StorageDriversInfo info = new StorageDriversInfo();
+        info.setInstalledDrivers(localRepo.getLocalDrivers());
+        coordinator.setNodeSessionScopeInfo(info);
     }
 
     public void addDriverInfoListener() {
@@ -247,16 +256,31 @@ public class DriverManager {
      * Update locally installed drivers list to syssvc service beacon
      */
     public void updateLocalDriversList() {
-        localDrivers = getLocalDrivers();
+        localDrivers = localRepo.getLocalDrivers();
         StorageDriversInfo info = new StorageDriversInfo();
         info.setInstalledDrivers(localDrivers);
         coordinator.setNodeSessionScopeInfo(info);
     }
 
-    // TODO
-    // should return a ip:9998 format string
-    private String getSyncedNode() {
-        return "TODO";
+    private URI getSyncedNode() throws Exception {
+        DrUtil drUtil = new DrUtil(coordinatorClient);
+        String activeSiteId = drUtil.getActiveSite().getUuid();
+        Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
+                CONTROL_NODE_SYSSVC_ID_PATTERN, activeSiteId);
+        List<String> candidates = new ArrayList<>();
+        for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
+            if (targetDrivers.equals(info.getValue().getInstalledDrivers())) {
+                candidates.add(info.getKey().getId());
+                log.info("Add node {} to synced nodes list", info.getKey().getId());
+            }
+        }
+
+        if (!candidates.isEmpty()) {
+            String syssvcId = candidates.get(new Random().nextInt(candidates.size()));
+            return coordinator.getNodeEndpointForSvcId(syssvcId);
+        }
+        log.error("Can't find node in sync with target drivers list");
+        return null;
     }
 
     /**
@@ -273,7 +297,7 @@ public class DriverManager {
                         log.error("Retry time exceeded, exit loop");
                         break;
                     }
-                    retryTimes++;
+                    retryTimes ++;
 
                     initializeLocalAndTargetInfo();
 

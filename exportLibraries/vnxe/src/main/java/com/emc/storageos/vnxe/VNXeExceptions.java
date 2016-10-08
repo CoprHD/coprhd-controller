@@ -38,4 +38,7 @@ public interface VNXeExceptions {
 
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
     public VNXeException authenticationFailure(String vnxeUri);
+    
+    @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
+    public VNXeException nullJobForDeleteGroupSnapshot(final String snapshotId, final String repGrpId);    
 }

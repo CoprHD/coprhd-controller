@@ -1917,51 +1917,6 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Gets the detailed Storage View info for a given VPLEX cluster.
-     * 
-     * @param clusterName the cluster name to filter results by
-     * @return a list of Storage View infos for a given VPLEX cluster
-     * @throws VPlexApiException
-     */
-    List<VPlexStorageViewInfo> getStorageViews(String clusterName) throws VPlexApiException {
-
-        StringBuilder uriBuilder = new StringBuilder();
-        uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
-        uriBuilder.append(clusterName);
-        uriBuilder.append(VPlexApiConstants.URI_STORAGE_VIEWS.toString());
-        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
-        s_logger.info("Storage views request URI is {}", requestURI.toString());
-        ClientResponse response = _vplexApiClient.get(requestURI);
-        String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
-        int status = response.getStatus();
-        response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw VPlexApiException.exceptions.getStorageViewsFailed(String.format(
-                    "Failed getting storage views: %s", status));
-        }
-
-        try {
-            List<VPlexStorageViewInfo> storageViews = VPlexApiUtils
-                    .getChildrenFromResponse(uriBuilder.toString(), responseStr,
-                            VPlexStorageViewInfo.class);
-
-            List<VPlexStorageViewInfo> detailedStorageViews = new ArrayList<VPlexStorageViewInfo>();
-            for (VPlexStorageViewInfo sv : storageViews) {
-                VPlexStorageViewInfo svDetailed = findStorageViewOnCluster(sv.getName(), clusterName, true);
-                if (svDetailed != null) {
-                    detailedStorageViews.add(svDetailed);
-                }
-            }
-
-            return detailedStorageViews;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.getStorageViewsFailed(String.format(
-                    "Error processing storage views: %s", e.getMessage()));
-        }
-    }
-
-    /**
      * Returns a Set of storage view names for a given initiator name.
      * 
      * @param clusterName the VPLEX cluster to look in
@@ -2053,11 +2008,12 @@ public class VPlexApiDiscoveryManager {
     /**
      * Gets all the detailed Storage View infos for the entire VPLEX device.
      * 
+     * @param includeInitiatorDetails include initiator details (takes longer)
      * @return list of all Storage View infos for a given VPLEX instance
      * @throws VPlexApiException
      */
-    List<VPlexStorageViewInfo> getStorageViews() throws VPlexApiException {
-        return getStorageViewsForCluster(VPlexApiConstants.WILDCARD.toString());
+    List<VPlexStorageViewInfo> getStorageViews(boolean includeInitiatorDetails) throws VPlexApiException {
+        return getStorageViewsForCluster(VPlexApiConstants.WILDCARD.toString(), includeInitiatorDetails);
     }
 
     /**
@@ -2065,10 +2021,11 @@ public class VPlexApiDiscoveryManager {
      * 
      * @param clusterName name of the VPLEX cluster to look at, or you can send
      *            a wildcard (*) to get info from both clusters.
+     * @param includeInitiatorDetails include initiator details (takes longer)
      * @return list of all Storage View infos for a given VPLEX instance
      * @throws VPlexApiException
      */
-    List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName) throws VPlexApiException {
+    List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName, boolean includeInitiatorDetails) throws VPlexApiException {
 
         s_logger.info("Getting all storage view information from VPLEX at " + _vplexApiClient.getBaseURI().toString());
         StringBuilder uriBuilder = new StringBuilder();
@@ -2089,14 +2046,16 @@ public class VPlexApiDiscoveryManager {
                         .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
                                 VPlexStorageViewInfo.class);
 
-                // update storage views with wwpn info
-                Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
-                for (VPlexStorageViewInfo sv : storageViews) {
-                    for (String initName : sv.getInitiators()) {
-                        String initWwn = initInfoMap.get(initName);
-                        sv.getInitiatorPwwns().add(initWwn);
+                if (includeInitiatorDetails) {
+                    Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
+                    for (VPlexStorageViewInfo sv : storageViews) {
+                            // update storage views with wwpn info
+                        for (String initName : sv.getInitiators()) {
+                            String initWwn = initInfoMap.get(initName);
+                            sv.getInitiatorPwwns().add(initWwn);
+                        }
+                        sv.refreshMaps();
                     }
-                    sv.refreshMaps();
                 }
 
                 return storageViews;
@@ -2408,6 +2367,55 @@ public class VPlexApiDiscoveryManager {
         }
 
         return true;
+    }
+
+    /**
+     * This method gets a virtual volume on the VPLEX directly by full context path.
+     * 
+     * @param virtualVolumePath the virtual volume context path
+     * @return VPlexVirtualVolumeInfo object with full details
+     * 
+     * @throws VPlexApiException
+     */
+    VPlexVirtualVolumeInfo getVirtualVolumeByPath(String virtualVolumePath) throws VPlexApiException {
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                URI.create(VPlexApiConstants.VPLEX_PATH + virtualVolumePath));
+        s_logger.info("Virtual Volume Info Request URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Response is {}", responseStr);
+        int status = response.getStatus();
+        response.close();
+
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                List<VPlexVirtualVolumeInfo> vvols = VPlexApiUtils.getResourcesFromResponseContext(
+                        virtualVolumePath, responseStr, VPlexVirtualVolumeInfo.class);
+
+                if (vvols != null && !vvols.isEmpty()) {
+                    if (vvols.size() > 1) {
+                        String message = "More than one VPLEX virtual volume was returned: " + vvols;
+                        s_logger.error(message);
+                        throw new IllegalStateException(message);
+                    }
+
+                    VPlexVirtualVolumeInfo virtualVolumeInfo = vvols.get(0);
+                    if (virtualVolumeInfo != null) {
+                        s_logger.info("returning VPLEX virtual volume: " + virtualVolumeInfo.toString());
+                        return virtualVolumeInfo;
+                    }
+                }
+
+            } catch (Exception e) {
+                s_logger.error("Exception encountered: ", e);
+                throw VPlexApiException.exceptions.errorProcessingVirtualVolumeInformation(e.getLocalizedMessage());
+            }
+        } else {
+            throw VPlexApiException.exceptions.failedGettingVirtualVolumeInfo(String.valueOf(status));
+        }
+
+        return null;
     }
 
     /**

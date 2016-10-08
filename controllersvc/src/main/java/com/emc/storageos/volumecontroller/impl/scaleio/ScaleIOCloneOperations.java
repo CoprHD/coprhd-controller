@@ -61,10 +61,10 @@ public class ScaleIOCloneOperations implements CloneOperations {
             // Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume here.
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
             String nativeId = result.getVolumeIdList().get(0);
-            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, nativeId);
+            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, nativeId, storageSystem);
             // Snapshots result does not provide capacity info, so we need to perform a queryVolume
             updateCloneFromQueryVolume(scaleIOHandle, cloneObj);
-            dbClient.persistObject(cloneObj);
+            dbClient.updateObject(cloneObj);
 
             StoragePool pool = dbClient.queryObject(StoragePool.class, cloneObj.getPool());
             pool.removeReservedCapacityForVolumes(Arrays.asList(cloneObj.getId().toString()));
@@ -74,7 +74,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
             Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
             if (clone != null) {
                 clone.setInactive(true);
-                dbClient.persistObject(clone);
+                dbClient.updateObject(clone);
             }
             log.error("Encountered an exception", e);
             ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createSingleClone",
@@ -91,7 +91,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
         ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
-        dbClient.persistObject(clone);
+        dbClient.updateObject(clone);
         taskCompleter.ready(dbClient);
     }
 
@@ -154,14 +154,14 @@ public class ScaleIOCloneOperations implements CloneOperations {
             for (Volume clone : clones) {
                 String name = clone.getLabel();
                 ScaleIOVolume sioVolume = cloneNameMap.get(name);
-                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, clone, systemId, sioVolume.getId());
+                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, clone, systemId, sioVolume.getId(), storage);
                 clone.setAllocatedCapacity(Long.parseLong(sioVolume.getSizeInKb()) * 1024L);
                 clone.setProvisionedCapacity(clone.getAllocatedCapacity());
                 clone.setCapacity(clone.getAllocatedCapacity());
                 clone.setReplicationGroupInstance(result.getSnapshotGroupId());
                 poolToVolumesMap.put(clone.getPool(), clone.getId().toString());
             }
-            dbClient.persistObject(clones);
+            dbClient.updateObject(clones);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
             for (StoragePool pool : pools) {
@@ -214,9 +214,9 @@ public class ScaleIOCloneOperations implements CloneOperations {
             }
             theClone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             theClone.setReplicaState(ReplicationState.DETACHED.name());
-            dbClient.persistObject(sourceVol);
+            dbClient.updateObject(sourceVol);
         }
-        dbClient.persistObject(cloneVolumes);
+        dbClient.updateObject(cloneVolumes);
         if (completer != null) {
             completer.ready(dbClient);
         }

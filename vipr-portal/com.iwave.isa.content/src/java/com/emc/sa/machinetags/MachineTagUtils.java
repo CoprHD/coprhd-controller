@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +20,6 @@ import org.apache.log4j.Logger;
 
 import com.emc.sa.machinetags.vmware.DatastoreMachineTag;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
-import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -227,6 +225,9 @@ public class MachineTagUtils {
 
             if (mountAttrs.length > 4) {
                 mountInfo.setSubDirectory(mountAttrs[4]);
+                if (StringUtils.isEmpty(mountAttrs[4])) {
+                    mountInfo.setSubDirectory(null);
+                }
             }
             return mountInfo;
         }

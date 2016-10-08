@@ -88,19 +88,23 @@ def storageport_update(args):
     for porturi in porturis:
         sport = bourne.storageport_show(uri, porturi['id'])
         if (sport['transport_type'] == args.transportType):
-            if (group != None and name != None):
-                if (group == sport['port_group'] and name == sport['port_name']):
+            try:
+                if (group != None and name != None):
+                    if (group == sport['port_group'] and name == sport['port_name']):
+                        port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
+                        print port['name'] 
+                elif (group != None and group == sport['port_group']):
                     port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
                     print port['name'] 
-            elif (group != None and group == sport['port_group']):
-                port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
-                print port['name'] 
-            elif (name != None and name == sport['port_name']):
-                port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
-                print port['name'] 
-            elif group == None and name == None:
-                port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
-                print port['name'] 
+                elif (name != None and name == sport['port_name']):
+                    port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
+                    print port['name'] 
+                elif group == None and name == None:
+                    port = bourne.storageport_update(porturi['id'], args.tzone, args.addvarrays, args.rmvarrays)
+                    print port['name'] 
+            except:
+                print "ERROR:"
+                print port
 
 #
 # display storage port in list form

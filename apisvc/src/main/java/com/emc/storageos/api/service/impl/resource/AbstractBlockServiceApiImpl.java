@@ -89,6 +89,7 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
@@ -459,7 +460,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Remove volumes from ExportGroup(s) and ExportMask(s).
         List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         for (URI volumeURI : volumeURIs) {
-            cleanBlockObjectFromExports(volumeURI, true);
+            ExportUtils.cleanBlockObjectFromExports(volumeURI, true, _dbClient);
         }
     }
 
@@ -731,8 +732,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
+        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+            return taskList;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -1394,7 +1396,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
 
             // Remove the snapshot from any export groups/masks.
-            cleanBlockObjectFromExports(snapshotURI, true);
+            ExportUtils.cleanBlockObjectFromExports(snapshotURI, true, _dbClient);
         }
     }
 
@@ -1551,76 +1553,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
             // to throw exception if duplicate label found
             validateVolumeLabel(newVolumeLabel, project);
-        }
-    }
-
-    /**
-     * For ViPR-only delete operations, we use this method to remove the
-     * block object from the export group and export masks associated with
-     * the block object.
-     * 
-     * @param boURI
-     *            The BlockObject to remove from export masks
-     * @param addToExisting
-     *            When true, adds the block object to the existing objects list from the mask.
-     */
-    protected void cleanBlockObjectFromExports(URI boURI, boolean addToExisting) {
-        s_logger.info("Cleaning block object {} from exports", boURI);
-        Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
-        Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
-        Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
-        BlockObject bo = BlockObject.fetch(_dbClient, boURI);
-        URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
-        for (URI exportGroupURI : exportGroupURIs) {
-            s_logger.info("Cleaning block object from export group {}", exportGroupURI);
-            ExportGroup exportGroup = null;
-            if (exportGroupMap.containsKey(exportGroupURI)) {
-                exportGroup = exportGroupMap.get(exportGroupURI);
-            } else {
-                exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-                exportGroupMap.put(exportGroupURI, exportGroup);
-            }
-
-            if (exportGroup.hasBlockObject(boURI)) {
-                s_logger.info("Removing block object from export group");
-                exportGroup.removeVolume(boURI);
-                if (!updatedExportGroupMap.containsKey(exportGroupURI)) {
-                    updatedExportGroupMap.put(exportGroupURI, exportGroup);
-                }
-            }
-
-            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-            for (ExportMask exportMask : exportMasks) {              
-                if (exportMask.hasVolume(boURI)) {
-                    s_logger.info(String.format("Cleaning block object from export mask [%s]", exportMask.forDisplay()));
-                    StringMap exportMaskVolumeMap = exportMask.getVolumes();
-                    String hluStr = exportMaskVolumeMap.get(boURI.toString());
-                    exportMask.removeVolume(boURI);
-                    exportMask.removeFromUserCreatedVolumes(bo);
-                    // Add this volume to the existing volumes map for the
-                    // mask, so that if the last ViPR created volume goes
-                    // away, the physical mask will not be deleted.
-                    if (addToExisting) {
-                        s_logger.info("Adding to existing volumes");
-                        exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
-                    }
-                    if (!updatedExportMaskMap.containsKey(exportMask.getId().toString())) {
-                        updatedExportMaskMap.put(exportMask.getId().toString(), exportMask);
-                    }
-                }
-            }
-        }
-        if (!updatedExportGroupMap.isEmpty()) {
-            List<ExportGroup> updatedExportGroups = new ArrayList<ExportGroup>(
-                    updatedExportGroupMap.values());
-            _dbClient.updateObject(updatedExportGroups);
-        }
-
-        if (!updatedExportMaskMap.isEmpty()) {
-            List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
-                    updatedExportMaskMap.values());
-            _dbClient.updateObject(updatedExportMasks);
         }
     }
 

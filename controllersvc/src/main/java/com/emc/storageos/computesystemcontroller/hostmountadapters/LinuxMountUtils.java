@@ -73,13 +73,16 @@ public class LinuxMountUtils {
         _log.info("mount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
         CommandOutput output = command.getOutput();
-        try {
-            if (output.getStderr().contains("TIMEOUT")) {
-                throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
-            }
-        } catch (Exception ex) {
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
+        if (output.getStderr().contains("TIMEOUT")) {
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getHostName());
             throw exception;
+        } else {
+            String errMessage = output.getStderr().replace("SUCCESSFUL", "").replace("\n", "");
+            if (!errMessage.isEmpty()) {
+                ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.unableToMount(host.getHostName(),
+                        new Exception(errMessage));
+                throw exception;
+            }
         }
     }
 
@@ -136,13 +139,16 @@ public class LinuxMountUtils {
         _log.info("unmount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
         CommandOutput output = command.getOutput();
-        try {
-            if (output.getStderr().contains("TIMEOUT")) {
-                throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
-            }
-        } catch (Exception ex) {
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
+        if (output.getStderr().contains("TIMEOUT")) {
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getHostName());
             throw exception;
+        } else {
+            String errMessage = output.getStderr().replace("SUCCESSFUL", "").replace("\n", "");
+            if (!errMessage.isEmpty()) {
+                ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.unableToUnmount(host.getHostName(),
+                        new Exception(errMessage));
+                throw exception;
+            }
         }
     }
 

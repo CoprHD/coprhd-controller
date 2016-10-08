@@ -26,7 +26,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private Calendar eventExecutionTime;
 
     public enum Status {
-        pending, approved, declined
+        pending, approved, declined, failed
     }
 
     @Name("description")

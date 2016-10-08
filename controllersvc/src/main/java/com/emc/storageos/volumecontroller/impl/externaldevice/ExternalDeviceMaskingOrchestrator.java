@@ -75,7 +75,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
         // Have to store export group id to be available at device level for each masking step.
         for (String stepId : maskingSteps) {
-            WorkflowService.getInstance().storeStepData(stepId, exportGroup.getId());
+            WorkflowService.getInstance().storeStepData(
+                    workflow.getWorkflowURI(), null, stepId, exportGroup.getId());
         }
 
         /*
@@ -215,7 +216,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
                     // We do not need zoning step, since storage ports should not change.
                     // Have to store export group id to be available at device level.
-                    WorkflowService.getInstance().storeStepData(maskingStep, exportGroup.getId());
+                    WorkflowService.getInstance().storeStepData(
+                            workflow.getWorkflowURI(), null, maskingStep, exportGroup.getId());
                 }
             }
 
@@ -253,7 +255,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
                 // Have to store export group id to be available at device level for each masking step.
                 for (String stepId : maskingSteps) {
-                    WorkflowService.getInstance().storeStepData(stepId, exportGroup.getId());
+                    WorkflowService.getInstance().storeStepData(
+                            workflow.getWorkflowURI(), null, stepId, exportGroup.getId());
                 }
 
                 generateZoningCreateWorkflow(workflow,

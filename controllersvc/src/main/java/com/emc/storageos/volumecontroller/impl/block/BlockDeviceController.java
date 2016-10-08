@@ -2092,11 +2092,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-                WorkflowStepCompleter.stepFailed(opId, serviceError);
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
@@ -3960,7 +3958,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             scanCompleter.statusReady(_dbClient, "Scan for storage system has completed");
         } catch (Exception ex) {
             _log.error("Scan failed for {}--->", provider, ex);
-            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex));
+            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
             throw DeviceControllerException.exceptions.scanProviderFailed(storageSystem.getNativeGuid(),
                     provider.getId().toString());
         }

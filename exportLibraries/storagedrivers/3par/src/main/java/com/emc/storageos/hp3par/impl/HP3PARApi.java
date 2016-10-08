@@ -201,6 +201,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:verifyUserRole enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_USER_ROLE, name);
+        _log.info("3PARDriver: verifyUserRole path is {}", path);
 
         try {
             clientResp = get(path);
@@ -315,6 +316,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getCPGDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_CPG_DETAILS, name);
+        _log.info("3PARDriver: getCPGDetails path is {}", path);
 
         try {
             clientResp = get(path);
@@ -337,7 +339,7 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:getSystemDetails leave");
+            _log.info("3PARDriver:getCPGDetails leave");
         } //end try/catch/finally
     }    
 
@@ -479,6 +481,8 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
                 "\", \"tpvv\":" + thin.toString() + ", \"tdvv\":" + dedup.toString() + ", \"sizeMiB\":" + size.toString() + ", \"snapCPG\":\"" + cpg + "\"}";
+        _log.info("3PARDriver: createVolume body is {}", body);
+        
         try {
             clientResp = post(URI_CREATE_VOLUME, body);
             if (clientResp == null) {
@@ -651,6 +655,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getVolumeDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_VOLUME_DETAILS, name);
+        _log.info("3PARDriver: getVolumeDetails path is {}", path);
         
         try {
             clientResp = get(path);
@@ -713,6 +718,7 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_EXPAND_VOLUME, name);
         String body = "{\"action\":3, \"sizeMiB\":" + additionalSize.toString() + "}";
+        _log.info("3PARDriver: expandVolume path is {}, body is {}", path, body);
 
         try {
             clientResp = put(path, body);
@@ -740,6 +746,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:deleteVolume enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_DELETE_VOLUME, name);
+        _log.info("3PARDriver: deleteVolume path is {}", path);
 
         try {
             clientResp = delete(path);
@@ -920,6 +927,7 @@ public class HP3PARApi {
         }
         
         body = body.concat("}");
+        _log.info("3PARDriver: createVlun body is {}", body);
 
         try {
             clientResp = post(URI_CREATE_VLUN, body);
@@ -953,6 +961,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getHostSetDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_HOSTSET_DETAILS, name);
+        _log.info("3PARDriver: getHostSetDetails path is {}", path);
         
         try {
             clientResp = get(path);
@@ -988,6 +997,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:createHostSet enter");
         ClientResponse clientResp = null;
         String body = "{\"name\": \"" + clustName + "\", \"setmembers\": [\"" + hostName + "\"]}";
+        _log.info("3PARDriver: createHostSet body is {}", body);
         
         try {
             clientResp = post(URI_HOSTSETS, body);
@@ -1016,6 +1026,7 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         String body = "{\"action\": 1, \"setmembers\": [\"" + hostName + "\"]}";
         final String path = MessageFormat.format(URI_HOSTSET_DETAILS, clustName);
+        _log.info("3PARDriver: updateHostSet path is {}, body is {}", path, body);
         
         try {
             clientResp = put(path, body);
@@ -1046,6 +1057,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getHostDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_HOST_DETAILS, name);
+        _log.info("3PARDriver: getHostDetails path is {}", path);
         
         try {
             clientResp = get(path);
@@ -1109,6 +1121,7 @@ public class HP3PARApi {
             path = path.concat(","+pos);
         }
 
+        _log.info("3PARDriver: deleteVlun path is {}", path);
         try {
             clientResp = delete(path);
             if (clientResp == null) {
@@ -1152,6 +1165,7 @@ public class HP3PARApi {
                     ", \"persona\":" + persona.toString() + "}";            
         }
 
+        _log.info("3PARDriver: createHost body is {}", body);
         try {
             clientResp = post(URI_HOSTS, body);
             if (clientResp == null) {
@@ -1231,6 +1245,7 @@ public class HP3PARApi {
                 body = "{\"iSCSINames\":" + portIdstr + ", \"pathOperation\":1\"}";
             }
 
+            _log.info("3PARDriver: updateHost path is {}, body is {}", path, body);
             clientResp = put(path, body);
             if (clientResp == null) {
                 _log.error("3PARDriver:There is no response from 3PAR");

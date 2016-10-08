@@ -248,7 +248,7 @@ public class VplexDBCkr {
         // we will spend time below getting details.
         writeLog("Retrieving all virtual volumes... this will take some time...");
         Map<String, VPlexVirtualVolumeInfo> vvInfoMap = client.getVirtualVolumes(true);
-		List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
+		List<VPlexStorageViewInfo> storageViews = client.getStorageViewsLite();
         writeLog("... done");
        
 	   try {

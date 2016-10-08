@@ -123,19 +123,6 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 for (FileShare fs : fileshares) {
                     fs.setMirrorStatus(getFileMirrorStatusForSuccess(fs));
                     fs.setAccessState(getFileShareAccessStateForSuccess(fs).name());
-                    if (fs.getMirrorfsTargets() != null) {
-                        List<URI> targetFsURIs = new ArrayList<URI>();
-                        for (String targetId : fs.getMirrorfsTargets()) {
-                            targetFsURIs.add(URI.create(targetId));
-                        }
-                        List<FileShare> targetFileShares = dbClient.queryObject(FileShare.class, targetFsURIs);
-                        for (FileShare targetFileShare : targetFileShares) {
-                            targetFileShare.setMirrorStatus(getFileMirrorStatusForSuccess(fs));
-                            targetFileShare.setAccessState(getFileShareAccessStateForSuccess(targetFileShare).name());
-
-                        }
-                        dbClient.updateAndReindexObject(targetFileShares);
-                    }
                 }
                 dbClient.updateObject(fileshares);
                 _logger.info("Updated Mirror status for fileshares: {}", getIds());
@@ -289,18 +276,9 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         // If this fileshare is a source and exported to a host, the is write-disabled. Otherwise it is readwrite.
         if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
                 && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
-            // Check to see if it's exported
-            URIQueryResultList fsExports = new URIQueryResultList();
-            getDbClient().queryByConstraint(ContainmentConstraint.
-                    Factory.getFileExportRulesConstraint(fs.getId()), fsExports);
-            if (fsExports != null && fsExports.iterator().hasNext()) {
-                // A source file share that is in an exports is write-disabled or not-ready.
-                return FileShare.FileAccessState.NOT_READY;
-            } else {
-                return FileShare.FileAccessState.READWRITE;
-            }
+           return FileShare.FileAccessState.NOT_READY;
         } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())
-                && !fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
+                && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
             // A target fileshare in any state other than FAILED_OVER is write-disabled or not-ready.
             return FileShare.FileAccessState.NOT_READY;
 

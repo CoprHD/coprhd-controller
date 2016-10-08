@@ -572,7 +572,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshot it = snapshotIter.next();
                 it.setInactive(true);
                 it.setIsSyncActive(false);
-                _dbClient.persistObject(it);
+                _dbClient.updateObject(it);
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -1879,16 +1879,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // that it can be detached.
             boolean syncObjectFound = false;
             List<BlockSnapshot> snapshots = null;
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
             CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
             if (snapshot.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
                 String replicationGroupName = snapshot.getReplicationGroupInstance();
+                String sourceReplicationGroupName = sourceObj.getReplicationGroupInstance();
                 List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
                 if (groupSyncs != null && !groupSyncs.isEmpty()) {
                     // Find the right one. We want the one where the replication groups for
                     // the passed snapshot is the sync'd element.
                     for (CIMObjectPath groupSynchronized : groupSyncs) {
                         String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
-                        if (syncElementPath.contains(replicationGroupName)) {
+                        String systemElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
+                        if (syncElementPath.contains(replicationGroupName) && systemElementPath.contains(sourceReplicationGroupName)) {
                             syncObjectPath = groupSynchronized;
                             break;
                         }
@@ -1897,7 +1900,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
                         snapshot, _dbClient);
             } else {
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
                 syncObjectPath = getSyncObject(system, snapshot, sourceObj);
                 snapshots = Lists.newArrayList(snapshot);
             }

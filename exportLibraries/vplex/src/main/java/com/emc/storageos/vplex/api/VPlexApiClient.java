@@ -84,6 +84,10 @@ public class VPlexApiClient {
     // in case it expires and a new session is created.
     private String _vplexSessionId = null;
 
+    // caching of some almost-static VPLEX info for performance improvement
+    private volatile Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
+    private volatile List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+
     /**
      * Constructor
      * 
@@ -167,34 +171,40 @@ public class VPlexApiClient {
     }
 
     /**
-     * Gets information about the VPLEX clusters.
-     * 
-     * @param shallow true to get just the name and path for each cluster, false
-     *            to get additional info about the systems and volumes.
-     * @param isStorageVolumeItlsFetch true to get the storage volume ITLs, false otherwise.
+     * Gets detailed information about the VPLEX clusters, including storage
+     * volume information.  This method will always call the VPLEX API to get
+     * the very latest info, bypassing the local cluster info cache.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isStorageVolumeItlsFetch) throws VPlexApiException {
-        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
+    public List<VPlexClusterInfo> getClusterInfoDetails() throws VPlexApiException {
+        s_logger.info("Request for complete detailed cluster info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getClusterInfo(false, true);
     }
 
     /**
-     * Gets information about the VPLEX clusters.
+     * Gets information about the VPLEX clusters. The "lite" version
+     * fetches all information except for the deep storage volume information,
+     * which is a very expensive call only needed in certain cases.  If that 
+     * information is needed, use VPlexApiClient.getClusterInformationDetails.
      * 
-     * @param shallow true to get just the name and path for each cluster, false
-     *            to get additional info about the systems and volumes.
+     * Additionally this "lite" method will retrieve the cluster info from a 
+     * local cache in order to improve performance.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
-        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow, false);
+    public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
+        s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
+        if (vplexClusterInfoLiteCache.isEmpty()) {
+            vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
+            s_logger.info("refreshed lightweight cluster info list is " + vplexClusterInfoLiteCache.toString());
+        }
+
+        return vplexClusterInfoLiteCache;
     }
 
     /**
@@ -248,16 +258,36 @@ public class VPlexApiClient {
     }
 
     /**
-     * Gets the Storage Views in a Vplex System.
+     * Gets the fully-detailed VPLEX storage view information, including detailed initiator
+     * data.  The initiator data can require a lot of extra processing, so if this information
+     * is not needed by the caller, VPlexApiClient.getStorageViewsLite may be a sufficient and
+     * much faster option.
      * 
-     * @return A list of VPlexStorageViewInfo specifying the info for the VPlex storage views.
+     * @return A list of VPlexStorageViewInfo specifying the info for the VPLEX storage views.
      * 
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
      */
-    public List<VPlexStorageViewInfo> getStorageViews() throws VPlexApiException {
-        s_logger.info("Request for storage view info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getStorageViews();
+    public List<VPlexStorageViewInfo> getStorageViewDetails() throws VPlexApiException {
+        s_logger.info("Request for detailed storage view info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getStorageViews(true);
+    }
+
+    /**
+     * Gets a "lite" version of the VPLEX storage view data with only the top level properties
+     * included to improve performance. This means that the storage view info objects will not
+     * include detailed initiator information (which is very expensive to populate, requiring
+     * many VPLEX API calls).  If the initiator information is needed, use the
+     * VPlexApiClient.getStorageViewDetails method instead.
+     * 
+     * @return A list of VPlexStorageViewInfo specifying the info for the VPLEX storage views.
+     * 
+     * @throws VPlexApiException If a VPLEX request returns a failed status or
+     *             an error occurs processing the response.
+     */
+    public List<VPlexStorageViewInfo> getStorageViewsLite() throws VPlexApiException {
+        s_logger.info("Request for lightweight storage view info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getStorageViews(false);
     }
 
     /**
@@ -300,7 +330,7 @@ public class VPlexApiClient {
         Map<String, Map<String, VPlexVirtualVolumeInfo>> localVirtualVolumesMap = new HashMap<String, Map<String, VPlexVirtualVolumeInfo>>();
 
         // Get the cluster information.
-        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();
+        List<VPlexClusterInfo> clusterInfoList = getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
@@ -1281,16 +1311,9 @@ public class VPlexApiClient {
      * @param clusterId the cluster id (1 or 2)
      * @return the name for the cluster or null in none found
      */
-    public String getClusterName(String clusterId) {
-        String clusterName = null;
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
-        for (VPlexClusterInfo clusterInfo : clusterInfos) {
-            if (clusterId.equals(clusterInfo.getClusterId())) {
-                clusterName = clusterInfo.getName();
-                s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
-            }
-        }
-
+    public String getClusterNameForId(String clusterId) {
+        String clusterName = getClusterIdToNameMap().get(clusterId);
+        s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
         return clusterName;
     }
 
@@ -1299,15 +1322,16 @@ public class VPlexApiClient {
      * 
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
-    public Map<String, String> getClusterIdToNameMap() {
-        Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
-        for (VPlexClusterInfo clusterInfo : clusterInfos) {
-            clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName());
+    public synchronized Map<String, String> getClusterIdToNameMap() {
+        if (vplexClusterIdToNameCache.isEmpty()) {
+            List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
+            for (VPlexClusterInfo clusterInfo : clusterInfos) {
+                vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
+            }
+            s_logger.info("refreshed cluster id to name map is " + vplexClusterIdToNameCache.toString());
         }
 
-        s_logger.info("cluster id to name map is " + clusterIdToNameMap.toString());
-        return clusterIdToNameMap;
+        return vplexClusterIdToNameCache;
     }
 
     /**
@@ -1536,13 +1560,43 @@ public class VPlexApiClient {
     }
 
     /**
-     * Finds virtual volume by name.
+     * Returns a VPlexVirtualVolumeInfo object for the given virtual volume name
+     * and context path.  An attempt will first be made to get the virtual volume
+     * directly by its path, but if that fails, this method will do the old "search
+     * the entire VPLEX" process.  If still no volume is found, it will return null.
      * 
-     * @param virtualVolumeName Name of virtual volume.
-     * @return A reference to the virtual volume info.
+     * @param virtualVolumeName the virtual volume name
+     * @param virtualVolumePath the virtual volume path
+     * @return a VPlexVirtualVolumeInfo object or null if none is found
      */
-    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName) {
-        return _discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName, String virtualVolumePath) {
+        VPlexVirtualVolumeInfo vvinfo = null;
+        if (virtualVolumePath != null && !virtualVolumePath.isEmpty()) {
+            // first attempt to get by the much more efficient native id
+            try {
+                vvinfo = getVirtualVolumeByPath(virtualVolumePath);
+            } catch (Exception ex) {
+                s_logger.warn("Didn't find virtual volume by path at {}, will check by name {}", 
+                        virtualVolumePath, virtualVolumeName);
+            }
+        }
+        if (null == vvinfo && (null != virtualVolumeName && !virtualVolumeName.isEmpty())) {
+            // otherwise, fall back on the "search the whole vplex" method
+            vvinfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName);
+        }
+
+        s_logger.info("returning virtual volume: ");
+        return vvinfo;
+    }
+
+    /**
+     * This method gets a virtual volume on the VPLEX directly by full context path.
+     * 
+     * @param virtualVolumePath the virtual volume context path
+     * @return VPlexVirtualVolumeInfo object with full details
+     */
+    private VPlexVirtualVolumeInfo getVirtualVolumeByPath(String virtualVolumePath) {
+        return _discoveryMgr.getVirtualVolumeByPath(virtualVolumePath);
     }
 
     /**
@@ -1713,10 +1767,9 @@ public class VPlexApiClient {
      * This method finds virtual volume on the VPLEX and then updates virtual volume info.
      * 
      * @param virtualVolumeName virtual volume name
-     * @param discoveryMgr reference to VPlexApiDiscoveryManager
      * @return VPlexVirtualVolumeInfo object with updated info.
      */
-    public VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName) {
+    protected VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName) {
         return _virtualVolumeMgr.findVirtualVolumeAndUpdateInfo(virtualVolumeName, null);
     }
 
@@ -1795,16 +1848,18 @@ public class VPlexApiClient {
      * from the ViPR database are the actual backend volumes used by the passed VPLEX volume.
      * 
      * @param virtualVolumeName The name of the VPLEX volume.
+     * @param virtualVolumePath The path to the VPLEX volume.
      * @param nativeVolumeInfoMap The native volume info for expected backend volumes keyed by cluster name.
      * 
      * @throws VPlexApiException When an exception occurs validating the backend volumes.
      */
-    public void validateBackendVolumesForVPlexVolume(String virtualVolumeName, Map<String, List<VolumeInfo>> nativeVolumeInfoMap)
+    public void validateBackendVolumesForVPlexVolume(String virtualVolumeName, String virtualVolumePath, 
+            Map<String, List<VolumeInfo>> nativeVolumeInfoMap)
             throws VPlexApiException {
         s_logger.info("Validating backend volumes for VPLEX volume {}", virtualVolumeName);
         
         // Find the VPLEX volume.
-        VPlexVirtualVolumeInfo vvInfo = _discoveryMgr.findVirtualVolume(virtualVolumeName, true);
+        VPlexVirtualVolumeInfo vvInfo = findVirtualVolume(virtualVolumeName, virtualVolumePath);
         if (vvInfo == null) {
             s_logger.error("Could not find VPLEX volume {} to validate its backend volumes", virtualVolumeName);
             throw VPlexApiException.exceptions.couldNotFindVolumeForValidation(virtualVolumeName);
@@ -1828,7 +1883,7 @@ public class VPlexApiClient {
         
         // Get the cluster information, which will get the storage volume 
         // information on both clusters.
-        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfo(false, true);
+        List<VPlexClusterInfo> clusterInfoList = getClusterInfoDetails();
         
         // Validate the expected backend storage volumes on each cluster.
         Iterator<String> clusterNameIter = clusterNames.iterator();
@@ -1939,7 +1994,11 @@ public class VPlexApiClient {
      */
     public List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName) throws VPlexApiException {
         s_logger.info("Request to get storage view info for cluster {}", clusterName);
-        return getDiscoveryManager().getStorageViewsForCluster(clusterName);
+        return getDiscoveryManager().getStorageViewsForCluster(clusterName, true);
     }
 
+    public synchronized void clearCaches() {
+        vplexClusterIdToNameCache.clear();
+        vplexClusterInfoLiteCache.clear();
+    }
 }

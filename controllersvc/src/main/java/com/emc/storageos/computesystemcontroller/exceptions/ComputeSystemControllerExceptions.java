@@ -115,6 +115,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException clusterHasVms(final String cluster);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException illegalInitiator(final String host, final String initiator, final String initiatorHost);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerTimeoutException timeoutWaitingForMOTerminalState(final String moDn, final String currentState,
             final int timeOutIntervalInMS);
 
@@ -125,5 +128,5 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException unableToUnmount(final String systemType, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException commandTimedOut(final String systemType, final Throwable cause);
+    public ComputeSystemControllerException commandTimedOut(final String systemType);
 }

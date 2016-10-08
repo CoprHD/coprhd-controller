@@ -81,7 +81,7 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
                     }
 
                     log.info("{} has associated mask {}", friendlyId, name);
-                    if (!validate(mvInstance, assocMask)) {
+                    if (!validate(dataObject, mvInstance, assocMask)) {
                         // This will cause DefaultValidator or ChainValidator to throw an exception.
                         getLogger().logDiff(friendlyId, "<associated masks>", exportMask.getMaskName(), name);
                     }
@@ -98,11 +98,12 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
     /**
      * Compare and validate {@code mask} and {@code assocMask}.
      *
-     * @param mask      The export mask in the ViPR request
-     * @param assocMask An export mask found to be associated with {@code mask}.
-     * @return          True if validation passed, false otherwise.
+     * @param dataObject The DataObject to validate
+     * @param mask       The export mask in the ViPR request
+     * @param assocMask  An export mask found to be associated with {@code mask}.
+     * @return           True if validation passed, false otherwise.
      */
-    protected abstract boolean validate(CIMInstance mask, CIMInstance assocMask) throws WBEMException;
+    protected abstract boolean validate(T dataObject, CIMInstance mask, CIMInstance assocMask) throws WBEMException;
 
     /**
      * Returns a friendly ID string for the given {@code dataObject}.

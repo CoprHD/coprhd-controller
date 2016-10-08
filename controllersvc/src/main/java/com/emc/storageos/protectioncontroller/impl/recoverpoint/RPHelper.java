@@ -1825,6 +1825,22 @@ public class RPHelper {
                 newStyleJournals.add(journalVol);
             }
         }
+        
+        // For some platforms volume names with blank spaces are not allowed. 
+        // If the varray and/or CG name has spaces they may have been removed from
+        // the volume label. If this is the case, we would not have added them
+        // to the new style journal list. If the list is empty, try again with
+        // the blank spaces removed from the journal name prefix.
+        if (newStyleJournals.isEmpty()) {
+            journalPrefix = journalPrefix.replaceAll("\\s+","");
+            for (Volume journalVol : existingJournals) {
+                String volName = journalVol.getLabel();
+                if (volName != null && volName.length() >= journalPrefix.length() &&
+                        volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+                    newStyleJournals.add(journalVol);
+                }
+            }
+        }
 
         // calculate the largest index
         int largest = 0;

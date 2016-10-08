@@ -55,6 +55,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
     public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
     public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
+    public static final String EXCLUDED_STORAGE_SYSTEM = "excluded_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
     public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
 
@@ -391,6 +392,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public StorageSystem getSourceStorageDevice() {
         Object value = _vpoolCapabilities.get(SOURCE_STORAGE_SYSTEM);
+        return value != null ? (StorageSystem) value : null;
+    }
+
+    public StorageSystem getExcludedStorageDevice() {
+        Object value = _vpoolCapabilities.get(EXCLUDED_STORAGE_SYSTEM);
         return value != null ? (StorageSystem) value : null;
     }
 

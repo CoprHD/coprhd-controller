@@ -89,7 +89,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
         log.info("Initiating Vplex Volume validation: " + volumeId);
         VPlexVirtualVolumeInfo vvinfo = null;
         try {
-            vvinfo = client.findVirtualVolumeAndUpdateInfo(virtualVolume.getDeviceLabel());
+            vvinfo = client.findVirtualVolume(virtualVolume.getDeviceLabel(), virtualVolume.getNativeId());
         } catch (VPlexApiException ex) {
             log.info(ex.getMessage());
         }
@@ -139,7 +139,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 }
             } catch (VPlexApiException ex) {
                 log.error("Unable to determine if VPLEX device reused: " + volumeId, ex);
-                if (getValidatorConfig().validationEnabled()) {
+                if (getValidatorConfig().isValidationEnabled()) {
                     throw ex;
                 }
             }

@@ -141,6 +141,41 @@ public class ExportMaskUtils {
     }
 
     /**
+     * Returns a list of ExportMasks that are for a specified Storage System.
+     *
+     * @param dbClient - reference to the database client
+     * @param ssysURI - the StorageSystem URI
+     * @return List<ExportMask> -- an empty list is returned if there are no matches.
+     */
+    public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
+
+        // NOTE for release 3.5:
+        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
+        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
+        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
+        // -beachn
+
+        List<ExportMask> returnMasks = new ArrayList<ExportMask>();
+        if (!URIUtil.isValid(ssysURI)) {
+            _log.warn("invalid URI: {}", ssysURI);
+            return returnMasks;
+        }
+
+        List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
+        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
+        for (ExportMask exportMask : exportMasks) {
+            if (exportMask == null || exportMask.getInactive()) {
+                continue;
+            }
+            if (URIUtil.identical(ssysURI, exportMask.getStorageDevice())) {
+                returnMasks.add(exportMask);
+            }
+        }
+
+        return returnMasks;
+    }
+
+    /**
      * Find all export groups that are referencing the export mask
      *
      * @param dbClient db client
@@ -1128,6 +1163,26 @@ public class ExportMaskUtils {
     }
 
     /**
+     * Is this export mask a backend mask for VPLEX or RP?
+     * 
+     * @param dbClient
+     *            db client
+     * @param exportMask
+     *            export mask
+     * @return true if RP/VPLEX mask, false otherwise
+     */
+    public static boolean isBackendExportMask(DbClient dbClient, ExportMask exportMask) {
+        Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, exportMask);
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
+            if (initiators != null) {
+                return areBackendInitiators(initiators);
+            }
+        }
+        return false;
+    }
+
+    /**
      * Find a set of ExportMasks to which the given Initiators belong.
      *
      * @param dbClient [IN] - For accessing DB
@@ -1286,5 +1341,39 @@ public class ExportMaskUtils {
             }
         }
         return differentResource;
+    }
+
+    /**
+     * Set the resource on an ExportMask, if it hasn't already been set.
+     *
+     * @param dbClient      Database client
+     * @param exportGroup   ExportGroup
+     * @param exportMask    ExportMask
+     * @return              true if the resource field was set, false otherwise.
+     */
+    public static boolean setExportMaskResource(DbClient dbClient, ExportGroup exportGroup, ExportMask exportMask) {
+        if (NullColumnValueGetter.isNotNullValue(exportMask.getResource())) {
+            return false;
+        }
+
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, null);
+        String resourceRef = null;
+        if (exportGroup.getType() != null && !initiators.isEmpty()) {
+            Initiator firstInitiator = initiators.iterator().next();
+            if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                resourceRef = firstInitiator.getClusterName();
+            } else {
+                resourceRef = firstInitiator.getHost() == null ? null : firstInitiator.getHost().toString();
+            }
+        }
+
+        if (Strings.isNullOrEmpty(resourceRef)){
+            // This resource is used when we add initiators to existing masks on VMAX, which should not be
+            // case with VPLEX and RP, which do not associate their initiators with hosts or clusters.
+            resourceRef = NullColumnValueGetter.getNullURI().toString();
+        }
+
+        exportMask.setResource(resourceRef);
+        return true;
     }
 }

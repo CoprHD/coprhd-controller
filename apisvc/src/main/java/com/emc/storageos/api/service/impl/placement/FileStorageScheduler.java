@@ -227,7 +227,7 @@ public class FileStorageScheduler implements Scheduler {
             URI vArrayURI, VirtualPool vPool, List<Recommendation> poolRecommendations) {
 
         List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
-        List<StoragePort> ports = getAssociatedStoragePorts(vNAS);
+        List<StoragePort> ports = getAssociatedStoragePorts(vNAS, vArrayURI);
 
         List<URI> storagePortURIList = new ArrayList<URI>();
         for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
@@ -597,13 +597,14 @@ public class FileStorageScheduler implements Scheduler {
     }
 
     /**
-     * Get list of associated storage ports of VNAS server
+     * Get list of associated storage ports of VNAS server which are part of given virtual array.
      * 
      * @param vNAS
+     * @param vArrayURI virtual array 
      * @return spList
      * 
      */
-    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS) {
+    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS,  URI vArrayURI) {
 
         StringSet spIdSet = vNAS.getStoragePorts();
 
@@ -613,17 +614,18 @@ public class FileStorageScheduler implements Scheduler {
                 spURIList.add(URI.create(id));
             }
         }
-
+        
         List<StoragePort> spList = _dbClient.queryObject(StoragePort.class,
-                spURIList);
+        		spURIList);
 
         if (spIdSet != null && !spList.isEmpty()) {
             for (Iterator<StoragePort> iterator = spList.iterator(); iterator
                     .hasNext();) {
                 StoragePort storagePort = iterator.next();
-
                 if (storagePort.getInactive()
                         || storagePort.getTaggedVirtualArrays() == null
+                        || !storagePort.getTaggedVirtualArrays().contains(
+                        		vArrayURI.toString())
                         || !RegistrationStatus.REGISTERED.toString()
                                 .equalsIgnoreCase(
                                         storagePort.getRegistrationStatus())

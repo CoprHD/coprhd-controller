@@ -2661,24 +2661,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2896,19 +2896,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3021,15 +3021,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -3208,24 +3208,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -4193,7 +4193,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4554,8 +4554,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Changing personalities means that the source was on "Copy Name A" and it's now on "Copy Name B":
         // 1. a. Any previous TARGET volume that matches the copy name of the incoming volume is now a SOURCE volume
-        // b. That voume needs its RP Targets volumes list filled-in as well; it's all of the devices that are
-        // the same replication set name that aren't the new SOURCE volume itself.
+        //    b. That volume needs its RP Target volumes list filled-in as well; it's all of the devices that are
+        //       the same replication set name that aren't the new SOURCE volume itself.
         // 2. All SOURCE volumes are now TARGET volumes and their RP Target lists need to be null'd out
         //
         for (URI protectionVolumeID : volumeIDs) {
@@ -4586,7 +4586,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                protectionVolume.getRpTargets().clear();
+                protectionVolume.setRpTargets(new StringSet());
                 _dbClient.updateObject(protectionVolume);
             } else if (!protectionVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " is a target that remains a target");
@@ -4678,7 +4678,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4779,7 +4779,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.
      * storageos.workflow
@@ -4891,8 +4891,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
                             parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
                         }
-                        // recoverpoint enable image access is only required if target volumes are copied
-                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                        // recoverpoint enable image access is only required if target volumes are copied and
+                        // the target volumes are RP volumes.
+                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())
+                                && Volume.checkForRP(_dbClient, parentVolume.getId())) {
                             volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
                             copyList.add(descriptor.getVolumeURI());
                             if (protectionSystem == null) {
@@ -4936,6 +4938,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 return addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList),
                         volumeWWNs, waitFor);
             }
+        } else {
+            _log.warn("Skipping RP create steps for create replica. No qualifying volume WWNs found.");
         }
 
         return waitFor;
@@ -5576,9 +5580,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (response == null) {
                 throw DeviceControllerExceptions.recoverpoint.failedToImageAccessBookmark();
             }
+            
+            completer.ready(_dbClient, _locker);
 
-            // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);
             return stepFailed(stepId, (ServiceCoded) e, "restoreVolumeStep");
@@ -6855,7 +6859,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
@@ -7262,7 +7266,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.
      * storageos.workflow.Workflow

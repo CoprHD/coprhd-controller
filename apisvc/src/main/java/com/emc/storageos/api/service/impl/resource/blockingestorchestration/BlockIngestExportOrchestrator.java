@@ -180,7 +180,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                 } else {
                     // check if mask has already been created
-                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext());
+                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext(), _dbClient);
 
                     if (exportMask == null) {
                         _logger.info("\tno mask found");
@@ -445,9 +445,10 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      *
      * @param mask
      * @param requestContext
+     * @param dbClient a reference to the database client
      * @return
      */
-    protected abstract ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext);
+    protected abstract ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient);
 
     /**
      * Get initiators of Host from ViPR DB

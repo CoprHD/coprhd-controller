@@ -174,7 +174,7 @@ public class VirtualArrays extends ViprResourceController {
 						}
                         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                             String modelType = storageSystem.getModel();
-                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                                 ids.add(storageSystem.getId().toString());
                             }
                         }
@@ -323,7 +323,7 @@ public class VirtualArrays extends ViprResourceController {
 			}
             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                 String modelType = storageSystem.getModel();
-                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                     ids.add(storageSystem.getId().toString());
                 }
             }

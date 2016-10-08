@@ -41,7 +41,7 @@ public class ValidatorConfig {
      *
      * @return true if the validation check is on.
      */
-    public boolean validationEnabled() {
+    public boolean isValidationEnabled() {
         if (coordinator != null) {
             return Boolean.valueOf(ControllerUtils
                     .getPropertyValueFromCoordinator(coordinator, VALIDATION_CHECK_PROPERTY));

@@ -34,7 +34,6 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderMapper {
-
     private static final String ENCRYPTED_FIELD_MASK = "**********";
 
     public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
@@ -80,6 +79,9 @@ public class OrderMapper {
         }
         if (from.getScheduledEventId() != null) {
             to.setScheduledEventId(from.getScheduledEventId());
+        }
+        if (from.getScheduledTime() != null) {
+            to.setScheduledTime(from.getScheduledTime());
         }
         return to;
     }

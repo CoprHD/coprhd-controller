@@ -487,7 +487,7 @@ public class RecoverPointImageManagementUtils {
                     cgName));
             waitForCGCopyState(impl, cgCopyUID, false);
         } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
-            throw RecoverPointException.exceptions.failedToEnableDirectAccessForCopy(cgCopyName, cgName, accessState, e);
+            throw RecoverPointException.exceptions.failedToEnableDirectAccessForCopy(cgCopyName, cgName, e, accessState);
         }
     }
 

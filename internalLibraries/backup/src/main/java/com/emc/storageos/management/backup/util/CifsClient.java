@@ -45,7 +45,16 @@ public class CifsClient implements BackupClient{
     public List<String> listFiles(String prefix) throws Exception {
         List<String> fileList = new ArrayList<String>();
         SmbFile smbDir = getSmbFileHandler("");
-        String[] files = smbDir.list();
+        String[] files;
+        try {
+            files = smbDir.list();
+        }catch (SmbException e ) {
+            //work around for jcifs bug that exception would throw out when list empty dir of netapp
+            if (e.getMessage().contains("The system cannot find the file specified.")) {
+                return fileList;
+            }
+            throw e;
+        }
         for (String file : files) {
             if (!file.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
                 continue;

@@ -558,8 +558,7 @@ srdf_generate_rdfg_name() {
 
 SRDF_SLEEPING_SECONDS=180
 srdf_sleep() {
-    secho "Sleeping ${SRDF_SLEEPING_SECONDS} seconds"
-    sleep ${SRDF_SLEEPING_SECONDS}
+    ssleep ${SRDF_SLEEPING_SECONDS}
 }
 
 #
@@ -1764,6 +1763,8 @@ srdf_setup_once()
     # create RDF group first, SRDF_PROJECT may be changed in the call
     srdf_create_rdfg
     srdf_sleep
+    # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
+    ssleep 300
 
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT

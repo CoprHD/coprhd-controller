@@ -903,7 +903,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         Session session = ((DbClientTest.DbClientImplUnitTester) dbClient).getLocalContext().getSession();
         DataObjectType doType = TypeMap.getDoType(Volume.class);
         ColumnField field = doType.getColumnField(fieldName);
-        ResultSet resultSet = session.execute(new SimpleStatement(String.format("select * from %s", field.getIndexCF())));
+        ResultSet resultSet = session.execute(new SimpleStatement(String.format("select * from \"%s\"", field.getIndexCF().getName())));
         int count = 0;
         for (Row row : resultSet) {
             _log.debug("{}, RowKey={}, Column Name={}, String Value={}.", 

@@ -141,6 +141,16 @@ public class LocalRepository {
         return drivers;
     }
 
+    public void removeStorageDriver(String driverName) {
+        File driverFile = new File(DriverManager.DRIVER_DIR + driverName);
+        if (!driverFile.exists()) {
+            return;
+        }
+        if (!driverFile.delete()) {
+            _log.error("Failed to remove storage driver {}", driverName);
+        }
+    }
+
     /**
      * Change the bootloader default to the new version and reboot.
      * 

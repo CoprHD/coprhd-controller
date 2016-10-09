@@ -13,9 +13,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +29,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -40,6 +44,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.model.storagedriver.StorageDriverListParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
@@ -53,7 +58,7 @@ import com.sun.jersey.multipart.FormDataParam;
 /**
  * Defines the API for making requests to the storage driver service.
  */
-@Path("/storagedriver/")
+@Path("/storagedriver")
 public class DriverService {
     private static final Logger log = LoggerFactory.getLogger(DriverService.class);
     private static final String UPLOAD_DEVICE_DRIVER = "/tmp/";
@@ -97,8 +102,52 @@ public class DriverService {
         this.service = service;
     }
 
+    @POST
+    @Path("/uninstall")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response uninstall(StorageDriverListParam driverList) {
+        // check all storage system types supported by this driver, mark as uninstalling
+        LocalRepository localRepo = LocalRepository.getInstance();
+        StorageDriversInfo targetInfo = coordinator.getTargetInfo(StorageDriversInfo.class);
+        StorageDriversInfo localInfo = new StorageDriversInfo();
+        localInfo.setInstalledDrivers(localRepo.getLocalDrivers());
+        for (String driverName : driverList.getDrivers()) {
+            // mark as uninstalling
+            markDriverStatus(driverName, DriverManager.UNINSTALLING);
+            // remove locally
+            localRepo.removeStorageDriver(driverName);
+            // remove from target info
+            if (targetInfo.getInstalledDrivers().contains(driverName)) {
+                targetInfo.getInstalledDrivers().remove(driverName);
+            }
+            // remove from local info
+            if (localInfo.getInstalledDrivers().contains(driverName)) {
+                localInfo.getInstalledDrivers().remove(driverName);
+            }
+        }
+        // restart controller service
+        localRepo.restart(DriverManager.CONTROLLER_SERVICE);
+        // update local list
+        coordinatorExt.setNodeSessionScopeInfo(localInfo);
+        // update local list
+        coordinator.setTargetInfo(targetInfo);
+        return Response.ok().build();
+    }
+
+    private void markDriverStatus(String driverName, String status) {
+        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (StringUtils.equals(type.getDriverFileName(), driverName)) {
+                type.setInstallStatus(status);
+                dbClient.updateObject(type);
+            }
+        }
+    }
+
     @GET
-    @Path("internal/download/")
+    @Path("/internal/download")
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response getDriver(@QueryParam("name") String name) throws FileNotFoundException {
         log.info("download driver {} ...", name);
@@ -106,7 +155,7 @@ public class DriverService {
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
     @POST
-    @Path("install/")
+    @Path("/install")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response install(@FormDataParam("driver") InputStream uploadedInputStream) throws Exception {

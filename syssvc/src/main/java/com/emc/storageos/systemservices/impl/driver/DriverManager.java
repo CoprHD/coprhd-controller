@@ -136,13 +136,7 @@ public class DriverManager {
 
     private void removeDrivers(Set<String> drivers) {
         for (String driver : drivers) {
-            File driverFile = new File(DRIVER_DIR + driver);
-            if (!driverFile.exists()) {
-                continue;
-            }
-            if (!driverFile.delete()) {
-                log.error("Failed to delete driver file {}", driver);
-            }
+            LocalRepository.getInstance().removeStorageDriver(driver);
         }
     }
 

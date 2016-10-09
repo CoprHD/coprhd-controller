@@ -11,11 +11,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -25,15 +22,12 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -41,14 +35,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.DriverInfo2;
 import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.systemservices.impl.driver.DriverManager;
@@ -105,91 +97,6 @@ public class DriverService {
         this.service = service;
     }
 
-    /**
-     * File has been uploaded and stored on current node, with meta data, will start to install and restart controller service
-     */
-    @POST
-    @Path("install/")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public StorageSystemTypeRestRep install(StorageSystemTypeAddParam addParam) {
-        StorageSystemType type = map(addParam);
-        type.setInstallStatus("Installing");
-        dbClient.createObject(type);
-
-        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
-        DriverInfo2 info = new DriverInfo2(coordinator.queryConfiguration(DriverInfo2.CONFIG_ID, DriverInfo2.CONFIG_ID));
-        info.setInitNode(localNode);
-        if (info.getDrivers() == null) {
-            info.setDrivers(new ArrayList<String>());
-        }
-        info.getDrivers().add(addParam.getDriverFilePath());
-        coordinator.persistServiceConfiguration(info.toConfiguration());
-        log.info("set target info successfully");
-        return map(type);
-    }
-
-    /**
-     * Upload driver jar file as form data
-     * @param uploadedInputStream
-     * @param filename
-     * @return
-     * @throws IOException
-     */
-    @POST
-    @Path("formstoreparse/{filename}") // Need to move filename out of the URL path, put it in post data
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public StorageSystemTypeAddParam formStoreParse(@FormDataParam("driver") InputStream uploadedInputStream,
-            @PathParam("filename") URI filename) throws Exception {
-        File f = new File(UPLOAD_DEVICE_DRIVER + filename);
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
-        int bytesRead = 0;
-        while (true) {
-            byte[] buffer = new byte[0x10000];
-            bytesRead = uploadedInputStream.read(buffer);
-            if (bytesRead == -1) {
-                break;
-            }
-            os.write(buffer, 0, bytesRead);
-        }
-        uploadedInputStream.close();
-        os.close();
-        // May need to check file integrity
-
-        String tmpFilePath = f.getName();
-        return parseDriver(tmpFilePath);
-    }
-    /**
-     * Upload JAR file, return parsed meta data, including storing path: Save this API for vipr-cli
-     */
-    @POST
-    @Path("storeandparse/")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public StorageSystemTypeAddParam parseAndStore(@Context HttpServletRequest request, @QueryParam("filename") String name) throws Exception {
-        log.info("Parse/Upload driver ...");
-        InputStream driver = request.getInputStream();
-        File f = new File(UPLOAD_DEVICE_DRIVER + name);
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
-        int bytesRead = 0;
-        while (true) {
-            byte[] buffer = new byte[0x10000];
-            bytesRead = driver.read(buffer);
-            if (bytesRead == -1) {
-                break;
-            }
-            os.write(buffer, 0, bytesRead);
-        }
-        driver.close();
-        os.close();
-        // Till now, driver file has been saved, need to parse file to get meta data and return
-        String tmpFilePath = f.getName();
-        return parseDriver(tmpFilePath);
-    }
-
     @GET
     @Path("internal/download/")
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
@@ -198,12 +105,11 @@ public class DriverService {
         InputStream in = new FileInputStream(DriverManager.DRIVER_DIR  + name);
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
-    // ---------------------- for test only -----------------------------------
     @POST
-    @Path("oneshotinstall/")
+    @Path("install/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response oneshotInstall(@FormDataParam("driver") InputStream uploadedInputStream) throws Exception {
+    public Response install(@FormDataParam("driver") InputStream uploadedInputStream) throws Exception {
         File f = new File(UPLOAD_DEVICE_DRIVER + UUID.randomUUID());
         OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
         int bytesRead = 0;
@@ -219,15 +125,14 @@ public class DriverService {
         os.close();
         // May need to check file integrity in real product code
 
-        String tmpFilePath = f.getName();
-        StorageSystemTypeAddParam params = parseDriver(tmpFilePath);
+        StorageSystemTypeAddParam params = parseDriver(f.getAbsolutePath());
 
         // move to /data/drivers
         Files.move(f, new File(DriverManager.DRIVER_DIR + params.getDriverName()));
 
         // insert meta data into db
         StorageSystemType type = map(params);
-        type.setInstallStatus("Installing");
+        type.setInstallStatus("installing");
         type.setDriverFileName(params.getDriverName());
         dbClient.createObject(type);
 
@@ -249,9 +154,9 @@ public class DriverService {
         coordinator.setTargetInfo(info);
         return Response.ok().build();
     }
-    // ---------------------- for test only -----------------------------------
+
     private StorageSystemTypeAddParam parseDriver(String path) throws Exception {
-        ZipFile zipFile = new ZipFile(UPLOAD_DEVICE_DRIVER + path);
+        ZipFile zipFile = new ZipFile(path);
         Enumeration<? extends ZipEntry> entries = zipFile.entries();
         Properties metaData = new Properties();
         while(entries.hasMoreElements()){
@@ -341,6 +246,7 @@ public class DriverService {
 
         return addParam;
     }
+
     private boolean isValidMetaType(String metaType) {
         if (metaType == null) {
             return false;

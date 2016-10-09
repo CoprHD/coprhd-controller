@@ -221,8 +221,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startDiagnosticsScheduler();
             
             drPostFailoverDBCheckHandler.run();
-            _driverMgr.addDriverInfoListener();
-            _driverMgr.registerLocalDrivers();
+            _driverMgr.start();
         } else {
             throw new Exception("No app found.");
         }

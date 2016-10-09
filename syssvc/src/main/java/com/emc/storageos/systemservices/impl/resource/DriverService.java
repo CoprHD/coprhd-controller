@@ -104,6 +104,7 @@ public class DriverService {
 
     @POST
     @Path("/uninstall")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response uninstall(StorageDriverListParam driverList) {
         // check all storage system types supported by this driver, mark as uninstalling

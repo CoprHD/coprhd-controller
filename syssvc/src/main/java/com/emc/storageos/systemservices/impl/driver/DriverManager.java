@@ -110,7 +110,6 @@ public class DriverManager {
                 }
             }
         }
-        log.info("All nodes's drivers have been updated");
         return true;
     }
 
@@ -291,7 +290,6 @@ public class DriverManager {
                 try {
                     lock = getLock(DRIVERS_UPDATE_LOCK);
                     if (areAllNodesUpdated()) {
-                        log.info("Last update thread has finished update");
                         updateMetaData();
                     }
                 } catch (Exception e) {

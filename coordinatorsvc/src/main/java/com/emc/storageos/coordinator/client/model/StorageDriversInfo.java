@@ -50,6 +50,7 @@ public class StorageDriversInfo implements CoordinatorSerializable {
             }
             drivers.add(driverStr);
         }
+        info.setInstalledDrivers(drivers);
         return info;
     }
 

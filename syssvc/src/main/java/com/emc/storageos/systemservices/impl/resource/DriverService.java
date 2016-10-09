@@ -225,6 +225,12 @@ public class DriverService {
         // move to /data/drivers
         Files.move(f, new File(DriverManager.DRIVER_DIR + params.getDriverName()));
 
+        // insert meta data into db
+        StorageSystemType type = map(params);
+        type.setInstallStatus("Installing");
+        type.setDriverFileName(params.getDriverName());
+        dbClient.createObject(type);
+
         LocalRepository localRepo = LocalRepository.getInstance();
         // restart controller service
         localRepo.restart(DriverManager.CONTROLLER_SERVICE);
@@ -234,11 +240,6 @@ public class DriverService {
         info.setInstalledDrivers(localDrivers);
         coordinatorExt.setNodeSessionScopeInfo(info);
 
-        // insert meta data into db
-        StorageSystemType type = map(params);
-        type.setInstallStatus("Installing");
-        type.setDriverFileName(params.getDriverName());
-        dbClient.createObject(type);
         // update target list
         info = coordinator.getTargetInfo(StorageDriversInfo.class);
         if (info == null) {

@@ -151,19 +151,24 @@ def volume_detach(args):
 
 def volume_change_cos(args):
     bourne.connect(args.ip)
-    uri = bourne.volume_query(args.name)
+    uris = []
+    names = args.name.split(',')
+    for name in names:
+        uri = bourne.volume_query(name)
+        uris.append(uri)
     cos_uri = bourne.cos_query('block', args.cos)
     cg_uri= ''
     if (args.consistencyGroup):
         cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
     start = time.time()
-    tr = bourne.volume_change_cos(uri, cos_uri, cg_uri)
+    tr_list = bourne.volume_change_cos(uris, cos_uri, cg_uri, args.suspend)
     total = time.time() - start
-    print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
-    if (tr['state'] == 'ready'):
-        print 'Volume CoS change succeeded'
-    else:
-        print 'Volume CoS change failed.'
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume CoS change succeeded'
+        elif (tr['state'] != 'suspended_no_error'):
+            print 'Volume CoS change failed.'
+            sys.exit(1);
 
 def volume_change_cos_matches(args):
     bourne.connect(args.ip)
@@ -261,7 +266,12 @@ def volume_list(args):
     res = bourne.volume_list(args.project)
     for r in res:
         vol = bourne.volume_show(r['id'])
-        vol_display(vol)
+        storage = vol['storage_controller']
+        if (args.storage):
+            if (args.storage == storage):
+                vol_display(vol)
+        else:
+            vol_display(vol)
 
 def volume_bulkget(args):
     bourne.connect(args.ip)
@@ -468,9 +478,11 @@ detach.add_argument('name', help = 'Name of the full copy volume to be detached'
 
 # volume change_cos label cos
 change_cos = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-change_cos.add_argument('name',	help = 'name of volume whose cos is modified')
-change_cos.add_argument('cos', help = 'name of the cos')
+change_cos.add_argument('name',	help = 'names of all the volumes to change cos')
+change_cos.add_argument('cos', help = 'name of the new cos')
 change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
+change_cos.add_argument('--suspend', action='store_true', help = 'suspend the workflow before commit and delete of original source volume')
+
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -505,6 +517,7 @@ query.add_argument('name',	help = 'full pathname of volume')
 # volume list project
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 list.add_argument('project',	help = 'container project name')
+list.add_argument('--storage', help='URI of storage controller')
 
 # volume exports
 export_args = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

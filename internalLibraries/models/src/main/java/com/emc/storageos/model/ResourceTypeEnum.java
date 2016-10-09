@@ -78,10 +78,12 @@ public enum ResourceTypeEnum {
     VDC("virtual_data_center", "/vdc"),
     CATALOG_CATEGORY("catalog_category", "/catalog/categories"),
     CATALOG_SERVICE("catalog_service", "/catalog/services"),
+    CATALOG_SERVICE_FIELD("catalog_service_field", ""),
     CATALOG_IMAGE("catalog_image", "/catalog/images"),
     APPROVAL("approval", "/catalog/approvals"),
     EXECUTION_WINDOW("execution_window", "/catalog/execution-windows"),
     ORDER("order", "/catalog/orders"),
+    SCHEDULED_EVENT("scheduled_event", "/catalog/events"),
     TASK("task", "/vdc/tasks"),
     QUOTA_DIR("quota_dir", "/file/quotadirectories"),
     CUSTOM_CONFIG("controller_config", "/config/controller"),
@@ -96,7 +98,8 @@ public enum ResourceTypeEnum {
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
-    OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
+    OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
+    ACTIONABLE_EVENT("actionable_event", "/vdc/events");
 
     private final String type;
     private final String service;

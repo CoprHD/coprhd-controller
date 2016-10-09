@@ -1,0 +1,25 @@
+#{Modal.dialog id:'declineEvent'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'resources.events.declineEvent'}</h4> 
+  #{/Modal.header}
+  #{form @Events.declineEvents(), id:'createForm', class:'form form-horizontal'}
+    #{Modal.body}
+      #{if event == null }
+      <input type="hidden" name="ids" data-gather-selected-ids-for="events" />
+      #{/if}
+      #{else}
+      <input type="hidden" name="ids" value="${event.id}" />
+      #{/else}
+      <p>&{'resources.events.decline'}</p>
+      #{field 'confirm'}
+        %{ field.label = messages.get('resources.events.confirm') }%
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Modal.buttonBar}
+        #{Form.button 'resources.events.declineEvents', class:'primary', icon:'ok-sign', type:'submit'/}
+      #{/Modal.buttonBar}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}

@@ -23,6 +23,7 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
     public static final String APPROVAL_STATUS = "approvalStatus";
     public static final String APPROVED_BY = "approvedBy";
     public static final String ORDER_ID = "orderId";
+    public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
 
     private String message;
@@ -34,6 +35,8 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
     private String approvedBy;
 
     private URI orderId;
+
+    private URI scheduledEventId;
 
     private String tenant;
 
@@ -88,6 +91,17 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
     public void setOrderId(URI orderId) {
         this.orderId = orderId;
         setChanged(ORDER_ID);
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)
+    @Name(SCHEDULED_EVENT_ID)
+    public URI getScheduledEventId() {
+        return scheduledEventId;
+    }
+
+    public void setScheduledEventId(URI scheduledEventId) {
+        this.scheduledEventId = scheduledEventId;
+        setChanged(SCHEDULED_EVENT_ID);
     }
 
     @AlternateId("TenantToApprovalRequest")

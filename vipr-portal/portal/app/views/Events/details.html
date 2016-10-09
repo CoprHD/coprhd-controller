@@ -31,9 +31,9 @@ margin-bottom: 5px;
     </div>  
     
     <div class="pull-right">
-    #{if event.eventStatus.toString() == 'pending'}
-          <a class="btn btn-success" href="@{approveEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
-          <a class="btn btn-warning" href="@{declineEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
+    #{if event.eventStatus.toString() == 'pending' || event.eventStatus.toString() == 'failed'}
+          <a class="btn btn-success" href="#" onclick="$('#approveEvent').modal('show');"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
+          <a class="btn btn-warning" href="#" onclick="$('#declineEvent').modal('show');"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
 	#{/if}
     </div>
     
@@ -54,8 +54,38 @@ margin-bottom: 5px;
       <dt>&{'events.description'}:</dt>
       <dd>{{event.description}}&nbsp;</dd>
 
+      <dt>&{'events.warning'}:</dt>
+      <dd>{{event.warning}}&nbsp;</dd>
+
       <dt>&{'events.created'}:</dt>
       <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
+      
+      #{if event.eventStatus.toString() != 'pending'}
+	  <dt>&{'events.executionTime'}:</dt>
+	  <dd id="executionTime">{{getLocalDateTime($('#executionTime'),event.eventExecutionTime)}}&nbsp;</dd>
+	  #{/if}
+      
+       <dt>&{'events.approveDetails'}:</dt>
+	   <dd>
+          #{list approveDetails, as:'detail'}
+		    <li> ${detail}
+		  #{/list}&nbsp;
+	   </dd>
+	   
+	   <dt>&{'events.declineDetails'}:</dt>
+	   <dd>
+		 #{list declineDetails, as:'detail'}
+		    <li> ${detail}
+		 #{/list}&nbsp;
+	   </dd>
+	   
+      <dt>&{'events.tasks'}:</dt>
+      <dd>
+      #{list tasks, as:'task'}
+      <a href="@{Tasks.details(task.id)}">${task.name}</a>#{if !task_isLast}, #{/if}
+      #{/list}
+      #{else}&nbsp;#{/else}
+      </dd>
     </dl>
     
    <div class="alert alert-danger" ng-show="event.isError">
@@ -72,6 +102,9 @@ margin-bottom: 5px;
   #{/else}
 </div>
 
+#{include 'Events/approveEvents.html'/}  
+#{include 'Events/declineEvents.html'/}  
+
 #{set 'moreScripts'}
 #{get 'moreScripts' /}
 <script type="text/javascript">
@@ -81,49 +114,6 @@ function renderTime(o, val) {
 	  return render.localDate(o,time_ms)
   }
   return "";
-}
-
-function renderSeverity(o, val) {
-  var severity = o.aData.severity;
-  if (severity) {
-    severity = severity.toUpperCase();
-    subClass = ""
-	if ("FATAL" == severity) {
-      subClass = "label-danger"
-	}
-	else if ("EMERG" == severity) {
-	  subClass = "label-danger"
-	}
-	else if ("ALERT" == severity) {
-	  subClass = "label-danger"
-	}
-	else if ("CRIT" == severity) {
-	  subClass = "label-danger"
-	}
-	else if ("ERROR" == severity) {
-	  subClass = "label-danger"
-	}
-	else if ("WARN" == severity) {
-	  subClass = "label-warning"
-	}
-	else if ("NOTICE" == severity) {
-	  subClass = "label-warning"
-	}				
-	else if ("INFO" == severity) {
-	  subClass = "label-info"
-	}
-	else if ("DEBUG" == severity) {
-	  subClass = ""
-	}
-	else if ("TRACE" == severity) {
-	  subClass = ""
-	}				
-	else {
-	  subClass = "label-inverse"
-	}   
-	
-	return "<div style='width:50px' class='text-center label " + subClass + "'>" + severity + "</div>"
-  }
 }
 
 function renderMessage(o, val) {

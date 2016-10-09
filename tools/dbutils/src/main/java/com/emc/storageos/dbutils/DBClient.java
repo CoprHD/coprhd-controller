@@ -29,6 +29,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -56,9 +58,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
@@ -71,6 +70,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import com.datastax.driver.core.Token;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -82,6 +82,9 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.client.model.Cf;
@@ -91,6 +94,7 @@ import com.emc.storageos.db.client.model.Event;
 import com.emc.storageos.db.client.model.EventTimeSeries;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.ProxyToken;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StatTimeSeries;
@@ -111,7 +115,6 @@ import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
-
 /**
  * DBClient - uses coordinator to find the service
  */
@@ -119,6 +122,8 @@ public class DBClient {
     private static final Logger log = LoggerFactory.getLogger(DBClient.class);
 
     private static final String pkgs = "com.emc.storageos.db.client.model";
+
+    private static final Set<Class> inactiveIsNullClass = new HashSet<>(Arrays.asList(Token.class, ProxyToken.class));
 
     private static final String QUITCHAR = "q";
     private int listLimit = 100;
@@ -507,9 +512,10 @@ public class DBClient {
     }
 
     private static class AuditQueryResult implements TimeSeriesQueryResult<AuditLog> {
-        private StringBuilder builder = new StringBuilder("<audits>");
+        //Should guarantee of synchronization
+        private StringBuffer buffer = new StringBuffer("<audits>");
+        private AtomicInteger recCount = new AtomicInteger(0);
         private String filename = null;
-        private int recCount = 0;
 
         AuditQueryResult(String filename) {
             this.filename = filename;
@@ -519,15 +525,15 @@ public class DBClient {
         public void data(AuditLog data, long insertionTimeMs) {
             BuildXML<AuditLog> xmlBuilder = new BuildXML<AuditLog>();
             String xml = xmlBuilder.writeAsXML(data, "audit");
-            builder.append(xml);
-            ++recCount;
+            buffer.append(xml);
+            recCount.addAndGet(1);
         }
 
         @Override
         public void done() {
-            builder.append("</audits>");
+            buffer.append("</audits>");
             XMLWriter writer = new XMLWriter();
-            writer.writeXMLToFile(builder.toString(), filename);
+            writer.writeXMLToFile(buffer.toString(), filename);
             BuildXML.count = 0;
             System.out.println(" -> Querying For audits completed and count of the audits found are : " + recCount);
         }
@@ -695,10 +701,10 @@ public class DBClient {
      * Get the column family row count
      * 
      * @param cfName
-     * @param isActive
+     * @param isActiveOnly
      */
     @SuppressWarnings("unchecked")
-    public int getRowCount(String cfName, boolean isActive) throws Exception {
+    public int getRowCount(String cfName, boolean isActiveOnly) throws Exception {
         Class clazz = _cfMap.get(cfName); // fill in type from cfName
         int rowCount = 0;
         if (clazz == null) {
@@ -706,7 +712,7 @@ public class DBClient {
             return -1;
         }
         List<URI> uris = null;
-        uris = getColumnUris(clazz, isActive);
+        uris = getColumnUris(clazz, isActiveOnly);
         if (uris == null || !uris.iterator().hasNext()) {
             System.out.println(String.format(PRINT_COUNT_RESULT, cfName, rowCount));
             return -1;
@@ -728,15 +734,31 @@ public class DBClient {
     /**
      * get the keys of column family for list/count
      */
-    private List<URI> getColumnUris(Class clazz, boolean isActive) {
+    private List<URI> getColumnUris(Class clazz, boolean isActiveOnly) {
         List<URI> uris = null;
         try {
-            uris = _dbClient.queryByType(clazz, isActive);
+            if (onlySupportActiveOnlyIsFalse(clazz)) {
+                uris = _dbClient.queryByType(clazz, false);
+            } else {
+                uris = _dbClient.queryByType(clazz, isActiveOnly);
+            }
         } catch (DatabaseException e) {
             System.err.println("Error querying from db: " + e);
             return null;
         }
         return uris;
+    }
+
+    /**
+     * Some model classes do not use .inactive field at all, which means all object instances with .inactive == null,
+     * so When querying , can only specify activeOnly == false, otherwise will get nothing.
+     * Forward to {@link com.emc.storageos.db.client.impl.DbClientImpl#queryByType} for more detail.
+     */
+    private boolean onlySupportActiveOnlyIsFalse(Class clazz) {
+        if (inactiveIsNullClass.contains(clazz)) {
+            return true;
+        }
+        return false;
     }
 
     public void setListLimit(int listLimit) {
@@ -1374,6 +1396,9 @@ public class DBClient {
 
                 _dbClient.updateObject(newObject);
                 logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));
+                runResult = true;
+            } else {
+                logMsg(String.format("Could not find data object record for %s in cf %s, no need to rebuild index. Mark as success too.", id, clazz));
                 runResult = true;
             }
         } catch (Exception e) {

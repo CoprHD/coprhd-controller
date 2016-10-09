@@ -283,7 +283,7 @@ public class StorageSystemService extends TaskResourceService {
             ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
                     Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
                             StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.unity));
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.unity, StorageSystem.Type.hp3par));
         }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
@@ -1881,11 +1881,16 @@ public class StorageSystemService extends TaskResourceService {
         UnManagedFileSystemList unManagedFileSystemList = new UnManagedFileSystemList();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceUnManagedFileSystemConstraint(id), result);
-        while (result.iterator().hasNext()) {
-            URI unManagedFileSystemUri = result.iterator().next();
+        
+        Iterator<UnManagedFileSystem> unmanagedFileSystemItr = _dbClient.queryIterativeObjects(
+                UnManagedFileSystem.class, result, true);
+        
+        while(unmanagedFileSystemItr.hasNext()){
+            UnManagedFileSystem umfs = unmanagedFileSystemItr.next();
             unManagedFileSystemList.getUnManagedFileSystem()
-                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, unManagedFileSystemUri));
+            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, umfs.getId()));
         }
+        
         return unManagedFileSystemList;
     }
 

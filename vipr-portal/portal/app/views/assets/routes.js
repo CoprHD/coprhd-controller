@@ -37,11 +37,13 @@ var routes = {
   Tasks_countSummary: #{jsAction @Tasks.getCountSummary(':tenantId') /},
   
   Events_countSummary: #{jsAction @Events.getCountSummary(':tenantId') /},
-  Events_pendingEventCount: #{jsAction @Events.getPendingCount() /},
+  Events_pendingAndFailedEventCount: #{jsAction @Events.getPendingAndFailedCount() /},
+  Events_details: #{jsAction @Events.details(':id') /},
 
   BlockVolumes_volume: #{jsAction @resources.BlockVolumes.volume(':volumeId') /},
   BlockExportGroups_exportGroup: #{jsAction @resources.BlockExportGroups.exportGroup(':exportGroupId')/},
   FileSystems_fileSystem: #{jsAction @resources.FileSystems.fileSystem(':fileSystemId')/}, 
+  FileSystems_validateQuotaSize: #{jsAction @resources.FileSystems.validateQuotaSize(':quotaSize')/},
   FileSnapshots_snapshot: #{jsAction @resources.FileSnapshots.snapshot(':snapshotId')/},
   BlockSnapshots_snapshotDetails: #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId')/},
   Hosts_edit: #{jsAction @compute.Hosts.edit(':id')/},

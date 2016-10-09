@@ -53,6 +53,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolAutoTieringPolicyChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 
@@ -146,28 +147,25 @@ public class BlockDeviceExportController implements BlockExportController {
         Workflow workflow = null;
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
-            if (exportGroup.getExportMasks() != null) {
+            if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 workflow = _wfUtils.newWorkflow("exportGroupDelete", false, opId);
 
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
-                Set<String> tempMaskURIStrSet = new HashSet<String>(exportGroup.getExportMasks());
-                for (String maskURIString : tempMaskURIStrSet) {
-                    URI exportMaskURI = URI.create(maskURIString);
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
-                            exportMaskURI);
+                List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                for (ExportMask tempExportMask : tempExportMasks) {               
                     List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                             _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
-                            StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), exportMask.getStorageDevice());
+                            StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), tempExportMask.getStorageDevice());
                     boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                             workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
                     if (!acquiredLocks) {
                         throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                                 "ExportGroupDelete: " + exportGroup.getLabel());
                     }
-                    if (exportMask != null && exportMask.getVolumes() != null) {
+                    if (tempExportMask != null && tempExportMask.getVolumes() != null) {
                         List<URI> uriList = getExportRemovableObjects(
-                                exportGroup, exportMask);
+                                exportGroup, tempExportMask);
                         Map<URI, List<URI>> storageToVolumes = getStorageToVolumes(uriList);
                         for (URI storageURI : storageToVolumes.keySet()) {
 
@@ -179,7 +177,7 @@ public class BlockDeviceExportController implements BlockExportController {
                             }
                         }
                     } else {
-                        exportGroup.removeExportMask(exportMaskURI);
+                        exportGroup.removeExportMask(tempExportMask.getId());
                         _dbClient.persistObject(exportGroup);
                     }
                 }
@@ -241,9 +239,9 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         }
         _log.info(String.format("Export Group being removed contains block objects: { %s }",
-                Joiner.on(',').join(exportGroup.getVolumes().keySet())));
+                exportGroup.getVolumes() != null ? Joiner.on(',').join(exportGroup.getVolumes().keySet()) : "NONE"));
         _log.info(String.format("Export Mask being analyzed contains block objects: { %s }",
-                Joiner.on(',').join(exportMask.getVolumes().keySet())));
+                exportMask.getVolumes() != null ? Joiner.on(',').join(exportMask.getVolumes().keySet()) : "NONE"));
         _log.info(String.format("Block Objects being sent in for removal: { %s }",
                 Joiner.on(',').join(uriList)));
         return uriList;
@@ -680,19 +678,18 @@ public class BlockDeviceExportController implements BlockExportController {
 
     private ExportMask getExportMask(URI exportGroupUri, URI storageUri) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-        if (exportGroup.getExportMasks() != null) {
-            for (String uri : exportGroup.getExportMasks()) {
-                try {
-                    ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(uri));
-                    if (mask.getStorageDevice().equals(storageUri)) {
-                        return mask;
-                    }
-                } catch (Exception ex) {
-                    // I need to log the fact that I got a bad export mask URI
-                    _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
+    
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
+            try {               
+                if (exportMask.getStorageDevice().equals(storageUri)) {
+                    return exportMask;
                 }
+            } catch (Exception ex) {
+                // I need to log the fact that I got a bad export mask URI
+                _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
             }
         }
+        
         return null;
     }
 

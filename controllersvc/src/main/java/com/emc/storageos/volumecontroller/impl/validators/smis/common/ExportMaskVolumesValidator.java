@@ -4,38 +4,32 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
-
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import java.util.Collection;
+import java.util.Set;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 
 /**
  * This subclass of {@link AbstractExportMaskValidator} will:
- * 1) Query expected {@link Volume} instances and transform them into their respective native IDs
+ * 1) Query expected {@link BlockObject} instances and transform them into their respective native IDs
  * 2) Query SMI-S for CIM_StorageVolume.DeviceID instance properties associated to the given export mask.
  */
 public class ExportMaskVolumesValidator extends AbstractExportMaskValidator {
 
-    private final Collection<URI> expectedVolumeURIs;
+    private final Collection<? extends BlockObject> blockObjects;
 
-    public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask, Collection<URI> expectedVolumeURIs) {
-        super(storage, exportMask, "volumes");
-        this.expectedVolumeURIs = expectedVolumeURIs;
+    public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
+                                      Collection<? extends BlockObject> blockObjects) {
+        super(storage, exportMask, FIELD_VOLUMES);
+        this.blockObjects = blockObjects;
     }
 
     @Override
@@ -55,48 +49,12 @@ public class ExportMaskVolumesValidator extends AbstractExportMaskValidator {
 
     @Override
     protected Set<String> getDatabaseResources() {
-        if (expectedVolumeURIs == null || expectedVolumeURIs.isEmpty()) {
+        if (blockObjects == null || blockObjects.isEmpty()) {
             return Sets.newHashSet();
         }
 
-        List<? extends BlockObject> blockObjects = getBlockObjects();
         Collection<String> transformed = Collections2.transform(blockObjects, fctnBlockObjectToNativeID());
         return Sets.newHashSet(transformed);
-    }
-
-    /**
-     * Returns the expected resource URIs as BlockObject instances, as we may be
-     * expecting BlockSnapshot and Volume instances.
-     *
-     * @return A List of BlockObject
-     */
-    private List<? extends BlockObject> getBlockObjects() {
-        List<? extends BlockObject> blockObjects = Lists.newArrayList();
-        Map<Class, List<URI>> boTypeToURIs = groupExpectedURIsByType();
-
-        for (Map.Entry<Class, List<URI>> entry : boTypeToURIs.entrySet()) {
-            List objects = getDbClient().queryObject(entry.getKey(), entry.getValue());
-            blockObjects.addAll(objects);
-        }
-        return blockObjects;
-    }
-
-    /**
-     * Groups the expected resource URIs by their type.
-     *
-     * @return Map of model classes to a list of URIs
-     */
-    private Map<Class, List<URI>> groupExpectedURIsByType() {
-        Map<Class, List<URI>> boTypeToURIs = Maps.newHashMap();
-        for (URI expectedVolumeURI : expectedVolumeURIs) {
-            Class modelClass = URIUtil.getModelClass(expectedVolumeURI);
-
-            if (!boTypeToURIs.containsKey(modelClass)) {
-                boTypeToURIs.put(modelClass, Lists.<URI> newArrayList());
-            }
-            boTypeToURIs.get(modelClass).add(expectedVolumeURI);
-        }
-        return boTypeToURIs;
     }
 
 }

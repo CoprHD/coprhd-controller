@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -396,23 +397,6 @@ public class DbClientContext {
         cassandraSession.execute(createKeySpace);
     }
 
-    public void waitForSchemaAgreement() {
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            if (cassandraCluster.getMetadata().checkSchemaAgreement()) {
-                log.info("schema agreement achieved");
-                return;
-            }
-
-            log.info("waiting for schema change ...");
-            try {
-                Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
-            } catch (InterruptedException ex) {}
-        }
-
-        log.warn("Unable to achieve schema agressment");
-   }
-
     /**
      * Remove a specific dc from strategy options, and wait till the new schema reaches all sites.
      * If the dc doesn't exist in the current strategy options, nothing changes.
@@ -474,6 +458,53 @@ public class DbClientContext {
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");
+    }
+
+    /**
+     * Return if there's only one version which is specified target version across the cluster
+     * Don't check if all nodes are of this version
+     */
+    public void waitForSchemaAgreement() {
+        waitForSchemaAgreement(-1);
+    }
+
+    /**
+     * Waits for schema change to propagate through all nodes of cluster
+     * It doesn't check if all nodes are of this version when nodeCount == -1
+     *
+     * @param targetSchemaVersion version we are waiting for
+     * @throws InterruptedException
+     */
+    public void waitForSchemaAgreement(int nodeCount) {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
+            if (cassandraCluster.getMetadata().checkSchemaAgreement()) {
+                log.info("schema agreement achieved");
+                return;
+            }
+            
+            //TODO revivit these logic later
+            /*if (nodeCount != -1) { // need to check if all nodes converged to target version
+                List<String> hosts = null;
+                for (Entry<String, List<String>> entry : versions.entrySet()) {
+                    hosts = entry.getValue();
+                }
+                if (hosts != null && hosts.size() == nodeCount) {
+                    log.info("schema versions converged, required node count achieved: {}", nodeCount);
+                    return;
+                }
+            } else {
+                log.info("schema versions converged, no check for node count");
+                return;
+            }*/
+
+            log.info("waiting for schema change ...");
+            try {
+                Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {}
+        }
+
+        log.warn("Unable to achieve schema agressment");
     }
 
     /**

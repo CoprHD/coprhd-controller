@@ -23,6 +23,8 @@ import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -64,14 +66,15 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
                 String errorMessage = "No Isilon REST API client found for: " + _storageSystemUri;
                 processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
             } else {
-                _pollResult.setJobName(_jobName);
+            	_pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
-                IsilonSyncPolicy policy = null;
+            	IsilonSyncTargetPolicy policy = null;
                 IsilonSyncPolicy.JobState policyState = null;
                 policy = isiApiClient.getTargetReplicationPolicy(currentJob);
                 policyState = policy.getLastJobState();
-                if (policyState != null && policyState.equals(JobState.running)) {
-                    _status = JobStatus.IN_PROGRESS;
+                if (policyState != null && policyState.equals(JobState.running) || 
+                		policy.equals(FOFB_STATES.enabling_writes)) {
+                    _status = JobStatus.IN_PROGRESS;  
                 } else if (policyState != null && policyState.equals(JobState.finished)) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);

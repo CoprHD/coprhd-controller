@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.impl;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,19 +26,23 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.exceptions.DriverException;
+
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
-    private static final int INDEX_OBJECTS_BATCH_SIZE = 10000;
+    private static final int INDEX_OBJECTS_BATCH_SIZE = 1000;
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
 
     private DbClientImpl dbClient;
+    private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
 
     public DbConsistencyCheckerHelper() {
     }
@@ -54,8 +59,15 @@ public class DbConsistencyCheckerHelper {
      */
     public int checkDataObject(DataObjectType doType, boolean toConsole) {
         int dirtyCount = 0;
-        _log.info("Check CF {}", doType.getDataObjectClass().getName());
-
+        Class<? extends DataObject> dataObjectClass = doType.getDataObjectClass();
+        
+		_log.info("Check CF {}", dataObjectClass.getName());
+        
+        if (excludeClasses.contains(dataObjectClass)) {
+        	_log.info("Skip CF {} since its URI is special", dataObjectClass);
+        	return 0;
+        }
+        
         try {
             String queryString = String.format("select key from \"%s\"", doType.getCF().getName());
             SimpleStatement queryStatement = new SimpleStatement(queryString);
@@ -64,20 +76,17 @@ public class DbConsistencyCheckerHelper {
             ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(queryStatement);
             
             for (Row row : resultSet) {
+                String key = row.getString(0);
                 try {
-                    URI uri = URI.create(row.getString(0));
-                    try {
-                        dbClient.queryObject(doType.getDataObjectClass(), uri);
-                    } catch (Exception ex) {
+                    if (!isValidDataObjectKey(URI.create(key), dataObjectClass)) {
                         dirtyCount++;
-                        logMessage(String.format(
-                                "Inconsistency found: Fail to query object for '%s' with err %s ",
-                                uri, ex.getMessage()), true, toConsole);
+                        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
+                                key, dataObjectClass.getName()), true, toConsole);
                     }
                 } catch (Exception ex) {
                     dirtyCount++;
                     logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
-                    		row.getString(0), doType.getDataObjectClass()
+                    		key, doType.getDataObjectClass()
                                     .getName(),
                             ex.getMessage()), true, toConsole);
                 }
@@ -102,12 +111,11 @@ public class DbConsistencyCheckerHelper {
         Class objClass = doType.getDataObjectClass();
         _log.info("Check Data Object CF {}", objClass);
 
-        List<ColumnField> indexedFields = new ArrayList<>();
+        Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
         for (ColumnField field : doType.getColumnFields()) {
-            if (field.getIndex() == null) {
-                continue;
+            if (field.getIndex() != null) {
+            	indexedFields.put(field.getName(), field);
             }
-            indexedFields.add(field);
         }
 
         if (indexedFields.isEmpty()) {
@@ -132,41 +140,45 @@ public class DbConsistencyCheckerHelper {
 
             ids.add(URI.create(key));
             
-            for (ColumnField indexedField : indexedFields) {
-				Map<String, List<CompositeColumnName>> result = dbClient
-						.queryRowsWithAColumn(
-								dbClient.getDbClientContext(doType
-										.getDataObjectClass()), ids, doType
-										.getCF().getName(), indexedField);
-            	for (String rowKey : result.keySet()) {
-                    List<CompositeColumnName> rows = result.get(rowKey);
-                    for (CompositeColumnName column : rows) {
-                        // we don't build index if the value is null, refer to ColumnField.
-                        if (column == null) {
-                            continue;
-                        }
-                        
-                        String indexKey = getIndexKey(indexedField, column);
-                        if (indexKey == null) {
-                            continue;
-                        }
-                        
-                        boolean isColumnInIndex = isColumnInIndex(doType, indexedField.getIndexCF().getName(), indexKey,
-                                getIndexColumns(indexedField, column, rowKey));
-                        if (!isColumnInIndex) {
-                            dirtyCount++;
-                            logMessage(String.format(
-                                    "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
-                                    indexedField.getDataObjectType().getSimpleName(), rowKey, indexedField.getName(),
-                                    indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
-                                    true, toConsole);
-                            DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
-                                    String.format("id:%s, cfName:%s", rowKey,
-                                            indexedField.getDataObjectType().getSimpleName()));
-                        }
+			Map<String, List<CompositeColumnName>> result = dbClient
+					.queryRowsWithAllColumns(
+							dbClient.getDbClientContext(doType
+									.getDataObjectClass()), ids, doType
+									.getCF().getName());
+        	for (String rowKey : result.keySet()) {
+                List<CompositeColumnName> rows = result.get(rowKey);
+                for (CompositeColumnName column : rows) {
+                    // we don't build index if the value is null, refer to ColumnField.
+                    if (column == null) {
+                        continue;
+                    }
+                    
+                    if (!indexedFields.containsKey(column.getOne())) {
+                        continue;
+                    }
+                    
+                    ColumnField indexedField = indexedFields.get(column.getOne());
+                    String indexKey = getIndexKey(indexedField, column);
+                    if (indexKey == null) {
+                        continue;
+                    }
+                    
+                    boolean isColumnInIndex = isColumnInIndex(doType, indexedField.getIndexCF().getName(), indexKey,
+                            getIndexColumns(indexedField, column, rowKey));
+                    if (!isColumnInIndex) {
+                        dirtyCount++;
+                        logMessage(String.format(
+                                "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                                indexedField.getDataObjectType().getSimpleName(), rowKey, indexedField.getName(),
+                                indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                                true, toConsole);
+                        DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
+                                String.format("id:%s, cfName:%s", rowKey,
+                                        indexedField.getDataObjectType().getSimpleName()));
                     }
                 }
             }
+            
         }
 
         return dirtyCount;
@@ -230,7 +242,6 @@ public class DbConsistencyCheckerHelper {
             if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
                 corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
             }
-            
         }
 
         // Detect whether the DataObject CFs have the records
@@ -613,5 +624,9 @@ public class DbConsistencyCheckerHelper {
 
     public void setDbClient(DbClientImpl dbClient) {
         this.dbClient = dbClient;
+    }
+    
+    private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
+    	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
     }
 }

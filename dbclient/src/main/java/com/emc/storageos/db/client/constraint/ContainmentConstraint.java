@@ -37,17 +37,17 @@ import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.FileMountInfo;
-import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -71,6 +71,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -79,6 +80,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.Order;
 
 /**
  * Containment constraint. For example, relationship between StorageDevice and
@@ -382,6 +384,12 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("workflow");
             return new ContainmentConstraintImpl(workflow, WorkflowStep.class, field);
         }
+        
+        public static ContainmentConstraint getWorkflowStepDataConstraint(URI workflow) {
+            DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
+            ColumnField field = doType.getColumnField("workflow");
+            return new ContainmentConstraintImpl(workflow, WorkflowStepData.class, field);
+        }
 
         public static Constraint getProjectProtectionSetConstraint(URI project) {
             DataObjectType doType = TypeMap.getDoType(ProtectionSet.class);
@@ -650,6 +658,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(resourceId, ActionableEvent.class, field);
         }
 
+        public static ContainmentConstraint getAffectedResourceEventConstraint(URI resourceId) {
+            DataObjectType doType = TypeMap.getDoType(ActionableEvent.class);
+            ColumnField field = doType.getColumnField("affectedResources");
+            return new ContainmentConstraintImpl(resourceId, ActionableEvent.class, field);
+        }
+
         public static ContainmentConstraint getTenantOrgTaskConstraint(URI tenantId) {
             DataObjectType doType = TypeMap.getDoType(Task.class);
             ColumnField field = doType.getColumnField("tenant");
@@ -816,5 +830,12 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("volume");
             return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
         }
+
+        public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField("scheduledEventId");
+            return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
+        }
+
     }
 }

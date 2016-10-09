@@ -72,10 +72,6 @@ public class VCenterUtils {
         return getViprClient().vcenters().deactivate(vcenterId, detachStorage);
     }
 
-    public static Task<VcenterRestRep> detachStorage(URI vcenterId) {
-        return getViprClient().vcenters().detachStorage(vcenterId);
-    }
-
     public static List<VcenterDataCenterRestRep> getDataCentersInVCenter(VcenterRestRep vcenter, URI tenantId) {
         return getViprClient().vcenterDataCenters().getByVcenter(id(vcenter), tenantId);
     }

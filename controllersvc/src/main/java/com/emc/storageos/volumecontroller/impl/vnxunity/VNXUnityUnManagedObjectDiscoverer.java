@@ -1207,8 +1207,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
                     VNXUnityQuotaConfig qc = apiClient.getQuotaConfigById(quota.getQuotaConfigId());
 
-                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = getExistingUnManagedQuotaDirectory(dbClient, nativeUnmanagedGUID);
+                    boolean existingUnManagedQD = true;
+                    if (unManagedFileQuotaDirectory == null){                      
+                         unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                         existingUnManagedQD = false;
+                         unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    }
                     unManagedFileQuotaDirectory.setLabel(quota.getPath().substring(1));
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
@@ -1223,7 +1228,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedFileQuotaDirectory.setSoftLimit(softLimit.intValue());
                     unManagedFileQuotaDirectory.setNotificationLimit(0);
                     unManagedFileQuotaDirectory.setNativeId(quota.getId());
-                    if (!checkUnManagedQuotaDirectoryExistsInDB(dbClient, nativeUnmanagedGUID)) {
+                    if (!existingUnManagedQD) { 
                         unManagedTreeQuotaInsert.add(unManagedFileQuotaDirectory);
                     } else {
                         unManagedTreeQuotaUpdate.add(unManagedFileQuotaDirectory);
@@ -1249,15 +1254,18 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
     }
 
-    private boolean checkUnManagedQuotaDirectoryExistsInDB(DbClient _dbClient, String nativeGuid)
+    private UnManagedFileQuotaDirectory getExistingUnManagedQuotaDirectory(DbClient _dbClient, String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();
+        UnManagedFileQuotaDirectory existingUmQd = null;
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
-        if (result.iterator().hasNext()) {
-            return true;
+        Iterator<URI> iter = result.iterator();
+        if (iter.hasNext()) {
+            URI unManagedFSQDUri = iter.next();
+            existingUmQd = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, unManagedFSQDUri);
         }
-        return false;
+        return existingUmQd;
     }
 
     /**

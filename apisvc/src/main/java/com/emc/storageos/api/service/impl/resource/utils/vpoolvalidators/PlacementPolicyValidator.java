@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
 
+import org.springframework.util.CollectionUtils;
+
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
@@ -16,7 +18,12 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionUpdateParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.ProtectionSourcePolicy;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
+import com.emc.storageos.model.vpool.VirtualPoolProtectionRPChanges;
+import com.emc.storageos.model.vpool.VirtualPoolProtectionRPParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -141,8 +148,27 @@ public class PlacementPolicyValidator extends VirtualPoolValidator<BlockVirtualP
      */
     private void validateProtection(BlockVirtualPoolProtectionParam protectionParam) {
         if (protectionParam != null) {
-            if (protectionParam.getRecoverPoint() != null || protectionParam.getRemoteCopies() != null) {
-                throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+            VirtualPoolProtectionRPParam rpParam = protectionParam.getRecoverPoint();
+            if (rpParam != null) {
+                if (!CollectionUtils.isEmpty(rpParam.getCopies())) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
+
+                ProtectionSourcePolicy rpPolicy = rpParam.getSourcePolicy();
+                if (rpPolicy != null &&
+                        (rpPolicy.getJournalSize() != null || rpPolicy.getJournalVarray() != null ||
+                         rpPolicy.getJournalVpool() != null || rpPolicy.getRemoteCopyMode() != null ||
+                         rpPolicy.getRpoType() != null || rpPolicy.getRpoValue() != null ||
+                         rpPolicy.getStandbyJournalVarray() != null || rpPolicy.getStandbyJournalVpool() != null)) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
+            }
+
+            VirtualPoolRemoteMirrorProtectionParam remoteProtection = protectionParam.getRemoteCopies();
+            if (remoteProtection != null) {
+                if (!CollectionUtils.isEmpty(remoteProtection.getRemoteCopySettings())) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
             }
         }
     }
@@ -156,8 +182,21 @@ public class PlacementPolicyValidator extends VirtualPoolValidator<BlockVirtualP
      */
     private void validateProtection(BlockVirtualPoolProtectionUpdateParam protectionParam, VirtualPool vPool) {
         if (protectionParam != null) {
-            if (protectionParam.getRecoverPoint() != null || protectionParam.getRemoteCopies() != null) {
-                throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+            VirtualPoolProtectionRPChanges rpChanges = protectionParam.getRecoverPoint();
+            if (rpChanges != null) {
+                if ((rpChanges.getAdd() != null && !rpChanges.getAdd().isEmpty()) ||
+                        (rpChanges.getRemove() != null && !rpChanges.getRemove().isEmpty())
+                        || rpChanges.getSourcePolicy() != null) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
+            }
+
+            VirtualPoolRemoteProtectionUpdateParam remoteCopies = protectionParam.getRemoteCopies() ;
+            if (remoteCopies != null) {
+                if ((remoteCopies.getAdd() != null && !remoteCopies.getAdd().isEmpty()) ||
+                        (remoteCopies.getRemove() != null && !remoteCopies.getRemove().isEmpty())) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
             }
         } else if (vPool != null) {
             if (VirtualPool.vPoolSpecifiesProtection(vPool) || VirtualPool.vPoolSpecifiesSRDF(vPool)) {

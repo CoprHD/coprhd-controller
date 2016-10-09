@@ -44,7 +44,7 @@ log4j.appender.SYSLOG.SyslogHost=localhost
 log4j.appender.SYSLOG.Facility=local2
 log4j.appender.SYSLOG.Header=true
 log4j.appender.SYSLOG.layout=org.apache.log4j.PatternLayout
-log4j.appender.SYSLOG.layout.ConversionPattern=vipr $(hostname) ${svc} %d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.SYSLOG.layout.ConversionPattern=vipr $(hostname) ${svc} %d{ISO8601} %-5p %c{1}:%L - %m%n
 
 log4j.appender.AUDITSYSLOG=org.apache.log4j.net.SyslogAppender
 log4j.appender.AUDITSYSLOG.Threshold=${logLevel}
@@ -52,7 +52,7 @@ log4j.appender.AUDITSYSLOG.SyslogHost=localhost
 log4j.appender.AUDITSYSLOG.Facility=local2
 log4j.appender.AUDITSYSLOG.Header=true
 log4j.appender.AUDITSYSLOG.layout=org.apache.log4j.PatternLayout
-log4j.appender.AUDITSYSLOG.layout.ConversionPattern=vipr $(hostname) AuditLog %d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.AUDITSYSLOG.layout.ConversionPattern=vipr $(hostname) AuditLog %d{ISO8601} %-5p %c{1}:%L - %m%n
 log4j.logger.AuditLog=${logLevel},AUDITSYSLOG
 log4j.additivity.AuditLog=false
 EOF
@@ -159,6 +159,20 @@ $FileGroup root
 # Adding a selective ACL for the user storageos would be better.
 # - Unfortunately neither rsyslog nor logrotate support ACLs out of the box.
 $FileCreateMode 0644
+EOF
+if [ "$syslog_enable" == "True" ]; then
+    cat << 'EOF' >> ${syslogConf}
+*.*;mail.none;local2.none   -/var/log/messages;vipr_log_format
+$FileOwner root
+$FileGroup root
+$FileCreateMode 0644
+
+# Some foreign boot scripts require local7
+local0,local1.*  -/var/log/localmessages
+local3.*  -/var/log/localmessages
+EOF
+else
+    cat << 'EOF' >> ${syslogConf}
 *.*;mail.none   -/var/log/messages;vipr_log_format
 $FileOwner root
 $FileGroup root
@@ -167,6 +181,9 @@ $FileCreateMode 0644
 # Some foreign boot scripts require local7
 local0,local1.*  -/var/log/localmessages
 local2,local3.*  -/var/log/localmessages
+EOF
+fi
+    cat << 'EOF' >> ${syslogConf}
 local4,local5.*  -/var/log/localmessages
 local6,local7.*  -/var/log/localmessages
 
@@ -203,7 +220,8 @@ if [ "$syslog_enable" == "True" ]; then
     fi
     # delete the ip port line generated last time
     sed -i '/^*.*/d' ${remote_conf}
-    if [ "${_GENCONFIG_system_syslog_enabletls}" == "no" ];then
+    sed -i '/^\$/d' ${remote_conf}
+    if [ "${syslog_transport_protocol}" != "TLS" ];then
     # Forward the messages to the remote syslog servers through UDP or TCP
         for server_port in $(echo ${syslog_remote_servers_ports} |sed 's/,/ /g')
         do

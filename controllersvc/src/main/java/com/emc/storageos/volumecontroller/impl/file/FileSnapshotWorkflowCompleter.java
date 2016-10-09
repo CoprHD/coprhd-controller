@@ -44,6 +44,22 @@ public class FileSnapshotWorkflowCompleter extends FileTaskCompleter {
                     WorkflowStepCompleter.stepSucceded(getOpId());
                 }
                 break;
+            case suspended_error:
+                for (URI id : getIds()) {
+                    dbClient.suspended_error(Snapshot.class, id, getOpId(), serviceCoded);
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSuspendedError(getOpId(), serviceCoded);
+                }
+                break;
+            case suspended_no_error:
+                for (URI id : getIds()) {
+                    dbClient.suspended_no_error(Snapshot.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSuspendedNoError(getOpId());
+                }
+                break;
             default:
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepExecuting(getOpId());

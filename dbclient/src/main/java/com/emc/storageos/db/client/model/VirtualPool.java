@@ -125,6 +125,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private String _frRpoType;
     // File Replication RPO type
     private String _fileReplicationCopyMode;
+    
+    // for all flash vmax3 arrays
+    private Boolean compressionEnabled;
 
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
@@ -1548,6 +1551,22 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("minDataCenters");
     }
 
+    /**
+     * @return the compressionEnabled
+     */
+    @Name("compressionEnabled")
+    public Boolean getCompressionEnabled() {
+        return this.compressionEnabled == null ? false : compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
+        setChanged("compressionEnabled");
+    }
+
     @Name("scheduleSnapshot")
     public Boolean getScheduleSnapshots() {
         return (scheduleSnapshot != null) ?
@@ -1561,7 +1580,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
 	@Name("dedupCapable")
 	public Boolean getDedupCapable() {
-		return dedupCapable;	
+		if (null == dedupCapable) {
+			return false;
+		}
+		return dedupCapable;
 	}
 
 	public void setDedupCapable(Boolean dedupCapable) {

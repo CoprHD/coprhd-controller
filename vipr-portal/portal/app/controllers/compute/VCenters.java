@@ -253,15 +253,6 @@ public class VCenters extends ViprResourceController {
         list();
     }
 
-    @FlashException("list")
-    public static void detachStorage(@As(",") String[] ids) {
-        for (URI id : ResourceUtils.uris(ids)) {
-            VCenterUtils.detachStorage(id);
-        }
-        flash.success(MessagesUtils.get(DETACH_STORAGE));
-        list();
-    }
-
     protected static class DiscoveryOperation implements ResourceIdOperation<Task<VcenterRestRep>> {
         @Override
         public Task<VcenterRestRep> performOperation(URI id) throws Exception {

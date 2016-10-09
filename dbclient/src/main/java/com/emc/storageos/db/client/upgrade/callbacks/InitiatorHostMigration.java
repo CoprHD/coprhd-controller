@@ -83,7 +83,7 @@ public class InitiatorHostMigration extends BaseCustomMigrationCallback {
                 }
 
                 if (updated) {
-                    dbClient.updateAndReindexObject(eg);
+                    dbClient.updateObject(eg);
                 }
             }
         }
@@ -138,19 +138,20 @@ public class InitiatorHostMigration extends BaseCustomMigrationCallback {
         eg.addInitiator(newInitiator);
     }
 
-    private void updateExportMask(ExportGroup eg, Initiator oldInitiator, Initiator newInitiator) {
-        // update export mask
-        StringSet exportMasks = eg.getExportMasks();
-        for (URI maskUri : StringSetUtil.stringSetToUriList(exportMasks)) {
-            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
-            if (mask != null) {
-                udpateExportMaskInitiators(mask, oldInitiator, newInitiator);
-                updateExportMaskUserAddedInitiators(mask, oldInitiator, newInitiator);
-                updateExportMaskZoningMap(mask, oldInitiator, newInitiator);
-
-                dbClient.updateAndReindexObject(mask);
-            }
-        }
+    private void updateExportMask(ExportGroup eg, Initiator oldInitiator, Initiator newInitiator) {    	
+    	if (eg != null && eg.getExportMasks() != null) {
+    		StringSet exportMasks = eg.getExportMasks();
+	        for (URI maskUri : StringSetUtil.stringSetToUriList(exportMasks)) {
+	            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
+	            if (mask != null) {
+	                udpateExportMaskInitiators(mask, oldInitiator, newInitiator);
+	                updateExportMaskUserAddedInitiators(mask, oldInitiator, newInitiator);
+	                updateExportMaskZoningMap(mask, oldInitiator, newInitiator);
+	
+	                dbClient.updateObject(mask);
+	            }
+	        }
+		}
     }
 
     private void udpateExportMaskInitiators(ExportMask mask, Initiator oldInitiator, Initiator newInitiator) {

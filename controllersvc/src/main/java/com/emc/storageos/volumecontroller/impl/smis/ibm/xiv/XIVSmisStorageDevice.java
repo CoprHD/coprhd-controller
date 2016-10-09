@@ -230,7 +230,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 // All the volumes will be in the same consistency group
                 final URI consistencyGroupId = firstVolume.getConsistencyGroup();
                 if (consistencyGroupId != null) {
-                    addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs), true);
+                    addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs));
                 }
             }
 
@@ -835,7 +835,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
         try {
-            addVolumesToCG(storage, consistencyGroupId, blockObjects, false);
+            addVolumesToCG(storage, consistencyGroupId, blockObjects);
             List<BlockObject> objectsToSave = new ArrayList<BlockObject>();
             for (URI blockObjectURI : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient,
@@ -1040,73 +1040,36 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private void addVolumesToCG(StorageSystem storageSystem,
-            URI consistencyGroupId, List<URI> volumeURIs, boolean isVolumeCreation) throws Exception {
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
-                BlockConsistencyGroup.class, consistencyGroupId);
-
-        // if no cg, OR cg is not of type LOCAL, the volumes are not part of a
-        // consistency group, just return
-        if (consistencyGroup == null
-                || !consistencyGroup.created()
-                || (consistencyGroup.getTypes() != null && !consistencyGroup
-                        .getTypes().contains(
-                                BlockConsistencyGroup.Types.LOCAL.name()))) {
-            if (!isVolumeCreation) {
-                throw DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storageSystem
-                                        .getId()));
+    private synchronized void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
+        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+        if (null != consistencyGroup) {
+            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storageSystem);
+            if (groupName.equals(EMPTY_CG_NAME)) {
+                // may also check if CG instance exists on array, or not, if not, re-create it here need to create CG group
+                // here with member volumes this will ensure the new CG is associated to right pool without member volumes,
+                // there is no way to control which pool the CG will be associated to
+                CIMArgument[] inArgs = _helper.getCreateReplicationGroupInputArguments(storageSystem, consistencyGroup.getLabel(),
+                        volumeURIs);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.callReplicationSvc(storageSystem, SmisConstants.CREATE_GROUP, inArgs, outArgs);
+                // grab the CG name from the instance ID and store it in the db
+                final CIMObjectPath cgPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.CP_REPLICATION_GROUP);
+                final String deviceName = _helper.getReplicationGroupName(cgPath);
+                // the order of adding and removing system consistency group makes different somehow, removing before adding won't work
+                consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), deviceName);
+                consistencyGroup.removeSystemConsistencyGroup(storageSystem.getId().toString(), EMPTY_CG_NAME);
+                _dbClient.updateObject(consistencyGroup);
             } else {
-                _log.info("Skipping addVolumesToCG: Volumes are not part of a consistency group");
-                return;
+                // existing CG, add volumes to the CG
+                CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(storageSystem, groupName);
+                CIMInstance cgPathInstance = _helper.checkExists(storageSystem, cgPath, false, false);
+                // if there is no consistency group with the given name, set the operation to error
+                if (cgPathInstance == null) {
+                    throw DeviceControllerException.exceptions.consistencyGroupNotFound(consistencyGroup.getLabel(),
+                            consistencyGroup.getCgNameOnStorageSystem(storageSystem.getId()));
+                }
+                _helper.addVolumesToConsistencyGroup(storageSystem, new ArrayList<URI>(volumeURIs), cgPath);
             }
-        }
-
-        String groupName = _helper.getConsistencyGroupName(consistencyGroup,
-                storageSystem);
-        if (groupName.equals(EMPTY_CG_NAME)) { // may also check if CG
-                                               // instance
-            // exists on array, or not, if
-            // not, re-create it here
-            // need to create CG group here with member volumes
-            // this will ensure the new CG is associated to right pool
-            // without member volumes, there is no way to control which pool the
-            // CG will be associated to
-            CIMArgument[] inArgs = _helper
-                    .getCreateReplicationGroupInputArguments(storageSystem,
-                            consistencyGroup.getLabel(), volumeURIs);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            _helper.callReplicationSvc(storageSystem,
-                    SmisConstants.CREATE_GROUP, inArgs, outArgs);
-            // grab the CG name from the instance ID and store it in the db
-            final CIMObjectPath cgPath = _cimPath
-                    .getCimObjectPathFromOutputArgs(outArgs,
-                            SmisConstants.CP_REPLICATION_GROUP);
-            final String deviceName = _helper.getReplicationGroupName(cgPath);
-            // the order of adding and removing system consistency group makes different
-            // somehow, removing before adding won't work
-            consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), deviceName);
-            consistencyGroup.removeSystemConsistencyGroup(storageSystem.getId()
-                    .toString(), EMPTY_CG_NAME);
-            _dbClient.persistObject(consistencyGroup);
-        } else {
-            // existing CG, add volumes to the CG
-            CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(
-                    storageSystem, groupName);
-            CIMInstance cgPathInstance = _helper.checkExists(storageSystem,
-                    cgPath, false, false);
-            // if there is no consistency group with the given name, set the
-            // operation to error
-            if (cgPathInstance == null) {
-                throw DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storageSystem
-                                        .getId()));
-            }
-
-            _helper.addVolumesToConsistencyGroup(storageSystem,
-                    new ArrayList<URI>(volumeURIs), cgPath);
         }
     }
 
@@ -1238,7 +1201,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
             } catch (WBEMException e) {
-                DeviceControllerException.exceptions.smis.hluRetrivalfailed("Error occured during retrieval of HLUs for a Host", e);
+                DeviceControllerException.exceptions.smis.hluRetrievalFailed("Error occured during retrieval of HLUs for a Host", e);
             } finally {
                 if (scsiPCInstances != null) {
                     scsiPCInstances.close();

@@ -23,7 +23,7 @@ public class FileSystemMountParam {
     private String subDir;
     private String security;
     private String path;
-    private String fsType;
+    private String fsType = "auto";
 
     public FileSystemMountParam() {
 

@@ -72,7 +72,13 @@ public class IScsiSessionParser {
 
         IScsiSession session = new IScsiSession();
         IScsiTarget target = new IScsiTarget();
-        target.setIqn(properties.get(TARGET));
+        String targetValue = null;
+        if (properties.get(TARGET) != null && properties.get(TARGET).contains(" ")) {
+            targetValue = StringUtils.substring(properties.get(TARGET), 0, properties.get(TARGET).indexOf(" "));
+        } else {
+            targetValue = properties.get(TARGET);
+        }
+        target.setIqn(targetValue);
         target.setPortal(properties.get(CURRENT_PORTAL));
         target.setIfaceName(properties.get(IFACE_NAME));
         session.setTarget(target);

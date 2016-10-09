@@ -6,10 +6,10 @@ package com.emc.storageos.volumecontroller.impl.validators;
 
 import java.util.List;
 
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExceptionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.google.common.collect.Lists;
 
@@ -22,6 +22,7 @@ public class ChainingValidator implements Validator {
 
     private static final Logger log = LoggerFactory.getLogger(ChainingValidator.class);
 
+    private ExceptionContext exceptionContext;
     private List<Validator> validators;
     private ValidatorLogger logger;
     private ValidatorConfig config;
@@ -32,6 +33,10 @@ public class ChainingValidator implements Validator {
         this.logger = logger;
         this.config = config;
         this.type = type;
+    }
+
+    public void setExceptionContext(ExceptionContext exceptionContext) {
+        this.exceptionContext = exceptionContext;
     }
 
     public boolean addValidator(Validator validator) {
@@ -46,18 +51,19 @@ public class ChainingValidator implements Validator {
             }
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            if (config.validationEnabled()) {
+            if (shouldThrowException()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
 
-        if (logger.hasErrors()) {
-            if (config.validationEnabled()) {
-                throw DeviceControllerException.exceptions.validationError(
-                        type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
-            }
+        if (logger.hasErrors() && shouldThrowException()) {
+            logger.generateException(type);
         }
 
         return true;
+    }
+
+    private boolean shouldThrowException() {
+        return config.isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 }

@@ -98,10 +98,8 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
         // Populate a a set of volumes that should be removed and a set of
         // volumes that were found to be in one of the associated ExportMasks
         Set<URI> copyOfVolumes = new HashSet<>(_volumes); // Initially have all the volumes
-        Set<URI> volumesInAnExportMask = new HashSet<>();
-        List<URI> exportMaskURIs = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
-        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskURIs, true);
-        for (ExportMask associatedMask : exportMasks) {
+        Set<URI> volumesInAnExportMask = new HashSet<>();       
+        for (ExportMask associatedMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
             if (associatedMask.getVolumes() != null) {
                 for (URI volumeURI : ExportMaskUtils.getVolumeURIs(associatedMask)) {
                     if (_volumes.contains(volumeURI)) {

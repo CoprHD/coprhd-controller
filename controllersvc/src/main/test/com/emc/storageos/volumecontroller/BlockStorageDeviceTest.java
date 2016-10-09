@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowService;
 
@@ -669,10 +670,10 @@ public class BlockStorageDeviceTest {
             _dbClient.createObject(exportGroup);
         }
 
-        StringSet masks = exportGroup.getExportMasks();
-        if (masks == null) {
+        List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+        if (masks.isEmpty()) {
             exportGroup.addExportMask(getExportMask().getId());
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
         }
 
         return exportGroup;
@@ -688,7 +689,7 @@ public class BlockStorageDeviceTest {
             ExportMask mask = iter.next();
             mask.setMaskName("host2278");
             mask.setStorageDevice(_storageSystem.getId());
-            _dbClient.persistObject(mask);
+            _dbClient.updateObject(mask);
             return mask;
         }
 

@@ -557,11 +557,21 @@ public class SchemaUtil {
     }
 
     /**
-     * Checks all required CF's against keyspace definition. Any missing
-     * CF's are created on the fly.
-     *
+     * Don't require all nodes online, just require there's only one Cassandra
+     * schema version across current cluster
      */
     public void checkCf() throws InterruptedException, ExecutionException {
+        checkCf(false);
+    }
+
+    /**
+     * Checks all required CF's against keyspace definition. Any missing
+     * CF's are created on the fly.
+     * Note: it will require all nodes are online and converge at target Cassandra schema version
+     * if parameter waitAllNodesConverge is true, otherwise, only require there's only one schema
+     * version across current cluster.
+     */
+    public void checkCf(boolean waitAllNodesConverge) throws InterruptedException, ExecutionException {
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
         KeyspaceMetadata keyspaceMetaData = clientContext.getKeyspaceMetaData();
@@ -685,7 +695,11 @@ public class SchemaUtil {
         }
 
         if (waitForSchema) {
-            clientContext.waitForSchemaAgreement();
+            if (waitAllNodesConverge) {
+                clientContext.waitForSchemaAgreement(_statusChecker.getClusterNodeCount());
+            } else {
+                clientContext.waitForSchemaAgreement(-1);
+            }
         }
     }
 
@@ -846,6 +860,7 @@ public class SchemaUtil {
         org.setCreationTime(Calendar.getInstance());
         org.setInactive(false);
         dbClient.createObject(org);
+        _log.info("The root tenant {} has been inserted", org.getId());
     }
 
     private String getBootstrapLockName() {

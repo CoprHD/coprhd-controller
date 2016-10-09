@@ -10,8 +10,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.valid.Range;
 import org.codehaus.jackson.annotate.JsonIgnore;
+
+import com.emc.storageos.model.valid.Range;
 
 /**
  * Parameters to create Block VirtualPool.
@@ -35,6 +36,9 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     private BlockVirtualPoolProtectionParam protection;
     private VirtualPoolHighAvailabilityParam highAvailability;
     private Boolean uniquePolicyNames;
+    
+    // compression setting for all flash vmax arrays
+    private Boolean compressionEnabled;
 
     // VMAX Host IO Limits attributes
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
@@ -340,6 +344,21 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     public void setHostIOLimitIOPs(Integer hostIOLimitIOPs) {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
+    }
+
+    /**
+     * @return the compressionEnabled
+     */
+    @XmlElement(name = "compression_enabled", required = false)
+    public Boolean getCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
     }
 
     @JsonIgnore

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators;
 
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExceptionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ public class DefaultValidator implements Validator {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultValidator.class);
 
+    private ExceptionContext exceptionContext;
     private ValidatorConfig config;
     private Validator validator;
     private ValidatorLogger logger;
@@ -30,22 +32,33 @@ public class DefaultValidator implements Validator {
         this.type = type;
     }
 
+    public ExceptionContext getExceptionContext() {
+        return exceptionContext;
+    }
+
+    public void setExceptionContext(ExceptionContext exceptionContext) {
+        this.exceptionContext = exceptionContext;
+    }
+
     @Override
     public boolean validate() throws Exception {
         try {
             validator.validate();
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            if (config.validationEnabled()) {
+            if (shouldThrowException()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
 
-        if (logger.hasErrors() && config.validationEnabled()) {
-            throw DeviceControllerException.exceptions.validationError(type, logger.getMsgs().toString(),
-                    ValidatorLogger.CONTACT_EMC_SUPPORT);
+        if (logger.hasErrors() && shouldThrowException()) {
+            logger.generateException(type);
         }
 
         return true;
+    }
+
+    private boolean shouldThrowException() {
+        return config.isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 }

@@ -424,6 +424,12 @@ public interface SmisConstants {
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
 
+    // Compression
+    static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";
+    static final String CP_EMC_COMPRESSION = "EMCCompression";
+    static final String CP_EMC_COMPRESSION_RATIO = "EMCCompressionRatio";
+    static final String[] PS_EMC_COMPRESSION = new String[] { CP_EMC_COMPRESSION };
+
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {
             SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,
@@ -433,7 +439,7 @@ public interface SmisConstants {
     static final String[] PS_ONLY_COPY_STATE = new String[] { CP_COPY_STATE };
     static final String[] PS_ELEMENT_NAME = new String[] { SmisConstants.CP_ELEMENT_NAME };
     static final String[] PS_V3_STORAGE_GROUP_PROPERTIES = new String[] { CP_ELEMENT_NAME, CP_FAST_SETTING, CP_ASSOCIATED_TO_VIEW,
-            EMC_MAX_BANDWIDTH, EMC_MAX_IO };
+            EMC_MAX_BANDWIDTH, EMC_MAX_IO, CP_EMC_COMPRESSION };
     static final String[] PS_V3_FAST_SETTING_PROPERTIES = new String[] { CP_FAST_SETTING };
     static final String[] PS_V3_VIRTUAL_PROVISIONING_POOL_PROPERTIES = new String[] { CP_DISK_DRIVE_TYPE };
     static final String[] PS_SPACE_CONSUMED = new String[] { SmisConstants.CP_SPACE_CONSUMED };

@@ -35,6 +35,7 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
 /*
  * Get volume info from StorageVolume instance
@@ -218,6 +219,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
 
         mirror.setProvisionedCapacity(returnProvisionedCapacity(volumeInstance,
                 keyMap));
+        mirror.setCompressionRatio(SmisUtils.getCompressionRatioForVolume(volumeInstance));
         _updateMirrors.add(mirror);
     }
 
@@ -239,6 +241,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
             _logger.info("Set volume {} to composite (meta volume)",
                     volume.getId());
         }
+        volume.setCompressionRatio(SmisUtils.getCompressionRatioForVolume(volumeInstance));
         _updateVolumes.add(volume);
     }
 }

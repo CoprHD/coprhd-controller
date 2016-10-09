@@ -63,6 +63,7 @@ public class StoragePoolProcessor extends PoolProcessor {
     private static final String SPACE_STR_DELIM = " ";
     private static final String POOL_ID = "PoolID";
     private static final String TWO = "2";
+    private static final String VP_COMPRESSION_STATE = "EMCVPCompressionState";
     private DbClient _dbClient;
     private WBEMClient _cimClient;
     private CoordinatorClient _coordinator;
@@ -300,6 +301,12 @@ public class StoragePoolProcessor extends PoolProcessor {
         pool.setOperationalStatus(operationalStatus);
         pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
+
+        if (Constants.ENABLED.toString().equalsIgnoreCase(getCIMPropertyValue(poolInstance, VP_COMPRESSION_STATE))) {
+            pool.setCompressionEnabled(Boolean.TRUE);
+        } else {
+            pool.setCompressionEnabled(Boolean.FALSE);
+        }
 
         Set<String> diskDrives = new HashSet<String>();
         String driveTypes = getCIMPropertyValue(poolInstance, EMC_DRIVE_TYPE);

@@ -124,7 +124,7 @@ public class TestDataCollectionJobConsumer extends DataCollectionJobConsumer {
         } catch (final Exception ex) {
             _logger.error("Scan failed for {} ", ex.getMessage());
             job.error(_dbClient,
-                    DeviceControllerErrors.dataCollectionErrors.scanFailed(ex));
+                    DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
             exceptionIntercepted = true;
             throw ex;
         } finally {

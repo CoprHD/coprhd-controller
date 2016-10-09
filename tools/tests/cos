@@ -43,7 +43,9 @@ def cos_create(args):
     haNhUri = None
     haCosUri = None
     mirrorCosUri = None
-    print "VirtualPool ARGS = : ", args
+    autotierPolicy = None
+
+    print "----- VirtualPool ARGS = :----- ", args
     if (args.maxpaths):
         args.numpaths=args.maxpaths
     if(args.file_cos):
@@ -54,6 +56,11 @@ def cos_create(args):
         haCosUri = bourne.cos_query(args.type, args.haCos)
     if (args.mirror_cos):
         mirrorCosUri = bourne.cos_query(args.type, args.mirror_cos)
+
+    # python argParser doesnt really handle spaces in one argument well. 
+    # so gather all the strings separated by space as a list, but since its one argument, join them. 
+    if (args.auto_tiering_policy_name):
+   	 autotierPolicy = ' '.join(args.auto_tiering_policy_name)
     
     cos = bourne.cos_create(args.type, args.name, args.description, args.useMatchedPools,
                             args.protocols, args.numpaths, args.minpaths, args.pathsperinitiator, args.systemtype,
@@ -65,8 +72,8 @@ def cos_create(args):
                             args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
                             args.long_term_retention, args.system_type, args.srdf, args.auto_tiering_policy_name, 
-                            args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect)
-
+                            args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
+                            args.compressionEnabled)
     
     print cos
 
@@ -93,7 +100,7 @@ def cos_match(args):
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
 			    args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
-                            args.system_type, args.srdf)
+                            args.system_type, args.srdf, args.compressionEnabled)
 
     
     bourne.pretty_print_json(cos)
@@ -156,7 +163,7 @@ def cos_update(args):
             return
 
     if (args.name):
-        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops)
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops,args.placement_policy)
         if 'code' in cos:
             print "FAILED: ", str(cos)
         else:
@@ -370,13 +377,16 @@ create.add_argument('--max_mirrors', help = 'Maximum number of native continuous
 create.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
 create.add_argument('--long_term_retention', help = 'Virtual pool attribute to be set to true for archiving and backup')
 create.add_argument('--systemtype', help = 'System type')
-create.add_argument('--auto_tiering_policy_name', help = 'AutoTiering Policy Name can be specified, only if system_type is specified.')
+create.add_argument('--auto_tiering_policy_name', help = 'AutoTiering Policy Name can be specified, only if system_type is specified.', nargs='*') 
 create.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second')
 create.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs')
 create.add_argument('--auto_cross_connect', help='Enable auto cross connect export')
+create.add_argument('--placement_policy', help='Resource placement policy')
+create.add_argument('--compressionEnabled', help='Enable compression on VMAX All Flash array')
 create.set_defaults(multiVolumeConsistency=False)
 create.set_defaults(max_snapshots=-1)
 create.set_defaults(max_mirrors=0)
+create.set_defaults(compressionEnabled=False)
 
 # cos match label
 match = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -409,9 +419,11 @@ match.add_argument('--multiVolumeConsistency', dest='multiVolumeConsistency',act
 match.add_argument('--max_snapshots', help = 'Maximum number of native snapshots.  -1=disabled, 0=infinite (default)')
 match.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')
 match.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
+match.add_argument('--compressionEnabled', help='Enable Compression on VMAX All Flash array')
 match.set_defaults(multiVolumeConsistency=False)
 match.set_defaults(max_snapshots=-1)
 match.set_defaults(max_mirrors=0)
+match.set_defaults(compressionEnabled=False)
 
 # cos to pool assignment for all matching pools on an array
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -425,6 +437,8 @@ update.add_argument('--expandable', help = 'Expandable')
 update.add_argument('--use_matched', help = 'Use matched pools')
 update.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second.  To reset, use value of 0')
 update.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs.  To reset, use value of 0')
+update.add_argument('--placement_policy', help='Resource placement policy')
+update.add_argument('--compressionEnabled', help='Enable Compression on VMAX All Flash array')
 
 # cos to pool assignment for any pools
 update_pools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

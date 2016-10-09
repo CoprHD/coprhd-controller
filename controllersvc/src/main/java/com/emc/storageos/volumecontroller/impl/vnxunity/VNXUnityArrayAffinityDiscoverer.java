@@ -157,6 +157,11 @@ public class VNXUnityArrayAffinityDiscoverer {
             }
         }
 
+        if (vnxeHostId == null) {
+            logger.info("Host {} cannot be found on array", hostId);
+            return preferredPoolMap;
+        }
+
         // Get vnxeHost from vnxeHostId
         VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
         List<VNXeBase> hostLunIds = vnxeHost.getHostLUNs();

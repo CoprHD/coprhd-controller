@@ -21,6 +21,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
@@ -30,6 +32,7 @@ import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
@@ -120,18 +123,14 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                 _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
-
         } catch (VNXeException e) {
             _log.error("Delete volume snapshot got the exception", e);
             taskCompleter.error(_dbClient, e);
-
         } catch (Exception ex) {
             _log.error("Delete volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
-
         }
-
     }
 
     @Override
@@ -149,20 +148,33 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                     ControllerServiceImpl.enqueueJob(
                             new QueueJob(new VNXeBlockDeleteSnapshotJob(job.getId(),
                                     storage.getId(), taskCompleter)));
+                } else {
+                    // Should not take this path, but treat as an error if we do
+                    // happen to get a null job due to some error in the client.
+                    _log.error("Unexpected null job from VNXe client call to delete group snapshot.");
+                    ServiceCoded sc = DeviceControllerExceptions.vnxe.nullJobForDeleteGroupSnapshot(snapshotObj.forDisplay(),
+                            snapshotObj.getReplicationGroupInstance());
+                    taskCompleter.error(_dbClient, sc);                    
                 }
+            } else {
+                // Treat as in the single volume snapshot case and presume
+                // the group snapshot has already been deleted.
+                List<BlockSnapshot> grpSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
+                for (BlockSnapshot grpSnapshot : grpSnapshots) {
+                    grpSnapshot.setInactive(true);
+                    grpSnapshot.setIsSyncActive(false);
+                }
+                _dbClient.updateObject(grpSnapshots);
+                taskCompleter.ready(_dbClient);
             }
-
         } catch (VNXeException e) {
             _log.error("Delete group snapshot got the exception", e);
             taskCompleter.error(_dbClient, e);
-
         } catch (Exception ex) {
             _log.error("Delete group snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeletGroupSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
-
         }
-
     }
 
     @Override

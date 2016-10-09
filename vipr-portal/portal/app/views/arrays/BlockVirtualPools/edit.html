@@ -117,9 +117,6 @@
         <control-group v-field='vpool.provisioningType' required>
           <select-one options="provisioningTypeOptions" auto-default v-disabled='locked'></select-one>
         </control-group>
-        <control-group v-field="vpool.enableDeDup">
-          <boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
-        </control-group>
 
         <control-group v-field='vpool.protocols'  type="array" required>
           <select-many options="protocolsAvailableOptions" v-disabled='locked'></select-many>
@@ -130,7 +127,7 @@
         </control-group>
 
         <control-group v-field='vpool.systemType' required>
-          <select-one options="systemTypeOptions" auto-default available="systemTypeAvailableOptions" v-disabled='locked'></select-one>
+          <select-one options="systemTypeOptions" auto-default available="systemTypeAvailableOptions" v-disabled='locked' ng-change="disablePlacementPolicy(this.field.value)"></select-one>
         </control-group>
 
         <div ng-if="['${models.StorageSystemTypes.NONE}','${models.StorageSystemTypes.SCALEIO}','${models.StorageSystemTypes.XTREMIO}','${models.StorageSystemTypes.IBMXIV}','${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
@@ -148,6 +145,13 @@
             </control-group>
           </div>
         </div>
+        <div ng-if="vpool.provisioningType == '${models.ProvisioningTypes.THIN}'">
+        	<div ng-if="['${models.StorageSystemTypes.HP3PAR}'].indexOf(vpool.systemType) > -1">
+        		<control-group v-field="vpool.enableDeDup">
+        			<boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
+        		</control-group>
+        	</div>
+        </div>
         <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.uniqueAutoTierPolicyNames'>
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
@@ -156,6 +160,11 @@
         <div ng-if="['driversystem','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.autoTierPolicy'>
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
+          </control-group>
+        </div>
+        <div ng-if="['${models.StorageSystemTypes.VMAX}'].indexOf(vpool.systemType) > -1">
+          <control-group v-field='vpool.enableCompression'>
+            <boolean-checkbox v-disabled='locked'></boolean-checkbox>
           </control-group>
         </div>
         <div ng-if="['${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
@@ -195,7 +204,7 @@
 
 	  <collapse title-key='vpool.group.placementPolicy' icon='vipricon-hand'>
 		<control-group v-field='vpool.placementPolicy' required>
-			<select-one options="placementPolicyOptions" auto-default ng-disabled="vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}'"></select-one>
+			<select-one options="placementPolicyOptions" auto-default ng-disabled="(vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}') || (vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}' || vpool.highAvailability == '${models.HighAvailability.VPLEX_LOCAL}') || (vpool.remoteProtection == '${models.ProtectionSystemTypes.RECOVERPOINT}' || vpool.remoteProtection == '${models.ProtectionSystemTypes.SRDF}')"></select-one>
 		</control-group>
 	  </collapse>
       
@@ -218,7 +227,7 @@
       <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.highAvailability' icon='globe'>
           <control-group v-field='vpool.highAvailability'>
-            <select-one options=highAvailabilityOptions auto-default empty-option="none"></select-one>
+            <select-one options=highAvailabilityOptions auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
           </control-group>
 
           <div ng-if="vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}'">
@@ -249,7 +258,7 @@
           <input-text></input-text>
         </control-group>
 
-        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}'">
+        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
           <control-group v-field='vpool.maxContinuousCopies'>
             <input-text ng-disabled="vpool.expandable"></input-text>
           </control-group>
@@ -260,7 +269,7 @@
         
         <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
 		  <control-group v-field='vpool.remoteProtection'>
-            <select-one v-disabled="locked" options="remoteProtectionOptions" auto-default empty-option="none"></select-one>
+            <select-one v-disabled="locked" options="remoteProtectionOptions" auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
           </control-group>
         </div>
         

@@ -5,13 +5,17 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import static util.BourneUtil.getCatalogClient;
 import static util.CatalogServiceUtils.getCatalogService;
 import static util.OrderUtils.getOrder;
 
 import java.net.URI;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import org.joda.time.DateTime;
 
 import controllers.security.Security;
 import models.datatable.ApprovalsDataTable;
@@ -62,7 +66,7 @@ public class Approvals extends Controller {
         for (ApprovalRestRep approval : approvals) {
             OrderRestRep order = null;
             if (approval.getOrder() != null) {
-                if (orders.keySet().contains(approval.getOrder().getId()) == false) {
+                if (!orders.keySet().contains(approval.getOrder().getId())) {
                     order = getOrder(approval.getOrder());
                     if (order != null) {
                         orders.put(order.getId(), order);
@@ -74,7 +78,7 @@ public class Approvals extends Controller {
             }
             CatalogServiceRestRep catalogService = null;
             if (order != null && order.getCatalogService() != null) {
-                if (catalogServices.keySet().contains(order.getCatalogService().getId()) == false) {
+                if (!catalogServices.keySet().contains(order.getCatalogService().getId())) {
                     catalogService = getCatalogService(order.getCatalogService());
                     if (catalogService != null) {
                         catalogServices.put(catalogService.getId(), catalogService);
@@ -101,14 +105,26 @@ public class Approvals extends Controller {
         }
 
         OrderRestRep order = null;
+        ScheduledEventRestRep scheduledEvent = null;
+        Date scheduleStartDateTime = null;
         CatalogServiceRestRep service = null;
         if (approval != null) {
             order = getOrder(approval.getOrder());
             if (order != null) {
                 service = getCatalogService(order.getCatalogService());
+                URI scheduledEventId = order.getScheduledEventId();
+                if (scheduledEventId != null) {
+                    scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                    String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
+                            scheduledEvent.getScheduleInfo().getStartDate(), 
+                            scheduledEvent.getScheduleInfo().getHourOfDay(), 
+                            scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                    DateTime startDateTime = DateTime.parse(isoDateTimeStr);
+                    scheduleStartDateTime = startDateTime.toDate();
+                }
             }
         }
-        render(approval, order, service);
+        render(approval, order, service, scheduledEvent, scheduleStartDateTime);
     }
 
     public static void submit(String id, ApprovalsForm approval) {

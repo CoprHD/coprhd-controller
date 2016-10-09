@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.Calendar;
 
 @Cf("ActionableEvent")
 public class ActionableEvent extends DataObject implements TenantResource {
@@ -17,9 +18,15 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private byte[] approveMethod;
     private byte[] declineMethod;
     private String eventCode;
+    private String warning;
+    private StringSet taskIds;
+    private StringSet approveDetails;
+    private StringSet declineDetails;
+    private StringSet affectedResources;
+    private Calendar eventExecutionTime;
 
     public enum Status {
-        pending, approved, declined
+        pending, approved, declined, failed
     }
 
     @Name("description")
@@ -30,6 +37,26 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setDescription(String description) {
         this.description = description;
         setChanged("description");
+    }
+
+    @Name("taskIds")
+    public StringSet getTaskIds() {
+        return this.taskIds;
+    }
+
+    public void setTaskIds(StringSet taskIds) {
+        this.taskIds = taskIds;
+        setChanged("taskIds");
+    }
+
+    @Name("warning")
+    public String getWarning() {
+        return warning;
+    }
+
+    public void setWarning(String warning) {
+        this.warning = warning;
+        setChanged("warning");
     }
 
     @Name("approveMethod")
@@ -126,6 +153,50 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setEventCode(String eventCode) {
         this.eventCode = eventCode;
         setChanged("eventCode");
+    }
+
+    @Name("approveDetails")
+    public StringSet getApproveDetails() {
+        return this.approveDetails;
+    }
+
+    public void setApproveDetails(StringSet approveDetails) {
+        this.approveDetails = approveDetails;
+        setChanged("approveDetails");
+    }
+
+    @Name("declineDetails")
+    public StringSet getDeclineDetails() {
+        return this.declineDetails;
+    }
+
+    public void setDeclineDetails(StringSet declineDetails) {
+        this.declineDetails = declineDetails;
+        setChanged("declineDetails");
+    }
+
+    @Name("eventExecutionTime")
+    public Calendar getEventExecutionTime() {
+        return this.eventExecutionTime;
+    }
+
+    public void setEventExecutionTime(Calendar eventExecutionTime) {
+        this.eventExecutionTime = eventExecutionTime;
+        setChanged("eventExecutionTime");
+    }
+
+    @Name("affectedResources")
+    @AlternateId("AffectedResources")
+    public StringSet getAffectedResources() {
+        if (affectedResources == null) {
+            affectedResources = new StringSet();
+        }
+        return affectedResources;
+    }
+
+    public void setAffectedResources(StringSet affectedResources) {
+        this.affectedResources = affectedResources;
+        setChanged("affectedResources");
     }
 
     public static class Method implements Serializable {

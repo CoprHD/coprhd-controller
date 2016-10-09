@@ -37,5 +37,10 @@ public interface WorkflowExceptions {
     
     @DeclareServiceCode(ServiceCode.WORKFLOW_CONSTRUCTION_ERROR)
     public WorkflowException workflowConstructionError(String reason);
-    
+
+    @DeclareServiceCode(ServiceCode.WORKFLOW_IN_WRONG_STATE)
+    public WorkflowException workflowStepInTerminalState(String stepId, String state, String newState);
+
+    @DeclareServiceCode(ServiceCode.WORKFLOW_IN_WRONG_STATE)
+    public WorkflowException workflowNotSuspended(final String string, final String state);
 }

@@ -51,6 +51,7 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.systemservices.impl.driver.DriverManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 //import com.emc.storageos.systemservices.impl.util.DriverUtil;
@@ -194,7 +195,7 @@ public class DriverService {
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response getDriver(@QueryParam("name") String name) throws FileNotFoundException {
         log.info("download driver {} ...", name);
-        InputStream in = new FileInputStream(UPLOAD_DEVICE_DRIVER + "/" + name);
+        InputStream in = new FileInputStream(DriverManager.DRIVER_DIR  + name);
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
     // ---------------------- for test only -----------------------------------
@@ -220,23 +221,31 @@ public class DriverService {
 
         String tmpFilePath = f.getName();
         StorageSystemTypeAddParam params = parseDriver(tmpFilePath);
-        Files.move(f, new File(UPLOAD_DEVICE_DRIVER + params.getDriverName()));
-        // till now, file has been saved
 
+        // move to /data/drivers
+        Files.move(f, new File(DriverManager.DRIVER_DIR + params.getDriverName()));
+
+        LocalRepository localRepo = LocalRepository.getInstance();
+        // restart controller service
+        localRepo.restart(DriverManager.CONTROLLER_SERVICE);
+        // update local driver list
+        Set<String> localDrivers = localRepo.getLocalDrivers();
+        StorageDriversInfo info = new StorageDriversInfo();
+        info.setInstalledDrivers(localDrivers);
+        coordinatorExt.setNodeSessionScopeInfo(info);
+
+        // insert meta data into db
+        StorageSystemType type = map(params);
+        type.setInstallStatus("Installing");
+        type.setDriverFileName(params.getDriverName());
+        dbClient.createObject(type);
         // update target list
-        StorageDriversInfo info = coordinator.getTargetInfo(StorageDriversInfo.class);
+        info = coordinator.getTargetInfo(StorageDriversInfo.class);
         if (info == null) {
             info = new StorageDriversInfo();
         }
         info.getInstalledDrivers().add(params.getDriverName());
         coordinator.setTargetInfo(info);
-
-        // update local driver list
-        Set<String> localDrivers = LocalRepository.getInstance().getLocalDrivers();
-        localDrivers.add(params.getDriverName());
-        info = new StorageDriversInfo();
-        info.setInstalledDrivers(localDrivers);
-        coordinatorExt.setNodeSessionScopeInfo(info);
         return Response.ok().build();
     }
     // ---------------------- for test only -----------------------------------

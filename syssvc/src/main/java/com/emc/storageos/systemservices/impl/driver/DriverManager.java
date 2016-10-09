@@ -47,7 +47,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 public class DriverManager {
 
-    public static final String DRIVER_DIR = "/data/drivers";
+    public static final String DRIVER_DIR = "/data/drivers/";
     public static final String CONTROLLER_SERVICE = "controllersvc";
     // private static final String LISTEN_PATH = String.format("/config/%s/%s",
     // DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID);
@@ -155,7 +155,7 @@ public class DriverManager {
 
     private boolean removeDrivers(Set<String> drivers) {
         for (String driver : drivers) {
-            File driverFile = new File(DRIVER_DIR + "/" + driver);
+            File driverFile = new File(DRIVER_DIR + driver);
             if (!driverFile.exists()) {
                 continue;
             }
@@ -174,7 +174,7 @@ public class DriverManager {
 
     private boolean downloadDrivers(Set<String> drivers) {
         for (String driver : drivers) {
-            File driverFile = new File(DRIVER_DIR + "/" + driver);
+            File driverFile = new File(DRIVER_DIR + driver);
             try {
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
                 InputStream in = SysClientFactory.getSysClient(initNode).get(new URI(uri),

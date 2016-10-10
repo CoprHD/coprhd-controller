@@ -175,8 +175,8 @@ public final class DownloadExecutor implements  Runnable {
                     log.error("Failed to remove listener e=", ex);
                 }
             }
+            log.info("Download finished");
         }
-        log.info("Download complete");
     }
 
     private void pullFromInternalNode() throws Exception {

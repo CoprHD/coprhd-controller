@@ -551,8 +551,6 @@ public class BackupService {
         s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
 
         Map<String, String> hosts = backupOps.getHosts();
-        String hostId = backupOps.getLocalHostID();
-        log.info("lby11 hostId={}", hostId);
         int numberOfNodes = hosts.size();
         Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
         Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);

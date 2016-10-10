@@ -296,7 +296,6 @@ public final class DownloadExecutor implements  Runnable {
             notifyOtherNodes(remoteBackupFileName);
         }catch (Exception e) {
             log.error("Invalid backup e=", e);
-            Status s = Status.DOWNLOAD_FAILED;
             backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
         }
     }

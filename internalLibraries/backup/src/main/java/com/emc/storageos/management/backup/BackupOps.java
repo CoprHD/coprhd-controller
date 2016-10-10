@@ -427,7 +427,7 @@ public class BackupOps {
         return uris;
     }
 
-    public URI getMyURI() throws URISyntaxException, UnknownHostException {
+    public URI getMyURI() throws URISyntaxException {
         Map<String, URI> nodes = getNodesInfo();
         String localHostID = getLocalHostID();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {

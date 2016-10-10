@@ -431,8 +431,8 @@ public class BackupOps {
         Map<String, URI> nodes = getNodesInfo();
         String localHostID = getLocalHostID();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
-            String hostname = toHostID(node.getKey());
-            if (hostname.equals(localHostID)) {
+            String hostID = toHostID(node.getKey());
+            if (hostID.equals(localHostID)) {
                 return node.getValue();
             }
         }

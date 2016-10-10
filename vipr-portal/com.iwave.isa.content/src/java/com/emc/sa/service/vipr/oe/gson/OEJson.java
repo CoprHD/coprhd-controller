@@ -34,15 +34,15 @@ public class OEJson
     @SerializedName("Steps")
     private ArrayList<Step> steps;
 
-    private String getWorkflowName() {
+    public String getWorkflowName() {
         return workflowName;
     }
 
-    private String getDescription() {
+    public String getDescription() {
         return description;
     }
 
-    private ArrayList<Step> getSteps() {
+    public ArrayList<Step> getSteps() {
         return steps;
     }
 
@@ -65,35 +65,35 @@ public class OEJson
         @SerializedName("Lockdown")
         private String lockdown;
 
-        private String getType() {
+        public String getType() {
             return type;
         }
 
-        private String getFriendlyName() {
+        public String getFriendlyName() {
             return friendlyName;
         }
 
-        private String getRequired() {
+        public String getRequired() {
             return required;
         }
 
-        private String getDefault() {
+        public String getDefault() {
             return Default;
         }
 
-        private String getAssetValue() {
+        public String getAssetValue() {
             return assetValue;
         }
 
-        private String getOtherStepValue() {
+        public String getOtherStepValue() {
             return otherStepValue;
         }
 
-        private String getGroup() {
+        public String getGroup() {
             return group;
         }
 
-        private String getLockdown() {
+        public String getLockdown() {
             return lockdown;
         }
 
@@ -109,11 +109,11 @@ public class OEJson
         @SerializedName("Timeout")
         private long timeout;
 
-        private boolean getWaitForTask() {
+        public boolean getWaitForTask() {
             return waitForTask;
         }
 
-        private long getTimeout() {
+        public long getTimeout() {
             return timeout;
         }
 
@@ -138,39 +138,39 @@ public class OEJson
         @SerializedName("Next")
         private Next next;
 
-        private String getStepId() {
+        public String getStepId() {
             return stepId;
         }
 
-        private String getOpName() {
+        public String getOpName() {
             return opName;
         }
 
-        private String getDescription() {
+        public String getDescription() {
             return description;
         }
 
-        private String getType() {
+        public String getType() {
             return type;
         }
 
-        private Map<String, Input> getInput() {
+        public Map<String, Input> getInput() {
             return input;
         }
 
-        private Map<String, String> getOutput() {
+        public Map<String, String> getOutput() {
             return output;
         }
 
-        private StepAttribute getStepAttribute() {
+        public StepAttribute getStepAttribute() {
             return stepAttribute;
         }
 
-        private String getSuccessCritera() {
+        public String getSuccessCritera() {
             return successCritera;
         }
 
-        private Next getNext() {
+        public Next getNext() {
             return next;
         }
     }
@@ -182,11 +182,11 @@ public class OEJson
         @SerializedName("Condition")
         private String condition;
 
-        private String getDefault() {
+        public String getDefault() {
             return defaultstep;
         }
 
-        private String getCondition() {
+        public String getCondition() {
             return condition;
         }
     }

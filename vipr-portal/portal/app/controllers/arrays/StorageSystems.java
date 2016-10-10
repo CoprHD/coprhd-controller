@@ -116,6 +116,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String VMAX = "vmax";
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
     private static final String HTTPS = "https";
+    private static final String SMIS_VMAX = "StorageSystemType.STORAGE_PROVIDER.vmax";
 
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
@@ -258,10 +259,10 @@ public class StorageSystems extends ViprResourceController {
             if (storageArray.type.equals(VMAX)) {
                 @SuppressWarnings("unchecked")
                 List<StringOption> options = (List<StringOption>)renderArgs.get("storageArrayTypeList");
-                options.add(new StringOption(VMAX, "Storage Provider for EMC VMAX, VNX Block"));
+                options.add(new StringOption(VMAX, MessagesUtils.get(SMIS_VMAX)));
                 @SuppressWarnings("unchecked")                
                 List<StringOption> smisOptions = (List<StringOption>)renderArgs.get("smisStorageSystemTypeList");
-                smisOptions.add(new StringOption(VMAX, "Storage Provider for EMC VMAX, VNX Block"));
+                smisOptions.add(new StringOption(VMAX, MessagesUtils.get(SMIS_VMAX)));
                 
             }
             render(storageArray);

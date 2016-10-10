@@ -176,6 +176,7 @@ public final class DownloadExecutor implements  Runnable {
                 }
             }
         }
+        log.info("Download complete");
     }
 
     private void pullFromInternalNode() throws Exception {

@@ -69,8 +69,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
         	executeFlushWorkflow(vplexToArrayVolumesToFlush, storageSystem, copy, op, task);
         } else if (op.equalsIgnoreCase(RESUME) && !readOnlyVolumes.isEmpty()) {
         	executeResumeWorkflow(storageSystem, readOnlyVolumes, copy, op, task);
-        }
-        else {
+        } else {
         	srdfDeviceController.performProtectionOperation(storageSystemId, copy, op, task);
         } 
     }
@@ -273,7 +272,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
         // Get the copy volume.
         Volume protoVolume = dbClient.queryObject(Volume.class, copy.getCopyID());
         if (protoVolume == null) {
-            s_logger.info("Could not locate the copy volume");
+            s_logger.warn("Could not locate the copy volume");
             return resumeVolumes;
         }
         // See if there is a corresponding Vplex volume.

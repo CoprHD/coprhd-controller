@@ -2776,11 +2776,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             String storageViewStepId, ExportMask exportMask, boolean sharedVplexExportMask) {
         _log.info("adding step to update export mask: " + exportMask.getMaskName());
-
+        String addVolumeStepId = workflow.createStepId();
         // Add a step to update export mask on the VPlex.
-        Workflow.Method storageViewExecuteMethod = new Workflow.Method("storageViewAddVolumes",
-                vplexSystem.getId(), exportGroupURI, exportMask.getId(), blockObjectMap);
-        Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+        Workflow.Method storageViewExecuteMethod = storageViewAddVolumesMethod(vplexSystem.getId(), exportGroupURI, exportMask.getId(),
+                blockObjectMap);
+        Workflow.Method storageViewRollbackMethod = storageViewAddVolumesRollbackMethod(vplexSystem.getId(), exportGroupURI,
+                exportMask.getId(), new ArrayList<URI>(blockObjectMap.keySet()), addVolumeStepId);
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", exportGroupURI, exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
@@ -2794,9 +2795,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorURIs.add(initiator.getId());
             }
 
+            String stepId = workflow.createStepId();
+
             Workflow.Method addInitiatorMethod = storageViewAddInitiatorsMethod(vplexSystem.getId(), exportGroupURI, exportMask.getId(),
                     initiatorURIs, null, sharedVplexExportMask);
-            String stepId = workflow.createStepId();
+
             Workflow.Method initiatorRollback = storageViewAddInitiatorsRollbackMethod(vplexSystem.getId(), exportGroupURI,
                     exportMask.getId(), new ArrayList<>(blockObjectMap.keySet()), initiatorURIs, stepId);
 

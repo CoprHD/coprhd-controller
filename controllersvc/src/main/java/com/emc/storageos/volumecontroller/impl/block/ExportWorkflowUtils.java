@@ -30,6 +30,8 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
+import com.emc.storageos.protectioncontroller.ProtectionExportController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceExportController;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
@@ -171,64 +173,31 @@ public class ExportWorkflowUtils {
         // the export mask getting deleted and then created. If this
         // ends being a problem, we would need to tackle this issue
         if (removedBlockObjects != null && !removedBlockObjects.isEmpty()) {
-            List<URI> objectsToRemove = new ArrayList<URI>(removedBlockObjects.keySet());
+            Map<URI, Integer> objectsToRemove = new HashMap<URI, Integer>(removedBlockObjects);
 
-            // Obtain a Map of BlockSnapshots that are associated to a protection system.
-            Map<URI, Map<URI, Integer>> removeBlockObjectsByProtectionSystem = sortSnapshotsByProtectionSystem(removedBlockObjects);
-            if (!removeBlockObjectsByProtectionSystem.isEmpty()) {
-                // For each protection system, create the export group remove volume steps for the associated BlockSnapshot objects.
-                for (URI protectionSystemUri : removeBlockObjectsByProtectionSystem.keySet()) {
-                    List<URI> objectsToRemoveWithProtection = new ArrayList<URI>(removeBlockObjectsByProtectionSystem.get(
-                            protectionSystemUri).keySet());
-                    _log.info(String
-                            .format(
-                                    "Generating exportGroupRemoveVolumes step for objects %s associated with protection system [%s] and storage system [%s]",
-                                    objectsToRemoveWithProtection, protectionSystemUri, blockStorageControllerUri));
-                    stepId = generateExportGroupRemoveVolumes(storageWorkflow, null, stepId, protectionSystemUri, exportGroupUri,
-                            objectsToRemoveWithProtection);
-                    // Reconcile the primary list of unexport objects by removing all BlockSnapshots associated with the current
-                    // protection system.
-                    objectsToRemove.removeAll(objectsToRemoveWithProtection);
-                }
-            }
+            ProtectionExportController protectionExportController = getProtectionExportController();
+            stepId = protectionExportController.addStepsForExportGroupRemoveVolumes(storageWorkflow, null, stepId, exportGroupUri,
+                    objectsToRemove, blockStorageControllerUri);
 
             if (!objectsToRemove.isEmpty()) {
-                // Unexport the remaining block objects. These objects will not include BlockSnapshots associated with a protection
-                // system.
+                // Unexport the remaining block objects.
                 _log.info(String.format("Generating exportGroupRemoveVolumes step for objects %s associated with storage system [%s]",
                         objectsToRemove, blockStorageControllerUri));
+                List<URI> objectsToRemoveList = new ArrayList<URI>(objectsToRemove.keySet());
                 stepId = generateExportGroupRemoveVolumes(storageWorkflow,
                         null, stepId, blockStorageControllerUri, exportGroupUri,
-                        objectsToRemove);
+                        objectsToRemoveList);
             }
         }
         if (addedBlockObjects != null && !addedBlockObjects.isEmpty()) {
             Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(addedBlockObjects);
 
-            // Obtain a Map of BlockSnapshots that are associated to a protection system.
-            Map<URI, Map<URI, Integer>> addedBlockObjectsByProtectionSystem = sortSnapshotsByProtectionSystem(addedBlockObjects);
-            if (!addedBlockObjectsByProtectionSystem.isEmpty()) {
-                // For each protection system, create the export group add volume steps for the associated BlockSnapshot objects.
-                for (URI protectionSystemUri : addedBlockObjectsByProtectionSystem.keySet()) {
-                    Map<URI, Integer> objectsToAddWithProtection = addedBlockObjectsByProtectionSystem.get(protectionSystemUri);
-                    _log.info(String
-                            .format(
-                                    "Generating exportGroupAddVolumes step for objects %s associated with protection system [%s] and storage system [%s]",
-                                    objectsToAddWithProtection.keySet(), protectionSystemUri, blockStorageControllerUri));
-                    stepId = generateExportGroupAddVolumes(storageWorkflow, null, stepId, protectionSystemUri, exportGroupUri,
-                            objectsToAddWithProtection);
-
-                    // Reconcile the primary list of objects to export by removing all BlockSnapshots associated with the current
-                    // protection system.
-                    for (URI blockObjectUri : objectsToAddWithProtection.keySet()) {
-                        objectsToAdd.remove(blockObjectUri);
-                    }
-                }
-            }
+            ProtectionExportController protectionExportController = getProtectionExportController();
+            stepId = protectionExportController.addStepsForExportGroupAddVolumes(storageWorkflow, null, stepId, exportGroupUri,
+                    objectsToAdd, blockStorageControllerUri);
 
             if (!objectsToAdd.isEmpty()) {
-                // Export the remaining block objects. These objects will not include BlockSnapshots associated with a protection
-                // system.
+                // Export the remaining block objects.
                 _log.info(String.format("Generating exportGroupAddVolumes step for objects %s associated with storage system [%s]",
                         objectsToAdd.keySet(), blockStorageControllerUri));
                 stepId = generateExportGroupAddVolumes(storageWorkflow, null,
@@ -598,5 +567,14 @@ public class ExportWorkflowUtils {
      */
     private Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method("rollbackMethodNull");
+    }
+
+    /**
+     * Gets an instance of ProtectionExportController.
+     * 
+     * @return the ProtectionExportController
+     */
+    private ProtectionExportController getProtectionExportController() {
+        return new RPDeviceExportController(_dbClient, this);
     }
 }

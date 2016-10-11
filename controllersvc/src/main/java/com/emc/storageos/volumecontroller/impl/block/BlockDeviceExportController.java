@@ -38,6 +38,8 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
+import com.emc.storageos.protectioncontroller.ProtectionExportController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceExportController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexUtil;
@@ -117,43 +119,16 @@ public class BlockDeviceExportController implements BlockExportController {
                             "ExportGroupCreate: " + exportGroup.getLabel());
                 }
 
-                String waitFor = null;
                 // Initialize the Map of objects to export with all objects.
                 Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(entry.getValue());
-                // Extract all BlockSnapshots with a protection system from the list of objects to export and
-                // sort them by protection system. If we have objects with a protection system set, the
-                // export needs to be handled by the associated protection controller, and NOT the block
-                // controller.
-                Map<URI, Map<URI, Integer>> protectionMap = _wfUtils.sortSnapshotsByProtectionSystem(entry.getValue());
 
-                if (!protectionMap.isEmpty()) {
-                    for (URI protectionSystemUri : protectionMap.keySet()) {
-                        // Obtain subset of objects to export that reference the current protection controller
-                        Map<URI, Integer> objectsToExportWithProtection = protectionMap.get(protectionSystemUri);
-                        _log.info(String
-                                .format(
-                                        "Generating exportGroupCreate steps for objects %s associated with protection system [%s] and storage system [%s]",
-                                        objectsToExportWithProtection, protectionSystemUri, entry.getKey()));
-                        waitFor = _wfUtils.
-                                generateExportGroupCreateWorkflow(workflow, null, waitFor,
-                                        protectionSystemUri, export, objectsToExportWithProtection, initiatorURIs);
+                String waitFor = null;
 
-                        for (URI blockObjectUri : objectsToExportWithProtection.keySet()) {
-                            objectsToAdd.remove(blockObjectUri);
-                        }
-                    }
+                ProtectionExportController protectionController = getProtectionExportController();
+                waitFor = protectionController.addStepsForExportGroupCreate(workflow, waitFor, null, export, objectsToAdd, entry.getKey(),
+                        initiatorURIs);
 
-                    if (!objectsToAdd.isEmpty()) {
-                        // Since the export group has already been created through the protection controller, we add
-                        // a step here to export the BlockObjects referencing the block controller.
-                        _log.info(String.format(
-                                "Generating exportGroupAddVolumes steps for objects %s associated with storage system [%s]",
-                                objectsToAdd, entry.getKey()));
-                        _wfUtils.
-                                generateExportGroupAddVolumes(workflow, null, waitFor,
-                                        entry.getKey(), export, objectsToAdd);
-                    }
-                } else {
+                if (!objectsToAdd.isEmpty()) {
                     // There are no export BlockObjects tied to the current storage system that have an associated protection
                     // system. We can just create a step to call the block controller directly for export group create.
                     _log.info(String.format(
@@ -1023,5 +998,14 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         }
         return systemToVolumeMap;
+    }
+
+    /**
+     * Gets an instance of ProtectionExportController.
+     *
+     * @return the ProtectionExportController
+     */
+    private ProtectionExportController getProtectionExportController() {
+        return new RPDeviceExportController(_dbClient, _wfUtils);
     }
 }

@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toCompletedTask;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
@@ -4167,7 +4168,8 @@ public class VolumeGroupService extends TaskResourceService {
         
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4198,7 +4200,8 @@ public class VolumeGroupService extends TaskResourceService {
 				null, ResourceOperationTypeEnum.MIGRATION_MIGRATE);
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_MIGRATE);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4227,7 +4230,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_COMMIT);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }    
 
@@ -4257,7 +4261,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CANCEL);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4283,7 +4288,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_REFRESH);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4309,7 +4315,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_RECOVER);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4335,7 +4342,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTOP);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4361,7 +4369,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTART);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 
@@ -4387,7 +4396,8 @@ public class VolumeGroupService extends TaskResourceService {
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_REMOVE_ENV);
-        TaskResourceRep task = toTask(application, taskId, op);
+        // TODO : change toCompletedTask to toTask once this method is implemented
+        TaskResourceRep task = toCompletedTask(application, taskId, op);
         return task;
     }
 }

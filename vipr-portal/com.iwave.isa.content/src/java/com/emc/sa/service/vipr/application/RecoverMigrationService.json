@@ -1,0 +1,10 @@
+{
+  baseKey:"RecoverMigration.Application",
+  serviceId:"RecoverMigration",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    }
+  }
+}

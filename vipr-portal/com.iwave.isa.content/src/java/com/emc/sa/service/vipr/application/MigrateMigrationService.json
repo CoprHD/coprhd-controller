@@ -1,0 +1,10 @@
+{
+  baseKey:"MigrateMigration.Application",
+  serviceId:"MigrateMigration",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    }
+  }
+}

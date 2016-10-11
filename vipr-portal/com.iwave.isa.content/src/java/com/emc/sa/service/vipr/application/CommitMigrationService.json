@@ -1,0 +1,17 @@
+{
+  baseKey:"CommitMigration.Application",
+  serviceId:"CommitMigration",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    },
+            
+    removeMigrationEnv:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    }
+  }
+}

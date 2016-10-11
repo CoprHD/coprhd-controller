@@ -1,0 +1,10 @@
+{
+  baseKey:"RefreshMigration.Application",
+  serviceId:"RefreshMigration",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    }
+  }
+}

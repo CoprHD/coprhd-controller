@@ -59,23 +59,10 @@ public class VolumeGroup extends DataObject {
         COMMITCOMPLETED,
         OTHER
     }
-//
-//    public static class MigrationOptions {
-//
-//        // private List<String> unamagedVolumeWWNs;
-//        private URI targetStorageSystem;
-//
-//        @XmlElement(name = "target_storage_system")
-//        public URI getTargetStorageSystem() {
-//            return targetStorageSystem;
-//        }
-//
-//        public void setTargetStorageSystem(URI targetStorageSystem) {
-//            this.targetStorageSystem = targetStorageSystem;
-//        }
-//    }
-//
-//    private MigrationOptions migrationOptions;
+
+    // migration options is a name value pair
+    public static final String MIGRATION_TARGET_STORAGE_SYSTEM = "target_storage_system";
+    private StringMap migrationOptions;
 
     public void setMigrationGroupBy(String migrationGroupBy) {
         this.migrationGroupBy = migrationGroupBy;
@@ -101,19 +88,6 @@ public class VolumeGroup extends DataObject {
         this.migrationStatus = migrationStatus;
         setChanged("migrationStatus");
     }
-
-    /**
-     * Migration Attributes of the volume group
-     * 
-     */
-//    @XmlElement(name = "migration_attributes")
-//    public MigrationOptions getMigrationOptions() {
-//        return migrationOptions;
-//    }
-
-//    public void setMigrationOptions(MigrationOptions migrationOptions) {
-//        this.migrationOptions = migrationOptions;
-//    }
 
     @Name("migrationGroupBy")
 
@@ -170,5 +144,20 @@ public class VolumeGroup extends DataObject {
     public void setParent(URI parent) {
         this.parent = parent;
         setChanged("parent");
+    }
+
+    /**
+     * @return the migrationOptions
+     */
+    @Name("migrationOptions")
+    public StringMap getMigrationOptions() {
+        return migrationOptions;
+    }
+
+    /**
+     * @param migrationOptions the migrationOptions to set
+     */
+    public void setMigrationOptions(StringMap migrationOptions) {
+        this.migrationOptions = migrationOptions;
     }
 }

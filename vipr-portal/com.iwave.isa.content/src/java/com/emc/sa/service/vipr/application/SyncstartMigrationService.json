@@ -1,0 +1,10 @@
+{
+  baseKey:"SyncstartMigration.Application",
+  serviceId:"SyncstartMigration",
+  fields:{
+ 
+    mobilityGroup:{
+      type:"assetType.vipr.vmaxMobilityGroup"
+    }
+  }
+}

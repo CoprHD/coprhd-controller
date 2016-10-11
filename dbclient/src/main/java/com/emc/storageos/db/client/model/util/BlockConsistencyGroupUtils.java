@@ -441,9 +441,11 @@ public class BlockConsistencyGroupUtils {
         // volumes passed in.
         Set<URI> cgURIs = new HashSet<URI>();
         
-        for (Volume vol : volumes) {
-            if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
-                cgURIs.add(vol.getConsistencyGroup());
+        if (volumes != null) {
+            for (Volume vol : volumes) {
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                    cgURIs.add(vol.getConsistencyGroup());
+                }
             }
         }
         

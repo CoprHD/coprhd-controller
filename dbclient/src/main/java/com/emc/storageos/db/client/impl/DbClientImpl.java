@@ -61,6 +61,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Task;
@@ -99,6 +100,7 @@ import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.query.ColumnCountQuery;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
@@ -1108,6 +1110,7 @@ public class DbClientImpl implements DbClient {
 
         for (Entry<Class<? extends T>, List<T>> entry : typeObjMap.entrySet()) {
             internalPersistObject(entry.getKey(), entry.getValue(), updateIndex);
+            this.checkDataObjectConsistency(entry.getKey(), entry.getValue());
         }
     }
 
@@ -1982,5 +1985,173 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
 
+    private <T extends DataObject> void checkDataObjectConsistency(Class<? extends T> clazz, Collection<T> dataobjects) {
+        DataObjectType doType = TypeMap.getDoType(clazz);
+        
+        Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
+        for (ColumnField field : doType.getColumnFields()) {
+            if (field.getIndex() != null) {
+                indexedFields.put(field.getName(), field);
+            }
+        }
+
+        if (indexedFields.isEmpty()) {
+            _log.debug("No index columns for class {}, no need to check consistency", clazz.getName());
+            return;
+        }
+        
+        Collection<URI> ids = new ArrayList<URI>();
+        for (T dataObject : dataobjects) {
+        	ids.add(dataObject.getId());
+        }
+        
+        Keyspace ks = getKeyspace(clazz);
+        Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(ks, ids, doType.getCF());
+        Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
+        while (it.hasNext()) {
+        	Row<String, CompositeColumnName> row = it.next();
+        	
+        	boolean inactiveObject = false;
+            
+            for (Column<CompositeColumnName> column : row.getColumns()) {
+                if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
+                	inactiveObject = true;
+                	break;
+                }
+            }
+            
+            if (inactiveObject) {
+            	continue;
+            }
+
+            for (Column<CompositeColumnName> column : row.getColumns()) {
+            	if (!indexedFields.containsKey(column.getName().getOne())) {
+            		continue;
+            	}
+            	
+            	// we don't build index if the value is null, refer to ColumnField.
+                if (!column.hasValue()) {
+                    continue;
+                }
+            	
+            	ColumnField indexedField = indexedFields.get(column.getName().getOne());
+            	String indexKey = getIndexKey(indexedField, column);
+            	
+                if (indexKey == null) {
+                    continue;
+                }
+                
+                boolean isColumnInIndex = isColumnInIndex(ks, indexedField.getIndexCF(), indexKey,
+                        getIndexColumns(indexedField, column, row.getKey()));
+                
+                if (!isColumnInIndex) {
+                    _log.warn("Inconsistency found Object({}, id: {}, field: {}) is existing, but the related Index({}, type: {}, id: {}) is missing.",
+                            indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
+                            indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey);
+                }
+            }
+        }
+    }
     
+    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
+        String indexKey = null;
+        DbIndex dbIndex = field.getIndex();
+        boolean indexByKey = field.isIndexByKey();
+        if (dbIndex instanceof AltIdDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof RelationDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof NamedRelationDbIndex) {
+            indexKey = NamedURI.fromString(column.getStringValue()).getURI().toString();
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexKey = field.getDataObjectType().getSimpleName();
+        } else if (dbIndex instanceof PermissionsDbIndex) {
+            indexKey = column.getName().getTwo();
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(ScopedLabel.fromString(column.getStringValue()));
+        } else if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+        } else {
+            String msg = String.format("Unsupported index type %s.", dbIndex.getClass());
+            _log.warn(msg);
+        }
+
+        return indexKey;
+    }
+    
+    public static String[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
+        String[] indexColumns = null;
+        DbIndex dbIndex = field.getIndex();
+
+        if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+            return indexColumns;
+        }
+
+        if (dbIndex instanceof NamedRelationDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            NamedURI namedURI = NamedURI.fromString(column.getStringValue());
+            String name = namedURI.getName();
+            indexColumns[1] = name.toLowerCase();
+            indexColumns[2] = name;
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = column.getStringValue().toLowerCase();
+            indexColumns[2] = column.getStringValue();
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            ScopedLabel label = ScopedLabel.fromString(column.getStringValue());
+            indexColumns[1] = label.getLabel().toLowerCase();
+            indexColumns[2] = label.getLabel();
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexColumns = new String[2];
+            Boolean val = column.getBooleanValue();
+            indexColumns[0] = val.toString();
+            indexColumns[1] = rowKey;
+        } else {
+            // For AltIdDbIndex, RelationDbIndex, PermissionsDbIndex
+            indexColumns = new String[2];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = rowKey;
+        }
+        return indexColumns;
+    }
+    
+    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns) {
+        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
+        for (int i = 0; i < indexColumns.length; i++) {
+            if (i == (indexColumns.length - 1)) {
+                builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);
+                break;
+            }
+            builder.withPrefix(indexColumns[i]);
+        }
+
+        ColumnList<IndexColumnName> result;
+		try {
+			result = ks.prepareQuery(indexCf).getKey(indexKey)
+			        .withColumnRange(builder)
+			        .execute().getResult();
+			for (Column<IndexColumnName> indexColumn : result) {
+	            return true;
+	        }
+		} catch (ConnectionException e) {
+			_log.warn("Failed to check whether column is indexed", e);
+			return true;
+		}
+        
+        return false;
+    }
+
 }

@@ -279,7 +279,7 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
 
-        notifyAuthModeChanged(provider.getMode());
+        notifyAuthModeChanged();
 
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
@@ -324,8 +324,8 @@ public class AuthnConfigurationService extends TaggedResource {
         }
     }
 
-    private void notifyAuthModeChanged(String providerMode) {
-        String authMode = getAuthModeFromProviderMode(providerMode);
+    private void notifyAuthModeChanged() {
+        String authMode = computeAuthModeFromDb();
 
         try {
             getConfigUtil().write(null, AUTH_KIND, AUTH_ID, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
@@ -342,11 +342,20 @@ public class AuthnConfigurationService extends TaggedResource {
         return configUtil;
     }
 
-    private String getAuthModeFromProviderMode(String providerMode) {
+    /**
+     * auth mode is oidc if one oidc provider exists, else it's normal mode
+     * @return
+     */
+    private String computeAuthModeFromDb() {
         String authMode = AuthModeType.normal.name();
 
-        if (providerMode.equals(ProvidersType.oidc.name())) {
-            authMode = AuthModeType.oidc.name();
+        List<AuthnProvider> providers = getProvidersFromDb();
+
+        for (AuthnProvider provider : providers) {
+            if (provider.getMode().equals(ProvidersType.oidc.name())) {
+                authMode = AuthModeType.oidc.name();
+                break;
+            }
         }
 
         return authMode;
@@ -1017,6 +1026,8 @@ public class AuthnConfigurationService extends TaggedResource {
         }
         _dbClient.removeObject(provider);
         notifyChange();
+
+        notifyAuthModeChanged();
 
         // TODO - record event
 

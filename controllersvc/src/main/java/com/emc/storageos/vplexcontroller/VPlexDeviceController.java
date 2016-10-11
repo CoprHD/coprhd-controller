@@ -6525,7 +6525,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // If the migration is not committed, then rollback of the migration
             // creation step will cancel the migration.
             if (migrationCommitted) {
-                _log.info("Migration is committed, failing rollback");
+                _log.info("The migration has already been committed or the migration state can not be determined, failing rollback");
                 // Don't allow rollback to go further than the first error.
                 _workflowService.setWorkflowRollbackContOnError(stepId, false);
                 ServiceError serviceError = VPlexApiException.errors.cantRollbackCommittedMigration();

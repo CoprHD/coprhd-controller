@@ -1,4 +1,4 @@
-		/*
+/*
  * Copyright 2013-2014 EMC Corporation
  * Copyright 2016 Intel Corporation
  *
@@ -647,7 +647,7 @@ public enum ServiceCode {
     CEPH_OPERATION_EXCEPTION(67001),
     CEPH_INVALID_CREDENTIALS_ERROR(67002),
 
-
+    
     XIV_COMMAND_FAILURE(68000),
     XIV_REST_REQUEST_FAILURE(68001),
     XIV_REST_RESPONSE_JSON_PARSER_FAILURE(68002),

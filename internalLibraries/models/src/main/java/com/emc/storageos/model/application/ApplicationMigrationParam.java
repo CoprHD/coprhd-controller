@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * create migration parameters
  */
 @XmlRootElement(name = "application_migration")
-public class MigrateApplicationParams {
+public class ApplicationMigrationParam {
 
     // used in create migration
     private URI targetVirtualArray;
@@ -22,10 +22,10 @@ public class MigrateApplicationParams {
     // used in commit and cancel migration
     private boolean removeEnvironment;
 
-    public MigrateApplicationParams() {
+    public ApplicationMigrationParam() {
     }
 
-    public MigrateApplicationParams(URI tgtVarray, URI tgtVpool) {
+    public ApplicationMigrationParam(URI tgtVarray, URI tgtVpool) {
         this.targetVirtualArray = tgtVarray;
         this.targetVirtualPool = tgtVpool;
     }

@@ -46,6 +46,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.api.service.impl.resource.volumegroup.migration.ApplicationMigrationManager;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -82,7 +83,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.MigrateApplicationParams;
+import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
@@ -4118,6 +4119,19 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
     }
+        
+    /**
+     * Creates and returns an instance of the application migration manager to handle
+     * application migration operations.
+     * 
+     * @return BlockFullCopyManager
+     */
+    private ApplicationMigrationManager getApplicationMigrationManager() {
+    	ApplicationMigrationManager appMigrationMgr = new ApplicationMigrationManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
+                _request, null);
+        return appMigrationMgr;
+    }
 
     /**
      * Initiate the Migration of an Application Group
@@ -4135,7 +4149,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCreate(@PathParam("id") URI id, MigrateApplicationParams param) {
+    public TaskResourceRep migrationCreate(@PathParam("id") URI id, ApplicationMigrationParam param) {
         
         // validate input
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
@@ -4147,6 +4161,10 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
+        
+        getApplicationMigrationManager().performApplicationMigrationOperation(application.getId(),
+        					param, ResourceOperationTypeEnum.MIGRATION_CREATE);
+        
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE);
         TaskResourceRep task = toTask(application, taskId, op);
@@ -4176,6 +4194,8 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
+        getApplicationMigrationManager().performApplicationMigrationOperation(application.getId(),
+				null, ResourceOperationTypeEnum.MIGRATION_MIGRATE);
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_MIGRATE);
         TaskResourceRep task = toTask(application, taskId, op);
@@ -4195,7 +4215,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/commit")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCommit(@PathParam("id") URI id, MigrateApplicationParams param) {
+    public TaskResourceRep migrationCommit(@PathParam("id") URI id, ApplicationMigrationParam param) {
         
         // validate input
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
@@ -4225,7 +4245,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCancel(@PathParam("id") URI id, MigrateApplicationParams param) {
+    public TaskResourceRep migrationCancel(@PathParam("id") URI id, ApplicationMigrationParam param) {
         
         // validate input
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);

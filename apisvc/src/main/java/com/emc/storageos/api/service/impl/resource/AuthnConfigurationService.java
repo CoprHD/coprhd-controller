@@ -292,11 +292,9 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     private void validateAuthMode(String modeToAdd) {
-        if (modeToAdd.equals(ProvidersType.oidc)) {
-            _log.info("its oidc provider");
+        if (modeToAdd.equals(ProvidersType.oidc.name())) {
             ensureNoAuthnProvider();
         } else {
-            _log.info("its normal provider");
             ensureNoIDPProvider();
         }
     }
@@ -304,7 +302,7 @@ public class AuthnConfigurationService extends TaggedResource {
     private void ensureNoIDPProvider() {
         List<AuthnProvider> providers = getProvidersFromDb();
         for (AuthnProvider provider : providers) {
-            if (provider.getMode().equals(ProvidersType.oidc)) {
+            if (provider.getMode().equals(ProvidersType.oidc.name())) {
                 throw new RuntimeException("IDP Authentication Provider already existed.");
             }
         }
@@ -314,7 +312,6 @@ public class AuthnConfigurationService extends TaggedResource {
         List<AuthnProvider> providers = new ArrayList<>();
         List<URI> ids = _dbClient.queryByType(AuthnProvider.class, true);
         for (URI id : ids) {
-            _log.info("get one provider from db");
             providers.add( (AuthnProvider) _dbClient.queryObject(id) );
         }
         return providers;

@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -106,10 +105,6 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             // update the export group data if the job completes successfully
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup, dbClient);
-            }
-            if (exportGroup != null && exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-                _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
-                exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
             }
             dbClient.updateObject(exportGroup);
             

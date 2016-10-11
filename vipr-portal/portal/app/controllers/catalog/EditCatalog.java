@@ -380,11 +380,16 @@ public class EditCatalog extends ServiceCatalog {
 
         // Add information for service fields
         ServiceDescriptorRestRep serviceDescriptor = null;
-        if (service.baseService != null) {
-            serviceDescriptor = getServiceDescriptorForEditing(service.baseService);
-            addFieldOptions(service.baseService);
+        if (service.title != null) {
+            serviceDescriptor = getServiceDescriptorForEditing(service.title);
+            if(serviceDescriptor != null) {
+                addFieldOptions(service.title);
+            }
+            else if (service.baseService != null) {
+                serviceDescriptor = getServiceDescriptorForEditing(service.baseService);
+                addFieldOptions(service.baseService);
+            } 
         }
-
         render("@editService", service, serviceDescriptor);
     }
 

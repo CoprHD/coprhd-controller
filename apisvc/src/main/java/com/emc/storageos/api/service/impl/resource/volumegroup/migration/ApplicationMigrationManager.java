@@ -1,6 +1,9 @@
 package com.emc.storageos.api.service.impl.resource.volumegroup.migration;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+
 import java.net.URI;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
@@ -14,7 +17,9 @@ import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.ApplicationMigrationParam;
@@ -91,8 +96,20 @@ public class ApplicationMigrationManager {
     	if (null == param) {
     		//throw exception here
     	}
-        // Check for pending tasks
-        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);        
+    	        
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);  
+        
+        if (null == volumeGroup) {
+        	//throw exception here
+        }
+        
+        List<Volume> volumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                getVolumesByAssociatedId(volumeGroupId.toString()));
+        
+        if (!volumes.isEmpty()) {
+        	//throw exception here
+        }
+        
         TaskList taskList = new TaskList();              
 
         logger.info("ApplicationMigration : Operation {}", opType.name());

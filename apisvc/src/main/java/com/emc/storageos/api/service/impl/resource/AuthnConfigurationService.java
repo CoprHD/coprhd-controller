@@ -24,6 +24,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import java.net.*;
 import java.util.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -34,6 +35,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -218,7 +220,9 @@ public class AuthnConfigurationService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public AuthnProviderRestRep createProvider(AuthnCreateParam param) {
+    public AuthnProviderRestRep createProvider(
+            AuthnCreateParam param,
+            @Context HttpServletRequest httpRequest) {
 
         // Parameter validation
         validateAuthnCreateParam(param);
@@ -273,7 +277,9 @@ public class AuthnConfigurationService extends TaggedResource {
         }
 
         if (AuthnProvider.ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
-            provider = buildOIDCParameters(provider);
+            String hostHeader = httpRequest.getHeader("Host");
+            _log.info("Local host is {} ", hostHeader);
+            provider = buildOIDCParameters(provider, hostHeader);
         }
 
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
@@ -361,21 +367,20 @@ public class AuthnConfigurationService extends TaggedResource {
         return authMode;
     }
 
-    private AuthnProvider buildOIDCParameters(AuthnProvider provider) {
+    private AuthnProvider buildOIDCParameters(AuthnProvider provider, String hostAndPort) {
         provider.setJwksUrl( String.format("http://%s/oidc/jwks.json", provider.getOidcProviderAddress() ) );
         provider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", provider.getOidcProviderAddress() ) );
         provider.setOidcTokenUrl( String.format("http://%s/oidc/token", provider.getOidcProviderAddress() ) );
 
-        String cbURL = buildCallbackURL();
+        String cbURL = buildCallbackURL(hostAndPort);
         provider.setOidcCallBackUrl(cbURL);
         provider.setOidcClientId(cbURL);
 
         return provider;
     }
 
-    private String buildCallbackURL() {
-        PropertyInfo props = _coordinator.getPropertyInfo();
-        return String.format("https://%s:4443/oidccb", props.getProperty("network_vip"));
+    private String buildCallbackURL(String hostAndPort) {
+        return String.format("https://%s/oidccb", hostAndPort);
     }
 
     /**

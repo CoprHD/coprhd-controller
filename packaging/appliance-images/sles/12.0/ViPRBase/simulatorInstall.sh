@@ -208,8 +208,8 @@ rm -f rp-simulators-*.zip
 echo "Installing VPLEX"
 
 # LATEST_URL=`getLatestURL vplex-sim -bin` 
-VERSION=${LATEST_URL##*simulators-}
-VERSION=${VERSION%%-*}
+# VERSION=${LATEST_URL##*simulators-}
+# VERSION=${VERSION%%-*}
 # echo "Downloading $LATEST_URL"
 # wget $LATEST_URL || exit 1
 #sshpass -p 'dangerous' scp -o 'StrictHostKeychecking=no' root@10.247.98.129:/var/www/simulators/latest/vplex-sim/*.zip  . || exit 1
@@ -219,7 +219,9 @@ mkdir -p /data/simulators/vplex-sim/
 mkdir -p /data/simulators/vplex-sim_2/
 cp -r vplex-*/* /data/simulators/vplex-sim/
 cp -r vplex-*/* /data/simulators/vplex-sim_2/
-# mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION.jar
+LATEST_JAR_NAME=`ls /data/simulators/vplex-sim_2/vplex-simulators*.jar`
+VERSION=${LATEST_JAR_NAME##*simulators-}
+mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION
 ./bin/setupSim --setup-default
 rm -r vplex-*
 rm -f vplex-simulators-*.zip
@@ -246,8 +248,8 @@ rm  win-sim.zip
 echo "Installing XIO"
 
 # LATEST_URL=`getLatestURL xio-sim -bin`
-VERSION=${LATEST_URL##*simulators-}
-VERSION=${VERSION%%-*}
+# VERSION=${LATEST_URL##*simulators-}
+# VERSION=${VERSION%%-*}
 # echo "Downloading $LATEST_URL"
 # wget $LATEST_URL || exit 1
 #sshpass -p 'dangerous' scp -o 'StrictHostKeychecking=no' root@10.247.98.129:/var/www/simulators/latest/xio-sim/*.zip  . || exit 1
@@ -257,7 +259,9 @@ mkdir -p /data/simulators/xio/
 mkdir -p /data/simulators/xio_2/
 cp -r xio-*/* /data/simulators/xio/
 cp -r xio-*/* /data/simulators/xio_2/
-#mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
+LATEST_JAR_NAME=`ls /data/simulators/xio_2/xio-simulators*.jar`
+VERSION=${LATEST_JAR_NAME##*simulators-}
+mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
 rm -r xio-*
 rm -f xio-simulators-*.zip
 

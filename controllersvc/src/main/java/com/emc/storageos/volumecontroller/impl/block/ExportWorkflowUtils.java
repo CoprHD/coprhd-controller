@@ -173,8 +173,10 @@ public class ExportWorkflowUtils {
         if (removedBlockObjects != null && !removedBlockObjects.isEmpty()) {
             List<URI> objectsToRemove = new ArrayList<URI>(removedBlockObjects.keySet());
 
+            // Obtain a Map of BlockSnapshots that are associated to a protection system.
             Map<URI, Map<URI, Integer>> removeBlockObjectsByProtectionSystem = sortSnapshotsByProtectionSystem(removedBlockObjects);
             if (!removeBlockObjectsByProtectionSystem.isEmpty()) {
+                // For each protection system, create the export group remove volume steps for the associated BlockSnapshot objects.
                 for (URI protectionSystemUri : removeBlockObjectsByProtectionSystem.keySet()) {
                     List<URI> objectsToRemoveWithProtection = new ArrayList<URI>(removeBlockObjectsByProtectionSystem.get(
                             protectionSystemUri).keySet());
@@ -184,11 +186,15 @@ public class ExportWorkflowUtils {
                                     objectsToRemoveWithProtection, protectionSystemUri, blockStorageControllerUri));
                     stepId = generateExportGroupRemoveVolumes(storageWorkflow, null, stepId, protectionSystemUri, exportGroupUri,
                             objectsToRemoveWithProtection);
+                    // Reconcile the primary list of unexport objects by removing all BlockSnapshots associated with the current
+                    // protection system.
                     objectsToRemove.removeAll(objectsToRemoveWithProtection);
                 }
             }
 
             if (!objectsToRemove.isEmpty()) {
+                // Unexport the remaining block objects. These objects will not include BlockSnapshots associated with a protection
+                // system.
                 _log.info(String.format("Generating exportGroupRemoveVolumes step for objects %s associated with storage system [%s]",
                         objectsToRemove, blockStorageControllerUri));
                 stepId = generateExportGroupRemoveVolumes(storageWorkflow,
@@ -199,8 +205,10 @@ public class ExportWorkflowUtils {
         if (addedBlockObjects != null && !addedBlockObjects.isEmpty()) {
             Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(addedBlockObjects);
 
+            // Obtain a Map of BlockSnapshots that are associated to a protection system.
             Map<URI, Map<URI, Integer>> addedBlockObjectsByProtectionSystem = sortSnapshotsByProtectionSystem(addedBlockObjects);
             if (!addedBlockObjectsByProtectionSystem.isEmpty()) {
+                // For each protection system, create the export group add volume steps for the associated BlockSnapshot objects.
                 for (URI protectionSystemUri : addedBlockObjectsByProtectionSystem.keySet()) {
                     Map<URI, Integer> objectsToAddWithProtection = addedBlockObjectsByProtectionSystem.get(protectionSystemUri);
                     _log.info(String
@@ -210,6 +218,8 @@ public class ExportWorkflowUtils {
                     stepId = generateExportGroupAddVolumes(storageWorkflow, null, stepId, protectionSystemUri, exportGroupUri,
                             objectsToAddWithProtection);
 
+                    // Reconcile the primary list of objects to export by removing all BlockSnapshots associated with the current
+                    // protection system.
                     for (URI blockObjectUri : objectsToAddWithProtection.keySet()) {
                         objectsToAdd.remove(blockObjectUri);
                     }
@@ -217,6 +227,8 @@ public class ExportWorkflowUtils {
             }
 
             if (!objectsToAdd.isEmpty()) {
+                // Export the remaining block objects. These objects will not include BlockSnapshots associated with a protection
+                // system.
                 _log.info(String.format("Generating exportGroupAddVolumes step for objects %s associated with storage system [%s]",
                         objectsToAdd.keySet(), blockStorageControllerUri));
                 stepId = generateExportGroupAddVolumes(storageWorkflow, null,

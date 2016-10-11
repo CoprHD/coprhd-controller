@@ -23,9 +23,6 @@ public class OeStatusMessage {
     public String getMessage() {
         return message;
     }
-    public void setMessage(String message) {
-        this.message = message;
-    }
     public boolean isValid() {
         return message != null;
     }

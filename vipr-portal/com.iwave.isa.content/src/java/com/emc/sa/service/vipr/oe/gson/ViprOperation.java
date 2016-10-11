@@ -34,10 +34,6 @@ public class ViprOperation {
     public ViprTask[] getTask() {
         return task;
     }
-
-    public void setTask(ViprTask[] task) {
-        this.task = task;
-    }
     
     public List<URI> getTaskIds() throws URISyntaxException {
         List<URI> idList = new ArrayList<>();

@@ -92,12 +92,12 @@ if [ ${SS} = "vplex" ]; then
         QUICK=1
     fi
     VPLEX_INGEST_PARAM=${5:-'noingest'}
-    if [ $VPLEX_INGEST_PARAM != 'noingest' ]; then
-        # form ingestall, ingestexported, or ingestunexported
-        VPLEX_INGEST_PARAM = ${VPLEX_INGEST_PARAM}${6}
-        echo "VPLEX_INGEST_PARAM is $VPLEX_INGEST_PARAM"
+    if [ "$VPLEX_INGEST_PARAM" != 'noingest' ]; then
+        # all, exported, or unexported
+        VPLEX_INGEST_PARAM=${6}
         shift
     fi
+    echo "VPLEX_INGEST_PARAM is $VPLEX_INGEST_PARAM"
     AUTH=${6:-ldap}
     EXTRA_PARAM=${7}
 elif [ ${SS} = "recoverpoint" ]; then
@@ -2741,7 +2741,7 @@ vplex_tests()
         blocksnapshot list $PROJECT/$distVolume1
         blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
 
-        if [ "$VPLEX_INGEST_PARAM" = "ingestall" -o "$VPLEX_INGEST_PARAM" = "ingestunexported" ] ; then
+        if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "unexported" ] ; then
             vplex_ingest_unexported
         fi
         
@@ -2774,7 +2774,7 @@ vplex_tests()
         echo "Exports for $localVolume2"
         volume exports $PROJECT/$localVolume2 --v
     
-        if [ "$VPLEX_INGEST_PARAM" = "ingestall" -o "$VPLEX_INGEST_PARAM" = "ingestexported" ] ; then
+        if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "exported" ] ; then
             vplex_ingest_exported
         fi
 

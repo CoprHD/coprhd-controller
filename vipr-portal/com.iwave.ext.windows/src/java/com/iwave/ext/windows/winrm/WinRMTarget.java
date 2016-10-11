@@ -30,6 +30,9 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
@@ -42,6 +45,7 @@ public class WinRMTarget {
     protected static final ContentType SOAP = ContentType.create("application/soap+xml", "UTF-8");
     public static final int DEFAULT_HTTP_PORT = 5985;
     public static final int DEFAULT_HTTPS_PORT = 5986;
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
     private String host;
     private int port;
@@ -209,6 +213,10 @@ public class WinRMTarget {
         client.getAuthSchemes().register("Negotiate", new CustomSPNegoSchemeFactory());
         client.getCredentialsProvider().setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(username, password));
+        final HttpParams httpParams = new BasicHttpParams();
+        HttpConnectionParams.setConnectionTimeout(httpParams, DEFAULT_CONNECTION_TIMEOUT);
+        HttpConnectionParams.setSoTimeout(httpParams, DEFAULT_CONNECTION_TIMEOUT);
+        client.setParams(httpParams);
         return client;
     }
 

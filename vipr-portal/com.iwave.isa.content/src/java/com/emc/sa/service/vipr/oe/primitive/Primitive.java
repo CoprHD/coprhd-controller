@@ -20,6 +20,9 @@ import java.util.Map;
 
 import com.emc.storageos.db.client.model.NamedURI;
 
+/**
+ * Abstract Class that contains the base properties of a primitive
+ */
 public abstract class Primitive {
 
     private final NamedURI _name;

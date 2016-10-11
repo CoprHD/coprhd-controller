@@ -21,6 +21,9 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.NamedURI;
 
+/**
+ * Class to contain the REST primitive properties
+ */
 public class RestPrimitive extends Primitive {
 
     private final String _hostname;

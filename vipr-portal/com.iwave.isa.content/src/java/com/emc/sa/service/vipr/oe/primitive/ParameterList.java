@@ -18,10 +18,14 @@ package com.emc.sa.service.vipr.oe.primitive;
 
 import java.util.Map;
 
+/**
+ * Class that represents a list of parameters. A parameter list contains a map
+ * of parameters that could be further lists or single parameters
+ */
 public class ParameterList extends
         AbstractParameter<Map<String, AbstractParameter<?>>> {
 
-    final Map<String, AbstractParameter<?>> _parameters;
+    private final Map<String, AbstractParameter<?>> _parameters;
 
     public ParameterList(final String name, final String friendlyName,
             final Map<String, AbstractParameter<?>> parameters,

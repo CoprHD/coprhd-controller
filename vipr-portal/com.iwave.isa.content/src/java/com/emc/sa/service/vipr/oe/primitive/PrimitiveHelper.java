@@ -31,16 +31,28 @@ import com.emc.storageos.db.client.model.OERestCall;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
-public class PrimitiveHelper {
+/**
+ * Helper class to load/save primitives in persistence. This way the
+ * UI/Execution engine doesn't need to deal with the primitive inheritance
+ * model.
+ */
+public final class PrimitiveHelper {
 
     private PrimitiveHelper() {
     };
 
+    /**
+     * Given a primitive URI load the primitive from persistence
+     */
     public static Primitive loadPrimitive(final NamedURI uri,
             final DbClient dbClient) {
         return query(uri, dbClient);
     }
 
+    /**
+     * Save a primitive to persistence. Either update it or create it if the
+     * name is new
+     */
     public static void savePrimitive(final Primitive primitive,
             final DbClient dbClient) {
         final OEPrimitive existing = dbClient.queryObject(OEPrimitive.class,
@@ -68,9 +80,8 @@ public class PrimitiveHelper {
     }
 
     /**
-     * @param dbClient
-     * @param primitive
-     * @param basePrimitive
+     * Make a primitive persistence object given a Primitive. The primitive
+     * persistence object is a 'diff' with the base primitive that is passed in.
      */
     private static OEPrimitive makeOEPrimitive(final DbClient dbClient,
             final Primitive primitive, final OEPrimitive basePrimitive) {
@@ -148,11 +159,7 @@ public class PrimitiveHelper {
     }
 
     /**
-     * @param dbClient
-     * @param name
-     * @param extraHeaders
-     * @param extraHeaders2
-     * @return
+     * Given a Set of attribute values create or update a StringSet of URIs
      */
     private static StringSet createOrUpdateAttributeSet(
             final DbClient dbClient, final NamedURI name, StringSet uris,
@@ -194,9 +201,9 @@ public class PrimitiveHelper {
     }
 
     /**
-     * @param description
-     * @param description2
-     * @return
+     * Given an attribute value and ID create or update the attribute if
+     * necessary
+     * 
      */
     private static URI createOrUpdateAttribute(final DbClient dbClient,
             final NamedURI primitive, final URI attribute, final String value) {
@@ -224,6 +231,10 @@ public class PrimitiveHelper {
         return oeAttribute.getId();
     }
 
+    /**
+     * Load a Primitive from persistence by querying the database model and
+     * converting it to the Primitive type that the UI/execution will understand
+     */
     private static Primitive query(final NamedURI uri, final DbClient dbClient) {
         final Class<? extends OEPrimitive> type = type(uri);
         final OEPrimitive oePrimitive = dbClient.queryObject(type, uri);
@@ -283,9 +294,7 @@ public class PrimitiveHelper {
     }
 
     /**
-     * @param dbClient
-     * @param description
-     * @return
+     * Get the value of an attribute given a URI
      */
     private static String queryAttribute(final DbClient dbClient, final URI uri) {
         final OEAttribute attribute = dbClient.queryObject(OEAttribute.class,
@@ -303,6 +312,9 @@ public class PrimitiveHelper {
         return type.asSubclass(OEPrimitive.class);
     }
 
+    /**
+     * Builder class to build a REST Primitive
+     */
     private static class RestPrimitiveBuilder {
         private final PrimitiveBuilder _primitiveBuilder;
 
@@ -372,6 +384,9 @@ public class PrimitiveHelper {
         }
     }
 
+    /**
+     * Builder class to contain the AbstractPrimitive properties
+     */
     private static class PrimitiveBuilder {
         private NamedURI _name;
         private NamedURI _parent;

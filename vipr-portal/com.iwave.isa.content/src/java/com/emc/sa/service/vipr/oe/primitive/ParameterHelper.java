@@ -31,14 +31,19 @@ import com.emc.storageos.db.client.model.OEParameter;
 import com.emc.storageos.db.client.model.OEParameterList;
 import com.emc.storageos.db.client.model.StringSet;
 
-public class ParameterHelper {
+/**
+ * Helper class to load/save parameters in persistence so that the UI/execution
+ * engine doesn't need to understand primitive inheritance
+ */
+public final class ParameterHelper {
 
     private ParameterHelper() {
     }
 
     /**
-     * @param input
-     * @return
+     * Convert a StringSet of parameters to a parameter map.
+     * 
+     * @return A map of parameters keyed with the parameter name
      */
     public static Map<String, AbstractParameter<?>> toParameterMap(
             final DbClient dbClient, final StringSet input) {
@@ -66,6 +71,11 @@ public class ParameterHelper {
         }
     }
 
+    /**
+     * Convert from the parameter list persistence object into the ParameterList
+     * 
+     * @return A ParamaterList that was created from the database object
+     */
     private static ParameterList toParameterList(final DbClient dbClient,
             final OEParameterList oeParameterList) {
         return new ParameterList(oeParameterList.getName(),
@@ -74,6 +84,11 @@ public class ParameterHelper {
                 oeParameterList.getLocked(), oeParameterList.getRequired());
     }
 
+    /**
+     * Convert from a paramater database object into a Parameter
+     * 
+     * @return The Parameter representation of the database object
+     */
     private static Parameter toParameter(final OEParameter oeParameter) {
         return new Parameter(oeParameter.getName(),
                 oeParameter.getFriendlyName(), oeParameter.getValue(),
@@ -82,8 +97,19 @@ public class ParameterHelper {
     }
 
     /**
-     * @param input
-     * @param input2
+     * Update a StringSet of persisted parameters with the contents of the
+     * parameter map.
+     * 
+     * @param dbClient
+     *            - interface to the database
+     * @param primitive
+     *            - The URI of the primitive that will own any new paramaters
+     *            that are created in the database
+     * @param parameterMap
+     *            - Map of paramaters to use to update the StringSet
+     * @param stringSet
+     *            - Set of parameter URIs that will be updated
+     * @return whether the StringSet was updated
      */
     public static boolean updateParameterStringSet(final DbClient dbClient,
             final NamedURI primitive,
@@ -198,9 +224,8 @@ public class ParameterHelper {
     }
 
     /**
-     * @param parameterList
-     * @param oeParameterList
-     * @return
+     * Check if the base metadata of the parameter object is equal to the
+     * persisted metadata
      */
     private static boolean baseEqual(final AbstractParameter<?> parameter,
             final OEAbstractParameter oeParameter) {
@@ -212,9 +237,8 @@ public class ParameterHelper {
     }
 
     /**
-     * @param parameterList
-     * @param oeParameterList
-     * @return
+     * Check if this paramater list object is equal to the persisted parameter
+     * list
      */
     private static boolean equal(final ParameterList parameterList,
             final OEParameterList oeParameterList) {
@@ -231,9 +255,7 @@ public class ParameterHelper {
     }
 
     /**
-     * @param parameter
-     * @param oeParameter
-     * @return
+     * Check if the parameter is equal to the persisted paramater
      */
     private static boolean equal(final Parameter parameter,
             final OEParameter oeParameter) {
@@ -250,9 +272,7 @@ public class ParameterHelper {
     }
 
     /**
-     * @param dbClient
-     * @param primitive
-     * @param list
+     * Delete paramaters in a list if they are owned by the given primitive
      */
     private static void deleteList(final DbClient dbClient,
             final NamedURI primitive, final OEParameterList list) {
@@ -278,10 +298,7 @@ public class ParameterHelper {
     }
 
     /**
-     * @param id
-     * @param primitive
-     * @param parameterList
-     * @return
+     * Convert From a ParameterList to a parameter list data object
      */
     private static OEParameterList toOEParameterList(final URI id,
             final NamedURI primitive, final ParameterList parameterList,
@@ -297,6 +314,9 @@ public class ParameterHelper {
         return oeParameterList;
     }
 
+    /**
+     * Convert from a Parameter to a parameter database object
+     */
     private static OEParameter toOEParameter(final URI id,
             final NamedURI primitive, final Parameter parameter) {
         final OEParameter oeParameter = new OEParameter();

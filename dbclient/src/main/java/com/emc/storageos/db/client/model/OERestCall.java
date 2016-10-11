@@ -18,6 +18,11 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+/**
+ * A DB model class containing the attributes specific to a REST primitive. The
+ * attributes are all references since the REST primitive is built based on an
+ * inheritance model
+ */
 @Cf("OERestCall")
 public class OERestCall extends OEPrimitive {
 

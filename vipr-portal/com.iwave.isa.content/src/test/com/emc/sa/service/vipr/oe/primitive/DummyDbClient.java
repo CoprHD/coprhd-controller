@@ -1,26 +1,35 @@
 /*
- * Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
+ * Copyright 2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.sa.service.vipr.oe.primitive;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.utils.MarshallingExcetion;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -29,19 +38,14 @@ import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Event;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer.DataPoint;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.netflix.astyanax.clock.MicrosecondsClock;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * .
@@ -50,7 +54,7 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class DummyDbClient implements DbClient {
 
-    HashMap<URI, DataObject> _idToObjectMap;
+    private HashMap<URI, DataObject> _idToObjectMap;
     final private Logger _logger = LoggerFactory.getLogger(DummyDbClient.class);
 
     @Override
@@ -348,92 +352,6 @@ public class DummyDbClient implements DbClient {
             final DateTime timeBucket, final TimeBucket bucket,
             final TimeSeriesQueryResult<T> callback,
             final ExecutorService workerThreads) throws DatabaseException {
-        if (timeBucket != null) {
-
-            final MicrosecondsClock clock = new MicrosecondsClock();
-            final UUID uuid = TimeUUIDUtils.getTimeUUID(clock);
-
-            // For timeBucket 2012-01-01T00:00 we retirn 10 stats
-            // For timeBucket 2012-01-02T00:00 we return I/O exception
-            // For timeBucket 2012-01-03T00:00 we set value data.error
-            // For timeBucket 2012-01-04T00:00 we return 10 events
-            if (timeBucket.toString().contains("2012-01-01T00:00")) {
-
-                try {
-                    // TODO Auto-generated method stub
-
-                    for (int i = 0; i < 10; i++) {
-                        final Stat st = new Stat();
-                        st.setProject(new URI("http://project" + i));
-                        st.setTenant(new URI("http://t." + i));
-                        st.setUser(new URI("http://u." + i));
-                        st.setVirtualPool(new URI("http://vpool.gold" + i));
-                        callback.data((T) st,
-                                TimeUUIDUtils.getTimeFromUUID(uuid));
-                    }
-                } catch (final URISyntaxException e) {
-                    _logger.error(e.getMessage(), e);
-                }
-
-                callback.done();
-
-            } else if (timeBucket.toString().contains("2012-01-02T00:00")) {
-                throw DatabaseException.retryables.dummyClientFailed();
-            } else if (timeBucket.toString().contains("2012-01-03T00:00")) {
-                callback.error(null);
-            } else if (timeBucket.toString().contains("2012-01-04T00:00")) {
-                try {
-                    // TODO Auto-generated method stub
-                    for (int i = 0; i < 10; i++) {
-                        final Event evt = new Event();
-                        evt.setProjectId(new URI("http://project" + i));
-                        evt.setEventId(String.valueOf(i));
-                        evt.setTenantId(new URI("http://t." + i));
-                        evt.setUserId(new URI("http://u." + i));
-                        evt.setVirtualPool(new URI("http://vpool.gold" + i));
-                        callback.data((T) evt,
-                                TimeUUIDUtils.getTimeFromUUID(uuid));
-                    }
-                } catch (final URISyntaxException e) {
-                    _logger.error(e.getMessage(), e);
-                }
-
-                callback.done();
-            } else if (timeBucket.toString().contains("2012-01-05T00:00")) {
-                try {
-                    throw new MarshallingExcetion("marshalling Exception", null);
-                } catch (final MarshallingExcetion e) {
-                    _logger.error(e.getMessage(), e);
-                }
-            } else if (timeBucket.toString().contains("2012-01-06T00:00")) {
-                callback.error(null);
-            } else if (timeBucket.toString().contains("2012-01-07T00:00")) {
-                try {
-                    // TODO Auto-generated method stub
-                    for (int i = 0; i < 10; i++) {
-                        final AuditLog log = new AuditLog();
-                        log.setProductId("productId." + i);
-                        log.setTenantId(new URI("http://tenant." + i));
-                        log.setUserId(new URI("http://user." + i));
-                        log.setServiceType("serviceType" + i);
-                        log.setAuditType("auditType" + i);
-                        log.setDescription("description" + i);
-                        callback.data((T) log,
-                                TimeUUIDUtils.getTimeFromUUID(uuid));
-                    }
-                } catch (final URISyntaxException e) {
-                    _logger.error(e.getMessage(), e);
-                }
-
-                callback.done();
-            } else if (timeBucket.toString().contains("2012-01-08T00:00")) {
-                try {
-                    throw new MarshallingExcetion("marshalling Exception", null);
-                } catch (final MarshallingExcetion e) {
-                    _logger.error(e.getMessage(), e);
-                }
-            }
-        }
     }
 
     @Override

@@ -16,7 +16,12 @@
  */
 package com.emc.storageos.db.client.model;
 
-
+/**
+ * Class that contains a primitive attribute The attributes can be defined in a
+ * primitive or in a parent primitive so each attribute has a primitive URI
+ * attribute associated with it so that the 'owner' of this attribute value can
+ * be tracked
+ */
 @Cf("OEAttribute")
 public class OEAttribute extends DataObject {
 

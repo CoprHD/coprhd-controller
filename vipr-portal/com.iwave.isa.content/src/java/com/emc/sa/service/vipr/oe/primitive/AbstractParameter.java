@@ -16,6 +16,13 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
+/**
+ * Class that represents the basic meta data for an Orchestration primitive
+ * parameter.
+ * 
+ * @param <T>
+ *            - The type of this parameter
+ */
 public abstract class AbstractParameter<T> {
 
     private static final long serialVersionUID = 1L;

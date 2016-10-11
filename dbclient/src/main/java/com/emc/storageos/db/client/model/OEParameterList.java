@@ -17,14 +17,14 @@
 package com.emc.storageos.db.client.model;
 
 /**
- *
+ * DB model class that represents a list of parameters
  */
 @Cf("OEParameterList")
 public class OEParameterList extends OEAbstractParameter {
 
     private StringSet _parameters;
 
-    @Name("input")
+    @Name("paremeters")
     @RelationIndex(cf = "ParametersRelation", types = { OEParameter.class,
             OEParameterList.class }, type = DataObject.class)
     public StringSet getParameters() {

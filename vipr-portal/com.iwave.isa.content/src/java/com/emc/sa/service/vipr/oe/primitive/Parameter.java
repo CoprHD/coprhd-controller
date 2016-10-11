@@ -16,8 +16,15 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
+/**
+ * Class that represents a single input parameter. The String parameter will
+ * also have a type Integer,String, etc.
+ */
 public class Parameter extends AbstractParameter<String> {
 
+    /**
+     * Enumeration that represents the different orchestration parameter types
+     */
     public enum Type {
         STRING, INTEGER, ASSET
     };

@@ -16,11 +16,14 @@
  */
 package com.emc.storageos.db.client.model;
 
+/**
+ * DB model class that represents a single parameter for a primitive
+ */
 @Cf("OEParameter")
 public class OEParameter extends OEAbstractParameter {
 
     private String _value;
-    protected String _type;
+    private String _type;
 
     @Name("value")
     public String getValue() {

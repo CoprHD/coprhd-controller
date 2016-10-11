@@ -18,6 +18,11 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+/**
+ * DB model class that contains the base properties of a primitive. A primitive
+ * mostly only has references to attributes/parameters since a primitive is
+ * built based on an inheritance model
+ **/
 public abstract class OEPrimitive extends DataObject {
 
     private static final long serialVersionUID = 1L;

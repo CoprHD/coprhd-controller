@@ -34,12 +34,11 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OERestCall;
 
 /**
- * @author ssulliva
- *
+ * Class to unit test the primitive persistence
  */
 public class PrimitiveTest {
 
-    DbClient dbClient;
+    private DbClient dbClient;
 
     @Before
     public void setUp() {

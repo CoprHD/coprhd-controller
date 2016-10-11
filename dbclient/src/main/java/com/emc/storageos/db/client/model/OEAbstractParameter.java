@@ -17,7 +17,11 @@
 package com.emc.storageos.db.client.model;
 
 /**
- *
+ * DB model class that contains the base properties for a primitive
+ * 
+ * A parameter can be 'owned' by a primitive or a parent of the primitive. Sop
+ * each parameter has a primitive URI so that the owner of the parameter can be
+ * tracked
  */
 public abstract class OEAbstractParameter extends DataObject {
 

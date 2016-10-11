@@ -94,7 +94,8 @@ if [ ${SS} = "vplex" ]; then
     VPLEX_INGEST_PARAM=${5:-'noingest'}
     if [ $VPLEX_INGEST_PARAM != 'noingest' ]; then
         # form ingestall, ingestexported, or ingestunexported
-        VPLEX_INGEST_PARAM = $VPLEX_INGEST_PARAM${6}
+        VPLEX_INGEST_PARAM = ${VPLEX_INGEST_PARAM}${6}
+        echo "VPLEX_INGEST_PARAM is $VPLEX_INGEST_PARAM"
         shift
     fi
     AUTH=${6:-ldap}

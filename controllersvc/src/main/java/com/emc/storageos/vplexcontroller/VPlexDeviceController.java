@@ -2778,7 +2778,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("adding step to update export mask: " + exportMask.getMaskName());
 
         // Add a step to update export mask on the VPlex.
-        Workflow.Method storageViewExecuteMethod = new Workflow.Method("exportMaskAddVolumes",
+        Workflow.Method storageViewExecuteMethod = new Workflow.Method("storageViewAddVolumes",
                 vplexSystem.getId(), exportGroupURI, exportMask.getId(), blockObjectMap);
         Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         storageViewStepId = workflow.createStep("storageView",

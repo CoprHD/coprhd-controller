@@ -78,7 +78,7 @@
 
         Receipt.watchDisplay('#Order_viprTasks');
         Receipt.watchChildren('#Order_viprTasks table > tbody','tr');
-        
+
         updateReceipt('${orderId}');
     });
     
@@ -219,9 +219,14 @@
   <div id="logsResources" #{if !logs}style="display:none""#{/if}>
     <div class="section-header"><h1>&{'order.logResources'}</h1></div>
     <div class="content">
-    	<textarea style="width:1072px;overflow:hidden;"readonly>
-    		${logs}
-    	</textarea>
+    	<pre id="formattedStyle" style="width:1072px;overflow:hidden;">
+    	<script>
+        	var logs = '${logs}';
+        	var someHtml = $.parseHTML(logs);
+        	var appendHtml = someHtml[0].textContent;
+        	$('#formattedStyle').append(appendHtml);
+        </script>
+    	</pre>
     </div>
   </div>
   

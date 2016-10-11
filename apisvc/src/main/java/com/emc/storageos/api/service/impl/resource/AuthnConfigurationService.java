@@ -293,8 +293,10 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private void validateAuthMode(String modeToAdd) {
         if (modeToAdd.equals(ProvidersType.oidc)) {
+            _log.info("its oidc provider");
             ensureNoAuthnProvider();
         } else {
+            _log.info("its normal provider");
             ensureNoIDPProvider();
         }
     }
@@ -312,6 +314,7 @@ public class AuthnConfigurationService extends TaggedResource {
         List<AuthnProvider> providers = new ArrayList<>();
         List<URI> ids = _dbClient.queryByType(AuthnProvider.class, true);
         for (URI id : ids) {
+            _log.info("get one provider from db");
             providers.add( (AuthnProvider) _dbClient.queryObject(id) );
         }
         return providers;

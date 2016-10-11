@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick] [ingest|noingest|ingestunexported|ingestexported] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -92,6 +92,11 @@ if [ ${SS} = "vplex" ]; then
         QUICK=1
     fi
     VPLEX_INGEST_PARAM=${5:-'noingest'}
+    if [ $VPLEX_INGEST_PARAM != 'noingest' ]; then
+        # form ingestall, ingestexported, or ingestunexported
+        VPLEX_INGEST_PARAM = $VPLEX_INGEST_PARAM${6}
+        shift
+    fi
     AUTH=${6:-ldap}
     EXTRA_PARAM=${7}
 elif [ ${SS} = "recoverpoint" ]; then
@@ -2729,23 +2734,11 @@ vplex_tests()
         run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
         blocksnapshot list $PROJECT/$localVolume1
         blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
-        # NOTE: disabled until the vplex-simulator can support it, works on hardware
-        #if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
-            # VPLEX_LOCAL_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
-            # echo "**** VPLEX_LOCAL_SNAP_ARRAY_LABEL is $VPLEX_LOCAL_SNAP_ARRAY_LABEL"
-            # run_noundo blocksnapshot delete ${PROJECT}/${localVolume1}/${localSnapshot} --vipronly
-        #fi
 
         echo "**** Creating VPLEX distributed volume snapshot"
         run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
         blocksnapshot list $PROJECT/$distVolume1
         blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
-        # NOTE: disabled until the vplex-simulator can support it, works on hardware
-        #if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
-            # VPLEX_DIST_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
-            # echo "**** VPLEX_DIST_SNAP_ARRAY_LABEL is $VPLEX_DIST_SNAP_ARRAY_LABEL"
-            # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
-        #fi
 
         if [ "$VPLEX_INGEST_PARAM" = "ingestall" -o "$VPLEX_INGEST_PARAM" = "ingestunexported" ] ; then
             vplex_ingest_unexported
@@ -2850,6 +2843,15 @@ vplex_ingest_unexported() {
     run_noundo volume delete $PROJECT/$localVolume3 --vipronly --force
     #run_noundo volume delete $PROJECT/$distVolume1 --vipronly --force
     #run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
+
+    # NOTE: snapshot ingestion testing disabled until the vplex-simulator can support it, works on hardware
+    # VPLEX_LOCAL_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    # echo "**** VPLEX_LOCAL_SNAP_ARRAY_LABEL is $VPLEX_LOCAL_SNAP_ARRAY_LABEL"
+    # run_noundo blocksnapshot delete ${PROJECT}/${localVolume1}/${localSnapshot} --vipronly
+
+    # VPLEX_DIST_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    # echo "**** VPLEX_DIST_SNAP_ARRAY_LABEL is $VPLEX_DIST_SNAP_ARRAY_LABEL"
+    # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
     run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'

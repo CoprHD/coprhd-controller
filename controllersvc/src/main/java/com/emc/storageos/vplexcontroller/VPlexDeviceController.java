@@ -130,6 +130,8 @@ import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
@@ -236,6 +238,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DELETE_MIGRATION_WF_NAME = "DeleteMigration";
     private static final String RESTORE_SNAP_SESSION_WF_NAME = "restoreSnapSession";
     private static final String UPDATE_VOLUMEGROUP_WF_NAME = "UpdateVolumeGroup";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "relinkSnapSessionTargets";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -265,6 +268,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGET_STEP = "RelinkSnapshotSessionTarget";
     private static final String PAUSE_MIGRATION_STEP = "PauseMigrationStep";
     private static final String RESUME_MIGRATION_STEP = "ResumeMigrationStep";
     private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
@@ -321,6 +325,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
     private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGETS_METHOD_NAME = "relinkTargetsToSnapshotSession";
     private static final String PAUSE_MIGRATION_METHOD_NAME = "pauseMigrationStep";
     private static final String RESUME_MIGRATION_METHOD_NAME = "resumeMigrationStep";
     private static final String CANCEL_MIGRATION_METHOD_NAME = "cancelMigrationStep";
@@ -2426,20 +2431,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _networkDeviceController.updateZoningMap(exportGroup, exportMask, false);
 
             _dbClient.createObject(exportMask);
-
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                    blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
-
-            // Try to assign new ports by passing in existingMap
-            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
-                    initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
-            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
-            if (assignments != null && !assignments.isEmpty()) {
-                // Update zoningMap if there are new assignments
-                exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
-                        exportMasksToUpdateOnDeviceWithStoragePorts);
+            
+            if (!initsToAdd.isEmpty()) {
+                ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                        blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
+    
+                // Try to assign new ports by passing in existingMap
+                Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                        initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
+                // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
+                if (assignments != null && !assignments.isEmpty()) {
+                    // Update zoningMap if there are new assignments
+                    exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
+                            exportMasksToUpdateOnDeviceWithStoragePorts);
+                }
             }
-
+            
             exportMasksToUpdateOnDevice.add(exportMask);
             exportGroup.addExportMask(exportMask.getId());
             _dbClient.updateObject(exportGroup);
@@ -3631,25 +3638,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Invoke the zoning code directly, i.e. inline, not in a workflow
                     String stepId = workflow.createStepId();
                     _networkDeviceController.zoneExportRemoveVolumes(zoningParam, volumeURIList, stepId);
-
-                    if (exportMask.getCreatedBySystem()) {
-                        List<URI> storagePortURIs = ExportUtils.checkIfStoragePortsNeedsToBeRemoved(exportMask);
-
-                        if (!storagePortURIs.isEmpty()) {
-                            hasSteps = true;
-
-                            // Create a Step to remove storage ports from the Storage View
-                            Workflow.Method removePortsFromViewMethod = storageViewRemoveStoragePortsMethod(vplexURI, exportURI,
-                                    exportMask.getId(), storagePortURIs);
-                            Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                            previousStep = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
-                                    String.format("Updating VPLEX Storage View to remove StoragePorts for ExportGroup %s Mask %s",
-                                            exportURI,
-                                            exportMask.getMaskName()),
-                                    previousStep, vplex.getId(), vplex.getSystemType(),
-                                    this.getClass(), removePortsFromViewMethod, rollbackMethod, null);
-                        }
-                    }
 
                     // this next chunk of code covers the situation where the export mask
                     // is referenced by another export group containing different
@@ -12016,21 +12004,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get a list of the VPLEX volumes, if any, that are built
             // using the snapshot target volume.
-            List<Volume> vplexVolumes = new ArrayList<Volume>();
-            for (BlockSnapshot snapshotToResync : snapshotsToResync) {
-                String nativeGuid = snapshotToResync.getNativeGuid();
-                List<Volume> volumes = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, nativeGuid);
-                if (!volumes.isEmpty()) {
-                    // If we find a volume instance with the same native GUID as the
-                    // snapshot, then this volume represents the snapshot target volume
-                    // and a VPLEX volume must have been built on top of it. Note that
-                    // for a given snapshot, I should only ever find 0 or 1 volumes with
-                    // the nativeGuid of the snapshot. Get the VPLEX volume built on
-                    // this volume.
-                    Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, volumes.get(0));
-                    vplexVolumes.add(vplexVolume);
-                }
-            }
+            List<Volume> vplexVolumes = VPlexUtil.getVPlexVolumesBuiltOnSnapshots(snapshotsToResync, _dbClient);
 
             // Create the workflow steps.
             if (vplexVolumes.isEmpty()) {
@@ -12057,7 +12031,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Note that if the snapshot is associated with a CG, then block
                 // controller will resync all snapshots in the snapshot set. We
                 // execute this after the invalidate cache.
-                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, rollbackMethodNullMethod());
+                waitFor = createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, rollbackMethodNullMethod());
 
                 // Generate post restore steps
                 waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -12448,6 +12422,119 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     snapSessionURI.toString(), e);
             completer.error(_dbClient, serviceError);
         }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void relinkTargetsToSnapshotSession(URI vplexURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException {
+        try {
+            // Create a new the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
+            _log.info("Created relink snapshot session targets workflow with operation id {}", opId);
+            
+            // First if this is a group operation, we make sure we only process
+            // one snapshot per replication group.
+            List<URI> filteredSnapshotURIs = new ArrayList<URI>();
+            BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+            if (tgtSnapSession.hasConsistencyGroup()
+                    && NullColumnValueGetter.isNotNullValue(tgtSnapSession.getReplicationGroupInstance())) {
+                filteredSnapshotURIs.addAll(ControllerUtils.ensureOneSnapshotPerReplicationGroup(snapshotURIs, _dbClient));
+            } else {
+                filteredSnapshotURIs.addAll(snapshotURIs);
+            }
+            
+            // Now we need to make sure we get all the snapshots in each
+            // replication group. If a snapshot is not in a replication group,
+            // this will just add the snapshot.
+            List<BlockSnapshot> snapshotsToRelink = new ArrayList<BlockSnapshot>();
+            for (URI filteredSnapshotURI : filteredSnapshotURIs) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, filteredSnapshotURI);
+                snapshotsToRelink.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient));
+            }
+            
+            // Get a list of the VPLEX volumes, if any, that are built
+            // using the snapshot target volumes.
+            List<Volume> vplexVolumes = VPlexUtil.getVPlexVolumesBuiltOnSnapshots(snapshotsToRelink, _dbClient);
+
+            // Create the workflow steps.
+            if (vplexVolumes.isEmpty()) {
+                // If there are no VPLEX volumes built on the snapshots to be relinked,
+                // then we just need a single step to invoke the block device controller to
+                // relink the snapshots.
+                createWorkflowStepForRelinkNativeTargets(workflow, tgtSnapSession, snapshotURIs, null, null);
+            } else {
+                String waitFor = null;
+
+                // Maps Vplex volume that needs to be flushed to underlying array volume
+                Map<Volume, Volume> vplexToArrayVolumesToFlush = new HashMap<Volume, Volume>();
+                for (Volume vplexVolume : vplexVolumes) {
+                    Volume arrayVolumeToBeRelinked = VPlexUtil.getVPLEXBackendVolume(
+                            vplexVolume, true, _dbClient);
+                    vplexToArrayVolumesToFlush.put(vplexVolume, arrayVolumeToBeRelinked);
+                }
+
+                // Generate pre restore steps
+                Map<URI, String> vplexVolumeIdToDetachStep = new HashMap<URI, String>();
+                waitFor = addPreRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
+
+                // Now create a workflow step to natively relink the snapshots.
+                // Note that if a snapshot is associated with a CG, then block
+                // controller will relink all snapshots in the snapshot set. We
+                // execute this after the invalidate cache.
+                waitFor = createWorkflowStepForRelinkNativeTargets(workflow, tgtSnapSession, snapshotURIs, waitFor, rollbackMethodNullMethod());
+
+                // Generate post restore steps
+                addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
+            }
+
+            // Execute the workflow.
+            _log.info("Executing workflow plan");
+            TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, Boolean.TRUE, opId);
+            String successMsg = String.format("Relink VPLEX native snapshot session targets %s to session %s "
+                    + "completed successfully", snapshotURIs, tgtSnapSessionURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {
+            String failMsg = String.format("Relink VPLEX native snapshot session targets %s to session %s failed", snapshotURIs, tgtSnapSessionURI);
+            _log.error(failMsg, e);
+            TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, Boolean.TRUE, opId);
+            ServiceError serviceError = VPlexApiException.errors.relinkSnapshotSessionTargetsFailed(snapshotURIs, tgtSnapSessionURI, e);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+    
+    /**
+     * Create a step in the passed workflow to call the block controller to natively
+     * relink the passed linked targets to the passed target snapshot session.
+     * 
+     * @param workflow A reference to a workflow.
+     * @param tgtSnapSession A reference to the target snapshot session.
+     * @param snapshotURIs The URIs of the block snapshot targets
+     * @param waitFor The step this step should wait for, or null to wait for nothing
+     * @param rollbackMethod A reference to a rollback method, or null.
+     * 
+     * @return RELINK_SNAPSHOT_SESSION_TARGET_STEP
+     */
+    private String createWorkflowStepForRelinkNativeTargets(Workflow workflow,
+            BlockSnapshotSession tgtSnapSession, List<URI> snapshotURIs, String waitFor, Workflow.Method rollbackMethod) {
+        URI parentSystemURI = tgtSnapSession.getStorageController();
+        StorageSystem parentSystem = getDataObject(StorageSystem.class, parentSystemURI, _dbClient);
+        Workflow.Method relinkMethod = new Workflow.Method(
+                RELINK_SNAPSHOT_SESSION_TARGETS_METHOD_NAME, parentSystemURI,
+                tgtSnapSession.getId(), snapshotURIs, Boolean.FALSE);
+        workflow.createStep(RELINK_SNAPSHOT_SESSION_TARGET_STEP, String.format(
+                "Relink VPLEX backend snapshot session targets %s to session %s",
+                snapshotURIs, tgtSnapSession.getId()), waitFor,
+                parentSystemURI, parentSystem.getSystemType(),
+                BlockDeviceController.class, relinkMethod, rollbackMethod, null);
+        _log.info("Created workflow step to relink VPLEX backend snapshot session targets {} to session {}",
+                snapshotURIs, tgtSnapSession.getId());
+
+        return RELINK_SNAPSHOT_SESSION_TARGET_STEP;
     }
 
     /**

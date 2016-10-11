@@ -1644,6 +1644,33 @@ public class VPlexUtil {
     }
     
     /**
+     * Gets a list of the VPLEX volumes, if any, that are built on the passed snapshots.
+     *     
+     * @param snapshots A list of snapshots
+     * @param dbClient A reference to a database client
+     * 
+     * @return A list of the VPLEX volumes built on the passed snapshots.
+     */
+    public static List<Volume> getVPlexVolumesBuiltOnSnapshots(List<BlockSnapshot> snapshots, DbClient dbClient) {
+        List<Volume> vplexVolumes = new ArrayList<Volume>();
+        for (BlockSnapshot snapshotToResync : snapshots) {
+            String nativeGuid = snapshotToResync.getNativeGuid();
+            List<Volume> volumes = CustomQueryUtility.getActiveVolumeByNativeGuid(dbClient, nativeGuid);
+            if (!volumes.isEmpty()) {
+                // If we find a volume instance with the same native GUID as the
+                // snapshot, then this volume represents the snapshot target volume
+                // and a VPLEX volume must have been built on top of it. Note that
+                // for a given snapshot, I should only ever find 0 or 1 volumes with
+                // the nativeGuid of the snapshot. Get the VPLEX volume built on
+                // this volume.
+                Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volumes.get(0));
+                vplexVolumes.add(vplexVolume);
+            }
+        }
+        return vplexVolumes;
+    }
+
+    /**
      * Groups VPLEX volumes into a Table indexed by:
      *    1. The backend Storage Controller of the VPLEX backend volume 
      *    2. The backend replica group of the VPLEX backend volume
@@ -1727,3 +1754,4 @@ public class VPlexUtil {
         return vplexVols;
     }
 }
+

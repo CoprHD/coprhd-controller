@@ -469,6 +469,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
             }
         }
+        
+        if (null != param.getCompressionEnabled()) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
 
         vpool.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
 
@@ -1740,6 +1744,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         if (null != param.getAutoTieringPolicyName() && !param.getAutoTieringPolicyName().isEmpty()) {
             vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
+        }
+        if (param.getCompressionEnabled() != null) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
         }
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());

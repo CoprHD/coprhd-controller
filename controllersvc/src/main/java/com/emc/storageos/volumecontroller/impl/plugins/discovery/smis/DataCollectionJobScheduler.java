@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -455,7 +456,7 @@ public class DataCollectionJobScheduler {
             for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
                 String taskId = UUID.randomUUID().toString();
                 List<URI> systemIds = entry.getValue();
-                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType, true);
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType);
                 DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
                 jobs.add(job);
             }
@@ -690,7 +691,6 @@ public class DataCollectionJobScheduler {
         if (!scheduler &&
                 (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
-                        Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
             _logger.info(namespace + " discovery has been requested by the user, scheduling now...");
@@ -942,6 +942,9 @@ public class DataCollectionJobScheduler {
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.ceph.name()),
                 _dbClient));
+
+        // process providers managed by SB SDK drivers
+        activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
 
         return activeProviderURIs;
     }

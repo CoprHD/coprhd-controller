@@ -21,8 +21,8 @@
 
 	<bean id="vplex"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface">
-        <property name="vPlexApiFactory" ref="vplexapifactory" />
-        <property name="partitionManager" ref="partitionManager" />
+                <property name="vPlexApiFactory" ref="vplexapifactory" />
+                <property name="partitionManager" ref="partitionManager" />
 		<property name="statsCollector" ref="vplexPerpetualCSVFileCollector"/>
 	</bean>
 

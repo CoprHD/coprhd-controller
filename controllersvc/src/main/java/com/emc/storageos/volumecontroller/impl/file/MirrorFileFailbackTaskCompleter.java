@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.file;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.FileShare;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +22,8 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
 
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileFailbackTaskCompleter.class);
 
-    public MirrorFileFailbackTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFileFailbackTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
     }
 
     public MirrorFileFailbackTaskCompleter(Class clazz, URI id, String opId) {
@@ -48,9 +49,14 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected MirrorStatus getFileMirrorStatusForSuccess() {
-        setMirrorSyncStatus(MirrorStatus.SYNCHRONIZED);
-        return getMirrorSyncStatus();
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        if(fs.getStorageDevice().equals(getStorageUri())) {
+        	_log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.SYNCHRONIZED.name());
+            return MirrorStatus.FAILED_OVER.name();
+        } else {
+        	_log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
+            return MirrorStatus.SYNCHRONIZED.name();
+        }
     }
 
 }

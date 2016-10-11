@@ -12,13 +12,10 @@
     #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}
     #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm', 
                 data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
-  	#{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
-                data:['enabled':'selected']/}  
     #{/DataTable.baseCrudButtonBar}
   #{/deadbolt.restrict}
 #{/DataTable.baseCrudTable}
 #{DataTable.expandHtml @itemDetails(':id'), table:'vCenter'/}
-#{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'vCenter', confirm:messages.get('VCenters.detachStorageConfirm')/}
 
 #{DataTable.formAction @delete(), id:'deleteModalForm', class:'show form form-horizontal', table:'vCenter'}
   #{Modal.dialog id:'deleteVcenterDialog'}
@@ -27,7 +24,7 @@
         &{'VCenters.deleteConfirm'}
         #{field 'detachStorage'}
           %{
-            field.value = 'true'
+            field.value = 'false'
             field.cssClass = 'checkbox'
             field.label = messages.get('VCenters.detachStorageModal')
             field.helpText = messages.get('VCenters.detachStorageModal.help')

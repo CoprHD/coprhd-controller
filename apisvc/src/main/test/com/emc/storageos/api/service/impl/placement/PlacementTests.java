@@ -2439,10 +2439,13 @@ public class PlacementTests extends DbsvcTestBase {
             for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
                 assertNotNull(targetJournalRec.getSourceStoragePool());
                 assertTrue(targetJournalRec.getVirtualArray().toString().equals("varray2"));
-                assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString())
-                        || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
+                assertTrue("pool4".equals(targetJournalRec.getSourceStoragePool().toString())
+                        || "pool5".equals(targetJournalRec.getSourceStoragePool().toString())
+                        || "pool6".equals(targetJournalRec.getSourceStoragePool().toString()));
                 assertTrue("site2".equals(targetJournalRec.getInternalSiteName()));
-                assertTrue("xtremio5".equals(targetJournalRec.getSourceStorageSystem().toString()));
+                assertTrue("xtremio4".equals(targetJournalRec.getSourceStorageSystem().toString())
+                        || "xtremio5".equals(targetJournalRec.getSourceStorageSystem().toString())
+                        || "xtremio6".equals(targetJournalRec.getSourceStorageSystem().toString()));
 
             }
 

@@ -157,12 +157,12 @@ public class HostMapper {
             to.setVolumeGroups(volumeGroups);
         }
 
-        StringMap pools = from.getPreferredPoolIds();
+        StringMap pools = from.getPreferredPools();
         if (pools != null && !pools.isEmpty()) {
             for (Map.Entry<String, String> entry : pools.entrySet()) {
                 RelatedResourceRep poolRep = toRelatedResource(ResourceTypeEnum.STORAGE_POOL, URI.create(entry.getKey()));
                 PreferredPoolParam pool = new PreferredPoolParam(poolRep, entry.getValue());
-                to.getPreferredPoolIds().add(pool);
+                to.getPreferredPools().add(pool);
             }
         }
 

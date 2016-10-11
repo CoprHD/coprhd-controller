@@ -1191,7 +1191,12 @@ public class VPlexApiMigrationManager {
                 String volumePathAfterMigration = virtualVolumeInfo.getPath();
                 StringBuilder volumeNameBuilder = new StringBuilder();
                 volumeNameBuilder.append(migrationTgtName);
-                volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+                // Only append the suffix if the volume name doesn't already end with it.
+                // This will prevent issues where we could be appending the suffix ("_vol")
+                // multiple times on the volume name.
+                if (!volumeNameBuilder.toString().endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
+                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+                }
     
                 // Rename the VPLEX volume name and update the migration information.
                 virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());

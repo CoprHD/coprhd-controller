@@ -8,7 +8,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -32,8 +32,10 @@ import static com.google.common.collect.Collections2.transform;
  */
 public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
 
+    public static final String FIELD_INITIATORS = "initiators";
+    public static final String FIELD_VOLUMES = "volumes";
+
     private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
-    private static final String NO_MATCH = "<no match>";
 
     private final StorageSystem storage;
     private final ExportMask exportMask;
@@ -56,7 +58,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         // we have tighter tolerances and need to run refresh.
         if (getConfig().validationRefreshEnabled()) {
             // Refresh the provider's view of the storage system
-            getHelper().callRefreshSystem(storage);
+            getEmcRefreshSystemInvoker().invoke(storage);
         }
 
         Set<String> database = getDatabaseResources();
@@ -69,7 +71,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         Set<String> differences = Sets.difference(hardware, database);
 
         for (String diff : differences) {
-            getLogger().logDiff(exportMask.getId().toString(), field, NO_MATCH, diff);
+            getLogger().logDiff(exportMask.getId().toString(), field, ValidatorLogger.NO_MATCHING_ENTRY, diff);
         }
 
         return true;

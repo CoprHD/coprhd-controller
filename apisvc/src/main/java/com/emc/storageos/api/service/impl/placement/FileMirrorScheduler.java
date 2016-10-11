@@ -117,6 +117,9 @@ public class FileMirrorScheduler implements Scheduler {
         // For vPool change get the recommendations from source file system!!!
         if (capabilities.createMirrorExistingFileSystem()) {
             sourceFileRecommendations = getFileRecommendationsForSourceFS(vArray, vPool, capabilities);
+            // Remove the source file system from capabilities list
+            // otherwise, try to find the remote pools from the same source system!!!
+            capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM);
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);

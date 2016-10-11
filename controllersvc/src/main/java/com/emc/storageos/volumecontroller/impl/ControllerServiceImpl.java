@@ -653,8 +653,7 @@ public class ControllerServiceImpl implements ControllerService {
                 List<URI> hostIds = ((ArrayAffinityAsyncTask) task).getHostIds();
                 List<URI> systemIds = ((ArrayAffinityAsyncTask) task).getSystemIds();
                 ArrayAffinityDataCollectionTaskCompleter completer =
-                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType,
-                                (hostIds == null || hostIds.isEmpty()));
+                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType);
                 DataCollectionJob job = new DataCollectionArrayAffinityJob(hostIds, systemIds, completer, task._namespace);
                 jobs.add(job);
             } else {

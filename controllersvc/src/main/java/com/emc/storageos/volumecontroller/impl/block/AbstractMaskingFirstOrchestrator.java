@@ -313,7 +313,10 @@ abstract public class AbstractMaskingFirstOrchestrator extends
             ExportMask mask, List<URI> volumes,
             List<URI> newInitiators, String token) throws Exception {
         // Removed the dependency for zoning, hence masking will be performed first
-        Set<URI> volumeURIs = new HashSet<URI>(volumes);
+        Set<URI> volumeURIs = new HashSet<URI>();
+        if (volumes != null) {
+            volumeURIs.addAll(volumes);
+        }
         return generateExportMaskAddInitiatorsWorkflow(workflow, null, storage, exportGroup, mask, newInitiators, volumeURIs, token);
     }
 

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -20,13 +21,24 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 public class HostCompleter extends ComputeSystemCompleter {
 
     private static final Logger _logger = LoggerFactory.getLogger(HostCompleter.class);
+    private URI eventId;
 
     public HostCompleter(URI id, boolean deactivateOnComplete, String opId) {
-        super(Host.class, id, deactivateOnComplete, opId);
+        this(NullColumnValueGetter.getNullURI(), id, deactivateOnComplete, opId);
     }
 
     public HostCompleter(List<URI> ids, boolean deactivateOnComplete, String opId) {
+        this(NullColumnValueGetter.getNullURI(), ids, deactivateOnComplete, opId);
+    }
+
+    public HostCompleter(URI eventId, URI id, boolean deactivateOnComplete, String opId) {
+        super(Host.class, id, deactivateOnComplete, opId);
+        this.eventId = eventId;
+    }
+
+    public HostCompleter(URI eventId, List<URI> ids, boolean deactivateOnComplete, String opId) {
         super(Host.class, ids, deactivateOnComplete, opId);
+        this.eventId = eventId;
     }
 
     @Override
@@ -39,6 +51,13 @@ public class HostCompleter extends ComputeSystemCompleter {
                     if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                         host.setProvisioningStatus(Host.ProvisioningJobStatus.ERROR.toString());
                         dbClient.persistObject(host);
+                    }
+                    if (!NullColumnValueGetter.isNullURI(eventId)) {
+                        ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
+                        if (event != null) {
+                            event.setEventStatus(ActionableEvent.Status.failed.name());
+                            dbClient.updateObject(event);
+                        }
                     }
                     dbClient.error(Host.class, id, getOpId(), coded);
                     break;

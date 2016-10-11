@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
@@ -331,7 +332,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // For MetroPoint, the same VPLEX Distributed/Metro volume will be exported to
         // two VPLEX Export Groups (aka Storage Views). One for each RPA Cluster in the
         // MetroPoint configuration.
-        if (RPHelper.isVPlexDistributedVolume(volume)) {
+        boolean isVPlexDistributedVolume = false;
+        if (volumeContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
+            VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
+                    .getVplexVolumeIngestionContext();
+            isVPlexDistributedVolume = vplexVolumeContext.getAssociatedVolumeIds(volume).size() > 1;
+        }
+        if (isVPlexDistributedVolume) {
             // Get the internal site and copy names
             String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
@@ -621,7 +628,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             for (DataObject updatedObject : updatedObjects) {
                 if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
                         || updatedObject instanceof BlockSnapshotSession
-                        || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {
+                        || (updatedObject instanceof Volume && 
+                                !NullColumnValueGetter.isNullURI( ((Volume) updatedObject).getAssociatedSourceVolume() ))) {
                     _logger.info("Clearing internal volume flag of replica {} of RP volume ", updatedObject.getLabel());
                     updatedObject.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
@@ -633,7 +641,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            if (RPHelper.isVPlexVolume(volume) && volumeContext instanceof RpVplexVolumeIngestionContext) {
+            if (RPHelper.isVPlexVolume(volume, _dbClient) && volumeContext instanceof RpVplexVolumeIngestionContext) {
                 VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                         .getVplexVolumeIngestionContext();
                 StringSet associatedVolumes = vplexVolumeContext.getAssociatedVolumeIds(volume);
@@ -708,9 +716,10 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                         vplexVolumeContext.getBlockObjectsToBeCreatedMap(),
                         vplexVolumeContext.getDataObjectsToBeUpdatedMap(),
                         associatedVolumeIdStr);
+                String internalSiteName = associatedVolume.getInternalSiteName();
                 // If we don't already have an entry for this internal site name, let's add it now.
-                if (!internalSiteToVarrayMap.containsKey(associatedVolume.getInternalSiteName())) {
-                    internalSiteToVarrayMap.put(associatedVolume.getInternalSiteName(),
+                if (!internalSiteToVarrayMap.containsKey(internalSiteName)) {
+                    internalSiteToVarrayMap.put(internalSiteName,
                             _dbClient.queryObject(VirtualArray.class, associatedVolume.getVirtualArray()));
                 }
             }
@@ -766,25 +775,25 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 em = unManagedRPExportMasks.get(0);
             }
 
+            // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains
+            // that internal flag.
+            boolean isJournalExport = false;
+            if (em.getMaskName().toLowerCase().contains(VolumeIngestionUtil.RP_JOURNAL)) {
+                isJournalExport = true;
+            }
             String exportGroupGeneratedName = RPHelper.generateExportGroupName(protectionSystem, storageSystem, internalSiteName,
-                    virtualArray);
+                    virtualArray, isJournalExport);
 
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(
                     parentRequestContext, exportGroupGeneratedName, project.getId(),
                     em.getKnownInitiatorUris(), virtualArray.getId(), _dbClient);
+
             boolean exportGroupCreated = false;
+
             if (null == exportGroup) {
                 exportGroupCreated = true;
                 Integer numPaths = em.getZoningMap().size();
                 _logger.info("Creating Export Group with label {}", em.getMaskName());
-
-                // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains
-                // that
-                // internal flag.
-                boolean isJournalExport = false;
-                if (em.getMaskName().toLowerCase().contains("journal")) {
-                    isJournalExport = true;
-                }
                 exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, virtualArray, project,
                         numPaths, isJournalExport);
             }

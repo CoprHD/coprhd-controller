@@ -76,12 +76,12 @@ verify_export() {
 	    echo "PASSED: Verified MaskingView with pattern ${IG_PATTERN} doesn't exist."
 	    exit 0;
 	fi
-	echo "ERROR: Expected MaskingView ${IG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${IG_PATTERN}, but could not find it";
 	exit 1;
     else
 	if [ "$2" = "gone" ]
 	    then
-	    echo "ERROR: Expected MaskingView ${IG_PATTERN} to be gone, but it was found"
+	    echo -e "\e[91mERROR\e[0m: Expected MaskingView ${IG_PATTERN} to be gone, but it was found"
 	    exit 1;
 	fi
     fi
@@ -92,13 +92,13 @@ verify_export() {
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
 	then
-	echo "FAILED: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
 	failed=true
     fi
 
     if [ ${num_luns} -ne ${NUM_LUNS} ]
 	then
-	echo "FAILED: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
 	failed=true
     fi
 

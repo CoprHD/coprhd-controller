@@ -18,21 +18,24 @@
 package com.emc.storageos.keystone.restapi.utils;
 
 import com.emc.storageos.cinder.CinderConstants;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.model.tenant.TenantCreateParam;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpv4Setting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Keystone API Utils class.
@@ -44,9 +47,18 @@ public class KeystoneUtils {
     public static final String OPENSTACK_CINDER_V1_NAME = "cinder";
     public static final String OPENSTACK_TENANT_ID = "tenant_id";
     public static final String OPENSTACK_DEFAULT_REGION = "RegionOne";
+    public static final String TENANT_ID = "tenant_id";
+    public static final String VALUES = "values";
+    // Default excluded option for OSTenant.
+    private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = false;
 
     private KeystoneRestClientFactory _keystoneApiFactory;
     private Properties _ovfProperties;
+    private DbClient _dbClient;
+
+    public void setDbClient(DbClient dbClient) {
+        this._dbClient = dbClient;
+    }
 
     public void setKeystoneFactory(KeystoneRestClientFactory factory) {
         this._keystoneApiFactory = factory;
@@ -206,7 +218,7 @@ public class KeystoneUtils {
      * @param managerDN of a Authentication Provider.
      * @return StringMap containing username and tenantname keys with values.
      */
-    private StringMap getUsernameAndTenant(String managerDN){
+    private StringMap getUsernameAndTenant(String managerDN) {
 
         String username = managerDN.split(",")[0].split("=")[1];
         String tenantName = managerDN.split(",")[1].split("=")[1];
@@ -245,7 +257,7 @@ public class KeystoneUtils {
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void registerCoprhdInKeystone(String managerDN, StringSet serverUrls,  String managerPassword) {
+    public void registerCoprhdInKeystone(String managerDN, StringSet serverUrls, String managerPassword) {
         _log.debug("START - register CoprHD in Keystone");
 
         // Create a new KeystoneAPI.
@@ -330,11 +342,7 @@ public class KeystoneUtils {
 
         String url = "";
 
-        // Get cluster Virtual IP.
-        Map<String, String> ovfprops = (Map) _ovfProperties;
-        ClusterIpv4Setting ipv4Setting = new ClusterIpv4Setting();
-        ipv4Setting.loadFromPropertyMap(ovfprops);
-        String clusterVIP = ipv4Setting.getNetworkVip();
+        String clusterVIP = getVIP();
 
         if (clusterVIP == null) {
             _log.error("Could not retrieve cluster Virtual IP");
@@ -358,6 +366,20 @@ public class KeystoneUtils {
         endpoint.setInternalURL(url);
 
         return endpoint;
+    }
+
+    /**
+     * Returns Virtual IP of CoprHD.
+     *
+     * @return CoprHD VIP.
+     */
+    public String getVIP() {
+
+        // Get cluster Virtual IP.
+        Map<String, String> ovfprops = (Map) _ovfProperties;
+        ClusterIpv4Setting ipv4Setting = new ClusterIpv4Setting();
+        ipv4Setting.loadFromPropertyMap(ovfprops);
+        return ipv4Setting.getNetworkVip();
     }
 
     /**
@@ -391,7 +413,8 @@ public class KeystoneUtils {
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword){
+    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword) {
+
         // Create a new KeystoneAPI.
         KeystoneApiClient keystoneApi = getKeystoneApi(managerDN, serverUrls, managerPassword);
         // Get a cinderv2 service id.
@@ -412,5 +435,294 @@ public class KeystoneUtils {
             // Delete endpoint for cinder service.
             deleteKeystoneEndpoint(keystoneApi, serviceIdV1);
         }
+    }
+
+    /**
+     * Retrieves Keystone Authentication Provider from CoprHD.
+     *
+     * @return Keystone Authentication Provider.
+     */
+    public AuthnProvider getKeystoneProvider() {
+
+        List<URI> authnProviderURI = _dbClient.queryByType(AuthnProvider.class, true);
+        Iterator<AuthnProvider> providerIter = _dbClient.queryIterativeObjects(AuthnProvider.class, authnProviderURI);
+        // Iterate over Providers and return Keystone Provider.
+        while (providerIter.hasNext()) {
+            AuthnProvider provider = providerIter.next();
+            if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode())) {
+                return provider;
+            }
+        }
+
+        // Return null whether Keystone Provider is missing in CoprHD.
+        return null;
+    }
+
+    /**
+     * Retrieves OpenStack Tenants from Keystone.
+     *
+     * @return List of OpenStack Tenants.
+     */
+    public List<KeystoneTenant> getOpenStackTenants() {
+
+        AuthnProvider keystoneProvider = getKeystoneProvider();
+
+        if (keystoneProvider == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone provider");
+        }
+
+        // Get Keystone API client.
+        KeystoneApiClient keystoneApiClient = getKeystoneApi(keystoneProvider.getManagerDN(),
+                keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
+
+        // Get OpenStack Tenants.
+        // You cannot remove or add elements dynamically to Arrays (Arrays.asList) that is why this needs to be wrapped in a new list.
+        return new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
+    }
+
+    /**
+     * Retrieves OpenStack Tenant with given id.
+     *
+     * @param id Tenant ID.
+     *
+     * @return OpenStack Tenant.
+     */
+    public KeystoneTenant getTenantWithId(String id) {
+
+        AuthnProvider keystoneProvider = getKeystoneProvider();
+
+        if (keystoneProvider == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone provider");
+        }
+
+        // Get Keystone API client.
+        KeystoneApiClient keystoneApiClient = getKeystoneApi(keystoneProvider.getManagerDN(),
+                keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
+
+        for (KeystoneTenant tenant : keystoneApiClient.getKeystoneTenants().getTenants()) {
+            if (tenant.getId().equals(id)) {
+                return tenant;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Retrieves CoprHD Tenants with OpenStack ID parameter.
+     *
+     * @return List of CoprHD Tenants.
+     */
+    public List<TenantOrg> getCoprhdTenantsWithOpenStackId() {
+
+        List<URI> coprhdTenantsURI = _dbClient.queryByType(TenantOrg.class, true);
+        Iterator<TenantOrg> tenantsIter = _dbClient.queryIterativeObjects(TenantOrg.class, coprhdTenantsURI);
+        List<TenantOrg> tenants = new ArrayList<>();
+
+        // Iterate over CoprHD Tenants and get only those that contain tenant_id parameter.
+        while (tenantsIter.hasNext()) {
+            TenantOrg tenant = tenantsIter.next();
+            if (getCoprhdTenantUserMapping(tenant) != null) {
+                tenants.add(tenant);
+            }
+        }
+
+        return tenants;
+    }
+
+    /**
+     * Retrieves CoprHD Tenant with given OpenStack ID.
+     *
+     * @return CoprHD Tenant.
+     */
+    public TenantOrg getCoprhdTenantWithOpenstackId(String id) {
+
+        if (id != null && !id.isEmpty()) {
+            List<TenantOrg> tenants = getCoprhdTenantsWithOpenStackId();
+
+            for (TenantOrg tenant : tenants) {
+                String userMapping = getCoprhdTenantUserMapping(tenant);
+                if (userMapping != null && userMapping.contains(id)) {
+                    return tenant;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Retrieves UserMapping having "tenant_id" as attribute in CoprHD Tenant.
+     *
+     * @param tenant CoprHD Tenant.
+     * @return User Mapping for given Tenant.
+     */
+    public String getCoprhdTenantUserMapping(TenantOrg tenant) {
+
+        StringSetMap userMappings = tenant.getUserMappings();
+        // Ignore root Tenant.
+        if (!TenantOrg.isRootTenant(tenant) && userMappings != null) {
+            // Return mapping that contains tenant_id.
+            for (AbstractChangeTrackingSet<String> userMappingSet : userMappings.values()) {
+                for (String mapping : userMappingSet) {
+                    if (mapping.contains(TENANT_ID)) {
+                        return mapping;
+                    }
+                }
+            }
+        }
+
+        // Return null whether Tenant has no mapping with tenant_id parameter.
+        return null;
+    }
+
+    /**
+     * Retrieves OpenStack Tenant ID from UserMapping.
+     * UserMapping string contains 3 main subgroups: domain, attributes and groups. Openstack tenant id is located in attributes subgroup
+     * assigned to 'values' string. Method splits userMapping string and looks for 'values' and then retrieves tenant id from it.
+     *
+     * @param userMapping CoprHD UserMapping.
+     * @return OpenStack Tenant ID.
+     */
+    public String getTenantIdFromUserMapping(String userMapping) {
+
+        // Create split pattern.
+        Pattern p = Pattern.compile("\\[(.*?)\\]");
+        // Apply pattern.
+        Matcher m = p.matcher(userMapping);
+        String result;
+
+        while (m.find()) {
+
+            if (m.group().contains(VALUES)) {
+                result = m.group().split(":")[1];
+
+                return result.substring(2, result.length() - 2);
+            }
+        }
+
+        return "";
+    }
+
+    /**
+     * Finds CoprHD representation of OpenStack Tenant with given OS ID.
+     *
+     * @param tenantId OpenStack Tenant ID.
+     * @return CoprHD Tenant.
+     */
+    public OSTenant findOpenstackTenantInCoprhd(String tenantId) {
+
+        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
+        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
+
+        while (osTenantIter.hasNext()) {
+            OSTenant osTenant = osTenantIter.next();
+            if (osTenant.getOsId().equals(tenantId)) {
+                return osTenant;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Prepares userMappings with OpenStack Tenant ID for CoprHD Tenant.
+     *
+     * @param openstackId OpenStack Tenant ID.
+     * @return UserMappings.
+     */
+    public List<UserMappingParam> prepareUserMappings(String openstackId) {
+
+        AuthnProvider provider = getKeystoneProvider();
+
+        // Create mapping rules
+        List<UserMappingParam> userMappings = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        values.add(openstackId);
+
+        List<UserMappingAttributeParam> attributes = new ArrayList<>();
+        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
+
+        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
+
+        return userMappings;
+    }
+
+    /**
+     * Prepares TenantCreateParam class filled with information from given Tenant.
+     *
+     * @param tenant OpenStack Tenant.
+     * @return TenantCreateParam.
+     */
+    public TenantCreateParam prepareTenantParam(KeystoneTenant tenant) {
+
+        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(),
+                prepareUserMappings(tenant.getId()));
+
+        param.setDescription(getProperTenantDescription(tenant.getDescription()));
+
+        return param;
+    }
+
+    /**
+     * Tags Project with given Openstack Tenant ID.
+     *
+     * @param projectId CoprHD Project ID.
+     * @param osTenantId OpenStack Tenant ID.
+     * @param coprhdTenantId CoprHD Tenant ID.
+     * @return Updated project.
+     */
+    public Project tagProjectWithOpenstackId(URI projectId, String osTenantId, String coprhdTenantId) {
+
+        // Tag project with OpenStack tenant_id
+        Project project = _dbClient.queryObject(Project.class, projectId);
+        if (project != null) {
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            ScopedLabel tagLabel = new ScopedLabel(coprhdTenantId, osTenantId);
+            tagSet.add(tagLabel);
+            project.setTag(tagSet);
+            _dbClient.updateObject(project);
+            return project;
+        }
+
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("Project with id: " + projectId);
+    }
+
+    /**
+     * Maps Openstack KeystoneTenant to OSTenant.
+     *
+     * @param tenant OpenStack Tenant to map.
+     * @return OSTenant.
+     */
+    public OSTenant mapToOsTenant(KeystoneTenant tenant) {
+
+        if (tenant != null) {
+            OSTenant osTenant = new OSTenant();
+            osTenant.setOsId(tenant.getId());
+            // Check whether description is null or empty.
+            osTenant.setDescription(getProperTenantDescription(tenant.getDescription()));
+            osTenant.setName(tenant.getName());
+            osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+            osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
+
+            return osTenant;
+        }
+
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("KeystoneTenant");
+    }
+
+    /**
+     * Checks whether given Tenant description is null or empty and returns appropriate description.
+     *
+     * @param description Tenant description.
+     * @return String.
+     */
+    public String getProperTenantDescription(String description) {
+
+        if (description != null && !description.isEmpty()) {
+            return description;
+        }
+
+        return CinderConstants.TENANT_NAME_PREFIX;
     }
 }

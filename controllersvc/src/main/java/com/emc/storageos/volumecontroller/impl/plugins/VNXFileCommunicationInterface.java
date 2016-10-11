@@ -1657,8 +1657,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
-
-                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    
+                    UnManagedFileQuotaDirectory tempUnManagedFileQuotaDirectory = checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID);
+                    boolean unManagedFileQuotaDirectoryExists = tempUnManagedFileQuotaDirectory == null ? false : true;
+                    
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory;
+                    
+                    if(!unManagedFileQuotaDirectoryExists){
+                        unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));                            
+                    }else {
+                        unManagedFileQuotaDirectory = tempUnManagedFileQuotaDirectory;
+                    }
                     
                     unManagedFileQuotaDirectory.setLabel(qdName);
 
@@ -1666,13 +1676,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGuid);
                     unManagedFileQuotaDirectory.setOpLock(false);
                     if (quotaTree.getLimits() != null) {
+                        /* 
+                         * response is in MB, so Byte = 1024 * 1024 * response
+                         */
                         unManagedFileQuotaDirectory.setSize(
-                                Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()) * BYTESCONV);
+                                Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()) * BYTESCONV * BYTESCONV);
                     }
 
-                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                    if (!unManagedFileQuotaDirectoryExists) {
                         //Set ID only for new UnManagedQuota Directory 
-                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     } else {
                         existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -1703,16 +1715,23 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+    private UnManagedFileQuotaDirectory checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
             throws IOException {
+        UnManagedFileQuotaDirectory umfsQd = null;
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
-        if (result.iterator().hasNext()) {
-            return true;
+
+        Iterator<URI> iter = result.iterator();
+        while (iter.hasNext()) {
+            URI unManagedFSQDUri = iter.next();
+            umfsQd = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, unManagedFSQDUri);
+
+            return umfsQd;
         }
-        return false;
+        return umfsQd;  
     }
+    
 
     /**
      * check Storage quotadir exists in DB

@@ -135,15 +135,6 @@ public class HostClusters extends Controller {
     }
 
     @FlashException("list")
-    public static void detachStorage(@As(",") String[] ids) {
-        for (URI id : ResourceUtils.uris(ids)) {
-            ClusterUtils.detachStorage(id);
-        }
-        flash.success(MessagesUtils.get(DETACH_STORAGE));
-        list();
-    }
-
-    @FlashException("list")
     public static void editHosts(String id) {
         ClusterRestRep cluster = ClusterUtils.getCluster(uri(id));
         if (cluster != null) {

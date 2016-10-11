@@ -1,0 +1,20 @@
+%{
+sources = _caller.sources;
+currentSource = _caller.currentSource;
+}%
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#source').on('change', switchSource);
+    });
+
+    function switchSource() {
+        $("#selectSourceForm").submit();
+    }
+</script>
+#{form @tenant.Tenants.selectSource(), id:'selectSourceForm', action:'post', class:'form form-inline'}
+    <input type="hidden" name="url" value="${request.url}"/>
+    <div class="well well-sm">
+      #{Form.selectSource sources:sources, selectedSource:currentSource/}
+      #{doBody /}
+     </div>
+#{/form}

@@ -10,7 +10,6 @@ import util.ConfigProperty;
 public class SyslogPropertiesPage extends CustomPropertyPage {
     private Property syslogRemoteServersPorts;
     private Property syslogEnable;
-    private Property syslogEnableTls;
     private Property syslogTransportProtocol;
     private Property syslogDriverCa;
 
@@ -19,7 +18,6 @@ public class SyslogPropertiesPage extends CustomPropertyPage {
         setRenderTemplate("syslogPage.html");
         syslogRemoteServersPorts = addCustomProperty(properties, ConfigProperty.SYSLOG_REMOTE_SERVERS_PORTS);
         syslogEnable = addCustomProperty(properties, ConfigProperty.SYSLOG_ENABLE);
-        syslogEnableTls = addCustomProperty(properties, ConfigProperty.SYSLOG_ENABLE_TLS);
         syslogDriverCa = addCustomProperty(properties, ConfigProperty.SYSLOG_DRIVER_CA);
         syslogTransportProtocol = addCustomProperty(properties, ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL);
     }
@@ -30,10 +28,6 @@ public class SyslogPropertiesPage extends CustomPropertyPage {
 
     public Property getSyslogEnable() {
         return syslogEnable;
-    }
-
-    public Property getSyslogEnableTls() {
-        return syslogEnableTls;
     }
 
     public Property getSyslogTransportProtocol() {

@@ -4,23 +4,17 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import java.net.URI;
-import java.util.Collection;
-
-import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
-import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.validators.ChainingValidator;
 import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
+import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Factory class for creating Vmax-specific validators. The theme for each factory method is
@@ -34,20 +28,32 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     private static final Logger log = LoggerFactory.getLogger(VmaxSystemValidatorFactory.class);
 
     @Override
-    public AbstractSMISValidator createExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
-            Collection<URI> volumeURIList) {
-        return new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
+    public AbstractSMISValidator createExportMaskVolumesValidator(ExportMaskValidationContext ctx) {
+        return new ExportMaskVolumesValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getBlockObjects());
     }
 
     @Override
-    public AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
-            Collection<Initiator> initiatorList) {
-        return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+    public AbstractSMISValidator createExportMaskInitiatorValidator(ExportMaskValidationContext ctx) {
+        // Check to see if validation makes sense to perform for this export mask
+        if (performInitiatorValidation(ctx.getExportMask())) {
+            return new ExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getInitiators());
+        }
+        return truthyValidator;
     }
 
     @Override
-    public ValidatorLogger createValidatorLogger() {
-        return new ValidatorLogger(log);
+    public AbstractSMISValidator createMultipleExportMasksForBlockObjectsValidator(ExportMaskValidationContext ctx) {
+        return new MultipleVmaxMaskForVolumesValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getBlockObjects());
+    }
+
+    @Override
+    public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(ExportMaskValidationContext ctx) {
+        return new MultipleVmaxMaskForInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getInitiators());
+    }
+
+    @Override
+    public ValidatorLogger createValidatorLogger(String validatedObjectName, String storageSystemName) {
+        return new ValidatorLogger(log, validatedObjectName, storageSystemName);
     }
 
 }

@@ -15,9 +15,16 @@
 
 #{Resources.header resource:blockSnapshotSession.blockSnapshotSession, typeKey: 'affectedResources.blockSnapshotSession'/}
 #{Resources.actions hide:blockSnapshotSession?.blockSnapshotSession?.inactive }
-    <a href="@{deleteSnapshotSession(blockSnapshotSession.blockSnapshotSession.id)}"
-      onclick="return confirm('&{'resources.snapshot.deleteConfirm'}');"
-    >&{'resources.snapshot.session.deleteLink'}</a><br/>
+    <div class="btn-group">
+          <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown">
+            <span class="glyphicon glyphicon-trash"></span>
+            &{'resources.snapshot.session.deleteLink'} <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" role="menu">
+            <li><a href="@{deleteSnapshotSession(blockSnapshotSession.blockSnapshotSession.id, 'FULL')}" onclick="return confirm('&{'resources.snapshot.session.deleteConfirm.FULL'}');">&{'resources.snapshot.session.deleteLink.FULL'}</a></li>
+            <li><a href="@{deleteSnapshotSession(blockSnapshotSession.blockSnapshotSession.id, 'VIPR_ONLY')}" onclick="return confirm('&{'resources.snapshot.session.deleteConfirm.VIPR_ONLY'}');">&{'resources.snapshot.session.deleteLink.VIPR_ONLY'}</a></li>
+          </ul>
+        </div>
  #{/Resources.actions}
   <dl class="dl-horizontal pull-left">
       #{if volume}

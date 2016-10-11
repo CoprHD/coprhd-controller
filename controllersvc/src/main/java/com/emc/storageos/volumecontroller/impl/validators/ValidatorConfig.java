@@ -4,10 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Configuration class for the Validation framework.
@@ -40,7 +41,7 @@ public class ValidatorConfig {
      *
      * @return true if the validation check is on.
      */
-    public boolean validationEnabled() {
+    public boolean isValidationEnabled() {
         if (coordinator != null) {
             return Boolean.valueOf(ControllerUtils
                     .getPropertyValueFromCoordinator(coordinator, VALIDATION_CHECK_PROPERTY));

@@ -128,6 +128,9 @@ public class BlockMapper {
         to.setLinkStatus(from.getLinkStatus());
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
+        
+        // set compression ratio
+        to.setCompressionRatio(from.getCompressionRatio());
 
         if (dbClient != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
@@ -216,7 +219,7 @@ public class BlockMapper {
         FullCopyRestRep toFullCopy = null;
         URI fullCopySourceVolumeURI = from.getAssociatedSourceVolume();
         StringSet fromFullCopies = from.getFullCopies();
-        if (fullCopySourceVolumeURI != null || (fromFullCopies != null && !fromFullCopies.isEmpty())) {
+        if (!NullColumnValueGetter.isNullURI(fullCopySourceVolumeURI) || (fromFullCopies != null && !fromFullCopies.isEmpty())) {
             toFullCopy = new FullCopyRestRep();
             if (fullCopySourceVolumeURI != null) {
                 toFullCopy.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, fullCopySourceVolumeURI));
@@ -342,7 +345,7 @@ public class BlockMapper {
         }
         BlockSnapshotRestRep to = new BlockSnapshotRestRep();
         mapBlockObjectFields(from, to);
-
+        
         // Map the consistency group
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
 
@@ -367,6 +370,7 @@ public class BlockMapper {
         to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        to.setTechnologyType(from.getTechnologyType());
         return to;
     }
 

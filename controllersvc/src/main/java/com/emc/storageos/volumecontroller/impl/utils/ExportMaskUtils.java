@@ -20,8 +20,6 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -65,6 +63,8 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 
+import sun.net.util.IPAddressUtil;
+
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
 
@@ -84,19 +84,16 @@ public class ExportMaskUtils {
      */
     public static ExportMask getExportMask(DbClient dbClient, ExportGroup exportGroup, URI sdUri)
             throws DatabaseException {
-        if (exportGroup.getExportMasks() == null ||
-                exportGroup.getExportMasks().isEmpty()) {
+        if (ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
             return null;
         }
 
         // At this point, exportGroup.exportMasks should be non-null and non-empty,
         // so try to find the ExportMask that has the same StorageSystem URI
         ExportMask foundExportMask = null;
-        for (String maskUriStr : exportGroup.getExportMasks()) {
-            URI maskUri = URI.create(maskUriStr);
-            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
-            if (mask != null && mask.getStorageDevice().equals(sdUri)) {
-                foundExportMask = mask;
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {          
+            if (exportMask != null && exportMask.getStorageDevice().equals(sdUri)) {
+                foundExportMask = exportMask;
                 break;
             }
         }
@@ -113,20 +110,22 @@ public class ExportMaskUtils {
      */
     public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup, URI ssysURI) {
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
-        if (exportGroup.getExportMasks() == null ||
-                exportGroup.getExportMasks().isEmpty()) {
+        if (exportGroup == null || exportGroup.getExportMasks() == null) {
             return returnMasks;
         }
-        for (String maskUriStr : exportGroup.getExportMasks()) {
-            URI maskUri = URI.create(maskUriStr);
-            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
-            if (mask == null) {
+               
+        for (String maskUriStr : exportGroup.getExportMasks()) {   
+        	 URI maskUri = URI.create(maskUriStr);
+        	 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+
+            if (exportMask == null) {
                 continue;
             }
-            if (ssysURI == null || mask.getStorageDevice().equals(ssysURI)) {
-                returnMasks.add(mask);
+            if (ssysURI == null || exportMask.getStorageDevice().equals(ssysURI)) {
+                returnMasks.add(exportMask);
             }
         }
+        
         return returnMasks;
     }
 
@@ -139,6 +138,41 @@ public class ExportMaskUtils {
      */
     public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup) {
         return getExportMasks(dbClient, exportGroup, null);
+    }
+
+    /**
+     * Returns a list of ExportMasks that are for a specified Storage System.
+     *
+     * @param dbClient - reference to the database client
+     * @param ssysURI - the StorageSystem URI
+     * @return List<ExportMask> -- an empty list is returned if there are no matches.
+     */
+    public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
+
+        // NOTE for release 3.5:
+        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
+        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
+        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
+        // -beachn
+
+        List<ExportMask> returnMasks = new ArrayList<ExportMask>();
+        if (!URIUtil.isValid(ssysURI)) {
+            _log.warn("invalid URI: {}", ssysURI);
+            return returnMasks;
+        }
+
+        List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
+        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
+        for (ExportMask exportMask : exportMasks) {
+            if (exportMask == null || exportMask.getInactive()) {
+                continue;
+            }
+            if (URIUtil.identical(ssysURI, exportMask.getStorageDevice())) {
+                returnMasks.add(exportMask);
+            }
+        }
+
+        return returnMasks;
     }
 
     /**
@@ -331,7 +365,7 @@ public class ExportMaskUtils {
         dbClient.createObject(exportMask);
 
         exportGroup.addExportMask(exportMask.getId());
-        dbClient.updateAndReindexObject(exportGroup);
+        dbClient.updateObject(exportGroup);
 
         return exportMask;
     }
@@ -339,11 +373,9 @@ public class ExportMaskUtils {
     public static boolean hasExportMaskForStorage(DbClient dbClient,
             ExportGroup exportGroup,
             URI storageURI) {
-        StringSet maskUriSet = exportGroup.getExportMasks();
-        if (maskUriSet != null) {
-            for (String maskUriString : maskUriSet) {
-                ExportMask mask = dbClient.queryObject(ExportMask.class,
-                        URI.create(maskUriString));
+        List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+        if (!masks.isEmpty()) {
+            for (ExportMask mask : masks) {              
                 URI maskStorageURI = mask.getStorageDevice();
                 if (maskStorageURI.equals(storageURI)) {
                     return true;
@@ -570,13 +602,13 @@ public class ExportMaskUtils {
                 exportMask.setZoningMap(zoneMap);
             }
         }
-        dbClient.updateAndReindexObject(exportMask);
+        dbClient.updateObject(exportMask);
         return exportMask;
     }
 
     // don't want to disturb the existing method, hence overloaded
     static public <T extends BlockObject> ExportMask initializeExportMaskWithVolumes(
-            StorageSystem storage, ExportGroup exportGroup, String maskName, String maskLabel,
+            URI storage, ExportGroup exportGroup, String maskName, String maskLabel,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
@@ -587,7 +619,7 @@ public class ExportMaskUtils {
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
         exportMask.setMaskName(maskName);
-        exportMask.setStorageDevice(storage.getId());
+        exportMask.setStorageDevice(storage);
 
         String resourceRef;
         if (exportGroup.getType() != null) {
@@ -644,7 +676,7 @@ public class ExportMaskUtils {
     public static <T extends BlockObject> void updateFCZoneReferences(ExportGroup exportGroup, T volume,
             ZoneInfoMap zoneInfoMap, List<Initiator> initiators, DbClient dbClient) {
         if (NetworkScheduler.isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
-            dbClient.updateAndReindexObject(getFCZoneReferences(volume, exportGroup, zoneInfoMap, initiators));
+            dbClient.updateObject(getFCZoneReferences(volume, exportGroup, zoneInfoMap, initiators));
         }
 
     }
@@ -813,7 +845,7 @@ public class ExportMaskUtils {
 
     static public Map<String, Set<URI>> mapComputeResourceToExportMask(DbClient dbClient, ExportGroup exportGroup, URI storage) {
         Map<String, Set<URI>> computeResourceToExportMaskURIs = new HashMap<String, Set<URI>>();
-        if (exportGroup.getExportMasks() != null) {
+        if (exportGroup != null && exportGroup.getExportMasks() != null) {
             for (String exportMaskURIStr : exportGroup.getExportMasks()) {
                 ExportMask mask = asExportMask(dbClient, exportMaskURIStr);
                 if (mask == null || (mask.getStorageDevice() != null && !mask.getStorageDevice().equals(storage))) {
@@ -838,26 +870,23 @@ public class ExportMaskUtils {
     }
 
     static public Map<String, URI> mapHostToExportMask(DbClient dbClient, ExportGroup exportGroup, URI storage) {
-        Map<String, URI> hostToExportMaskURI = new HashMap<String, URI>();
-        if (exportGroup.getExportMasks() != null) {
-            for (String exportMaskURIStr : exportGroup.getExportMasks()) {
-                ExportMask mask = asExportMask(dbClient, exportMaskURIStr);
-                if (mask == null || (mask.getStorageDevice() != null && !mask.getStorageDevice().equals(storage))) {
-                    continue;
-                }
-                Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, mask, null);
-                for (Initiator initiator : initiators) {
-                    String key = NullColumnValueGetter.getNullURI().toString();
-                    if (initiator.getHost() != null) {
-                        key = initiator.getHost().toString();
-                        hostToExportMaskURI.put(key, mask.getId());
-                    } else {
-                        _log.info("Host Name empty in initiator {}", initiator.getId());
-                    }
-
-                }
+        Map<String, URI> hostToExportMaskURI = new HashMap<String, URI>();        
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {           
+            if (exportMask == null || (exportMask.getStorageDevice() != null && !exportMask.getStorageDevice().equals(storage))) {
+                continue;
             }
-        }
+            Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, null);
+            for (Initiator initiator : initiators) {
+                String key = NullColumnValueGetter.getNullURI().toString();
+                if (initiator.getHost() != null) {
+                    key = initiator.getHost().toString();
+                    hostToExportMaskURI.put(key, exportMask.getId());
+                } else {
+                    _log.info("Host Name empty in initiator {}", initiator.getId());
+                }
+
+            }
+        }        
         return hostToExportMaskURI;
     }
 
@@ -1134,6 +1163,26 @@ public class ExportMaskUtils {
     }
 
     /**
+     * Is this export mask a backend mask for VPLEX or RP?
+     * 
+     * @param dbClient
+     *            db client
+     * @param exportMask
+     *            export mask
+     * @return true if RP/VPLEX mask, false otherwise
+     */
+    public static boolean isBackendExportMask(DbClient dbClient, ExportMask exportMask) {
+        Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, exportMask);
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
+            if (initiators != null) {
+                return areBackendInitiators(initiators);
+            }
+        }
+        return false;
+    }
+
+    /**
      * Find a set of ExportMasks to which the given Initiators belong.
      *
      * @param dbClient [IN] - For accessing DB
@@ -1179,7 +1228,7 @@ public class ExportMaskUtils {
     /**
      * Compare the ExportMask's volumes with a map containing the latest discovered volumes. Return a map of volumes
      * that are new.
-     * 
+     *
      * @param mask [IN] - ExportMask to check
      * @param discoveredVolumes [IN] - Map of Volume WWN to Integer HLU representing discovered volumes.
      * @return Map of Volume WWN (normalized) to Integer HLU representing new volumes, which do not exist in the ExportMask.
@@ -1245,7 +1294,8 @@ public class ExportMaskUtils {
      * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
      *         'exportMask'.
      */
-    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators, DbClient dbClient) {
+    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators,
+            DbClient dbClient) {
         List<Initiator> userAddedInitiators = new ArrayList<>();
 
         // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator
@@ -1275,5 +1325,55 @@ public class ExportMaskUtils {
                     CommonTransformerFunctions.collectionToString(portNames)));
         }
         return userAddedInitiators;
+    }
+
+    /**
+     * Check if the mask and the initiator belong to different resource.
+     */
+    public static boolean checkIfDifferentResource(ExportMask mask, Initiator existingInitiator) {
+        boolean differentResource = false;
+        String maskResource = mask.getResource();
+        if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
+            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
+                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+            } else {
+                differentResource = !maskResource.equals(existingInitiator.getClusterName());
+            }
+        }
+        return differentResource;
+    }
+
+    /**
+     * Set the resource on an ExportMask, if it hasn't already been set.
+     *
+     * @param dbClient      Database client
+     * @param exportGroup   ExportGroup
+     * @param exportMask    ExportMask
+     * @return              true if the resource field was set, false otherwise.
+     */
+    public static boolean setExportMaskResource(DbClient dbClient, ExportGroup exportGroup, ExportMask exportMask) {
+        if (NullColumnValueGetter.isNotNullValue(exportMask.getResource())) {
+            return false;
+        }
+
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, null);
+        String resourceRef = null;
+        if (exportGroup.getType() != null && !initiators.isEmpty()) {
+            Initiator firstInitiator = initiators.iterator().next();
+            if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                resourceRef = firstInitiator.getClusterName();
+            } else {
+                resourceRef = firstInitiator.getHost() == null ? null : firstInitiator.getHost().toString();
+            }
+        }
+
+        if (Strings.isNullOrEmpty(resourceRef)){
+            // This resource is used when we add initiators to existing masks on VMAX, which should not be
+            // case with VPLEX and RP, which do not associate their initiators with hosts or clusters.
+            resourceRef = NullColumnValueGetter.getNullURI().toString();
+        }
+
+        exportMask.setResource(resourceRef);
+        return true;
     }
 }

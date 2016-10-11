@@ -28,6 +28,9 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     private Integer minPaths;
     private Integer pathsPerInitiator;
     private String placementPolicy;
+    
+    // vmax all flash arrays
+    private Boolean compressionEnabled;
 
     // VMAX Host IO Limits attributes
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
@@ -254,6 +257,21 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     public void setPathsPerInitiator(Integer pathsPerInitiator) {
         this.pathsPerInitiator = pathsPerInitiator;
+    }
+
+    /**
+     * @return the compressionEnabled
+     */
+    @XmlElement(name = "compression_enabled", required = false)
+    public Boolean getCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
     }
 
     @XmlElement(name = "host_io_limit_bandwidth", required = false)

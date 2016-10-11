@@ -16,6 +16,9 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.db.client.model.ActionableEvent;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -44,6 +47,9 @@ public class Events extends Controller {
     private static final String APPROVED_MULTIPLE = "resources.event.approved.multiple";
     private static final String DECLINED = "resources.event.declined";
     private static final String DECLINED_MULTIPLE = "resources.event.declined.multiple";
+    private static final String APPROVE_CONFIRM_FAILED = "resources.events.approve.confirm.failed";
+    private static final String DECLINE_CONFIRM_FAILED = "resources.events.decline.confirm.failed";
+    private static final String CONFIRM_TEXT = "confirm";
 
     private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
         @Override
@@ -82,12 +88,13 @@ public class Events extends Controller {
         renderJSON(DataTablesSupport.createJSON(events, params));
     }
 
-    public static void getPendingCount() {
+    public static void getPendingAndFailedCount() {
         ViPRCoreClient client = getViprClient();
-
-        int activeCount = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant())).getPending();
+        EventStatsRestRep eventStats = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant()));
+        int activeCount = eventStats.getPending() + eventStats.getFailed();
         if (Security.isSystemAdmin()) {
-            activeCount += client.events().getStatsByTenant(SYSTEM_TENANT).getPending();
+            EventStatsRestRep systemEventStats = client.events().getStatsByTenant(SYSTEM_TENANT);
+            activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
         }
 
         renderJSON(activeCount);
@@ -128,7 +135,28 @@ public class Events extends Controller {
 
         Common.angularRenderArgs().put("event", getEventSummary(event));
 
-        render(event);
+        List<String> approveDetails = Lists.newArrayList();
+        List<String> declineDetails = Lists.newArrayList();
+
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
+            EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
+            approveDetails = details.getApproveDetails();
+            declineDetails = details.getDeclineDetails();
+        } else {
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
+        }
+
+        Common.angularRenderArgs().put("approveDetails", approveDetails);
+        Common.angularRenderArgs().put("declineDetails", declineDetails);
+
+        List<TaskResourceRep> tasks = Lists.newArrayList();
+        if (event != null && event.getTaskIds() != null) {
+            tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
+        }
+
+        render(event, approveDetails, declineDetails, tasks);
     }
 
     public static void detailsJson(String eventId) {
@@ -161,9 +189,12 @@ public class Events extends Controller {
         return eventSummaries;
     }
 
-    public static void approveEvents(@As(",") String[] ids) {
-        try{
-            for(String eventId:ids) {
+    public static void approveEvents(@As(",") String[] ids, String confirm) {
+        try {
+            if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, confirm));
+            }
+            for (String eventId : ids) {
                 getViprClient().events().approve(uri(eventId));
             }
             flash.success(MessagesUtils.get(APPROVED_MULTIPLE));
@@ -173,20 +204,23 @@ public class Events extends Controller {
         }
         listAll();
     }
-    
-    public static void declineEvents(@As(",") String[] ids) {
-        try{
-            for(String eventId:ids) {
+
+    public static void declineEvents(@As(",") String[] ids, String confirm) {
+        try {
+            if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, confirm));
+            }
+            for (String eventId : ids) {
                 getViprClient().events().decline(uri(eventId));
             }
             flash.success(MessagesUtils.get(DECLINED_MULTIPLE));
-        } catch(Exception e) {
+        } catch (Exception e) {
             flashException(e);
             listAll();
         }
         listAll();
     }
-    
+
     public static void approveEvent(String eventId) {
         try {
             if (StringUtils.isNotBlank(eventId)) {
@@ -213,6 +247,29 @@ public class Events extends Controller {
         details(eventId);
     }
 
+    public static void itemDetails(String id) {
+        EventRestRep event = getViprClient().events().get(uri(id));
+        List<String> approveDetails = Lists.newArrayList();
+        List<String> declineDetails = Lists.newArrayList();
+
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
+            EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
+            approveDetails = details.getApproveDetails();
+            declineDetails = details.getDeclineDetails();
+        } else {
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
+        }
+
+        List<TaskResourceRep> tasks = Lists.newArrayList();
+        if (event != null && event.getTaskIds() != null) {
+            tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
+        }
+
+        render(approveDetails, declineDetails, event, tasks);
+    }
+
     // "Suppressing Sonar violation of Field names should comply with naming convention"
     @SuppressWarnings("squid:S00116")
     private static class EventSummary {
@@ -225,6 +282,10 @@ public class Events extends Controller {
         public URI resourceId;
         public String eventStatus;
         public String eventCode;
+        public String warning;
+        public long eventExecutionTime;
+        public List<String> approveDetails;
+        public List<String> declineDetails;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
@@ -235,6 +296,10 @@ public class Events extends Controller {
             resourceId = event.getResource().getId();
             eventStatus = event.getEventStatus();
             eventCode = event.getEventCode();
+            warning = event.getWarning();
+            eventExecutionTime = event.getEventExecutionTime() == null ? 0 : event.getEventExecutionTime().getTimeInMillis();
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
         }
     }
 }

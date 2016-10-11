@@ -181,7 +181,7 @@ public class XtremIOArrayAffinityDiscoverer {
     }
 
     /**
-     * Filter the known volumes in DB, as the preferredPoolIds list in Host needs
+     * Filter the known volumes in DB, as the preferredPools list in Host needs
      * to have pools of unmanaged volumes alone.
      */
     private void filterKnownVolumes(StorageSystem system, DbClient dbClient,

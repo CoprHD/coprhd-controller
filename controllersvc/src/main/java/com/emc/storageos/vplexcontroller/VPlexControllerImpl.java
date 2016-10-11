@@ -65,9 +65,9 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void importVolume(URI vplexURI, List<VolumeDescriptor> descriptors,
             URI vplexSystemProject, URI vplexSystemTenant, URI newCos, String newLabel, String setTransferSpeed, 
-            String opId) throws InternalException {
+            Boolean markInactive, String opId) throws InternalException {
         queueRequest("importVolume", vplexURI, descriptors,
-                vplexSystemProject, vplexSystemTenant, newCos, newLabel, setTransferSpeed, opId);
+                vplexSystemProject, vplexSystemTenant, newCos, newLabel, setTransferSpeed, markInactive, opId);
     }
 
     @Override

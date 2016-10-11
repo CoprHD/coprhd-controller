@@ -44,6 +44,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.google.common.base.Splitter;
 
 public abstract class StorageProcessor extends PoolProcessor {
@@ -82,7 +83,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     private static final String SLO = "SLO";
     private static final String WORKLOAD = "Workload";
 
-    protected static final String USGAE_UNRESTRICTED = "2";
+    protected static final String USAGE_UNRESTRICTED = "2";
     protected static final String USAGE_DELTA_REPLICA_TARGET = "12";
     protected static final String USGAE_LOCAL_REPLICA_SOURCE = "6";
     protected static final String USAGE_LOCAL_REPLICA_TARGET = "8";
@@ -102,7 +103,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected static final String EIGHT = "8";
 
     protected static final String DEPENDENT = "Dependent";
-
+    
     /**
      * get UnManaged Volume Object path
      * 

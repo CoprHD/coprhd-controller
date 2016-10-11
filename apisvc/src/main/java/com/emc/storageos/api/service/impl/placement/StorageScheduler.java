@@ -101,7 +101,7 @@ public class StorageScheduler implements Scheduler {
     private CustomConfigHandler _customConfigHandler;
     private PortMetricsProcessor _portMetricsProcessor;
 
-    private final Comparator<StoragePool> _storagePoolComparator = new StoragePoolFreeCapacityComparator();
+    private final Comparator<StoragePool> _storagePoolComparator = new StoragePoolDefaultComparator();
     private AttributeMatcherFramework _matcherFramework;
 
     public void setDbClient(DbClient dbClient) {
@@ -373,7 +373,7 @@ public class StorageScheduler implements Scheduler {
          * of pool's subscribed capacity to total capacity(suborder).
          * This order is kept through the selection procedure.
          */
-        Collections.sort(storagePools, new StoragePoolDefaultComparator());
+        Collections.sort(storagePools, _storagePoolComparator);
     }
 
     /**
@@ -517,6 +517,11 @@ public class StorageScheduler implements Scheduler {
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(sourceStorageSystem.getId().toString());
             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+        } else if (capabilities.getExcludedStorageDevice() != null) {
+            StorageSystem excludedStorageSystem = capabilities.getExcludedStorageDevice();
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(excludedStorageSystem.getId().toString());
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.exclude_storage_system.name(), storageSystemSet);            
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
@@ -828,8 +833,9 @@ public class StorageScheduler implements Scheduler {
         Host host = _dbClient.queryObject(Host.class, hostURI);
         if (host != null && !host.getInactive()) {
             // add preferred pool Ids from array affinity discovery
-            _log.info("ArrayAffinity - host {} - preferredPoolIds {}", hostURI.toString(), host.getPreferredPoolIds());
-            for (Map.Entry<String, String> entry : host.getPreferredPoolIds().entrySet()) {
+            _log.info("ArrayAffinity - host {} - preferredPools {}", hostURI.toString(),
+                    CommonTransformerFunctions.collectionString(host.getPreferredPools()));
+            for (Map.Entry<String, String> entry : host.getPreferredPools().entrySet()) {
                 poolToTypeMap.put(URI.create(entry.getKey()), entry.getValue());
             }
 
@@ -1039,7 +1045,7 @@ public class StorageScheduler implements Scheduler {
         // compute and set storage pools' average port usage metrics before sorting.
         _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
 
-        // Select the from the pool the one that has the largest free capacity with least usage port metric
+        // Select from the poolList the one that has the largest free capacity with least usage port metric
         Collections.sort(poolList, _storagePoolComparator);
 
         return poolList.get(0);
@@ -1188,64 +1194,36 @@ public class StorageScheduler implements Scheduler {
         return recommendations;
     }
 
-    /**
-     * Used in StoragePool selection.
-     */
-    static public class StoragePoolFreeCapacityComparator implements Comparator<StoragePool> {
-        @Override
-        public int compare(StoragePool rhs, StoragePool lhs) {
-            int result;
-
-            // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double rhsAvgPortMetrics = rhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : rhs
-                    .getAvgStorageDevicePortMetrics();
-            double lhsAvgPortMetrics = lhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : lhs
-                    .getAvgStorageDevicePortMetrics();
-
-            if (rhs.getFreeCapacity() > 0 && rhsAvgPortMetrics < lhsAvgPortMetrics) {
-                result = -1;
-            } else if (rhs.getFreeCapacity() < lhs.getFreeCapacity()) {
-                result = -1;
-            } else if (rhs.getFreeCapacity() > lhs.getFreeCapacity()) {
-                result = 1;
-            } else {
-                result = 0;
-            }
-            return result;
-        }
-    }
 
     /**
      * Sort all pools in ascending order of its storage system's average port usage metrics (first order),
      * descending order by free capacity (second order) and in ascending order by ratio
      * of pool's subscribed capacity to total capacity(suborder).
      */
-    private class StoragePoolDefaultComparator implements Comparator<StoragePool> {
+    public static class StoragePoolDefaultComparator implements Comparator<StoragePool> {
         @Override
         public int compare(StoragePool sp1, StoragePool sp2) {
-            int result;
+            int result = 0;
 
             // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() <= 0.0
+            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() < 0.0
                     ? Double.MAX_VALUE : sp1.getAvgStorageDevicePortMetrics();
-            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() <= 0.0
+            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() < 0.0
                     ? Double.MAX_VALUE : sp2.getAvgStorageDevicePortMetrics();
 
-            if (sp1.getFreeCapacity() > 0 && sp1AvgPortMetrics < sp2AvgPortMetrics) {
-                result = -1;
-            } else if (sp1.getFreeCapacity() > sp2.getFreeCapacity()) {
-                result = -1;
-            } else if (sp1.getFreeCapacity() < sp2.getFreeCapacity()) {
-                result = 1;  // swap
-            } else if (sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity() < sp2.getSubscribedCapacity().doubleValue()
-                    / sp2.getTotalCapacity()) {
-                result = -1;
-            } else if (sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity() > sp2.getSubscribedCapacity().doubleValue()
-                    / sp2.getTotalCapacity()) {
-                result = 1;  // swap
-            } else {
-                result = 0;
+            if (sp1.getFreeCapacity() > 0 && sp2.getFreeCapacity() > 0) { // compare metrics if they have free capacity
+                result = Double.compare(sp1AvgPortMetrics, sp2AvgPortMetrics);
             }
+
+            if (result == 0) {
+                result = Long.compare(sp2.getFreeCapacity(), sp1.getFreeCapacity());  // descending order
+            }
+
+            if (result == 0) {
+                result = Double.compare(sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity(),
+                        sp2.getSubscribedCapacity().doubleValue() / sp2.getTotalCapacity());
+            }
+            // if result is 1, swap
 
             return result;
         }

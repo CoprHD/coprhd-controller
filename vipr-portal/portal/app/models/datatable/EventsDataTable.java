@@ -4,13 +4,9 @@
  */
 package models.datatable;
 
-import java.util.Map;
-
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.event.EventRestRep;
-import com.google.common.collect.Maps;
 
-import play.mvc.Router;
 import util.datatable.DataTable;
 
 public class EventsDataTable extends DataTable {
@@ -25,14 +21,14 @@ public class EventsDataTable extends DataTable {
 
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
-        addColumn("id").hidden();
-        addColumn("name");
-        addColumn("eventCode");
-        addColumn("eventStatus");
+        addColumn("warning").setCssClass("none");
         if (addResourceColumn) {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
             addColumn("resourceName").hidden();
         }
+        addColumn("name").setRenderFunction("render.actionableEvent");
+        addColumn("eventStatus");
+        addColumn("id").hidden();
         addColumn("creationTime").setRenderFunction("render.localDate");
         setDefaultSort("creationTime", "desc");
         sortAllExcept("id");
@@ -50,12 +46,14 @@ public class EventsDataTable extends DataTable {
         public Long creationTime;
         public String eventStatus;
         public String eventCode;
+        public String warning;
 
         public Event(EventRestRep eventRestRep) {
             load(eventRestRep);
         }
 
         private void load(EventRestRep eventRestRep) {
+            this.warning = eventRestRep.getWarning();
             this.name = eventRestRep.getName();
             if (eventRestRep.getCreationTime() != null) {
                 this.creationTime = eventRestRep.getCreationTime().getTimeInMillis();
@@ -70,11 +68,6 @@ public class EventsDataTable extends DataTable {
             }
 
             this.description = eventRestRep.getDescription();
-
-            // Create Row Link
-            Map<String, Object> args = Maps.newHashMap();
-            args.put("eventId", id);
-            this.rowLink = Router.reverse("Events.details", args).url;
         }
     }
 }

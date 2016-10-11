@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -183,6 +184,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             CIMObjectPath volumePath) {
         String elementName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ELEMENT_NAME);
         volume.setDeviceLabel(elementName);
+        volume.setCompressionRatio(SmisUtils.getCompressionRatioForVolume(volumeInstance));
     }
 
     /**

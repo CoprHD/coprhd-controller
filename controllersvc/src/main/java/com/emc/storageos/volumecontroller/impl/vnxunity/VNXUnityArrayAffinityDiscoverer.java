@@ -94,7 +94,7 @@ public class VNXUnityArrayAffinityDiscoverer {
     }
 
     /**
-     * Update preferredPoolIds of a host
+     * Update preferredPools of a host
      * @param system
      * @param apiClient
      * @param dbClient
@@ -155,6 +155,11 @@ public class VNXUnityArrayAffinityDiscoverer {
                     break;
                 }
             }
+        }
+
+        if (vnxeHostId == null) {
+            logger.info("Host {} cannot be found on array", hostId);
+            return preferredPoolMap;
         }
 
         // Get vnxeHost from vnxeHostId

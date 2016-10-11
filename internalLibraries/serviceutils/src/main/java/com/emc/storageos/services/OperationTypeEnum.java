@@ -178,6 +178,7 @@ public enum OperationTypeEnum {
     STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
+    CANCEL_FILE_MIRROR("FileSystemMirrorCancel", "FileSystemMirrorCancelFailed", "FileSystemMirror Cancel"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
     MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed",
             "operation to update filesystem replication RPO"),
@@ -310,6 +311,10 @@ public enum OperationTypeEnum {
 
     UPDATE_CATALOG_PREFERENCES("UPDATE CATALOG PREFERENCES", "", "operation to update catalog preferences"),
     UPDATE_USER_PREFERENCES("UPDATE USER PREFERENCES", "", "operation to update user preferences"),
+
+    CREATE_SCHEDULED_EVENT("CRAETE SCHEDULED_EVENT", "", "operation to create a scheduled event"),
+    UPDATE_SCHEDULED_EVENT("UPDATE SCHEDULED_EVENT", "", "operation to update a scheduled event"),
+    DELETE_SCHEDULED_EVENT("DELETE SCHEDULED_EVENT", "", "operation to delete a scheduled event"),
 
     CREATE_ORDER("CRAETE ORDER", "", "operation to create a order"),
     UPDATE_ORDER("UPDATE ORDER", "", "operation to update a order"),

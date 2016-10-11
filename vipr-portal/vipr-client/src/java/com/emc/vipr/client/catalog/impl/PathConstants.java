@@ -57,5 +57,8 @@ public class PathConstants {
     public static final String CATALOG_SUB_SERVICES_URL = CATALOG_CATEGORY_URL + "/{id}/services";
     public static final String CATALOG_PREFERENCES = "/catalog/preferences";
     public static final String USER_PREFERENCES = "/user/preferences";
+    public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
+    public static final String SCHEDULED_EVENTS_DEACTIVATE_URL = SCHEDULED_EVENTS_URL + "/{id}/deactivate";
+    public static final String SCHEDULED_EVENTS_CANCELLATION_URL = SCHEDULED_EVENTS_URL + "/{id}/cancel";
 
 }

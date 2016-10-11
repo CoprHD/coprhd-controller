@@ -697,6 +697,11 @@ public class BackupService {
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
         log.info("Receive restore request");
 
+        if (password == null || password.isEmpty()) {
+            log.error("The password is missing");
+            throw new IllegalArgumentException("The password is missing");
+        }
+
         if (!canDoRestore(backupName, isLocal)) {
             return Response.status(ASYNC_STATUS).build();
         }

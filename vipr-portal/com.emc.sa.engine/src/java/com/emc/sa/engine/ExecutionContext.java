@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionStatus;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.sa.model.dao.ModelClient;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -44,6 +45,9 @@ public class ExecutionContext {
     private List<ExecutionTask<?>> rollback;
     /** The order id that created the execution context. */
     private Order order;
+    
+    /** Associated scheduled event if it is recurring order  */
+    private ScheduledEvent scheduledEvent;
 
     public ExecutionLockManager getLockManager() {
         return lockManager;
@@ -135,7 +139,15 @@ public class ExecutionContext {
         executionState.setCurrentTask(task != null ? task.getName() : null);
     }
 
-    protected ExecutionPhase getExecutionPhase() {
+    public ScheduledEvent getScheduledEvent() {
+		return scheduledEvent;
+	}
+
+	public void setScheduledEvent(ScheduledEvent scheduledEvent) {
+		this.scheduledEvent = scheduledEvent;
+	}
+
+	protected ExecutionPhase getExecutionPhase() {
         switch (getExecutionStatus()) {
             case PRECHECK:
                 return ExecutionPhase.PRECHECK;

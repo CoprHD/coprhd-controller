@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.SanUtils;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -110,13 +111,15 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 Initiator initiator;
                 String wwpn = SanUtils.normalizeWWN(hba.getWwpn());
                 if (findInitiatorByPort(oldInitiators, wwpn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, wwpn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, wwpn);
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
+        } catch (DeviceControllerException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to list FC Ports, skipping");
         }
@@ -125,13 +128,15 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (String iqn : cli.listIQNs()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
+        } catch (DeviceControllerException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to list iSCSI Ports, skipping");
         }

@@ -8,6 +8,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 
+import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 
@@ -31,6 +32,20 @@ public class EventUtils {
         if (eventId != null) {
             try {
                 return getViprClient().events().get(eventId);
+            } catch (ViPRHttpException e) {
+                // Anything other than 404 is an error
+                if (e.getHttpCode() != 404) {
+                    throw e;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static EventDetailsRestRep getEventDetails(URI eventId) {
+        if (eventId != null) {
+            try {
+                return getViprClient().events().getDetails(eventId);
             } catch (ViPRHttpException e) {
                 // Anything other than 404 is an error
                 if (e.getHttpCode() != 404) {

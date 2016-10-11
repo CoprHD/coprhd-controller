@@ -153,7 +153,6 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
     }
 
     public boolean useRawLabels(){
-        // for slow providers, when true, skip lookup of friendly option values and use raw value for label
         return false;
     }
 

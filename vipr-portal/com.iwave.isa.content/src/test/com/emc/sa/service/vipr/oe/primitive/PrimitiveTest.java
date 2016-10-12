@@ -78,9 +78,9 @@ public class PrimitiveTest {
                 port, uri, method, scheme, contentType, accept, extraHeaders,
                 body, query);
 
-        PrimitiveHelper.savePrimitive(restPrimitive, dbClient);
+        PrimitiveHelper.persist(restPrimitive, dbClient);
 
-        final Primitive primitive = PrimitiveHelper.loadPrimitive(newPrimitive,
+        final Primitive primitive = PrimitiveHelper.query(newPrimitive,
                 dbClient);
         Assert.assertEquals(primitive.name(), newPrimitive);
         Assert.assertEquals(primitive.description(), description);

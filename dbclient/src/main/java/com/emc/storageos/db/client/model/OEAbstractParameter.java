@@ -32,7 +32,6 @@ public abstract class OEAbstractParameter extends DataObject {
     private boolean _required;
 
     @Name("primitive")
-    @NamedRelationIndex(cf = "primitiveRelation", type = OEPrimitive.class)
     public NamedURI getPrimitive() {
         return _primitive;
     }

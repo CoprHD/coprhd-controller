@@ -40,7 +40,6 @@ public class OERestCall extends OEPrimitive {
     private URI body;
 
     @Name("hostname")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getHostname() {
         return _hostname;
     }
@@ -50,7 +49,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("port")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getPort() {
         return _port;
     }
@@ -60,7 +58,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("uri")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getUri() {
         return _uri;
     }
@@ -70,7 +67,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("method")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getMethod() {
         return _method;
     }
@@ -80,7 +76,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("method")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getScheme() {
         return _scheme;
     }
@@ -90,7 +85,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("contentType")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getContentType() {
         return _contentType;
     }
@@ -100,7 +94,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("accept")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getAccept() {
         return _accept;
     }
@@ -110,7 +103,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("extraHeaders")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public StringSet getExtraHeaders() {
         return _extraHeaders;
     }
@@ -120,7 +112,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("query")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public StringSet getQuery() {
         return _query;
     }
@@ -130,7 +121,6 @@ public class OERestCall extends OEPrimitive {
     }
 
     @Name("body")
-    @RelationIndex(cf = "RelationIndex", type = OEAttribute.class)
     public URI getBody() {
         return body;
     }

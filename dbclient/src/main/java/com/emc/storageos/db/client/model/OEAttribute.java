@@ -39,7 +39,6 @@ public class OEAttribute extends DataObject {
     }
 
     @Name("primitive")
-    @RelationIndex(cf = "RelationIndex", type = OEPrimitive.class)
     public NamedURI getPrimitive() {
         return _primitive;
     }

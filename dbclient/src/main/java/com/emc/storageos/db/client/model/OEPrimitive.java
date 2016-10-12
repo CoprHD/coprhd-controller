@@ -42,7 +42,6 @@ public abstract class OEPrimitive extends DataObject {
         _name = name;
     }
 
-    @RelationIndex(cf = "DescriptionRelation", type = OEAttribute.class)
     public URI getDescription() {
         return _description;
     }
@@ -61,7 +60,6 @@ public abstract class OEPrimitive extends DataObject {
         _parent = parent;
     }
 
-    @RelationIndex(cf = "SuccessRelation", type = OEAttribute.class)
     public URI getSuccessCriteria() {
         return _successCriteria;
     }
@@ -71,8 +69,6 @@ public abstract class OEPrimitive extends DataObject {
     }
 
     @Name("input")
-    @RelationIndex(cf = "InputRelation", types = { OEParameter.class,
-            OEParameterList.class }, type = DataObject.class)
     public StringSet getInput() {
         return _input;
     }
@@ -82,8 +78,6 @@ public abstract class OEPrimitive extends DataObject {
     }
 
     @Name("output")
-    @RelationIndex(cf = "OutputRelation", types = { OEParameter.class,
-            OEParameterList.class }, type = DataObject.class)
     public StringSet getOutput() {
         return _output;
     }

@@ -393,7 +393,7 @@ public class ComputeSystemHelper {
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getProject(), FileShare.class, "project");
-        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())) {
+        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())){
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getTenant(), FileShare.class, "tenant");
         }
@@ -634,10 +634,10 @@ public class ComputeSystemHelper {
             return;
         }
 
-        if (!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
+        if(!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
                 isDataCenterInUse(dbClient, dataCenter.getId())) {
-            // Since vCenterDataCenter contains some exports,
-            // dont allow the update.
+            //Since vCenterDataCenter contains some exports,
+            //dont allow the update.
             Set<String> tenants = new HashSet<String>();
             tenants.add(dataCenter.getTenant().toString());
             throw APIException.badRequests.cannotRemoveTenant("vCenterDataCenter", dataCenter.getLabel(), tenants);

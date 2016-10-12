@@ -1632,7 +1632,117 @@
 		<property name="method" value="getReferenceValue" />
 		<property name="value" value="configurationService" />
 	</bean>
-	
+
+    <!-- SMI-S Call to get associated Storage Groups as part of discovery -->
+    <bean id="getDeviceMaskingGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+      <property name="arguments">
+        <list>
+          <ref bean="reference-controllerconfigurationService" />
+          <ref bean="null" />
+          <ref bean="resultClass-StorageGroup" />
+          <ref bean="null" />
+          <ref bean="null" />
+        </list>
+      </property>
+      <property name="instance" ref="cimClient" />
+      <property name="result" value="storageGroups" />
+      <property name="method" value="associatorNames" />
+      <property name="processor" ref="applicationstoragegroupprocessor" />
+      <property name="supportedVersion" value="8.x"/>
+      <property name="message" value="Invoking associatorNames to get StorageGroup details"/>
+    </bean>
+
+    <bean id="resultClass-StorageGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+      <property name="creator" ref="argscreator" />
+      <property name="method" value="getStringValue" />
+      <property name="value" value="SE_DeviceMaskingGroup" />
+    </bean>  
+
+    <bean id="applicationstoragegroupprocessor"
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.application.ApplicationStorageGroupProcessor">
+    </bean>
+
+    <!-- SMI-S Call to get Storage Group associated members (Volumes plus child Storage Groups) as part of discovery -->
+  <bean id="getStorageGroupMembers" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+    <property name="arguments">
+      <list>
+        <ref bean="reference-storageGroups" />
+        <ref bean="CIM_MemberOfCollection" />
+        <ref bean="null" />
+        <ref bean="Collection" />
+        <ref bean="null" />
+      </list>
+    </property>
+    <property name="instance" ref="cimClient" />
+    <property name="result" value="" />
+    <property name="method" value="associatorNames" />
+    <property name="supportedVersion" value="8.x"/>
+    <property name="processor" ref="HYapplicationsgmemberprocessor" />
+  </bean>
+
+  <bean id="reference-storageGroups" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+    <property name="creator" ref="argscreator" />
+    <property name="method" value="getReferenceValue" />
+    <property name="value" value="storageGroups" />
+  </bean>
+
+    <bean id="HYapplicationsgmemberprocessor"
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.HYapplicationsSGMemberProcessor">
+    </bean>
+    
+    <!-- SMI-S Call to get associated Mask Views as part of discovery -->
+  <bean id="getMaskingViews" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+    <property name="arguments">
+      <list>
+        <ref bean="reference-controllerconfigurationService" />
+        <ref bean="null" />
+        <ref bean="resultClass-lunMaskingProtocolController" />
+        <ref bean="null" />
+        <ref bean="null" />
+      </list>
+    </property>
+    <property name="instance" ref="cimClient" />
+    <property name="result" value="maskingViews" />
+    <property name="method" value="associatorNames" />
+    <property name="supportedVersion" value="8.x"/>
+    <property name="processor" ref="cimpathprocessor" />
+    <property name="message" value="Invoking associatorNames to get MaskingView details"/>
+  </bean>
+
+  <bean id="resultClass-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+    <property name="creator" ref="argscreator" />
+    <property name="method" value="getStringValue" />
+    <property name="value" value="Symm_LunMaskingView" />
+  </bean>
+
+  <!-- SMI-S Call to get Masking View associated Components as part of discovery -->
+  <bean id="getMaskingViewComponents" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+    <property name="arguments">
+      <list>
+        <ref bean="reference-maskingViews" />
+        <ref bean="null" />
+        <ref bean="null" />
+        <ref bean="null" />
+        <ref bean="null" />
+      </list>
+    </property>
+    <property name="instance" ref="cimClient" />
+    <property name="result" value="" />
+    <property name="method" value="associatorNames" />
+    <property name="supportedVersion" value="8.x"/>
+    <property name="processor" ref="HYapplicationcomponentsprocessor" />
+  </bean>
+
+  <bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+    <property name="creator" ref="argscreator" />
+    <property name="method" value="getReferenceValue" />
+    <property name="value" value="maskingViews" />
+  </bean>
+
+    <bean id="HYapplicationcomponentsprocessor"
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.HYapplicationComponentProcessor">
+    </bean>
+
      <!-- get Tier Policy Service -->	
 	 <bean id="getTierPolicyService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
     	<property name="arguments">

@@ -236,6 +236,9 @@ public class ExportGroupState implements Serializable {
     @Override
     public String toString() {
         return "ExportGroupState: [ExportId: " + this.id + ", Initiators: " + this.initiators + ", Hosts: "
-                + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + "]";
+                + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + ", Added Initiators: "
+                + this.addedInitiators + ", Removed Initiators: " + this.removedInitiators + ", Added Hosts: " + this.addedHosts +
+                ", Removed Hosts: " + this.removedHosts + ", Added Clusters: " + this.addedClusters + ", Removed Clusters: "
+                + this.removedClusters + "]";
     }
 }

@@ -62,23 +62,7 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
     protected int checkResponse(URI uri, ClientResponse response) { 
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode(); 
-        if (errorCode >= 300) {
-            String entity;
-            try {
-                entity = response.getEntity(String.class);
-            } catch (Exception e) {   
-                log.error("Parsing the failure response object failed.  " +
-                        e.getMessage() ,e);
-                entity = "(could not parse response)";
-            }
-            if (errorCode == 404 || errorCode == 410) {
-                log.warn("OE Request resource not found for " + uri.toString());
-            } else if (errorCode == 401) {
-                log.warn("OE Request authentication failed for " + uri.toString());
-            } else {
-                log.warn("OE Request Internal Error for " + uri.toString() + "returned " + entity);
-            }
-        } 
+        log.info("OE REST Request returned " + errorCode + " for "+ uri.toString());
         return errorCode;
     }
 }

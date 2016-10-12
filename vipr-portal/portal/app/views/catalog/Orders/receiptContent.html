@@ -223,8 +223,10 @@
     	<script>
         	var logs = '${logs}';
         	var someHtml = $.parseHTML(logs);
-        	var appendHtml = someHtml[0].textContent;
-        	$('#formattedStyle').append(appendHtml);
+        	if(someHtml!=null) {
+        		var appendHtml = someHtml[0].textContent;
+        		$('#formattedStyle').append(appendHtml);
+        	}
         </script>
     	</pre>
     </div>

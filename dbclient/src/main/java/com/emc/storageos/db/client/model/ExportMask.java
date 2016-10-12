@@ -584,7 +584,6 @@ public class ExportMask extends DataObject {
         if (_existingInitiators == null) {
             _existingInitiators = new StringSet();
         }
-        _existingInitiators.clear();
         for (String port : ports) {
             String normalizedPort = Initiator.normalizePort(port);
             if (!_existingInitiators.contains(normalizedPort) &&

@@ -2785,7 +2785,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", exportGroupURI, exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, null);
+                this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, addVolumeStepId);
 
         if (exportMasksToUpdateOnDeviceWithInitiators.get(exportMask.getId()) != null) {
 
@@ -3662,6 +3662,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String previousStep = null;
 
             for (ExportMask exportMask : exportMasks) {
+                _log.info("ExportMask before refresh:\n" + exportMask.toString());
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -3698,7 +3699,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 _log.info(String.format("exportGroupRemove: mask %s volumes to process: %s", exportMask.getMaskName(),
                         volumeURIList.toString()));
-
+                _log.info("ExportMask now before fetching again from DB:\n" + exportMask.toString());
                 // Fetch exportMask again as exportMask zoning Map might have changed in zoneExportRemoveVolumes
                 exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
 
@@ -3725,7 +3726,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     
                     // Invoke the zoning code directly, i.e. inline, not in a workflow
                     String stepId = workflow.createStepId();
-                    _networkDeviceController.zoneExportRemoveVolumes(zoningParam, volumeURIList, stepId);
+                    // _networkDeviceController.zoneExportRemoveVolumes(zoningParam, volumeURIList, stepId);
+
+                    // Add zoning step for removing volumes
+                    Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
+                            zoningParam, volumeURIList);
+                    Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();
+                    previousStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(),
+                            previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
+                            zoneRemoveVolumesMethod, zoneNullRollbackMethod, stepId);
+
                     if (exportMask.getCreatedBySystem()) {
                         List<URI> storagePortURIs = ExportUtils.checkIfStoragePortsNeedsToBeRemoved(exportMask);
 
@@ -5381,8 +5391,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
             // validate the remove initiator operation against the export mask volumes
-            List<URI> volumeURIList = (exportMask.getVolumes() != null) ? URIUtil.toURIList(exportMask.getVolumes().keySet())
-                    : new ArrayList<URI>();
+            List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
+                    ? URIUtil.toURIList(exportMask.getUserAddedVolumes().values()) : new ArrayList<URI>();
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }

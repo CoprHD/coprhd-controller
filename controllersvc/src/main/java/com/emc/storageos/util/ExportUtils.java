@@ -708,7 +708,7 @@ public class ExportUtils {
     public static List<URI> checkIfStoragePortsNeedsToBeRemoved(ExportMask exportMask) {
         List<URI> storagePortURIs = new ArrayList<URI>();
         StringSetMap zoningMap = exportMask.getZoningMap();
-        StringSet existingStoragePorts = exportMask.getStoragePorts();
+        StringSet existingStoragePorts = new StringSet(exportMask.getStoragePorts());
         StringSet zoningMapStoragePorts = new StringSet();
         if (zoningMap != null) {
             for (String initiatorId : zoningMap.keySet()) {

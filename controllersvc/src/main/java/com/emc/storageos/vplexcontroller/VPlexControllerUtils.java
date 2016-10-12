@@ -673,7 +673,7 @@ public class VPlexControllerUtils {
                         Iterator<URI> resultsIter = results.iterator();
                         Volume volume = dbClient.queryObject(Volume.class, resultsIter.next());
                         Integer hlu = volumesToAdd.get(wwn);
-                        if (volume != null) {
+                        if (volume != null && !volume.getInactive()) {
                             if (hlu == null) {
                                 log.warn(
                                         String.format("The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
@@ -788,6 +788,7 @@ public class VPlexControllerUtils {
             }
             networkDeviceController.refreshZoningMap(exportMask, initiatorsToRemove, Collections.emptyList(),
                     (addInitiators || removeInitiators), true);
+            log.info("ExportMask now after zone refresh:\n" + exportMask.toString());
         } catch (Exception ex) {
             log.error("Failed to refresh VPLEX Storage View: " + ex.getLocalizedMessage(), ex);
             String storageViewName = exportMask != null ? exportMask.getMaskName() : "unknown";

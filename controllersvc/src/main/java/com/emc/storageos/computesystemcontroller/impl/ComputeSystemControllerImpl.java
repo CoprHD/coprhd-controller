@@ -748,7 +748,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             List<URI> addedClusters = new ArrayList<>();
             List<URI> removedClusters = new ArrayList<>();
-            List<URI> addedHosts = new ArrayList<>(hostIds);
+            List<URI> addedHosts = new ArrayList<>();
             List<URI> removedHosts = new ArrayList<>();
             List<URI> addedInitiators = new ArrayList<>();
             List<URI> removedInitiators = new ArrayList<>();
@@ -1623,22 +1623,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     private String generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {
-
-        /*
-         * ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export.getId());
-         * if (add) {
-         * export.getAddDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
-         * StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
-         * StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
-         * StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
-         * } else {
-         * export.getRemoveDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
-         * StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
-         * StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
-         * StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
-         * 
-         * }
-         */
 
         _log.info("ExportGroupState for " + export.getId() + " = " + export);
 

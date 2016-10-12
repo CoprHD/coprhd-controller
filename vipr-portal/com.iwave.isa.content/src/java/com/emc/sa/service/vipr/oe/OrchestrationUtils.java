@@ -237,7 +237,7 @@ public class OrchestrationUtils {
     public static String makeRestCall(String uriString, String postBody,
             OrchestrationEngineRestClient restClient, String method) {
 
-        ClientResponse response = null;
+        ClientResponse response;
         if(method != null && method.equals("POST")) {
             response = restClient.post(URI.create(uriString),postBody);
         } else {

@@ -38,8 +38,8 @@ public class ViprOperation {
     public List<URI> getTaskIds() throws URISyntaxException {
         List<URI> idList = new ArrayList<>();
         if (task != null) {
-            for(ViprTask oneTask : task) {
-                idList.add(new URI(oneTask.getId()));
+            for(ViprTask aTask : task) {
+                idList.add(new URI(aTask.getId()));
             }
         }
         return idList;

@@ -97,7 +97,7 @@ if [ ${SS} = "vplex" ]; then
         VPLEX_INGEST_PARAM=${6}
         shift
     fi
-    echo "VPLEX_INGEST_PARAM is $VPLEX_INGEST_PARAM"
+    echo "VPLEX_INGEST_PARAM is ingest $VPLEX_INGEST_PARAM"
     AUTH=${6:-ldap}
     EXTRA_PARAM=${7}
 elif [ ${SS} = "recoverpoint" ]; then
@@ -2463,7 +2463,7 @@ consistencygroup_block_cos_setup()
 vplex_cos_setup()
 {
     run cos create block cosvplexlocal true                   \
-                     --description 'Local-CoS-for-VPlex'      \
+                     --description 'Local-Vpool-for-VPLEX'      \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -2475,65 +2475,60 @@ vplex_cos_setup()
 
     run cos allow cosvplexlocal block $TENANT
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX3_NATIVEGUID
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
-	run cos create block vplexdistbackingvpool true                   \
-                     --description 'Local-backing-vpool-for-VPlex'      \
-                     --protocols FC                           \
-                     --numpaths 2                             \
-                     --provisionType 'Thin'                   \
-                     --neighborhoods $NH2                     \
-                     --expandable false 
+        run cos create block vplexdistbackingvpool true                   \
+                         --description 'Local-backing-vpool-for-VPLEX'      \
+                         --protocols FC                           \
+                         --numpaths 2                             \
+                         --provisionType 'Thin'                   \
+                         --neighborhoods $NH2                     \
+                         --expandable false 
 
     else
         if [ $VPLEX_USE_XIO -eq 1 ]; then
-	    run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
         else 
-	    run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
         fi
-	if [ "$AUTH" != 'ipv6' ] ; then
-            if [ $VPLEX_USE_XIO -eq 1 ]; then
-	        run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
-            else
-	        run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
-            fi
-	fi
-	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
+        if [ "$AUTH" != 'ipv6' ] ; then
+                if [ $VPLEX_USE_XIO -eq 1 ]; then
+                run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
+                else
+                run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+                fi
+        fi
+        run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
 
     run cos allow cosvplexlocal block $TENANT
+
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX5_NATIVEGUID
-	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX6_NATIVEGUID
-	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX7_NATIVEGUID
+        run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX5_NATIVEGUID
 
-	run cos allow vplexdistbackingvpool block $TENANT
+        run cos allow vplexdistbackingvpool block $TENANT
 
-	run cos create block cosvplexdist true                          \
-                     --description 'Distributed-CoS-for-VPlex'      \
-                     --protocols FC                                 \
-                     --numpaths 2                                   \
-                     --provisionType 'Thin'                         \
-                     --highavailability vplex_distributed           \
-                     --neighborhoods $NH $NH2                       \
-                     --haNeighborhood $NH2                          \
-	             --haCos vplexdistbackingvpool                  \
-                     --max_snapshots 1                              \
-                     --max_mirrors 1                                \
-                     --mirror_cos cosvplexlocal                     \
-                     --expandable false
+        run cos create block cosvplexdist true                          \
+                         --description 'Distributed-Vpool-for-VPLEX'      \
+                         --protocols FC                                 \
+                         --numpaths 2                                   \
+                         --provisionType 'Thin'                         \
+                         --highavailability vplex_distributed           \
+                         --neighborhoods $NH $NH2                       \
+                         --haNeighborhood $NH2                          \
+                         --haCos vplexdistbackingvpool                  \
+                         --max_snapshots 1                              \
+                         --max_mirrors 1                                \
+                         --mirror_cos cosvplexlocal                     \
+                         --expandable false
 
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+        run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+        run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
     else
-	run cos create block cosvplexdist true                          \
-                     --description 'Distributed-CoS-for-VPlex'      \
+        run cos create block cosvplexdist true                          \
+                     --description 'Distributed-Vpool-for-VPLEX'      \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \
@@ -2545,19 +2540,28 @@ vplex_cos_setup()
                      --mirror_cos cosvplexlocal                     \
                      --expandable false
 
-	run cos allow cosvplexdist block $TENANT
+        run cos allow cosvplexdist block $TENANT
         if [ $VPLEX_USE_XIO -eq 1 ]; then
-	    run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
+            run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
         else
-	    run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
-	fi
-	run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
+            run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+        fi
+        run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
 }
 
 vplex_setup()
 {
     vplex_setup_once
+}
+
+vplex_sim_variable_setup()
+{
+    VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
+    VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
+    VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
+    VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX5_NATIVEGUID
+    CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
 }
 
 vplex_setup_once()
@@ -2607,19 +2611,11 @@ vplex_setup_once()
         # The arrays are assigned to individual varrays as well.
         run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
         run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
-        run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
-        run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH
-
         run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-        run storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $NH2
-        run storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $NH2
 
+        vplex_sim_variable_setup
         vplex_cos_setup
-        VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-        VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
-        VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX3_NATIVEGUID
-        VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
-        CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
+
         echo "Done setting up VPLEX environment..."
     else
         echo "Setting up VPLEX environment for IPv4"
@@ -2684,6 +2680,10 @@ vplex_setup_once()
 #
 vplex_tests()
 {
+    if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+        vplex_sim_variable_setup
+    fi
+
     storageport list $VPLEX_GUID --v
 
     if [ "$AUTH" != 'ipv6' ] ; then
@@ -2743,26 +2743,30 @@ vplex_tests()
 
         if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "unexported" ] ; then
             vplex_ingest_unexported
+            # volume names would have changed after ingestion, based on backend vol with -0 suffix
+            localVolume2="$localVolume2$sourceSideSuffix"
+            localVolume3="$localVolume3$sourceSideSuffix"
+
         fi
         
         echo "**** Creating host"
         run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
-    
+
         echo "**** Creating initiators"
         run initiator create $hostLbl FC $PWWN1 --node $WWNN1
         run initiator create $hostLbl FC $PWWN2 --node $WWNN2
-    
+
         echo "**** Adding WWNs to Network"
         run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
         run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
-    
+
         echo "**** Exporting VPLEX volumes to host in varray " $NH
         run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
         run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2
         run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1
         run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2
         run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume3
-    
+
         # echo "**** Exporting VPLEX volumes to host in varray " $NH2
         # run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
         echo "Exports for $distVolume1"
@@ -2773,7 +2777,7 @@ vplex_tests()
         volume exports $PROJECT/$localVolume1 --v
         echo "Exports for $localVolume2"
         volume exports $PROJECT/$localVolume2 --v
-    
+
         if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "exported" ] ; then
             vplex_ingest_exported
         fi
@@ -2783,11 +2787,11 @@ vplex_tests()
         run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
         run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
         run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-            if [ $VPLEX_USE_XIO -eq 0 ]; then
-            run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
-            else
-                echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
-            fi
+        if [ $VPLEX_USE_XIO -eq 0 ]; then
+        run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        else
+            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
+        fi
 
         echo "**** Deleting VPLEX volume snapshots"
         run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
@@ -2834,10 +2838,11 @@ vplex_ingest_unexported() {
 
     echo "**** Running VPLEX Unexported Volume Ingestion Tests......."
     echo "****"
-    echo "**** Inventory Deleting Everything"
+    echo "**** Inventory Deleting Everything..."
+    echo "****"
 
-    echo "**** saving off unexported Volume data for debug purposes to /tmp/vipr_unexported_vols.txt"
-    /opt/storageos/bin/dbcli list Volume > /tmp/vipr_unexported_vols.txt
+    echo "**** saving off unexported Volume data for debug purposes to /tmp/vipr_unexported_greenfield_vols.txt"
+    /opt/storageos/bin/dbcli list Volume > /tmp/vipr_unexported_greenfield_vols.txt
 
     #run_noundo volume delete $PROJECT/$localVolume1 --vipronly --force    
     run_noundo volume delete $PROJECT/$localVolume2 --vipronly --force
@@ -2860,15 +2865,15 @@ vplex_ingest_unexported() {
     run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
-    echo "**** saving off unexported UnManagedVolume data for debug purposes to /tmp/vipr_unexported_umvs.txt"
-    /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_unexported_umvs.txt
+    echo "**** saving off unexported UnManagedVolume data for debug purposes to /tmp/vipr_unexported_unmanaged_vols.txt"
+    /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_unexported_unmanaged_vols.txt
 
     #echo "**** Ingesting $localVolume1 (has backend snapshot)"
     #run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1"
-    echo "**** Ingesting $localVolume2 (has backend mirror)"
-    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2"
-    echo "**** Ingesting $localVolume3"
-    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3"
+    echo "**** Ingesting $localVolume2$sourceSideSuffix (has backend mirror)"
+    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2$sourceSideSuffix"
+    echo "**** Ingesting $localVolume3$sourceSideSuffix"
+    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3$sourceSideSuffix"
     #echo "**** Ingesting $distVolume2"
     #run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume2"
 
@@ -2893,10 +2898,11 @@ vplex_ingest_exported() {
 
     echo "**** Running VPLEX Exported Volume Ingestion Tests......."
     echo "****"
-    echo "**** Inventory Deleting Everything"
+    echo "**** Inventory Deleting Everything..."
+    echo "****"
 
-    echo "**** saving off exported Volume data for debug purposes to /tmp/vipr_exported_vols.txt"
-    /opt/storageos/bin/dbcli list Volume > /tmp/vipr_exported_vols.txt
+    echo "**** saving off exported Volume data for debug purposes to /tmp/vipr_exported_greenfield_vols.txt"
+    /opt/storageos/bin/dbcli list Volume > /tmp/vipr_exported_greenfield_vols.txt
 
     #run_noundo volume delete $PROJECT/$localVolume1 --vipronly --force
     run_noundo volume delete $PROJECT/$localVolume2 --vipronly --force
@@ -2910,17 +2916,17 @@ vplex_ingest_exported() {
     run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
-    echo "**** saving off exported UnManagedVolume data for debug purposes to /tmp/vipr_exported_umvs.txt"
-    /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_exported_umvs.txt
-    echo "**** saving off UnManagedExportMask data for debug purposes to /tmp/vipr_exported_uems.txt"
-    /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_uems.txt
+    echo "**** saving off exported UnManagedVolume data for debug purposes to /tmp/vipr_exported_unmanaged_vols.txt"
+    /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_exported_unmanaged_vols.txt
+    echo "**** saving off UnManagedExportMask data for debug purposes to /tmp/vipr_exported_unmanaged_export_masks.txt"
+    /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_unmanaged_export_masks.txt
 
     #echo "**** Ingesting Exported $localVolume2 (has backend snapshot)"
     #run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1" --host $hostLbl
-    echo "**** Ingesting Exported $localVolume2 (has backend mirror)"
-    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2" --host $hostLbl
-    echo "**** Ingesting Exported $localVolume3"
-    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3" --host $hostLbl
+    echo "**** Ingesting Exported $localVolume2$sourceSideSuffix (has backend mirror)"
+    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2$sourceSideSuffix" --host $hostLbl
+    echo "**** Ingesting Exported $localVolume3$sourceSideSuffix"
+    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3$sourceSideSuffix" --host $hostLbl
     #echo "**** Ingesting Exported $distVolume1"
     #run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume1" --host $hostLbl
     #echo "**** Ingesting Exported $distVolume2"

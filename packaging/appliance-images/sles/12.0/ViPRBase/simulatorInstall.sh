@@ -262,6 +262,8 @@ cp -r xio-*/* /data/simulators/xio_2/
 LATEST_JAR_NAME=`ls /data/simulators/xio_2/xio-simulators*.jar`
 VERSION=${LATEST_JAR_NAME##*simulators-}
 mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
+mv /data/simulators/xio_2/xio_config2.properties /data/simulators/xio_2/xio_config.properties
+rm -f /data/simulators/xio/xio_config2.properties
 rm -r xio-*
 rm -f xio-simulators-*.zip
 

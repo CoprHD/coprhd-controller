@@ -112,7 +112,7 @@ public class HostMapper {
 
             }
         }
-
+        
         if (exportPathParams != null && !exportPathParams.isEmpty()) {
             for (ExportPathParams pathParam : exportPathParams) {
                 ExportPathParametersRep pathParamRep = map(pathParam);
@@ -227,7 +227,7 @@ public class HostMapper {
         to.setCascadeTenancy(from.getCascadeTenancy());
         return to;
     }
-
+    
     public static ExportPathParametersRep map(ExportPathParams from) {
         if (from == null) {
             return null;

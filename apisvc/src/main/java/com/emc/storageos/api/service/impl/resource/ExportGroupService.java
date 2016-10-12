@@ -289,6 +289,8 @@ public class ExportGroupService extends TaskResourceService {
             validateBlockObjectNativeId(addVolumeURIs);
         }
 
+
+
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
         StorageOSUser user = getUserFromContext();
@@ -496,7 +498,7 @@ public class ExportGroupService extends TaskResourceService {
 
             // validate the RP BlockSnapshots for ExportGroup create
             validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
-
+            
             // Validate VPLEX backend snapshots for export.
             validateVPLEXBlockSnapshotsForExport(blockObjURIs);
         }
@@ -523,7 +525,7 @@ public class ExportGroupService extends TaskResourceService {
                     blockObjToAdd.add(volParam.getId());
                     blockObjURIs.add(volParam.getId());
                 }
-
+                
                 // Validate VPLEX backend snapshots for export.
                 validateVPLEXBlockSnapshotsForExport(blockObjURIs);
 
@@ -548,7 +550,7 @@ public class ExportGroupService extends TaskResourceService {
             validateSnapshotTargetNotExported(blockObjToAdd, blockObjExisting);
         }
     }
-
+    
     /**
      * Validate VPLEX backend snapshots for export.
      * 
@@ -557,7 +559,7 @@ public class ExportGroupService extends TaskResourceService {
     private void validateVPLEXBlockSnapshotsForExport(List<URI> blockObjURIs) {
         // We do not allow a VPLEX backend snapshot that is exposed as a VPLEX
         // volume to be exported to a host/cluster. If the user was to write
-        // to the snapshot, this would invalidate the VPLEX volume as the
+        // to the snapshot, this would invalidate the VPLEX volume as the 
         // VPLEX would not be aware of these writes. Further, we know this will
         // fail for VMAX3 backend snapshots with the error "A device cannot belong
         // to more than one storage group in use by FAST".
@@ -824,7 +826,6 @@ public class ExportGroupService extends TaskResourceService {
                 URI initiatorHostUri = getInitiatorExportGroupHost(exportGroup);
                 for (URI uri : param.getInitiators().getAdd()) {
                     Initiator initiator = queryObject(Initiator.class, uri, true);
-
                     if (exportGroup.forInitiator()) {
                         if (initiatorHostUri == null) {
                             initiatorHostUri = initiator.getHost();

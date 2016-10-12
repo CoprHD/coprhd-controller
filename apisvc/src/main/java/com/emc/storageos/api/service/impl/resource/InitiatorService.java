@@ -39,6 +39,7 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -71,6 +72,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
+import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Service providing APIs for host initiators.
@@ -275,7 +278,7 @@ public class InitiatorService extends TaskResourceService {
             throw APIException.badRequests.initiatorNotCreatedManuallyAndCannotBeDeleted();
         }
 
-        ArgValidator.checkReference(Initiator.class, id, checkForDelete(initiator, Arrays.asList(new Class[] { Initiator.class })));
+        ArgValidator.checkReference(Initiator.class, id, checkForDelete(initiator));
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
@@ -424,7 +427,7 @@ public class InitiatorService extends TaskResourceService {
         String initiatorAlias = null;
         if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
-            // Actual Control
+            //Actual Control
             try {
                 initiatorAlias = controller.getInitiatorAlias(systemURI, id);
             } catch (Exception e) {
@@ -460,7 +463,7 @@ public class InitiatorService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias")
     public InitiatorAliasRestRep setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
-        // Basic Checks
+        //Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
 
@@ -488,7 +491,7 @@ public class InitiatorService extends TaskResourceService {
         if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
             try {
-                // Actual Control
+                //Actual Control
                 controller.setInitiatorAlias(systemURI, id, initiatorAlias);
             } catch (Exception e) {
                 _log.error("Unexpected error: Setting alias failed.", e);
@@ -497,7 +500,7 @@ public class InitiatorService extends TaskResourceService {
         } else {
             throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
         }
-        // Update the Initiator here..
+        //Update the Initiator here..
         if (initiatorAlias.contains(EMPTY_INITIATOR_ALIAS)) {// If the Initiator Alias contains the "/" character, the user has supplied
                                                              // different node and port names.
             initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
@@ -508,7 +511,7 @@ public class InitiatorService extends TaskResourceService {
         _dbClient.updateObject(initiator);
         return new InitiatorAliasRestRep(system.getSerialNumber(), initiatorAlias);
     }
-
+    
     @Override
     protected Initiator queryResource(URI id) {
         return queryObject(Initiator.class, id, false);

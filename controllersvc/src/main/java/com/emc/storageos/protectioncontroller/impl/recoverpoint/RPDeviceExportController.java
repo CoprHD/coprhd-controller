@@ -50,7 +50,7 @@ public class RPDeviceExportController implements ProtectionExportController {
                 _log.info(String
                         .format(
                                 "Generating exportGroupCreate steps for objects %s associated with protection system [%s] and storage system [%s]",
-                                objectsToExportWithProtection, protectionSystemUri, storageUri));
+                                objectsToExportWithProtection.keySet(), protectionSystemUri, storageUri));
                 waitFor = wfUtils.
                         generateExportGroupCreateWorkflow(workflow, wfGroupId, waitFor,
                                 protectionSystemUri, export, objectsToExportWithProtection, initiatorURIs);
@@ -66,7 +66,7 @@ public class RPDeviceExportController implements ProtectionExportController {
                 // a step here to export the non-protection controller BlockObjects referencing.
                 _log.info(String.format(
                         "Generating exportGroupAddVolumes steps for objects %s associated with storage system [%s]",
-                        objectsToAdd, storageUri));
+                        objectsToAdd.keySet(), storageUri));
                 waitFor = wfUtils.
                         generateExportGroupAddVolumes(workflow, null, waitFor,
                                 storageUri, export, objectsToAdd);

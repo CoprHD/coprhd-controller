@@ -63,6 +63,8 @@ public class OrchestrationUtils {
 
     public static final String OE_API_NODE = "/api/1.1/nodes";
 
+    public static final String POST = "POST";
+    
     private static final Gson gson = new Gson();
 
     public static boolean isTimedOut(int intervals) {
@@ -226,17 +228,17 @@ public class OrchestrationUtils {
     }
 
     public static String makeRestCall(String uriString, OrchestrationEngineRestClient restClient) {
-        return makeRestCall(uriString,null,restClient);
+        return makeRestCall(uriString,null,restClient,null);
     }
 
     public static String makeRestCall(String uriString, String postBody,
-            OrchestrationEngineRestClient restClient) {
+            OrchestrationEngineRestClient restClient, String method) {
 
         ClientResponse response = null;
-        if(postBody == null) {
-            response = restClient.get(URI.create(uriString));
-        } else {
+        if(method != null && method.equals("POST")) {
             response = restClient.post(URI.create(uriString),postBody);
+        } else {
+            response = restClient.get(URI.create(uriString));
         }
 
         String responseString = null;

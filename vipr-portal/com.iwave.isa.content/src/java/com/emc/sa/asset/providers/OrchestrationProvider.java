@@ -173,7 +173,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         // Start the OE workflow to get options
         info("OE Provider calling " + apiUrl + "with body " + makePostBody());
         String workflowResponse = OrchestrationUtils.makeRestCall(apiUrl,
-                makePostBody(),restClient);
+                makePostBody(),restClient,OrchestrationUtils.POST);
 
         info("Started Orchestration Engine Workflow");
 

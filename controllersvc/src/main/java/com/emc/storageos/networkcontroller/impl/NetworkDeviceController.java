@@ -1589,6 +1589,22 @@ public class NetworkDeviceController implements NetworkController {
             return false;
         }
     }
+    
+    /**
+     * Returns a Workflow.Method for zoneNullRollback in NetworkDeviceController
+     * @return Workflow.Method
+     */
+    public Workflow.Method zoneNullRollbackMethod() {
+        return new Workflow.Method("zoneNullRollback");
+    }
+    
+    /**
+     * Performs a null rollback if desired.
+     * @param stepId
+     */
+    public void zoneNullRollback(String stepId) {
+        WorkflowStepCompleter.stepSucceded(stepId);
+    }
 
     // ===========================================================================================================
     // end of External Interfaces to BlockDeviceController

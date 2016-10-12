@@ -740,6 +740,10 @@ public class HP3PARExpUnexpHelper {
                     for(FcPath fcPath: hostMemb.getFCPaths()) {                         
                         if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
                             hp3parHost = hostMemb.getName();
+                            //Reference for residual initiator is present and there is no host name associated with this. 
+                            if (hp3parHost == null) {
+                                continue;
+                            }
                             hp3parHostResult.setHostName(hp3parHost);
                             // Confirm all initiators are present with this host
                             if (hostHasAllFcInitiators(initiators, hostMemb.getFCPaths())) {

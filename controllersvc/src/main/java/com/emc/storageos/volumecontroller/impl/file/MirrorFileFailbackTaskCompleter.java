@@ -55,7 +55,7 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
             return MirrorStatus.FAILED_OVER.name();
         } else {
         	_log.info("failback operation is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
-            return MirrorStatus.UNKNOWN.name();
+            return MirrorStatus.SYNCHRONIZED.name();
         }
     }
 

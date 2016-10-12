@@ -32,7 +32,7 @@ public class CopiesParam {
     @XmlElement(name = "copy")
     public List<Copy> getCopies() {
         if (copies == null) {
-            copies = new ArrayList<Copy>();
+            copies = new ArrayList<>();
         }
         return copies;
     }

@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 }
 
                 exportMask.setCreatedBySystem(true);
+                ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
                 exportMask.addVolumes(_volumeMap);
                 exportGroup.addExportMask(exportMask.getId());
                 ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);

@@ -296,7 +296,7 @@ public class DataCollectionJobConsumer extends
                                 cacheProviders.add(provider.getId());
                             } catch (Exception ex) {
                                 _logger.error("Scan failed for {}--->", provider.getId(), ex);
-                                scanCompleter.error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex));
+                                scanCompleter.error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
                             }
                         }
                         else {

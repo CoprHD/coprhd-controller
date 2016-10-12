@@ -38,6 +38,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
 import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
+import static com.emc.storageos.model.ResourceTypeEnum.EXECUTION_WINDOW;
 import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.FC_PORT_CONNECTION;
 import static com.emc.storageos.model.ResourceTypeEnum.FILE;
@@ -149,6 +150,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -229,6 +231,7 @@ public class ResourceTypeMapping {
         classMapping.put(CATALOG_SERVICE_FIELD, CatalogServiceField.class);
         classMapping.put(CATALOG_IMAGE, CatalogImage.class);
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
+        classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

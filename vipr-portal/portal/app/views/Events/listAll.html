@@ -21,6 +21,15 @@
             <span style="vertical-align: middle;" class="text-info">&{'resources.events.pending'}</span>
           </a>
       </span>
+      <span class="text-danger" style="margin-right:20px" >
+        <a href="#" ng-click="filterEvents('failed')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
+              <span ng-show="dataReady">{{failed}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+            <span style="vertical-align: middle;" class="text-muted">&{'resources.events.failed'}</span>
+        </a>
+      </span>
       <span class="text-success" style="margin-right:20px" class="nounderline">
           <a href="#" ng-click="filterEvents('approved')" class="no-decoration">
             <span style="font-size: 2em;vertical-align: middle;" class="text-success">
@@ -72,8 +81,8 @@
      }
    #{DataTable.expandHtml @itemDetails(':id'), table:'events'/}
    #{DataTable.buttonBar}
-    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], action:'$("#approveEvent").modal("show")'/}
-    #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], action:'$("#declineEvent").modal("show")'/}
+    #{Form.button name:'resources.events.approveEvent', class:'success', action:'$("#approveEvent").modal("show")'/}
+    #{Form.button name:'resources.events.declineEvent', class:'warning', action:'$("#declineEvent").modal("show")'/}
   #{/DataTable.buttonBar}
   #{/DataTable.table}
 

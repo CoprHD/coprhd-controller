@@ -158,5 +158,4 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 + exportGroup.getGeneratedName());
         return false;
     }
-
 }

@@ -71,16 +71,16 @@ verify_export() {
                 echo "PASSED: Verified Storage View with pattern ${STORAGE_VIEW_NAME} doesn't exist."
                 exit 0;
             fi
-            echo "ERROR: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
+            echo -e "\e[91mERROR\e[0m: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
             exit 1;
         else
             if [ "$2" = "gone" ]; then
-                echo "ERROR: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
+                echo -e "\e[91mERROR\e[0m: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
                 exit 1;
             fi
         fi
     else
-        echo "ERROR: empty or invalid response from vplex"
+        echo -e "\e[91mERROR\e[0m: empty or invalid response from vplex"
         exit 1;
     fi
 
@@ -90,13 +90,13 @@ verify_export() {
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
 	then
-	echo "FAILED: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
 	failed=true
     fi
 
     if [ ${num_luns} -ne ${NUM_LUNS} ]
 	then
-	echo "FAILED: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
 	failed=true
     fi
 

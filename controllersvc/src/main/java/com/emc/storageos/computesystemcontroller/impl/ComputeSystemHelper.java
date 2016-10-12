@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -734,6 +735,23 @@ public class ComputeSystemHelper {
             throw new Exception(
                     "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
         }
+    }
+
+    /**
+     * Get the vcenter that the host belongs to or null if it doesn't belong to one
+     * 
+     * @param dbClient the dbclient
+     * @param host the host to check
+     * @return vcenter that the host belongs to or null if it doesn't belong to one
+     */
+    public static Vcenter getHostVcenter(DbClient dbClient, Host host) {
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+            VcenterDataCenter datacenter = dbClient.queryObject(VcenterDataCenter.class, host.getVcenterDataCenter());
+            if (datacenter != null && !NullColumnValueGetter.isNullURI(datacenter.getVcenter())) {
+                return dbClient.queryObject(Vcenter.class, datacenter.getVcenter());
+            }
+        }
+        return null;
     }
 
 }

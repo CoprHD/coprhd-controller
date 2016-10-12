@@ -127,7 +127,7 @@
         </control-group>
 
         <control-group v-field='vpool.systemType' required>
-          <select-one options="systemTypeOptions" auto-default available="systemTypeAvailableOptions" v-disabled='locked'></select-one>
+          <select-one options="systemTypeOptions" auto-default available="systemTypeAvailableOptions" v-disabled='locked' ng-change="disablePlacementPolicy(this.field.value)"></select-one>
         </control-group>
 
         <div ng-if="['${models.StorageSystemTypes.NONE}','${models.StorageSystemTypes.SCALEIO}','${models.StorageSystemTypes.XTREMIO}','${models.StorageSystemTypes.IBMXIV}','${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
@@ -227,7 +227,7 @@
       <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.highAvailability' icon='globe'>
           <control-group v-field='vpool.highAvailability'>
-            <select-one options=highAvailabilityOptions auto-default empty-option="none"></select-one>
+            <select-one options=highAvailabilityOptions auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
           </control-group>
 
           <div ng-if="vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}'">
@@ -269,7 +269,7 @@
         
         <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
 		  <control-group v-field='vpool.remoteProtection'>
-            <select-one v-disabled="locked" options="remoteProtectionOptions" auto-default empty-option="none"></select-one>
+            <select-one v-disabled="locked" options="remoteProtectionOptions" auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
           </control-group>
         </div>
         

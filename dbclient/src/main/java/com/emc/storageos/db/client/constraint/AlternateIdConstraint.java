@@ -737,6 +737,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
         }
 
+        public static AlternateIdConstraint getHostsByClusterId(String clusterId) {
+            DataObjectType doType = TypeMap.getDoType(Host.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("cluster"), clusterId);
+        }
+
         public static AlternateIdConstraint getClustersByVolumeGroupId(String volumeGroupId) {
             DataObjectType doType = TypeMap.getDoType(Cluster.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);

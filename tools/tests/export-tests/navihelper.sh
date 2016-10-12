@@ -27,7 +27,7 @@ get_sg_name() {
     hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -70,7 +70,7 @@ remove_volume_from_mask() {
     hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -160,7 +160,7 @@ delete_storage_group() {
     hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -203,12 +203,12 @@ verify_export() {
 	    echo "PASSED: Verified storage group with pattern ${SG_PATTERN} doesn't exist."
 	    exit 0;
 	fi
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but could not find it";
 	exit 1;
     else
 	if [ "${NUM_INITIATORS}" = "gone" ]
 	    then
-	    echo "ERROR: Expected storage group ${SG_PATTERN} to be gone, but it was found"
+	    echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN} to be gone, but it was found"
 	    exit 1;
 	fi
     fi
@@ -216,7 +216,7 @@ verify_export() {
     hits=`grep -n ${SG_PATTERN} ${TMPFILE1} | wc -l`
     if [ ${hits} -gt 1 ]
 	then
-	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	echo -e "\e[91mERROR\e[0m: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
 	exit 1;
     fi
 
@@ -241,7 +241,7 @@ verify_export() {
 
     if [ "${num_inits}" != "${NUM_INITIATORS}" ]
 	then
-	echo "ERROR: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
 	echo "Export group dump:"
 	cat /tmp/verify2.txt
 	failed=true
@@ -249,7 +249,7 @@ verify_export() {
 
     if [ "${num_luns}" != "${NUM_LUNS}" ]
 	then
-	echo "ERROR: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
 	echo "Export group dump:"
 	cat /tmp/verify2.txt
 	failed=true
@@ -273,7 +273,7 @@ verify_export_prechecks() {
 
     grep -n ${SG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]; then
-	echo "ERROR: Expected MaskingView ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN}, but could not find it";
 	exit 1;
     fi
 

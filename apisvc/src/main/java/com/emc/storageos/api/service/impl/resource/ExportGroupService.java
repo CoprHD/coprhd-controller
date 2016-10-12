@@ -1363,24 +1363,16 @@ public class ExportGroupService extends TaskResourceService {
                 initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                 String name = null;
                 if (initiator != null && !initiator.getInactive()) {
-                    // Temporarily suppress validating the host initiators from ExportGroup to allow multiple host sharing the same EG.
-                    if (isCluster && !initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
+                    if (!VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
                             && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                        /*if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
+                        if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
                             name = initiator.getClusterName();
-                        } else if (StringUtils.hasText(initiator.getHostName())) {
-                            name = initiator.getHostName();
-                        } else {
-                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
-                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                        }*/
-                        if (StringUtils.hasText(initiator.getClusterName())) {
-                            name = initiator.getClusterName();
-                        } else {
-                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                        } else if (!StringUtils.hasText(initiator.getHostName())
+                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
+                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
                             throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
                         }
-                        
+
                         Set<URI> set = null;
                         if (initiatorMap.get(name) == null) {
                             set = new HashSet<URI>();
@@ -1506,14 +1498,14 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate there are no pending events (actionable events) against the hosts or clusters
+     * Validate there are no pending or failed events (actionable events) against the hosts or clusters
      * associated with this export group.
      * 
      * @param exportGroup
      *            export group we wish to update/delete
      */
     private void validateExportGroupNoPendingEvents(ExportGroup exportGroup) {
-        // Find the compute resource and see if there are any pending events
+        // Find the compute resource and see if there are any pending or failed events
         List<URI> computeResourceIDs = new ArrayList<>();
 
         if (exportGroup == null) {
@@ -1536,7 +1528,8 @@ public class ExportGroupService extends TaskResourceService {
             List<ActionableEvent> events = EventUtils.findAffectedResourceEvents(_dbClient, computeResourceID);
             if (events != null && !events.isEmpty()) {
                 for (ActionableEvent event : events) {
-                    if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {
+                    if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name())) {
                         errMsg.append(event.forDisplay() + "\n");
                     }
                 }
@@ -1544,7 +1537,7 @@ public class ExportGroupService extends TaskResourceService {
         }
 
         if (errMsg.length() != 0) {
-            throw APIException.badRequests.cannotExecuteOperationWhilePendingEvent(errMsg.toString());
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
         }
     }
 

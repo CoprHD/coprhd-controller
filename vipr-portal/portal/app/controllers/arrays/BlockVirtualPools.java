@@ -113,10 +113,6 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String VP_VMAX_DIAMOND_COMPRESSED = "vmax-diamond-compressed";
     private static final String VP_XIO_DIAMOND = "xio-diamond";
     private static final String VP_UNITY_DIAMOND = "unity-diamond";
-    private static final String ALL_FLASH_DESC = "Virtual Pool for All-Flash Storage";
-    private static final String VMAX_DIAMOND_DESC = "Virtual Pool for EMC VMAX All-Flash Storage";
-    private static final String XIO_DIAMOND_DESC = "Virtual Pool for EMC XtremIO Storage";
-    private static final String UNITY_DIAMOND_DESC = "Virtual Pool for EMC UNITY Storage";
     private static final String DEFAULT_AUTO_TIER = "Diamond SLO (0.8ms)";
 
     public static void list() {
@@ -295,7 +291,7 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, ALL_FLASH_DESC, vpools);
+				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, Messages.get("gettingStarted.vpool.allflash.desc"), vpools);
 			}
 		}
 
@@ -330,7 +326,7 @@ public class BlockVirtualPools extends ViprResourceController {
 					updateAutoVirtualPool(vpid, blockvpool,vpools);
 				}
 				else {
-					createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, VMAX_DIAMOND_DESC, vpools);
+					createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, Messages.get("gettingStarted.vpool.vmax.desc"), vpools);
 				}
 			}
 		}
@@ -350,7 +346,7 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, XIO_DIAMOND_DESC, vpools);
+				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, Messages.get("gettingStarted.vpool.xio.desc"), vpools);
 			}
 		}
 
@@ -369,7 +365,7 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, UNITY_DIAMOND_DESC, vpools);
+				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, Messages.get("gettingStarted.vpool.unity.desc"), vpools);
 			}
 		}
         dataObject.add(VPOOL_COOKIES, vpools);

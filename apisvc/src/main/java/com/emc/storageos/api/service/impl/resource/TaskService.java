@@ -305,7 +305,7 @@ public class TaskService extends TaggedResource {
         // Resume the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_RESUME);
-        getWorkflowController().resumeWorkflow(workflow.getId(), taskId.toString());
+        getWorkflowController().resumeWorkflow(workflow.getId(), opId.toString());
         return Response.ok().build();
     }
 

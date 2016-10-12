@@ -115,6 +115,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -725,7 +726,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     associatedVolumes.add(assocVolume);
 
                     // Remove the associated volume form any export groups/masks.
-                    cleanBlockObjectFromExports(assocVolumeURI, true);
+                    ExportUtils.cleanBlockObjectFromExports(assocVolumeURI, true, _dbClient);
                 }
             }
         }

@@ -8,12 +8,11 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -24,6 +23,7 @@ import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 
 /**
@@ -86,6 +86,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(ctx.getStorage(),
                 ctx.getExportMask());
+        validator.setExceptionContext(ctx);
         configureValidators(logger, validator);
         return validator;
     }
@@ -101,7 +102,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     @Override
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
+            Collection<? extends BlockObject> volumes) {
         return null;
     }
 
@@ -126,6 +127,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         XtremIOExportMaskVolumesValidator validator = new XtremIOExportMaskVolumesValidator(ctx.getStorage(),
                 ctx.getExportMask(), ctx.getBlockObjects());
+        validator.setExceptionContext(ctx);
         configureValidators(logger, validator);
         return validator;
     }

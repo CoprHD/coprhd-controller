@@ -700,9 +700,12 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
 
             } else {
+                Vcenter vcenter = ComputeSystemHelper.getHostVcenter(dbClient, host);
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignLabel"),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignLabel",
+                                vcenter == null ? "N/A" : vcenter.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel(),
+                                vcenter == null ? "N/A" : vcenter.getLabel()),
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignWarning"),
                         host, Lists.newArrayList(host.getId(), host.getCluster()),
                         EventUtils.hostVcenterUnassign, new Object[] { deletedHost },

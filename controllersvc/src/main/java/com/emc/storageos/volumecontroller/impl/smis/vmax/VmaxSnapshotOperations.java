@@ -572,7 +572,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshot it = snapshotIter.next();
                 it.setInactive(true);
                 it.setIsSyncActive(false);
-                _dbClient.persistObject(it);
+                _dbClient.updateObject(it);
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {

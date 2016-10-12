@@ -71,6 +71,11 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     private static Charset UTF_8 = Charset.forName("UTF-8");
     private static final String EVENT_SERVICE_TYPE = "catalog-event";
 
+    // Specific workaround for VMAX3 Snapshot session:
+    // If a snapshot session is connected with any target, it should not be deleted for avoiding DU.
+    // For scheduler, the recurrence event with retention policy could not be fulfilled.
+    public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
+
     @Autowired
     private ModelClient client;
 
@@ -145,6 +150,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         }
 
         validateParam(createParam.getScheduleInfo());
+
+        validOrderParam(createParam.getScheduleInfo(), createParam.getOrderCreateParam().getParameters());
 
         ScheduledEvent newObject = null;
         try {
@@ -570,5 +577,20 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         return nextWindow;
 
+    }
+
+    public void validOrderParam(ScheduleInfo scheduleInfo, List<Parameter> parameters) {
+        if (scheduleInfo.getReoccurrence() != 1) {
+            for (Parameter param: parameters) {
+                if (param.getLabel().equals(LINKED_SNAPSHOT_NAME)) {
+                    if (param.getValue() != null) {
+                        String snapshotName = param.getValue();
+                        if (!(snapshotName.isEmpty() || snapshotName.equals(""))) {
+                            throw APIException.badRequests.scheduleInfoNotAllowedWithSnapshotSessionTarget();
+                        }
+                    }
+                }
+            }
+        }
     }
 }

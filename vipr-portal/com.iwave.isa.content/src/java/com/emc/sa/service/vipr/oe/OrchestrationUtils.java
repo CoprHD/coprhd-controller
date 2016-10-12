@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -202,18 +203,20 @@ public class OrchestrationUtils {
                 "Orchestration Engine workflow.");
 
         long startTime = System.currentTimeMillis();
-        boolean allTasksDone = false;
+        List<URI> remainingTasks = new ArrayList<>(tasksStartedByOe);
 
-        while(!allTasksDone) {
-            allTasksDone = true;
-            for(URI taskId : tasksStartedByOe) {              
+        while(!remainingTasks.isEmpty()) {
+            Iterator<URI> remainingTasksIter = remainingTasks.iterator();
+            while(remainingTasksIter.hasNext()) {
+              URI taskId = (URI)remainingTasksIter.next();
                 String state = client.tasks().get(taskId).getState();
                 if(state.equals("error")) {
                     throw new IllegalStateException("One or more tasks " +
                             " started by Orchestration Engine reported an error.");
                 }
-                if(!state.equals("ready")) {
-                    allTasksDone = false;
+                if(state.equals("ready")) {
+                    remainingTasksIter.remove();
+                } else {
                     break;
                 }
             }

@@ -758,15 +758,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return waitFor;
         }
 
-        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, volumeDescriptors, taskId, blockDeviceController);
-
-        // Lock the CG (no-op for non-CG)
-        // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
-        // to keep it closer to the feature it locks and the service codes that are produced when
-        // the lock fails.
-        lockCG(completer);
-
-        return waitFor;
+        return addRemoveProtectionOnVolumeStep(workflow, waitFor, volumeDescriptors, taskId, blockDeviceController);
     }
 
     @Override
@@ -2220,7 +2212,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             List<String> lockKeys = new ArrayList<String>();
             Volume tempVol = _dbClient.queryObject(Volume.class, volumeIDs.iterator().next());
             lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, tempVol.getConsistencyGroup(), system.getId()));
-            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(token, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+            boolean lockAcquired = _workflowService.acquireWorkflowLocks(_workflowService.getWorkflowFromStepId(token), lockKeys, LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 lockException = true;
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
@@ -4197,11 +4189,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
+    public void performProtectionOperation(URI protectionSystem, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
             String task) throws ControllerException {
         RPCGProtectionTaskCompleter taskCompleter = null;
         try {
-            ProtectionSystem rpSystem = getRPSystem(protectionDevice);
 
             if (URIUtil.isType(id, Volume.class)) {
                 taskCompleter = new RPCGProtectionTaskCompleter(id, Volume.class, task);
@@ -4209,8 +4200,84 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 taskCompleter = new RPCGProtectionTaskCompleter(id, BlockConsistencyGroup.class, task);
             }
 
-            // Lock the CG or fail
-            lockCG(taskCompleter);
+            ProtectionSystem rpSystem = getRPSystem(protectionSystem);
+
+            // set the protection volume to the source volume if the copyID is null (operation is performed on all
+            // copies)
+            // otherwise set it to the volume referenced by the copyID (operation is performed on specifc copy)
+            Volume protectionVolume = (copyID == null) ? _dbClient.queryObject(Volume.class, id)
+                    : _dbClient.queryObject(Volume.class, copyID);
+            
+            if (op.equals(STOP)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.STOP_RP_LINK);
+            } else if (op.equals(START)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.START_RP_LINK);
+            } else if (op.equals(SYNC)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.SYNC_RP_LINK);
+            } else if (op.equals(PAUSE)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.PAUSE_RP_LINK);
+            } else if (op.equals(RESUME)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.RESUME_RP_LINK);
+            } else if (op.equals(FAILOVER_TEST)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_TEST_RP_LINK);
+            } else if (op.equals(FAILOVER)) {
+                if (protectionVolume.getLinkStatus() != null
+                        && protectionVolume.getLinkStatus().equalsIgnoreCase(Volume.LinkStatus.FAILED_OVER.name())) {
+                    taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
+                } else {
+                    taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_RP_LINK);
+                }
+            } else if (op.equals(FAILOVER_CANCEL)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
+            } else if (op.equals(SWAP)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.SWAP_RP_VOLUME);
+            } else if (op.equals(FAILOVER_TEST_CANCEL)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_TEST_CANCEL_RP_LINK);
+            } else if (op.equals(CHANGE_ACCESS_MODE)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.CHANGE_RP_IMAGE_ACCESS_MODE);
+            } else {
+                taskCompleter.error(_dbClient, _locker, DeviceControllerErrors.recoverpoint.methodNotSupported());
+                return;
+            }
+            
+            // Set up workflow steps.
+            Workflow workflow = _workflowService.getNewWorkflow(this, "performProtectionOperation", true, task);
+            
+            // add step to perform protection operation
+            String stepId = workflow.createStepId();
+            Workflow.Method performProtOpExecuteMethod = new Workflow.Method("performProtectionOperationStep", protectionSystem, protectionVolume.getConsistencyGroup(), id, copyID, pointInTime, imageAccessMode, op);
+
+            workflow.createStep("rpProtectionOperationStep", String.format("Performing protection operation %s on RP volume: %s", op, id.toString()), 
+                    null, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), performProtOpExecuteMethod, null,
+                    stepId);
+            
+            String successMessage = String.format("Successfully performed protection operation %s on RP volume: %s", op, id.toString());
+            workflow.executePlan(taskCompleter, successMessage);
+            
+        } catch (Exception e) {
+            _log.error("Operation failed with Exception: ", e);
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, _locker, DeviceControllerException.errors.jobFailed(e));
+            }
+        }
+    }
+
+    public boolean performProtectionOperationStep(URI protectionSystem, URI cg, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
+            String stepId) throws ControllerException {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+
+            ProtectionSystem rpSystem = getRPSystem(protectionSystem);
+            
+            // Take out a workflow step lock on the CG
+            _workflowService.getWorkflowFromStepId(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cg, rpSystem.getId()));
+            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+            if (!lockAcquired) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        String.format("failed to get lock while restoring volumes in RP consistency group: %s", cg.toString()));
+            }
 
             // set the protection volume to the source volume if the copyID is null (operation is performed on all
             // copies)
@@ -4224,46 +4291,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     .getProtectionInfoForVolume(RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
 
             if (op.equals(STOP)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.STOP_RP_LINK);
                 rp.disableProtection(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.DISABLED.toString(), rpSystem);
                 _log.info("doStopProtection {} - complete", rpSystem.getId());
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(START)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.START_RP_LINK);
                 rp.enableProtection(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.ENABLED.toString(), rpSystem);
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(SYNC)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.SYNC_RP_LINK);
                 Set<String> volumeWWNs = new HashSet<String>();
                 volumeWWNs.add(RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 // Create and enable a temporary bookmark for the volume associated with this volume
                 CreateBookmarkRequestParams request = new CreateBookmarkRequestParams();
                 request.setVolumeWWNSet(volumeWWNs);
                 request.setBookmark("Sync-Snapshot");
-                CreateBookmarkResponse response = rp.createBookmarks(request);
-                if (response == null) {
-                    taskCompleter.error(_dbClient, _locker, DeviceControllerExceptions.recoverpoint.failedToCreateBookmark());
-                } else {
-                    taskCompleter.ready(_dbClient, _locker);
-                }
+                rp.createBookmarks(request);
             } else if (op.equals(PAUSE)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.PAUSE_RP_LINK);
                 rp.pauseTransfer(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.PAUSED.toString(), rpSystem);
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(RESUME)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.RESUME_RP_LINK);
                 rp.resumeTransfer(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.ENABLED.toString(), rpSystem);
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(FAILOVER_TEST)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_TEST_RP_LINK);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.failoverCopyTest(copyParams);
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(FAILOVER)) {
                 // If the "protectionVolume" is a source personality volume, we're probably dealing with a failover
                 // cancel.
@@ -4276,7 +4327,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // Jira CTRL-2773: Once UI adds support for /swap and /failover-cancel, we can remove this and
                     // replace with an error.
                     // If protectionVolume is a source, then the "source" sent in must be a target. Verify.
-                    taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
                     Volume targetVolume = null;
                     if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                         targetVolume = _dbClient.queryObject(Volume.class, id);
@@ -4291,14 +4341,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     rp.failoverCopyCancel(copyParams);
                     // Set the flags back to where they belong.
                     updatePostFailoverCancel(targetVolume);
-                    taskCompleter.ready(_dbClient, _locker);
                     // TODO END
                     // Replace with this error: taskCompleter.error(_dbClient, _locker,
                     // DeviceControllerErrors.recoverpoint.stepFailed("performFailoverOperation: source volume specified
                     // for failover where target volume specified is not in failover state"));
                 } else {
                     // Standard failover case.
-                    taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_RP_LINK);
                     RPCopyRequestParams copyParams = new RPCopyRequestParams();
                     copyParams.setCopyVolumeInfo(volumeProtectionInfo);
 
@@ -4309,19 +4357,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     rp.failoverCopy(copyParams);
                     updatePostFailover(protectionVolume);
-                    taskCompleter.ready(_dbClient, _locker);
                 }
             } else if (op.equals(FAILOVER_CANCEL)) {
                 // If the "protectionVolume" is a source personality volume, we're probably dealing with a failover
                 // cancel.
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
                 if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
-                    taskCompleter
-                            .error(_dbClient,
-                                    _locker,
-                                    DeviceControllerErrors.recoverpoint
-                                            .stepFailed(
-                                            "performFailoverOperation: source volume specified for failover where target volume specified is not in failover state"));
+                    throw DeviceControllerExceptions.recoverpoint.failoverWrongTargetSpecified();
                 } else {
                     if (protectionVolume.getLinkStatus() != null
                             && protectionVolume.getLinkStatus().equalsIgnoreCase(Volume.LinkStatus.FAILED_OVER.name())) {
@@ -4332,20 +4373,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rp.failoverCopyCancel(copyParams);
                         // Set the flags back to where they belong.
                         updatePostFailoverCancel(protectionVolume);
-                        taskCompleter.ready(_dbClient, _locker);
                     } else {
                         // Illegal condition, you sent down a target volume that's a source where the target is not a
                         // failed over target.
-                        taskCompleter
-                                .error(_dbClient,
-                                        _locker,
-                                        DeviceControllerErrors.recoverpoint
-                                                .stepFailed(
-                                                "performFailoverOperation: source volume specified for failover where target volume specified is not in failover state"));
+                        throw DeviceControllerExceptions.recoverpoint.failoverWrongTargetSpecified();
                     }
                 }
             } else if (op.equals(SWAP)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.SWAP_RP_VOLUME);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.swapCopy(copyParams);
@@ -4477,15 +4511,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // its bookmarks so we need to sync with RP.
                 RPHelper.cleanupSnapshots(_dbClient, rpSystem);
 
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(FAILOVER_TEST_CANCEL)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_TEST_CANCEL_RP_LINK);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.failoverCopyTestCancel(copyParams);
-                taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(CHANGE_ACCESS_MODE)) {
-                taskCompleter.setOperationTypeEnum(OperationTypeEnum.CHANGE_RP_IMAGE_ACCESS_MODE);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 copyParams.setImageAccessMode(imageAccessMode);
@@ -4509,25 +4539,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         RPHelper.cleanupSnapshots(_dbClient, rpSystem);
                     }
 
-                    taskCompleter.ready(_dbClient, _locker);
                 } else {
-                    taskCompleter.error(_dbClient, _locker,
-                            DeviceControllerErrors.recoverpoint.imageAccessModeNotSupported(imageAccessMode));
+                    throw DeviceControllerExceptions.recoverpoint.imageAccessModeNotSupported(imageAccessMode);
                 }
             } else {
-                taskCompleter.error(_dbClient, _locker, DeviceControllerErrors.recoverpoint.methodNotSupported());
+                throw DeviceControllerExceptions.recoverpoint.protectionOperationNotSupported(op);
             }
+            
             _log.info("performProtectionOperation: after " + op + " operation successful");
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return true;
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);
-            if (taskCompleter != null) {
-                taskCompleter.error(_dbClient, _locker, e);
-            }
+            return stepFailed(stepId, (ServiceCoded) e, "removeProtection operation failed.");
         } catch (Exception e) {
-            _log.error("Operation failed with Exception: ", e);
-            if (taskCompleter != null) {
-                taskCompleter.error(_dbClient, _locker, DeviceControllerException.errors.jobFailed(e));
-            }
+            stepFailed(stepId, e, "removeProtection operation failed.");
+            return false;
         }
     }
 
@@ -5560,8 +5587,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
-            // Lock the CG or fail
-            lockCG(completer);
+            // Take out a workflow step lock on the CG
+            _workflowService.getWorkflowFromStepId(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, volume.getConsistencyGroup(), system.getId()));
+            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+            if (!lockAcquired) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        String.format("failed to get lock while restoring volumes in RP consistency group: %s", volume.getConsistencyGroup().toString()));
+            }
 
             // Now determine the target volume that corresponds to the site of the snapshot
             ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());

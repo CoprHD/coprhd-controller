@@ -6,10 +6,11 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
@@ -90,12 +91,12 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             // Remove the block objects being deleted from any existing path parameters.
             exportGroupService.removeBlockObjectsFromPathParamMap(removedBlockObjectsMap.keySet(), exportGroup);
 
-            List<URI> addedInitiators = new ArrayList<URI>();
-            List<URI> removedInitiators = new ArrayList<URI>();
-            List<URI> addedHosts = new ArrayList<URI>();
-            List<URI> removedHosts = new ArrayList<URI>();
-            List<URI> addedClusters = new ArrayList<URI>();
-            List<URI> removedClusters = new ArrayList<URI>();
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
 
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());

@@ -762,7 +762,7 @@ public class ExportGroupService extends TaskResourceService {
     void validateClientsAndUpdate(ExportGroup exportGroup,
             Project project, Collection<URI> storageSystems,
             ExportUpdateParam param, List<URI> newClusters,
-            List<URI> newHosts, List<URI> newInitiators, List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators) {
+            List<URI> newHosts, List<URI> newInitiators, Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators) {
         if (param.getClusters() != null) {
             if (!CollectionUtils.isEmpty(param.getClusters().getRemove())) {
                 for (URI uri : param.getClusters().getRemove()) {
@@ -1035,7 +1035,7 @@ public class ExportGroupService extends TaskResourceService {
      *
      * @param initiators the list of initiators to validate
      */
-    private void validateInitiatorHostOS(List<URI> initiators) {
+    private void validateInitiatorHostOS(Set<URI> initiators) {
         Set<String> hostTypes = new HashSet<String>();
         List<URI> hostList = new ArrayList<URI>();
 
@@ -1104,7 +1104,7 @@ public class ExportGroupService extends TaskResourceService {
             Project project, VirtualArray varray, Collection<URI> storageSystems,
             List<URI> clusters, List<URI> hosts,
             List<URI> initiators, Collection<URI> volumes, ExportPathParameters pathParam) {
-        List<URI> allInitiators = new ArrayList<URI>();
+        List<URI> allInitiators = new ArrayList<>();
         List<URI> allHosts = new ArrayList<URI>();
         if (initiators != null && !initiators.isEmpty()) {
             List<Initiator> temp = new ArrayList<Initiator>();
@@ -1153,7 +1153,7 @@ public class ExportGroupService extends TaskResourceService {
         filterOutInitiatorsNotAssociatedWithVArray(exportGroup, storageSystems, null, allInitiators);
 
         // Validate the Host Operating Systems
-        validateInitiatorHostOS(allInitiators);
+        validateInitiatorHostOS(new HashSet(allInitiators));
         _log.info("All clients were found to be valid.");
         // now set the initiators to the export group before saving it
         exportGroup.setInitiators(StringSetUtil.uriListToStringSet(allInitiators));

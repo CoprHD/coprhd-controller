@@ -354,8 +354,8 @@ public class BlockDeviceExportController implements BlockExportController {
     public void exportGroupUpdate(URI export,
             Map<URI, Integer> addedBlockObjectMap,
             Map<URI, Integer> removedBlockObjectMap,
-            List<URI> addedClusters, List<URI> removedClusters,
-            List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId)
+            Set<URI> addedClusters, Set<URI> removedClusters,
+            Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, String opId)
             throws ControllerException {
         Map<BlockObjectControllerKey, Map<URI, Integer>> addedStorageToBlockObjects =
                 new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
@@ -364,13 +364,6 @@ public class BlockDeviceExportController implements BlockExportController {
 
         Workflow workflow = null;
         try {
-            // Do some initial sanitizing of the export parameters
-            StringSetUtil.removeDuplicates(addedInitiators);
-            StringSetUtil.removeDuplicates(removedInitiators);
-            StringSetUtil.removeDuplicates(addedHosts);
-            StringSetUtil.removeDuplicates(removedHosts);
-            StringSetUtil.removeDuplicates(addedClusters);
-            StringSetUtil.removeDuplicates(removedClusters);
 
             computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, addedStorageToBlockObjects,
@@ -420,7 +413,7 @@ public class BlockDeviceExportController implements BlockExportController {
                                 controllerKey.getController(), export, getExportMask(export, controllerKey.getStorageControllerUri()),
                                 addedStorageToBlockObjects.get(controllerKey),
                                 removedStorageToBlockObjects.get(controllerKey),
-                                addedInitiators, removedInitiators, controllerKey.getStorageControllerUri());
+                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), controllerKey.getStorageControllerUri());
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());
@@ -463,10 +456,10 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, Integer> removedBlockObjectsFromRequest,
             Map<BlockObjectControllerKey, Map<URI, Integer>> addedBlockObjects,
             Map<BlockObjectControllerKey, Map<URI, Integer>> removedBlockObjects,
-            List<URI> addedInitiators,
-            List<URI> removedInitiators, List<URI> addedHosts,
-            List<URI> removedHosts, List<URI> addedClusters,
-            List<URI> removedClusters) {
+            Set<URI> addedInitiators,
+            Set<URI> removedInitiators, Set<URI> addedHosts,
+            Set<URI> removedHosts, Set<URI> addedClusters,
+            Set<URI> removedClusters) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
 
@@ -547,12 +540,6 @@ public class BlockDeviceExportController implements BlockExportController {
         for (URI hostURI : removedHosts) {
             removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hostURI, Initiator.class, "host"));
         }
-        // TODO we should use Set collection instead of List collection to avoid duplicate
-        StringSetUtil.removeDuplicates(addedHosts);
-        StringSetUtil.removeDuplicates(removedHosts);
-        StringSetUtil.removeDuplicates(addedInitiators);
-        StringSetUtil.removeDuplicates(removedInitiators);
-
         
         _log.info("Initiators to add: {}", addedInitiators);
         _log.info("Initiators to remove: {}", removedInitiators);

@@ -6,10 +6,11 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,12 +37,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     private static final String EXPORT_UPDATE_FAILED_MSG = "Failed to update ExportGroup %s";
     private Map<URI, Integer> _addedBlockObjects = new HashMap<URI, Integer>();
     private Map<URI, Integer> _removedBlockObjects = new HashMap<URI, Integer>();
-    private List<URI> _addedInitiators = new ArrayList<URI>();
-    private List<URI> _removedInitiators = new ArrayList<URI>();
-    private List<URI> _addedHosts = new ArrayList<URI>();
-    private List<URI> _removedHosts = new ArrayList<URI>();
-    private List<URI> _addedClusters = new ArrayList<URI>();
-    private List<URI> _removedClusters = new ArrayList<URI>();
+    private Set<URI> _addedInitiators = new HashSet<>();
+    private Set<URI> _removedInitiators = new HashSet<>();
+    private Set<URI> _addedHosts = new HashSet<>();
+    private Set<URI> _removedHosts = new HashSet<>();
+    private Set<URI> _addedClusters = new HashSet<>();
+    private Set<URI> _removedClusters = new HashSet<>();
 
     /**
      * Constructor for export updates.
@@ -61,9 +62,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             URI egUri,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators,
-            List<URI> addedHosts, List<URI> removedHosts,
-            List<URI> addedClusters, List<URI> removedClusters,
+            Set<URI> addedInitiators, Set<URI> removedInitiators,
+            Set<URI> addedHosts, Set<URI> removedHosts,
+            Set<URI> addedClusters, Set<URI> removedClusters,
             String task) {
         super(ExportGroup.class, egUri, task);
         _addedBlockObjects = addedBlockObjects;

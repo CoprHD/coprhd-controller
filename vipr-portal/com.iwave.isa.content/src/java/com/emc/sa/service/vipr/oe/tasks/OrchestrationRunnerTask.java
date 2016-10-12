@@ -115,7 +115,7 @@ public class OrchestrationRunnerTask extends ViPRExecutionTask<String> {
         return workflowResponse;
     }
 
-    private String getOeWorkflowResponse(String workflowId) {
+    private String getOeWorkflowResponse(String workflowId) throws InterruptedException {
         OrchestrationUtils.sleep(OE_WORKFLOW_CHECK_INTERVAL);
         if( OrchestrationUtils.isTimedOut(++intervals) ) {
             ExecutionUtils.currentContext().logError("Orchestration Engine Workflow " +

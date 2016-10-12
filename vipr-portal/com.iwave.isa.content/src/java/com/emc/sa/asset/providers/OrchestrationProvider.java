@@ -161,7 +161,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
 	}
 
 	@Asset(ASSET_TAG)
-    public List<AssetOption> getOrchestrationOptions(AssetOptionsContext ctx) { 
+    public List<AssetOption> getOrchestrationOptions(AssetOptionsContext ctx) throws InterruptedException { 
 
         info("Getting asset options for '" + thisAssetType + "' from OE."); 
 
@@ -236,12 +236,12 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         return assetOptionList;
     }
 
-    private void sleep(int seconds) {
+    private void sleep(int seconds) throws InterruptedException {
         try {
             Thread.sleep(seconds*1000);
         }
         catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            throw e;
         } 
     } 
 }

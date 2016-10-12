@@ -79,12 +79,12 @@ public class OrchestrationUtils {
         return null;
     }
 
-    public static void sleep(int seconds) {
+    public static void sleep(int seconds) throws InterruptedException {
         try {
             Thread.sleep(seconds*1000);
         }
         catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            throw e;
         } 
     }
 
@@ -194,7 +194,7 @@ public class OrchestrationUtils {
         }  
     }
 
-    public static void waitForViprTasks(List<URI> tasksStartedByOe, ViPRCoreClient client) {
+    public static void waitForViprTasks(List<URI> tasksStartedByOe, ViPRCoreClient client) throws InterruptedException {
         if( tasksStartedByOe.isEmpty()) {
             return;
         }  

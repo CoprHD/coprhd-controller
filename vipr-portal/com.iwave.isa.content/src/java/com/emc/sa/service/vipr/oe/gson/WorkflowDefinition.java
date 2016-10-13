@@ -105,6 +105,7 @@ public class WorkflowDefinition {
         public String getLockdown() {
             return lockdown;
         }
+    }
 
     public  static class StepAttribute {
 
@@ -127,6 +128,7 @@ public class WorkflowDefinition {
         public long getTimeout() {
             return timeout;
         }
+    }
 
     public  static class Step {
 

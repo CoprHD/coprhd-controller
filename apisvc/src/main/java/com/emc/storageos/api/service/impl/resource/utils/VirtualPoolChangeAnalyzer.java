@@ -1626,28 +1626,27 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 
                 String[] include = null;
 
-                if (type.equals(Volume.PersonalityTypes.SOURCE)
-                        || type.equals(Volume.PersonalityTypes.TARGET)) {                        
-                    // Ensure these values have NOT changed between ANY of the candidate vpools. If they have,
+                if (type.equals(Volume.PersonalityTypes.SOURCE)) {                        
+                    // Ensure these values have NOT changed between ANY of the Source candidate vpools. If they have,
                     // do not allow the RP+VPLEX migration operation to occur.
                     include = new String[] { TYPE, VARRAYS,
                             REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS,
                             METROPOINT, HIGH_AVAILABILITY, RP_RPO_TYPE, RP_RPO_VALUE, RP_COPY_MODE };
                 } else {
-                    // Journals could be using the Source/Target vpool as their vpool 
+                    // Targets/Journals could be using the Source/Target vpool as their vpool 
                     // and the user could be looking to migrate to another vpool which is valid
-                    // but may have different a HA type because RP+VPLEX Journals are always forced to 
-                    // VPLEX Local. 
+                    // but may have different a HA type / varrays.
                     if (VirtualPool.vPoolSpecifiesHighAvailability(candidateCurrentVpool)
-                            && VirtualPool.vPoolSpecifiesHighAvailability(candidateNewVpool)) {
-                        include = new String[] { TYPE, VARRAYS,
-                                REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS };
+                            && VirtualPool.vPoolSpecifiesHighAvailability(candidateNewVpool)
+                            && candidateNewVpool.getVirtualArrays().contains(migration.getVarray().toString())) {
+                        include = new String[] { TYPE, REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS };
                     } else {
-                        // Can not consider this journal migration if the current and new journal vpool
-                        // does not specify HA.
-                        s_logger.info(String.format("Vpool [%s](%s) is NOT valid for RP+VPLEX METADATA migrations", 
+                        // Can not consider this migration if the current and new vpool
+                        // does not specify HA and the new vpool does not have the varray used in
+                        // the migration.
+                        s_logger.info(String.format("Vpool [%s](%s) is NOT valid for RP+VPLEX %s migrations", 
                                 candidateNewVpool.getLabel(),
-                                candidateNewVpool.getId()));        
+                                candidateNewVpool.getId()), type.name());        
                         continue;
                     }
                 }

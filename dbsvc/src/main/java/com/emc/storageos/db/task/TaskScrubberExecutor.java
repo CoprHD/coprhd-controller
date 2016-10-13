@@ -78,27 +78,16 @@ public class TaskScrubberExecutor {
 
         List<URI> ids = dbClient.queryByType(Task.class, true);
         Iterator<Task> tasks = dbClient.queryIterativeObjects(Task.class, ids, true);
-        List<Task> toBeDeleted = Lists.newArrayList();
         while (tasks.hasNext()) {
             Task task = tasks.next();
             if (task.getCreationTime().after(startTimeMarker)) {
             	continue;
             }
             if (task != null && !task.isPending()) {
-                toBeDeleted.add(task);
-            }
-            if (toBeDeleted.size() >= DELETE_BATCH_SIZE) {
-            	log.info("Deleting {} Tasks", toBeDeleted.size());
-            	dbClient.markForDeletion(toBeDeleted);
-            	toBeDeleted.clear();
+                log.info("Deleting Task {} ", task.getId());
+                dbClient.removeObject(task);
             }
         }
-
-        if (!toBeDeleted.isEmpty()) {
-            log.info("Deleting {} Tasks", toBeDeleted.size());
-
-            dbClient.markForDeletion(toBeDeleted);
-        } 
         log.info("delete completed tasks successfully");
     }
 

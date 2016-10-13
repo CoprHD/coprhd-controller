@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
@@ -77,9 +78,14 @@ public class IndexCleaner {
                         listToClean.getObject(rowKey));
             }
         }
-        // If this is an IndexCleanupList, means we're called because someone changed the object fields
-        // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
-        removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList) listToClean, true);
+        
+        // If a DataObject is annotated as NoInactiveIndex, "inactive" doesn't mean deleted and we should
+        // not delete the indexes here. The caller is supposed to use removeObject() to delete the indexes
+        if (doType.getDataObjectClass().getAnnotation(NoInactiveIndex.class) == null) {
+            // If this is an IndexCleanupList, means we're called because someone changed the object fields
+            // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
+            removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList) listToClean, true);
+        }
 
         mutator.executeIndexFirst();
     }

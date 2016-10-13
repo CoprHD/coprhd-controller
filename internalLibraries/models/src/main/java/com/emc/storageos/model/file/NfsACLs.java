@@ -5,50 +5,43 @@
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
-import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "nfs_acls")
 public class NfsACLs implements Serializable {
 
-    /*
-     * response data attributes.
-     */
+    private static final long serialVersionUID = 1780598964262028652L;
 
-    private static final long serialVersionUID = -5805098581764691677L;
+    private List<NfsACE> nfsAces;
 
-    private URI fileSystemId;
-    private URI snapshotId;
-    private List<NfsACL> nfsACLs;
-
-    @XmlElement(name = "fsID")
-    public URI getFileSystemId() {
-        return fileSystemId;
+    public NfsACLs() {
     }
 
-    public void setFileSystemId(URI fileSystemId) {
-        this.fileSystemId = fileSystemId;
+    @XmlElementWrapper(name = "acl")
+    @XmlElement(name = "ace")
+    public List<NfsACE> getNfsAces() {
+        return nfsAces;
     }
 
-    @XmlElement(name = "snapShotID")
-    public URI getSnapshotId() {
-        return snapshotId;
+    public void setNfsAces(List<NfsACE> nfsAces) {
+        this.nfsAces = nfsAces;
     }
 
-    public void setSnapshotId(URI snapshotId) {
-        this.snapshotId = snapshotId;
+    public void addACE(NfsACE ace) {
+        if (this.nfsAces == null) {
+            this.nfsAces = new ArrayList<NfsACE>();
+        }
+        this.nfsAces.add(ace);
     }
 
-    @XmlElement(name = "nfs_acl")
-    public List<NfsACL> getNfsACLs() {
-        return nfsACLs;
-    }
-
-    public void setNfsACLs(List<NfsACL> nfsACLs) {
-        this.nfsACLs = nfsACLs;
+    @Override
+    public String toString() {
+        return "NfsACL [" + nfsAces + "]";
     }
 
 }

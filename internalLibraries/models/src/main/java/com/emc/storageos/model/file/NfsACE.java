@@ -5,6 +5,7 @@
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,6 +22,10 @@ public class NfsACE implements Serializable {
      * and payload attributes
      */
 
+    private String fsMountPath;
+    private String subDir;
+    private URI fileSystemId;
+    private URI snapshotId;
     private String domain;
     private String user;
     private String type = NfsUserType.user.name();
@@ -46,6 +51,24 @@ public class NfsACE implements Serializable {
         FS_PATH_NOT_FOUND, ACL_EXISTS, ACL_NOT_FOUND, ACCESS_TO_SHARE_DENIED,
         SNAPSHOT_FS_SHOULD_BE_READ_ONLY,
         MULTIPLE_DOMAINS_FOUND
+    }
+
+    @XmlElement(name = "mount_path")
+    public String getFSMountPath() {
+        return fsMountPath;
+    }
+
+    public void setFSMountPath(String fsMountPath) {
+        this.fsMountPath = fsMountPath;
+    }
+
+    @XmlElement(name = "subDir")
+    public String getSubDir() {
+        return subDir;
+    }
+
+    public void setSubDir(String subDir) {
+        this.subDir = subDir;
     }
 
     @XmlElement(name = "domain", required = false)
@@ -98,6 +121,24 @@ public class NfsACE implements Serializable {
         String[] permissionArray = this.permissions.split(",");
         return new HashSet<String>(Arrays.asList(permissionArray));
 
+    }
+
+    @XmlElement(name = "file_system_id")
+    public URI getFileSystemId() {
+        return fileSystemId;
+    }
+
+    public void setFileSystemId(URI fileSystemId) {
+        this.fileSystemId = fileSystemId;
+    }
+
+    @XmlElement(name = "snapshot_id")
+    public URI getSnapshotId() {
+        return snapshotId;
+    }
+
+    public void setSnapshotId(URI snapshotId) {
+        this.snapshotId = snapshotId;
     }
 
     @Override

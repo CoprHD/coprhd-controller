@@ -41,7 +41,7 @@ import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.MountInfoList;
-import com.emc.storageos.model.file.NfsACL;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ScheduleSnapshotList;
 import com.emc.storageos.model.file.ShareACL;
@@ -276,8 +276,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call:
-     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -513,12 +512,12 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * 
      * @return the list of NFS ACLs for the given file system.
      */
-    public List<NfsACL> getAllNfsACLs(URI id) {
+    public List<NfsACE> getAllNfsACLs(URI id) {
         Properties queryParam = new Properties();
         queryParam.setProperty("allDirs", "true");
         NfsACLs response = client.get(NfsACLs.class, getNfsACLsUrl(),
                 queryParam, id);
-        return defaultList(response.getNfsACLs());
+        return defaultList(response.getNfsAces());
     }
 
     /**
@@ -532,7 +531,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the subDir to get list of ACLS associated.
      * @return the list of NFS ACLs for the given file system.
      */
-    public List<NfsACL> getNfsACLs(URI id, String subDir) {
+    public List<NfsACE> getNfsACLs(URI id, String subDir) {
         Properties queryParam = new Properties();
 
         NfsACLs response;
@@ -543,7 +542,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         } else {
             response = client.get(NfsACLs.class, getNfsACLsUrl(), id);
         }
-        return defaultList(response.getNfsACLs());
+        return defaultList(response.getNfsAces());
     }
 
     /**

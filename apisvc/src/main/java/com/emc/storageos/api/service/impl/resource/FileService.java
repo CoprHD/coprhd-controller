@@ -135,6 +135,7 @@ import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.MountInfoList;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
@@ -490,9 +491,9 @@ public class FileService extends TaskResourceService {
     }
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
-        //validate the vpool for protection and throw error if any other field invalid
-    	
-    	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+        // validate the vpool for protection and throw error if any other field invalid
+
+        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
             if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
@@ -2400,9 +2401,9 @@ public class FileService extends TaskResourceService {
         // Get All ACLs of FS from data base and group them based on path!!
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
-
-        if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
-            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId());
+        List<NfsACE> aces = acls.getNfsAces();
+        if (aces != null && !aces.isEmpty()) {
+            _log.info("Found {} Acl rules for filesystem {}", aces.size(), fs.getId());
         } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }
@@ -3841,7 +3842,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3896,7 +3897,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3930,7 +3931,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4260,7 +4261,7 @@ public class FileService extends TaskResourceService {
     }
 
     private boolean isSubDirValid(FileShare fs, String subDir) {
-        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir,_dbClient);
+        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir, _dbClient);
         if (!exportFileRulesTemp.isEmpty()) {
             return true;
         }

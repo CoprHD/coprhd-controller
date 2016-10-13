@@ -31,6 +31,7 @@ public class ApplicationStorageGroupProcessor extends Processor {
     private Logger _logger = LoggerFactory
             .getLogger(ApplicationStorageGroupProcessor.class);
     private DbClient _dbClient;
+    protected List<Object> _args;
 
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -61,6 +62,12 @@ public class ApplicationStorageGroupProcessor extends Processor {
         }
     }
 
+    @Override
+    protected void setPrerequisiteObjects(List<Object> inputArgs)
+            throws BaseCollectionException {
+        _args = inputArgs;
+    }
+
     /**
      * Check if Storage Group exists in DB.
      * 
@@ -68,7 +75,7 @@ public class ApplicationStorageGroupProcessor extends Processor {
      * @return
      * @throws IOException
      */
-    private VolumeGroup checkVolumeGroupExistsInDB(String instanceID)
+    protected VolumeGroup checkVolumeGroupExistsInDB(String instanceID)
             throws IOException {
         VolumeGroup volumeGroup = null;
         @SuppressWarnings("deprecation")

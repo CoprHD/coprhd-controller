@@ -1677,7 +1677,7 @@
     <property name="result" value="" />
     <property name="method" value="associatorNames" />
     <property name="supportedVersion" value="8.x"/>
-    <property name="processor" ref="HYapplicationsgmemberprocessor" />
+    <property name="processor" ref="applicationsgmemberprocessor" />
   </bean>
 
   <bean id="reference-storageGroups" class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -1686,8 +1686,8 @@
     <property name="value" value="storageGroups" />
   </bean>
 
-    <bean id="HYapplicationsgmemberprocessor"
-      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.HYapplicationsSGMemberProcessor">
+    <bean id="applicationsgmemberprocessor"
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ApplicationsSGMemberProcessor">
     </bean>
     
     <!-- SMI-S Call to get associated Mask Views as part of discovery -->
@@ -1730,7 +1730,7 @@
     <property name="result" value="" />
     <property name="method" value="associatorNames" />
     <property name="supportedVersion" value="8.x"/>
-    <property name="processor" ref="HYapplicationcomponentsprocessor" />
+    <property name="processor" ref="applicationcomponentsprocessor" />
   </bean>
 
   <bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -1739,8 +1739,8 @@
     <property name="value" value="maskingViews" />
   </bean>
 
-    <bean id="HYapplicationcomponentsprocessor"
-      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.HYapplicationComponentProcessor">
+    <bean id="applicationcomponentsprocessor"
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ApplicationComponentsProcessor">
     </bean>
 
      <!-- get Tier Policy Service -->	

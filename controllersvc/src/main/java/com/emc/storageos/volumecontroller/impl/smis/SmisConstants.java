@@ -209,6 +209,9 @@ public interface SmisConstants {
     static final String SYMM_STORAGEPOOL_CAPABILITIES = "Symm_StoragePoolCapabilities";
     static final String SYMM_VIRTUAL_PROVISIONING_POOL = "Symm_VirtualProvisioningPool";
     static final String SE_DEVICE_MASKING_GROUP = "SE_DeviceMaskingGroup";
+    static final String SE_TARGET_MASKING_GROUP = "SE_TargetMaskingGroup";
+    static final String SE_STORAGE_HARDWARE_ID = "SE_StorageHardwareID";
+    static final String SYMM_STORAGEVOLUME = "Symm_StorageVolume";
     static final String DELETE_STORAGE_HARDWARE_ID = "DeleteStorageHardwareID";
     static final String ELEMENT_COMPOSITION_SERVICE = "_ElementCompositionService";
     static final String EMC_ELEMENT_COMPOSITION_SERVICE = "EMCElementCompositionService";

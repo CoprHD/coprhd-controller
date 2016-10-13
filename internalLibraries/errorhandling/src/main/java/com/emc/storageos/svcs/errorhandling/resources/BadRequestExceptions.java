@@ -1067,6 +1067,9 @@ public interface BadRequestExceptions {
     public BadRequestException parameterValueIsNotValid(final String parameterName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName,final String validCharacters);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterValueCannotBeUpdated(final String parameterName,
             final String reason);
 

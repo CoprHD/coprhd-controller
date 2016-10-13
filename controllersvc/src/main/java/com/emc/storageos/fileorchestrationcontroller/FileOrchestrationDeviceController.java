@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1477,22 +1478,33 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
 
-            List<NfsACE> sourceFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
-            List<NfsACE> targetFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
+            Map<String, List<NfsACE>> sourceFSACLMap = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
+            Map<String, List<NfsACE>> targetFSACLMap = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
 
-            if (!sourceFSACL.isEmpty() && targetFSACL.isEmpty()) {
+            if (!sourceFSACLMap.isEmpty() && targetFSACLMap.isEmpty()) {
                 // target share doesn't have any ACLs but corresponding share on source does have ACL
-                params = new FileNfsACLUpdateParams();
-                params.setAcesToAdd(sourceFSACL);
-                updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
-
-            } else if (!targetFSACL.isEmpty() && sourceFSACL.isEmpty()) {
+                for (String fsPath : sourceFSACLMap.keySet()) {
+                    List<NfsACE> aclToAdd = null;
+                    String subDir = null;
+                    params = new FileNfsACLUpdateParams();
+                    if (!fsPath.equals(sourceFileShare.getPath())) {
+                        subDir = fsPath.split(sourceFileShare.getPath())[1];
+                    }
+                    if (subDir != null) {
+                        // Sub directory NFS ACL
+                        params.setSubDir(subDir.substring(1));
+                    }
+                    aclToAdd = sourceFSACLMap.get(fsPath);
+                    params.setAcesToAdd(aclToAdd);
+                    updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                }
+            } else if (!targetFSACLMap.isEmpty() && sourceFSACLMap.isEmpty()) {
                 // source share doesn't have any ACLs but corresponding share on target has ACL
                 params = new FileNfsACLUpdateParams();
                 params.setAcesToDelete(targetFSACL);
                 updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
 
-            } else if (!targetFSACL.isEmpty() && !sourceFSACL.isEmpty()) {
+            } else if (!sourceFSACLMap.isEmpty() && !sourceFSACLMap.isEmpty()) {
                 // both source and target share have some ACL
                 List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
                 List<NfsACE> aclToDelete = new ArrayList<NfsACE>();

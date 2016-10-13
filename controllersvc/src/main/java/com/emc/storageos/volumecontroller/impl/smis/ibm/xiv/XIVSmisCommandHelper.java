@@ -272,8 +272,6 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         } else if (returnCode != CIM_SUCCESS_CODE && methodName.equals(CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL)
                 && checkIfVolumeSizeExceedingPoolSize(inArgs, outArgs)) {
             throw DeviceControllerException.exceptions.volumeSizeExceedingPoolSize(getVolumeName(inArgs));
-        } else if(methodName.equals(MODIFY_REPLICA_SYNCHRONIZATION)){
-            return;
         } else if (returnCode != CIM_SUCCESS_CODE) {
             throw new Exception("Failed with return code: " + obj);
         }
@@ -1183,17 +1181,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             CIMArgument[] inArgs, CIMArgument[] outArgs) throws Exception {
         CIMObjectPath replicationSvcPath = _cimPath
                 .getReplicationSvcPath(storage);
-        SmisBlockResumeSnapshotJob job = new SmisBlockResumeSnapshotJob(null, storage.getId(),
-                new TaskCompleter() {
-                    @Override
-                    protected void
-                            complete(DbClient dbClient,
-                                    Operation.Status status,
-                                    ServiceCoded coded) throws DeviceControllerException {
-
-                    }
-                });
-        invokeMethodSynchronously(storage, replicationSvcPath, methodName, inArgs, outArgs, job);
+        invokeMethod(storage, replicationSvcPath, methodName, inArgs, outArgs);
     }
 
     /**
@@ -1210,8 +1198,21 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     @SuppressWarnings("rawtypes")
     public void callModifyReplica(StorageSystem storage, CIMArgument[] inArgs)
             throws Exception {
-        callReplicationSvc(storage, MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
-                new CIMArgument[5]);
+//        callReplicationSvc(storage, MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
+//                new CIMArgument[5]);
+        CIMObjectPath replicationSvcPath = _cimPath
+                .getReplicationSvcPath(storage);
+        SmisBlockResumeSnapshotJob job = new SmisBlockResumeSnapshotJob(null, storage.getId(),
+                new TaskCompleter() {
+                    @Override
+                    protected void
+                            complete(DbClient dbClient,
+                                    Operation.Status status,
+                                    ServiceCoded coded) throws DeviceControllerException {
+
+                    }
+                });
+        invokeMethodSynchronously(storage, replicationSvcPath, MODIFY_REPLICA_SYNCHRONIZATION, inArgs, new CIMArgument[5], job);
     }
     
     //******************************************************************************

@@ -18,10 +18,10 @@ package com.emc.sa.service.vipr.oe;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.oe.gson.OEJson;
-import com.emc.sa.service.vipr.oe.gson.OEJson.Input;
-import com.emc.sa.service.vipr.oe.gson.OEJson.Step;
-import com.emc.sa.service.vipr.oe.gson.OEJson.StepAttribute;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Input;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Step;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.StepAttribute;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.OperationType;
 import com.emc.sa.service.vipr.ViPRService;
@@ -49,7 +49,7 @@ public class OrchestrationService extends ViPRService
     Map<String, Object> params;
     final HashMap<String, Map<String, String>> inputPerStep = new HashMap<String, Map<String, String>>();
     final HashMap<String, Map<String, String>> outputPerStep = new HashMap<String, Map<String, String>>();
-    final HashMap<String, OEJson.Step> stepsHash = new HashMap<String, OEJson.Step>();
+    final HashMap<String, WorkflowDefinition.Step> stepsHash = new HashMap<String, WorkflowDefinition.Step>();
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
@@ -93,7 +93,7 @@ public class OrchestrationService extends ViPRService
         //TODO get json from DB
         final Gson gson = new Gson();
         final JsonReader reader = new JsonReader(new FileReader("/data/OEJsosn.json"));
-        final OEJson obj = gson.fromJson(reader, OEJson.class);
+        final WorkflowDefinition obj = gson.fromJson(reader, WorkflowDefinition.class);
 
         ExecutionUtils.currentContext().logInfo("Orchestration Engine Running " +
                 "Workflow: " + obj.getWorkflowName() + "\t Description:" + obj.getDescription());
@@ -247,7 +247,7 @@ public class OrchestrationService extends ViPRService
         //TODO Parse the result
         //TODO Evaluate condition and return next step
         logger.info("SuccessCritera: {}", step.getSuccessCritera());
-        OEJson.Next n = step.getNext();
+        WorkflowDefinition.NextStep n = step.getNext();
         return n.getDefault();
     }
 

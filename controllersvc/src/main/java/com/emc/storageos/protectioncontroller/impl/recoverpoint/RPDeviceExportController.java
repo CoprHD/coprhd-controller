@@ -121,7 +121,7 @@ public class RPDeviceExportController implements ProtectionExportController {
                         .format(
                                 "Generating exportGroupAddVolumes step for objects %s associated with protection system [%s] and storage system [%s]",
                                 objectsToAddWithProtection.keySet(), protectionSystemUri, storageUri));
-                waitFor = wfUtils.generateExportGroupAddVolumes(workflow, null, waitFor, protectionSystemUri, export,
+                waitFor = wfUtils.generateExportGroupAddVolumes(workflow, wfGroupId, waitFor, protectionSystemUri, export,
                         objectsToAddWithProtection);
 
                 // Reconcile the primary list of objects to export by removing all BlockSnapshots associated with the current

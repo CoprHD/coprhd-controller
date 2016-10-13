@@ -272,6 +272,8 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         } else if (returnCode != CIM_SUCCESS_CODE && methodName.equals(CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL)
                 && checkIfVolumeSizeExceedingPoolSize(inArgs, outArgs)) {
             throw DeviceControllerException.exceptions.volumeSizeExceedingPoolSize(getVolumeName(inArgs));
+        } else if(methodName.equals(MODIFY_REPLICA_SYNCHRONIZATION)){
+            return;
         } else if (returnCode != CIM_SUCCESS_CODE) {
             throw new Exception("Failed with return code: " + obj);
         }

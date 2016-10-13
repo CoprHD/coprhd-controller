@@ -2210,8 +2210,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // lock around create and delete operations on the same CG
             List<String> lockKeys = new ArrayList<String>();
-            Volume tempVol = _dbClient.queryObject(Volume.class, volumeIDs.iterator().next());
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, tempVol.getConsistencyGroup(), system.getId()));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cg.getId(), system.getId()));
             boolean lockAcquired = _workflowService.acquireWorkflowLocks(_workflowService.getWorkflowFromStepId(token), lockKeys, LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 lockException = true;
@@ -3474,45 +3473,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Lock the entire CG based on this volume.
-     *
-     * @param volumeId
-     *            volume whose CG we wish to lock
-     * @return true if the lock succeeded, false otherwise
-     */
-    private void lockCG(TaskLockingCompleter completer) throws DeviceControllerException {
-        if (!completer.lockCG(_dbClient, _locker)) {
-            // Gather information necessary to give a good error message...
-            Volume volume = null;
-            if (URIUtil.isType(completer.getId(), BlockConsistencyGroup.class)) {
-                List<Volume> volumes = RPHelper.getAllCgVolumes(completer.getId(), _dbClient);
-                if (volumes != null && !volumes.isEmpty()) {
-                    volume = volumes.get(0);
-                }
-            } else if (URIUtil.isType(completer.getId(), Volume.class)) {
-                volume = _dbClient.queryObject(Volume.class, completer.getId());
-            }
-
-            if (volume != null) {
-                if (volume.getProtectionController() != null && volume.getProtectionSet() != null) {
-                    ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
-                    if (volume.getProtectionSet() != null) {
-                        ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                        if (rpSystem != null && protectionSet != null && rpSystem.getInstallationId() != null
-                                && protectionSet.getLabel() != null) {
-                            throw DeviceControllerExceptions.recoverpoint.anotherOperationInProgress(rpSystem.getLabel(),
-                                    protectionSet.getLabel());
-                        }
-                    } else {
-                        throw DeviceControllerExceptions.recoverpoint.anotherOperationInProgress(rpSystem.getLabel(), "No protection set");
-                    }
-                }
-            }
-            throw DeviceControllerExceptions.recoverpoint.notAllObjectsCouldBeRetrieved(completer.getId());
-        }
-    }
-
-    /**
      * RP specific workflow steps required prior to expanding the underlying volume are added here.
      * Ex. RP CG remove replication sets.
      *
@@ -4262,7 +4222,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
-    public boolean performProtectionOperationStep(URI protectionSystem, URI cg, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
+    public boolean performProtectionOperationStep(URI protectionSystem, URI cgId, URI volId, URI copyID, String pointInTime, String imageAccessMode, String op,
             String stepId) throws ControllerException {
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
@@ -4272,17 +4232,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Take out a workflow step lock on the CG
             _workflowService.getWorkflowFromStepId(stepId);
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cg, rpSystem.getId()));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cgId, rpSystem.getId()));
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        String.format("failed to get lock while restoring volumes in RP consistency group: %s", cg.toString()));
+                        String.format("failed to get lock while restoring volumes in RP consistency group: %s", cgId.toString()));
             }
 
             // set the protection volume to the source volume if the copyID is null (operation is performed on all
             // copies)
             // otherwise set it to the volume referenced by the copyID (operation is performed on specifc copy)
-            Volume protectionVolume = (copyID == null) ? _dbClient.queryObject(Volume.class, id)
+            Volume protectionVolume = (copyID == null) ? _dbClient.queryObject(Volume.class, volId)
                     : _dbClient.queryObject(Volume.class, copyID);
 
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
@@ -4329,7 +4289,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // If protectionVolume is a source, then the "source" sent in must be a target. Verify.
                     Volume targetVolume = null;
                     if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
-                        targetVolume = _dbClient.queryObject(Volume.class, id);
+                        targetVolume = _dbClient.queryObject(Volume.class, volId);
                     } else {
                         targetVolume = protectionVolume;
                     }
@@ -4951,7 +4911,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // tries to enable image
                 // access
                 List<String> locks = new ArrayList<String>();
-                String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, aSrcVolume.getConsistencyGroup(), protectionSystem.getId());
                 if (null != lockName) {
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
@@ -5352,6 +5312,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             if (volume != null && storageSystem != null) {
                 boolean vplexDistBackingVolume = false;
+                URI cgId = volume.getConsistencyGroup();
                 Volume associatedVPlexVolume = Volume.fetchVplexVolume(_dbClient, volume);
                 if (associatedVPlexVolume != null && associatedVPlexVolume.getAssociatedVolumes() != null
                         && associatedVPlexVolume.getAssociatedVolumes().size() == 2) {
@@ -5390,7 +5351,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     // Lock CG
                     List<String> locks = new ArrayList<String>();
-                    String lockName = generateRPLockCG(_dbClient, volumeURIs.get(0));
+                    String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cgId, rpSystem.getId());
                     if (null != lockName) {
                         locks.add(lockName);
                         acquireWorkflowLockOrThrow(workflow, locks);
@@ -5654,6 +5615,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             completer = new BlockSnapshotActivateCompleter(snapshotList, opId);
 
+            ProtectionSystem system = null;
+            try {
+                system = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
+            } catch (DatabaseException e) {
+                throw DeviceControllerExceptions.recoverpoint.databaseExceptionActivateSnapshot(protectionDevice);
+            }
+
+            // Verify non-null storage device returned from the database client.
+            if (system == null) {
+                throw DeviceControllerExceptions.recoverpoint.databaseExceptionActivateSnapshot(protectionDevice);
+            }
+
             // acquire a workflow lock so another thread doesn't disable image access while this thread
             // is still creating the snapshot
             if (snapshotList != null && !snapshotList.isEmpty()) {
@@ -5665,24 +5638,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
                     parent = vplexVolumes.get(0);
                 }
-                String lockName = generateRPLockCG(_dbClient, parent.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, parent.getConsistencyGroup(), system.getId());
                 if (null != lockName) {
                     List<String> locks = new ArrayList<String>();
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(_workflowService.getWorkflowFromStepId(opId), locks);
                 }
-            }
-
-            ProtectionSystem system = null;
-            try {
-                system = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
-            } catch (DatabaseException e) {
-                throw DeviceControllerExceptions.recoverpoint.databaseExceptionActivateSnapshot(protectionDevice);
-            }
-
-            // Verify non-null storage device returned from the database client.
-            if (system == null) {
-                throw DeviceControllerExceptions.recoverpoint.databaseExceptionActivateSnapshot(protectionDevice);
             }
 
             Set<String> volumeWWNs = new HashSet<String>();
@@ -6462,67 +6423,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Update the backing volume virtual pool reference, needed for change vpool
-     * operations for RP+VPLEX and MetroPoint.
-     *
-     * @param volumeDescriptors
-     *            The Volume descriptors, needed to see if there are any
-     *            migrations present.
-     * @param volume
-     *            The source volume
-     * @param srcVpoolURI
-     *            The new vpool
-     */
-    private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
-        // Check to see if this is a VPLEX virtual volume
-        if (RPHelper.isVPlexVolume(volume, _dbClient)
-                && (null != volume.getAssociatedVolumes())
-                && (!volume.getAssociatedVolumes().isEmpty())) {
-            _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", volume.getLabel(),
-                    volume.getId()));
-            VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
-            String srcVpoolName = srcVpool.getLabel();
-            URI haVpoolURI = null;
-            String haVpoolName = null;
-
-            // We only have to get the HA vpool URI if there are more than 1 associated backing volumes.
-            if (volume.getAssociatedVolumes().size() > 1) {
-                // Find the HA vpool from the source vpool
-                VirtualPool haVpool = VirtualPool.getHAVPool(srcVpool, _dbClient);
-
-                // If the HA vpool is null, it means the src vpool is the HA vpool
-                haVpool = (haVpool == null) ? srcVpool : haVpool;
-
-                haVpoolURI = haVpool.getId();
-                haVpoolName = haVpool.getLabel();
-            }
-
-            // Check each backing volume, if the varray is the same as the virtual volume passed in
-            // then the backing volume would have the same
-            for (String associatedVolId : volume.getAssociatedVolumes()) {
-                Volume associatedVol = _dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-
-                URI vpoolURI = srcVpoolURI;
-                String vpoolName = srcVpoolName;
-
-                // If the backing volume does not have the same varray as the source virtual
-                // volume, then we must be looking at the HA backing volume.
-                if (!associatedVol.getVirtualArray().equals(volume.getVirtualArray())) {
-                    vpoolURI = haVpoolURI;
-                    vpoolName = haVpoolName;
-                }
-
-                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());
-                _log.info(String.format("Update backing volume [%s] (%s) virtual pool from [%s] (%s) to [%s] (%s).",
-                        associatedVol.getLabel(), associatedVol.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
-                associatedVol.setVirtualPool(vpoolURI);
-                // Update the backing volume
-                _dbClient.updateObject(associatedVol);
-            }
-        }
-    }
-
-    /**
      * Adds steps for modifying a RP CG.
      *
      * @param workflow
@@ -7011,7 +6911,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // tries to enable image
                 // access
                 List<String> locks = new ArrayList<String>();
-                String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, aSrcVolume.getConsistencyGroup(), protectionSystem.getId());
                 if (null != lockName) {
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
@@ -7120,7 +7020,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
                 // Lock CG
                 List<String> locks = new ArrayList<String>();
-                String lockName = generateRPLockCG(_dbClient, volumeURIs.get(0));
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, sourceVolumes.get(0).getConsistencyGroup(), rpSystem.getId());
                 if (null != lockName) {
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
@@ -7257,45 +7157,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private void acquireWorkflowLockOrThrow(Workflow workflow, List<String> locks) throws LockRetryException {
         _log.info("Attempting to acquire workflow lock {}", Joiner.on(',').join(locks));
         _workflowService.acquireWorkflowLocks(workflow, locks, LockTimeoutValue.get(LockType.RP_CG));
-    }
-
-    /**
-     * Lock the entire CG based on this volume.
-     *
-     * @param dbClient
-     *            db client
-     * @param locker
-     *            locker service
-     * @return true if lock was acquired
-     */
-    public String generateRPLockCG(DbClient dbClient, URI volumeId) {
-        // Figure out the lock ID (rpSystemInstallationID:CGName)
-
-        String lockName = null;
-
-        // If this is a snapshot object completer, get the volume id from the snapshot.
-        if (URIUtil.isType(volumeId, BlockSnapshot.class)) {
-            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, volumeId);
-            volumeId = snapshot.getParent().getURI();
-        }
-
-        // Figure out the lock ID (rpSystemInstallationID:CGName)
-        Volume volume = dbClient.queryObject(Volume.class, volumeId);
-
-        if (volume != null) {
-            if (volume.getProtectionController() != null && volume.getProtectionSet() != null) {
-                ProtectionSystem rpSystem = dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
-                ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                if (rpSystem != null && protectionSet != null && rpSystem.getInstallationId() != null && protectionSet.getLabel() != null) {
-                    // Unlock the CG based on this volume
-                    lockName = rpSystem.getInstallationId() + "-" + protectionSet.getLabel();
-                    return lockName;
-                }
-            } else if (volume.getProtectionSet() == null) {
-                _log.info(String.format("The volume %s does not have protectionSet", volume.getLabel()));
-            }
-        }
-        return lockName;
     }
 
     /*

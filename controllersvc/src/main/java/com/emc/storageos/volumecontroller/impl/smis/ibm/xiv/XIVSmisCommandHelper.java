@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -50,7 +51,9 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
@@ -62,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisSynchSubTaskJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 
 /**
@@ -268,6 +272,8 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         } else if (returnCode != CIM_SUCCESS_CODE && methodName.equals(CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL)
                 && checkIfVolumeSizeExceedingPoolSize(inArgs, outArgs)) {
             throw DeviceControllerException.exceptions.volumeSizeExceedingPoolSize(getVolumeName(inArgs));
+        } else if(methodName.equals(MODIFY_REPLICA_SYNCHRONIZATION)){
+            return;
         } else if (returnCode != CIM_SUCCESS_CODE) {
             throw new Exception("Failed with return code: " + obj);
         }
@@ -1177,7 +1183,17 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             CIMArgument[] inArgs, CIMArgument[] outArgs) throws Exception {
         CIMObjectPath replicationSvcPath = _cimPath
                 .getReplicationSvcPath(storage);
-        invokeMethod(storage, replicationSvcPath, methodName, inArgs, outArgs);
+        SmisBlockResumeSnapshotJob job = new SmisBlockResumeSnapshotJob(null, storage.getId(),
+                new TaskCompleter() {
+                    @Override
+                    protected void
+                            complete(DbClient dbClient,
+                                    Operation.Status status,
+                                    ServiceCoded coded) throws DeviceControllerException {
+
+                    }
+                });
+        invokeMethodSynchronously(storage, replicationSvcPath, methodName, inArgs, outArgs, job);
     }
 
     /**
@@ -1196,6 +1212,86 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             throws Exception {
         callReplicationSvc(storage, MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
                 new CIMArgument[5]);
+    }
+    
+    //******************************************************************************
+    //*****************Sync Method *************************************************
+    public void invokeMethodSynchronously(StorageSystem storageDevice,
+            CIMObjectPath objectPath, String methodName, CIMArgument[] inArgs,
+            CIMArgument[] outArgs, SmisJob job) throws Exception {
+        invokeMethod(storageDevice, objectPath, methodName, inArgs, outArgs);
+        CIMObjectPath cimJobPath = _cimPath
+                .getCimObjectPathFromOutputArgs(outArgs, "Job");
+        // if this is an async call, wait for the job to complete
+        if (cimJobPath != null) {
+            try {
+                waitForAsyncSmisJob(storageDevice, cimJobPath, job);
+            } catch (Exception ex) {
+                _log.error(
+                        "Exception occurred while waiting on async job {} to complete",
+                        cimJobPath);
+                if (ex instanceof SmisException) {
+                    throw (SmisException) ex;
+                } else {
+                    throw new SmisException(
+                            "Exception occurred while waiting on async "
+                                    + "job to complete.",
+                            ex);
+                }
+            }
+        } else {
+            throw new SmisException(MessageFormat.format(
+                    "No job was created for method {0}, object {1}, on storage device {2}",
+                    methodName, objectPath.getObjectName(),
+                    storageDevice.getLabel()));
+        }
+    }
+
+    private void waitForAsyncSmisJob(StorageSystem storageDevice,
+            CIMObjectPath cimJobPath, SmisJob job) throws SmisException {
+        if (job == null) {
+            TaskCompleter taskCompleter = new TaskCompleter() {
+                @Override
+                public void ready(DbClient dbClient) throws DeviceControllerException {
+                }
+
+                @Override
+                public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
+                }
+
+                @Override
+                protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
+                }
+            };
+            job = new SmisJob(cimJobPath, storageDevice.getId(), taskCompleter, "");
+        } else {
+            job.setCimJob(cimJobPath);
+        }
+        JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, null, this);
+        long startTime = System.currentTimeMillis();
+        while (true) {
+            JobPollResult result = job.poll(jobContext, SYNC_WRAPPER_WAIT);
+            if (!result.isJobInTerminalState()) {
+                if (System.currentTimeMillis() - startTime > SYNC_WRAPPER_TIME_OUT) {
+                    throw new SmisException(
+                            "Timed out waiting on smis job to complete after " +
+                                    (System.currentTimeMillis() - startTime) + " milliseconds");
+                } else {
+                    try {
+                        Thread.sleep(SYNC_WRAPPER_WAIT);
+                    } catch (InterruptedException e) {
+                        _log.error("Thread waiting for smis job to complete was interrupted and "
+                                + "will be resumed");
+                    }
+                }
+            } else {
+                if (result.isJobInTerminalFailedState()) {
+                    throw new SmisException(
+                            "Smis job failed: " + result.getErrorDescription());
+                }
+                break;
+            }
+        }
     }
 
     /**

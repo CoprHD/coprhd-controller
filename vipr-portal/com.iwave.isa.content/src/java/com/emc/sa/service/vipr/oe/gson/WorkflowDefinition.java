@@ -113,7 +113,7 @@ public class WorkflowDefinition {
  	public StepAttribute()
         {
             waitForTask = true;
-            timeout = OrchestrationServiceConstants.TIMEOUT;
+            timeout = OrchestrationServiceConstants.DEFAULT_STEP_TIMEOUT;
         }
 
         @SerializedName("WaitForTask")

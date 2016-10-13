@@ -788,7 +788,6 @@ public class VPlexControllerUtils {
             }
             networkDeviceController.refreshZoningMap(exportMask, initiatorsToRemove, Collections.emptyList(),
                     (addInitiators || removeInitiators), true);
-            log.info("ExportMask now after zone refresh:\n" + exportMask.toString());
         } catch (Exception ex) {
             log.error("Failed to refresh VPLEX Storage View: " + ex.getLocalizedMessage(), ex);
             String storageViewName = exportMask != null ? exportMask.getMaskName() : "unknown";

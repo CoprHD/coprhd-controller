@@ -3662,7 +3662,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String previousStep = null;
 
             for (ExportMask exportMask : exportMasks) {
-                _log.info("ExportMask before refresh:\n" + exportMask.toString());
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -3699,7 +3698,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 _log.info(String.format("exportGroupRemove: mask %s volumes to process: %s", exportMask.getMaskName(),
                         volumeURIList.toString()));
-                _log.info("ExportMask now before fetching again from DB:\n" + exportMask.toString());
                 // Fetch exportMask again as exportMask zoning Map might have changed in zoneExportRemoveVolumes
                 exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
 
@@ -3746,8 +3744,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
                             previousStep = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
                                     String.format("Updating VPLEX Storage View to remove StoragePorts for ExportGroup %s Mask %s",
-                                            exportURI,
-                                            exportMask.getMaskName()),
+                                            exportURI, exportMask.getMaskName()),
                                     previousStep, vplex.getId(), vplex.getSystemType(),
                                     this.getClass(), removePortsFromViewMethod, rollbackMethod, null);
                         }

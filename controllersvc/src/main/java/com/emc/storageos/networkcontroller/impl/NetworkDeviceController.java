@@ -2392,7 +2392,6 @@ public class NetworkDeviceController implements NetworkController {
             if (persist) {
                 _dbClient.updateAndReindexObject(exportMask);
             }
-            _log.info("ExportMask now after zone refresh:\n" + exportMask.toString());
             _log.info("Changed zones for export mask {} to {}. \nRefreshin zones took {} ms",
                     new Object[] { exportMask.getMaskName(), exportMask.getZoningMap(),
                             (System.currentTimeMillis() - start) });

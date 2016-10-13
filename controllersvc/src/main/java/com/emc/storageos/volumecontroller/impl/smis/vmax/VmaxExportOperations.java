@@ -1794,56 +1794,56 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (!maskNames.contains(name)) {
                         // https://coprhd.atlassian.net/browse/COP-20149
                         // Find all the initiators associated with the MaskingView and add them
-                        List<String> portNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
-                        Set<Initiator> allInitiators = ExportUtils.getInitiators(portNames, _dbClient);
+                        List<String> initiatorPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
 
-                        for (String portName : portNames) {
-                            String portNetworkId = Initiator.toPortNetworkId(portName);
-                            URIQueryResultList initList = new URIQueryResultList();
-                            _dbClient.queryByConstraint(
-                                    AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(portNetworkId),
-                                    initList);
-                            Iterator<URI> inits = initList.iterator();
-                            while (inits.hasNext()) {
-                                URI init = inits.next();
-                                Initiator obj = _dbClient.queryObject(Initiator.class, init);
-                                exportMask.addInitiator(obj);
-                                if (obj != null) {
-                                    _log.info("Added managed initiator:{} to mask:{}", obj.getInitiatorPort(),
-                                            exportMask.getId());
-                                }
-                            }
-                        }
                         if (!CollectionUtils.isEmpty(exportMask.getExistingInitiators())) {
                             exportMask.getExistingInitiators().clear();
                         }
-                        exportMask.addToExistingInitiatorsIfAbsent(portNames);
-                        exportMask.addInitiators(allInitiators);
+                        exportMask.addToExistingInitiatorsIfAbsent(initiatorPorts);
+
+                        // Update the initiator list to include existing initiators if we know about them (and remove from existing)
+                        for (String portName : initiatorPorts) {
+                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(portName), _dbClient);
+                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, existingInitiator)) {
+                                exportMask.addInitiator(existingInitiator);
+                                exportMask.addToUserCreatedInitiators(existingInitiator);
+                                exportMask.removeFromExistingInitiators(existingInitiator);
+                            }
+                        }
 
                         // Update the tracking containers
                         Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
-
-                        for (Entry<String, Integer> entry : volumeWWNs.entrySet()) {
-                            String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                            URIQueryResultList volumeList = new URIQueryResultList();
-                            _dbClient.queryByConstraint(
-                                    AlternateIdConstraint.Factory.getVolumeWwnConstraint(normalizedWWN), volumeList);
-                            Iterator<URI> volumes = volumeList.iterator();
-                            while (volumes.hasNext()) {
-                                URI volume = volumes.next();
-                                Volume obj = _dbClient.queryObject(Volume.class, volume);
-                                if (exportMask.getUserAddedVolumes() == null
-                                        || !exportMask.getUserAddedVolumes().containsKey(normalizedWWN)) {
-                                    exportMask.addToUserCreatedVolumes(obj);
-                                    exportMask.addVolume(volume, entry.getValue());
-                                    _log.info("Adding managed wwn:{} to mask:{}", obj.getWWN(), exportMask.getId());
-                                }
-                            }
-                        }
                         if (!CollectionUtils.isEmpty(exportMask.getExistingVolumes())) {
                             exportMask.getExistingVolumes().clear();
                         }
                         exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
+
+                        // Update the volumes list to include existing volumes if we know about them (and remove from existing)
+                        if (volumeWWNs != null) {
+                            for (Entry<String, Integer> entry : volumeWWNs.entrySet()) {
+                                String wwn = entry.getKey();
+                                URIQueryResultList results = new URIQueryResultList();
+                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                        .getVolumeWwnConstraint(wwn.toUpperCase()), results);
+                                if (results != null) {
+                                    Iterator<URI> resultsIter = results.iterator();
+                                    if (resultsIter.hasNext()) {
+                                        Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
+                                        if (volume != null) {
+                                            Integer hlu = volumeWWNs.get(wwn);
+                                            if (hlu == null) {
+                                                _log.warn(String.format(
+                                                        "The HLU for %s could not be found from the provider. Setting this to -1 (Unknown).",
+                                                        wwn));
+                                                hlu = -1;
+                                            }
+                                            exportMask.addVolume(volume.getId(), hlu);
+                                            exportMask.removeFromExistingVolumes(volume);
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         // Grab the storage ports that have been allocated for this
                         // existing mask and add them.
@@ -2031,7 +2031,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Check the initiators and update the lists as necessary
                 boolean addInitiators = false;
                 List<String> initiatorsToAdd = new ArrayList<String>();
-                List<Initiator> initiatorIdsToAdd = new ArrayList<>();
+                List<Initiator> initiatorObjectsForComputeResource = new ArrayList<>();
                 for (String port : discoveredPorts) {
                     String normalizedPort = Initiator.normalizePort(port);
                     if (!mask.hasExistingInitiator(normalizedPort) &&
@@ -2040,7 +2040,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         // Don't add additional initiator to initiators list if it belongs to different host/cluster
                         if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
-                            initiatorIdsToAdd.add(existingInitiator);
+                            initiatorObjectsForComputeResource.add(existingInitiator);
                         }
                         addInitiators = true;
                     }
@@ -2075,6 +2075,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();
+
+                // if the volume is in export mask's user added volumes and also in the existing volumes, remove from existing volumes
+                for (String wwn : discoveredVolumes.keySet()) {
+                    if (mask.hasExistingVolume(wwn)) {
+                        URIQueryResultList volumeList = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                        if (volumeList.iterator().hasNext()) {
+                            URI volumeURI = volumeList.iterator().next();
+                            if (mask.hasUserCreatedVolume(volumeURI)) {
+                                builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                                        + "export mask's user added volumes, so removing from existing volumes", wwn));
+                                volumesToRemove.add(wwn);
+                            }
+                        }
+                    }
+                }
+
                 if (mask.getExistingVolumes() != null &&
                         !mask.getExistingVolumes().isEmpty()) {
                     volumesToRemove.addAll(mask.getExistingVolumes().keySet());
@@ -2142,11 +2159,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // ExportMask.
                     // We shouldn't read the initiators that we find as 'existing' (that is created outside of CoprHD),
                     // instead we should consider them userAdded for this ExportMask, as well.
-                    List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd,
+                    List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorObjectsForComputeResource,
                             _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
-                    mask.addInitiators(initiatorIdsToAdd);
+                    mask.addInitiators(initiatorObjectsForComputeResource);
+                    mask.addToUserCreatedInitiators(initiatorObjectsForComputeResource);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);

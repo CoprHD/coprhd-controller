@@ -16,9 +16,7 @@
  */
 package com.emc.storageos.driver.dellsc.helpers;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,18 +93,11 @@ public class DellSCConsistencyGroups {
 
         StringBuilder errBuffer = new StringBuilder();
         int addCount = 0;
-        Map<String, List<ScReplayProfile>> consistencyGroups = new HashMap<>();
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
             try {
                 StorageCenterAPI api = connectionManager.getConnection(ssn);
-                String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
-                if (cgID == null) {
-                    throw new DellSCDriverException(
-                            String.format("Unable to locate CG %s", volume.getConsistencyGroup()));
-                }
-
-                api.addVolumeToConsistencyGroup(volume.getNativeId(), cgID);
+                api.addVolumeToConsistencyGroup(volume.getNativeId(), volume.getConsistencyGroup());
                 addCount++;
             } catch (StorageCenterAPIException | DellSCDriverException dex) {
                 String error = String.format(
@@ -141,18 +132,11 @@ public class DellSCConsistencyGroups {
 
         StringBuilder errBuffer = new StringBuilder();
         int removeCount = 0;
-        Map<String, List<ScReplayProfile>> consistencyGroups = new HashMap<>();
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
             try {
                 StorageCenterAPI api = connectionManager.getConnection(ssn);
-                String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
-                if (cgID == null) {
-                    // Easy to remove from nothing
-                    continue;
-                }
-
-                api.removeVolumeFromConsistencyGroup(volume.getNativeId(), cgID);
+                api.removeVolumeFromConsistencyGroup(volume.getNativeId(), volume.getConsistencyGroup());
                 removeCount++;
             } catch (StorageCenterAPIException | DellSCDriverException dex) {
                 String error = String.format(
@@ -185,7 +169,15 @@ public class DellSCConsistencyGroups {
         DellSCDriverTask task = new DellSCDriverTask("deleteVolume");
         try {
             StorageCenterAPI api = connectionManager.getConnection(volumeConsistencyGroup.getStorageSystemId());
-            api.deleteConsistencyGroup(volumeConsistencyGroup.getNativeId());
+            ScReplayProfile[] cgs = api.getConsistencyGroups(volumeConsistencyGroup.getStorageSystemId());
+            for (ScReplayProfile cg : cgs) {
+                if (cg.instanceId.equals(volumeConsistencyGroup.getNativeId())) {
+                    api.deleteConsistencyGroup(cg.instanceId);
+                    break;
+                }
+            }
+
+            // We either deleted the CG or it was not found, either way we are fine
             task.setStatus(TaskStatus.READY);
         } catch (StorageCenterAPIException | DellSCDriverException dex) {
             String error = String.format("Error deleting CG %s: %s", volumeConsistencyGroup.getDisplayName(), dex);

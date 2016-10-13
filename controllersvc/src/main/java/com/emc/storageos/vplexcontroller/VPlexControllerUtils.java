@@ -608,6 +608,7 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
+
                     // If the initiator is in our DB, and it's in our compute resource, it gets added to to the initiator list.
                     // Otherwise it gets added to the existing list.
                     if (knownInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, knownInitiator)) {

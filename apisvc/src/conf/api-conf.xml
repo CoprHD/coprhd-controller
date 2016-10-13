@@ -240,6 +240,8 @@
     </bean>
 
     <bean id="dockerService" class="com.emc.storageos.api.service.impl.resource.docker.DockerVolumeService">
+    <property name="dbClient" ref="dbclient"/>
+    <property name="placementManager" ref="placementManager"/>
     </bean>
     
     <bean id="tenantsService" class="com.emc.storageos.api.service.impl.resource.TenantsService">

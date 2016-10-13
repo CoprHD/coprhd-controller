@@ -1222,7 +1222,9 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     public void invokeMethodSynchronously(StorageSystem storageDevice,
             CIMObjectPath objectPath, String methodName, CIMArgument[] inArgs,
             CIMArgument[] outArgs, SmisJob job) throws Exception {
+        _log.info("************Invoking invoke Method *****************");
         invokeMethod(storageDevice, objectPath, methodName, inArgs, outArgs);
+        _log.info("************Invoking invoke Method completed*****************");
         CIMObjectPath cimJobPath = _cimPath
                 .getCimObjectPathFromOutputArgs(outArgs, "Job");
         // if this is an async call, wait for the job to complete
@@ -1252,6 +1254,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     private void waitForAsyncSmisJob(StorageSystem storageDevice,
             CIMObjectPath cimJobPath, SmisJob job) throws SmisException {
+        _log.info("############# wait for async ###################");
         if (job == null) {
             TaskCompleter taskCompleter = new TaskCompleter() {
                 @Override

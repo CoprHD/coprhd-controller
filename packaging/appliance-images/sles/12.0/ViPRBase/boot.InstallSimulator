@@ -16,7 +16,7 @@
 #
 ### BEGIN INIT INFO
 # Provides:          boot.InstallSimulator
-# Required-Start:    boot.localfs
+# Required-Start:    boot.localfs $network
 # Required-Stop:
 # Should-Stop:
 # Default-Start:     3 5

@@ -1,16 +1,28 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.volumegroup.migration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ApplicationMigrationApiImpl implements MigrationApi {
+import com.emc.storageos.migrationcontroller.MigrationController;
 
-	
-    private static final Logger logger = LoggerFactory.getLogger(ApplicationMigrationApiImpl.class);
+public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl {
 
+	private static final Logger logger = LoggerFactory.getLogger(ApplicationMigrationApiImpl.class);		
+    
+    public ApplicationMigrationApiImpl(String protectionType) {
+		super(protectionType);
+		// TODO Auto-generated constructor stub
+	}
+    
+    //Migration related methods
 	@Override
 	public void migrationCreate() {
 		logger.info("Migration : Create");		
+		getController(MigrationController.class, "application").migrationCreate();
 	}
 
 	@Override
@@ -24,7 +36,7 @@ public class ApplicationMigrationApiImpl implements MigrationApi {
 	}
 
 	@Override
-	public void migrationCancel() {
+	public void migrationCancel(boolean removeEnvironment) {
 		logger.info("Migration : Cancel");
 	}
 

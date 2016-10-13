@@ -3813,7 +3813,7 @@ public class VolumeGroupService extends TaskResourceService {
 
             return volumes;
         }
-
+                
         /**
          * Valid the volumes to be removed from the volume group. Called by updateVolumeGroup()
          * 

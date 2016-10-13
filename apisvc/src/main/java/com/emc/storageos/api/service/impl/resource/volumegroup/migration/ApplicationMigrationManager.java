@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.volumegroup.migration;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
@@ -24,6 +28,9 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.security.audit.AuditLogManager;
+
+
+//TODO: is a manager class really needed? Think about removing this. 
 
 public class ApplicationMigrationManager {
 	
@@ -78,7 +85,7 @@ public class ApplicationMigrationManager {
         _uriInfo = uriInfo;
         _request = request;  
         
-        _migrationImpl = new ApplicationMigrationApiImpl();
+        _migrationImpl = new ApplicationMigrationApiImpl(VolumeGroup.MigrationType.VMAX.name());
     }
     
     public ApplicationMigrationApiImpl getMigrationImpl() {

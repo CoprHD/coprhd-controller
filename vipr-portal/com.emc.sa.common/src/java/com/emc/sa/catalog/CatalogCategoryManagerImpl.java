@@ -325,7 +325,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     
     public CatalogService getCategorieService(List<CatalogCategory> catalogCategories, String name) {
         if (null != catalogCategories && !catalogCategories.isEmpty() && null != name) {
-            String[] service = StringUtils.split(name, '|');
+            String[] service = StringUtils.split(name, ":");
             if (service.length == 2) {
                 List<URI> serviceURIList = client.catalogServices().findByLabel(service[0]);
                 List<CatalogService> requestedCatalogServices = client.catalogServices().findByIds(serviceURIList);

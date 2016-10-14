@@ -44,6 +44,7 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                         .getKey(Constants.INSTANCEID).getValue().toString();
                 if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
                     // We need to get the Volume Group information here
+                    instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
                     volumeGroup = checkVolumeGroupExistsInDB(instanceID, _dbClient);
                     if (null == volumeGroup) { // This must never be true but just a placeholder
                         volumeGroup = new VolumeGroup();

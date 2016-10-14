@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -270,7 +271,7 @@ public class FileOrchestrationUtils {
         return shareACLMap;
     }
 
-    public static HashMap<String, NfsACE> getNFSACLMap(List<NfsACE> nfsACL) {
+    public static HashMap<String, NfsACE> getUserToNFSACEMap(List<NfsACE> nfsACL) {
         HashMap<String, NfsACE> aclMap = new HashMap<String, NfsACE>();
         for (NfsACE ace : nfsACL) {
             if (ace.getUser() != null && !ace.getUser().isEmpty()) {
@@ -290,7 +291,6 @@ public class FileOrchestrationUtils {
         if (nfsAclList != null) {
             Iterator<NFSShareACL> aclIter = nfsAclList.iterator();
             while (aclIter.hasNext()) {
-
                 NFSShareACL dbNFSAcl = aclIter.next();
                 String fsPath = dbNFSAcl.getFileSystemPath();
                 if (map.get(dbNFSAcl) == null) {
@@ -331,5 +331,15 @@ public class FileOrchestrationUtils {
         }
         dest.setUser(dbNFSAcl.getUser());
         return dest;
+    }
+
+    public static FileNfsACLUpdateParams getFileNfsACLUpdateParamWithSubDir(String fsPath, FileShare fs) {
+        FileNfsACLUpdateParams params = new FileNfsACLUpdateParams();
+        if (!fsPath.equals(fs.getPath())) {
+            // Sub directory NFS ACL
+            String subDir = fsPath.split(fs.getPath())[1];
+            params.setSubDir(subDir.substring(1));
+        }
+        return params;
     }
 }

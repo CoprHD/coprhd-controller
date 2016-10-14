@@ -301,7 +301,7 @@ public class VcenterControllerImpl implements VcenterController {
                                     .getId(), host.getId()),
                             null,
                             null);
-                }
+                } 
             }
 
             workflow.executePlan(completer, "Success");

@@ -16,10 +16,9 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
-
-import com.emc.storageos.db.client.model.NamedURI;
 
 /**
  * Class to contain the REST primitive properties
@@ -37,7 +36,7 @@ public class RestPrimitive extends Primitive {
     private final String _body;
     private final Set<String> _query;
 
-    public RestPrimitive(final NamedURI name, final NamedURI parent,
+    public RestPrimitive(final URI id, final String name, final URI parent,
             final String description, final String successCriteria,
             final Map<String, AbstractParameter<?>> input,
             final Map<String, AbstractParameter<?>> output,
@@ -45,7 +44,7 @@ public class RestPrimitive extends Primitive {
             final String method, final String scheme, final String contentType,
             final String accept, final Set<String> extraHeaders,
             final String body, final Set<String> query) {
-        super(name, parent, description, successCriteria, input, output);
+        super(id, name, parent, description, successCriteria, input, output);
         _hostname = hostname;
         _port = port;
         _uri = uri;

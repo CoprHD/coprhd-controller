@@ -17,15 +17,16 @@
 package com.emc.sa.service.vipr.oe.primitive;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.emc.sa.service.vipr.oe.primitive.Parameter.Type;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OEAbstractParameter;
 import com.emc.storageos.db.client.model.OEParameter;
 import com.emc.storageos.db.client.model.OEParameterList;
@@ -37,16 +38,16 @@ import com.emc.storageos.db.client.model.StringSet;
  */
 public final class ParameterHelper {
 
-    private ParameterHelper() {
-    }
+    private static final Change.NoChange NO_CHANGE = new Change.NoChange();
+
+    private ParameterHelper() {}
 
     /**
      * Convert a StringSet of parameters to a parameter map.
      * 
      * @return A map of parameters keyed with the parameter name
      */
-    public static Map<String, AbstractParameter<?>> toParameterMap(
-            final DbClient dbClient, final StringSet input) {
+    public static Map<String, AbstractParameter<?>> toParameterMap(final DbClient dbClient, final StringSet input) {
         final Map<String, AbstractParameter<?>> parameters = new HashMap<String, AbstractParameter<?>>();
         if (null == input || input.isEmpty()) {
             return parameters;
@@ -72,12 +73,155 @@ public final class ParameterHelper {
     }
 
     /**
+     * Update a StringSet of persisted parameters with the contents of the
+     * parameter map.
+     * 
+     * @param dbClient
+     *            - interface to the database
+     * @param primitive
+     *            - The URI of the primitive that will own any new parameters
+     *            that are created in the database
+     * @param parameterMap
+     *            - Map of parameters to use to update the StringSet
+     * @param stringSet
+     *            - Set of parameter URIs that will be updated
+     * @return whether the StringSet was updated
+     */
+    public static boolean updateParameterStringSet(final DbClient dbClient, final URI primitive, final Map<String, AbstractParameter<?>> parameterMap, final StringSet stringSet) {
+
+        final Set<String> found = new HashSet<String>();
+        final Set<OEAbstractParameter> toAdd = new HashSet<OEAbstractParameter>();
+        final Set<OEAbstractParameter> toRemove = new HashSet<OEAbstractParameter>();
+        final Set<OEAbstractParameter> toUpdate = new HashSet<OEAbstractParameter>();
+
+        for (final URI uri : safeUriList(stringSet)) {
+            final OEAbstractParameter oeParameter = query(dbClient, uri);
+            found.add(oeParameter.getName());
+            if (parameterMap.containsKey(oeParameter.getName())) {
+                final Change change = updateOrReplaceParameter(dbClient,
+                        primitive, oeParameter,
+                        parameterMap.get(oeParameter.getName()));
+                if (change.isReplace()) {
+                    toAdd.add(change.asReplace().add());
+                    toRemove.add(change.asReplace().remove());
+                } else if (change.isUpdate()) {
+                    toUpdate.add(change.asUpdate().update());
+                }
+            } else {
+                toRemove.add(oeParameter);
+            }
+        }
+
+        final Set<String> newParameters = parameterMap.keySet();
+        newParameters.removeAll(found);
+        for (final String parameterName : newParameters) {
+            final URI id;
+            final OEAbstractParameter oeParameter;
+            if (parameterMap.get(parameterName).isParameter()) {
+                id = URIUtil.createId(OEParameter.class);
+                oeParameter = toOEParameter(id, primitive,
+                        parameterMap.get(parameterName).asParameter());
+            } else {
+                final StringSet parameters = new StringSet();
+                updateParameterStringSet(dbClient, primitive,
+                        parameterMap.get(parameterName).asParameterList()
+                                .value(), parameters);
+                id = URIUtil.createId(OEParameterList.class);
+                oeParameter = toOEParameterList(id, primitive, parameterMap
+                        .get(parameterName).asParameterList(), parameters);
+            }
+            toAdd.add(oeParameter);
+        }
+
+        for (final OEAbstractParameter oeParameter : toUpdate) {
+            dbClient.updateObject(oeParameter);
+        }
+
+        for (final OEAbstractParameter oeParameter : toRemove) {
+            if (primitive.equals(oeParameter.getPrimitive())) {
+                dbClient.markForDeletion(oeParameter);
+                if (oeParameter.isParameterList()) {
+                    deleteList(dbClient, primitive,
+                            oeParameter.asParameterList());
+                }
+            }
+            stringSet.remove(oeParameter.getId().toString());
+        }
+
+        for (final OEAbstractParameter oeParameter : toAdd) {
+            dbClient.createObject(oeParameter);
+            stringSet.add(oeParameter.getId().toString());
+        }
+
+        return !toRemove.isEmpty() || !toAdd.isEmpty();
+    }
+
+    /**
+     * @param oeParameter
+     * @param parameter
+     * @return
+     */
+    private static Change updateOrReplaceParameter(final DbClient dbClient, final URI primitive, final OEAbstractParameter oeParameter, final AbstractParameter<?> parameter) {
+        if (!typesMatch(oeParameter, parameter)) {
+            throw new IllegalStateException("Parameter type cannot be changed");
+        }
+
+        final boolean doUpdate = ((parameter.isParameterList() && updateParameterStringSet(
+                dbClient, primitive, parameter.asParameterList().value(),
+                oeParameter.asParameterList().getParameters())) || !equal(
+                oeParameter, parameter));
+
+        if (!doUpdate) {
+            return NO_CHANGE;
+        } else if (primitive.equals(oeParameter.getPrimitive())) {
+            return new Change.Update(updateParameter(primitive, oeParameter,
+                    parameter));
+        } else {
+            return new Change.Replace(replaceParameter(dbClient, primitive,
+                    oeParameter, parameter), oeParameter);
+        }
+    }
+
+    /**
+     * @param primitive
+     * @param oeParameter
+     * @param parameter
+     * @return
+     */
+    private static OEAbstractParameter replaceParameter(final DbClient dbClient, final URI primitive, final OEAbstractParameter oeParameter, final AbstractParameter<?> parameter) {
+        if (parameter.isParameter()) {
+            return toOEParameter(URIUtil.createId(OEParameter.class),
+                    primitive, parameter.asParameter());
+        } else {
+            return toOEParameterList(URIUtil.createId(OEParameterList.class),
+                    primitive, parameter.asParameterList(), oeParameter
+                            .asParameterList().getParameters());
+        }
+    }
+
+    /**
+     * @param primitive
+     * @param oeParameter
+     * @param parameter
+     * @return
+     */
+    private static OEAbstractParameter updateParameter(final URI primitive, final OEAbstractParameter oeParameter, final AbstractParameter<?> parameter) {
+        if (parameter.isParameter()) {
+            return toOEParameter(oeParameter.getId(), primitive,
+                    parameter.asParameter());
+        } else {
+            return toOEParameterList(oeParameter.getId(), primitive,
+                    parameter.asParameterList(), oeParameter.asParameterList()
+                            .getParameters());
+        }
+    }
+
+    /**
      * Convert from the parameter list persistence object into the ParameterList
      * 
      * @return A ParamaterList that was created from the database object
      */
-    private static ParameterList toParameterList(final DbClient dbClient,
-            final OEParameterList oeParameterList) {
+    private static ParameterList toParameterList(final DbClient dbClient, final OEParameterList oeParameterList) {
         return new ParameterList(oeParameterList.getName(),
                 oeParameterList.getFriendlyName(), toParameterMap(dbClient,
                         oeParameterList.getParameters()),
@@ -85,7 +229,7 @@ public final class ParameterHelper {
     }
 
     /**
-     * Convert from a paramater database object into a Parameter
+     * Convert from a parameter database object into a Parameter
      * 
      * @return The Parameter representation of the database object
      */
@@ -97,138 +241,55 @@ public final class ParameterHelper {
     }
 
     /**
-     * Update a StringSet of persisted parameters with the contents of the
-     * parameter map.
-     * 
-     * @param dbClient
-     *            - interface to the database
-     * @param primitive
-     *            - The URI of the primitive that will own any new paramaters
-     *            that are created in the database
-     * @param parameterMap
-     *            - Map of paramaters to use to update the StringSet
-     * @param stringSet
-     *            - Set of parameter URIs that will be updated
-     * @return whether the StringSet was updated
+     * The URIUtil.toURIList() method returns null if the list that is passed
+     * into it is empty. This method will return an empty list in that case
      */
-    public static boolean updateParameterStringSet(final DbClient dbClient,
-            final NamedURI primitive,
-            final Map<String, AbstractParameter<?>> parameterMap,
-            StringSet stringSet) {
+    private static List<URI> safeUriList(final StringSet uris) {
+        return uris.isEmpty() ? Collections.emptyList() : URIUtil
+                .toURIList(uris);
 
-        final Set<String> found = new HashSet<String>();
-        final Set<String> added = new HashSet<String>();
-        final Set<String> removed = new HashSet<String>();
-        if (stringSet == null) {
-            stringSet = new StringSet();
-        } else if (!stringSet.isEmpty()) {
-            for (final URI uri : URIUtil.toURIList(stringSet)) {
-                final Class<?> type = URIUtil.getModelClass(uri);
+    }
 
-                if (type.isAssignableFrom(OEParameter.class)) {
-                    final OEParameter oeParameter = dbClient.queryObject(
-                            OEParameter.class, uri);
-                    found.add(oeParameter.getName());
-                    if (parameterMap.containsKey(oeParameter.getName())) {
-                        if (!parameterMap.get(oeParameter.getName())
-                                .isParameter())
-                            throw new RuntimeException();
-                        final Parameter parameter = parameterMap.get(
-                                oeParameter.getName()).asParameter();
-                        if (!equal(parameter, oeParameter)) {
-                            if (primitive.equals(oeParameter.getPrimitive())) {
-                                dbClient.updateObject(toOEParameter(
-                                        oeParameter.getId(), primitive,
-                                        parameter));
-                            } else {
-                                final URI id = URIUtil
-                                        .createId(OEParameter.class);
-                                dbClient.createObject(toOEParameter(
-                                        URIUtil.createId(OEParameter.class),
-                                        primitive, parameter));
-                                added.add(id.toString());
-                                removed.add(oeParameter.getId().toString());
-                            }
-                        }
+    /**
+     * Query the parameter of the correct type from the database
+     */
+    private static OEAbstractParameter query(final DbClient dbClient, final URI uri) {
+        final Class<?> type = URIUtil.getModelClass(uri);
 
-                    } else {
-                        removed.add(uri.toString());
-                        if (primitive.equals(oeParameter.getPrimitive())) {
-                            dbClient.markForDeletion(oeParameter);
-                        }
-                    }
-
-                } else if (type.isAssignableFrom(OEParameterList.class)) {
-                    final OEParameterList oeParameterList = dbClient
-                            .queryObject(OEParameterList.class, uri);
-                    found.add(oeParameterList.getName());
-                    if (parameterMap.containsKey(oeParameterList.getName())) {
-                        if (!parameterMap.get(oeParameterList.getName())
-                                .isParameterList())
-                            throw new RuntimeException();
-                        final ParameterList parameterList = parameterMap.get(
-                                oeParameterList.getName()).asParameterList();
-
-                        if (!equal(parameterList, oeParameterList)
-                                || updateParameterStringSet(dbClient,
-                                        primitive, parameterList.value(),
-                                        oeParameterList.getParameters())) {
-                            if (primitive.equals(oeParameterList.getName())) {
-                                dbClient.updateObject(toOEParameterList(
-                                        oeParameterList.getId(), primitive,
-                                        parameterList,
-                                        oeParameterList.getParameters()));
-                            } else {
-                                final URI id = URIUtil
-                                        .createId(OEParameterList.class);
-                                dbClient.createObject(toOEParameterList(
-                                        URIUtil.createId(OEParameterList.class),
-                                        primitive, parameterList,
-                                        oeParameterList.getParameters()));
-                                added.add(id.toString());
-                                removed.add(oeParameterList.getId().toString());
-                            }
-                        }
-
-                    } else {
-                        removed.add(uri.toString());
-                        if (primitive.equals(oeParameterList.getPrimitive())) {
-                            deleteList(dbClient, primitive, oeParameterList);
-                        }
-                    }
-                }
-            }
+        if (type.isAssignableFrom(OEParameter.class)) {
+            return dbClient.queryObject(OEParameter.class, uri);
+        } else if (type.isAssignableFrom(OEParameterList.class)) {
+            return dbClient.queryObject(OEParameterList.class, uri);
+        } else {
+            throw new RuntimeException("Unknown parameter type: "
+                    + type.getSimpleName());
         }
-        final Set<String> newParameters = parameterMap.keySet();
-        newParameters.removeAll(found);
-        for (final String parameterName : newParameters) {
-            final URI id;
-            if (parameterMap.get(parameterName).isParameter()) {
-                id = URIUtil.createId(OEParameter.class);
-                dbClient.createObject(toOEParameter(id, primitive, parameterMap
-                        .get(parameterName).asParameter()));
-            } else {
-                final StringSet parameters = new StringSet();
-                updateParameterStringSet(dbClient, primitive,
-                        parameterMap.get(parameterName).asParameterList()
-                                .value(), parameters);
-                id = URIUtil.createId(OEParameterList.class);
-                dbClient.createObject(toOEParameterList(id, primitive,
-                        parameterMap.get(parameterName).asParameterList(),
-                        parameters));
-            }
-            added.add(id.toString());
-        }
+    }
 
-        return stringSet.removeAll(removed) || stringSet.addAll(added);
+    /**
+     * Check if the types of the parameters match
+     */
+    private static boolean typesMatch(final OEAbstractParameter oeParameter, final AbstractParameter<?> parameter) {
+        return (oeParameter.isParameter() && parameter.isParameter())
+                || (oeParameter.isParameterList() && parameter
+                        .isParameterList());
+    }
+
+    /**
+     * Check if a an abstract paremeter is equal to the peristed parameter
+     */
+    private static boolean equal(final OEAbstractParameter oeParameter, final AbstractParameter<?> parameter) {
+        return oeParameter.isParameter() ? parameterEqual(
+                oeParameter.asParameter(), parameter.asParameter())
+                : parameterListEqual(oeParameter.asParameterList(),
+                        parameter.asParameterList());
     }
 
     /**
      * Check if the base metadata of the parameter object is equal to the
      * persisted metadata
      */
-    private static boolean baseEqual(final AbstractParameter<?> parameter,
-            final OEAbstractParameter oeParameter) {
+    private static boolean baseEqual(final AbstractParameter<?> parameter, final OEAbstractParameter oeParameter) {
         return parameter.name().equals(oeParameter.getName())
                 && parameter.friendlyName().equals(
                         oeParameter.getFriendlyName())
@@ -237,11 +298,10 @@ public final class ParameterHelper {
     }
 
     /**
-     * Check if this paramater list object is equal to the persisted parameter
+     * Check if this parameter list object is equal to the persisted parameter
      * list
      */
-    private static boolean equal(final ParameterList parameterList,
-            final OEParameterList oeParameterList) {
+    private static boolean parameterListEqual(final OEParameterList oeParameterList, final ParameterList parameterList) {
 
         if (null == parameterList) {
             return null == oeParameterList;
@@ -255,10 +315,9 @@ public final class ParameterHelper {
     }
 
     /**
-     * Check if the parameter is equal to the persisted paramater
+     * Check if the parameter is equal to the persisted parameter
      */
-    private static boolean equal(final Parameter parameter,
-            final OEParameter oeParameter) {
+    private static boolean parameterEqual(final OEParameter oeParameter, final Parameter parameter) {
         if (null == parameter) {
             return null == oeParameter;
         }
@@ -272,10 +331,9 @@ public final class ParameterHelper {
     }
 
     /**
-     * Delete paramaters in a list if they are owned by the given primitive
+     * Delete parameters in a list if they are owned by the given primitive
      */
-    private static void deleteList(final DbClient dbClient,
-            final NamedURI primitive, final OEParameterList list) {
+    private static void deleteList(final DbClient dbClient, final URI primitive, final OEParameterList list) {
         for (final URI uri : URIUtil.toURIList(list.getParameters())) {
             final Class<?> type = URIUtil.getModelClass(uri);
 
@@ -300,9 +358,7 @@ public final class ParameterHelper {
     /**
      * Convert From a ParameterList to a parameter list data object
      */
-    private static OEParameterList toOEParameterList(final URI id,
-            final NamedURI primitive, final ParameterList parameterList,
-            final StringSet parameterStringSet) {
+    private static OEParameterList toOEParameterList(final URI id, final URI primitive, final ParameterList parameterList, final StringSet parameterStringSet) {
         final OEParameterList oeParameterList = new OEParameterList();
         oeParameterList.setId(id);
         oeParameterList.setPrimitive(primitive);
@@ -317,8 +373,7 @@ public final class ParameterHelper {
     /**
      * Convert from a Parameter to a parameter database object
      */
-    private static OEParameter toOEParameter(final URI id,
-            final NamedURI primitive, final Parameter parameter) {
+    private static OEAbstractParameter toOEParameter(final URI id, final URI primitive, final Parameter parameter) {
         final OEParameter oeParameter = new OEParameter();
         oeParameter.setId(id);
         oeParameter.setPrimitive(primitive);
@@ -329,5 +384,93 @@ public final class ParameterHelper {
         oeParameter.setValue(parameter.value());
         oeParameter.setType(parameter.type().name());
         return oeParameter;
+    }
+
+    /**
+     * Container class to track the type of parameter change that is necessary
+     */
+    private static abstract class Change {
+
+        public abstract boolean isNoChange();
+
+        public abstract NoChange asNoChange();
+
+        public abstract boolean isUpdate();
+
+        public abstract Update asUpdate();
+
+        public abstract boolean isReplace();
+
+        public abstract Replace asReplace();
+
+        private static class NoChange extends Change {
+
+            @Override public boolean isNoChange() { return true; }
+
+            @Override public NoChange asNoChange() { return this; }
+
+            @Override public boolean isUpdate() { return false; }
+
+            @Override public Update asUpdate() { return null; }
+
+            @Override public boolean isReplace() { return false; }
+
+            @Override public Replace asReplace() { return null; }
+        }
+
+        private static class Update extends Change {
+            private final OEAbstractParameter _update;
+
+            public Update(final OEAbstractParameter update) {
+                _update = update;
+            }
+
+            public OEAbstractParameter update() {
+                return _update;
+            }
+
+            @Override public boolean isNoChange() { return false; }
+
+            @Override public NoChange asNoChange() { return null; }
+
+            @Override public boolean isUpdate() { return true; }
+
+            @Override public Update asUpdate() { return this; }
+
+            @Override public boolean isReplace() { return false; }
+
+            @Override public Replace asReplace() { return null; }
+        }
+
+        private static class Replace extends Change {
+            private final OEAbstractParameter _add;
+            private final OEAbstractParameter _remove;
+
+            public Replace(final OEAbstractParameter add,
+                    final OEAbstractParameter remove) {
+                _add = add;
+                _remove = remove;
+            }
+
+            public OEAbstractParameter add() {
+                return _add;
+            }
+
+            public OEAbstractParameter remove() {
+                return _remove;
+            }
+
+            @Override public boolean isNoChange() { return false; }
+
+            @Override public NoChange asNoChange() { return null; }
+
+            @Override public boolean isUpdate() { return false; }
+
+            @Override public Update asUpdate() { return null; }
+
+            @Override public boolean isReplace() { return true; }
+
+            @Override public Replace asReplace() { return this; }
+        }
     }
 }

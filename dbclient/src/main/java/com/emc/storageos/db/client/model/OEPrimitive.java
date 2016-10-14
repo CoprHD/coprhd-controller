@@ -26,46 +26,53 @@ import java.net.URI;
 public abstract class OEPrimitive extends DataObject {
 
     private static final long serialVersionUID = 1L;
-    private NamedURI _name;
+    private String _name;
     private URI _description;
-    private NamedURI _parent;
+    private URI _parent;
     private URI _successCriteria;
     private StringSet _input;
     private StringSet _output;
 
     @Name("name")
-    public NamedURI getName() {
+    @AlternateId("PrimitiveNameIndex")
+    public String getName() {
         return _name;
     }
 
-    public void setName(final NamedURI name) {
+    public void setName(final String name) {
         _name = name;
+        setChanged("name");
     }
 
+    @Name("description")
     public URI getDescription() {
         return _description;
     }
 
     public void setDescription(final URI description) {
         _description = description;
+        setChanged("description");
     }
 
-    @NamedRelationIndex(cf = "NamedRelation", type = OEPrimitive.class)
+    @RelationIndex(cf = "PrimitiveParentIndex", type = OEPrimitive.class)
     @Name("parent")
-    public NamedURI getParent() {
+    public URI getParent() {
         return _parent;
     }
 
-    public void setParent(final NamedURI parent) {
+    public void setParent(final URI parent) {
         _parent = parent;
+        setChanged("parent");
     }
 
+    @Name("successCriteria")
     public URI getSuccessCriteria() {
         return _successCriteria;
     }
 
     public void setSuccessCriteria(final URI successCriteria) {
         _successCriteria = successCriteria;
+        setChanged("successCriteria");
     }
 
     @Name("input")
@@ -75,6 +82,7 @@ public abstract class OEPrimitive extends DataObject {
 
     public void setInput(final StringSet input) {
         _input = input;
+        setChanged("input");
     }
 
     @Name("output")
@@ -84,6 +92,7 @@ public abstract class OEPrimitive extends DataObject {
 
     public void setOutput(final StringSet output) {
         _output = output;
+        setChanged("output");
     }
 
     public abstract boolean isRestCall();

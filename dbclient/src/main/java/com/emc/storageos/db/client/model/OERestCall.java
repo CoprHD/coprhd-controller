@@ -46,6 +46,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setHostname(final URI hostname) {
         _hostname = hostname;
+        setChanged("hostname");
     }
 
     @Name("port")
@@ -55,6 +56,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setPort(final URI port) {
         _port = port;
+        setChanged("port");
     }
 
     @Name("uri")
@@ -64,6 +66,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setUri(final URI uri) {
         _uri = uri;
+        setChanged("uri");
     }
 
     @Name("method")
@@ -73,15 +76,17 @@ public class OERestCall extends OEPrimitive {
 
     public void setMethod(final URI method) {
         _method = method;
+        setChanged("method");
     }
 
-    @Name("method")
+    @Name("scheme")
     public URI getScheme() {
         return _scheme;
     }
 
     public void setScheme(final URI scheme) {
         _scheme = scheme;
+        setChanged("scheme");
     }
 
     @Name("contentType")
@@ -91,6 +96,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setContentType(final URI contentType) {
         this._contentType = contentType;
+        setChanged("contentType");
     }
 
     @Name("accept")
@@ -100,6 +106,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setAccept(final URI accept) {
         this._accept = accept;
+        setChanged("accept");
     }
 
     @Name("extraHeaders")
@@ -109,6 +116,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setExtraHeaders(final StringSet headers) {
         _extraHeaders = headers;
+        setChanged("extraHeaders");
     }
 
     @Name("query")
@@ -118,6 +126,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setQuery(final StringSet query) {
         _query = query;
+        setChanged("query");
     }
 
     @Name("body")
@@ -127,6 +136,7 @@ public class OERestCall extends OEPrimitive {
 
     public void setBody(final URI body) {
         this.body = body;
+        setChanged("body");
     }
 
     @Override

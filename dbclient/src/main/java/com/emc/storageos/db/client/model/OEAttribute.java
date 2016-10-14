@@ -16,16 +16,23 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 /**
- * Class that contains a primitive attribute The attributes can be defined in a
- * primitive or in a parent primitive so each attribute has a primitive URI
- * attribute associated with it so that the 'owner' of this attribute value can
- * be tracked
+ * Class that contains a primitive attribute.
+ * 
+ * An OE primitive attribute is part of the primitive definition such as the
+ * description or successCriteria as opposed to a parameter which would be
+ * expected input to the primitive.
+ * 
+ * The attributes can be defined in a primitive or in a parent primitive so each
+ * attribute has a primitive URI attribute associated with it so that the
+ * 'owner' of this attribute value can be tracked
  */
 @Cf("OEAttribute")
 public class OEAttribute extends DataObject {
 
-    private NamedURI _primitive;
+    private URI _primitive;
     private String _name;
     private String _value;
 
@@ -36,14 +43,16 @@ public class OEAttribute extends DataObject {
 
     public void setValue(final String value) {
         _value = value;
+        setChanged("value");
     }
 
     @Name("primitive")
-    public NamedURI getPrimitive() {
+    public URI getPrimitive() {
         return _primitive;
     }
 
-    public void setPrimitive(final NamedURI primitive) {
+    public void setPrimitive(final URI primitive) {
         _primitive = primitive;
+        setChanged("primitive");
     }
 }

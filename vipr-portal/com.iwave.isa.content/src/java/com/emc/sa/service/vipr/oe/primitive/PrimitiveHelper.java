@@ -18,13 +18,18 @@ package com.emc.sa.service.vipr.oe.primitive;
 
 import java.net.URI;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.OEAttribute;
 import com.emc.storageos.db.client.model.OEPrimitive;
 import com.emc.storageos.db.client.model.OERestCall;
@@ -38,18 +43,29 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
  */
 public final class PrimitiveHelper {
 
-    private PrimitiveHelper() {
-    };
+    private PrimitiveHelper() {};
 
+    
+    public static <T extends Primitive> T query(final String name, final Class<T> clazz, final DbClient dbClient) {
+        
+        final URI id = getPrimitiveId(name, getDBModel(clazz), dbClient);
+
+        return id == null ? null : clazz.cast(query(id, dbClient));
+    }
+    
     /**
      * Load a Primitive from persistence by querying the database model and
      * converting it to the Primitive type that the UI/execution will understand
      */
-    public static Primitive query(final NamedURI uri, final DbClient dbClient) {
+    public static Primitive query(final URI uri, final DbClient dbClient) {
         final Class<? extends OEPrimitive> type = type(uri);
         final OEPrimitive oePrimitive = dbClient.queryObject(type, uri);
+        if (null == oePrimitive) {
+            return null;
+        }
 
         final PrimitiveBuilder primitiveBuilder = new PrimitiveBuilder();
+        primitiveBuilder.id(oePrimitive.getId());
         primitiveBuilder.name(oePrimitive.getName());
         primitiveBuilder.description(queryAttribute(dbClient,
                 oePrimitive.getDescription()));
@@ -87,29 +103,92 @@ public final class PrimitiveHelper {
      * Save a primitive to persistence. Either update it or create it if the
      * name is new
      */
-    public static void persist(final Primitive primitive, final DbClient dbClient) {
-        final OEPrimitive existing = dbClient.queryObject(OEPrimitive.class,
-                primitive.name());
+    public static void persist(final Primitive primitive,
+            final DbClient dbClient) {
 
-        if (null != existing) {
-            dbClient.updateObject(makeOEPrimitive(dbClient, primitive, existing));
+        final OEPrimitive existing = dbClient.queryObject(OEPrimitive.class,
+                primitive.id());
+        if (null == existing) {
+            createPrimitive(primitive, dbClient);
         } else {
-            final OEPrimitive basePrimitive;
-            if (!NullColumnValueGetter.isNullNamedURI(primitive.parent())) {
-                basePrimitive = dbClient.queryObject(OEPrimitive.class,
-                        primitive.parent());
+            updatePrimitive(primitive, existing, dbClient);
+        }
+    }
+
+    /**
+     * Get the ID for a primitive given the name and type.
+     * 
+     * @throws IllegalStateException if more than one primitive exists with the name
+     * 
+     * @return URI id of the primitive
+     */
+    private static URI getPrimitiveId(final String name, final Class<? extends OEPrimitive> clazz, final DbClient dbClient) {
+        
+        final AlternateIdConstraint constraint = new AlternateIdConstraintImpl(
+                TypeMap.getDoType(clazz).getColumnField("name"), name);
+        final NamedElementQueryResultList results = new NamedElementQueryResultList();
+        
+        dbClient.queryByConstraint(constraint, results);
+        
+        final Iterator<NamedElement> it = results.iterator();
+        
+        if( null == it || !it.hasNext()) {
+            return null;
+        }
+        
+        final NamedElement element = it.next();
+        
+        if( it.hasNext() ) {
+            throw new IllegalStateException("Multiple primitives with name " + element.getName());
+        }
+        
+        return element.getId();
+    }
+    
+    /**
+     * Create a new primitive database object
+     */
+    private static void createPrimitive(final Primitive primitive,
+            final DbClient dbClient) {
+
+        if (null != getPrimitiveId(primitive.name(), getDBModel(primitive.getClass()), dbClient)) {
+            throw new IllegalStateException("Primitive with name "
+                    + primitive.name() + " already exists");
+        }
+        final OEPrimitive basePrimitive;
+        if (!NullColumnValueGetter.isNullURI(primitive.parent())) {
+            basePrimitive = dbClient.queryObject(OEPrimitive.class,
+                    primitive.parent());
+        } else {
+            if (primitive.isRestPrimitive()) {
+                basePrimitive = new OERestCall();
             } else {
-                if (primitive.isRestPrimitive()) {
-                    basePrimitive = new OERestCall();
-                } else {
-                    throw new RuntimeException("Invalid primitive type");
-                }
-                final OEPrimitive temp = makeOEPrimitive(dbClient, primitive,
-                        basePrimitive);
-                dbClient.createObject(temp);
+                throw new IllegalStateException("Invalid primitive type");
             }
         }
+        dbClient.createObject(makeOEPrimitive(dbClient, primitive,
+                basePrimitive));
+    }
+    
+    private static Class<? extends OEPrimitive> getDBModel(final Class<? extends Primitive> clazz) {
+        if(clazz.isAssignableFrom(RestPrimitive.class)) {
+            return OERestCall.class;
+        }
+        return null;
+    }
 
+    /**
+     * Update the primitive database object
+     */
+    private static void updatePrimitive(final Primitive primitive,
+            final OEPrimitive existing, final DbClient dbClient) {
+        if (!primitive.id().equals(existing.getId())) {
+            throw new IllegalStateException("Cannot update the primitive ID");
+        } else if (!primitive.parent().equals(existing.getParent())) {
+            throw new IllegalStateException(
+                    "Cannot update the primitive parent ID");
+        }
+        dbClient.updateObject(makeOEPrimitive(dbClient, primitive, existing));
     }
 
     /**
@@ -125,29 +204,25 @@ public final class PrimitiveHelper {
         } catch (InstantiationException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        oePrimitive.setId(primitive.name().getURI());
+        oePrimitive.setId(primitive.id());
         oePrimitive.setName(primitive.name());
         oePrimitive.setParent(primitive.parent());
         oePrimitive.setDescription(createOrUpdateAttribute(dbClient,
-                primitive.name(), basePrimitive.getDescription(),
+                primitive.id(), basePrimitive.getDescription(),
                 primitive.description()));
         oePrimitive.setSuccessCriteria(createOrUpdateAttribute(dbClient,
-                primitive.name(), basePrimitive.getSuccessCriteria(),
+                primitive.id(), basePrimitive.getSuccessCriteria(),
                 primitive.successCriteria()));
 
-        if (null == basePrimitive.getInput()) {
-            basePrimitive.setInput(new StringSet());
-        }
-        if (null == basePrimitive.getOutput()) {
-            basePrimitive.setOutput(new StringSet());
-        }
-        ParameterHelper.updateParameterStringSet(dbClient, primitive.name(),
-                primitive.input(), basePrimitive.getInput());
-        oePrimitive.setInput(basePrimitive.getInput());
+        final StringSet input = basePrimitive.getInput() == null ? new StringSet() : basePrimitive.getInput();
+        ParameterHelper.updateParameterStringSet(dbClient, primitive.id(),
+                primitive.input(), input);
+        oePrimitive.setInput(input);
 
-        ParameterHelper.updateParameterStringSet(dbClient, primitive.name(),
-                primitive.output(), basePrimitive.getOutput());
-        oePrimitive.setOutput(basePrimitive.getOutput());
+        final StringSet output = basePrimitive.getOutput() == null ? new StringSet() : basePrimitive.getOutput();
+        ParameterHelper.updateParameterStringSet(dbClient, primitive.id(),
+                primitive.output(), output);
+        oePrimitive.setOutput(output);
 
         if (primitive.isRestPrimitive()) {
             if (!basePrimitive.isRestCall())
@@ -157,34 +232,35 @@ public final class PrimitiveHelper {
             final RestPrimitive restPrimitive = primitive.asRestPrimitive();
 
             oeRestCall.setHostname(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getHostname(),
+                    primitive.id(), baseRestCall.getHostname(),
                     restPrimitive.hostname()));
             oeRestCall.setPort(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getPort(),
+                    primitive.id(), baseRestCall.getPort(),
                     restPrimitive.port()));
-            oeRestCall.setUri(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getUri(),
-                    restPrimitive.uri()));
+            oeRestCall.setUri(createOrUpdateAttribute(dbClient, primitive.id(),
+                    baseRestCall.getUri(), restPrimitive.uri()));
             oeRestCall.setMethod(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getMethod(),
+                    primitive.id(), baseRestCall.getMethod(),
                     restPrimitive.method()));
             oeRestCall.setScheme(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getScheme(),
+                    primitive.id(), baseRestCall.getScheme(),
                     restPrimitive.scheme()));
             oeRestCall.setContentType(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getContentType(),
+                    primitive.id(), baseRestCall.getContentType(),
                     restPrimitive.contentType()));
             oeRestCall.setAccept(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getAccept(),
+                    primitive.id(), baseRestCall.getAccept(),
                     restPrimitive.accept()));
+            final StringSet extraHeaders = baseRestCall.getExtraHeaders() == null ? new StringSet() : baseRestCall.getExtraHeaders();
             oeRestCall.setExtraHeaders(createOrUpdateAttributeSet(dbClient,
-                    primitive.name(), baseRestCall.getExtraHeaders(),
+                    primitive.id(), extraHeaders,
                     restPrimitive.extraHeaders()));
+            final StringSet query = baseRestCall.getQuery() == null ? new StringSet() : baseRestCall.getQuery();
             oeRestCall.setQuery(createOrUpdateAttributeSet(dbClient,
-                    primitive.name(), baseRestCall.getQuery(),
+                    primitive.id(), query,
                     restPrimitive.query()));
             oeRestCall.setBody(createOrUpdateAttribute(dbClient,
-                    primitive.name(), baseRestCall.getBody(),
+                    primitive.id(), baseRestCall.getBody(),
                     restPrimitive.body()));
         }
         return oePrimitive;
@@ -195,14 +271,13 @@ public final class PrimitiveHelper {
      * Given a Set of attribute values create or update a StringSet of URIs
      */
     private static StringSet createOrUpdateAttributeSet(
-            final DbClient dbClient, final NamedURI name, StringSet uris,
+            final DbClient dbClient, final URI primitive, final StringSet uris,
             final Set<String> values) {
         final Set<String> present = new HashSet<String>();
         final Set<String> newValues = new HashSet<String>(values);
         final Set<URI> removed = new HashSet<URI>();
-        if (null == uris) {
-            uris = new StringSet();
-        } else if (!uris.isEmpty()) {
+
+        if (!uris.isEmpty()) {
             final List<OEAttribute> attributes = dbClient.queryObject(
                     OEAttribute.class, URIUtil.toURIList(uris));
 
@@ -211,7 +286,7 @@ public final class PrimitiveHelper {
                     present.add(attribute.getValue());
                 } else {
                     removed.add(attribute.getId());
-                    if (attribute.getPrimitive().equals(name)) {
+                    if (attribute.getPrimitive().equals(primitive)) {
                         dbClient.markForDeletion(attribute);
                     }
                 }
@@ -221,7 +296,7 @@ public final class PrimitiveHelper {
         for (final String newValue : newValues) {
             final OEAttribute attribute = new OEAttribute();
             attribute.setId(URIUtil.createId(OEAttribute.class));
-            attribute.setPrimitive(name);
+            attribute.setPrimitive(primitive);
             attribute.setValue(newValue);
             dbClient.createObject(attribute);
             uris.add(attribute.getId().toString());
@@ -239,7 +314,7 @@ public final class PrimitiveHelper {
      * 
      */
     private static URI createOrUpdateAttribute(final DbClient dbClient,
-            final NamedURI primitive, final URI attribute, final String value) {
+            final URI primitive, final URI attribute, final String value) {
 
         OEAttribute oeAttribute = dbClient.queryObject(OEAttribute.class,
                 attribute);
@@ -294,8 +369,8 @@ public final class PrimitiveHelper {
         return null == attribute ? "" : attribute.getValue();
     }
 
-    private static Class<? extends OEPrimitive> type(final NamedURI uri) {
-        final Class<?> type = URIUtil.getModelClass(uri.getURI());
+    private static Class<? extends OEPrimitive> type(final URI uri) {
+        final Class<?> type = URIUtil.getModelClass(uri);
         if (!OEPrimitive.class.isAssignableFrom(type)) {
             throw new RuntimeException(uri
                     + " is not an identifier for a primitive");
@@ -365,8 +440,8 @@ public final class PrimitiveHelper {
         }
 
         public RestPrimitive build() {
-            return new RestPrimitive(_primitiveBuilder.name(),
-                    _primitiveBuilder.parent(),
+            return new RestPrimitive(_primitiveBuilder.id(),
+                    _primitiveBuilder.name(), _primitiveBuilder.parent(),
                     _primitiveBuilder.description(),
                     _primitiveBuilder.successCriteria(),
                     _primitiveBuilder.input(), _primitiveBuilder.output(),
@@ -379,26 +454,35 @@ public final class PrimitiveHelper {
      * Builder class to contain the AbstractPrimitive properties
      */
     private static class PrimitiveBuilder {
-        private NamedURI _name;
-        private NamedURI _parent;
+        private URI _id;
+        private String _name;
+        private URI _parent;
         private String _description;
         private String _successCriteria;
         private Map<String, AbstractParameter<?>> _input;
         private Map<String, AbstractParameter<?>> _output;
 
-        public NamedURI name() {
+        public URI id() {
+            return _id;
+        }
+
+        public void id(final URI id) {
+            _id = id;
+        }
+
+        public String name() {
             return _name;
         }
 
-        public void name(final NamedURI name) {
+        public void name(final String name) {
             _name = name;
         }
 
-        public NamedURI parent() {
+        public URI parent() {
             return _parent;
         }
 
-        public void parent(final NamedURI parent) {
+        public void parent(final URI parent) {
             _parent = parent;
         }
 

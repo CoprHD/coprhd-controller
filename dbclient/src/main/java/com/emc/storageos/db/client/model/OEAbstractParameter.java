@@ -16,28 +16,31 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 /**
  * DB model class that contains the base properties for a primitive
  * 
- * A parameter can be 'owned' by a primitive or a parent of the primitive. Sop
+ * A parameter can be 'owned' by a primitive or a parent of the primitive. So
  * each parameter has a primitive URI so that the owner of the parameter can be
  * tracked
  */
 public abstract class OEAbstractParameter extends DataObject {
 
-    private NamedURI _primitive;
+    private URI _primitive;
     private String _name;
     private String _friendlyName;
     private boolean _locked;
     private boolean _required;
 
     @Name("primitive")
-    public NamedURI getPrimitive() {
+    public URI getPrimitive() {
         return _primitive;
     }
 
-    public void setPrimitive(final NamedURI primitive) {
+    public void setPrimitive(final URI primitive) {
         _primitive = primitive;
+        setChanged("primitive");
     }
 
     @Name("name")
@@ -47,6 +50,7 @@ public abstract class OEAbstractParameter extends DataObject {
 
     public void setName(final String name) {
         _name = name;
+        setChanged("name");
     }
 
     @Name("locked")
@@ -56,6 +60,7 @@ public abstract class OEAbstractParameter extends DataObject {
 
     public void setLocked(final boolean locked) {
         _locked = locked;
+        setChanged("locked");
     }
 
     @Name("required")
@@ -65,6 +70,7 @@ public abstract class OEAbstractParameter extends DataObject {
 
     public void setRequired(final boolean required) {
         _required = required;
+        setChanged("required");
     }
 
     @Name("friendlyName")
@@ -74,5 +80,15 @@ public abstract class OEAbstractParameter extends DataObject {
 
     public void setFriendlyName(final String friendlyName) {
         _friendlyName = friendlyName;
+        setChanged("friendlyName");
     }
+
+    public abstract boolean isParameter();
+
+    public abstract OEParameter asParameter();
+
+    public abstract boolean isParameterList();
+
+    public abstract OEParameterList asParameterList();
+
 }

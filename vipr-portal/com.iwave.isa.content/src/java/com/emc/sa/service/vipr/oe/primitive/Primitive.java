@@ -16,17 +16,17 @@
  */
 package com.emc.sa.service.vipr.oe.primitive;
 
+import java.net.URI;
 import java.util.Map;
-
-import com.emc.storageos.db.client.model.NamedURI;
 
 /**
  * Abstract Class that contains the base properties of a primitive
  */
 public abstract class Primitive {
 
-    private final NamedURI _name;
-    private final NamedURI _parent;
+    private final URI _id;
+    private final String _name;
+    private final URI _parent;
     private final String _description;
     private final String _successCriteria;
     private final Map<String, AbstractParameter<?>> _input;
@@ -36,10 +36,11 @@ public abstract class Primitive {
 
     public abstract RestPrimitive asRestPrimitive();
 
-    public Primitive(final NamedURI name, final NamedURI parent,
+    public Primitive(final URI id, final String name, final URI parent,
             final String description, final String successCriteria,
             final Map<String, AbstractParameter<?>> input,
             final Map<String, AbstractParameter<?>> output) {
+        _id = id;
         _name = name;
         _parent = parent;
         _description = description;
@@ -48,11 +49,15 @@ public abstract class Primitive {
         _output = output;
     }
 
-    public NamedURI name() {
+    public URI id() {
+        return _id;
+    }
+
+    public String name() {
         return _name;
     }
 
-    public NamedURI parent() {
+    public URI parent() {
         return _parent;
     }
 

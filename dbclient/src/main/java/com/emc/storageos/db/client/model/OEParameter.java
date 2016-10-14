@@ -32,6 +32,7 @@ public class OEParameter extends OEAbstractParameter {
 
     public void setValue(final String value) {
         _value = value;
+        setChanged("value");
     };
 
     @Name("type")
@@ -41,5 +42,26 @@ public class OEParameter extends OEAbstractParameter {
 
     public void setType(final String type) {
         _type = type;
+        setChanged("type");
+    }
+
+    @Override
+    public boolean isParameter() {
+        return true;
+    }
+
+    @Override
+    public OEParameter asParameter() {
+        return this;
+    }
+
+    @Override
+    public boolean isParameterList() {
+        return false;
+    }
+
+    @Override
+    public OEParameterList asParameterList() {
+        return null;
     }
 }

@@ -18,6 +18,7 @@ package com.emc.sa.service.vipr.oe.primitive;
 
 import static org.junit.Assert.fail;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,7 +31,6 @@ import org.testng.Assert;
 import com.emc.sa.service.vipr.oe.primitive.Parameter.Type;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OERestCall;
 
 /**
@@ -48,11 +48,10 @@ public class PrimitiveTest {
 
     @Test
     public void createPrimitive() {
-        final NamedURI newPrimitive = new NamedURI();
-        newPrimitive.setName("createVolume");
-        newPrimitive.setURI(URIUtil.createId(OERestCall.class));
+        final URI id = URIUtil.createId(OERestCall.class);
+        final String name = "createVolume";
         final String description = "Sample primitive test";
-        final NamedURI parent = new NamedURI();
+        final URI parent = null;
         final String successCriteria = "status == 200";
         final String hostname = "localhost";
         final String port = "port";
@@ -73,19 +72,20 @@ public class PrimitiveTest {
         output.put("status", new Parameter("status", "status", "",
                 Type.INTEGER, false, false));
 
-        final RestPrimitive restPrimitive = new RestPrimitive(newPrimitive,
+        final RestPrimitive restPrimitive = new RestPrimitive(id, name,
                 parent, description, successCriteria, input, output, hostname,
                 port, uri, method, scheme, contentType, accept, extraHeaders,
                 body, query);
 
         PrimitiveHelper.persist(restPrimitive, dbClient);
 
-        final Primitive primitive = PrimitiveHelper.query(newPrimitive,
+        final Primitive primitive = PrimitiveHelper.query(restPrimitive.id(),
                 dbClient);
-        Assert.assertEquals(primitive.name(), newPrimitive);
+        
+        Assert.assertEquals(primitive.name(), name);
         Assert.assertEquals(primitive.description(), description);
-        Assert.assertEquals(primitive.parent().getName(), parent.getName());
-        Assert.assertEquals(primitive.parent().getURI(), parent.getURI());
+        Assert.assertEquals(primitive.parent(), null);
+        Assert.assertEquals(primitive.parent(), null);
         Assert.assertEquals(primitive.successCriteria(), successCriteria);
         Assert.assertEquals(primitive.input().keySet(), input.keySet());
         Assert.assertEquals(primitive.output().keySet(), output.keySet());

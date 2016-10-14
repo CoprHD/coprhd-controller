@@ -125,7 +125,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 String waitFor = null;
 
                 ProtectionExportController protectionController = getProtectionExportController();
-                waitFor = protectionController.addStepsForExportGroupCreate(workflow, waitFor, null, export, objectsToAdd, entry.getKey(),
+                waitFor = protectionController.addStepsForExportGroupCreate(workflow, null, waitFor, export, objectsToAdd, entry.getKey(),
                         initiatorURIs);
 
                 if (!objectsToAdd.isEmpty()) {

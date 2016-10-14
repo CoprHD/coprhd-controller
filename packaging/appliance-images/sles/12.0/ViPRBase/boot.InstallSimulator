@@ -27,14 +27,11 @@
 export PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 # Execute the script only if "/data/simulators" is not existed yet..
-if [ ! -f /data/simulators ]; then
+if [ ! -d /data/simulators ]; then
    # Run the simulator install script
    chmod 777 /aio-simulators/AIO_scripts/simulatorInstall.sh
    /aio-simulators/AIO_scripts/simulatorInstall.sh /aio-simulators
    
-   # Other changes during the firstboot requested from Jai
-   IP4Addr=`/sbin/ifconfig | egrep -A 1 "ens|eth0" | tail -1 | awk -F":" '{print $2}' | awk -F" " '{print $1}'`
-
    # General change:
    mv /data/simulators/vplex-sim_2/vplex_config_2.properties /data/simulators/vplex-sim_2/vplex_config.properties
    rm -f /data/simulators/vplex-sim/vplex_config_2.properties
@@ -45,28 +42,42 @@ if [ ! -f /data/simulators ]; then
    ln -s /data/simulators/cisco-sim /cisco-sim
    cp /data/simulators/cisco-sim/bashrc /root/.bashrc
    cp /data/simulators/cisco-sim/db/fcns.db.rp /data/simulators/cisco-sim/db/fcns.db
-   sed -i "s|0.0.0.0\/cimom|$IP4Addr\/cimom|g" /data/simulators/hds-sim/conf/serverConfig.groovy
    sed -i "s|port(5989)|port(6989)|g" /data/simulators/hds-sim/conf/serverConfig.groovy
-
-   # Change IP on the configuration files
-   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim/vplex_config.properties
-   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim_2/vplex_config.properties
-   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio/xio_config.properties
-   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio_2/xio_config.properties
-   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/rp-sim/rp_config.properties
-   sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vmware/vmw_config.properties
-   
-
-   # Start all the simulator services
-   systemctl restart CISCO
-   systemctl restart ECOM462
-   systemctl restart ECOM80
-   systemctl restart HDS
-   systemctl restart RP
-   systemctl restart VMWARE
-   systemctl restart VPLEX
-   systemctl restart VPLEX2
-   systemctl restart WIN
-   systemctl restart XIO
-   systemctl restart XIO2 
 fi
+
+# Install UNIT files for systemd
+chmod -R 777 /aio-simulators/AIO_scripts/intitScripts
+cp -p /aio-simulators/AIO_scripts/intitScripts/* /etc/init.d/
+
+for file in `/bin/ls /aio-simulators/AIO_scripts/unit_files/*`; do
+        fileName=${file##*/}
+        cp $file /usr/lib/systemd/system/$fileName || exit 1
+        chmod 777 /usr/lib/systemd/system/$fileName
+        /usr/bin/systemctl enable ${fileName%.*} || exit 1
+done
+sed -i "s/#DefaultTimeoutStartSec=90s/DefaultTimeoutStartSec=180s/" /etc/systemd/system.conf
+/usr/bin/systemctl daemon-reload
+
+# Change IP on the configuration files
+sleep 60
+IP4Addr=`/sbin/ifconfig | egrep -A 1 "ens|eth0" | tail -1 | awk -F":" '{print $2}' | awk -F" " '{print $1}'`
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim/vplex_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vplex-sim_2/vplex_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio/xio_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/xio_2/xio_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/rp-sim/rp_config.properties
+sed -i "s|127.0.0.1|$IP4Addr|g" /data/simulators/vmware/vmw_config.properties
+sed -i "s|0.0.0.0\/cimom|$IP4Addr\/cimom|g" /data/simulators/hds-sim/conf/serverConfig.groovy 
+
+# Start all the simulator services
+systemctl restart CISCO
+systemctl restart HDS
+systemctl restart RP
+systemctl restart VMWARE
+systemctl restart VPLEX
+systemctl restart VPLEX2
+systemctl restart WIN
+systemctl restart XIO
+systemctl restart XIO2 
+systemctl restart ECOM462
+systemctl restart ECOM80

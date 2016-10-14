@@ -39,30 +39,30 @@ getLatestURL(){
 # Install intit scritps                                             #
 #####################################################################
 
-echo "Installing intit scritps"
+#echo "Installing intit scritps"
 
 
-INIT_SCRIPTS_FOLDER=/etc/init.d/
-chmod -R 777 $INIT_SCRIPTS_LOCATION
-cp $INIT_SCRIPTS_LOCATION $INIT_SCRIPTS_FOLDER || exit 1
+#INIT_SCRIPTS_FOLDER=/etc/init.d/
+#chmod -R 777 $INIT_SCRIPTS_LOCATION
+#cp $INIT_SCRIPTS_LOCATION $INIT_SCRIPTS_FOLDER || exit 1
 
 #####################################################################
 # Install UNIT files for systemd                                    #
 #####################################################################
 
-echo "Installing UNIT files for systemd"
+#echo "Installing UNIT files for systemd"
 
-UNIT_FILES_FOLDER=/usr/lib/systemd/system
-for file in `/bin/ls $UNIT_FILES_LOCATION`; do
-	fileName=${file##*/}
-	cp $file $UNIT_FILES_FOLDER/$fileName || exit 1
-	chmod 777 $UNIT_FILES_FOLDER/$fileName
-	/usr/bin/systemctl enable ${fileName%.*} || exit 1
-done
+#UNIT_FILES_FOLDER=/usr/lib/systemd/system
+#for file in `/bin/ls $UNIT_FILES_LOCATION`; do
+#	fileName=${file##*/}
+#	cp $file $UNIT_FILES_FOLDER/$fileName || exit 1
+#	chmod 777 $UNIT_FILES_FOLDER/$fileName
+#	/usr/bin/systemctl enable ${fileName%.*} || exit 1
+#done
 
-sed -i "s/#DefaultTimeoutStartSec=90s/DefaultTimeoutStartSec=180s/" /etc/systemd/system.conf 
+#sed -i "s/#DefaultTimeoutStartSec=90s/DefaultTimeoutStartSec=180s/" /etc/systemd/system.conf 
 
-/usr/bin/systemctl daemon-reload
+#/usr/bin/systemctl daemon-reload
 
 #####################################################################
 # Install Simulators binaries                                       #

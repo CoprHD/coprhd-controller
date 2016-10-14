@@ -33,7 +33,7 @@ public class ApplicationSGMemberProcessor extends ApplicationStorageGroupProcess
             String instanceID = deviceMaskingGroup
                     .getKey(Constants.INSTANCEID).getValue().toString();
             _logger.info(String.format("Processing Member information for Storage Group: %s", instanceID));
-            VolumeGroup volumeGroup = checkVolumeGroupExistsInDB(instanceID);
+            VolumeGroup volumeGroup = checkVolumeGroupExistsInDB(instanceID, _dbClient);
             if (null == volumeGroup) { // This must never be true but just a placeholder
                 volumeGroup = new VolumeGroup();
                 volumeGroup.setId(URIUtil.createId(VolumeGroup.class));
@@ -57,7 +57,7 @@ public class ApplicationSGMemberProcessor extends ApplicationStorageGroupProcess
                 }
             }
         } catch (Exception e) {
-            _logger.error("Storage Group Discovery Failed : ", e);
+            _logger.error("Processing Member information for Storage Group failed ", e);
         }
     }
 

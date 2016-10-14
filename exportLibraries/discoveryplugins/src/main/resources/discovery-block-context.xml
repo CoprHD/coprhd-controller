@@ -1708,7 +1708,7 @@
   </bean>
       
     <bean id="applicationsgmemberprocessor"
-      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ApplicationsSGMemberProcessor">
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.application.ApplicationSGMemberProcessor">
     </bean>
     
     <!-- SMI-S Call to get associated Mask Views as part of discovery -->
@@ -1761,7 +1761,7 @@
   </bean>
 
     <bean id="applicationcomponentsprocessor"
-      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ApplicationComponentsProcessor">
+      class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.application.ApplicationComponentsProcessor">
     </bean>
 
      <!-- get Tier Policy Service -->	

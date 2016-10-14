@@ -44,7 +44,7 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                         .getKey(Constants.INSTANCEID).getValue().toString();
                 if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
                     // We need to get the Volume Group information here
-                    volumeGroup = checkVolumeGroupExistsInDB(instanceID);
+                    volumeGroup = checkVolumeGroupExistsInDB(instanceID, _dbClient);
                     if (null == volumeGroup) { // This must never be true but just a placeholder
                         volumeGroup = new VolumeGroup();
                         volumeGroup.setId(URIUtil.createId(VolumeGroup.class));
@@ -62,7 +62,7 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
             // Now process the needful information for the Volume Group here...
 
         } catch (Exception e) {
-            _logger.error("Storage Group Discovery Failed : ", e);
+            _logger.error("Processing association information for Masking Views failed : ", e);
         }
     }
 

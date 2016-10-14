@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -40,14 +41,16 @@ public class ApplicationStorageGroupProcessor extends Processor {
             @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
+            _logger.info(String.format("Discovering Storage Groups"));
             while (it.hasNext()) {
                 CIMObjectPath deviceMaskingGroup = it.next();
                 String instanceID = deviceMaskingGroup
                         .getKey(Constants.INSTANCEID).getValue().toString();
+                instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
                 String serialID = (String) keyMap.get(Constants._serialID);
                 if (instanceID.contains(serialID)) {
                     addPath(keyMap, operation.getResult(), deviceMaskingGroup);
-                    VolumeGroup volumeGroup = checkVolumeGroupExistsInDB(instanceID);
+                    VolumeGroup volumeGroup = checkVolumeGroupExistsInDB(instanceID, _dbClient);
                     if (null == volumeGroup) {
                         volumeGroup = new VolumeGroup();
                         volumeGroup.setId(URIUtil.createId(VolumeGroup.class));
@@ -75,16 +78,14 @@ public class ApplicationStorageGroupProcessor extends Processor {
      * @return
      * @throws IOException
      */
-    protected VolumeGroup checkVolumeGroupExistsInDB(String instanceID)
+    protected VolumeGroup checkVolumeGroupExistsInDB(String instanceID, DbClient dbClient)
             throws IOException {
         VolumeGroup volumeGroup = null;
-        @SuppressWarnings("deprecation")
         URIQueryResultList volumeGroupResults = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeGroupByLabel(instanceID),
+        dbClient.queryByConstraint(PrefixConstraint.Factory.getFullMatchConstraint(VolumeGroup.class, "label", instanceID),
                 volumeGroupResults);
         if (volumeGroupResults.iterator().hasNext()) {
-            volumeGroup = _dbClient.queryObject(
+            volumeGroup = dbClient.queryObject(
                     VolumeGroup.class, volumeGroupResults.iterator().next());
         }
         return volumeGroup;

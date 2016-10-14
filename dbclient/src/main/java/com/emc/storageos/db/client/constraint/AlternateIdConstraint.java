@@ -58,7 +58,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.Workflow;
@@ -411,11 +410,6 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
                     replicaGroupInstance);
-        }
-
-        public static Constraint getVolumeGroupByLabel(String label) {
-            DataObjectType doType = TypeMap.getDoType(VolumeGroup.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("label"), label);
         }
 
         public static AlternateIdConstraint getSnapshotReplicationGroupInstanceConstraint(

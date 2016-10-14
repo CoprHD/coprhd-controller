@@ -1468,6 +1468,26 @@ public class PortMetricsProcessor {
     }
 
     /**
+     * Check whether switch locality is enabled.
+     * 
+     * @return
+     * @see storageos-properties-config.def
+     */
+    static public Boolean isSwitchAffinityAllocationEnabled(StorageSystem.Type systemType) {
+        Boolean switchLocalityAllocationEnabled = false;
+
+        try {
+            switchLocalityAllocationEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.PORT_ALLOCATION_SWITCH_AFFINITY_ENABLED,
+                            getStorageSystemTypeName(systemType), null));
+        } catch (Exception e) {
+            _log.debug(e.getMessage());
+        }
+        return switchLocalityAllocationEnabled;
+    }
+    
+    /**
      * ViPR allocate port based on collected usage metrics, used initiator and volume. The ports which are being heavily used and
      * exceeded configured ceiling, will be eliminated from candidate pools.
      * The ceiling values are configurable. For clarity, they are name with their system type as prefix. E.g., VMAXZ type, the ceiling

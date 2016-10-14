@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -68,6 +69,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnl
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.emc.storageos.volumecontroller.placement.PlacementUtils;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -1039,8 +1042,9 @@ public class VPlexBackendManager {
         // get the existing zones in zonesByNetwork
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts = getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
+        Map<String, Integer> switchToPortNumber = getSwitchToMaxPortNumberMap();
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(allocatablePorts, _networkMap, varrayURI,
-                initiatorGroups.size());
+                initiatorGroups.size(), switchToPortNumber);
 
         // Now generate the Masking Views that will be needed.
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
@@ -1502,6 +1506,29 @@ public class VPlexBackendManager {
             }
         }
         return filteredMap;
+    }
+    
+    /**
+     * Get the map of number of max path numbers could be per switch based on the initiators.
+     * 
+     * @param initiators initiators
+     * @param  the export path params
+     * @return the map
+     */
+    private Map<String, Integer> getSwitchToMaxPortNumberMap() {
+        Map<String, Integer> result = new HashMap<String, Integer>();
+        for (Initiator initiator : _idToInitiatorMap.values()) {
+            String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), _dbClient);
+            if (switchName != null && !switchName.isEmpty()) {
+                Integer count = result.get(switchName);
+                if (count != null) {
+                    count ++;
+                } else {
+                    result.put(switchName, 1);
+                }
+            }
+        }
+        return result;
     }
 
 }

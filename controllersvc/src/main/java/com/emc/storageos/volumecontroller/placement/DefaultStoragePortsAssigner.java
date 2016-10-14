@@ -18,13 +18,17 @@ import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 
 /**
  * Assign StoragePorts to Initiators.
@@ -433,7 +437,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     public void assignPortsToHost(Map<Initiator, List<StoragePort>> assignments, 
             Map<URI, List<Initiator>> netToNewInitiators, Map<URI, List<StoragePort>> netToAllocatedPorts,
             ExportPathParams pathParams, Map<Initiator, List<StoragePort>> argExistingAssignments, URI hostURI, 
-            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap) {
+            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNet,
+            Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
         _log.info("Assigning ports for host: " + hostURI);
         
         // Make a map of port to the number of initiators using the port.
@@ -480,6 +485,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             // N.B. We must copy the initiator list so as not to affect caller's data
             netToInitiatorsToProvision.put(entry.getKey(), new ArrayList<Initiator>(entry.getValue()));
         }
+        
+       
         boolean addedThisPass = false;
         do {
             addedThisPass = false;
@@ -489,7 +496,37 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     continue;
                 }
                 int currentStoragePaths = portUseCounts.size();
-                Initiator initiator = entry.getValue().get(0);
+                Initiator initiator = null;
+                List<StoragePort> allocatedPorts = null;
+                Map<String, List<Initiator>>switchInitiators = null;
+                String switchUsed = null;
+                if (switchToInitiatorsByNet != null && !switchToInitiatorsByNet.isEmpty() &&
+                        switchToStoragePortsByNet != null &&  !switchToStoragePortsByNet.isEmpty()) {
+                    // Find the initiators and storage ports are connected to the same switch.
+                    URI net = entry.getKey();
+                    switchInitiators = switchToInitiatorsByNet.get(net);
+                    Map<String, List<StoragePort>> switchPorts = switchToStoragePortsByNet.get(net);
+                    Set<String> initiatorSwitches = switchInitiators.keySet();
+                    Set<String> portSwitches = switchPorts.keySet();
+                    initiatorSwitches.retainAll(portSwitches);
+                    if (!initiatorSwitches.isEmpty()) {
+                        for (String switchName : initiatorSwitches) {
+                            if (!switchName.equals(NullColumnValueGetter.getNullStr())) {
+                                _log.info("The common switch name is " + switchName);
+                                List<Initiator> inits = switchInitiators.get(switchName);
+                                initiator = inits.get(0);
+                                allocatedPorts = switchPorts.get(switchName);
+                                switchUsed = switchName;
+                                break;
+                            }
+                        }
+                    }
+                } 
+                if (initiator == null) {
+                    initiator = entry.getValue().get(0);
+                    allocatedPorts = netToAllocatedPorts.get(entry.getKey());
+                }
+
                 int alreadyAssigned = 0;
                 List<StoragePort> assignedPorts = assignments.get(initiator);
                 if (assignedPorts != null) {
@@ -498,13 +535,15 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                         _log.info(String.format("Assignments sufficient for initiator %s (%s)", 
                                 initiator.getInitiatorPort(), initiator.getHostName()));
                         entry.getValue().remove(0);
+                        if (switchInitiators != null && switchUsed != null) {
+                            switchInitiators.get(switchUsed).remove(initiator);
+                        }
                         // This counts as we added something because we processed a previous mapping
                         addedThisPass = true;
                         continue;
                     }
                 }
                 if ((currentStoragePaths + pathParams.getPathsPerInitiator()-alreadyAssigned) <= pathParams.getMaxPaths()) {
-                    List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
                     List<StoragePort> availPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap,
                             allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator()-alreadyAssigned, 0);
 
@@ -512,6 +551,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
                         // Remove this initiator from further provisioning consideration
                         entry.getValue().remove(0);
+                        if (switchInitiators != null && switchUsed != null) {
+                            switchInitiators.get(switchUsed).remove(initiator);
+                        }
                         addedThisPass = true;
                     } else {
                         _log.info(String.format("No available ports to provision initiator %s (%s)",
@@ -664,4 +706,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         return new HashMap<Initiator, List<StoragePort>>();
     }
+    
+    
+    
 }

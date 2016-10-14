@@ -94,10 +94,12 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- URI of virtual array used for allocation
      * @param nInitiatorGroups
      *            -- the number of Initiator Groups created
+     * @param switchToPortNumber
+     *            -- the number of port number to be allocated per switch
      * @return Set of PortGroups.
      */
     Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups);
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, Map<String, Integer> switchToPortNumber);
 
     /**
      * Configure the zoning for an ExportMask given its PortGroup and InitiatorGroup.

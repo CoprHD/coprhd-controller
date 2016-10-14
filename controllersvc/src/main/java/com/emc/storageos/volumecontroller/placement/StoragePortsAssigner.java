@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -60,11 +61,14 @@ public interface StoragePortsAssigner {
      * @param URI hostURI -- host URI we are assigning for
      * @param initiatorToNetworkLiteMap map of Initiator to NetworkLite object 
      *      (can be null for unit tests, only used to evaluate prezoning)
+     * @param switchToInitiatorsByNet - the map of switch name to initiators by network
+     * @param switchToStoragePortsByNet - the map of switch name to storage ports by network
      */
     public abstract void assignPortsToHost(Map<Initiator, List<StoragePort>> assignments, 
             Map<URI, List<Initiator>> netToNewInitiators, Map<URI, List<StoragePort>> netToAllocatedPorts,
             ExportPathParams pathParams, Map<Initiator, List<StoragePort>> existingAssignments, URI hostURI,
-            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap); 
+            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNet,
+            Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet); 
 
     /**
      * Sub-class specific implementation for checking if the port can be assigned to the initiator.

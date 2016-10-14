@@ -24,7 +24,10 @@ import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -175,7 +178,7 @@ public class BlockStorageScheduler {
             // For each host, assign the ports to the appropriate initiators.
             for (URI hostURI : hostsToNetToInitiators.keySet()) {
                 assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI),
-                        allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
+                        allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap, null, null);
 
             }
             // Validate that minPaths was met across all assignments (existing and new).
@@ -224,6 +227,7 @@ public class BlockStorageScheduler {
         // Get the storage ports in the storage system that can be used in the initiators networks
         Map<NetworkLite, List<StoragePort>> portsByNetwork =
                 selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray, pathParams);
+        
         // allocate ports balancing across networks and considering port metrics
         Map<NetworkLite, List<StoragePort>> allocatedPorts = allocatePorts(system,
                 varray, initiatorsByNetwork, portsByNetwork, volumeURIs, pathParams, existingZoningMap);
@@ -238,9 +242,14 @@ public class BlockStorageScheduler {
         
         // For each host, assign the ports to the appropriate initiators.
         for (URI hostURI : hostsToNetToInitiators.keySet()) {
-            assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI), 
-                    allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
-            
+            Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = null;
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = null;
+            Map<URI, List<Initiator>> initiatorByNetMap = hostsToNetToInitiators.get(hostURI);
+            PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
+                    system, switchInitiatorsByNet, switchStoragePortsByNet);
+            assigner.assignPortsToHost(assignments, initiatorByNetMap, 
+                    allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap,
+                    switchInitiatorsByNet, switchStoragePortsByNet);            
         }
 
         // Validate that minPaths was met across all assignments (existing and new).
@@ -373,6 +382,9 @@ public class BlockStorageScheduler {
         // https://support.emc.com/docu10627_RecoverPoint-Deploying-with-Symmetrix-Arrays-and-Splitter-Technical-Notes.pdf?language=en_US
         // We need to align the masking of volumes to hosts to the same ports as the RP masking view.
         portUsageMap = filterStoragePortsForRPVMAX(system.getId(), networkMap, varray, portUsageMap, volumeURIs);
+        
+        boolean isSwitchLocalityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
+                DiscoveredDataObject.Type.valueOf(system.getSystemType()));
 
         // Loop through all the required Networks, allocating ports as necessary.
         Map<NetworkLite, List<StoragePort>> portsAllocated = new HashMap<NetworkLite, List<StoragePort>>();
@@ -397,11 +409,17 @@ public class BlockStorageScheduler {
                 _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
                 continue;                
             }
+            
+            Map<String, Integer> switchToMaxPortNumber = null;     
+            if (isSwitchLocalityEnabled) {
+                switchToMaxPortNumber = getSwitchToMaxPortNumberMap(initiators, pathParams);
+            }
+            
             // Allocate the storage ports.
             portsAllocated.put(network, allocatePortsFromNetwork(
                     system.getId(), network, varray, portsNeeded,
                     portUsageMap.get(netURI), allocator, existingPortsMap.get(netURI),
-                    true));
+                    true, switchToMaxPortNumber));
         }
         return portsAllocated;
     }
@@ -761,12 +779,12 @@ public class BlockStorageScheduler {
             URI storageURI, NetworkLite network, URI varrayURI, int numPaths,
             Map<StoragePort, Long> portUsageMap,
             StoragePortsAllocator allocator, Set<StoragePort> previouslyAllocatedPorts,
-            boolean allowFewerPorts) throws PlacementException {
+            boolean allowFewerPorts, Map<String, Integer> switchToMaxPortNumber) throws PlacementException {
         List<StoragePort> sports = new ArrayList<StoragePort>();
         if (network.getTransportType().equals(StorageProtocol.Transport.FC.name()) ||
                 network.getTransportType().equals(StorageProtocol.Transport.IP.name())) {
             List<StoragePort> portList = allocator.selectStoragePorts(
-                    _dbClient, portUsageMap, network, varrayURI, numPaths, previouslyAllocatedPorts, allowFewerPorts);
+                    _dbClient, portUsageMap, network, varrayURI, numPaths, previouslyAllocatedPorts, allowFewerPorts, switchToMaxPortNumber);
             for (StoragePort port : portList) {
                 if (!sports.contains(port)) {
                     sports.add(port);
@@ -2018,8 +2036,13 @@ public class BlockStorageScheduler {
                     // Assign the storage ports on a per host basis.
                     for (Map.Entry<URI, Map<URI, List<Initiator>>> entry : hostsToNetToInitiators.entrySet()) {
                         URI hostURI = entry.getKey();
+                        Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = null;
+                        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = null;
+                        Map<URI, List<Initiator>> initiatorByNetMap = entry.getValue();
+                        PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
+                                storage, switchInitiatorsByNet, switchStoragePortsByNet);
                         assigner.assignPortsToHost(assignments, entry.getValue(), allocatedPortsMap, prezoningPathParams,
-                                existingAssignments, hostURI, initiatorToNetworkLiteMap);
+                                existingAssignments, hostURI, initiatorToNetworkLiteMap, switchInitiatorsByNet, switchStoragePortsByNet);
                     }
                     addAssignmentsToZoningMap(assignments, newZoningMap);
                 }
@@ -2227,4 +2250,29 @@ public class BlockStorageScheduler {
         }
         return returnedPortMap;
     }
+    
+    /**
+     * Get the map of number of max path numbers could be per switch based on the initiators.
+     * 
+     * @param initiators initiators
+     * @param pathParams the export path params
+     * @return the map
+     */
+    private Map<String, Integer> getSwitchToMaxPortNumberMap(List<Initiator> initiators, ExportPathParams pathParams) {
+        Map<String, Integer> result = new HashMap<String, Integer>();
+        for (Initiator initiator : initiators) {
+            String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), _dbClient);
+            if (switchName != null && !switchName.isEmpty()) {
+                Integer count = result.get(switchName);
+                int numberOfPath = pathParams.getMaxInitiatorsPerPort();
+                if (count != null) {
+                    count += numberOfPath;
+                } else {
+                    result.put(switchName, numberOfPath);
+                }
+            }
+        }
+        return result;
+    }
+    
 }

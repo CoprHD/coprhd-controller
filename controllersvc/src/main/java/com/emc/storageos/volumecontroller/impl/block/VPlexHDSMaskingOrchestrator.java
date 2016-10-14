@@ -95,7 +95,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, Map<String, Integer> switchToPortNumber) {
 
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
@@ -199,7 +199,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
                 List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
-                        portsAllocatedPerNetwork.get(netURI), net, varrayURI);
+                        portsAllocatedPerNetwork.get(netURI), net, varrayURI, switchToPortNumber);
                 if (portGroup.get(netURI) == null) {
                     portGroup.put(netURI, new ArrayList<List<StoragePort>>());
                 }
@@ -232,7 +232,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested,
-            NetworkLite net, URI varrayURI) {
+            NetworkLite net, URI varrayURI, Map<String, Integer> switchToPortNumber) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
             StoragePortsAllocator.PortAllocationContext context = StoragePortsAllocator.getPortAllocationContext(
@@ -240,13 +240,13 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false, switchToPortNumber);
             allocator.setContext(context);
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = _blockScheduler.computeStoragePortUsage(candidatePorts);
             List<StoragePort> portsAllocated = allocator.selectStoragePorts(_dbClient,
-                    sportMap, net, varrayURI, portsRequested, null, false);
+                    sportMap, net, varrayURI, portsRequested, null, false, switchToPortNumber);
             return portsAllocated;
         }
     }

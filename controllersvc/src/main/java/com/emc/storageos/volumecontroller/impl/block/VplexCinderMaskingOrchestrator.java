@@ -129,7 +129,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap,
             URI varrayURI,
-            int nInitiatorGroups) {
+            int nInitiatorGroups,
+            Map<String, Integer> switchToPortNumber) {
         _log.debug("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
@@ -152,7 +153,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                         allocatablePorts.get(netURI),
                         portsAllocatedPerNetwork.get(netURI),
                         net,
-                        varrayURI);
+                        varrayURI,
+                        switchToPortNumber);
                 if (portGroup.get(netURI) == null) {
                     portGroup.put(netURI, new ArrayList<List<StoragePort>>());
                 }
@@ -622,7 +624,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             List<StoragePort> candidatePorts,
             int portsRequested,
             NetworkLite nwLite,
-            URI varrayURI) {
+            URI varrayURI,
+            Map<String, Integer> switchToPortNumber) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator,
                 candidatePorts,
                 portsRequested,
@@ -630,7 +633,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 varrayURI,
                 simulation,
                 _blockScheduler,
-                _dbClient);
+                _dbClient,
+                switchToPortNumber);
     }
 
 }

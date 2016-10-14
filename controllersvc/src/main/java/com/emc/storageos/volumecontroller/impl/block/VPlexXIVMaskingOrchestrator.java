@@ -120,7 +120,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap,
-            URI varrayURI, int nInitiatorGroups) {
+            URI varrayURI, int nInitiatorGroups,
+            Map<String, Integer> switchToPortNumber) {
 
         _log.debug("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
@@ -144,7 +145,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                         allocatablePorts.get(netURI),
                         portsAllocatedPerNetwork.get(netURI),
                         net,
-                        varrayURI);
+                        varrayURI,
+                        switchToPortNumber);
                 if (portGroup.get(netURI) == null) {
                     portGroup.put(netURI, new ArrayList<List<StoragePort>>());
                 }
@@ -409,7 +411,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             List<StoragePort> candidatePorts,
             int portsRequested,
             NetworkLite nwLite,
-            URI varrayURI) {
+            URI varrayURI,
+            Map<String, Integer> switchToPortNumber) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator,
                 candidatePorts,
                 portsRequested,
@@ -417,7 +420,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 varrayURI,
                 simulation,
                 _blockScheduler,
-                _dbClient);
+                _dbClient,
+                switchToPortNumber);
     }
 
 }

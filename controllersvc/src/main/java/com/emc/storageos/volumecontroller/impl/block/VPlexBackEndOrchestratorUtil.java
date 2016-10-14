@@ -39,7 +39,8 @@ public class VPlexBackEndOrchestratorUtil {
 
     public static List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI,
-            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient) {
+            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient,
+            Map<String, Integer> switchToPortNumber) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
             StoragePortsAllocator.PortAllocationContext context = StoragePortsAllocator
@@ -48,14 +49,14 @@ public class VPlexBackEndOrchestratorUtil {
                 context.addPort(port, null, null, null, null);
             }
             List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested,
-                    context, false, null, false);
+                    context, false, null, false, switchToPortNumber);
             allocator.setContext(context);
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = blockScheduler
                     .computeStoragePortUsage(candidatePorts);
             List<StoragePort> portsAllocated = allocator.selectStoragePorts(dbClient, sportMap,
-                    net, varrayURI, portsRequested, null, false);
+                    net, varrayURI, portsRequested, null, false, switchToPortNumber);
             return portsAllocated;
         }
     }

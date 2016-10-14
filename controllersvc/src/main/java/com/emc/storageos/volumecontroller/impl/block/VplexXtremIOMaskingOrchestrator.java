@@ -39,6 +39,7 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.placement.PlacementUtils;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -107,7 +108,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
-            URI varrayURI, int nInitiatorGroups) {
+            URI varrayURI, int nInitiatorGroups, Map<String, Integer> switchToPortNumber) {
         /**
          * Number of Port Group for XtremIO is always one.
          * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
@@ -329,7 +330,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
      *
      */
     private boolean isPortConnected(StoragePortsAllocator allocator, StoragePort sPort, boolean checkConnectivity) {
-        if (checkConnectivity && (allocator.getSwitchName(sPort, _dbClient) == null)) {
+        if (checkConnectivity && (PlacementUtils.getSwitchName(sPort, _dbClient) == null)) {
             return false;
         }
         return true;
@@ -406,9 +407,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
-            List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI) {
+            List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI, Map<String, Integer> switchToPortNumber) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator, candidatePorts, portsRequested, net, varrayURI,
-                simulation, _blockScheduler, _dbClient);
+                simulation, _blockScheduler, _dbClient, switchToPortNumber);
     }
 
     @Override

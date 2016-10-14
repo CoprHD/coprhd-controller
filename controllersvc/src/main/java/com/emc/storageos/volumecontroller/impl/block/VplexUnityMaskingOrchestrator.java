@@ -103,7 +103,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, Map<String, Integer> switchToPortNumber) {
         log.info("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
@@ -128,7 +128,8 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     varrayURI,
                     simulation,
                     _blockScheduler,
-                    _dbClient);
+                    _dbClient,
+                    switchToPortNumber);
             if (portGroup.get(netURI) == null) {
                 portGroup.put(netURI, new ArrayList<List<StoragePort>>());
             }

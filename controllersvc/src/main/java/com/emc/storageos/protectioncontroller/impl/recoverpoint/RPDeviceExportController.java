@@ -26,7 +26,7 @@ public class RPDeviceExportController implements ProtectionExportController {
     private final DbClient dbClient;
     private final ExportWorkflowUtils wfUtils;
 
-    private static final Logger _log = LoggerFactory.getLogger(RPDeviceExportController.class);
+    private static final Logger log = LoggerFactory.getLogger(RPDeviceExportController.class);
 
     public RPDeviceExportController(DbClient dbClient, ExportWorkflowUtils wfUtils) {
         this.dbClient = dbClient;
@@ -47,7 +47,7 @@ public class RPDeviceExportController implements ProtectionExportController {
             for (URI protectionSystemUri : protectionMap.keySet()) {
                 // Obtain subset of objects to export that reference the current protection controller
                 Map<URI, Integer> objectsToExportWithProtection = protectionMap.get(protectionSystemUri);
-                _log.info(String
+                log.info(String
                         .format(
                                 "Generating exportGroupCreate steps for objects %s associated with protection system [%s] and storage system [%s]",
                                 objectsToExportWithProtection.keySet(), protectionSystemUri, storageUri));
@@ -75,7 +75,7 @@ public class RPDeviceExportController implements ProtectionExportController {
             for (URI protectionSystemUri : removeBlockObjectsByProtectionSystem.keySet()) {
                 List<URI> objectsToRemoveWithProtection = new ArrayList<URI>(removeBlockObjectsByProtectionSystem.get(
                         protectionSystemUri).keySet());
-                _log.info(String
+                log.info(String
                         .format(
                                 "Generating exportGroupRemoveVolumes step for objects %s associated with protection system [%s] and storage system [%s]",
                                 objectsToRemoveWithProtection, protectionSystemUri, storageUri));
@@ -101,7 +101,7 @@ public class RPDeviceExportController implements ProtectionExportController {
             // For each protection system, create the export group add volume steps for the associated BlockSnapshot objects.
             for (URI protectionSystemUri : addedBlockObjectsByProtectionSystem.keySet()) {
                 Map<URI, Integer> objectsToAddWithProtection = addedBlockObjectsByProtectionSystem.get(protectionSystemUri);
-                _log.info(String
+                log.info(String
                         .format(
                                 "Generating exportGroupAddVolumes step for objects %s associated with protection system [%s] and storage system [%s]",
                                 objectsToAddWithProtection.keySet(), protectionSystemUri, storageUri));

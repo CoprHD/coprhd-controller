@@ -19,13 +19,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -274,32 +272,6 @@ public class ExportWorkflowUtils {
             getWorkflowService().releaseAllWorkflowLocks(storageWorkflow);
             throw ex;
         }
-    }
-
-    /**
-     * Extracts BlockSnapshot objects from a list of BlockObjects and sort them by protection system. If the
-     * protection system is not set, the object is omitted from the sorted Map.
-     *
-     * @param blockObjectsMap
-     * @return a Map of BlockSnapshot objects sorted by protection system
-     */
-    public Map<URI, Map<URI, Integer>> sortSnapshotsByProtectionSystem(Map<URI, Integer> blockObjectsMap) {
-        Map<URI, Map<URI, Integer>> protectionMap = new HashMap<URI, Map<URI, Integer>>();
-
-        if (blockObjectsMap != null) {
-            for (URI blockObjectUri : blockObjectsMap.keySet()) {
-                BlockObject bo = BlockObject.fetch(_dbClient, blockObjectUri);
-                // Only grab the RP BlockSnapshots
-                if (bo != null && bo instanceof BlockSnapshot && !NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
-                    if (protectionMap.get(bo.getProtectionController()) == null) {
-                        protectionMap.put(bo.getProtectionController(), new HashMap<URI, Integer>());
-                    }
-                    protectionMap.get(bo.getProtectionController()).put(blockObjectUri, blockObjectsMap.get(blockObjectUri));
-                }
-            }
-        }
-
-        return protectionMap;
     }
 
     public String generateExportGroupDeleteWorkflow(Workflow workflow, String wfGroupId,

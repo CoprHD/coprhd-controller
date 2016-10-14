@@ -302,7 +302,7 @@ public class VcenterControllerImpl implements VcenterController {
                             null,
                             null);
                 }
-
+/**
                 if (!volumes.isEmpty()) {
                     // Once all hosts in cluster select a host to use for shared storage operations
                     String selectHostForStorageOperationsStep = workflow.createStep(
@@ -333,6 +333,7 @@ public class VcenterControllerImpl implements VcenterController {
                                 null);
                     }
                 }
+**/
             }
 
             workflow.executePlan(completer, "Success");

@@ -8984,7 +8984,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (distDeviceName.length() > VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR) {
                     String modifiedName = distDeviceName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
                     _log.info("Temporarily renaming the distributed device from {} to {} as VPLEX expects the name "
-                            + " to be 47 characters or when we reattach the mirror.", distDeviceName, modifiedName);
+                            + " to be 47 characters or less when we reattach the mirror.", distDeviceName, modifiedName);
                     client.renameDistributedDevice(distDeviceName, modifiedName);
                     stepData.put(RESTORE_DEVICE_NAME, distDeviceName);
                 }
@@ -9156,7 +9156,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("Restored name of distributed device from {} to {}", modifiedName, restoreDeviceName);
                 } catch (Exception e) {
                     // We don't fail the workflow step in this case, but instead just log a message 
-                    // indicating this error. The distribute device for the volume will just have
+                    // indicating this error. The distributed device for the volume will just have
                     // the modified name.
                     successWarningMessage = String.format("Failed renaming the distributed device %s back "
                             + " to its orginal name %s after reattaching remote mirror", modifiedName, restoreDeviceName);

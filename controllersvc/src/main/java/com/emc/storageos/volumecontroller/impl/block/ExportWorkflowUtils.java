@@ -560,6 +560,9 @@ public class ExportWorkflowUtils {
 
     /**
      * Gets an instance of ProtectionExportController.
+     * <p>
+     * NOTE: This method currently only returns an instance of RPDeviceExportController. In the future, this will need to return other
+     * protection export controllers if support is added.
      *
      * @return the ProtectionExportController
      */

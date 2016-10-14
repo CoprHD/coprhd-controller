@@ -40,10 +40,10 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
             String targetMaskingGroupInstanceID = null;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
-                String instanceID = associatedInstancePath
-                        .getKey(Constants.INSTANCEID).getValue().toString();
                 if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
                     // We need to get the Volume Group information here
+                    String instanceID = associatedInstancePath
+                            .getKey(Constants.INSTANCEID).getValue().toString();
                     instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
                     volumeGroup = checkVolumeGroupExistsInDB(instanceID, _dbClient);
                     if (null == volumeGroup) { // This must never be true but just a placeholder
@@ -55,9 +55,13 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                     }
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SE_TARGET_MASKING_GROUP)) {
                     // We need to add the volume device ids here
-                    targetMaskingGroupInstanceID = instanceID;
+                    targetMaskingGroupInstanceID = associatedInstancePath
+                            .getKey(Constants.INSTANCEID).getValue().toString()
+                            .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SE_STORAGE_HARDWARE_ID)) {
-                    initiatorList.add(instanceID);
+                    initiatorList.add(associatedInstancePath
+                            .getKey(Constants.INSTANCEID).getValue().toString()
+                            .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS));
                 }
             }
             // Now process the needful information for the Volume Group here...

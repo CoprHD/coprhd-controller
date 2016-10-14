@@ -234,7 +234,7 @@ public class ExportWorkflowUtils {
             Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(addedBlockObjects);
 
             ProtectionExportController protectionController = getProtectionExportController();
-            waitFor = protectionController.addStepsForExportGroupCreate(workflow, waitFor, wfGroupId, exportGroupUri, objectsToAdd,
+            waitFor = protectionController.addStepsForExportGroupCreate(workflow, wfGroupId, waitFor, exportGroupUri, objectsToAdd,
                     blockStorageControllerUri,
                     addedInitiators);
 
@@ -242,7 +242,7 @@ public class ExportWorkflowUtils {
                 // There are no export BlockObjects tied to the current storage system that have an associated protection
                 // system. We can just create a step to call the block controller directly for export group create.
                 _log.info(String.format(
-                        "Generating exportGroupCreates steps for objects %s associated with storage system [%s]",
+                        "Generating exportGroupCreate steps for objects %s associated with storage system [%s]",
                         objectsToAdd, blockStorageControllerUri));
 
                 // Add the new block objects to the existing ones and send all down

@@ -23,11 +23,11 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 public class StorageSynchronizedProcessor extends StorageProcessor {
 
     private Logger _log = LoggerFactory.getLogger(StorageSynchronizedProcessor.class);
-    private static final String MODE = "Mode";
     private DbClient _dbClient;
 
     @Override
@@ -45,7 +45,7 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                         Constants._SystemElement).getValue();
                 CIMObjectPath destPath = (CIMObjectPath) volumePath.getKey(
                         Constants._SyncedElement).getValue();
-                String mode = instance.getPropertyValue(MODE).toString();
+                String mode = instance.getPropertyValue(SmisConstants.CP_MODE).toString();
                 String copyMode = null;
                 if (mode != null) {
                     copyMode = SupportedCopyModes.getCopyMode(mode);

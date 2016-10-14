@@ -58,14 +58,14 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     public static final String DRIVER_NAME = "SimulatorDriver";
-    private static final int NUMBER_OF_VOLUME_PAGES = 3;
-    private static final int NUMBER_OF_VOLUMES_ON_PAGE = 2;
-    private static final int NUMBER_OF_CLONES_FOR_VOLUME = 2;
-    private static final int NUMBER_OF_SNAPS_FOR_VOLUME = 2;
-    private static final boolean VOLUMES_IN_CG = true;
+    private static final int NUMBER_OF_VOLUME_PAGES = 1;
+    private static final int NUMBER_OF_VOLUMES_ON_PAGE = 3;
+    private static final int NUMBER_OF_CLONES_FOR_VOLUME = 0;
+    private static final int NUMBER_OF_SNAPS_FOR_VOLUME = 0;
+    private static final boolean VOLUMES_IN_CG = false;
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
-    private static final boolean GENERATE_EXPORT_DATA = true;
+    private static final boolean GENERATE_EXPORT_DATA = false;
     private static final String SIMULATOR_CONF_FILE = "simulator-conf.xml";
     private static final String CONFIG_BEAN_NAME = "simulatorConfig";
 

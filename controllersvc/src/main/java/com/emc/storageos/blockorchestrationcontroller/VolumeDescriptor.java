@@ -48,8 +48,9 @@ public class VolumeDescriptor implements Serializable {
         SRDF_EXISTING_SOURCE(17), // SRDF existing source volume
         VPLEX_MIGRATE_VOLUME(18),
         BLOCK_SNAPSHOT_SESSION(19), // snapshot session
-        DUMMY_MIGRATE(20); // Used to pass through without migrating 
-
+        DUMMY_MIGRATE(20), // Used to pass through without migrating
+        REMOTE_REPLICATION_SOURCE(21), // remote replication source
+        REMOTE_REPLICATION_TARGET(22); // remote replication target
         private final int order;
 
         private Type(int order) {
@@ -83,6 +84,17 @@ public class VolumeDescriptor implements Serializable {
     public static final String PARAM_DO_NOT_DELETE_VOLUME = "doNotDeleteVolume";
     public static final String PARAM_MIGRATION_SUSPEND_BEFORE_COMMIT = "migrationSuspendBeforeCommit";
     public static final String PARAM_MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE = "migrationSuspendBeforeDeleteSource";
+
+    // remote replication specific parameters
+    // RRG of source-target pair
+    public static final String PARAM_REMOTE_REPLICATION_GROUP_ID = "remoteReplicationGroup";
+    // RRS of source-target pair
+    public static final String PARAM_REMOTE_REPLICATION_SET_ID = "remoteReplicationSet";
+    // link state of source-target pair
+    public static final String PARAM_REMOTE_REPLICATION_LINK_STATE = "remoteReplicationLinkState";
+    // replication mode
+    public static final String PARAM_REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+    //
 
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,

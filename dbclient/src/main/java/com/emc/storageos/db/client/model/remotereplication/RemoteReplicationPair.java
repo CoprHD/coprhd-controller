@@ -8,12 +8,21 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.Volume;
 
 @Cf("RemoteReplicationPair")
 public class RemoteReplicationPair extends DataObject {
+
+    public enum ElementType {
+        VOLUME,
+        FILE_SYSTEM
+    }
+
+    // Element type (block or file element)
+    private ElementType elementType;
 
     // Device nativeId of replication pair.
     private String nativeId;
@@ -88,7 +97,7 @@ public class RemoteReplicationPair extends DataObject {
         setChanged("replicationState");
     }
 
-    @RelationIndex(cf = "SourceElementOfReplicationPairIndex", type = RemoteReplicationElement.class)
+    @RelationIndex(cf = "SourceElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
     @Name("sourceElement")
     public URI getSourceElement() {
         return sourceElement;
@@ -99,7 +108,7 @@ public class RemoteReplicationPair extends DataObject {
         setChanged("sourceElement");
     }
 
-    @RelationIndex(cf = "TargetElementOfReplicationPairIndex", type = RemoteReplicationElement.class)
+    @RelationIndex(cf = "TargetElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
     @Name("targetElement")
     public URI getTargetElement() {
         return targetElement;
@@ -108,5 +117,15 @@ public class RemoteReplicationPair extends DataObject {
     public void setTargetElement(URI targetElement) {
         this.targetElement = targetElement;
         setChanged("targetElement");
+    }
+
+    @Name("elementType")
+    public ElementType getElementType() {
+        return elementType;
+    }
+
+    public void setElementType(ElementType elementType) {
+        this.elementType = elementType;
+        setChanged("elementType");
     }
 }

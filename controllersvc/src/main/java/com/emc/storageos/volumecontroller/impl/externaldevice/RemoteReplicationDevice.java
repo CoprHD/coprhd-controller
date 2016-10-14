@@ -8,13 +8,14 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface RemoteReplicationDevice {
 
-    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive);
-    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive);
-    public void deleteReplicationPairs(List<URI> replicationPairs);
+    public void createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, TaskCompleter taskCompleter);
+    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, TaskCompleter taskCompleter);
+    public void deleteReplicationPair(URI replicationPair, TaskCompleter taskCompleter);
 
     // replication link operations
     public void start(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);

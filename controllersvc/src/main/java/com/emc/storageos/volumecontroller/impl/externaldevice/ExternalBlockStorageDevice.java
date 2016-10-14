@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1705,18 +1706,23 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     public static synchronized BlockStorageDriver getBlockStorageDriver(String driverType) {
         return blockDrivers.get(driverType);
     }
+
     @Override
-    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive) {
+    public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, boolean createActive, TaskCompleter taskCompleter) {
+
+        // prepare driver replication pairs and call driver
+        List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+        prepareDriverRemoteReplicationPairs(systemReplicationPairs, driverRRPairs);
 
     }
 
     @Override
-    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive) {
+    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void deleteReplicationPairs(List<URI> replicationPairs) {
+    public void deleteReplicationPair(URI replicationPair, TaskCompleter taskCompleter) {
 
     }
 
@@ -1856,6 +1862,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         // release reserved capacity
         dbPool.removeReservedCapacityForVolumes(URIUtil.asStrings(reservedObjects));
         dbClient.updateObject(dbPool);
+    }
+
+    private void prepareDriverRemoteReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs,
+                                                     List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs) {
+
     }
 
 }

@@ -6,7 +6,7 @@
  }%
 
 #{breadcrumb.container}
-  #{breadcrumb.item @volumes()}&{'resources.volumes'}#{/breadcrumb.item}
+  #{breadcrumb.item @volumes(projectId)}&{'resources.volumes'}#{/breadcrumb.item}
     #{if params.continuousCopyId}
       #{breadcrumb.item @volume(params.volumeId)}${volume?.source?.name}#{/breadcrumb.item}    
       #{breadcrumb.item active:true}${volume?.name}#{/breadcrumb.item}

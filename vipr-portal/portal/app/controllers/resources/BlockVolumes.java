@@ -9,6 +9,7 @@ import static com.emc.sa.util.ResourceType.VOLUME;
 import static com.emc.sa.util.ResourceType.VPLEX_CONTINUOUS_COPY;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
 import play.i18n.Messages;
+import play.mvc.Http;
 import play.mvc.Util;
 import play.mvc.With;
 import util.BlockConsistencyGroupUtils;
@@ -74,12 +76,18 @@ public class BlockVolumes extends ResourceController {
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
     private static Set<String> roles = new HashSet(Arrays.asList("COPY"));
     public static final StringOption[] FILTER_OPTIONS = StringOption.options(new String[]{APPLICATION, PROJECT});
+    public static final String PROJECT_SELECTED = "PROJECT_SELECTED";
 
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
         renderArgs.put("filterOptions", FILTER_OPTIONS);
         addReferenceData();
+        //renderArgs.put("selectedProject", projectId);
+        Http.Cookie cookie = request.cookies.get(PROJECT_SELECTED);
+        if(cookie!=null) {
+            renderArgs.put("selectedProject", cookie.value);
+        }
         render();
     }
 
@@ -148,6 +156,11 @@ public class BlockVolumes extends ResourceController {
         }
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
+        }
+        if(volume.getProject() != null) {
+            //renderArgs.put("projectId", volume.getProject());
+            Http.Cookie cookie = request.cookies.get(PROJECT_SELECTED);
+            response.setCookie(PROJECT_SELECTED, volume.getProject().toString());
         }
 
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());

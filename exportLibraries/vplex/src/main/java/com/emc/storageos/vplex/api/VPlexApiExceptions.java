@@ -835,10 +835,13 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexSerialNumberChanged(final String oldSerialNumber, final String newSerialNumber);
-    
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDistributedDevice(final String name);
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException cantFindVolumeForDeatchMirror(final String volumeId);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException cantFindDistributedDeviceForRename(final String deviceId);    
 }

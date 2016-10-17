@@ -1151,10 +1151,10 @@ public class SchemaUtil {
         if (gcGrace > 0) {
             if (compactionStrategy != null) {
                 builder.append(" AND ");
-            }else {
-                builder.append(" gc_grace_seconds=");
-                builder.append(gcGrace);
             }
+            
+            builder.append(" gc_grace_seconds=");
+            builder.append(gcGrace);
         }
 
         builder.append(";");

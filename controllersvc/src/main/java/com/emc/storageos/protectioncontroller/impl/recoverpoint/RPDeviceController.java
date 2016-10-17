@@ -4225,6 +4225,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
+    /**
+     * Workflow step to perform RP protection operation
+     *  
+     * @param protectionSystem
+     * @param cgId
+     * @param volId
+     * @param copyID
+     * @param pointInTime
+     * @param imageAccessMode
+     * @param op
+     * @param stepId
+     * @return
+     * @throws ControllerException
+     */
     public boolean performProtectionOperationStep(URI protectionSystem, URI cgId, URI volId, URI copyID, String pointInTime, String imageAccessMode, String op,
             String stepId) throws ControllerException {
         WorkflowStepCompleter.stepExecuting(stepId);

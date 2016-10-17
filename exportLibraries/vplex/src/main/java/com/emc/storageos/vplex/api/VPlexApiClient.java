@@ -85,8 +85,8 @@ public class VPlexApiClient {
     private String _vplexSessionId = null;
 
     // caching of some almost-static VPLEX info for performance improvement
-    private final Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
-    private final List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+    private volatile Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
+    private volatile List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
 
     /**
      * Constructor
@@ -197,7 +197,7 @@ public class VPlexApiClient {
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
+    public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
         if (vplexClusterInfoLiteCache.isEmpty()) {
             vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
@@ -1250,6 +1250,22 @@ public class VPlexApiClient {
                 _baseURI);
         return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
     }
+    
+    /**
+     * Renames the distributed device with the passed name to the passed new name.
+     * 
+     * @param currentName The current device name
+     * @param newName The new device name.
+     */
+    public void renameDistributedDevice(String currentName, String newName) {
+        VPlexDistributedDeviceInfo ddInfo = _discoveryMgr.findDistributedDevice(currentName);
+        if (ddInfo != null) {
+            renameResource(ddInfo, newName);
+        } else {
+            s_logger.error("Can't find distributed device {} for rename request.", currentName);
+            throw VPlexApiException.exceptions.cantFindDistributedDeviceForRename(currentName);   
+        }
+    }
 
     /**
      * Reattach the mirror on the specified cluster to the distributed VPLEX
@@ -1322,7 +1338,7 @@ public class VPlexApiClient {
      * 
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
-    public Map<String, String> getClusterIdToNameMap() {
+    public synchronized Map<String, String> getClusterIdToNameMap() {
         if (vplexClusterIdToNameCache.isEmpty()) {
             List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
             for (VPlexClusterInfo clusterInfo : clusterInfos) {
@@ -1997,7 +2013,7 @@ public class VPlexApiClient {
         return getDiscoveryManager().getStorageViewsForCluster(clusterName, true);
     }
 
-    public void clearCaches() {
+    public synchronized void clearCaches() {
         vplexClusterIdToNameCache.clear();
         vplexClusterInfoLiteCache.clear();
     }

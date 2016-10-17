@@ -65,6 +65,7 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                 }
             }
             // Now process the needful information for the Volume Group here...
+            // We have the MaskViewName, portGroupInstanceId and initiator List
 
         } catch (Exception e) {
             _logger.error("Processing association information for Masking Views failed : ", e);

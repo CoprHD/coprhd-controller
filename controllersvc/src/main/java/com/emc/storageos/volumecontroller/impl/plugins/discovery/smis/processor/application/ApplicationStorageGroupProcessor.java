@@ -2,6 +2,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -42,11 +43,13 @@ public class ApplicationStorageGroupProcessor extends Processor {
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             _logger.info(String.format("Discovering Storage Groups"));
+            List<String> bookKeepingList = new ArrayList<>();
             while (it.hasNext()) {
                 CIMObjectPath deviceMaskingGroup = it.next();
                 String instanceID = deviceMaskingGroup
                         .getKey(Constants.INSTANCEID).getValue().toString();
                 instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+                bookKeepingList.add(instanceID);
                 String serialID = (String) keyMap.get(Constants._serialID);
                 if (instanceID.contains(serialID)) {
                     addPath(keyMap, operation.getResult(), deviceMaskingGroup);
@@ -60,6 +63,9 @@ public class ApplicationStorageGroupProcessor extends Processor {
                     }
                 }
             }
+            // HY: Do the bookkeeping here...
+            // HY: We need to persist the System Serial Number as part of the Volume Storage Group because the Application is persisted on
+            // the Array.
         } catch (Exception e) {
             _logger.error("Storage Group Discovery Failed : ", e);
         }

@@ -461,10 +461,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     }
                 }
                 if (!associated) {
-                    StringSet tempStringSet = new StringSet();
-                    tempStringSet.add(NullColumnValueGetter.getNullURI().toString());
-                    vnas.setSourceVirtualNasIds(tempStringSet);
-                    vnas.setDestinationVirtualNasIds(tempStringSet);
+                    if (vnas.getReplicationDestination()) {
+                        vnas.setSourceVirtualNasIds(FileOperationUtils.removeAllAndSetNull(vnas.getSourceVirtualNasIds()));
+                        vnas.setDestinationVirtualNasIds(FileOperationUtils.getStringSetWithNullURI());
+                    } else {
+                        vnas.setSourceVirtualNasIds(FileOperationUtils.getStringSetWithNullURI());
+                        vnas.setDestinationVirtualNasIds(FileOperationUtils.removeAllAndSetNull(vnas.getDestinationVirtualNasIds()));
+                    }
                     vnas.setReplicationDestination(false);
                     unassociatedVnas.add(vnas);
                 }
@@ -510,14 +513,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 nasList.add(nas2);
             }
             if (nas1 != null && nas2 != null) {
-                StringSet tempStringSet = new StringSet();
-                tempStringSet.add(nas2.getId().toString());
-                tempStringSet.remove(NullColumnValueGetter.getNullURI().toString());
-                nas1.setDestinationVirtualNasIds(tempStringSet);
-                tempStringSet = new StringSet();
-                tempStringSet.add(nas1.getId().toString());
-                tempStringSet.remove(NullColumnValueGetter.getNullURI().toString());
-                nas2.setSourceVirtualNasIds(tempStringSet);
+                nas1.setDestinationVirtualNasIds(FileOperationUtils.removeNullAndSetURI(nas2.getId()));
+                nas2.setSourceVirtualNasIds(FileOperationUtils.removeNullAndSetURI(nas1.getId()));
                 nas2.setReplicationDestination(true);
             }
         }

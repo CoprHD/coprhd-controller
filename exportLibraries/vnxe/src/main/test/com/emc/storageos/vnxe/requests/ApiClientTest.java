@@ -382,6 +382,7 @@ public class ApiClientTest {
         for (ReplicationSession session : sessions) {
             System.out.println(session.getReplicationResourceType());
             System.out.println(session.getName());
+            System.out.println(session.getId());
             System.out.println(session.getSrcResourceId() + " " + session.getDstResourceId());
             if (session.getRemoteSystem() != null) {
                 System.out.println(session.getRemoteSystem().getId());
@@ -390,9 +391,9 @@ public class ApiClientTest {
         System.out.println("List end");
     }
 
-    // @Test
+    @Test
     public void createRepSession() {
-        apiClient.createReplicationSession("res_8", "res_11", -1, null, "test");
+        apiClient.createReplicationSession("nas_8", "nas_9", -1, null, "test");
     }
 
     // @Test
@@ -407,7 +408,7 @@ public class ApiClientTest {
 
     // @Test
     public void deleteRepSession() {
-        apiClient.deleteReplicationSession("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000");
+        apiClient.deleteReplicationSession("103079215113_VIRT1638GJ6DJM_0000_103079215114_VIRT1638GJ6DJM_0000");
     }
 
     // @Test

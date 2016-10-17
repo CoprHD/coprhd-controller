@@ -1,6 +1,6 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.networks'] /}
-
+#{script 'tableexport.js'/}
 #{DataTable.formAction @delete(), id:'removeForm', table:'networks'/}
 #{DataTable.formAction @register(), id:'registerForm', table:'networks'/}
 #{DataTable.formAction @deregister(), id:'deregisterForm', table:'networks'/}

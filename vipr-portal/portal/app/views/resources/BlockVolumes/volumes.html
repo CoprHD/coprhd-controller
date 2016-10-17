@@ -42,9 +42,15 @@
 
     
     $(document).ready(function() {
+    	alert("Ready");
     	$('#application').on('change', function() {reloadVolumes("Application");});
      	$('#project').on('change', function() {reloadVolumes("Project");});
-     	$('#filter').on('change', reloadVolumesbyFilter)
+     	$('#filter').on('change', reloadVolumesbyFilter);
+     	$('#volumes').DataTable({
+     		buttons:{
+     			extend: 'csvHtml5'
+     		}
+     	});
     });
   </script>
 

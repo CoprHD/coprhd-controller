@@ -1,5 +1,7 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.storageProviders'] /}
+#{script 'tableexport.js'/}
+#{script 'jquery.base64.js' /}
 
 #{DataTable.header titleKey:'SMISProviders.list.title' /}
 #{DataTable.crudTable id:'smisProvider',
@@ -12,10 +14,14 @@
 #{DataTable.formAction @discover(), id:'discoverForm', table:'smisProvider'/}
 #{DataTable.expandHtml @itemDetails(':id'), table:'smisProvider' /}
 
-<script type="text/javascript">
+<script >
 
 table.smisProvider.dataTable.afterCreate(function(dataTable) {
     var itemsJson = #{jsAction @itemsJson(':ids')/};
     watchDiscoveryStatus(dataTable.getDataTable(), itemsJson, ['version', 'storageSystems', 'storageSystemsNames']);
+});
+
+$(document).ready(function () {
+	$('#smisProvider').tableExport({formats: ["csv"],escape: 'false'});
 });
 </script>

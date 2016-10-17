@@ -46,7 +46,7 @@ public class Vmaxv3Constants {
     // Default values.
     public static final String DEFAULT_VALUE_STORAGE_GROUP_SLO = "Optimized";
     public static final String DEFAULT_VALUE_STORAGE_GROUP_WORKLOAD = "NONE";
-    public static final String DEFAULT_VALUE_STORAGE_GROUP_NAME= "ViPRSBSDK_%1$s_%2$s_%3$s_%3$s";
+    public static final String DEFAULT_VALUE_STORAGE_GROUP_NAME= "ViPRSBSDK_%1$s_%2$s_%3$s_%4$s";
     public static final String DEFAULT_VALUE_VOLUME_CAPACITY_UNIT= "GB";
 
 

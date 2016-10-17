@@ -48,6 +48,7 @@ import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSession
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.volumegroup.migration.ApplicationMigrationManager;
+import com.emc.storageos.api.service.impl.resource.volumegroup.migration.MigrationServiceApi;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -226,6 +227,9 @@ public class VolumeGroupService extends TaskResourceService {
 
     // Block service implementations
     private static Map<String, BlockServiceApi> _blockServiceApis;
+    
+	// Migration service implementations
+    private static Map<String, MigrationServiceApi> _migrationServiceApis;
 
     /**
      * Setter for the placement manager.
@@ -251,6 +255,15 @@ public class VolumeGroupService extends TaskResourceService {
 
     private static BlockServiceApi getBlockServiceImpl(final String type) {
         return _blockServiceApis.get(type);
+    }
+    
+    //Migration service impls
+    public void setMigrationApis(final Map<String, MigrationServiceApi> migrationInterfaces) {
+        _migrationServiceApis = migrationInterfaces;
+    }
+
+    private static MigrationServiceApi getMigrationServiceImpl(final String migrationType) {
+        return _migrationServiceApis.get(migrationType);
     }
 
     @Override
@@ -4162,9 +4175,9 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
-        
-        getApplicationMigrationManager().performApplicationMigrationOperation(application.getId(),
-        					param, ResourceOperationTypeEnum.MIGRATION_CREATE);
+                
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(application.getMigrationType());
+        migrationApiImpl.migrationCreate();
         
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE);
@@ -4196,8 +4209,7 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
-        getApplicationMigrationManager().performApplicationMigrationOperation(application.getId(),
-				null, ResourceOperationTypeEnum.MIGRATION_MIGRATE);
+        
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_MIGRATE);
         // TODO : change toCompletedTask to toTask once this method is implemented

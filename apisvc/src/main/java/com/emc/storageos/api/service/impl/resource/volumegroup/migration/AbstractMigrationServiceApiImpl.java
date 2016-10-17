@@ -21,7 +21,7 @@ import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.plugins.common.Constants;
 
 
-public abstract class AbstractMigrationServiceApiImpl implements MigrationApi {
+public abstract class AbstractMigrationServiceApiImpl implements MigrationServiceApi {
 	
 	    // A logger reference.
 	    private static final Logger logger = LoggerFactory
@@ -80,7 +80,7 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationApi {
 	     * Map of implementing class instances; used for iterating through them for
 	     * connectivity purposes.
 	     */
-	    static private Map<String, AbstractMigrationServiceApiImpl> s_protectionImplementations = new HashMap<String, AbstractMigrationServiceApiImpl>();
+	    static private Map<String, AbstractMigrationServiceApiImpl> s_migrationImplementations = new HashMap<String, AbstractMigrationServiceApiImpl>();
 
 	    /**
 	     * Constructor used to keep track of the various implementations of this class.
@@ -91,12 +91,12 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationApi {
 	     */
 	    public AbstractMigrationServiceApiImpl(String migrationType) {
 	        if (migrationType != null) {
-	            s_protectionImplementations.put(migrationType, this);
+	            s_migrationImplementations.put(migrationType, this);
 	        }
 	    }
 
-	    static protected Map<String, AbstractMigrationServiceApiImpl> getProtectionImplementations() {
-	        return s_protectionImplementations;
+	    static protected Map<String, AbstractMigrationServiceApiImpl> getMigrationImplementations() {
+	        return s_migrationImplementations;
 	    }
 
 	    /**

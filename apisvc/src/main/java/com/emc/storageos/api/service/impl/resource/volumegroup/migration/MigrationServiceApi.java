@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.volumegroup.migration;
 
-public interface MigrationApi {
+public interface MigrationServiceApi {
 	
 	//TODO: comments, javadoc, etc. Also, fix method signatures as work starts. These are just bare-bone stubs.
 	

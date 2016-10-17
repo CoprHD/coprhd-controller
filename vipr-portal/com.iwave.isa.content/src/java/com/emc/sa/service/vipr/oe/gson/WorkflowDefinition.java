@@ -154,7 +154,7 @@ public class WorkflowDefinition {
         @SerializedName("StepAttribute")
         private StepAttribute stepAttribute;
 
-        @SerializedName("SuccessCritera")
+        @SerializedName("SuccessCriteria")
         private String successCritera;
 
         @SerializedName("Next")
@@ -202,15 +202,14 @@ public class WorkflowDefinition {
         @SerializedName("Default")
         private String defaultstep;
 
-        @SerializedName("Condition")
-        private String condition;
+        @SerializedName("FailedStep")
+        private String failedStep;
 
         public String getDefault() {
             return defaultstep;
         }
-
-        public String getCondition() {
-            return condition;
+   	public String getFailedStep() {
+            return failedStep;
         }
     }
 }

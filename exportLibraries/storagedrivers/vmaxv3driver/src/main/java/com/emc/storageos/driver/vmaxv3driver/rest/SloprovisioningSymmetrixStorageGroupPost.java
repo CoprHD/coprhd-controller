@@ -39,8 +39,12 @@ public class SloprovisioningSymmetrixStorageGroupPost extends RestActionImpl {
 
     @Override
     public Object perform(RestClient client) {
-        String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_STORAGE_GROUP, this.symmetrixId);
+        String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_STORAGE_GROUP,
+            this.symmetrixId);
+        logger.info("SloprovisioningSymmetrixStorageGroupPost request path = {}", path);
+        logger.info("SloprovisioningSymmetrixStorageGroupPost request body = {}", this.body);
         String responseBody = client.request(path, RequestType.POST, this.body);
+        logger.info("SloprovisioningSymmetrixStorageGroupPost response body = {}", responseBody);
         Boolean result = parseRestResult(responseBody);
         return result;
     }
@@ -55,7 +59,6 @@ public class SloprovisioningSymmetrixStorageGroupPost extends RestActionImpl {
      * @param responseBody
      */
     private Boolean parseRestResult(String responseBody) {
-        logger.debug("Response body = {}", responseBody);
         JsonObject root = this.parseResponse(responseBody);
         if (root.get("success") == null || !root.get("success").getAsBoolean()) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());

@@ -84,6 +84,9 @@ public class BlockVolumes extends ResourceController {
     }
 
     public static void volumesJson(String projectId, String applicationId) {
+        if (StringUtils.isNotBlank(projectId)) {
+            setActiveProjectId(projectId);
+        }
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }

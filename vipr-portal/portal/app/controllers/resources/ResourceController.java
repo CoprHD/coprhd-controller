@@ -18,6 +18,7 @@ import play.mvc.Util;
 import util.AppSupportUtil;
 import util.ProjectUtils;
 
+import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 
@@ -27,6 +28,7 @@ import controllers.util.Models;
 public class ResourceController extends Controller {
 
     public static final String ACTIVE_PROJECT_ID = "activeProjectId";
+    public static final String ACTIVE_APP_ID = "activeAppId";
 
     protected static void addReferenceData() {
         TenantSelector.addRenderArgs();
@@ -95,7 +97,10 @@ public class ResourceController extends Controller {
 
     @Util
     public static void setActiveProjectId(String activeProjectId) {
+        if (StringUtils.isNotBlank(activeProjectId)
+                && ResourceType.PROJECT.equals(ResourceType.fromResourceId(activeProjectId))) {
             session.put(ACTIVE_PROJECT_ID, activeProjectId);
+        }
     }
 
 }

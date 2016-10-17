@@ -16,8 +16,8 @@
     #{/ifnot}
     #{if projects || applications}
     		#{Form.selectFilter filters:filterOptions/}
-    		#{Form.selectProject projects:projects/}
-      		#{Form.selectApplication applications:applications/}
+    		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
+      		#{Form.selectApplication applications:applications, selectedApplication:session?.activeAppId/}
   
     #{/if}
   #{/tenantSelector}
@@ -31,8 +31,8 @@
   #{if projects || applications}
     <div class="well well-sm form-inline">
     		#{Form.selectFilter filters:filterOptions/}
-    		#{Form.selectProject projects:projects/}
-      		#{Form.selectApplication applications:applications/}
+    		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
+      		#{Form.selectApplication applications:applications, selectedApplication:session?.activeAppId/}
     </div>
   #{/if}
 #{/else}

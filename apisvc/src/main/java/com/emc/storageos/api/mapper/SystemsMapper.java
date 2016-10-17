@@ -14,7 +14,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,7 +36,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.util.FileOperationUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
@@ -240,8 +238,9 @@ public class SystemsMapper {
             to.setAvgPercentagebusy(df.format(percentBusy));
         }
         // removing null uris
-        to.setSourceVirtualNasIds(removeNullURIFromList(FileOperationUtils.getVNASList(from.getSourceVirtualNasIds())));
-        to.setDestinationVirtualNasIds(removeNullURIFromList(FileOperationUtils.getVNASList(from.getDestinationVirtualNasIds())));
+        to.setSourceVirtualNasIds(FileOperationUtils.removeNullURIFromList(FileOperationUtils.getVNASList(from.getSourceVirtualNasIds())));
+        to.setDestinationVirtualNasIds(
+                FileOperationUtils.removeNullURIFromList(FileOperationUtils.getVNASList(from.getDestinationVirtualNasIds())));
 
         return to;
     }
@@ -486,16 +485,5 @@ public class SystemsMapper {
         to.setIsSecretKey(from.getIsSecretKey());
 
         return to;
-    }
-
-    private static List<URI> removeNullURIFromList(List<URI> uriList) {
-        Iterator<URI> it = uriList.iterator();
-        while (it.hasNext()) {
-            URI nas = it.next();
-            if (NullColumnValueGetter.isNullURI(nas)) {
-                it.remove();
-            }
-        }
-        return uriList;
     }
 }

@@ -3,6 +3,7 @@ package com.emc.storageos.db.client.util;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -164,5 +165,39 @@ public class FileOperationUtils {
 
     public static List<URI> getVNASList(StringSet virtualNasIds) {
         return URIUtil.uris(virtualNasIds);
+    }
+
+    public static List<URI> removeNullURIFromList(List<URI> uriList) {
+        Iterator<URI> it = uriList.iterator();
+        while (it.hasNext()) {
+            URI nas = it.next();
+            if (NullColumnValueGetter.isNullURI(nas)) {
+                it.remove();
+            }
+        }
+        return uriList;
+    }
+
+    public static StringSet removeNullAndSetURI(URI value) {
+        StringSet tempStringSet = new StringSet();
+        tempStringSet.add(value.toString());
+        tempStringSet.remove(NullColumnValueGetter.getNullURI().toString());
+        return tempStringSet;
+    }
+
+    public static StringSet removeAllAndSetNull(StringSet set) {
+        StringSet tempStringSet = new StringSet();
+        tempStringSet.add(NullColumnValueGetter.getNullURI().toString());
+        Iterator<String> it = set.iterator();
+        while (it.hasNext()) {
+            tempStringSet.remove(it.next());
+        }
+        return tempStringSet;
+    }
+
+    public static StringSet getStringSetWithNullURI() {
+        StringSet tempStringSet = new StringSet();
+        tempStringSet.add(NullColumnValueGetter.getNullURI().toString());
+        return tempStringSet;
     }
 }

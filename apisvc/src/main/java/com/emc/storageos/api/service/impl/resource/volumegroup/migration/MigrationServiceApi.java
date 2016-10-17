@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.api.service.impl.resource.volumegroup.migration;
 
+import java.net.URI;
+
+import com.emc.storageos.model.application.ApplicationMigrationParam;
+
 public interface MigrationServiceApi {
 	
 	//TODO: comments, javadoc, etc. Also, fix method signatures as work starts. These are just bare-bone stubs.
@@ -11,7 +15,7 @@ public interface MigrationServiceApi {
 	/**
 	 * Create migration creates migration environment where applicable
 	 */
-	public void migrationCreate();
+	public void migrationCreate(URI applicationId, ApplicationMigrationParam param);
 		
 	/**
 	 * Initiate the migration process

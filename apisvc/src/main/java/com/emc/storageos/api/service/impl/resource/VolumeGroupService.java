@@ -47,7 +47,6 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
-import com.emc.storageos.api.service.impl.resource.volumegroup.migration.ApplicationMigrationManager;
 import com.emc.storageos.api.service.impl.resource.volumegroup.migration.MigrationServiceApi;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -4133,20 +4132,7 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
     }
-        
-    /**
-     * Creates and returns an instance of the application migration manager to handle
-     * application migration operations.
-     * 
-     * @return BlockFullCopyManager
-     */
-    private ApplicationMigrationManager getApplicationMigrationManager() {
-    	ApplicationMigrationManager appMigrationMgr = new ApplicationMigrationManager(_dbClient,
-                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
-                _request, null);
-        return appMigrationMgr;
-    }
-
+ 
     /**
      * Initiate the Migration of an Application Group
      * This will create an Application Group on the Target System and
@@ -4175,9 +4161,13 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
+        
+        if (!application.getMigrationType().equalsIgnoreCase(VolumeGroup.MigrationType.VMAX.name())) {
+        	//TODO: throw an exception here or handle differently
+        }
                 
         MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(application.getMigrationType());
-        migrationApiImpl.migrationCreate();
+        migrationApiImpl.migrationCreate(id, param);
         
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE);

@@ -300,6 +300,11 @@
                 <entry key="rp" value-ref="rpBlockServiceApiImpl" />
             </map>
         </property>
+        <property name="migrationServiceApis">
+        	<map>
+            	<entry key="vmax" value-ref="applicationMigrationApiImpl" />               
+            </map>
+        </property>
     </bean>
 
     <bean id="defaultBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultBlockServiceApiImpl">

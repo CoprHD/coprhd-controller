@@ -4,10 +4,13 @@
  */
 package com.emc.storageos.api.service.impl.resource.volumegroup.migration;
 
+import java.net.URI;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.migrationcontroller.MigrationController;
+import com.emc.storageos.model.application.ApplicationMigrationParam;
 
 public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl {
 
@@ -20,7 +23,7 @@ public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl
     
     //Migration related methods
 	@Override
-	public void migrationCreate() {
+	public void migrationCreate(URI applicationId, ApplicationMigrationParam param) {
 		logger.info("Migration : Create");		
 		getController(MigrationController.class, "application").migrationCreate();
 	}

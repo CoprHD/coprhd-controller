@@ -63,10 +63,10 @@ public class OrchestrationService extends ViPRService {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
+    //Variables for Evaluation of SuccessCriteria and Output
     private String eval;
     private final List<String> evaluateVal = new ArrayList<String>();
-    private int errorCode;
-    private int returnCode;
+    private int code;
     
     @Override
 	public void precheck() throws Exception {
@@ -120,17 +120,11 @@ public class OrchestrationService extends ViPRService {
 
         //Store Steps in a Map with key as StepId
         final ArrayList<Step> steps = obj.getSteps();
-	logger.info("Steps are:{}", obj.getSteps());
-        for (Step step : steps) {
-	    logger.info("Each Step is:{} and stepId:{}", step, step.getStepId());
+        for (Step step : steps) 
             stepsHash.put(step.getStepId(), step);
-        }
-
-	logger.info("Stephash is:{}", stepsHash);
+        
         //Get first Step to execute
         Step step = stepsHash.get("Start");
-	logger.info("Step is:{}", step);
-	logger.info("next step is:{}", step.getNext());
         String next = step.getNext().getDefault();
 
         while (!next.equals("End"))
@@ -141,10 +135,8 @@ public class OrchestrationService extends ViPRService {
                     "Step: " + step.getStepId());
 
             logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
-            logger.debug("Input param for the Step");
 
             Map<String, Input> input = step.getInput();
-
             if (input != null)
                 inputPerStep.put(step.getStepId(), makeInputPerStep(input));
 
@@ -153,15 +145,17 @@ public class OrchestrationService extends ViPRService {
             //TODO implement waitfortask
             String result = null;
 
-	    StepType OBJ = StepType.fromString(step.getType());
-            switch(OBJ)
+	    StepType type = StepType.fromString(step.getType());
+            switch(type)
             {
                 case VIPR_REST: {
                     ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName());
                     /* TODO GET from DB
                      * handle Async and Sync
+		     * Set return code
                      */
                     //result = ViPRExecutionUtils.execute(new RunAnsible(step.getOpName()));
+		    //code = x;
                     //List<URI> newViprTasks = OrchestrationUtils.updateOrder(result, getClient());
                     //OrchestrationUtils.waitForViprTasks(newViprTasks, getClient(), stepAttribute.getTimeout());
                     break;
@@ -180,126 +174,23 @@ public class OrchestrationService extends ViPRService {
                 }
                 default:
                     logger.error("Operation Type Not found. Type:{}", step.getType());
-
-                    //throw new IllegalStateException(result);
+                    throw new IllegalStateException(result);
             }
 
-
-	result = "{ \n" +
-        "   \"task\":[ \n" +
-        "      { \n" +
-        "         \"name\":\"CREATE VOLUME\",\n" +
-        "         \"id\":\"urn:storageos:Task:5aaaced9-4904-49c3-ad40-6140d143e2cb:vdc1\",\n" +
-        "         \"link\":{ \n" +
-        "            \"rel\":\"self\",\n" +
-        "            \"href\":\"/vdc/tasks/urn:storageos:Task:5aaaced9-4904-49c3-ad40-6140d143e2cb:vdc1\"\n" +
-        "         },\n" +
-        "         \"inactive\":false,\n" +
-        "         \"global\":false,\n" +
-        "         \"remote\":false,\n" +
-        "         \"vdc\":{ \n" +
-        "            \"id\":\"urn:storageos:VirtualDataCenter:13c56135-2b07-4a6d-9f94-ec0787c73d28:vdc1\",\n" +
-        "            \"link\":{ \n" +
-        "               \"rel\":\"self\",\n" +
-        "               \"href\":\"/vdc/urn:storageos:VirtualDataCenter:13c56135-2b07-4a6d-9f94-ec0787c73d28:vdc1\"\n" +
-        "            }\n" +
-        "         },\n" +
-        "         \"tags\":[ \n" +
-        " \n" +
-        " \n" +
-        "         ],\n" +
-        "         \"internal\":false,\n" +
-        "         \"resource\":{ \n" +
-        "            \"id\":\"urn:storageos:Volume:fe690733-dccc-4f35-bef5-760dc07eb3c8:vdc1\",\n" +
-        "            \"name\":\"mendes-vol-test-1\",\n" +
-        "            \"link\":{ \n" +
-        "               \"rel\":\"self\",\n" +
-        "               \"href\":\"/block/volumes/urn:storageos:Volume:fe690733-dccc-4f35-bef5-760dc07eb3c8:vdc1\"\n" +
-        "            }\n" +
-        "         },\n" +
-        "         \"tenant\":{ \n" +
-        "            \"id\":\"urn:storageos:TenantOrg:4f245ed0-dc0c-4ec1-9239-0154f05ef939:global\",\n" +
-        "            \"link\":{ \n" +
-        "               \"rel\":\"self\",\n" +
-        "               \"href\":\"/tenants/urn:storageos:TenantOrg:4f245ed0-dc0c-4ec1-9239-0154f05ef939:global\"\n" +
-        "            }\n" +
-        "         },\n" +
-        "         \"state\":\"pending\",\n" +
-        "         \"description\":\"create volume operation\",\n" +
-        "         \"progress\":0,\n" +
-        "         \"creation_time\":1471980068816,\n" +
-        "         \"op_id\":\"e2430440-f609-4547-bef7-3bb139120763\",\n" +
-        "         \"associated_resources\":[ \n" +
-        " \n" +
-        " \n" +
-        "         ],\n" +
-        "         \"start_time\":1471980068815\n" +
-        "      },\n" +
-        "      { \n" +
-        "         \"name\":\"CREATE VOLUME\",\n" +
-        "         \"id\":\"urn:storageos:Task:9498e57b-de0f-4e7d-bb1f-4c5ff4a6d52c:vdc1\",\n" +
-        "         \"link\":{ \n" +
-        "            \"rel\":\"self\",\n" +
-        "            \"href\":\"/vdc/tasks/urn:storageos:Task:9498e57b-de0f-4e7d-bb1f-4c5ff4a6d52c:vdc1\"\n" +
-        "         },\n" +
-        "         \"inactive\":false,\n" +
-        "         \"global\":false,\n" +
-        "         \"remote\":false,\n" +
-        "         \"vdc\":{ \n" +
-        "            \"id\":\"urn:storageos:VirtualDataCenter:13c56135-2b07-4a6d-9f94-ec0787c73d28:vdc1\",\n" +
-        "            \"link\":{ \n" +
-        "               \"rel\":\"self\",\n" +
-        "               \"href\":\"/vdc/urn:storageos:VirtualDataCenter:13c56135-2b07-4a6d-9f94-ec0787c73d28:vdc1\"\n" +
-        "            }\n" +
-        "         },\n" +
-        "         \"tags\":[ \n" +
-        " \n" +
-        " \n" +
-        "         ],\n" +
-        "         \"internal\":false,\n" +
-        "         \"resource\":{ \n" +
-        "            \"id\":\"urn:storageos:Volume:89c53819-c69d-4b79-a136-7d8a501b893e:vdc1\",\n" +
-        "            \"name\":\"mendes-vol-test-2\",\n" +
-        "            \"link\":{ \n" +
-        "               \"rel\":\"self\",\n" +
-        "               \"href\":\"/block/volumes/urn:storageos:Volume:89c53819-c69d-4b79-a136-7d8a501b893e:vdc1\"\n" +
-        "            }\n" +
-        "         },\n" +
-        "         \"tenant\":{ \n" +
-        "            \"id\":\"urn:storageos:TenantOrg:4f245ed0-dc0c-4ec1-9239-0154f05ef939:global\",\n" +
-        "            \"link\":{ \n" +
-        "               \"rel\":\"self\",\n" +
-        "               \"href\":\"/tenants/urn:storageos:TenantOrg:4f245ed0-dc0c-4ec1-9239-0154f05ef939:global\"\n" +
-        "            }\n" +
-        "         },\n" +
-        "         \"state\":\"pending\",\n" +
-        "         \"description\":\"create volume operation\",\n" +
-        "         \"progress\":0,\n" +
-        "         \"creation_time\":1471980068826,\n" +
-        "         \"op_id\":\"e2430440-f609-4547-bef7-3bb139120763\",\n" +
-        "         \"associated_resources\":[ \n" +
-        " \n" +
-        " \n" +
-        "         ],\n" +
-        "         \"start_time\":1471980068825\n" +
-        "      }\n" +
-        "   ]\n" +
-        "}\n";
-            if (step.getOutput() != null) {
-		logger.info("makeOutputPerStep is getting called");
+            if (step.getOutput() != null) 
                 outputPerStep.put(step.getStepId(), makeOutputPerStep(result, step.getOutput()));
-	    }
+	    
 
 	    if (step.getSuccessCritera() == null) {
-		logger.info("step.getSuccessCritera() is null");
-		//Evaluate default successcriteria
-		next = step.getNext().getDefault();
-		ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
-                        "Step: " + step.getStepId() + ":" + step + "result:" + result);
-                continue;
+		if (evaluateDefaultValue(step, code)) {
+			next = step.getNext().getDefault();
+			ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
+                        	"Step: " + step.getStepId() + ":" + step + "result:" + result);
+                	continue;
+		}
             }
 
-            if(findStatus(step.getSuccessCritera(), result))
+            else if(findStatus(step.getSuccessCritera(), result))
             {
                 next = step.getNext().getDefault();
                 ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
@@ -307,11 +198,12 @@ public class OrchestrationService extends ViPRService {
                 continue;
             }
 
-
+	    ExecutionUtils.currentContext().logError("Orchestration Engine failed to run step " +
+			"Step: " + step.getStepId() + ":" + step + "result:" + result);
             next = step.getNext().getFailedStep();
             if (next == null) {
-                ExecutionUtils.currentContext().logError("Orchestration Engine failed to run Workflow " +
-                        "Step: " + step.getStepId() + ":" + step + "result:" + result);
+                ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrive next step " +
+                        "Step: " + step.getStepId() + ":" + step);
 
                 throw new IllegalStateException(result);
             }
@@ -332,9 +224,7 @@ public class OrchestrationService extends ViPRService {
         while(it.hasNext())
         {
             String key = it.next().toString();
-            logger.info("key:{}", key);
             Input value = input.get(key);
-		logger.info("value is:{}", value);
 	    InputType OBJ = InputType.fromString(value.getType());
             switch (OBJ)
             {
@@ -343,8 +233,8 @@ public class OrchestrationService extends ViPRService {
                 case ASSET_OPTION:
                 {
 		    //TODO parse this when assent option is available
-			logger.info("input type: OTHERS ASSET_OPTION FROM_USER");
-			break;
+		    logger.info("input type: OTHERS ASSET_OPTION FROM_USER");
+		    break;
                     /*final String paramVal = params.get(key).toString();
                     List<String> valueList = new ArrayList<String>();
                     valueList.add(paramVal);
@@ -354,8 +244,8 @@ public class OrchestrationService extends ViPRService {
                 case FROM_STEP_INPUT:
                 {
 		    //TODO parse this when assent option is available
-			logger.info("input type:FROM_STEP_INPUT");
-			break;
+		    logger.info("input type:FROM_STEP_INPUT");
+		    break;
                     //TODO if data is still not present waitfortask ... Do some more validation
                     /*final String[] paramVal = value.getOtherStepValue().split(".");
                     final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
@@ -369,8 +259,8 @@ public class OrchestrationService extends ViPRService {
                 case FROM_STEP_OUTPUT:
                 {
 		    //TODO parse this when assent option is available
-			logger.info("input type:FROM_STEP_OUTPUT");
-			break;
+		    logger.info("input type:FROM_STEP_OUTPUT");
+		    break;
                     /*final String[] paramVal = value.getOtherStepValue().split(".");
                     final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
                     final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
@@ -390,7 +280,6 @@ public class OrchestrationService extends ViPRService {
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-	logger.info("In makeOutputPerStep");
         /**
          * Supported output evaluation:
          * "state"
@@ -403,11 +292,28 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             String value = output.get(key);
-		logger.info("Key:{} and value:{}", key, value);
             out.put(key, evaluateValue(result, value));
         }
-	logger.info("Out is:{}", out);
+
         return out;
+    }
+
+    private boolean evaluateDefaultValue(Step step, int returnCode) {
+        if (step.getType().equals(StepType.ANSIBLE.toString()))
+        {
+            if (returnCode == 0 )
+                return true;
+
+            return false;
+        }
+
+        String opName = step.getOpName();
+        //TODO get returncode for REST API from DB. Now it is hard coded.
+        int code = 200;
+        if (returnCode == code)
+            return true;
+
+        return false;
     }
 
     private List<String> evaluateValue(final String result, String value) {
@@ -419,7 +325,6 @@ public class OrchestrationService extends ViPRService {
         logger.debug("Find value of:{}", value);
         List<String> valueList = new ArrayList<String>();
 
-        //Evaluate value
         if (!value.contains(OrchestrationServiceConstants.TASK))
         {
             Expression expr = parser.parseExpression(value);
@@ -427,7 +332,6 @@ public class OrchestrationService extends ViPRService {
             String val = (String) expr.getValue(context);
 
             valueList.add(val);
-            logger.info("output for WF:{}", val);
 
             return valueList;
         }
@@ -447,8 +351,6 @@ public class OrchestrationService extends ViPRService {
         return valueList;
     }
 
-
-
     private boolean findStatus(String successCriteria, final String result) {
 
 	logger.info("Find status for:{}", successCriteria);
@@ -456,11 +358,11 @@ public class OrchestrationService extends ViPRService {
         Expression e2 = parser.parseExpression(successCriteria);
         EvaluationContext con2 = new StandardEvaluationContext(this);
         /*
-        errorCode == 404
-        returnCode == 0 This is only for Ansible
+	Supported condition type code == x [x can be any number]
+        code == 404
+        code == 0 
         */
-        if (successCriteria.contains(OrchestrationServiceConstants.ERROR_CODE) |
-                successCriteria.contains(OrchestrationServiceConstants.RETURN_CODE))
+        if (successCriteria.contains(OrchestrationServiceConstants.RETURN_CODE))
         {
             boolean val = e2.getValue(con2, Boolean.class);
             logger.info("Evaluated value for errorCode or returnCode is:{}", val);
@@ -498,26 +400,20 @@ public class OrchestrationService extends ViPRService {
                 for (String evaluatedValue : evaluatedValues) {
                     eval = evaluatedValue;
                     String exp1 = exp.replace("#" + condition, "eval");
-                    logger.info("Replaced expr:{}", exp1);
                     Expression e = parser.parseExpression(exp1);
                     val2 = val2 && e2.getValue(con2, Boolean.class);
-                    logger.info("Value of replaced expr:{} is:{}", exp1, val2);
                 }
 
                 successCriteria = successCriteria.replace(exp, val2 + " ");
 
-                logger.info("replaced statement:{}", successCriteria);
             } else {
                 List<String> evaluatedValues = evaluateValue(result, condition);
                 evaluateVal.add(p, evaluatedValues.get(0));
                 successCriteria = successCriteria.replace("#" + condition, "evaluateVal[" + p + "]");
-                logger.info("Replaced expr:{}", successCriteria);
                 p++;
             }
             k++;
         }
-
-        logger.info("Final expr:{}", successCriteria);
 
         Expression e1 = parser.parseExpression(successCriteria);
         boolean val1 = e1.getValue(con2, Boolean.class);

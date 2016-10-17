@@ -49,13 +49,10 @@ public final class OrchestrationServiceConstants {
        {
             for (InputType e : InputType.values())
             {
-                if (v.equals(e.inputType)) {
-
-                    System.out.println("Matched value" + v + e.inputType);
+                if (v.equals(e.inputType)) 
                     return e;
-                }
             }
-            System.out.println("Nothing matched");
+
             return null;
         }
 
@@ -74,17 +71,17 @@ public final class OrchestrationServiceConstants {
             this.stepType = stepType;
         }
 
-       public static StepType fromString(String v)
-       {
+        @Override
+        public String toString() {
+		return stepType;
+        }
+        public static StepType fromString(String v) {
             for (StepType e : StepType.values())
             {
-                if (v.equals(e.stepType)) {
-
-                    System.out.println("Matched value" + v + e.stepType);
+                if (v.equals(e.stepType)) 
                     return e;
-                }
             }
-            System.out.println("Nothing matched");
+
             return null;
         }
     }

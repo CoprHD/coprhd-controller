@@ -202,6 +202,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_UPDATE_CG_POLICY = "rpUpdateConsistencyGroupPolicy";
     private static final String STEP_EXPORT_ORCHESTRATION = "rpExportOrchestration";
     private static final String STEP_RP_EXPORT_ORCHESTRATION = "rpExportGroupOrchestration";
+    private static final String STEP_PERFORM_PROTECTION_OPERATION = "performProtectionOperationStep";
 
     public static final String STEP_PRE_VOLUME_RESTORE = "rpPreVolumeRestore";
     public static final String STEP_POST_VOLUME_RESTORE = "rpPostVolumeRestore";
@@ -269,6 +270,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Methods in the RP remove protection workflow
     private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
     private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
+    
+    private static final String METHOD_PERFORM_PROTECTION_OPERATION = "performProtectionOperationStep";
 
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
@@ -4205,9 +4208,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             
             // add step to perform protection operation
             String stepId = workflow.createStepId();
-            Workflow.Method performProtOpExecuteMethod = new Workflow.Method("performProtectionOperationStep", protectionSystem, protectionVolume.getConsistencyGroup(), id, copyID, pointInTime, imageAccessMode, op);
+            Workflow.Method performProtOpExecuteMethod = new Workflow.Method(METHOD_PERFORM_PROTECTION_OPERATION, protectionSystem, protectionVolume.getConsistencyGroup(), id, copyID, pointInTime, imageAccessMode, op);
 
-            workflow.createStep("rpProtectionOperationStep", String.format("Performing protection operation %s on RP volume: %s", op, id.toString()), 
+            workflow.createStep(STEP_PERFORM_PROTECTION_OPERATION, String.format("Performing protection operation %s on RP volume: %s", op, id.toString()), 
                     null, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), performProtOpExecuteMethod, null,
                     stepId);
             

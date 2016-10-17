@@ -24,7 +24,6 @@ import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
-import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -53,9 +52,9 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.JobContext;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.CIMArgumentFactory;
@@ -65,7 +64,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisSynchSubTaskJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 
 /**
@@ -272,8 +270,6 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         } else if (returnCode != CIM_SUCCESS_CODE && methodName.equals(CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL)
                 && checkIfVolumeSizeExceedingPoolSize(inArgs, outArgs)) {
             throw DeviceControllerException.exceptions.volumeSizeExceedingPoolSize(getVolumeName(inArgs));
-        } else if(methodName.equals(MODIFY_REPLICA_SYNCHRONIZATION)){
-            return;
         } else if (returnCode != CIM_SUCCESS_CODE) {
             throw new Exception("Failed with return code: " + obj);
         }
@@ -1200,21 +1196,21 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     @SuppressWarnings("rawtypes")
     public void callModifyReplica(StorageSystem storage, CIMArgument[] inArgs)
             throws Exception {
-//        callReplicationSvc(storage, MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
-//                new CIMArgument[5]);
-        CIMObjectPath replicationSvcPath = _cimPath
-                .getReplicationSvcPath(storage);
-        SmisBlockResumeSnapshotJob job = new SmisBlockResumeSnapshotJob(null, storage.getId(),
-                new TaskCompleter() {
-                    @Override
-                    protected void
-                            complete(DbClient dbClient,
-                                    Operation.Status status,
-                                    ServiceCoded coded) throws DeviceControllerException {
-
-                    }
-                });
-        invokeMethodSynchronously(storage, replicationSvcPath, MODIFY_REPLICA_SYNCHRONIZATION, inArgs, new CIMArgument[5], job);
+        callReplicationSvc(storage, MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
+                new CIMArgument[5]);
+//        CIMObjectPath replicationSvcPath = _cimPath
+//                .getReplicationSvcPath(storage);
+//        SmisBlockResumeSnapshotJob job = new SmisBlockResumeSnapshotJob(null, storage.getId(),
+//                new TaskCompleter() {
+//                    @Override
+//                    protected void
+//                            complete(DbClient dbClient,
+//                                    Operation.Status status,
+//                                    ServiceCoded coded) throws DeviceControllerException {
+//
+//                    }
+//                });
+//        invokeMethodSynchronously(storage, replicationSvcPath, MODIFY_REPLICA_SYNCHRONIZATION, inArgs, new CIMArgument[5], job);
     }
     
     //******************************************************************************

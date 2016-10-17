@@ -29,8 +29,12 @@
 	#{/else}
 	
   #{alerts/}
-  
-  #{form @save(), class:'form form-horizontal', autocomplete:"off"}
+  #{if !editing }
+        %{
+            onConfirm = messages.get('disasterRecovery.confirm.add')
+        }%
+  #{/if}
+  #{form @save(), id:'addForm', class:'form form-horizontal', autocomplete:"off", confirm:onConfirm }
     #{if disasterRecovery?.id}
       #{field 'disasterRecovery.id'}
          <input type="hidden" name="${field.name}" value="${field.value}">

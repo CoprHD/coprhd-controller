@@ -24,13 +24,13 @@ usage() {
 }
 
 validate_parameters() {
-    if [ -d ${RESTORE_DIR} ]; then
-        if [[ $(is_local_backup) == "false" ]]; then
-            echo "The ${RESTORE_DIR} is not a local backup"
+    if [ -d "${RESTORE_ORIGIN}" ]; then
+        if [[ $(is_local_backup "${RESTORE_ORIGIN}") == "false" ]]; then
+            echo "The ${RESTORE_ORIGIN} is not a local backup"
             exit 3
         fi
-    elif [ ! -f "${BACKUP_ZIP}" ]; then
-        echo "${BACKUP_ZIP} not exist"
+    elif [ ! -f "${RESTORE_ORIGIN}" ]; then
+        echo "${RESTORE_ORIGIN} not exist"
         exit 2
     fi
 
@@ -39,8 +39,7 @@ validate_parameters() {
 }
 
 upload_backup() {
-    local is_local_backup=$(is_local_backup)
-    if [[ "${is_local_backup}" == "true" ]] ; then
+    if [[ "$(is_local_backup ${RESTORE_ORIGIN})" == "true" ]] ; then
         echo "This is a local backup, no need to upload to other nodes"
         return
     fi
@@ -55,9 +54,10 @@ upload_backup() {
 input_password() {
     while true; do
         read -p "Please input cluster password for root user: " -s ROOT_PASSWORD; echo ""
-        ssh_execute "$LOCAL_NODE" "mkdir -p $RESTORE_DIR"
-        if [ -d $RESTORE_DIR ]; then
-            break
+        
+        check_password ${ROOT_PASSWORD}
+        if [[ $? -eq 0 ]] ; then
+            break;
         fi
 
         echo "Password is incorrect."
@@ -66,14 +66,14 @@ input_password() {
 
 create_restore_folder() {
     local command="mkdir -p $RESTORE_DIR"
-    loop_execute "${command}" "false"
+    loop_execute "${command}" "true"
 }
 
 extract_backup_files() {
-    cd $RESTORE_DIR
-    unzip "${BACKUP_ZIP}" >/dev/null
+    cd ${RESTORE_DIR}
+    unzip "${RESTORE_ORIGIN}" >/dev/null
 
-    is_vdc_connected
+    is_vdc_connected ${RESTORE_DIR}
 
     validate_backup_files
 }
@@ -116,7 +116,7 @@ validate_backup_files() {
 copy_to_other_nodes() {
     chmod -R 777 "$RESTORE_DIR"
     local command="scp svcuser@$LOCAL_NODE:$RESTORE_DIR/* $RESTORE_DIR"
-    loop_execute "${command}" "false" # "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
+    loop_execute "${command}" "false"
 }
 
 confirm_vdc_status() {
@@ -159,7 +159,7 @@ check_standby() {
     fi
 
     # Restore is not allowed if there are standby sites
-    site_ids=$(/etc/systool --getprops | grep "site_ids=")
+    site_ids=$(/etc/systool --getprops | grep "\<site_ids\>=")
     site_ids=${site_ids#*=}
     ids=(${site_ids//,/ })
     number_of_sites=${#ids[@]}
@@ -180,28 +180,27 @@ if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
     exit 0
 fi
 
-check_standby
-
 RESTORE_DIR="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
-if [ -d "$1" ] ; then
-    RESTORE_DIR="$1" 
-else
-    BACKUP_ZIP=$(readlink -f "$1")
+RESTORE_ORIGIN=$(readlink -f "$1")
+if [ -d "$RESTORE_ORIGIN" ] ; then
+    RESTORE_DIR=${RESTORE_ORIGIN}
 fi
 
 trap clean_up EXIT
+
+check_standby
 
 validate_parameters
 
 input_password
 
-comands=(upload_backup confirm_vdc_status)
-for cmd in ${comands[@]}
-do
-    $cmd
-done
+upload_backup
+
+confirm_vdc_status
+
+trap - EXIT #remove the handler since the restore-internal.sh will reset it
 
 ${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"

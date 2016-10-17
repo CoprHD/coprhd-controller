@@ -57,6 +57,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
+import com.google.common.collect.Lists;
 
 public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
@@ -112,22 +113,24 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
             Volume vol = volumes.get(0);
+            
             // If the volume is regular volume and in CG
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null
-                        && cgObj.created(storage.getId())
-                        && !vol.checkForRp()) {
+                        && cgObj.created(storage.getId())) {
                     // Only set this flag to true if the CG reference is valid
-                    // and it is already created on the storage system.
-                    // Also, exclude RP volumes.
+                    // and it is already created on the storage system.                  
                     isCG = true;
-
-                    /**
-                     * If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into backend cg
-                     */
-                    if (Volume.checkForVplexBackEndVolume(dbClient, vol)
-                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())) {
+                    
+                    //RP back-end volumes DO NOT have personality flag set. All RP volumes will satisfy checkForRP
+                    //Find out out if this is a RP volume that is not a back-end volume to a RP+VPLEX volume.
+                    boolean excludeRPNotBackendVolumes = vol.checkForRp() && (NullColumnValueGetter.isNotNullValue(vol.getPersonality()));
+                   
+                    // If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into back-end cg
+                    // Only XIO volumes that are back-end volumes to RP+VPLEX volumes will be in an array CG if arrayConsistency is chosen.
+                   if (excludeRPNotBackendVolumes || (Volume.checkForVplexBackEndVolume(dbClient, vol)
+                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance()))) {
                         isCG = false;
                     }
                 }
@@ -436,7 +439,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask,
+    public void doExportCreate(StorageSystem storage, ExportMask exportMask,
             Map<URI, Integer> volumeMap, List<Initiator> initiators, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         /**
@@ -457,116 +460,121 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
          *
          *
          */
-        _log.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
+        _log.info("{} doExportCreate START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumeMap, dbClient);
         xtremioExportOperationHelper.createExportMask(storage, exportMask.getId(), volumeLunArray,
                 targets, initiators, taskCompleter);
-        _log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
+        _log.info("{} doExportCreate END ...", storage.getSerialNumber());
 
     }
 
     @Override
-    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
+    public void doExportDelete(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportDelete START ...", storage.getSerialNumber());
+
+        List<Initiator> initiators = Lists.newArrayList();
+        if (initiatorURIs != null) {
+            initiators.addAll(dbClient.queryObject(Initiator.class, initiatorURIs));
+        }
         xtremioExportOperationHelper.deleteExportMask(storage, exportMask.getId(),
-                new ArrayList<URI>(), new ArrayList<URI>(), new ArrayList<Initiator>(),
+                volumeURIs, new ArrayList<URI>(), initiators,
                 taskCompleter);
-        _log.info("{} doExportGroupDelete END ...", storage.getSerialNumber());
+        _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume,
-            Integer lun, TaskCompleter taskCompleter) throws DeviceControllerException {
+            Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
 
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), map, dbClient);
-        xtremioExportOperationHelper.addVolume(storage, exportMask.getId(), volumeLunArray,
-                taskCompleter);
+        xtremioExportOperationHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
+                initiators, taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask,
-            Map<URI, Integer> volumes, TaskCompleter taskCompleter)
+            List<Initiator> initiators, Map<URI, Integer> volumes, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} doExportAddVolumes START ...", storage.getSerialNumber());
 
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumes, dbClient);
-        xtremioExportOperationHelper.addVolume(storage, exportMask.getId(), volumeLunArray,
-                taskCompleter);
+        xtremioExportOperationHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
+                initiators, taskCompleter);
         _log.info("{} doExportAddVolumes END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportRemoveVolumes START ...", storage.getSerialNumber());
         List<URI> volumeUris = new ArrayList<URI>();
         volumeUris.add(volume);
-        xtremioExportOperationHelper.removeVolume(storage, exportMask.getId(), volumeUris,
-                taskCompleter);
+        xtremioExportOperationHelper.removeVolumes(storage, exportMask.getId(), volumeUris,
+                initiators, taskCompleter);
         _log.info("{} doExportRemoveVolumes END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportRemoveVolumes START ...", storage.getSerialNumber());
-        xtremioExportOperationHelper.removeVolume(storage, exportMask.getId(), volumes,
-                taskCompleter);
+        xtremioExportOperationHelper.removeVolumes(storage, exportMask.getId(), volumes,
+                initiators, taskCompleter);
         _log.info("{} doExportRemoveVolumes END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask,
-            Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumeURIs, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
         List<Initiator> initiatorList = new ArrayList<Initiator>();
         initiatorList.add(initiator);
-        xtremioExportOperationHelper.addInitiator(storage, exportMask.getId(), initiatorList,
-                targets, taskCompleter);
+        xtremioExportOperationHelper.addInitiators(storage, exportMask.getId(), volumeURIs,
+                initiatorList, targets, taskCompleter);
         _log.info("{} doExportAddInitiators END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumeURIs, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} doExportAddInitiators START ...", storage.getSerialNumber());
-        xtremioExportOperationHelper.addInitiator(storage, exportMask.getId(), initiators, targets,
-                taskCompleter);
+        xtremioExportOperationHelper.addInitiators(storage, exportMask.getId(), volumeURIs, initiators,
+                targets, taskCompleter);
         _log.info("{} doExportAddInitiators END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask,
-            Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumes, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
         List<Initiator> initiatorList = new ArrayList<Initiator>();
         initiatorList.add(initiator);
-        xtremioExportOperationHelper.removeInitiator(storage, exportMask.getId(), initiatorList,
-                targets, taskCompleter);
+        xtremioExportOperationHelper.removeInitiators(storage, exportMask.getId(), volumes,
+                initiatorList, targets, taskCompleter);
         _log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumes, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiators START ...", storage.getSerialNumber());
-        xtremioExportOperationHelper.removeInitiator(storage, exportMask.getId(), initiators,
-                targets, taskCompleter);
+        xtremioExportOperationHelper.removeInitiators(storage, exportMask.getId(), volumes,
+                initiators, targets, taskCompleter);
         _log.info("{} doExportRemoveInitiators END ...", storage.getSerialNumber());
     }
 
@@ -889,14 +897,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return new HashMap<String, Set<URI>>();
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-        xtremioExportOperationHelper.refreshExportMask(storage, mask);
-        return mask;
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
+        return xtremioExportOperationHelper.refreshExportMask(storage, mask);
     }
 
     @Override

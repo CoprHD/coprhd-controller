@@ -14,6 +14,8 @@ public class VNXeFCPort extends VNXeBase {
     private List<Integer> operationalStatus;
     private Health health;
     private VNXeBase storageProcessorId;
+    // VNX Unity API returns storageProcessor
+    private VNXeBase storageProcessor;
     private String wwn;
     private Integer slotNumber;
     private Integer currentSpeed;
@@ -45,6 +47,14 @@ public class VNXeFCPort extends VNXeBase {
 
     public void setStorageProcessorId(VNXeBase storageProcessorId) {
         this.storageProcessorId = storageProcessorId;
+    }
+    
+    public VNXeBase getStorageProcessor() {
+        return storageProcessor;
+    }
+
+    public void setStorageProcessor(VNXeBase storageProcessor) {
+        this.storageProcessor = storageProcessor;
     }
 
     public String getWwn() {

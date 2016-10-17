@@ -7,7 +7,6 @@ package com.emc.storageos.vplex.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Info for a VPlex storage volume
  */
@@ -15,11 +14,11 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
 
     // The id of the VPlex cluster to which the storage volume belongs.
     private String clusterId;
-    
-    // The system-id of the storage volume 
+
+    // The system-id of the storage volume
     // which contains the backend volume WWN
     private String systemId;
-    
+
     // the component-type value
     private String componentType;
 
@@ -27,7 +26,7 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
     private List<String> itls = new ArrayList<>();
     private boolean isItlsFormatted = false;
 
-	/**
+    /**
      * Getter for the storage system cluster id.
      * 
      * @return The storage system cluster id.
@@ -44,7 +43,7 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
     public void setClusterId(String id) {
         clusterId = id;
     }
-    
+
     /**
      * Gets the formatted ITLs
      * 
@@ -112,13 +111,16 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
     public void setSystemId(String systemId) {
         this.systemId = systemId;
     }
-    
+
     /**
      * Returns the WWN of this storage volume as
      * extracted from the storage volume system id.
      * The expected format is the WWN prefixed by
      * "VPD83T3", for example:
-     *    VPD83T3:600601608d203700db57d68b5d2ae511
+     * VPD83T3:600601608d203700db57d68b5d2ae511
+     * 
+     * For XIV we noticed WWN prefixed by VPD83T2(not
+     * sure what triggered this prefix change)
      * 
      * @return the WWN of this storage volume or null.
      */
@@ -126,9 +128,11 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
         if (systemId != null) {
             if (systemId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX)) {
                 return systemId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX.length());
+            } else if (systemId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX_T2)) {
+                return systemId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX_T2.length());
             }
         }
-        
+
         return null;
     }
 
@@ -149,7 +153,7 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
     public void setComponentType(String componentType) {
         this.componentType = componentType;
     }
-    
+
     /**
      * {@inheritDoc}
      */

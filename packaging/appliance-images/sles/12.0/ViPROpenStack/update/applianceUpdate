@@ -1,0 +1,403 @@
+#!/bin/bash
+#
+#--------------------------------------------------------------------
+# Copyright (c) 2015 - 2016, EMC Corporation. All Rights Reserved.
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.
+# This software is protected, without limitation, by copyright law and
+# international treaties.
+# Use of this software and the intellectual property contained therein
+# is expressly limited to the terms and conditions of the License
+# Agreement under which it is provided by or on behalf of EMC.
+#--------------------------------------------------------------------
+#
+# Created 08/06/2016: Padmakumar.Pillai@emc.com
+# This script updates the appliance image from one version to another.
+#
+# It happens through the following steps:
+#
+# 1. Validates the appliance image name and version
+#    - Returns success if:
+#      (a) the product name of the appliance and that of the update 
+#          media is same.
+#      (b) the product version of update media is greater than the 
+#          appliance version
+#
+# 2. Calls the optional pre-update script (preUpdate.sh) to do any 
+#    pre-update processing on the image. The script can be used to 
+#    make any configuration changes or call some custom scripts prior 
+#    to upgrading the appliance.  In the pre update process, user can 
+#    do any backup activities, stopping of services, archiving of log 
+#    files, etc. that needs to happen before the appliance is actually 
+#    updated.
+#
+# 3. Does the actual appliance update in two phases:
+#    (a) Updates the existing packages in the appliance using the
+#	 zypper distribution upgrade process. In this process, all the 
+#        existing packages are updated to their latest versions that
+#        are bundled in the update media.
+#    (b) Installs new packages present in the update media through 
+#        the zypper pattern installation. There may be new packages 
+#        that gets added to the update media, as part of the 
+#        dependencies or new functionality getting added to the
+#        application. This process takes care of installing those 
+#        new packages in the image.
+#  
+# 4. After the appliance update process is complete, the script
+#    executes the optional post-update script (postUpdate.sh). User can 
+#    use this script to handle any activities that can happen after a 
+#    successful update, like starting the services, etc.
+#
+#
+# How to call the script
+# ======================
+# In a linux host, after unzipping the update media, please execute:
+# 
+# /bin/bash applianceUpdate
+#          OR
+# ./applianceUpdate
+#
+#
+# Please refer the user guide for more information.
+
+
+PATH=/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin
+
+logMessage()
+{
+  prefix=$1
+  message="$2"
+  fullTime=$(date +%T)
+
+  echo -e "$fullTime [$prefix]: $message" >> $logFile
+  if [ $prefix = "INFO" -o $prefix = "ERROR" -o $prefix = "WARN" ]; then
+    echo -e "$fullTime [$prefix]: $message"
+  fi
+}
+# export the logMessage() function to child scripts
+declare -x -f logMessage
+
+logZyppMessage()
+{
+  retCode=$1
+  zypCmd="$2"
+
+  logMessage "INFO" "Zypper issue $zypCmd"
+
+  case $retCode in
+    2)   logMessage "ERROR" "Possible syntax error when executing zypper. Aborting update procedure ..." ;;
+    3)   logMessage "ERROR" "Insufficient arguments or bad argument value executing zypper. Aborting update procedure ..." ;;
+    4)   logMessage "ERROR" "Zypper command malfunction. Aborting update procedure ..." ;;
+    5)   logMessage "ERROR" "Privilege issue: please execute the script as root. Aborting update procedure ..." ;;
+    104) logMessage "ERROR" "Desired package not available or operation not permitted on resolvable. Aborting update procedure ..." ;;
+    105) logMessage "ERROR" "Possible user termination. Retry update procedure ..." ;;
+    *)   logMessage "ERROR" "Unknown error $retcode. Aborting update procedure ..." ;;
+  esac
+}
+
+cleanUp()
+{
+  # save the exit code of the program
+  EXIT_CODE=$?
+
+  logMessage "INFO" "Removing update repo..."
+  zypper -vv rr $repoName 2>&1>>$logFile
+  STATUS_CODE=$?
+  if [ $STATUS_CODE -ne 0 ]; then
+    logZyppMessage $STATUS_CODE "during removal of update repo."
+  else
+    logMessage "INFO" "Successfully removed update repo."
+  fi
+
+  exit $EXIT_CODE
+}
+
+abortUpdate()
+{
+  retCode=$1
+
+  exit $retCode
+}
+
+showHelp()
+{
+  echo
+  echo "Usage : $scriptName [command options]"
+  echo
+  echo "Overview"
+  echo "This is the master driver script which runs the appliance update process."
+  echo
+  echo "It requires the following folder added to the same level as the applianceUpdate script:"
+  echo " 1. repo"
+  echo "    A package repository in YaST2 format."
+  echo
+  echo "Optionally, the following scripts may be added to the same level as the applianceUpdate script:"
+  echo " 1. preUpdate.sh"
+  echo "    A script which can handle any operations before the actual update"
+  echo "    starts. The script file should have execute permissions for the"
+  echo "    user, \"root\"."
+  echo
+  echo " 2. postUpdate.sh"
+  echo "    A script which can handle any operations after the update process"
+  echo "    is completed. The script file should have execute permissions for"
+  echo "    the user, \"root\"."
+  echo
+  echo "Command options"
+  echo "   -h | --help   =>  Shows the help text"
+  echo
+}
+
+#########################################################
+# Global Variables
+#########################################################
+
+# Exit codes
+success=0
+error=1
+fileNotFoundError=10
+runtimeError=11
+argumentError=12
+productVersionError=13
+osVersionError=14
+
+# Sourcing the ovf.properties file to read the VM values
+if [ -f /opt/ADG/conf/ovf.properties ]; then
+  . /opt/ADG/conf/ovf.properties
+else
+  echo "Unable to determine product info. Aborting update procedure ..."
+  exit $fileNotFoundError
+fi
+
+scriptName=$(basename $0)
+logTime=$(date +%Y_%m_%d-%H_%M_%S)
+
+repoName="tmp-update-repo"
+repoLocation="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repoContentFile="$repoLocation/repo/content"
+
+targetVersion="$(grep ^VERSION $repoContentFile|cut -d" " -f8)"
+imageVersion="/etc/ImageVersion"
+productVersion=$(cat $imageVersion | grep -oh "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+")
+productName=$(cat $imageVersion | sed "s/-$productVersion//g")
+
+pattern="$productName-update"
+slesReleaseFile="sles-release"
+
+preUpdateScript="$repoLocation/preUpdate.sh"
+postUpdateScript="$repoLocation/postUpdate.sh"
+updateProperties="$repoLocation/update.properties"
+
+logsDir="/opt/ADG/update/logs"
+export logFile="$logsDir/update-$productVersion-$targetVersion-$logTime.log"
+
+skipProductVersionCheck=false
+
+
+###############################################################
+# Argument parsing
+###############################################################
+OPTS=$(getopt -o h --long help,--test -n $scriptName -- "$@")
+
+if [ $? -eq 0 ]; then
+  eval set -- "$OPTS"
+
+  while true; do
+    case "$1" in
+      -h|--help) showHelp; exit 0 ;;
+      --test) echo "--test not implemented"; shift ;;
+      --) shift; break ;;
+      *) showHelp; exit 0 ;;
+    esac
+  done
+else
+  logMessage "ERROR"
+  showHelp
+  exit $argumentError
+fi
+
+# Creating the log directory
+[ ! -d "$logsDir" ] && mkdir -p $logsDir
+
+# Sourcing the update.properties file
+[ -f $updateProperties ] && . $updateProperties
+
+
+###############################################################
+# Logging info and prep steps here
+###############################################################
+logMessage "INFO" "* Starting the appliance update process *"
+logMessage "INFO" "Updating $productName: $productVersion -> $targetVersion"
+logMessage "INFO" "Logs can be found here: "
+logMessage "INFO" "$logFile"
+logMessage "INFO" "* Validating update *"
+productVerCmp=$(zypper versioncmp $productVersion $targetVersion)
+
+
+###############################################################
+# Checking Appliance product version
+###############################################################
+if [ "$skipProductVersionCheck" = true ]; then
+  logMessage "INFO" "Skipping product version check ..."
+else
+  logMessage "INFO" "Checking installed product version ..."
+  if [ "$(echo $productVerCmp | grep newer)" != "" ]; then
+    logMessage "ERROR" "A higher version of the product is already installed. Aborting update procedure ..."
+    exit $productVersionError
+  elif [ "$(echo $productVerCmp | grep matches)" != "" ]; then
+    logMessage "ERROR" "The appliance product version matches the update media product version. Aborting update procedure ..."
+    exit $productVersionError
+  elif [ "$(echo $productVerCmp | grep older)" != "" ]; then
+    logMessage "INFO" "Product version check is successful."
+  fi
+fi
+
+# trap signal to clean up temporary repo on exit
+trap "cleanUp" EXIT
+
+###############################################################
+# Add the update zypper repo
+###############################################################
+zypper repos $repoName 2>&1 | grep "Alias\s.*:\s.*$repoName" > /dev/null
+STATUS_CODE=$?
+if [ $STATUS_CODE -eq 0 ]; then
+  logMessage "DEBUG" "Removing update repo ..."
+  zypper rr $repoName 2>&1>>$logFile
+fi
+
+logMessage "INFO" "Adding update repo ..."
+zypper -vv ar $repoLocation/repo $repoName 2>&1>>$logFile
+STATUS_CODE=$?
+if [ $STATUS_CODE -ne 0 ]; then
+  logZyppMessage $STATUS_CODE "while adding repo: $repoName."
+  abortUpdate $STATUS_CODE
+fi
+
+# Refresh added zypper repo
+zypper -vv --no-gpg-checks refresh $repoName 2>&1>>$logFile
+STATUS_CODE=$?
+if [ $STATUS_CODE -ne 0 ]; then
+  logZyppMessage $STATUS_CODE "while refreshing repo: $repoName."
+  abortUpdate $STATUS_CODE
+fi
+
+logMessage "INFO" "Update repo added successfully."
+
+
+###############################################################
+# Checking OS Version
+###############################################################
+logMessage "INFO" "Checking OS version ..."
+slesRepoVersion=$(zypper info --repo $repoName $slesReleaseFile | grep "Version:" | sed 's/Version: //g')
+slesInstalledVersion=$(rpm -qv $slesReleaseFile --qf '%{v}-%{r}')
+result=$(zypper versioncmp $slesInstalledVersion $slesRepoVersion)
+
+logMessage "DEBUG" "Installed SLES version = $slesInstalledVersion."
+logMessage "DEBUG" "Update repo SLES version = $slesRepoVersion."
+
+if [ "$(echo $result | grep newer)" != "" ]; then
+  logMessage "ERROR" "A higher version of OS is already installed. Aborting update procedure ..."
+  exit $osVersionError
+elif [ "$(echo $result | grep older)" != "" ]; then
+  logMessage "INFO" "Updating OS release ..."
+
+  zypper -n -vv install --repo $repoName $slesReleaseFile 2>&1>>$logFile
+  STATUS_CODE=$?
+  if [ $STATUS_CODE -ne 0 ]; then
+    logZyppMessage $STATUS_CODE "while installing sles-release package."
+    abortUpdate $STATUS_CODE
+  fi
+else
+  logMessage "INFO" "OS version check is successful."
+fi
+
+logMessage "INFO" "Update validation successful."
+
+
+##############################################################
+# Executing Pre-Update Scripts
+##############################################################
+logMessage "INFO" "* Starting Update *"
+if [ -x $preUpdateScript ]; then
+  logMessage "INFO" "* Running pre-update script *"
+  logMessage "DEBUG" "Pre-update script: $preUpdateScript"
+
+  $preUpdateScript "$productVersion" "$targetVersion" "$productName" 2>&1>>$logFile
+
+  STATUS_CODE=$?
+  if [ $STATUS_CODE -ne 0 ]; then
+    logMessage "ERROR" "The pre-update script returned status: $STATUS_CODE"
+    abortUpdate $STATUS_CODE
+  else
+    logMessage "INFO" "pre-update script completed successfully ..."
+  fi
+else
+  logMessage "WARN" "skipping pre-update script $preUpdateScript"
+fi
+
+
+###############################################################
+# Update/install/remove packages from repo
+###############################################################
+logMessage "INFO" "Updating the existing packages. This may take some time. Please wait ..."
+zypper -n -vv dup -l --repo $repoName 2>&1>>$logFile
+
+STATUS_CODE=$?
+if [ $STATUS_CODE -ne 0 ]; then
+  logZyppMessage $STATUS_CODE "while updating existing packages."
+else
+  logMessage "INFO" "Update of existing packages completed."
+  logMessage "INFO" "Installing new packages. This may take some time. Please wait ..."
+  logMessage "DEBUG" "Pattern name = $pattern"
+
+  zypper -n -vv install --repo $repoName -t pattern $pattern 2>>$logFile
+  STATUS_CODE=$?
+  [ $STATUS_CODE -ne 0 ] && logZyppMessage $STATUS_CODE "while installing new packages."
+
+  logMessage "INFO" "Installation of new packages completed."
+fi
+
+
+###############################################################
+# Update the product version
+###############################################################
+if [ $STATUS_CODE -eq 0 ]; then
+  logMessage "INFO" "Updating the product version to $targetVersion ..."
+  echo $productName-$targetVersion > $imageVersion
+  STATUS_CODE=$?
+  [ $STATUS_CODE -ne 0 ] && logMessage "WARN" "Failed to update the product version."
+fi
+
+
+###############################################################
+# Executing Post-Update Scripts
+###############################################################
+POST_STATUS_CODE=0
+if [ -x $postUpdateScript ]; then
+  logMessage "INFO" "* Running post-update script *"
+  logMessage "DEBUG" "Post-update script: $postUpdateScript"
+
+  $postUpdateScript "$productVersion" "$targetVersion" "$productName" 2>>$logFile
+  POST_STATUS_CODE=$?
+  if [ $POST_STATUS_CODE -ne 0 ]; then
+    logMessage "WARN" "The post-update script returned status: $POST_STATUS_CODE"
+  else
+    logMessage "INFO" "post-update script completed successfully ..."
+  fi
+else
+  logMessage "WARN" "skipping post-update script $postUpdateScript"
+fi
+
+if [ $STATUS_CODE -eq 0 ] && [ $POST_STATUS_CODE -eq 0 ]; then
+  logMessage "INFO" "* COMPLETE: Appliance update completed successfully *"
+else
+  logMessage "WARN" "* COMPLETE: Appliance update completed with warnings *"
+fi
+
+
+###############################################################
+# Done
+# CleanUp and Exit
+###############################################################
+
+exit $success

@@ -30,15 +30,15 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
-import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
-import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -522,8 +522,9 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                         StoragePoolAssociationHelper.setStoragePoolVarrays(system.getId(), newPools, _dbClient);
                         allPools.addAll(newPools);
                         allPools.addAll(updatePools);
+                        StringBuffer errorMessage = new StringBuffer();
                         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(allPools,
-                                _dbClient, _coordinator, accessProfile.getSystemId());
+                                _dbClient, _coordinator, accessProfile.getSystemId(), errorMessage);
                         _logger.info("New pools size: {}", newPools.size());
                         _logger.info("updatePools size: {}", updatePools.size());
                         DiscoveryUtils.checkStoragePoolsNotVisible(allPools, _dbClient, system.getId());

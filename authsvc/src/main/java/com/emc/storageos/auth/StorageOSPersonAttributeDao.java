@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.List;
 
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import org.apache.commons.httpclient.Credentials;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
@@ -70,4 +71,10 @@ public interface StorageOSPersonAttributeDao {
      * @return
      */
     public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMapping);
+
+    /**
+     * Set the failure handler which will be invoked when provider connection has issue.
+     * @param failureHandler
+     */
+    public void setFailureHandler(LdapFailureHandler failureHandler);
 }

@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -17,6 +18,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -74,7 +76,15 @@ class DataCollectionJobInvoker {
             // Discovery-vnxFile | Discovery-block | Discovery-host |
             // Discovery-vcenter
             String contextkey = _accessProfile.getProfileName() + "-" + contextDeviceType;
-            if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {
+            if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equals(_accessProfile.getProfileName())) {
+                if (_accessProfile.getProps() != null) {
+                    String hosts = _accessProfile.getProps().get(Constants.HOST_IDS);
+                    if (StringUtils.isNotEmpty(hosts)) {
+                        // ArrayAffinity-block-host
+                        contextkey = contextkey + "-" + Constants.HOST;
+                    }
+                }
+            } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {
                 // Discovery-vnxFile-all | Discovery-block-all |
                 // CS_Discovery-host-all | CS_Discovery-vcenter-all
                 contextkey = contextkey + "-" + _namespace.toLowerCase();
@@ -94,8 +104,13 @@ class DataCollectionJobInvoker {
                 String contextFile = getContextFile(contextkey);
                 if (null == contextFile) {
                     // No entry for context key in configinfo map, default to external device context key
-                    String externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-"
-                            + _namespace.toLowerCase();
+                    String externalDeviceContextKey;
+                    if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.SCANNER)) {
+                        externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE;
+                    } else {
+                        externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-"
+                                + _namespace.toLowerCase();
+                    }
                     _logger.info("No entry defined for context key: {} . Default to external device context key: {}",
                             contextkey, externalDeviceContextKey);
                     contextkey = externalDeviceContextKey;
@@ -168,6 +183,8 @@ class DataCollectionJobInvoker {
             commInterface.scan(_accessProfile);
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {
             commInterface.discover(_accessProfile);
+        } else if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
+            commInterface.discoverArrayAffinity(_accessProfile);
         } else if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.METERING)) {
             invokeMetering();
         } else {

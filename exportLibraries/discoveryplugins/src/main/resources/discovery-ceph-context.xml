@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="cephClientFactory" class="com.emc.storageos.ceph.CephClientFactory"
+		init-method="init">
+	</bean>
+
+	<bean id="ceph"
+		class="com.emc.storageos.volumecontroller.impl.plugins.CephCommunicationInterface">
+		<property name="cephClientFactory" ref="cephClientFactory" />
+	</bean>
+
+</beans>

@@ -149,7 +149,7 @@ class Backup(object):
     URI_BACKUPSET_RESTORE = '/backupset/restore?backupname={0}&isLocal={1}&password={2}'
     URI_BACKUPSET_RESTORE_STATUS = '/backupset/restore/status?backupname={0}&isLocal={1}'
     URI_BACKUPSET_EXTERNAL = '/backupset/external'
-    URI_BACKUPSET_QUERY_INFO = '/backupset/backup/info?name={0}'
+    URI_BACKUPSET_QUERY_INFO = '/backupset/backup/info?backupname={0}'
     URI_BACKUPSET_PULL = '/backupset/pull?file={0}'
     URI_BACKUPSET_PULL_CANCEL ='/backupset/pull/cancel'
     DEFAULT_SYSMGR_PORT = "4443"

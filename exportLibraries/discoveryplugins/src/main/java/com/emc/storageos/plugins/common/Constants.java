@@ -250,6 +250,16 @@ public class Constants {
     public static final String NOT_INGESTABLE_SYNC_ASPECT = "notIngestableSyncAspect";
     public static final String UNMANAGED_EXPORT_MASKS_MAP = "unManagedExportMasksMap";
     public static final String UNMANAGED_EXPORT_MASKS_SET = "unManagedExportMasksSet";
+    public static final String HOST = "host";
+    public static final String HOST_IDS = "hostIds";
+    public static final String SYSTEM_SERIAL_IDS = "systemSerialIds";
+    public static final String SYSTEM_IDS = "systemIds";
+    public static final String ID_DELIMITER = ",";
+    public static final String HOST_EXPORT_MASKS_MAP = "hostExportMasksMap";
+    public static final String EXPORT_MASK_HOSTS_MAP = "exportMaskHostsMap";
+    public static final String EXPORT_MASK_VOLUMES_MAP = "exportMaskVolumesMap";
+    public static final String EXPORT_MASK_STORAGE_POOLS_MAP = "exportMaskStoragePoolsMap";
+    public static final String VOLUME_STORAGE_POOL_MAP = "volumeStoragePoolMap";
     public static final String UNMANAGED_EXPORT_MASKS_CREATE_LIST = "unManagedExportMasksCreateList";
     public static final String UNMANAGED_EXPORT_MASKS_UPDATE_LIST = "unManagedExportMasksUpdateList";
     public static final String UNMANAGED_EXPORT_MASKS_VPLEX_INITS_SET = "unManagedExportMasksVplexInitsSet";
@@ -301,5 +311,6 @@ public class Constants {
     public static final String WORKLOAD = "Workload";
     public static final String SLO_NAMES = "SLONames";
     public static final String EXTERNALDEVICE = "externaldevice";
+    public static final String DEFAULT_COMPRESSION_RATIO = "1:1";
 
 }

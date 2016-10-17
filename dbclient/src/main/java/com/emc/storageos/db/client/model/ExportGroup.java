@@ -335,6 +335,13 @@ public class ExportGroup extends DataObject implements ProjectResource {
         removeExportMask(maskUri.toString());
     }
 
+    public void removeExportMasks(List<URI> masksToRemove) {
+        StringSet exportMasks = getExportMasks();
+        if (exportMasks != null) {
+            exportMasks.removeAll(StringSetUtil.uriListToStringSet(masksToRemove));
+        }
+    }
+
     public void removeExportMask(String maskUriStr) {
         if (_exportMasks != null) {
             _exportMasks.remove(maskUriStr);

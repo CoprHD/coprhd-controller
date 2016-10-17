@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToLabel;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -80,6 +81,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
 /**
@@ -579,6 +581,7 @@ public class ControllerUtils {
                     nativeId = Integer.parseInt(blockObject.getNativeId(), 16);
                     nativeIdString = String.format("%04d", nativeId);
                 } else if (!storageType.equals(DiscoveredDataObject.Type.vnxe.name()) &&
+                        !storageType.equals(DiscoveredDataObject.Type.unity.name()) &&
                         blockObject.getNativeId().matches("\\d+")) {
                     nativeId = Integer.parseInt(blockObject.getNativeId());
                     nativeIdString = String.format("%04d", nativeId);
@@ -590,8 +593,15 @@ public class ControllerUtils {
             for (String nativeId : orderedByNativeId) {
                 URI uri = nativeIdToURIMap.get(nativeId);
                 Integer entryHLU = volumeMap.get(uri);
-                String hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
+                String hluString = null;
+                if (storageType.equals(DiscoveredDataObject.Type.unity.name())) {
+                    // Don't change to hex string for Unity
+                    hluString = (entryHLU != null) ? Integer.toString(entryHLU) :
                         ExportGroup.LUN_UNASSIGNED_STR;
+                } else {
+                    hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
+                        ExportGroup.LUN_UNASSIGNED_STR;
+                }
                 String volLabel = blockURIToLabelMap.get(uri);
                 if (storageType.equals(DiscoveredDataObject.Type.hds.name())
                         || storageType.equals(DiscoveredDataObject.Type.xtremio.name())) {
@@ -1024,6 +1034,33 @@ public class ControllerUtils {
             }
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
+    }
+    
+    /**
+     * From the passed list group snapshot URIs, filters the list so that only one snapshot
+     * per replication group is in the returned, filtered list.
+     * 
+     * @param snapshotURIs A list of group snapshots
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The filtered list of snapshot URIs.
+     */
+    public static List<URI> ensureOneSnapshotPerReplicationGroup(List<URI> snapshotURIs, DbClient dbClient) {
+        List<URI> filteredSnapshotURIs = new ArrayList<>();
+        Set<String> replicationGroups = new HashSet<>();
+        Iterator<BlockSnapshot> snapshotIter = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+        while (snapshotIter.hasNext()) {
+            BlockSnapshot snapshot = snapshotIter.next();
+            String repGrpInstance = snapshot.getReplicationGroupInstance();
+            if (replicationGroups.contains(repGrpInstance)) {
+                continue;
+            }
+
+            replicationGroups.add(repGrpInstance);
+            filteredSnapshotURIs.add(snapshot.getId());
+        }
+        
+        return filteredSnapshotURIs;
     }
 
     /**
@@ -1478,7 +1515,7 @@ public class ControllerUtils {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return storage != null && storage.deviceIsType(Type.xtremio);
     }
-
+    
     /**
      * Check whether the given volume is not in a real replication group
      * 
@@ -1558,6 +1595,11 @@ public class ControllerUtils {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
         }
         return existingSnapSnapSetLabel;
+    }
+
+    public static Set<String> getSnapshotLabelsFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
+        return new HashSet(transform(snapshots, fctnBlockObjectToLabel()));
     }
 
     /**
@@ -1989,6 +2031,38 @@ public class ControllerUtils {
         URIQueryResultList resultList = new URIQueryResultList();
         dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
         return newArrayList(resultList.iterator());
+    }
+    
+    /**
+     * get the list of applications for a list of full copy volumes
+     * 
+     * @param fcVolumeIds full copy volume ids
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getApplicationsForFullCopies(List<URI> fcVolumeIds, DbClient dbClient) {
+        Set<URI> volumeGroupIds = new HashSet<URI>();
+        Iterator<Volume> fcVolumes = dbClient.queryIterativeObjects(Volume.class, fcVolumeIds);
+        while (fcVolumes.hasNext()) {
+            Volume fcVolume = fcVolumes.next();
+            if (!NullColumnValueGetter.isNullURI(fcVolume.getAssociatedSourceVolume())) {
+                BlockObject sourceObj = BlockObject.fetch(dbClient, fcVolume.getAssociatedSourceVolume());
+                if (sourceObj instanceof Volume) {
+                    for (String appId : ((Volume) sourceObj).getVolumeGroupIds()) {
+                        volumeGroupIds.add(URI.create(appId));
+                    }
+                }
+            }
+        }
+        Iterator<VolumeGroup> volumeGroups = dbClient.queryIterativeObjects(VolumeGroup.class, volumeGroupIds);
+        List<URI> applicationIds = new ArrayList<URI>();
+        while (volumeGroups.hasNext()) {
+            VolumeGroup app = volumeGroups.next();
+            if (app.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                applicationIds.add(app.getId());
+            }
+        }
+        return applicationIds;
     }
 
     /**

@@ -35,16 +35,44 @@ import com.iwave.ext.netappc.FlexVolume;
 import com.iwave.ext.netappc.StorageVirtualMachine;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 
+/**
+ * The Class NetAppClusterFacade.
+ */
 public class NetAppClusterFacade {
 
+    /** The log. */
     private Logger log = Logger.getLogger(getClass());
+    
+    /** The server. */
     Server server = null;
+    
+    /** The _svm name. */
     String _svmName = null;
 
+    /**
+     * Instantiates a new net app cluster facade.
+     *
+     * @param host the host
+     * @param port the port
+     * @param username the username
+     * @param password the password
+     * @param useHTTPS the use https
+     */
     public NetAppClusterFacade(String host, int port, String username, String password, boolean useHTTPS) {
         this(host, port, username, password, useHTTPS, false, null);
     }
 
+    /**
+     * Instantiates a new net app cluster facade.
+     *
+     * @param host the host
+     * @param port the port
+     * @param username the username
+     * @param password the password
+     * @param useHTTPS the use https
+     * @param isSVM the is svm
+     * @param svmName the svm name
+     */
     public NetAppClusterFacade(String host, int port, String username, String password, boolean useHTTPS, boolean isSVM, String svmName)
     {
         if (log.isDebugEnabled()) {
@@ -56,6 +84,12 @@ public class NetAppClusterFacade {
         server = new Server(host, port, username, password, useHTTPS, isSVM, svmName, true);
     }
 
+    /**
+     * Creates the.
+     *
+     * @param connectionParams the connection params
+     * @return the net app cluster facade
+     */
     public static NetAppClusterFacade create(Map<String, String> connectionParams) {
         return new NetAppClusterFacade(connectionParams.get(NetAppDevice.IP_KEY),
                 Integer.parseInt(connectionParams.get(NetAppDevice.PORT_KEY)),
@@ -64,7 +98,12 @@ public class NetAppClusterFacade {
                 Boolean.parseBoolean(connectionParams.get(NetAppDevice.SECURE_KEY)));
     }
 
-    /***** Aggregate Ops ********/
+    /**
+     * *** Aggregate Ops *******.
+     *
+     * @param name the name
+     * @return the list
+     */
 
     /**
      * Returns a list of aggregates.
@@ -88,7 +127,12 @@ public class NetAppClusterFacade {
         return aggr.listAllAggregates(listAll);
     }
 
-    /**** Volume operations *****/
+    /**
+     * ** Volume operations ****.
+     *
+     * @param volumeName the volume name
+     * @return the volume size
+     */
 
     /**
      * Returns the volumes size as string.
@@ -129,16 +173,17 @@ public class NetAppClusterFacade {
      * Only parameters for flexible volumes are provided.
      * Note the volume may not be operational immediately after this method returns. Use
      * getVolumeInfo() to query the status of the new volume.
-     * 
+     *
      * @param volName - Required. Volume name.
      * @param containingAggrName - Optional. Name of the aggregate in which to create the volume. Must
      *            be used in conjunction with the size parameter.
+     * @param path the path
      * @param size - Optional. Size (with unit) of the new volume. Ex: 10g, 2000m, 1t. Must be used
      *            in conjunction with containingAggrName.
      * @param spaceReserve - Optional. Type of volume guarantee new volume will use. Valid
      *            values are "none", "file", "volume".
      * @param permission - Optional. Unix permission bits in octal string format.
-     * @return
+     * @return true, if successful
      */
     public boolean createFlexibleVolume(String volName, String containingAggrName, String path, String size, String spaceReserve,
             String permission)
@@ -162,10 +207,10 @@ public class NetAppClusterFacade {
 
     /**
      * Unmounts a volume.
-     * 
-     * @param volumeName
-     * @param force
-     * @return
+     *
+     * @param volumeName the volume name
+     * @param force the force
+     * @return true, if successful
      */
     public boolean unmountVolume(String volumeName, boolean force)
     {
@@ -181,10 +226,10 @@ public class NetAppClusterFacade {
 
     /**
      * Destroys a volume.
-     * 
-     * @param volumeName
-     * @param force
-     * @return
+     *
+     * @param volumeName the volume name
+     * @param force the force
+     * @return true, if successful
      */
     public boolean destroyVolume(String volumeName, boolean force)
     {
@@ -200,9 +245,9 @@ public class NetAppClusterFacade {
 
     /**
      * Sets a new size of a volume.
-     * 
+     *
+     * @param volumeName the volume name
      * @param newSize - Size (with unit) of the new volume. Ex: 10g, 2000m, 1t.
-     * 
      * @return - The new size of the volume.
      */
     public String setVolumeSize(String volumeName, String newSize) {
@@ -234,8 +279,8 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Deletes a snapshot from a volume
-     * 
+     * Deletes a snapshot from a volume.
+     *
      * @param volumeName - Name of the volume containing the snapshot
      * @param snapshotName - Name of the snapshot to be deleted
      * @return - true/false if the operation was successful.
@@ -286,7 +331,9 @@ public class NetAppClusterFacade {
 
     /**
      * Lists all volumes on a svm.
-     * 
+     *
+     * @param volume the volume
+     * @param attrs the attrs
      * @return - list of volumes
      */
     public List<Map<String, String>> listVolumeInfo(String volume, Collection<String> attrs)
@@ -299,6 +346,16 @@ public class NetAppClusterFacade {
         return vol.listVolumeInfo(attrs);
     }
 
+    /**
+     * Adds the cifs share.
+     *
+     * @param mountPath the mount path
+     * @param shareName the share name
+     * @param comment the comment
+     * @param maxusers the maxusers
+     * @param forcegroup the forcegroup
+     * @return true, if successful
+     */
     public boolean addCIFSShare(String mountPath, String shareName, String comment, int maxusers, String forcegroup)
     {
         if (log.isDebugEnabled()) {
@@ -309,11 +366,24 @@ public class NetAppClusterFacade {
         return share.addCIFSShare(shareName, comment, maxusers, forcegroup);
     }
 
+    /**
+     * Change cifs share.
+     *
+     * @param shareName the share name
+     * @param attrs the attrs
+     */
     public void changeCIFSShare(String shareName, Map<String, String> attrs) {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
         share.changeCIFSShare(shareName, attrs);
     }
 
+    /**
+     * Change cifs share.
+     *
+     * @param shareName the share name
+     * @param attr the attr
+     * @param value the value
+     */
     public void changeCIFSShare(String shareName, String attr, String value) {
         Map<String, String> attrs = Maps.newHashMap();
         attrs.put(attr, value);
@@ -321,9 +391,9 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * set CIFS Access Control List
-     * 
-     * @param acl
+     * set CIFS Access Control List.
+     *
+     * @param acl the new CIFS acl
      */
     public void setCIFSAcl(CifsAcl acl) {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
@@ -331,9 +401,9 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * add CIFS Access Control List
-     * 
-     * @param acl
+     * add CIFS Access Control List.
+     *
+     * @param acl the acl
      */
     public void addCIFSAcl(CifsAcl acl) {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
@@ -342,9 +412,9 @@ public class NetAppClusterFacade {
 
     /**
      * Lists CIFS Access Control Lists.
-     * 
+     *
      * @param shareName - can contain wildcard * or ?
-     * @return
+     * @return the list
      */
     public List<CifsAcl> listCIFSAcls(String shareName) {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
@@ -352,15 +422,21 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * delete CIFS Access Control List
-     * 
-     * @param acl
+     * delete CIFS Access Control List.
+     *
+     * @param acl the acl
      */
     public void deleteCIFSAcl(CifsAcl acl) {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
         share.deleteCIFSAcl(acl);
     }
 
+    /**
+     * List nfs export rules.
+     *
+     * @param pathName the path name
+     * @return the list
+     */
     public List<ExportsRuleInfo> listNFSExportRules(String pathName)
     {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
@@ -389,6 +465,14 @@ public class NetAppClusterFacade {
                 rwHosts, rootHosts, securityStyle);
     }
 
+    /**
+     * Adds the nfs share.
+     *
+     * @param fsName the fs name
+     * @param qtreeName the qtree name
+     * @param exportPath the export path
+     * @param newRule the new rule
+     */
     public void addNFSShare(String fsName, String qtreeName, String exportPath,
             ExportRule newRule)
     {
@@ -397,9 +481,9 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Deletes a CIFS share, but not the underlying storage
-     * 
-     * @param shareName
+     * Deletes a CIFS share, but not the underlying storage.
+     *
+     * @param shareName the share name
      */
     public void deleteCIFSShare(String shareName)
     {
@@ -414,9 +498,9 @@ public class NetAppClusterFacade {
      * Lists CIFS Shares.
      * Most keys in returned Maps are optional. For example, description and maxusers are only returned if they are set.
      * For exaample: {description=Testing, maxusers=5, share-name=demotest, mount-point=/vol/volscott}
-     * 
+     *
      * @param shareName - can contain wildcard * or ?
-     * @return
+     * @return the list
      */
     public List<Map<String, String>> listCIFSShares(String shareName) {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), null);
@@ -519,8 +603,8 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Sets the security style of a QTree
-     * 
+     * Sets the security style of a QTree.
+     *
      * @param path full path of the QTree (i.e. /vol/MyVolume/MyTree)
      * @param type either ntfs, unix, mixed
      */
@@ -535,6 +619,12 @@ public class NetAppClusterFacade {
         }
     }
 
+    /**
+     * Sets the q tree oplocks.
+     *
+     * @param qtreePath the qtree path
+     * @param oplocks the oplocks
+     */
     public void setQTreeOplocks(String qtreePath, String oplocks) {
         String infoString = "NetAppFacade::setQTreeOplocks -> Trying to set oplocks = " + oplocks + " on qtree = " + qtreePath;
         log.info(infoString);
@@ -555,10 +645,10 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Invokes a CLI command through the API
-     * 
-     * @param args
-     * @return
+     * Invokes a CLI command through the API.
+     *
+     * @param args the args
+     * @return the string
      */
     public String invokeCliCommand(String args[]) {
         String cliResult;
@@ -580,6 +670,12 @@ public class NetAppClusterFacade {
         }
     }
 
+    /**
+     * List qtrees.
+     *
+     * @param volume the volume
+     * @return the list
+     */
     public List<Qtree> listQtrees(String volume) {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving qtrees");
@@ -589,6 +685,13 @@ public class NetAppClusterFacade {
         return qtreeCommands.listQtree(volume);
     }
 
+    /**
+     * Checks if is qtree.
+     *
+     * @param volume the volume
+     * @param qtreeName the qtree name
+     * @return true, if is qtree
+     */
     public boolean isQtree(String volume, String qtreeName) {
         if (log.isDebugEnabled()) {
             log.debug("Checking if " + qtreeName + " is a qtree on filesystem " + volume);
@@ -600,11 +703,11 @@ public class NetAppClusterFacade {
 
     /**
      * Creates a Qtree rooted in the specified volume.
-     * 
+     *
      * @param qtree the Qtree name.
      * @param volume the volume name.
-     * @param oplocks the true for enabled; false for disabled.
-     * @param security style - unix, ntfs or mixed.
+     * @param opLocks the op locks
+     * @param securityStyle the security style
      */
 
     public void createQtree(String qtree, String volume, Boolean opLocks, String securityStyle) {
@@ -617,11 +720,11 @@ public class NetAppClusterFacade {
 
     /**
      * Update a Qtree rooted in the specified volume.
-     * 
+     *
      * @param qtree the Qtree name.
      * @param volume the volume name.
-     * @param oplocks the true for enabled; false for disabled.
-     * @param security style - unix, ntfs or mixed.
+     * @param opLocks the op locks
+     * @param securityStyle the security style
      */
 
     public void updateQtree(String qtree, String volume, Boolean opLocks, String securityStyle) {
@@ -633,8 +736,8 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Deletes the qtree at the given path (/vol/&lt;volume&gt;/&lt;qtree&gt;)
-     * 
+     * Deletes the qtree at the given path (/vol/&lt;volume&gt;/&lt;qtree&gt;).
+     *
      * @param path the qtree path.
      * @param force whether to force deletion even if the qtree is not empty.
      */
@@ -648,12 +751,12 @@ public class NetAppClusterFacade {
 
     /**
      * Creates a Qtree rooted in the specified volume.
-     * 
+     *
      * @param qtree the Qtree name.
      * @param volume the volume name.
      * @param mode the permissions on the qtree (similar to unix file permissions, 0755 for example)
-     * @param oplocks the true for enabled; false for disabled.
-     * @param security style - unix, ntfs or mixed.
+     * @param opLocks the op locks
+     * @param securityStyle the security style
      */
     public void createQtree(String qtree, String volume, String mode, Boolean opLocks, String securityStyle) {
         if (log.isDebugEnabled()) {
@@ -677,6 +780,19 @@ public class NetAppClusterFacade {
         }
         QuotaCommands commands = new QuotaCommands(server.getNaServer());
         return commands.getTreeQuota(volume, path);
+    }
+    
+    /**
+     * List tree quotas.
+     *
+     * @return the list
+     */
+    public List<Quota> listTreeQuotas() {
+        if (log.isDebugEnabled()) {
+            log.debug("Getting all tree quotas");
+        }
+        QuotaCommands commands = new QuotaCommands(server.getNaServer());
+        return commands.getTreeQuotas();
     }
 
     /**
@@ -719,6 +835,14 @@ public class NetAppClusterFacade {
         commands.addDiskLimitTreeQuota(volume, path, diskLimitInKB, thresholdInKB);
     }
 
+    /**
+     * Modify disk limit tree quota.
+     *
+     * @param volume the volume
+     * @param path the path
+     * @param diskLimitInKB the disk limit in kb
+     * @param thresholdInKB the threshold in kb
+     */
     public void modifyDiskLimitTreeQuota(String volume, String path, long diskLimitInKB,
             long thresholdInKB) {
         if (log.isDebugEnabled()) {
@@ -729,6 +853,12 @@ public class NetAppClusterFacade {
         commands.modifyDiskLimitTreeQuota(volume, path, diskLimitInKB, thresholdInKB);
     }
 
+    /**
+     * Delete tree quota.
+     *
+     * @param volume the volume
+     * @param path the path
+     */
     public void deleteTreeQuota(String volume, String path) {
         if (log.isDebugEnabled()) {
             log.debug("Deleting tree quota for " + path);
@@ -738,7 +868,10 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Returns the current status of Quotas on the specified volume
+     * Returns the current status of Quotas on the specified volume.
+     *
+     * @param volume the volume
+     * @return the quota status
      */
     public QuotaCommands.QuotaStatus getQuotaStatus(String volume) {
         QuotaCommands commands = new QuotaCommands(server.getNaServer());
@@ -748,6 +881,8 @@ public class NetAppClusterFacade {
     /**
      * Starts to turn quotas on for a volume. A successful return from this API does not mean that quotas are on,
      * merely that an attempt to start it has been triggered
+     *
+     * @param volume the volume
      */
     public void turnQuotaOn(String volume) {
         QuotaCommands commands = new QuotaCommands(server.getNaServer());
@@ -755,7 +890,9 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * Reinitialize quota subsystem off for a volume
+     * Reinitialize quota subsystem off for a volume.
+     *
+     * @param volume the volume
      */
     public void reintializeQuota(String volume) {
         QuotaCommands commands = new QuotaCommands(server.getNaServer());
@@ -764,8 +901,8 @@ public class NetAppClusterFacade {
     }
 
     /**
-     * List of snapshots for a volume
-     * 
+     * List of snapshots for a volume.
+     *
      * @param volumeName - Name of the volume containing the snapshots
      * @return - Collection containing snapshots .
      */
@@ -781,6 +918,11 @@ public class NetAppClusterFacade {
         return vol.listSnapshots(attrs);
     }
 
+    /**
+     * List svm.
+     *
+     * @return the list
+     */
     public List<StorageVirtualMachineInfo> listSVM()
     {
         if (log.isDebugEnabled()) {
@@ -791,6 +933,15 @@ public class NetAppClusterFacade {
         return svm.listSVMs(true);
     }
 
+    /**
+     * Modify nfs share.
+     *
+     * @param fsName the fs name
+     * @param qtreeName the qtree name
+     * @param exportPath the export path
+     * @param oldRule the old rule
+     * @param newRule the new rule
+     */
     public void modifyNFSShare(String fsName, String qtreeName, String exportPath,
             ExportRule oldRule, ExportRule newRule)
     {

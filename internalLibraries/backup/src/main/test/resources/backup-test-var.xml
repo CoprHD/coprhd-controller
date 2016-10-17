@@ -16,11 +16,6 @@
     <bean id="backupContext" class="com.emc.storageos.management.backup.BackupContext">
         <property name="backupDir" ref="backupFolder"/>
         <property name="nodeId" value="standalone"/>
-        <property name="vdcList">
-            <list value-type="java.lang.String">
-                <value>vdc1</value>
-            </list>
-        </property>
     </bean>
 
     <bean id="backupFolder" class="java.io.File">

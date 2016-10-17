@@ -58,6 +58,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.ProvisioningType;
@@ -117,6 +118,7 @@ public abstract class VirtualPoolService extends TaggedResource {
     protected static final String VPOOL_PROTOCOL_FC = "FC";
     protected static final String VPOOL_PROTOCOL_ISCSI = "iSCSI";
     protected static final String VPOOL_PROTOCOL_SCALEIO = "ScaleIO";
+    protected static final String VPOOL_PROTOCOL_RBD = "RBD";
 
     protected static final String VPOOL_PROVISIONING_TYPE = "provisioning_type";
     protected static final String VPOOL_PROTOCOLS = "protocols";
@@ -142,6 +144,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         blockProtocols.add(VPOOL_PROTOCOL_FC);
         blockProtocols.add(VPOOL_PROTOCOL_ISCSI);
         blockProtocols.add(VPOOL_PROTOCOL_SCALEIO);
+        blockProtocols.add(VPOOL_PROTOCOL_RBD);
     }
 
     @Autowired
@@ -216,7 +219,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 case block:
                     if (!blockProtocols.containsAll(protocols)) {
                         throw APIException.badRequests.invalidProtocolsForVirtualPool(type, protocols, VPOOL_PROTOCOL_FC,
-                                VPOOL_PROTOCOL_ISCSI, VPOOL_PROTOCOL_SCALEIO);
+                                VPOOL_PROTOCOL_ISCSI, VPOOL_PROTOCOL_SCALEIO, VPOOL_PROTOCOL_RBD);
                     }
                 default:
                     break;
@@ -305,7 +308,7 @@ public abstract class VirtualPoolService extends TaggedResource {
      * OR
      * 2) Virtual array should not have virtual pool resources
      * 
-     * @param varrays
+     * @param varrayChanges
      * @param vpool
      */
     protected boolean checkVirtualArraysWithVPoolResources(VirtualArrayAssignmentChanges varrayChanges, VirtualPool vpool) {
@@ -714,10 +717,21 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
     }
 
-    protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId) {
+    protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId, String tenantId) {
 
         URIQueryResultList vpoolList = new URIQueryResultList();
         VirtualPoolList list = new VirtualPoolList();
+        TenantOrg tenant_input = null;
+
+        // if input tenant is not empty, but user have no access to it, return empty list.
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant_input = getTenantIfHaveAccess(tenantId);
+            if (tenant_input == null) {
+                return list;
+            }
+        }
+
+
         StorageOSUser user = getUserFromContext();
 
         List<VirtualPool> vpoolObjects = null;
@@ -755,16 +769,43 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        URI tenant = URI.create(user.getTenantId());
-        for (VirtualPool vpool : vpoolObjects) {
-            if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
-                // filter by only authorized to us
-                if (_permissionsHelper.tenantHasUsageACL(tenant, vpool)) {
-                    // this is an allowed VirtualPool, add it to the list
-                    list.getVirtualPool().add(toVirtualPoolResource(vpool));
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
+        if (_permissionsHelper.userHasGivenRole(user,
+                null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
+            for (VirtualPool virtualPool : vpoolObjects) {
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), virtualPool)) {
+                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
                 }
+            }
+        } else {
+            // otherwise, filter by only authorized to use
+            URI tenant = null;
+            if (tenant_input == null) {
+                tenant = URI.create(user.getTenantId());
             } else {
-                list.getVirtualPool().add(toVirtualPoolResource(vpool));
+                tenant = tenant_input.getId();
+            }
+
+            Set<VirtualPool> vpoolSet = new HashSet<VirtualPool>();
+            for (VirtualPool virtualPool : vpoolObjects) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
+                    vpoolSet.add(virtualPool);
+                }
+            }
+
+            // if no tenant specified in request, also adding vpools which sub-tenants of the user have access to.
+            if (tenant_input == null) {
+                List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (VirtualPool virtualPool : vpoolObjects) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
+                        vpoolSet.add(virtualPool);
+                    }
+                }
+            }
+
+            for (VirtualPool virtualPool : vpoolSet) {
+                list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
             }
         }
 
@@ -1023,7 +1064,8 @@ public abstract class VirtualPoolService extends TaggedResource {
         if (!vpool.getType().equals(type.name())) {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
+        StringBuffer errorMessage = new StringBuffer();
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
         _dbClient.updateAndReindexObject(vpool);
         StringSet matchedPools = vpool.getMatchedStoragePools();
         if (null != matchedPools && !matchedPools.isEmpty()) {

@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.List;
 
 public abstract class DataCollectionTaskCompleter extends TaskCompleter {
 
@@ -33,6 +34,10 @@ public abstract class DataCollectionTaskCompleter extends TaskCompleter {
      */
     public DataCollectionTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
+    }
+
+    public DataCollectionTaskCompleter(Class clazz, List<URI> ids, String opId) {
+        super(clazz, ids, opId);
     }
 
     public DataCollectionTaskCompleter(AsyncTask task) {

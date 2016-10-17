@@ -17,6 +17,7 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
+import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 import com.emc.storageos.vnxe.models.VNXeSnapRestoreParam;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
@@ -95,6 +96,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
         }
         setQueryParameters(null);
         if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
+	    unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed(String.format("No filesystem snap %s found",
@@ -102,6 +104,28 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
         }
 
     }
+
+    public VNXeCommandResult deleteFileSystemSnapSync(String snapId, String softwareVersion) throws VNXeException {
+         if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+             _url = URL_INSTANCE + snapId;
+         } else {
+             _url = URL_INSTANCE_V31 + snapId;
+         
+         }
+         VNXeCommandResult result = new VNXeCommandResult();
+         setQueryParameters(null);
+         if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
+             unsetQueryParameters();
+             deleteRequest(null);
+             result.setSuccess(true);
+	     return result;
+        } else {
+             throw VNXeException.exceptions.vnxeCommandFailed(String.format("No filesystem snap %s found",
+                     snapId));
+         }
+
+     }
+
 
     /**
      * Get the specific file system snap's details

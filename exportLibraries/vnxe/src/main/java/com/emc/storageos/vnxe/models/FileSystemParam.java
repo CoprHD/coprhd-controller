@@ -16,7 +16,7 @@ public class FileSystemParam {
     private VNXeBase nasServer;
     // private FSSupportedProtocolEnum supportedProtocols;
     private int supportedProtocols;
-    private boolean isFLREnabled;
+    private boolean isFLREnabled=false;  //this parameter is not define for VNXUnity,so setting it to false
     private boolean isThinEnabled;
     private long size;
     private long sizeAllocated;

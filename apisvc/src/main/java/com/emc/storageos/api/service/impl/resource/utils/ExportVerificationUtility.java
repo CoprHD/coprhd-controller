@@ -19,12 +19,14 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
@@ -533,6 +535,22 @@ public class ExportVerificationUtility {
                         throw APIException.badRequests.exportExists(opName,
                                 exportRule.toString());
                     }
+                    case STORAGE_SYSTEM_NOT_SUPPORT_MUL_SECS: {
+                        StorageSystem system = null;
+                        String systemName = "";
+                        if (fs != null) {
+                            system = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+                        } else if (snapshot != null) {
+                            FileShare fileSystem = _dbClient.queryObject(FileShare.class, snapshot.getParent());
+                            system = _dbClient.queryObject(StorageSystem.class, fileSystem.getStorageDevice());
+                        }
+                        if (system != null) {
+                            systemName = system.getSystemType();
+                        }
+
+                        throw APIException.badRequests.storageDoesNotSupportMulSecRule(opName,
+                                systemName, exportRule.toString());
+                    }
                     case EXPORT_NOT_FOUND:
                     case NO_ERROR:
                     default:
@@ -705,11 +723,33 @@ public class ExportVerificationUtility {
     private void verifyExportSecurity(ExportRule exportRule) {
         _log.info("Validating Export Security");
         try {
-            ExportSecurityType secType = ExportSecurityType.valueOf(exportRule
-                    .getSecFlavor().toUpperCase());
-            if (secType != null) {
-                exportRule.setIsToProceed(true, ExportOperationErrorType.NO_ERROR);
+            List<String> secTypes = new ArrayList<String>();
+            exportRule.setIsToProceed(true, ExportOperationErrorType.NO_ERROR);
+            for (String securityType : exportRule.getSecFlavor().split(",")) {
+                if (!securityType.trim().isEmpty()) {
+                    secTypes.add(securityType.trim());
+                    ExportSecurityType secType = ExportSecurityType.valueOf(securityType.trim().toUpperCase());
+                    if (secType == null) {
+                        exportRule.setIsToProceed(false,
+                                ExportOperationErrorType.INVALID_SECURITY_TYPE);
+                    }
+                }
             }
+            // Multiple security types in a single rule allowed for Isilon storage only!!!
+            if (secTypes.size() > 1) {
+                StorageSystem system = null;
+                if (fs != null) {
+                    system = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+                } else if (snapshot != null) {
+                    FileShare fileSystem = _dbClient.queryObject(FileShare.class, snapshot.getParent());
+                    system = _dbClient.queryObject(StorageSystem.class, fileSystem.getStorageDevice());
+                }
+                if (!DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())) {
+                    exportRule.setIsToProceed(false,
+                            ExportOperationErrorType.STORAGE_SYSTEM_NOT_SUPPORT_MUL_SECS);
+                }
+            }
+
         } catch (Exception e) {
             _log.info("Invalid Security Type found in Request {}",
                     exportRule.getSecFlavor());

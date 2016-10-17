@@ -130,9 +130,8 @@ public class DbConsistencyChecker {
     /**
      * Scan all the data object records, to find out the object record is existing
      * but the related index is missing.
-     *
-     * @param toConsole whether print out in the console
-     * @return True, when no corrupted data found
+     * 
+     * @return The number of corrupted data
      * @throws ConnectionException
      */
     private int checkObjectIndices() throws ConnectionException {
@@ -169,8 +168,7 @@ public class DbConsistencyChecker {
     /**
      * Scan all the indices and related data object records, to find out
      * the index record is existing but the related data object records is missing.
-     *
-     * @param toConsole whether print out in the console
+     * 
      * @return the number of the corrupted rows in the index CFs
      * @throws ConnectionException
      */

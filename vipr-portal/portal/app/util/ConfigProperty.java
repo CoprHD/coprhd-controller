@@ -45,6 +45,8 @@ public class ConfigProperty {
     public static final String IMAGE_SERVER_TFTPBOOT = "image_server_tftpboot_directory";
 
     public static final String BACKUP_EXTERNAL_URL = "backup_external_location_url";
+    public static final String BACKUP_EXTERNAL_TYPE = "backup_external_server_type";
+    public static final String BACKUP_EXTERNAL_DOMAIN = "backup_external_location_domain";
     public static final String BACKUP_EXTERNAL_USERNAME = "backup_external_location_username";
     public static final String BACKUP_EXTERNAL_PWD = "backup_external_location_password";
     public static final String BACKUP_SCHEDULER_ENABLE = "backup_scheduler_enable";
@@ -52,4 +54,9 @@ public class ConfigProperty {
     public static final String BACKUP_SCHEDULER_INTERVAL = "backup_scheduler_interval";
     public static final String BACKUP_SCHEDULER_COPIES = "backup_scheduler_copies_to_keep";
     public static final String BACKUP_MAX_MANUAL_COPIES = "backup_max_manual_copies";
+
+    public static final String SYSLOG_REMOTE_SERVERS_PORTS = "network_syslog_remote_servers_ports";
+    public static final String SYSLOG_ENABLE = "system_syslog_enable";
+    public static final String SYSLOG_TRANSPORT_PROTOCOL = "system_syslog_transport_protocol";
+    public static final String SYSLOG_DRIVER_CA = "system_syslog_driver_ca";
 }

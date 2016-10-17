@@ -878,21 +878,21 @@ public class BlockSnapshotService extends TaskResourceService {
         URI sourceVolumeURI = snapshot.getParent().getURI();
         Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
         if (!Volume.checkForVplexBackEndVolume(_dbClient, sourceVolume)) {
-            throw APIException.badRequests.cantExposeNonVPLEXSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeNonVPLEXSnapshot(snapshot.getLabel());
         }
 
         // Verify it is not marked for deletion.
         if (snapshot.getInactive()) {
-            throw APIException.badRequests.cantExposeInactiveSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeInactiveSnapshot(snapshot.getLabel());
         }
 
         // Verify that it has been activated such that the target volume
         // reflects the source volume data. Otherwise, when the snapshot
         // is activated, the read cache for the VPLEX volume would be invalid.
         if (!snapshot.getIsSyncActive()) {
-            throw APIException.badRequests.cantExposeUnsynchronizedSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeUnsynchronizedSnapshot(snapshot.getLabel());
         }
-
+        
         // Verify it has yet to be used to create a VPLEX volume.
         // A snapshot can only be used to create a single VPLEX volume.
         // This is because multiple VPLEX volumes cannot use the same
@@ -901,7 +901,20 @@ public class BlockSnapshotService extends TaskResourceService {
         // same native GUID as the snapshot.
         String snapshotNativeGuid = snapshot.getNativeGuid();
         if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
-            throw APIException.badRequests.cantExposeSnapshotAlreadyExposed(id.toString());
+            throw APIException.badRequests.cantExposeSnapshotAlreadyExposed(snapshot.getLabel());
+        }
+
+        // If the backend VPLEX snapshot snapshot is not currently exposed as
+        // a VPLEX volume and it is exported, then it must be exported to a 
+        // host/cluster. If this is the case, we don't allow the user to expose
+        // the snapshot as a VPLEX volume. If the user subsequently writes to the
+        // snapshot, the VPLEX volume built on top of it, would not be valid as
+        // the VPLEX would not be aware of these writes. Further, we know this will
+        // fail for VMAX3 backend snapshots with the error "A device cannot belong
+        // to more than one storage group in use by FAST". We thought it best to 
+        // disable for all platforms for the reason discussed.
+        if (snapshot.isSnapshotExported(_dbClient)) {
+            throw APIException.badRequests.cantExposeExportedSnapshot(snapshot.getLabel());
         }
 
         // Get the virtual pool of the snapshot source volume. We need to set

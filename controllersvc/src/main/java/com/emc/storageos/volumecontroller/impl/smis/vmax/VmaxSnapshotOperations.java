@@ -7,7 +7,9 @@ package com.emc.storageos.volumecontroller.impl.smis.vmax;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.checkReplicationGroupAccessibleOrFail;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
@@ -294,13 +296,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
             TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // List of target device ids
         List<String> targetDeviceIds = null;
         try {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             _log.info("createSingleVolumeSnapshot operation START");
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
+
             // Need to terminate an restore sessions, so that we can
             // restore from the same snapshot multiple times
             terminateAnyRestoreSessionsForVolume(storage, volume, taskCompleter);
@@ -313,7 +316,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
             if (storage.checkIfVmax3()) {
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
+                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, storage, volume, null);
                 // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
                 CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(storage, volume);
                 targetDeviceIds = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot", snapLabelToUse,
@@ -421,7 +424,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     final List<Volume> volumes = entry.getValue();
                     final Volume volume = volumes.get(0);
                     final URI poolId = volume.getPool();
-                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, storage, volume, null);
 
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
@@ -505,8 +508,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             if (targetGroupPath != null) {
                 CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
                 if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
-                    deleteTarget = false;
-
                     // remove targets from parking SLO group
                     if (storage.checkIfVmax3()) {
                         Iterator<BlockSnapshot> iter = snapshotList.iterator();
@@ -515,10 +516,27 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
                             _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
                         }
-                    }
 
-                    CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
-                    _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                        // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
+                        // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
+                        CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(groupSynchronized);
+                        CIMArgument[] outArgsDetach = new CIMArgument[5];
+                        CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                        _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                                inArgsDetach, outArgsDetach, null);
+                    } else {
+                        /*
+                         * The VMAX2 MRS(ReturnToResourcePool) call internally does 3 operations:
+                         * 1) Detach GroupSynchronized
+                         * 2) Delete target storage group
+                         * 3) Delete target devices
+                         *
+                         * So, if the call succeeds we no longer need to perform delete target steps (set flag to false).
+                         */
+                        CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
+                        _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                        deleteTarget = false;
+                    }
                 } else {
                     _log.info("GroupSynchronized {} not found", groupSynchronized.toString());
                 }
@@ -554,7 +572,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshot it = snapshotIter.next();
                 it.setInactive(true);
                 it.setIsSyncActive(false);
-                _dbClient.persistObject(it);
+                _dbClient.updateObject(it);
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -998,7 +1016,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         try {
             if (storageSystem.checkIfVmax3()) {
                 for (String deviceId : deviceIds) {
-                    _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    try {
+                        _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove device {} from SLO SG.  It may have already been removed", deviceId);
+                    }
                     _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
                 }
             }
@@ -1019,7 +1041,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         } catch (Exception e) {
             _log.error(
                     format("An error occurred when removing target devices {0} from storage system {1}",
-                            Joiner.on("\t").join(deviceIds), storageSystem.getId()), e);
+                            Joiner.on("\t").join(deviceIds), storageSystem.getId()),
+                    e);
         }
     }
 
@@ -1066,7 +1089,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     private boolean resumeSnapshot(StorageSystem storage, BlockObject from, BlockObject blockObject,
             CIMObjectPath syncObject, TaskCompleter taskCompleter)
-                    throws WBEMException {
+            throws WBEMException {
         boolean wasResumed = false;
         SmisBlockResumeSnapshotJob job = new SmisBlockResumeSnapshotJob(null, storage.getId(),
                 new TaskCompleter() {
@@ -1257,7 +1280,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
             TaskCompleter taskCompleter)
-                    throws Exception {
+            throws Exception {
         BlockObject blockObject = BlockObject.fetch(_dbClient, volume);
         Collection<CIMObjectPath> syncObjects = null;
 
@@ -1412,8 +1435,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
             if (syncInstance == null) {
                 // get all snapshots belonging to a Replication Group. There may be multiple snapshots available for a Volume
-                List<BlockSnapshot> snapshots = ControllerUtils.
-                        getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
+                List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
 
                 List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
                 for (BlockSnapshot snapshotObject : snapshots) {
@@ -1435,8 +1457,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            String msg =
-                    String.format("Failed to establish group relation between volume group and snapshot group. Volume: %s, Snapshot: %s",
+            String msg = String.format(
+                    "Failed to establish group relation between volume group and snapshot group. Volume: %s, Snapshot: %s",
                     sourceVolume, snapshot);
             _log.error(msg, e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -1540,7 +1562,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, Boolean targetExists, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
             try {
@@ -1557,7 +1579,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     if (URIUtil.isType(sourceObjURI, Volume.class)) {
                         // Provision the new target volume.
                         Volume sourceVolume = (Volume) sourceObj;
-                        CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, sourceVolume, null);
+                        CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, system, sourceVolume, null);
                         // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
                         CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(system, sourceVolume);
                         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, sourceVolume.getTenant().getURI());
@@ -1655,7 +1677,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     final URI poolId = volume.getPool();
 
                     // get respective group path for volume storage pool
-                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, volume, null);
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, system, volume, null);
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
                             sourceGroupName, null, false, true, volumes.size(), poolId,
@@ -1857,16 +1879,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // that it can be detached.
             boolean syncObjectFound = false;
             List<BlockSnapshot> snapshots = null;
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
             CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
-            if (snapshot.hasConsistencyGroup()) {
+            if (snapshot.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
                 String replicationGroupName = snapshot.getReplicationGroupInstance();
+                String sourceReplicationGroupName = sourceObj.getReplicationGroupInstance();
                 List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
                 if (groupSyncs != null && !groupSyncs.isEmpty()) {
                     // Find the right one. We want the one where the replication groups for
                     // the passed snapshot is the sync'd element.
                     for (CIMObjectPath groupSynchronized : groupSyncs) {
                         String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
-                        if (syncElementPath.contains(replicationGroupName)) {
+                        String systemElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
+                        if (syncElementPath.contains(replicationGroupName) && systemElementPath.contains(sourceReplicationGroupName)) {
                             syncObjectPath = groupSynchronized;
                             break;
                         }
@@ -1875,7 +1900,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
                         snapshot, _dbClient);
             } else {
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
                 syncObjectPath = getSyncObject(system, snapshot, sourceObj);
                 snapshots = Lists.newArrayList(snapshot);
             }
@@ -1921,16 +1945,29 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _log.info("Delete target device {} :{}", targetDeviceId, snapshotURI);
                 Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
 
-                if (snapshot.hasConsistencyGroup()) {
-                    deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+
+                if (snapshot.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                    try {
+                        checkReplicationGroupAccessibleOrFail(system, snapshot, _dbClient, _helper, _cimPath);
+                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    } catch (DeviceControllerException | WBEMException e) {
+                        _log.info("Failed to delete the target group.  It may have already been deleted.");
+                    }
+
                 }
 
                 // Ingested non-exported snapshot could be associated with SGs outside of ViPR,
                 // remove snapshot from them before deleting it.
                 for (BlockSnapshot snap : snapshots) {
-                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                    try {
+                        _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove snap {} from storage groups.  It may have already been removed.",
+                                snap.getNativeGuid());
+                    }
                 }
 
+                callEMCRefresh(_helper, system, true);
                 deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                 _log.info("Delete target device complete");
             } else if (!syncObjectFound) {
@@ -2019,7 +2056,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 String syncAspectPath = snapSession.getSessionInstance();
                 CIMObjectPath settingsStatePath = null;
                 BlockObject sourceObj = null;
-                if (snapSession.hasConsistencyGroup()) {
+                if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
                     _log.info("Restoring group snapshot session");
                     // We need a single source volume for the session.
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
@@ -2082,7 +2119,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     completer.ready(_dbClient);
                 } else {
                     CIMObjectPath settingsStatePath = null;
-                    if (snapSession.hasConsistencyGroup()) {
+                    if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(groupName)) {
                         settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, groupName, syncAspectPath);
                     } else {
                         BlockObject sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());

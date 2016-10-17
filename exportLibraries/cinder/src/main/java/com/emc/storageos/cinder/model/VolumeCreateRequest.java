@@ -45,6 +45,7 @@ public class VolumeCreateRequest {
         public String attach_status;
         public String volume_type;
         public String project_id;
+        public boolean multiattach;
         public Map<String, String> metadata;
     }
 

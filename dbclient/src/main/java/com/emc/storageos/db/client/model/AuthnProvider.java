@@ -26,11 +26,13 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 @DbKeyspace(DbKeyspace.Keyspaces.GLOBAL)
 public class AuthnProvider extends DataObject {
     private static final String EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT = "2.3";
+    private static final String EXPECTED_GEO_VERSION_FOR_TENANTS_SYNCHRONIZATION = "3.5";
 
     private ProvidersType _mode;
     private String _description;
     private Boolean _disable;
     private Boolean _autoRegCoprHDNImportOSProjects;
+    private StringSet _tenantsSynchronizationOptions;
     private StringSet _serverUrls;
     private StringSet _domains;
     private String _serverCert;
@@ -57,6 +59,10 @@ public class AuthnProvider extends DataObject {
     // values to be used for the searchScope element
     public static enum SearchScope {
         ONELEVEL, SUBTREE
+    }
+
+    public enum TenantsSynchronizationOptions {
+        ADDITION, DELETION
     }
 
     @Name("mode")
@@ -114,6 +120,21 @@ public class AuthnProvider extends DataObject {
     public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
         _autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
         setChanged("autoRegCoprHDNImportOSProjects");
+    }
+
+    @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_TENANTS_SYNCHRONIZATION)
+    @Name("tenantsSynchronizationOptions")
+    public StringSet getTenantsSynchronizationOptions() {
+        if (_tenantsSynchronizationOptions == null) {
+            _tenantsSynchronizationOptions = new StringSet();
+        }
+        return _tenantsSynchronizationOptions;
+    }
+
+    public void setTenantsSynchronizationOptions(
+            StringSet tenantsSynchronizationOptions) {
+        _tenantsSynchronizationOptions = tenantsSynchronizationOptions;
+        setChanged("tenantsSynchronizationOptions");
     }
 
     @Name("serverUrls")

@@ -9,6 +9,11 @@
 # it is provided by or on behalf of EMC.
 #
 
+check_password() {
+    local password="$1"
+    ssh_execute "vipr1" "/etc/systool --getprops" "${password}"
+}
+
 # $1=command
 # $2=include local (a boolean flag)
 loop_execute() {
@@ -20,19 +25,21 @@ loop_execute() {
     do
         local viprNode=$(get_nodeid)
         if [ "$viprNode" != "$LOCAL_NODE" -o "$includeLocal" == "true" ]; then
-            ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"&
+            ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
         fi
     done
     wait
-    set -e                                                                      
+    set -e
 }
 
 # $1=node name
 # $2=command
+# $3=password
 ssh_execute() {
-    local viprNode=${1}
-    local command=${2}
-    echo "${ROOT_PASSWORD}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${ROOT_PASSWORD}' | sudo -S $command" &>/dev/null
+    local viprNode="${1}"
+    local command="${2}"
+    local password="${3}"
+    echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command" &>/dev/null
 }
 
 get_nodeid() {
@@ -56,14 +63,14 @@ finish_message() {
         fi
         echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
         echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
-    fi    
+    fi
 }
 
 # local backup includes:
 # 1. The backup created locally
 # 2. The downloaded backup
 is_local_backup() {
-    if [[ "${RESTORE_ORIGIN}" =~ ^\/data\/backup ]]; then
+    if [[ "${1}" =~ ^\/data\/backup &&  -d "${RESTORE_ORIGIN}" ]]; then
         echo "true"
     else
         echo "false"
@@ -71,9 +78,9 @@ is_local_backup() {
 }
 
 is_vdc_connected() {
-    cd "${RESTORE_DIR}"
-    local geo_file=$(ls -1 *geodb*.zip |head -1)
-# get type of the zip file
+    local geo_file=$(ls -1 ${RESTORE_DIR}/*geodb*.zip |head -1)
+
+    # get type of the zip file
     geodb_type=${geo_file#*_}
     geodb_type=${geodb_type%%_*}
 
@@ -88,24 +95,25 @@ is_vdc_connected() {
 }
 
 clean_up() {
-    local is_local_backup=$(is_local_backup)
     local command
 
-    if [[ "${is_local_backup}" == "false" ]]; then
-        command="rm -rf $RESTORE_DIR1"
+    ret=$(is_local_backup ${RESTORE_ORIGIN})
+
+    if [[ "${ret}" == "false" ]]; then
+        command="rm -rf ${RESTORE_ORIGIN}"
         loop_execute "${command}" "true" "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
     else
-       command="rm -f ${RESTORE_DIR}/*_zk.*" 
-       for node in ${nodes_without_zk_data[@]}
-       do
+        command="rm -f ${RESTORE_DIR}/*_zk.*" 
+        for node in ${nodes_without_zk_data[@]}
+        do
             ssh_execute "${node}" "${command}" "${ROOT_PASSWORD}"
-       done
+        done
 
-       command="rm -f ${RESTORE_DIR}/*_info.properties" 
-       for node in ${nodes_without_properties_file[@]}
-       do
+        command="rm -f ${RESTORE_DIR}/*_info.properties" 
+        for node in ${nodes_without_properties_file[@]}
+        do
             ssh_execute "${node}" "${command}" "${ROOT_PASSWORD}"
-       done
+        done
     fi
 
     command="rm -rf ${TEMP_DIR}"

@@ -256,7 +256,7 @@ public class CreateComputeClusterService extends ViPRService {
                 bootVolumeIds);
 
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray, false);
+                project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
 

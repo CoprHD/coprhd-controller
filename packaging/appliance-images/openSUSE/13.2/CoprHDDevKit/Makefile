@@ -8,7 +8,7 @@
 ##################################################
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHDDevKit
-VERSION := 3.0.0.0
+VERSION := 3.6.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
@@ -19,6 +19,7 @@ MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[
 ##################################################
 #  Target files/folders
 ##################################################
+USE_CACHE := $(shell [ -d /disks/adgbuild/OPENSUSE13.2/repo ] && echo true || echo false)
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
@@ -58,11 +59,32 @@ downloadISO:
 
 downloadRPM:
 	$(call targetLog,+)
+ifeq ($(USE_CACHE),false)
 	rm -fr $(WORKSPACE)/zypper/reposd
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
-	zypper $(ZYPPER_PARAMS) addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-http --no-gpgcheck http://download.opensuse.org/repositories/server:/http/openSUSE_13.2 suse-13.2-http
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.1-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.1 suse-42.1-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-http
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.1-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download fribidi fbiterm
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
+	zypper $(ZYPPER_PARAMS) refresh
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default
+endif
 	$(call targetLog,-)
 
 createREPO: | downloadRPM
@@ -71,7 +93,9 @@ createREPO: | downloadRPM
 	mkdir -p $(WORKSPACE)/zypper/repo
 	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
+ifeq ($(USE_CACHE),false)
 	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
+endif
 	createrepo $(WORKSPACE)/zypper/repo
 	$(call targetLog,-)
 
@@ -132,7 +156,6 @@ devkit:
 	bash $(WORKSPACE)/configure.sh installPackages
 	bash $(WORKSPACE)/configure.sh installDockerStorage
 	bash $(WORKSPACE)/configure.sh installJava
-	bash $(WORKSPACE)/configure.sh installNginx
 	bash $(WORKSPACE)/configure.sh installStorageOS
 	bash $(WORKSPACE)/configure.sh installNetworkConfigurationFile
 	bash $(WORKSPACE)/configure.sh installXorg
@@ -143,6 +166,9 @@ $(VMDK): | downloadISO createREPO
 	bash $(WORKSPACE)/patch.sh
 	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+ifeq ($(USE_CACHE),true)
+	sed -i "/__REPO__/ i\        <source path=\"/disks/adgbuild/OPENSUSE13.2/repo\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
+endif
 	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
 	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
 	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
@@ -158,7 +184,6 @@ $(VMDK): | downloadISO createREPO
 	mkdir -p $(WORKSPACE)/build
 	mkdir -p $(WORKSPACE)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile appliance --force-new-root --root $(IMAGE_DIR)
-	@[ -x $(IMAGE_DIR)/usr/sbin/nginx ] || ( echo "[ERROR] Failed to download/install nginx" && exit -1 )
 	kiwi --verbose 3 --yes --create $(IMAGE_DIR) --add-profile appliance --type vmx --destdir $(OUTPUT_DIR)
 	-umount $(WORKSPACE)/iso/mount
 	$(call targetLog,-)
@@ -250,6 +275,9 @@ $(QCOW2): | downloadISO createREPO
 	bash $(WORKSPACE)/patch.sh
 	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+ifeq ($(USE_CACHE),true)
+	sed -i "/__REPO__/ i\        <source path=\"/disks/adgbuild/OPENSUSE13.2/repo\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
+endif
 	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
 	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
 	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
@@ -265,7 +293,6 @@ $(QCOW2): | downloadISO createREPO
 	mkdir -p $(OPENSTACK_DIR)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile openstack --force-new-root --root $(OPENSTACK_DIR)/image
 	touch $(OPENSTACK_DIR)/image/var/lib/docker-storage.btrfs
-	@[ -x $(OPENSTACK_DIR)/image/usr/sbin/nginx ] || ( echo "[ERROR] Failed to download/install nginx" && exit -1 )
 	kiwi --verbose 3 --yes --create $(OPENSTACK_DIR)/image --add-profile openstack --type vmx --destdir $(OPENSTACK_DIR)/output
 	-umount $(WORKSPACE)/iso/mount
 	qemu-img convert -O qcow2 $(OPENSTACK_DIR)/output/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)

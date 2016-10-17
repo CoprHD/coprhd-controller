@@ -45,7 +45,7 @@ public class SiteMapper {
                 runningState = false;
             }
         }
-        to.setRunningState(runningState); 
+        to.setRunningState(runningState);
         return to;
     }
     

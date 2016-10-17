@@ -11,6 +11,9 @@ import java.net.URI;
  */
 public class VPlexApiConstants {
 
+    // VPLEX firmware version strings for testing availability of certain features
+    public static final String MIN_VERSION_THIN_PROVISIONING = "5.5.1.00.00.00";
+
     // Constants define the headers required when making HTTP requests to the
     // VPlex Management Station using the Element Manager API.
     public static final String USER_NAME_HEADER = "Username";
@@ -76,6 +79,7 @@ public class VPlexApiConstants {
     public static final URI URI_CREATE_LOCAL_DEVICE = URI.create("/vplex/local-device+create");
     public static final URI URI_CREATE_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+create");
     public static final URI URI_DESTROY_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+destroy");
+    public static final URI URI_SET_THIN_ENABLED_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+set-thin-enabled");
     public static final URI URI_CREATE_DIST_DEVICE = URI.create("/vplex/ds+dd+create");
     public static final URI URI_REDISCOVER_ARRAY = URI.create("/vplex/array+re-discover");
     public static final URI URI_DISMANTLE = URI.create("/vplex/advadm+dismantle");
@@ -135,6 +139,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_DONE = "done";
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
+    public static final String ATTRIBUTE_CG_READ_ONLY = "read-only";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
     public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
@@ -169,9 +174,11 @@ public class VPlexApiConstants {
     public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
+    public static final String ARG_THIN_ENABLED = "--thin";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
     public static final String ARG_DEVICES = "--devices";
+    public static final String ARG_VIRTUAL_VOLUMES = "--virtual-volumes";
 
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
@@ -186,11 +193,13 @@ public class VPlexApiConstants {
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
     public static final String LOCAL_DEVICE = "local";
+    public static final String DISTRIBUTED_DEVICE = "distributed";
     public static final int LOCAL_BACKEND_VOLUME_COUNT = 1;
     public static final int DISTRIBUTED_BACKEND_VOLUME_COUNT = 2;
 
     // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
+    public static final String VOLUME_WWN_PREFIX_T2 = "VPD83T2:";
 
     // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
@@ -240,8 +249,11 @@ public class VPlexApiConstants {
     // command to complete.
     public static final int MAX_RETRIES = 240;
 
-    // VPlex API null attribute value
+    // VPlex API attribute values
     public static final String NULL_ATT_VAL = "null";
+    public static final String ENABLED = "enabled";
+    public static final String TRUE = "true";
+    public static final String FALSE = "false";
 
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
@@ -297,6 +309,8 @@ public class VPlexApiConstants {
     // Cluster ids
     public static final String CLUSTER_1_ID = "1";
     public static final String CLUSTER_2_ID = "2";
+    public static final Integer VPLEX_LOCAL_ASSEMBLY_COUNT = 1;
+    public static final Integer VPLEX_METRO_ASSEMBLY_COUNT = 2;
 
     // Rule set names
     public static final String CLUSTER_1_DETACHES = "cluster-1-detaches";
@@ -314,7 +328,26 @@ public class VPlexApiConstants {
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
 
+    // VPLEX API error response fragment used to check Consistency Group read-only flag not supported
+    public static final String CG_READ_ONLY_INVALID_ATTRIBUTE = "Invalid attribute 'read-only'";
+    public static final String CG_CANNOT_MAKE_READ_ONLY = "Cannot make a consistency-group read-only";
+    // Reason given to user
+    public static final String CG_READ_ONLY_ATTRIBUTE_NOT_SUPPORTED = "Consistency Group read-only attribute is not supported";
+
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
 
+    // The value returned by VPLEX when the volume has no expandable capacity.
+    public static final String NO_EXPANDABLE_CAPACITY = "0B";
+
+    // Match string for device name when a Storage Volume is not used (either claimed or unclaimed)
+    public static final String STORAGE_VOLUME_NOT_IN_USE = "Storage-volume.*is not in use.*";
+
+    // used to indicate the device collapse command should just use the
+    // given path instead of trying to locate a device component
+    public static final String COLLAPSE_BY_PATH = "collapse-by-path";
+    
+    // Constants used when renaming a resource fails.
+    public static final int RENAME_RESOURCE_MAX_TRIES = 10;
+    public static final int RENAME_RESOURCE_SLEEP_TIME_MS = 2000;    
 }

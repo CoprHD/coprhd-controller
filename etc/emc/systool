@@ -14,8 +14,6 @@
 
 export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
 
-. /etc/rc.status
-
 _usage() {
     set +Ex
     echo "Usage: $0 --list"             >&2
@@ -510,10 +508,10 @@ _restart_coordinator() {
 	local tgtdir=${zkdir}/version-2
         _stop coordinatorsvc
         if [ "${1}" = "participant" ]; then
-            /etc/datatool --create-snapshot /data/zk/version-2
+            /etc/datatool --create-minor-version /data/zk/version-2
             rm -fR /data/zk/myid
         else
-            /etc/datatool --revert-snapshot /data/zk/version-2
+            /etc/datatool --revert-minor-version /data/zk/version-2
             rm -fR /data/zk/myid
         fi
 
@@ -541,7 +539,7 @@ _purge_data_revision() {
 }
 
 _rebase_zk_snapshot() {
-    /etc/datatool --rebase-snapshot /data/zk/version-2
+    /etc/datatool --rebase-minor-version /data/zk/version-2
 }
 
 _reload() {
@@ -554,6 +552,8 @@ _reload() {
             exec /usr/bin/systemctl restart connectemc ;;
         ssl)
             exec /usr/bin/systemctl restart nginx ;;
+        syslog)
+            exec /usr/bin/systemctl restart rsyslog ;;			
         firewall)
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
         ipsec)
@@ -844,8 +844,6 @@ bootfs_rootimg="rootimg"
 
 DO_NOT_INCLUDE="no"
 
-rc_reset
-
 # Parse flags and hacks
 while [ $# -gt 0 ] ; do
     case ${1} in
@@ -915,5 +913,3 @@ case ${#} in
         esac;;
     *)  _usage
 esac
-
-rc_exit

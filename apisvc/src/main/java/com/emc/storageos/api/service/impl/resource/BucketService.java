@@ -11,8 +11,10 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -81,6 +83,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -216,10 +219,15 @@ public class BucketService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, Integer.valueOf(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.QUOTA, hardQuota.toString());
-
-        List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, vpool, capabilities);
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
+        List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, vpool, capabilities, attributeMap);
         if (placement.isEmpty()) {
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), neighborhood.getLabel());
+
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(neighborhood.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
 
         // Randomly select a recommended pool

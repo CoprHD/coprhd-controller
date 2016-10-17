@@ -9,13 +9,13 @@ public class DriverSimulatorTask extends DriverTask {
     }
 
     public DriverTask abort(DriverTask task) {
-        DriverTask abortTaskTask = new DriverTask("Abort task: 1234") {
+        DriverTask abortTaskTask = new DriverTask("AbortTask_"+getTaskId()) {
             public DriverTask abort(DriverTask task) {
-                return null;
+                throw new UnsupportedOperationException("Cannot abort abort task");
             }
         };
         abortTaskTask.setStatus(TaskStatus.FAILED);
-        abortTaskTask.setMessage("Operation is not supported.");
+        abortTaskTask.setMessage("Operation is not supported for simulator tasks.");
         return abortTaskTask;
     }
 }

@@ -1,0 +1,126 @@
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.storage', 'nav.events'] /}
+#{set 'title'}&{'resources.events'}#{/set}
+<div id="events" class="events-container">
+  <div class="content">
+
+      <div class="section-header" >
+          <h1><img src="/public/img/events-normal.png" style="width:25px; height: 25px; margin-bottom: 5px"/> &{'resources.events'}</h1>
+      </div>
+
+  #{alerts/}
+  
+   <div class="pull-left" style="vertical-align: middle; line-height: 20px;" ng-controller="summaryEventCountCtrl">
+      <span class="text-info" style="margin-right:25px">
+          <a href="#" ng-click="filterEvents('pending')" class="no-decoration">
+            <span style="font-size: 2em;vertical-align: middle;" class="text-info">
+                <span ng-show="dataReady">{{pending}}</span>
+                <span ng-show="!dataReady">--</span>
+            </span>
+            <span style="vertical-align: middle;" class="text-info">&{'resources.events.pending'}</span>
+          </a>
+      </span>
+      <span class="text-danger" style="margin-right:20px" >
+        <a href="#" ng-click="filterEvents('failed')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
+              <span ng-show="dataReady">{{failed}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+            <span style="vertical-align: middle;" class="text-muted">&{'resources.events.failed'}</span>
+        </a>
+      </span>
+      <span class="text-success" style="margin-right:20px" class="nounderline">
+          <a href="#" ng-click="filterEvents('approved')" class="no-decoration">
+            <span style="font-size: 2em;vertical-align: middle;" class="text-success">
+              <span ng-show="dataReady">{{approved}}</span>
+              <span ng-show="!dataReady">--</span>
+            </span>
+            <span style="vertical-align: middle;" class="text-success">&{'resources.events.approved'}</span>
+          </a>
+      </span>
+      <span class="text-danger" style="margin-right:20px" >
+        <a href="#" ng-click="filterEvents('declined')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-danger">
+              <span ng-show="dataReady">{{declined}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+          <span style="vertical-align: middle;" class="text-danger">&{'resources.events.declined'}</span>
+        </a>
+      </span>
+      <span class="text-muted" style="margin-right:20px" >
+        <a href="#" ng-click="filterEvents('')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
+              <span ng-show="dataReady">{{total}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+            <span style="vertical-align: middle;" class="text-muted">&{'resources.events.total'}</span>
+        </a>
+      </span>
+    </div>
+
+    %{
+
+      messageOverrides = [
+        "sSearchPlaceHolder": "datatable.placeholder.filter",
+        "sInfo": "datatable.event.info",
+        "sInfoFiltered" : "datatable.event.filtered",
+        "sEmptyTable" : "datatable.events.empty",
+        "sInfoEmpty": "datatable.events.empty"
+     ]
+    }%
+    #{DataTable.table id:'events',
+        dataTable:dataTable, 
+        source:@Events.listAllJson(), 
+        cssClass:'editableRows table-striped',
+        options:options,
+        actionsTitleKey:'resources.actions',
+        messageOverrides : messageOverrides,
+        selectable: true,
+        expandable:true
+     }
+   #{DataTable.expandHtml @itemDetails(':id'), table:'events'/}
+   #{DataTable.buttonBar}
+    #{Form.button name:'resources.events.approveEvent', class:'success', action:'$("#approveEvent").modal("show")'/}
+    #{Form.button name:'resources.events.declineEvent', class:'warning', action:'$("#declineEvent").modal("show")'/}
+  #{/DataTable.buttonBar}
+  #{/DataTable.table}
+
+  </div>
+
+#{include 'Events/approveEvents.html'/}  
+#{include 'Events/declineEvents.html'/}  
+  
+</div>
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+
+  <script type="text/javascript">
+    var tenantId = '${tenantId}';
+
+    table.events.dataTable.setMaxRows(1000, function(data) {
+        var oldestTime = -1;
+        var oldestIndex = -1;
+
+        for (var t = 0; t < data.length; t++) {
+            if (oldestTime == -1) {
+                oldestTime = data[t].creationTime;
+            } else if (data[t].creationTime < oldestTime) {
+                oldestIndex = t;
+                oldestTime = data[t].creationTime;
+            }
+        }
+
+        return oldestIndex;
+    });
+
+    table.events.dataTable.afterCreate(function(dataTable) {
+        var itemsJson = #{jsAction @Events.itemsJson(':ids')/};
+        //watchTaskState(dataTable.getDataTable(), itemsJson);
+    });
+
+    
+  </script>    
+
+#{/set}      

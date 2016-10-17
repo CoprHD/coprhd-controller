@@ -8,6 +8,7 @@ package com.emc.storageos.exceptions;
 import java.net.URI;
 import java.util.Collection;
 
+import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
 import com.emc.storageos.hds.HDSExceptions;
 import com.emc.storageos.isilon.restapi.IsilonExceptions;
@@ -73,6 +74,9 @@ public interface DeviceControllerExceptions {
 
     /** Holds the methods used to create VNXe related exceptions */
     public static final VNXeExceptions vnxe = ExceptionMessagesProxy.create(VNXeExceptions.class);
+
+    /** Holds the methods used to create Ceph related exceptions */
+    public static final CephExceptions ceph = ExceptionMessagesProxy.create(CephExceptions.class);
 
     @DeclareServiceCode(ServiceCode.DISPATCHER_UNABLE_FIND_CONTROLLER)
     public DeviceControllerException unableToDispatchToController(final String targetClassName);
@@ -277,6 +281,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringNoDevice(final String storage,
             final String devType);
 
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failedToAcquireWorkflowLock(String lockName, String operation);
+
     @DeclareServiceCode(ServiceCode.FILE_CONNECTION_ERROR)
     DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbException(
             final String storage, final Throwable cause);
@@ -477,4 +484,25 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformExportDelete(final String reason);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException validationError(final String type, final String details, final String remediationAction);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotPerformAliasOperation(final String reason);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException validationExportMaskError(String maskName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException validationVolumeError(String volumeName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
 }

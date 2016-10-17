@@ -16,6 +16,7 @@ import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.clientdata.formatter.CinderVPlexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.DefaultVplexVolumeNameFormatter;
+import com.emc.storageos.vplex.api.clientdata.formatter.UnityVplexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.XtremioVplexVolumeNameFormatter;
 
 /**
@@ -45,8 +46,8 @@ public class VolumeInfo implements Serializable {
 
     // Whether or not the volume is thin provisioned.
     private boolean _isThin = false;
-    
-    //ITL List
+
+    // ITL List
     private List<String> _itls = new ArrayList<String>();
 
     /**
@@ -64,8 +65,12 @@ public class VolumeInfo implements Serializable {
             List<String> itls) {
         _storageSystemNativeGuid = storageSystemNativeGuid;
         setSystemType(storageSystemType);
-        _volumeWWN = volumeWWN;
-        _volumeNativeId = volumeNativeId;
+
+        // 1- VPLEX trims the leading zeros in WWN
+        // 2- IBM XIV volume nativeID contains "." which is not accepted during virtual volume create
+        _volumeWWN = volumeWWN.replaceAll("^0+", "");
+        _volumeNativeId = volumeNativeId.replace(VPlexApiConstants.DOT_OPERATOR,
+                VPlexApiConstants.UNDERSCORE_OPERATOR);
         _isThin = isThin;
         _itls = itls;
     }
@@ -73,6 +78,7 @@ public class VolumeInfo implements Serializable {
     /**
      * Getter for the ITL data
      * ITL item is of the format <Initiator Port WWN>-<Target Port WWN>-<LUN ID>
+     * 
      * @return
      */
     public List<String> getITLs() {
@@ -82,11 +88,12 @@ public class VolumeInfo implements Serializable {
     /**
      * Setter for the ITL data
      * ITL item is of the format <Initiator Port WWN>-<Target Port WWN>-<LUN ID>
+     * 
      * @param iTLs
      */
     public void setITLs(List<String> iTLs) {
         _itls = iTLs;
-    }	
+    }
 
     /**
      * Getter for the storage system native guid.
@@ -180,8 +187,11 @@ public class VolumeInfo implements Serializable {
                     _volumeName = new XtremioVplexVolumeNameFormatter(this).format();
                     break;
                 case OPENSTACK:
-                	_volumeName = new CinderVPlexVolumeNameFormatter(this).format();
-                	break;
+                    _volumeName = new CinderVPlexVolumeNameFormatter(this).format();
+                    break;
+                case UNITY:
+                    _volumeName = new UnityVplexVolumeNameFormatter(this).format();
+                    break;
                 default:
                     _volumeName = new DefaultVplexVolumeNameFormatter(this).format();
                     break;

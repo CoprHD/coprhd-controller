@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.SanUtils;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -68,7 +69,12 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             save(host);
             super.discoverHost(host, changes);
-            checkMultipathSoftwareCompatibility(host);
+            try {
+                checkMultipathSoftwareCompatibility(host);
+            } catch (CompatibilityException e) {
+                host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
+                save(host);
+            }
         }
         else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
@@ -178,13 +184,15 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 Initiator initiator;
                 String wwpn = SanUtils.normalizeWWN(hba.getWwpn());
                 if (findInitiatorByPort(oldInitiators, wwpn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, wwpn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, wwpn);
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
+        } catch (DeviceControllerException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to list FC Ports, skipping");
         }
@@ -193,15 +201,33 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (String iqn : linux.listIQNs()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
+        } catch (DeviceControllerException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to list iSCSI Ports, skipping");
+        }
+
+        try {
+            String cephPseudoPort = String.format("rbd:%s", linux.getMachineId());
+            Initiator initiator;
+            if (findInitiatorByPort(oldInitiators, cephPseudoPort) == null) {
+                initiator = getOrCreateInitiator(host.getId(), oldInitiators, cephPseudoPort);
+                addedInitiators.add(initiator);
+            } else {
+                initiator = getOrCreateInitiator(host.getId(), oldInitiators, cephPseudoPort);
+            }
+            discoverRBDInitiator(host, initiator, cephPseudoPort);
+        } catch (DeviceControllerException e) {
+            throw e;
+        } catch (Exception e) {
+            LOG.error("Failed to create RBD pseudo port, skipping");
         }
 
         // update export groups with new initiators if host is in use.
@@ -226,6 +252,15 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         initiator.setInitiatorNode("");
         initiator.setInitiatorPort(iqn);
         initiator.setProtocol(Protocol.iSCSI.name());
+        setHostInterfaceRegistrationStatus(initiator, host);
+        save(initiator);
+    }
+
+    private void discoverRBDInitiator(Host host, Initiator initiator, String port) {
+        setInitiator(initiator, host);
+        initiator.setInitiatorNode("");
+        initiator.setInitiatorPort(port);
+        initiator.setProtocol(Protocol.RBD.name());
         setHostInterfaceRegistrationStatus(initiator, host);
         save(initiator);
     }

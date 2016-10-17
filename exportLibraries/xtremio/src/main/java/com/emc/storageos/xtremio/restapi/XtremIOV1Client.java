@@ -36,7 +36,11 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
@@ -56,6 +60,11 @@ public class XtremIOV1Client extends XtremIOClient {
 
     public XtremIOV1Client(URI baseURI, String username, String password, Client client) {
         super(baseURI, username, password, client);
+    }
+
+    @Override
+    public boolean isVersion2() {
+        return false;
     }
 
     @Override
@@ -156,6 +165,44 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
 
         return Arrays.asList(volumeLinks.getVolumeInfo());
+    }
+
+    @Override
+    public List<XtremIOLunMap> getXtremIOLunMaps(String clusterName) throws Exception {
+        ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+        log.info("Returned LunMaps Links size : {}", lunMapLinks.getLunMapInfo().length);
+        List<XtremIOLunMap> lunMapList = getXtremIOLunMapsForLinks(Arrays.asList(lunMapLinks.getLunMapInfo()), clusterName);
+
+        return lunMapList;
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOLunMapLinks(String clusterName) throws Exception {
+        ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public List<XtremIOLunMap> getXtremIOLunMapsForLinks(List<XtremIOObjectInfo> lunMapLinks, String clusterName) throws Exception {
+        List<XtremIOLunMap> lunMapList = new ArrayList<XtremIOLunMap>();
+        for (XtremIOObjectInfo lunMapInfo : lunMapLinks) {
+            try {
+                URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref()));
+                log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
+                ClientResponse response = get(lunMapURI);
+                XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
+                log.debug("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
+                        + lunMaps.getContent().getMappingInfo().get(2));
+                lunMapList.add(lunMaps.getContent());
+            } catch (InternalException ex) {
+                log.warn("Exception while trying to retrieve XtremIO LunMap link {}", lunMapInfo.getHref());
+            }
+        }
+
+        return lunMapList;
     }
 
     @Override
@@ -336,7 +383,7 @@ public class XtremIOV1Client extends XtremIOClient {
             return initiators.getContent();
         } catch (Exception e) {
             // No need to log this message at error level.
-            log.warn(e.getMessage(), e);
+            log.warn("Exception in getInitiator - {}", e.getMessage());
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;
@@ -546,6 +593,12 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
+    public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
+            String entityName, String... parameters) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOObjectPerformance");
+    }
+
+    @Override
     public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getSnapshotSetDetails");
     }
@@ -554,5 +607,28 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
             XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
+        ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getLunMapsForInitiatorGroup");
+    }
+
+    @Override
+    public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index);
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
+        return volumesResponse.getContent();
     }
 }

@@ -49,6 +49,9 @@ public enum MetricsKeys {
     maxStorageObjects,
     /** Maximum storage capacity of storage objects */
     maxStorageCapacity,
+
+    /** Maximum NFs exports + CIFS shares on each NAS server */
+    maxExports,
    
     /** Max Number of NFS exports on each access zone */
     maxNFSExports,
@@ -78,7 +81,7 @@ public enum MetricsKeys {
         return value;
     }
 
-    static void putLong(MetricsKeys key, Long value, StringMap map) {
+    static public void putLong(MetricsKeys key, Long value, StringMap map) {
         map.put(key.name(), value.toString());
     }
 

@@ -1,0 +1,18 @@
+apply plugin: 'scripts'
+
+scripts {
+    vplexdbckr {
+        mainClass = 'com.emc.storageos.vplexdbckr.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+    }
+}
+
+dependencies {
+    compile library(commons_io),
+            library(commons_codec),
+            project(":controllersvc"),
+            project(":dbsvc"),
+            project(":vplex")
+}       

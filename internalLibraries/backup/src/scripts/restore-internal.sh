@@ -31,9 +31,7 @@ stop_service() {
 }
 
 copy_zk_data() {
-    local is_local_backup=$(is_local_backup)
-
-    if [[ "${is_local_backup}" == "false" ]]; then
+    if [[ "$(is_local_backup $1)" == "false" ]]; then
        # remote backup has already copied zk data to all nodes
        return
     fi
@@ -44,9 +42,7 @@ copy_zk_data() {
 }
 
 copy_properties_file() {
-    local is_local_backup=$(is_local_backup)
-
-    if [[ "${is_local_backup}" == "false" ]]; then
+    if [[ "$(is_local_backup $1)" == "false" ]]; then
        # remote backup has already copied zk data to all nodes
        return
     fi
@@ -66,7 +62,7 @@ copy_missing_files() {
     for i in $(seq 1 ${NODE_COUNT})
     do                                                                                        
         local viprNode=$(get_nodeid)
-        ssh_execute "$viprNode" "$cmd" "${ROOT_PASSWORD}"
+        ssh_execute "${viprNode}" "${cmd}" "${ROOT_PASSWORD}"
         if [[ $? -eq 0 ]]; then
             node_with_file="$viprNode"
         else
@@ -77,6 +73,7 @@ copy_missing_files() {
 
     echo "Nodes without ${missing_files}: ${nodes_without_files[@]}"
     echo "Node with file ${missing_files}: ${node_with_file}"
+
     if [ "${#nodes_without_files[@]}" == 0 ] ; then
        #all nodes have zk data
        return
@@ -86,18 +83,8 @@ copy_missing_files() {
     cmd="scp svcuser@${node_with_file}:${RESTORE_DIR}/${missing_files} ${RESTORE_DIR}"
     for node in ${nodes_without_files[@]}
     do
-        ssh_execute "${node}" "${cmd}"
+        ssh_execute "${node}" "${cmd}" "${ROOT_PASSWORD}"
     done
-}
-
-purge_node() {
-    local viprNode=${1}
-    initdb="no"
-    if [[ ${IS_CONNECTED_VDC} == true ]]; then
-        initdb="yes"
-    fi
-    local command="/opt/storageos/bin/bkutils -p $initdb"
-    ssh_execute "$viprNode" "$command"
 }
 
 restore_data() {
@@ -108,7 +95,7 @@ restore_data() {
     do
         local viprNode=$(get_nodeid)
         local command="bash -c 'ls $RESTORE_DIR/*_${viprNode}* &>/dev/null'"
-        ssh_execute "$viprNode" "${command}"
+        ssh_execute "$viprNode" "${command}" "${ROOT_PASSWORD}"
         if [ $? == 0 ]; then
             echo "Restoring node ${viprNode}"
             restore_node "${viprNode}"
@@ -137,7 +124,7 @@ restore_node() {
     if [ "${2}" == "onlysiteid" ]; then
         command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
     fi
-    ssh_execute "$viprNode" "$command"
+    ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
 }
 
 sigterm_handler() {
@@ -154,7 +141,6 @@ nodes_without_zk_data=()
 nodes_without_properties_file=()
 
 RESTORE_ORIGIN="$1"
-RESTORE_DIR1="'$RESTORE_ORIGIN'"
 ROOT_PASSWORD="$2"
 RESTORE_GEO_FROM_SCRATCH="$3"
 LOG_FILE="$4"
@@ -166,13 +152,13 @@ if [ "${LOG_FILE}" != "" ] ; then
 fi
 TEMP_DIR=$(mktemp -d)
 RESTORE_DIR="${TEMP_DIR}/backup"
-cmd="ln -s "${RESTORE_DIR1}" "${RESTORE_DIR}"" 
+cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
 loop_execute "mkdir $TEMP_DIR" "true"
 loop_execute "chmod 755 $TEMP_DIR" "true"
 loop_execute "$cmd" "true"
-copy_zk_data
-copy_properties_file
-is_vdc_connected
+copy_zk_data ${RESTORE_ORIGIN}
+copy_properties_file ${RESTORE_ORIGIN}
+is_vdc_connected ${RESTORE_DIR}
 
 # make sure to direct to maintenance page
 sleep 5s

@@ -37,6 +37,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -44,6 +45,7 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
+import com.emc.storageos.db.event.ActionableEventScrubberExecutor;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
 import com.emc.storageos.db.server.DbService;
 import com.emc.storageos.db.server.MigrationHandler;
@@ -83,6 +85,7 @@ public class DbServiceImpl implements DbService {
     private MigrationHandler _handler;
     private GarbageCollectionExecutor _gcExecutor;
     private TaskScrubberExecutor _taskScrubber;
+    private ActionableEventScrubberExecutor _eventScrubber;
     // 3 threads two threads for node repair, one is for failure detector
     private static final String POOL_NAME = "DBBackgroundPool";
     private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(POOL_NAME, 3);
@@ -104,7 +107,11 @@ public class DbServiceImpl implements DbService {
     @Autowired
     private DbManager dbMgr;
 
-    /**
+    public void setDbMgr(DbManager dbMgr) {
+		this.dbMgr = dbMgr;
+	}
+
+	/**
      * Set db client
      */
     public void setDbClient(DbClientImpl dbClient) {
@@ -165,6 +172,14 @@ public class DbServiceImpl implements DbService {
 
     public void setGarbageCollector(GarbageCollectionExecutor gcExecutor) {
         _gcExecutor = gcExecutor;
+    }
+
+    public ActionableEventScrubberExecutor getEventScrubber() {
+        return _eventScrubber;
+    }
+
+    public void setEventScrubber(ActionableEventScrubberExecutor eventScrubber) {
+        this._eventScrubber = eventScrubber;
     }
 
     public TaskScrubberExecutor getTaskScrubber() {
@@ -449,7 +464,7 @@ public class DbServiceImpl implements DbService {
         }
 
         Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
                     "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
@@ -594,7 +609,8 @@ public class DbServiceImpl implements DbService {
 
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
-            if (mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+            int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
+            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
                 checkDBOfflineInfo();
             }
 
@@ -661,10 +677,14 @@ public class DbServiceImpl implements DbService {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
         
+        dbMgr.init();
+        
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
             if (isGeoDbsvc()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
+            } else {
+                _schemaUtil.checkAndInitStorageSystemTypes(_dbClient);
             }
 
             startBackgroundTasks();
@@ -844,6 +864,10 @@ public class DbServiceImpl implements DbService {
     
             if (_taskScrubber != null) {
                 _taskScrubber.start();
+            }
+
+            if (_eventScrubber != null) {
+                _eventScrubber.start();
             }
         }
         startBackgroundDetectorTask();

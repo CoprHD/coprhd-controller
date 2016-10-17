@@ -14,6 +14,7 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
@@ -72,5 +73,10 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
     @Override
     public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMappings) {
         return getUserTenants(username);
+    }
+
+    @Override
+    public void setFailureHandler(LdapFailureHandler failureHandler) {
+
     }
 }

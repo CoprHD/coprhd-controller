@@ -53,6 +53,11 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     private Double averagePortMetrics;
     private Boolean supportsSoftLimit = false;
     private Boolean supportsNotificationLimit = false;
+    private String arrayAffinityJobStatus;
+    private String lastArrayAffinityStatusMessage;
+    private Long lastArrayAffinityRunTime;
+    private Long nextArrayAffinityRunTime;
+    private Long successArrayAffinityTime;
 
     public StorageSystemRestRep() {
     }
@@ -360,5 +365,70 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     public void setSupportsNotificationLimit(Boolean supportsNotificationLimit) {
         this.supportsNotificationLimit = supportsNotificationLimit;
+    }
+
+    /**
+     * The status of the last array affinity job for this system
+     * Valid values:
+     *  CREATED
+     *  IN_PROGRESS
+     *  COMPLETE
+     *  ERROR
+     */
+    @XmlElement(name = "job_arrayaffinity_status")
+    public String getArrayAffinityJobStatus() {
+        return arrayAffinityJobStatus;
+    }
+
+    public void setArrayAffinityJobStatus(String arrayAffinityJobStatus) {
+        this.arrayAffinityJobStatus = arrayAffinityJobStatus;
+    }
+
+    /**
+     * The last array affinity status message for this system
+     */
+    @XmlElement(name = "last_arrayaffinity_status_message")
+    public String getLastArrayAffinityStatusMessage() {
+        return lastArrayAffinityStatusMessage;
+    }
+
+    public void setLastArrayAffinityStatusMessage(String statusMessage) {
+        lastArrayAffinityStatusMessage = statusMessage;
+    }
+
+    /**
+     * The timestamp for the last array affinity job for this system
+     */
+    @XmlElement(name = "last_arrayaffinity_run_time")
+    public Long getLastArrayAffinityRunTime() {
+        return lastArrayAffinityRunTime;
+    }
+
+    public void setLastArrayAffinityRunTime(Long lastArrayAffinityRunTime) {
+        this.lastArrayAffinityRunTime = lastArrayAffinityRunTime;
+    }
+
+    /**
+     * The timestamp for the next scheduled array affinity job for this system
+     */
+    @XmlElement(name = "next_arrayaffinity_run_time")
+    public Long getNextArrayAffinityRunTime() {
+        return nextArrayAffinityRunTime;
+    }
+
+    public void setNextArrayAffinityRunTime(Long nextArrayAffinityRunTime) {
+        this.nextArrayAffinityRunTime = nextArrayAffinityRunTime;
+    }
+
+    /**
+     * The latest timestamp when the system run array affinity job successfully
+     */
+    @XmlElement(name = "success_arrayaffinity_time")
+    public Long getSuccessArrayAffinityTime() {
+        return successArrayAffinityTime;
+    }
+
+    public void setSuccessArrayAffinityTime(Long successArrayAffinityTime) {
+        this.successArrayAffinityTime = successArrayAffinityTime;
     }
 }

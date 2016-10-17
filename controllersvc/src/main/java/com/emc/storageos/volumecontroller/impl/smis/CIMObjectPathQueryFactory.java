@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class uses WBEM queries to acquire the CIMObjectPath instances directly from the Provider.
@@ -258,7 +257,7 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
                     CP_SE_STORAGE_HARDWARE_ID, iniName);
             CIMObjectPath queryClass = getQueryClass(CP_SE_STORAGE_HARDWARE_ID);
 
-            CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql);
+            CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql, true);
 
             if (paths.length == 0) {
                 continue;
@@ -550,6 +549,41 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
             return toArray(transform, CIMObjectPath.class);
         } catch (WBEMException e) {
             log.warn("Failed to perform SMI-S query: {}", wql, e);
+        } finally {
+            if (instances != null) {
+                instances.close();
+            }
+        }
+        return new CIMObjectPath[0];
+    }
+
+    /**
+     * Overloaded method to execute query and throw exception to caller method if any exception occurred.
+     * 
+     * @param storageDevice
+     * @param queryClass
+     * @param wql
+     * @param throwException
+     * @return
+     * @throws WBEMException
+     */
+    private CIMObjectPath[] execQuery(StorageSystem storageDevice, CIMObjectPath queryClass, String wql, boolean throwException)
+            throws WBEMException {
+        log.info("ExecQuery: {}", wql);
+
+        CloseableIterator<CIMInstance> instances = null;
+        try {
+            long start = System.currentTimeMillis();
+            instances = getClient(storageDevice).execQuery(queryClass, wql, QUERY_LANG);
+            log.info("ExecQuery took {}ms", System.currentTimeMillis() - start);
+
+            Iterator<CIMObjectPath> transform = transform(instances, getInstanceToObjectPathFn());
+            return toArray(transform, CIMObjectPath.class);
+        } catch (WBEMException e) {
+            log.warn("Failed to perform SMI-S query: {}", wql, e);
+            if (throwException) {
+                throw e;
+            }
         } finally {
             if (instances != null) {
                 instances.close();

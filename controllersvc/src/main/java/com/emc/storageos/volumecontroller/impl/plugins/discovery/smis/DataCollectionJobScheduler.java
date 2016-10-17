@@ -6,7 +6,10 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +32,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NetworkSystem;
@@ -41,7 +46,10 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 import com.emc.storageos.volumecontroller.impl.datadomain.DataDomainUtils;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
@@ -67,12 +75,15 @@ public class DataCollectionJobScheduler {
     private ScheduledExecutorService _dataCollectionExecutorService = null;
     private static final String ENABLE_METERING = "enable-metering";
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
+    private static final String ENABLE_ARRAYAFFINITY_DISCOVER = "enable-arrayaffinity-discovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
+    private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
 
     private static final int initialScanDelay = 30;
     private static final int initialDiscoveryDelay = 90;
+    private static final int initialArrayAffinityDiscoveryDelay = 90;
     private static final int initialMeteringDelay = 60;
     private static final int initialConnectionRefreshDelay = 10;
 
@@ -93,6 +104,7 @@ public class DataCollectionJobScheduler {
 
         SCAN_INTERVALS("scan-interval", "scan-refresh-interval", initialScanDelay),
         DISCOVER_INTERVALS("discovery-interval", "discovery-refresh-interval", initialDiscoveryDelay),
+        ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval", initialArrayAffinityDiscoveryDelay),       
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
         COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
@@ -137,6 +149,9 @@ public class DataCollectionJobScheduler {
             if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(jobType)) {
                 return DISCOVER_INTERVALS;
             }
+            if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType)) {
+                return ARRAYAFFINITY_DISCOVER_INTERVALS;
+            }
             if (ControllerServiceImpl.NS_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return NS_DISCOVER_INTERVALS;
             }
@@ -178,8 +193,27 @@ public class DataCollectionJobScheduler {
 
         boolean enableAutoScan = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTOSCAN));
         boolean enableAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTODISCOVER));
+        boolean enableArrayAffinityDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_ARRAYAFFINITY_DISCOVER));
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
 
+        // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
+        // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
+        if (!PlatformUtils.isOssBuild() && (enableAutoScan || enableAutoDiscovery || enableAutoMetering)) {
+            String numOfNodesString = _coordinator.getPropertyInfo().getProperty(PropertyConstants.NODE_COUNT_KEY);
+            if (numOfNodesString != null && numOfNodesString.equals("1")) {
+
+                boolean enableAutoOpsSingleNodeString = false;
+                String enableAutoOpsSingleNode = _configInfo.get(ENABLE_AUTO_OPS_SINGLENODE);
+                if (enableAutoOpsSingleNode != null) {
+                    enableAutoOpsSingleNodeString = Boolean.parseBoolean(enableAutoOpsSingleNode);
+                }
+
+                if (!enableAutoOpsSingleNodeString) {
+                    enableAutoScan = enableAutoDiscovery = enableAutoMetering = false;
+                }
+            }
+        }
+        
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
                 _dataCollectionExecutorService);
 
@@ -188,7 +222,10 @@ public class DataCollectionJobScheduler {
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.SCANNER),
                     intervals.getInitialDelay(),
                     intervals.getInterval());
+        } else {
+            _logger.info("Auto scan is disabled.");
         }
+        
         if (enableAutoDiscovery) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.DISCOVERY),
@@ -208,7 +245,20 @@ public class DataCollectionJobScheduler {
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.CS_DISCOVERY),
                     intervals.getInitialDelay(),
                     intervals.getInterval());
+        } else {
+            _logger.info("Auto discovery is disabled.");
         }
+
+        if (enableArrayAffinityDiscovery) {
+            JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY);
+            schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY),
+                    intervals.getInitialDelay(),
+                    intervals.getInterval());
+            _logger.info("Array Affinity discovery is enabled with interval {}", intervals.getInterval());
+        } else {
+            _logger.info("Array Affinity discovery is disabled");
+        }
+
         if (enableAutoMetering) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.METERING);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.METERING),
@@ -350,6 +400,8 @@ public class DataCollectionJobScheduler {
         _logger.info("Started Loading Systems from DB for " + jobType + " jobs");
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         List<URI> allSystemsURIs = new ArrayList<URI>();
+        Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
+
         if (jobType.equalsIgnoreCase(ControllerServiceImpl.NS_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(NetworkSystem.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.CS_DISCOVERY)) {
@@ -357,18 +409,66 @@ public class DataCollectionJobScheduler {
             addToList(allSystemsURIs, _dbClient.queryByType(Vcenter.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.COMPUTE_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(ComputeSystem.class, true).iterator());
-        }
-        else {
+        } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
+            List<URI> systemURIs = _dbClient.queryByType(StorageSystem.class, true);
+            List<StorageSystem> systems = new ArrayList<StorageSystem>();
+            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemURIs, true);
+            while (storageSystems.hasNext()) {
+                StorageSystem system = storageSystems.next();
+                if (system.deviceIsType(Type.vmax) || system.deviceIsType(Type.vnxblock) || system.deviceIsType(Type.xtremio) ||
+                        system.deviceIsType(Type.unity)) {
+                    systems.add(system);
+                }
+            }
+
+            // Sort systems by last array affinity time, so that system with the earliest last array affinity time will be used
+            // when checking if job should be scheduled
+            Collections.sort(systems, new Comparator<StorageSystem>() {
+                public int compare(StorageSystem system1, StorageSystem system2) {
+                    return Long.compare(system1.getLastArrayAffinityRunTime(), system2.getLastArrayAffinityRunTime());
+                }
+             });
+
+            for (StorageSystem system : systems) {
+                if (system.deviceIsType(Type.unity)) {
+                    List<URI> systemIds = new ArrayList<URI>();
+                    systemIds.add(system.getId());
+                    providerToSystemsMap.put(system.getId(), systemIds);
+                } else {
+                    StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                            system.getActiveProviderURI());
+                    if (provider != null && !provider.getInactive()) {
+                        List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                        if (systemIds == null) {
+                            systemIds = new ArrayList<URI>();
+                            providerToSystemsMap.put(provider.getId(), systemIds);
+                        }
+                        systemIds.add(system.getId());
+                    }
+                }
+            }
+        } else {
             addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
             addToList(allSystemsURIs, _dbClient.queryByType(ProtectionSystem.class, true).iterator());
         }
 
-        if (!allSystemsURIs.isEmpty()) {
+        if (!providerToSystemsMap.isEmpty()) {
+            for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
+                String taskId = UUID.randomUUID().toString();
+                List<URI> systemIds = entry.getValue();
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType);
+                DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
+                jobs.add(job);
+            }
+
+            scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.getLock(jobType));
+        } else if (!allSystemsURIs.isEmpty()) {
             Iterator<URI> systemURIsItr = allSystemsURIs.iterator();
             while (systemURIsItr.hasNext()) {
                 URI systemURI = systemURIsItr.next();
                 String taskId = UUID.randomUUID().toString();
                 DataCollectionJob job = null;
+                StorageProvider provider = null;
                 if (URIUtil.isType(systemURI, StorageSystem.class)) {
                     StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, systemURI);
                     if (systemObj == null) {
@@ -384,7 +484,7 @@ public class DataCollectionJobScheduler {
                                     jobType, systemURI);
                             continue;
                         }
-                        StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        provider = _dbClient.queryObject(StorageProvider.class,
                                 systemObj.getActiveProviderURI());
                         if (provider == null || provider.getInactive()) {
                             _logger.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
@@ -404,6 +504,7 @@ public class DataCollectionJobScheduler {
                             continue;
                         }
                     }
+
                     job = getDataCollectionJobByType(StorageSystem.class, jobType, taskId, systemURI);
                 } else if (URIUtil.isType(systemURI, NetworkSystem.class)) {
                     job = getDataCollectionJobByType(NetworkSystem.class, jobType, taskId, systemURI);
@@ -485,8 +586,13 @@ public class DataCollectionJobScheduler {
                 if (isDataCollectionJobSchedulingNeeded(system,
                         job.getType(), job.isSchedulerJob(), job.getNamespace())) {
                     job.schedule(_dbClient);
-                    system.setLastDiscoveryStatusMessage("");
-                    _dbClient.persistObject(system);
+                    if (job instanceof DataCollectionArrayAffinityJob) {
+                        ((ArrayAffinityDataCollectionTaskCompleter) completer).setLastStatusMessage(_dbClient, "");
+                    } else {
+                        system.setLastDiscoveryStatusMessage("");
+                        _dbClient.updateObject(system);
+                    }
+
                     completer.setNextRunTime(_dbClient,
                             System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
                     ControllerServiceImpl.enqueueDataCollectionJob(job);
@@ -719,6 +825,8 @@ public class DataCollectionJobScheduler {
             T storageSystem, String type) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             return storageSystem.getLastMeteringRunTime();
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) storageSystem).getLastArrayAffinityRunTime();
         } else {
             return storageSystem.getLastDiscoveryRunTime();
         }
@@ -728,6 +836,8 @@ public class DataCollectionJobScheduler {
             T storageSystem, String type) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             return storageSystem.getNextMeteringRunTime();
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) storageSystem).getNextArrayAffinityRunTime();
         } else {
             return storageSystem.getNextDiscoveryRunTime();
         }
@@ -744,6 +854,8 @@ public class DataCollectionJobScheduler {
     private <T extends DiscoveredSystemObject> String getStatus(T system, String type) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             return system.getMeteringStatus();
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) system).getArrayAffinityStatus();
         } else {
             return system.getDiscoveryStatus();
         }
@@ -825,6 +937,14 @@ public class DataCollectionJobScheduler {
                 _dbClient, xioClientFactory));
 
         activeProviderURIs.addAll(ScaleIOStorageDevice.getInstance().refreshConnectionStatusForAllSIOProviders());
+
+        activeProviderURIs.addAll(CephUtils.refreshCephConnections(
+                CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                        _dbClient, StorageProvider.InterfaceType.ceph.name()),
+                _dbClient));
+
+        // process providers managed by SB SDK drivers
+        activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
 
         return activeProviderURIs;
     }

@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -26,6 +27,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
@@ -40,7 +42,8 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(AutoTieringPolicyMatcher.class);
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         String autoTieringPolicyName = attributeMap.get(Attributes.auto_tiering_policy_name.toString()).toString();
 
         _logger.info("Pools Matching Auto Tiering Policy name attribute {} Started:{}", autoTieringPolicyName, Joiner
@@ -79,11 +82,27 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             }
         } else if (deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
             filteredPoolList = getAutoTieringPoolsOnHDS(autoTieringPolicyName, attributeMap, pools);
-        } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())) {
+        } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())
+                   || deviceTypes.contains(VirtualPool.SystemType.unity.toString())) {
             filteredPoolList = getPoolsWithAutoTieringEnabled(pools);
+        } else {
+            Iterator<String> deviceTypesIter = deviceTypes.iterator();
+            if (deviceTypesIter.hasNext()) {
+                String deviceType = deviceTypes.iterator().next();
+                StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                        StorageDriverManager.STORAGE_DRIVER_MANAGER);
+                if (storageDriverManager.isDriverManaged(deviceType)) {
+                    filteredPoolList = getAutoTieringPoolsOnExternalSystem(autoTieringPolicyName, attributeMap, pools);
+                }
+            }
         }
         _logger.info("Pools Matching Auto Tiering name Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("No matching storage pool found with auto tiering policy %s. ", autoTieringPolicyName));
+            _logger.error(errorMessage.toString());
+        }
+
         return filteredPoolList;
     }
 
@@ -107,7 +126,8 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_HIGHEST_AVAILABLE.toString());
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_LOWEST_AVAILABLE.toString());
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_NO_MOVEMENT.toString());
-                    } else if (Type.vnxe.toString().equalsIgnoreCase(system.getSystemType())) {
+                    } else if (Type.vnxe.toString().equalsIgnoreCase(system.getSystemType())
+                                || Type.unity.toString().equalsIgnoreCase(system.getSystemType())) {
                         policyNameSet.add(StorageResource.TieringPolicyEnum.AUTOTIER_HIGH.name());
                         policyNameSet.add(StorageResource.TieringPolicyEnum.AUTOTIER.name());
                         policyNameSet.add(StorageResource.TieringPolicyEnum.HIGHEST.name());
@@ -138,6 +158,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxblock.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxe.toString()) ||
+                    deviceTypes.contains(VirtualPool.SystemType.unity.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
                 status = true;
             }
@@ -346,5 +367,46 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                     result);
         }
         return result;
+    }
+    
+    /**
+     * Filter the passed list of storage pools to only those that match the passed auto tiering policy.
+     * 
+     * @param policyName The auto tiering policy name.
+     * @param attributeMap The matcher attribute map.
+     * @param pools The complete list of pools to be filtered.
+     * 
+     * @return The filtered list of pools matching the policy with the passed name.
+     */
+    private List<StoragePool> getAutoTieringPoolsOnExternalSystem(String policyName, Map<String, Object> attributeMap, List<StoragePool> pools) {
+        Set<String> policyPools = new HashSet<String>();
+        URIQueryResultList result = getAutoTierPolicies(attributeMap, policyName);
+        Iterator<URI> iterator = result.iterator();
+        while (iterator.hasNext()) {
+            AutoTieringPolicy policy = _objectCache.queryObject(AutoTieringPolicy.class, iterator.next());
+            if (isValidAutoTieringPolicy(policy)
+                    && isAutoTieringEnabledOnStorageSystem(policy.getStorageSystem())
+                    && doesGivenProvisionTypeMatchFastPolicy(attributeMap.get(
+                            Attributes.provisioning_type.toString()).toString(), policy)) {
+                if (null != policy.getPools()) {
+                    policyPools.addAll(policy.getPools());
+                }
+            }
+        }
+        
+        List<StoragePool> filteredPools = new ArrayList<StoragePool>();
+        Iterator<StoragePool> poolIterator = pools.iterator();
+        while (poolIterator.hasNext()) {
+            StoragePool pool = poolIterator.next();
+            // check whether pool matching with vpool or not.
+            // if it doesn't match remove it from all pools.
+            if (policyPools.contains(pool.getId().toString())) {
+                filteredPools.add(pool);
+            } else {
+                _logger.info("Ignoring pool {} as it doesn't belongs to FAST policy.", pool.getNativeGuid());
+            }
+        }
+
+        return filteredPools;
     }
 }

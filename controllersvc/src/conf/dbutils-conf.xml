@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath:coordinatorclient-var.xml"/>
+    <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
+
+    <bean id="dbclient" class="com.emc.storageos.dbutils.InternalDbClientImpl">
+        <property name="coordinatorClient" ref="coordinator" />
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="drUtil" ref="drUtil"/>
+    </bean>
+    
+    <bean id="geodbclient" class="com.emc.storageos.geo.vdccontroller.impl.InternalDbClient" init-method="start">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="bypassMigrationLock" value="true"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
+    </bean>
+
+    <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper">
+        <property name="dbClient" ref="geodbclient"/>
+        <property name="coordinatorClient" ref="coordinator"/>
+    </bean>
+
+    <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
+        <property name="packages">
+            <array>
+                <value>com.emc.storageos.db.client.model</value>
+            </array>
+        </property>
+    </bean>
+
+</beans>

@@ -39,7 +39,9 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -90,45 +92,50 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
             return;
         }
 
-        LinuxSystemCLI cli = new LinuxSystemCLI(accessProfile.getIpAddress(), accessProfile.getUserName(), accessProfile.getPassword());
-        ListVPlexPerpetualCSVFileNames listDataFileNamesCmd = new ListVPlexPerpetualCSVFileNames();
-        cli.executeCommand(listDataFileNamesCmd);
-        // Process each of the data files that we found on the VPlex management station
-        List<String> fileNames = listDataFileNamesCmd.getResults();
-        for (String fileName : fileNames) {
-            // Extract and hold the data for this data file
-            ReadAndParseVPlexPerpetualCSVFile readDataFile = new ReadAndParseVPlexPerpetualCSVFile(fileName);
-            cli.executeCommand(readDataFile);
-            VPlexPerpetualCSVFileData fileData = readDataFile.getResults();
-
-            // Read the headers and extract those metric names that we're interested in and to which
-            // DataObject (StorageHADomain or StoragePort) that it should be associated with. This
-            // will be used as a way to look up the object when processing the actual metric data
-            Map<String, MetricHeaderInfo> metricNamesToHeaderInfo = processCSVFileDataHeader(dbClient, storageSystem,
-                    fileData.getDirectorName(), fileData.getHeaders());
-
-            List<Map<String, String>> dataLines = fileData.getDataLines();
-            int lineCount = dataLines.size();
-            // There is at least one data point
-            if (lineCount > 1) {
-                // Determine the last time that metrics were collected.
-                Long lastCollectionTimeUTC = getLastCollectionTime(metricNamesToHeaderInfo);
-                // Try to find the index into dataLines based on the last collection time.
-                // What we're trying to do here is determine the maximum value for the metrics
-                // from the last collection time in ViPR, until the last data line in the file.
-                int start = fileData.getDataIndexForTime(lastCollectionTimeUTC);
-                // Have a mapping of metrics to their maximum value found in the dataLines
-                Map<String, Double> maxValues = findMaxMetricValues(dataLines, start, lineCount);
-                // Process the metrics for this file
-                Map<String, String> last = dataLines.get(lineCount - 1);
-                processDirectorStats(metricNamesToHeaderInfo, maxValues, last);
-                processPortStats(context, metricNamesToHeaderInfo, maxValues, last);
+        StringSet providerIds =  storageSystem.getProviders();
+        for (String providerId : providerIds) {
+            StorageProvider provider = dbClient.queryObject(StorageProvider.class, URI.create(providerId));
+            LinuxSystemCLI cli = new LinuxSystemCLI(provider.getIPAddress(), provider.getUserName(), provider.getPassword());
+            ListVPlexPerpetualCSVFileNames listDataFileNamesCmd = new ListVPlexPerpetualCSVFileNames();
+            cli.executeCommand(listDataFileNamesCmd);
+            // Process each of the data files that we found on the VPlex management station
+            List<String> fileNames = listDataFileNamesCmd.getResults();
+            for (String fileName : fileNames) {
+                log.info("Processing VPLEX performance statistics file {}", fileName);
+                // Extract and hold the data for this data file
+                ReadAndParseVPlexPerpetualCSVFile readDataFile = new ReadAndParseVPlexPerpetualCSVFile(fileName);
+                cli.executeCommand(readDataFile);
+                VPlexPerpetualCSVFileData fileData = readDataFile.getResults();
+    
+                // Read the headers and extract those metric names that we're interested in and to which
+                // DataObject (StorageHADomain or StoragePort) that it should be associated with. This
+                // will be used as a way to look up the object when processing the actual metric data
+                Map<String, MetricHeaderInfo> metricNamesToHeaderInfo = processCSVFileDataHeader(dbClient, storageSystem,
+                        fileData.getDirectorName(), fileData.getHeaders());
+    
+                List<Map<String, String>> dataLines = fileData.getDataLines();
+                int lineCount = dataLines.size();
+                // There is at least one data point
+                if (lineCount > 1) {
+                    // Determine the last time that metrics were collected.
+                    Long lastCollectionTimeUTC = getLastCollectionTime(metricNamesToHeaderInfo);
+                    // Try to find the index into dataLines based on the last collection time.
+                    // What we're trying to do here is determine the maximum value for the metrics
+                    // from the last collection time in ViPR, until the last data line in the file.
+                    int start = fileData.getDataIndexForTime(lastCollectionTimeUTC);
+                    // Have a mapping of metrics to their maximum value found in the dataLines
+                    Map<String, Double> maxValues = findMaxMetricValues(dataLines, start, lineCount);
+                    // Process the metrics for this file
+                    Map<String, String> last = dataLines.get(lineCount - 1);
+                    processDirectorStats(metricNamesToHeaderInfo, maxValues, last);
+                    processPortStats(context, metricNamesToHeaderInfo, maxValues, last);
+                }
+                // Clean up fileData resources
+                fileData.close();
             }
-            // Clean up fileData resources
-            fileData.close();
+            // Clean out the cache data, so that it's not laying around
+            clearCaches();
         }
-        // Clean out the cache data, so that it's not laying around
-        clearCaches();
     }
 
     /**

@@ -302,6 +302,21 @@ _gen_prop2() {
         fi
     done
 
+    # populate 'vdc_vdc*_site_ids' if they are empty
+    #
+    # for my vdc, equals to site_ids
+    # for other vdcs, just set it to "site1"
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        var="_GENCONFIG_vdc_${vdc}_site_ids"
+        if [ -z "${!var}" ]; then
+            if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
+                eval export ${var}="${_GENCONFIG_site_ids}"
+            else
+                eval export ${val}="site1"
+            fi
+        fi
+    done
+
     #'vdc_'*'_network_'*'_ipaddr6')
     for vdc in ${_GENCONFIG_vdc_ids}; do
         for site in ${_GENCONFIG_site_ids}; do
@@ -409,7 +424,7 @@ _genconfig_system_init() {
 	
 	# revert ZK snapshot in case last ZK mode is participant
 	if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
-		/etc/datatool --revert-snapshot /data/zk/version-2
+		/etc/datatool --revert-minor-version /data/zk/version-2
 	fi
 }
 
@@ -443,10 +458,17 @@ _genconfig_data_versioning() {
            # not start 
            touch "/data/UNCOMMITTED_DATA_REVISION"
        else
-           /etc/datatool --create-version /data/db/1 ${tgt_dataver}
-           /etc/datatool --create-version /data/geodb/1 ${tgt_dataver}
-           /etc/datatool --create-version /data/zk/version-2 ${tgt_dataver}
+           /etc/datatool --set-version /data/db/1 ${tgt_dataver}
+           /etc/datatool --set-version /data/geodb/1 ${tgt_dataver}
+           /etc/datatool --set-version /data/zk/version-2 ${tgt_dataver}
            rm -f /data/zk/myid
+           local prev_dataver=${_GENCONFIG_previous_data_revision}
+           if [ -z "${prev_dataver}" ]; then
+               # purge unused versions if we don't keep previous good copy
+               /etc/datatool --purge-unused-versions /data/db/1
+               /etc/datatool --purge-unused-versions /data/geodb/1
+               /etc/datatool --purge-unused-versions /data/zk/version-2
+           fi
        fi
    fi
 }

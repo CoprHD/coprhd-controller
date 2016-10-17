@@ -141,6 +141,12 @@ public class StorageSystem extends DiscoveredSystemObject {
     
     private Boolean supportNotificationLimit;
 
+    private String _lastArrayAffinityStatusMessage;
+    private String _arrayAffinityStatus = DataCollectionJobStatus.CREATED.name();
+    private Long _lastArrayAffinityRunTime = 0L;
+    private Long _nextArrayAffinityRunTime = 0L;
+    private Long _successArrayAffinityTime = 0L;
+
     public static enum SupportedFileReplicationTypes {
         REMOTE("remote"), LOCAL("local");
 
@@ -166,6 +172,8 @@ public class StorageSystem extends DiscoveredSystemObject {
         private static final SupportedFileReplicationTypes[] copyOfValues = values();
     }
 
+    // All pools share the same storage capacity
+    private Boolean sharedStorageCapacity = false;
 
     public static enum SupportedProvisioningTypes {
         THICK, THIN, THIN_AND_THICK, NONE
@@ -173,7 +181,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     // Namespace denotes the Element used in Discovery
     public static enum Discovery_Namespaces {
-        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ALL
+        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY, ALL
     }
 
     public static enum SupportedReplicationTypes {
@@ -685,6 +693,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     public void setVplexAssemblyIdtoClusterId(StringMap vplexAssemblyIdtoClusterId) {
         this.vplexAssemblyIdtoClusterId = vplexAssemblyIdtoClusterId;
+        setChanged("vplexAssemblyIdToClusterId");
     }
 
     @Name("nativeId")
@@ -692,9 +701,80 @@ public class StorageSystem extends DiscoveredSystemObject {
         return _nativeId;
     }
 
-
     public void setNativeId(String nativeId) {
         _nativeId = nativeId;
         setChanged("nativeId");
+    }
+
+    @Name("lastArrayAffinityStatusMessage")
+    public String getLastArrayAffinityStatusMessage() {
+        return _lastArrayAffinityStatusMessage;
+    }
+
+    public void setLastArrayAffinityStatusMessage(String statusMessage) {
+        _lastArrayAffinityStatusMessage = statusMessage;
+        setChanged("lastArrayAffinityStatusMessage");
+    }
+
+    @EnumType(DataCollectionJobStatus.class)
+    @Name("arrayAffinityStatus")
+    public String getArrayAffinityStatus() {
+        return _arrayAffinityStatus;
+    }
+
+    public void setArrayAffinityStatus(String status) {
+        _arrayAffinityStatus = status;
+        setChanged("arrayAffinityStatus");
+    }
+
+    @Name("lastArrayAffinityRunTime")
+    public Long getLastArrayAffinityRunTime() {
+        return _lastArrayAffinityRunTime;
+    }
+
+    public void setLastArrayAffinityRunTime(Long lastArrayAffinityRunTime) {
+        _lastArrayAffinityRunTime = lastArrayAffinityRunTime;
+        setChanged("lastArrayAffinityRunTime");
+    }
+
+    @Name("nextArrayAffinityRunTime")
+    public Long getNextArrayAffinityRunTime() {
+        return _nextArrayAffinityRunTime;
+    }
+
+    public void setNextArrayAffinityRunTime(Long nextArrayAffinityRunTime) {
+        _nextArrayAffinityRunTime = nextArrayAffinityRunTime;
+        setChanged("nextArrayAffinityRunTime");
+    }
+
+    @Name("successArrayAffinityTime")
+    public Long getSuccessArrayAffinityTime() {
+        return _successArrayAffinityTime;
+    }
+
+    public void setSuccessArrayAffinityTime(Long time) {
+        _successArrayAffinityTime = time;
+        setChanged("successArrayAffinityTime");
+    }
+
+    @Name("sharedStorageCapacity")
+    public Boolean getSharedStorageCapacity() {
+        return sharedStorageCapacity == null ? false : sharedStorageCapacity;
+    }
+
+    public void setSharedStorageCapacity(final Boolean sharedStorageCapacity) {
+        if (this.sharedStorageCapacity == null || !this.sharedStorageCapacity.equals(sharedStorageCapacity)) {
+            this.sharedStorageCapacity = sharedStorageCapacity;
+            setChanged("sharedStorageCapacity");
+        }
+    }
+
+    /**
+     * V3 All Flash Array's model name would be like VMAX250F, VMAX250FX, VMAX450F, VMAX450FX , VMAX850F and VMAX850FX
+     * 
+     * @return true if the storage system is V3 and All Flash Array Otherwise return false
+     */
+    public boolean isV3AllFlashArray() {
+        return (checkIfVmax3() && getModel() != null && getModel().contains("F"));
     }
 }

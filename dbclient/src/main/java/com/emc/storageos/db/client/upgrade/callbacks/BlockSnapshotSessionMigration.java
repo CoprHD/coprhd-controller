@@ -34,6 +34,8 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionMigration.class);
 
+    private static final String SMIS80_DELIMITER_REGEX = "-\\+-";
+
     /**
      * {@inheritDoc}
      */
@@ -124,7 +126,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         BlockSnapshotSession snapshotSession = new BlockSnapshotSession();
         URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
         snapshotSession.setId(snapSessionURI);
-        snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
+        snapshotSession.setSessionLabel(getSessionLabelFromSettingsInstance(snapshot));
         URI cgURI = snapshot.getConsistencyGroup();
         if (NullColumnValueGetter.isNullURI(cgURI)) {
             snapshotSession.setParent(snapshot.getParent());
@@ -145,5 +147,21 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         linkedTargets.add(snapshot.getId().toString());
         snapshotSession.setLinkedTargets(linkedTargets);
         return snapshotSession;
+    }
+
+    /**
+     * Gets the session label from settings instance.
+     *
+     * @param snapshot the snapshot
+     * @return the session label from settings instance
+     */
+    private String getSessionLabelFromSettingsInstance(BlockSnapshot snapshot) {
+        String sessionLabel = null;
+        String settingsInstance = snapshot.getSettingsInstance();
+        if (settingsInstance != null && !settingsInstance.isEmpty()) {
+            String[] instanceArray = settingsInstance.split(SMIS80_DELIMITER_REGEX);
+            sessionLabel = instanceArray[3];
+        }
+        return sessionLabel;
     }
 }

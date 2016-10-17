@@ -47,12 +47,12 @@ public class MonitorUtils {
     }
 
     public static List<NodeDiagnostics> getNodeDiagnotics(ViPRSystemClient client) {
-        return client.health().getDiagnostics(null).getNodeDiagnosticsList();
+        return client.health().getDiagnostics(null, null).getNodeDiagnosticsList();
     }
 
     public static NodeStats getNodeStats(String nodeId) {
         try {
-            for (NodeStats node : getSysClient().health().getStats(Lists.newArrayList(nodeId), null).getNodeStatsList()) {
+            for (NodeStats node : getSysClient().health().getStats(Lists.newArrayList(nodeId), null, null).getNodeStatsList()) {
                 if (node.getNodeId().equals(nodeId)) {
                     return node;
                 }
@@ -68,7 +68,7 @@ public class MonitorUtils {
 
     public static NodeHealth getNodeHealth(String nodeId) {
         try {
-            for (NodeHealth node : getSysClient().health().getHealth(Lists.newArrayList(nodeId)).getNodeHealthList()) {
+            for (NodeHealth node : getSysClient().health().getHealth(Lists.newArrayList(nodeId), null).getNodeHealthList()) {
                 if (node.getNodeId().equals(nodeId)) {
                     return node;
                 }
@@ -84,7 +84,7 @@ public class MonitorUtils {
 
     public static NodeDiagnostics getNodeDiagnostics(String nodeId) {
         try {
-            for (NodeDiagnostics node : getSysClient().health().getDiagnostics(Lists.newArrayList(nodeId)).getNodeDiagnosticsList()) {
+            for (NodeDiagnostics node : getSysClient().health().getDiagnostics(Lists.newArrayList(nodeId), null).getNodeDiagnosticsList()) {
                 if (node.getNodeId().equals(nodeId)) {
                     return node;
                 }

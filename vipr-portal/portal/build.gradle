@@ -56,10 +56,15 @@ dependencies {
             project(":vipr-client"),
             "org.lesscss:lesscss:1.7.0.1.1"
     webjar "org.webjars:jquery:1.11.1",
+<<<<<<< HEAD
            "org.webjars:angularjs:1.3.17",
            "org.webjars:datatables:1.10.7",
            "org.webjars.bower:datatables.net-buttons:1.1.2",
            "org.webjars.bower:datatables.net-buttons-bs:1.1.2",
+=======
+           "org.webjars:angularjs:1.2.21",
+           "org.webjars:datatables:1.9.4",
+>>>>>>> 5eec9f26624a99e37efce4dd787cfb4c6bcce5ac
            "org.webjars:momentjs:2.8.2",
            "org.webjars:chosen:1.1.0",
            "org.webjars:sprintf.js:1.0.0",

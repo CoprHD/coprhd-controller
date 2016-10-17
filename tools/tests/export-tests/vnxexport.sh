@@ -104,6 +104,24 @@ if [ $? -ne 0 ]; then
     exit
 fi
 
+drawstars() {
+    repeatchar=`expr $1 + 2`
+    while [ ${repeatchar} -gt 0 ]
+    do 
+       echo -n "*"
+       repeatchar=`expr ${repeatchar} - 1`
+    done
+    echo "*"
+}
+
+echot() {
+    numchar=`echo $* | wc -c`
+    echo ""
+    drawstars $numchar
+    echo "* $* *"
+    drawstars $numchar
+}
+
 runcmd() {
     echo === $*
     $*
@@ -153,7 +171,10 @@ login() {
 setup() {
     sleep 10
     SMISPASS=0
-    runcmd smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+	
+    #Disable validation check
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false	
+    runcmd smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     while [ ${SMISPASS} -eq 0 ]
       do
       runcmd storagedevice discover_all
@@ -215,7 +236,7 @@ setup() {
 }
 
 set_cluster() {
-    CLUSTERID=`cluster list ${TENANT} | perl -nle 'printf("urn:storageos:Cluster:%s\n", $1) if (m#urn:storageos:Cluster:(.*?).,#);'`
+    CLUSTERID=`cluster list ${TENANT} | grep Cluster | gawk '{ print $4 }'`
 }
 
 set_hosts() {
@@ -241,7 +262,7 @@ verify_nomasks() {
 # Also required to run "sanity quick & vncblock" to cover other export situations, like snapshots.
 #
 test_0() {
-    echo "Test 0 Begins"
+    echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID}"
     verify_export ${HOST1} 2 1
@@ -259,7 +280,7 @@ test_0() {
 # Export data volumes to all hosts
 #
 test_1() {
-    echo "Test 1 Begins"
+    echot "Test 1 Begins"
     expname=${EXPORT_GROUP_NAME}t1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
@@ -292,7 +313,7 @@ test_1() {
 # Delete shared volume to all hosts
 #
 test_2() {
-    echo "Test 2 Begins"
+    echot "Test 2 Begins"
     expname=${EXPORT_GROUP_NAME}t2
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
@@ -324,7 +345,7 @@ test_2() {
 # Delete shared volume to all hosts
 #
 test_3() {
-    echo "Test 3 Begins"
+    echot "Test 3 Begins"
     expname=${EXPORT_GROUP_NAME}t3
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST2ID},${HOST1ID}"
     verify_export ${HOST1} 2 1
@@ -359,7 +380,7 @@ test_3() {
 # Delete individual boot volume export group
 #
 test_4() {
-    echo "Test 4 Begins"
+    echot "Test 4 Begins"
     expname=${EXPORT_GROUP_NAME}t4
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST2ID},${HOST1ID}"
     verify_export ${HOST1} 2 1
@@ -391,7 +412,7 @@ test_4() {
 # Test to ensure adding a host uses existing export mask, if it already exists (and not create a duplicate)
 #
 test_5() {
-    echo "Test 5 Begins"
+    echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST2ID},${HOST1ID}"
     verify_export ${HOST1} 2 1
@@ -431,7 +452,7 @@ test_5() {
 # Since the hosts are part of a cluster, I expect the mask to contain the cluster name.
 #
 test_6() {
-    echo "Test 6 Begins"
+    echot "Test 6 Begins"
     expname=${EXPORT_GROUP_NAME}t6
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID},${HOST3ID}"
     verify_export ${CLUSTER}_${HOST1} 2 1
@@ -456,7 +477,7 @@ test_6() {
 # cluster_billhost3: VOL3
 #
 test_7() {
-    echo "Test 7 Begins"
+    echot "Test 7 Begins"
     expname=${EXPORT_GROUP_NAME}t7
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --cluster ${CLUSTERID}
     verify_export ${CLUSTER}_${HOST1} 2 1
@@ -483,7 +504,7 @@ test_7() {
 # cluster_billhost3: VOL1,VOL2
 #
 test_8() {
-    echo "Test 8 Begins"
+    echot "Test 8 Begins"
     expname=${EXPORT_GROUP_NAME}t8
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --cluster ${CLUSTERID}
     verify_export ${CLUSTER}_${HOST1} 2 2
@@ -516,7 +537,7 @@ test_8() {
 # cluster_billhost3: VOL1,VOL2
 #
 test_9() {
-    echo "Test 9 Begins"
+    echot "Test 9 Begins"
     expname=${EXPORT_GROUP_NAME}t9
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
     verify_export ${CLUSTER}_${HOST1} 2 1
@@ -546,7 +567,7 @@ test_9() {
 # VnxMaskingOrchestrator to take action in any way possible, and verify it doesn't.
 #
 test_10() {
-    echo "Test 10 Begins"
+    echot "Test 10 Begins"
     expname=${EXPORT_GROUP_NAME}t10
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-3" --cluster ${CLUSTERID}
     verify_export ${HOST1} 2 3
@@ -635,7 +656,7 @@ test_10() {
 # Test removing a host from an export group when another group still has a reference.
 #
 test_11() {
-    echo "Test 11 Begins"
+    echot "Test 11 Begins"
     expname=${EXPORT_GROUP_NAME}t11
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST2ID},${HOST1ID}"
     verify_export ${HOST1} 2 2
@@ -667,7 +688,7 @@ test_11() {
 #
 #
 test_12() {
-    echo "Test 12 Begins"
+    echot "Test 12 Begins"
     expname=${EXPORT_GROUP_NAME}t12
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST3ID}"
     verify_export ${HOST1} 2 1
@@ -700,7 +721,7 @@ test_12() {
 # Test to make sure removing and adding volumes removes and adds the mask if the mask doesn't exist before this test.
 #
 test_13() {
-    echo "Test 13 Begins"
+    echot "Test 13 Begins"
     expname=${EXPORT_GROUP_NAME}t13
     verify_export ${HOST1} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
@@ -721,7 +742,7 @@ test_13() {
 #
 #
 test_14() {
-    echo "Test 14 Begins"
+    echot "Test 14 Begins"
     expname=${EXPORT_GROUP_NAME}t14
     echo "AS LONG AS THERE'S A GROUP RETURNED WITH ANY NUMBER OF LUNS, YOU'RE GOOD HERE"
     verify_export ${HOST1} 2 1
@@ -750,7 +771,7 @@ test_14() {
 #
 #
 test_15() {
-    echo "Test 15 Begins"
+    echot "Test 15 Begins"
     expname=${EXPORT_GROUP_NAME}t15
     echo "AS LONG AS THERE'S A GROUP RETURNED WITH ANY NUMBER OF LUNS, YOU'RE GOOD HERE"
     verify_export ${HOST1} 2 1
@@ -772,7 +793,7 @@ test_15() {
 # An issue Tom found with export update.
 #
 test_16() {
-    echo "Test 16 Begins"
+    echot "Test 16 Begins"
     expname=${EXPORT_GROUP_NAME}t16
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
@@ -791,7 +812,7 @@ test_16() {
 # Test (Initiator Export Group) initiator usage
 #
 test_17() {
-    echo "Test 17 Begins"
+    echot "Test 17 Begins"
     expname=${EXPORT_GROUP_NAME}t17
     runcmd export_group create $PROJECT ${expname}1 $NH --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1ID}/${H1PI1}"
     verify_export ${HOST1} 1 1
@@ -812,7 +833,7 @@ test_17() {
 # Should create and maintain a single StorageGroup
 #
 test_18() {
-    echo "Test 18 Begins"
+    echot "Test 18 Begins"
     expname=${EXPORT_GROUP_NAME}t18
     runcmd export_group create $PROJECT ${expname}1 $NH --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${HOST1ID}/${H1PI1}"
     verify_export ${HOST1} 1 1
@@ -836,15 +857,15 @@ test_18() {
 # the StorageGroups.
 #
 test_19() {
-    echo "Test 19 Begins"
+    echot "Test 19 Begins"
     expname=${EXPORT_GROUP_NAME}t19
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts ${HOST1ID}
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${HOST1} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST1ID}
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST1ID}"
     verify_export ${HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
     verify_export ${HOST1} 2 1
@@ -853,13 +874,14 @@ test_19() {
 }
 
 test_20() {
+    echot "Test 20 Begins"
     expname=${EXPORT_GROUP_NAME}t21
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1ID}
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
     runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
-    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts ${HOST1ID}
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST2ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} gone
     runcmd export_group delete $PROJECT/${expname}1
@@ -877,16 +899,16 @@ test_20() {
 # Add hosts
 #
 test_21() {
-    echo "Test 21 Begins"
+    echot "Test 21 Begins"
     expname=${EXPORT_GROUP_NAME}t21
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host
     runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
+    runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
+    runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST2ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST2ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} gone
     runcmd export_group delete $PROJECT/${expname}1
@@ -901,7 +923,7 @@ test_21() {
 # removing hosts to cluster and host exports when the co-exist.
 #
 test_22() {
-    echo "Test 22 Begins"
+    echot "Test 22 Begins"
     expname=${EXPORT_GROUP_NAME}t22
     clusterXP=${expname}CL
     hostXP=${expname}H
@@ -926,27 +948,27 @@ test_22() {
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --remHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$clusterXP --remHosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --addHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$clusterXP --addHosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --remHosts ${HOST1ID},${HOST2ID},${HOST3ID}
+    runcmd export_group update ${PROJECT}/$clusterXP --remHosts "${HOST1ID},${HOST2ID},${HOST3ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} gone
     verify_export ${HOST3} gone
-    runcmd export_group update ${PROJECT}/$clusterXP --addClusters ${CLUSTERID}
+    runcmd export_group update ${PROJECT}/$clusterXP --addClusters "${CLUSTERID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$hostXP --remHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$hostXP --remHosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$hostXP --addHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$hostXP --addHosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
@@ -962,7 +984,7 @@ test_22() {
 # volumes. Then remove the volumes from each export
 #
 test_23() {
-    echo "Test 23 Begins"
+    echot "Test 23 Begins"
     expname=${EXPORT_GROUP_NAME}t23
     hostXP1=${expname}H1
     hostXP2=${expname}H2
@@ -989,7 +1011,7 @@ test_23() {
 # to an export.
 #
 test_24() {
-    echo "Test 24 Begins"
+    echot "Test 24 Begins"
     expname=${EXPORT_GROUP_NAME}t24
     clusterXP=${expname}CL
     hostXP=${expname}H
@@ -1081,7 +1103,7 @@ test_24() {
 # Also required to run "sanity quick & vncblock" to cover other export situations, like snapshots.
 #
 test_01() {
-    echo "Test 01 Begins"
+    echot "Test 01 Begins"
     expname=${EXPORT_GROUP_NAME}t01
     runcmd export_group create $PROJECT ${expname} $NH --type Initiator --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-3" --inits "${HOST1ID}/${H1PI1}"
     verify_export ${HOST1} 1 1
@@ -1097,7 +1119,7 @@ test_01() {
 # Also required to run "sanity quick & vncblock" to cover other export situations, like snapshots.
 #
 test_607408() {
-    echo "Test 0 Begins"
+    echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     runcmd export_group create $PROJECT ${expname} $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-3" --hosts "${HOST1ID}"
     exit;
@@ -1114,7 +1136,7 @@ test_607408() {
 # Also required to run "sanity quick & vncblock" to cover other export situations, like snapshots.
 #
 test_608072() {
-    echo "Test 0 Begins"
+    echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     runcmd export_group create $PROJECT ${expname} $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1ID}"
     exit;
@@ -1127,7 +1149,7 @@ test_608072() {
 
 test_multi() {
     howmany=50
-    echo "Test banger begins"
+    echot "Test banger begins"
     i=1
     while [ $i -ne ${howmany} ]
     do
@@ -1148,7 +1170,7 @@ test_multi() {
 # Test defect where Initiator export groups with crazy configuration does not delete volume as expected. (cq to be filed)
 #
 test_exclusivedefect() {
-    echo "Test initiator remove volume defect Begins"
+    echot "Test initiator remove volume defect Begins"
     expname=${EXPORT_GROUP_NAME}tEx
     runcmd export_group create $PROJECT ${expname}1 $NH --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${HOST1ID}/${H1PI1}"
     verify_export ${HOST1} 1 1
@@ -1177,6 +1199,8 @@ deletevols() {
 }
 
 cleanup() {
+   #Enable validation check
+   syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
    for id in `export_group list project | grep YES | awk '{print $5}'`
    do
       runcmd export_group delete ${id} > /dev/null

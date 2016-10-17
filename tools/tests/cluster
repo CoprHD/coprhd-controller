@@ -36,30 +36,30 @@ def cluster_query(args):
 
 def cluster_list(args):
     bourne.connect(args.ip)
-#   cluster_display_hdr()
+    cluster_display_hdr()
     res = bourne.cluster_list(args.tenant)
     for r in res:
         cluster = bourne.cluster_show(r['id'])
-        print cluster
-#        cluster_display(cluster)
+        #print cluster
+        cluster_display(cluster)
 
 #
 # display cluster in list form
 #
-cluster_display_fmt = '{0:16s} {1:6s} {2:45s} {3:45s} {4:45s} {5:s}'
+cluster_display_fmt = '{0:16s} {1:6s} {2:75} {3:75}'
 
 def cluster_display_hdr():
-    print cluster_display_fmt.format('name', 'active', 'owner', 'project', 'datacenter', 'id')
+    print cluster_display_fmt.format('name', 'active', 'datacenter', 'id')
 
 def cluster_display(cluster):
     project = 'null'
     datacenter = 'null'
-    if(cluster['project']):
-        project = cluster['project']['id']  
-    if(cluster['data_center']):
-        datacenter = cluster['data_center']['id']  
+    try:
+        datacenter = cluster['vdc']['id']  
+    except: 
+        datacenter = ""
     print cluster_display_fmt.format(cluster['name'], 'NO' if cluster['inactive'] else 'YES',
-              cluster['tenant']['id'], project, datacenter, cluster['id'])
+               datacenter, cluster['id'])
 
 # tag
 def cluster_tag(args):

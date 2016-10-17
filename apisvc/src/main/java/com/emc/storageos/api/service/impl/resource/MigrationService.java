@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMigrationMapper;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -178,7 +179,9 @@ public class MigrationService extends TaskResourceService {
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
                 migrationTargetVarray, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
-                migrationTgtCos, false, null, null, cosWrapper);
+                migrationTgtCos, false, null, null, cosWrapper, migrationTgtProject, 
+                VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
+
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getLabel(), migrationTargetVarray.getLabel(),
                     vplexVolume.getId());

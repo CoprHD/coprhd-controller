@@ -8,19 +8,22 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSource;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -80,6 +83,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final Logger _log = LoggerFactory.getLogger(IsilonFileStorageDevice.class);
 
     private static final String IFS_ROOT = "/ifs";
+    private static final String FW_SLASH = "/";
     private static final String VIPR_DIR = "vipr";
 
     private static final String QUOTA = "quota";
@@ -92,8 +96,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private HashMap<String, String> configinfo;
 
     private DbClient _dbClient;
-
+    @Autowired
     private CustomConfigHandler customConfigHandler;
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
 
     private FileMirrorOperations mirrorOperations;
 
@@ -563,8 +569,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // create and set IsilonExport instance from NFSExport
             String permissions = fileExport.getPermissions();
-            String securityType = fileExport.getSecurityType();
-            List<String> securityTypes = Arrays.asList(securityType);
+            Set<String> orderedSecTypes = new TreeSet<String>();
+            for (String securityType : fileExport.getSecurityType().split(",")) {
+                securityType = securityType.trim();
+                orderedSecTypes.add(securityType);
+            }
+            Iterator<String> orderedList = orderedSecTypes.iterator();
+            String strCSSecurityType = orderedList.next().toString();
+            while (orderedList.hasNext()) {
+                strCSSecurityType += "," + orderedList.next().toString();
+            }
+
             String root_user = fileExport.getRootUserMapping();
             String storagePortName = fileExport.getStoragePortName();
             String storagePort = fileExport.getStoragePort();
@@ -581,6 +596,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 throw IsilonException.exceptions.invalidParameters();
             }
 
+            List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,
                     comments);
 
@@ -628,7 +644,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
 
                 // set file export data and add it to the export map
-                fExport = new FileExport(newIsilonExport.getClients(), storagePortName, mountPath, securityType,
+                fExport = new FileExport(newIsilonExport.getClients(), storagePortName, mountPath, strCSSecurityType,
                         permissions, root_user, protocol, storagePort, path, mountPath, subDirectory, comments);
                 fExport.setIsilonId(id);
             } else {
@@ -744,13 +760,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set security type
         // Need to use "unix" instead of "sys" . Isilon requires "unix", not
         // "sys".
-
-        if (secType.equals(FileShareExport.SecurityTypes.sys.name())) {
-            secType = "unix";
-        }
-
+        // input export may contain one or more security types in a string separated by comma.
         ArrayList<String> secFlavors = new ArrayList<>();
-        secFlavors.add(secType);
+        for (String securityType : expRule.getSecFlavor().split(",")) {
+            securityType = securityType.trim();
+            if (securityType.equals(FileShareExport.SecurityTypes.sys.name())) {
+                securityType = "unix";
+            }
+            secFlavors.add(securityType);
+        }
         newIsilonExport.setSecurityFlavors(secFlavors);
 
         if (roHosts > 0 && rwHosts == 0 && rootHosts == 0) {
@@ -852,7 +870,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, capacity, false, null, capacity,
                 notificationLimit, softLimit, softGracePeriod);
     }
 
@@ -862,21 +880,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
             IsilonApi isi = getIsilonDevice(storage);
 
-            String projName = null;
-            String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-
+            // get the custom path from the controller configuration
+            String customPath = getCustomPath(storage, args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
-            }
-
-            if (args.getProject() != null) {
-                projName = args.getProjectNameWithNoSpecialCharacters();
-            }
-            if (args.getTenantOrg() != null) {
-                tenantOrg = args.getTenantNameWithNoSpecialCharacters();
             }
 
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
@@ -886,32 +896,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String mountPath = null;
             // Update the mount path as required
             if (vNASPath != null && !vNASPath.trim().isEmpty()) {
-                if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-                } else {
-                    mountPath = String.format("%1$s/%2$s/%3$s", vNASPath, args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getFsName());
-                }
+                mountPath = vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
+
             } else if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
-                if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-                } else {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-                }
+
+                mountPath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath + FW_SLASH + args.getFsName();
             } else {
                 _log.error(
                         "No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
                 throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
             }
 
+            // replace extra forward slash with single one
+            mountPath = mountPath.replaceAll("/+", "/");
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
-
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
             args.setFsPath(args.getFsMountPath());
@@ -925,7 +924,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // set quota - save the quota id to extensions
             String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
-                    args.getFsNotificationLimit(), softGrace, isi);
+                    args.getFsNotificationLimit(), softGrace, null, isi);
 
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
@@ -1263,7 +1262,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
+            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, args.getFsCapacity(), isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1339,13 +1338,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, isi);
+                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
             } else {
                 // Create a new Quota
-                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
+                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, null, isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();
@@ -1361,7 +1360,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, IsilonApi isi) {
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
         Long notificationLimit = 0L;
         Long softlimit = 0L;
         Long softGrace = 0L;
@@ -1378,11 +1377,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
 
-    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, IsilonApi isi) {
+    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, Long fsSize, IsilonApi isi) {
         Long notificationLimit = 0L;
         Long softlimit = 0L;
         Long softGrace = 0L;
@@ -1400,11 +1399,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         return createQuotaWithThreshold(qDirPath, qDirSize,
-                softlimit, notificationLimit, softGrace, isi);
+                softlimit, notificationLimit, softGrace, fsSize, isi);
     }
 
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
-            Long softGracePeriod, IsilonApi isi) {
+            Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;
         boolean bIncludeSnapshots = true;
 
@@ -1419,7 +1418,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         // set quota - save the quota id to extensions
-        String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
+        String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
                 softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
@@ -1535,10 +1534,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportsToModify = new ArrayList<>();
         List<ExportRule> exportsToAdd = new ArrayList<>();
 
-        // ALL EXPORTS
-        List<ExportRule> exportsToProcess = args.getExistingDBExportRules();
-        Map<String, ArrayList<ExportRule>> existingExportsMapped = new HashMap();
-
         // Calculate Export Path
         String exportPath;
         String subDir = args.getSubDirectory();
@@ -1561,57 +1556,34 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("exportPath : {}", exportPath);
         args.setExportPath(exportPath);
 
-        if (exportsToProcess == null) {
-            exportsToProcess = new ArrayList<>();
-        }
-
-        // Process Exports
-        for (ExportRule existingRule : exportsToProcess) {
-            ArrayList<ExportRule> exps = existingExportsMapped.get(existingRule.getExportPath());
-            if (exps == null) {
-                exps = new ArrayList<>();
-            }
-            exps.add(existingRule);
-            _log.info("Checking existing export for {} : exps : {}", existingRule.getExportPath(), exps);
-            existingExportsMapped.put(existingRule.getExportPath(), exps);
-        }
-
-        // Handle Add export Rules
-        if (exportAdd != null && !exportAdd.isEmpty()) {
-            // Check for existing exports for the export path including
-            // subdirectory
-            ArrayList<ExportRule> exps = existingExportsMapped.get(exportPath);
-            if (exps != null && !exps.isEmpty()) {
-                _log.error(
-                        "Adding export rules is not supported as there can be only one export rule for Isilon for a path.");
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("updateExportRules : Adding export rule is not supported for Isilon");
-                return BiosCommandResult.createErrorResult(error);
+        // ALL EXPORTS
+        List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
+        List<ExportRule> exportsToprocess = new ArrayList<>();
+        for (ExportRule rule : existingDBExportRule) {
+            if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
+                exportsToprocess.add(rule);
             }
         }
 
-        _log.info("Number of existing Rules found {}", exportsToProcess.size());
-
+        _log.info("Number of existing Rules found {} for exportPath {}", exportsToprocess.size(), exportPath);
         // Isilon have separate entry for read only and read/write host list
         // if we want to modify export from host H1 with permission read to H2
         // with read/write. then need to delete the entry from read
         // list and add to read/Write list.
-        if (existingExportsMapped.get(exportPath) != null && !existingExportsMapped.get(exportPath).isEmpty()) {
+        if (!exportsToprocess.isEmpty() || !exportAdd.isEmpty()) {
             if (exportModify != null && !exportModify.isEmpty()) {
-                for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
+                for (ExportRule existingRule : exportsToprocess) {
                     for (ExportRule newExportRule : exportModify) {
                         if (newExportRule.getSecFlavor().equals(existingRule.getSecFlavor())) {
-
                             newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
                             exportsToModify.add(newExportRule);
-
                         }
                     }
                 }
             }
             // Handle Delete export Rules
             if (exportDelete != null && !exportDelete.isEmpty()) {
-                for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
+                for (ExportRule existingRule : exportsToprocess) {
                     for (ExportRule oldExport : exportDelete) {
                         if (oldExport.getSecFlavor().equals(existingRule.getSecFlavor())) {
                             _log.info("Deleting Export Rule {}", existingRule);
@@ -1620,19 +1592,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                 }
             }
-
             // No of exports found to remove from the list
             _log.info("No of exports found to remove from the existing exports list {}", exportsToRemove.size());
-            exportsToProcess.removeAll(exportsToRemove);
-
-        } else {
-
-            if (exportsToProcess == null) {
-                exportsToProcess = new ArrayList<>();
-            }
+            exportsToprocess.removeAll(exportsToRemove);
 
             // Handle Add Export Rules
-            // This is valid only if no rules to modify exists
             if (exportAdd != null && !exportAdd.isEmpty()) {
                 for (ExportRule newExport : exportAdd) {
                     _log.info("Add Export Rule {}", newExport);
@@ -1640,7 +1604,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     exportsToAdd.add(newExport);
                 }
             }
-            exportsToProcess.addAll(exportAdd);
+            exportsToprocess.addAll(exportAdd);
         }
 
         // Process Mods
@@ -1697,15 +1661,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String root_user = exportRule.getAnon();
             Set<String> rootHosts = exportRule.getRootHosts();
 
-            if (rootHosts != null) {
-                // Validate parameters for permissions and root user mapping.
-                if ((!rootHosts.isEmpty()) && !root_user.equals("root")) {
-                    String msg = "The root_user mapping is not set to root but the permission is.";
-                    _log.error(msg);
-                    throw IsilonException.exceptions.invalidParameters();
-                }
-            }
-
             String isilonExportId = exportRule.getDeviceExportId();
             String zoneName = getZoneName(args.getvNAS());
             if (isilonExportId != null) {
@@ -1756,15 +1711,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             String root_user = exportRule.getAnon();
             Set<String> rootHosts = exportRule.getRootHosts();
-
-            if (rootHosts != null) {
-                // Validate parameters for permissions and root user mapping.
-                if ((!rootHosts.isEmpty()) && !root_user.equals("root")) {
-                    String msg = "The root_user mapping is not set to root but the permission is.";
-                    _log.error(msg);
-                    throw IsilonException.exceptions.invalidParameters();
-                }
-            }
 
             String isilonExportId = exportRule.getDeviceExportId();
 
@@ -2313,8 +2259,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Set the clients to isilon export based on type
      * 
-     * @param type one of "rw", "root" or "ro"
-     * @param hosts the clients to be set
+     * @param type
+     *            one of "rw", "root" or "ro"
+     * @param hosts
+     *            the clients to be set
      * @param isilonExport
      */
     private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
@@ -2349,8 +2297,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.cancelMirrorFileShareLink(system, target, completer);
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        if (devSpecificPolicyName == null) {
+            devSpecificPolicyName = gerneratePolicyName(system, target);
+        }
+        mirrorOperations.cancelMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
     }
 
     @Override
@@ -2601,5 +2552,49 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         task.setProgress(100);
         _dbClient.updateObject(task);
         return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * Gets the file system custom path value from controller configuration
+     * 
+     * @param storage
+     *            Isilon storage system
+     * @param args
+     *            FileDeviceInputOutput object
+     * @return evaluated custom path
+     */
+    private String getCustomPath(StorageSystem storage, FileDeviceInputOutput args) {
+
+        String path = "";
+
+        IsilonApi isi = getIsilonDevice(storage);
+        String clusterName = isi.getClusterConfig().getName();
+        DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(args.getProject(), args.getVPool(),
+                args.getTenantOrg(), storage);
+        dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
+        String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
+                dataSource);
+        _log.debug("The isilon user defined custom path is  {}", configPath);
+        if (configPath != null && !configPath.isEmpty()) {
+            path = args.getPathWithoutSpecialCharacters(configPath);
+        }
+        return path;
+    }
+
+    /**
+     * Get the File System default system access zone from
+     * controller configuration.
+     * 
+     * @return access zone folder name
+     */
+
+    private String getSystemAccessZoneNamespace() {
+
+        String namespace = "";
+
+        namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
+                null);
+
+        return namespace;
     }
 }

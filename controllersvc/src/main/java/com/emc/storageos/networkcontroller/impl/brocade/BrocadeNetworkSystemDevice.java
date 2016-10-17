@@ -699,7 +699,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             return _smisHelper.getVersion(client);
         } catch (WBEMException ex) {
             String exMsg = ex.getLocalizedMessage();
-            if (exMsg.equals("Unable to connect")) {
+            if ((exMsg != null) && exMsg.equals("Unable to connect")) {
                 exMsg = "Unable to connect to device " + network.getLabel() + ": Unable to connect to ip "
                         + network.getIpAddress() + " on port " + network.getSmisPortNumber();
             }

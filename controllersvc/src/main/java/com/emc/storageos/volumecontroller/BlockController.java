@@ -9,6 +9,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -510,12 +512,13 @@ public interface BlockController extends BlockStorageManagementController {
      * @param systemURI The URI of the storage system.
      * @param tgtSnapSessionURI The URI of the snapshot session to which the targets are re-linked.
      * @param snapshotURIs The URIs of the snapshots representing the linked targets.
+     * @param updateStatus true if the operation status should be updated, false otherwise.
      * @param opId The unique task identifier.
      * 
      * @throws InternalException
      */
     public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
-            String opId) throws InternalException;
+            Boolean updateStatus, String opId) throws InternalException;
 
     /**
      * Unlinks the targets represented by the BlockSnapshot instances with the passed
@@ -551,4 +554,22 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId The unique task identifier.
      */
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId);
+
+    /**
+     * Set an Alias for the supplied initiator on a given Storage System
+     * 
+     * @param storage
+     * @param initiator
+     * @param initiatorAlias - User friendly name for the Initiator on the Storage System
+     */
+    public void setInitiatorAlias(URI systemURI, URI initiatorURI, String initiatorAlias) throws Exception;
+
+    /**
+     * Get the Alias for an initiator on the supplied Storage System if Set
+     * 
+     * @param storage
+     * @param initiator
+     */
+    public String getInitiatorAlias(URI systemURI, URI initiatorURI) throws Exception;
+
 }

@@ -21,19 +21,19 @@ package controllers.auth;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
+import com.emc.storageos.model.keystone.OpenStackTenantListParam;
+import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import models.SearchScopes;
+import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
 
+import models.datatable.OpenStackTenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -43,16 +43,13 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
-import util.AuthSourceType;
-import util.AuthnProviderUtils;
-import util.EnumOption;
-import util.MessagesUtils;
-import util.VCenterUtils;
+import util.*;
 
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.auth.AuthnUpdateParam.DomainChanges;
+import com.emc.storageos.model.auth.AuthnUpdateParam.TenantsSynchronizationOptionsChanges;
 import com.emc.storageos.model.auth.AuthnUpdateParam.GroupWhitelistValueChanges;
 import com.emc.storageos.model.auth.AuthnUpdateParam.ServerUrlChanges;
 import com.emc.storageos.model.auth.AuthnUpdateParam.GroupObjectClassChanges;
@@ -68,6 +65,7 @@ import controllers.util.FlashException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.datatable.DataTablesSupport;
 
 
 @With(Common.class)
@@ -76,6 +74,8 @@ public class LDAPsources extends ViprResourceController {
 
     private static Logger log = LoggerFactory.getLogger(LDAPsources.class);
 
+    private static String authProviderName = "";
+    private static Boolean authProviderAutoReg = false;
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String DELETED = "LDAPsources.deleted";
     protected static final String FAILED = "LDAPsources.failed";
@@ -87,7 +87,11 @@ public class LDAPsources extends ViprResourceController {
     private static final String KEYSTONE_SERVER_URL = CinderConstants.HTTP_URL + "[IP Address]" + CinderConstants.COLON
             + CinderConstants.OS_ADMIN_PORT
             + CinderConstants.REST_API_VERSION_2;
-    
+    // Interval delay between each execution in seconds.
+    private static final String DEFAULT_INTERVAL_DELAY = "900";
+    // Minimum interval in seconds.
+    public static final int MIN_INTERVAL_DELAY = 10;
+
     //
     // Add reference data so that they can be reference in html template
     //
@@ -101,14 +105,16 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("ldapType", AuthSourceType.ldap);
         renderArgs.put("keyStoneType", AuthSourceType.keystone);
         renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
+        renderArgs.put("defaultInterval", DEFAULT_INTERVAL_DELAY);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
-
+        renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
+        renderArgs.put("tenants", new LDAPSourcesTenantsDataTable());
     }
 
     /**
      * if it was not redirect from another page, clean flash
-     * 
+     *
      * @param redirect
      */
     public static void list() {
@@ -118,6 +124,27 @@ public class LDAPsources extends ViprResourceController {
 
     public static void listJson() {
         performListJson(AuthnProviderUtils.getAuthnProviders(), new JsonItemOperation());
+    }
+
+    /**
+     * Shows the dialog for OpenStack tenants editing form.
+     *
+     */
+
+    public static void tenantsList() {
+        renderArgs.put("tenants", new OpenStackTenantsDataTable());
+        render();
+    }
+    /**
+     * Gets the list of tenants.
+     *
+     */
+    public static void tenantsListJson() {
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (OpenStackTenantParam tenant : OpenStackTenantsUtils.getOpenStackTenants()) {
+            tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
     }
 
     private static List<String> parseMultiLineString(String multiValueList) {
@@ -173,7 +200,27 @@ public class LDAPsources extends ViprResourceController {
             list();
         }
 
+        authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
         edit(new LDAPsourcesForm(authnProvider));
+    }
+
+    public static void addTenants(String ldadSourceId, @As(",") String[] ids) {
+        List<OpenStackTenantParam> tenants = OpenStackTenantsUtils.getOpenStackTenants();
+        if (ids != null) {
+            List<String> idList = Arrays.asList(ids);
+            for (OpenStackTenantParam tenant : tenants) {
+                if (!idList.contains(tenant.getOsId())) {
+                    tenant.setExcluded(true);
+                }
+            }
+        }
+        OpenStackTenantListParam params = new OpenStackTenantListParam();
+        params.setOpenstackTenants(tenants);
+
+        OpenStackTenantsUtils.addOpenStackTenants(params);
+
+        flash.success(MessagesUtils.get(SAVED, authProviderName));
+        list();
     }
 
     @FlashException(keep = true)
@@ -183,8 +230,16 @@ public class LDAPsources extends ViprResourceController {
             Common.handleError();
         }
 
-        ldapSources.save();
+        AuthnProviderRestRep authnProvider = ldapSources.save();
+        authProviderName = ldapSources.name;
+
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
+
+        if (ldapSources.autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
+            renderArgs.put("showDialog", "true");
+            edit(new LDAPsourcesForm(authnProvider));
+        }
+
         list();
     }
 
@@ -197,6 +252,7 @@ public class LDAPsources extends ViprResourceController {
         list();
     }
 
+    @SuppressWarnings("ClassVariableVisibilityCheck")
     public static class LDAPsourcesForm {
 
         public String id;
@@ -212,8 +268,12 @@ public class LDAPsources extends ViprResourceController {
         public String description;
 
         public Boolean disable;
-        
+
         public Boolean autoRegCoprHDNImportOSProjects;
+
+        public List<String> tenantsSynchronizationOptions;
+
+        public String synchronizationInterval;
 
         @Required
         public List<String> domains;
@@ -231,13 +291,13 @@ public class LDAPsources extends ViprResourceController {
 
         public String managerPassword;
 
-       
+
         public String searchBase;
 
-        
+
         public String searchFilter;
 
-       
+
         public String searchScope;
 
         @Required
@@ -261,6 +321,7 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
+            renderArgs.put("readOnlySynchronizationInterval", this.synchronizationInterval);
         }
 
         public boolean isNew() {
@@ -274,6 +335,8 @@ public class LDAPsources extends ViprResourceController {
             this.description = ldapSources.getDescription();
             this.disable = ldapSources.getDisable();
             this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
+            this.tenantsSynchronizationOptions = Lists.newArrayList(ldapSources.getTenantsSynchronizationOptions());
+            this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -305,7 +368,9 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
-
+            if (this.autoRegCoprHDNImportOSProjects) {
+                param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
+            }
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));
 
@@ -333,6 +398,38 @@ public class LDAPsources extends ViprResourceController {
             Set<String> oldValues = provider.getDomains();
 
             DomainChanges changes = new DomainChanges();
+            changes.getAdd().addAll(newValues);
+            changes.getAdd().removeAll(oldValues);
+            changes.getRemove().addAll(oldValues);
+            changes.getRemove().removeAll(newValues);
+
+            return changes;
+        }
+
+        public static String getInterval(Set<String> tenantsSynchronizationOptions) {
+            String interval = "";
+            for (String option : tenantsSynchronizationOptions) {
+                // There is only ADDITION, DELETION and interval in this StringSet.
+                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) &&
+                    !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                    interval = option;
+                }
+            }
+            return interval;
+        }
+
+        private TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
+            Set<String> newValues;
+            if (this.tenantsSynchronizationOptions != null) {
+                newValues = Sets.newHashSet(this.tenantsSynchronizationOptions);
+                newValues.add(this.synchronizationInterval);
+            } else {
+                newValues = Sets.newHashSet(this.synchronizationInterval);
+            }
+
+            Set<String> oldValues = provider.getTenantsSynchronizationOptions();
+
+            TenantsSynchronizationOptionsChanges changes = new TenantsSynchronizationOptionsChanges();
             changes.getAdd().addAll(newValues);
             changes.getAdd().removeAll(oldValues);
             changes.getRemove().addAll(oldValues);
@@ -400,6 +497,14 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            if (this.autoRegCoprHDNImportOSProjects) {
+                if (tenantsSynchronizationOptions != null) {
+                    param.setTenantsSynchronizationOptions((Sets.newHashSet(this.tenantsSynchronizationOptions)));
+                } else {
+                    param.setTenantsSynchronizationOptions(Sets.<String> newHashSet());
+                }
+                param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
+            }
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);
@@ -427,6 +532,16 @@ public class LDAPsources extends ViprResourceController {
             if (isNew()) {
                 Validation.required(fieldName + ".managerPassword", this.managerPassword);
             }
+
+            if (this.autoRegCoprHDNImportOSProjects ) {
+                Validation.required(fieldName + ".synchronizationInterval", this.synchronizationInterval);
+                if (!StringUtils.isNumeric(this.synchronizationInterval) ||
+                        (StringUtils.isNumeric(this.synchronizationInterval) && (Integer.parseInt(this.synchronizationInterval)) < MIN_INTERVAL_DELAY)){
+                    Validation.addError(fieldName + ".synchronizationInterval",
+                            MessagesUtils.get("ldapSources.synchronizationInterval.integerRequired"));
+                }
+            }
+
         	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
 
             if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {
@@ -481,6 +596,12 @@ public class LDAPsources extends ViprResourceController {
             return isBlankOrNull;
         }
 
+    }
+
+    public static class LDAPSourcesTenantsDataTable extends OpenStackTenantsDataTable {
+        public LDAPSourcesTenantsDataTable() {
+            alterColumn("name").setRenderFunction(null);
+        }
     }
 
     protected static class JsonItemOperation implements ResourceValueOperation<LDAPsourcesInfo, AuthnProviderRestRep> {

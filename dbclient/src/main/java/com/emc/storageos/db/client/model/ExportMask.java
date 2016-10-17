@@ -29,7 +29,13 @@ public class ExportMask extends DataObject {
     private URI _storageDevice;
     private String _maskName;
     private String _nativeId;
+
+    // Volumes in the mask
+    // Map URI --> HLU
     private StringMap _volumes;
+
+    // Initiators in the mask
+    // Initiators known by ViPR in the compute resource of the mask
     private StringSet _initiators;
     private StringSet _storagePorts;
 
@@ -37,19 +43,23 @@ public class ExportMask extends DataObject {
     // so that export operations can be performed on existing
     // array masking components
 
-    // Volumes that were added to the mask by Bourne user.
+    // Volumes that were added to the mask by ViPR user.
     // Map WWN --> BlockObject::URI
     private StringMap _userAddedVolumes;
 
-    // Volumes that were already in mask.
+    // Volumes that were not added to the mask by ViPR user.
+    // Note: Regardless of ViPR's knowledge of volume in our own DB.
+    // Volumes in this list do not appear in _volumes or _userAddedVolumes.
     // Map WWN --> HLU
     private StringMap _existingVolumes;
 
-    // Initiators that were added to the mask by Bourne user.
+    // Initiators that were added to the mask by ViPR user.
     // Map portName --> Initiator::URI
     private StringMap _userAddedInitiators;
 
-    // Initiators that were already in the mask (created outside of Bourne).
+    // Initiators that were not added to the mask by ViPR user and not
+    // associated with the compute resource(s) of the mask.
+    // Note: initiators in this list do not appear in _initiators or _userAddedInitiators.
     // Set portName
     private StringSet _existingInitiators;
 
@@ -261,7 +271,7 @@ public class ExportMask extends DataObject {
                 // OR
                 // - it is not the LUN_UNASSIGNED value
                 if (!_volumes.containsKey(entry.getKey().toString()) ||
-                        hlu != ExportGroup.LUN_UNASSIGNED) {
+                        (hlu != null && hlu != ExportGroup.LUN_UNASSIGNED)) {
                     _volumes.put(entry.getKey().toString(), hlu.toString());
                 }
             }
@@ -275,9 +285,11 @@ public class ExportMask extends DataObject {
     }
 
     public void removeVolumes(List<URI> volumes) {
-        for (URI uri : volumes) {
-            _volumes.remove(uri.toString());
-            // TODO: Remove user added volumes
+        if (_volumes != null) {
+            for (URI uri : volumes) {
+                _volumes.remove(uri.toString());
+                // TODO: Remove user added volumes
+            }
         }
     }
 
@@ -494,6 +506,10 @@ public class ExportMask extends DataObject {
     public boolean hasAnyVolumes() {
         return (_existingVolumes != null && !_existingVolumes.isEmpty()) ||
                 (_userAddedVolumes != null && !_userAddedVolumes.isEmpty());
+    }
+
+    public boolean hasAnyUserAddedVolumes() {
+        return (_userAddedVolumes != null && !_userAddedVolumes.isEmpty());
     }
 
     public void addToUserCreatedVolumes(Collection<BlockObject> blockObjects) {
@@ -723,57 +739,6 @@ public class ExportMask extends DataObject {
         return hasInitiator;
     }
 
-    public boolean hasInitiators(List<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return maskInitiators.containsAll(normalizedPorts);
-    }
-
-    public boolean hasExactlyTheseInitiators(Collection<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return (normalizedPorts.size() == maskInitiators.size()) && maskInitiators.containsAll(normalizedPorts);
-    }
-
-    /**
-     * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
-     * 
-     * @param ports ports of a compute resource
-     * @return true if contains a subset and ONLY that subset
-     */
-    public boolean hasExactlySubsetOfTheseInitiators(List<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return normalizedPorts.containsAll(maskInitiators);
-    }
-
     public boolean hasExistingInitiator(List<Initiator> initiators) {
         if (_existingInitiators != null) {
             for (Initiator initiator : initiators) {
@@ -790,6 +755,9 @@ public class ExportMask extends DataObject {
     }
 
     public boolean hasExistingVolume(BlockObject blockObject) {
+        if (checkForNull(blockObject)) {
+            return false;
+        }
         return hasExistingVolume(blockObject.getWWN());
     }
 
@@ -970,5 +938,14 @@ public class ExportMask extends DataObject {
                 collectionString(_userAddedInitiators),
                 collectionString(_existingInitiators),
                 _zoningMap);
+    }
+
+    @Override
+    public String forDisplay() {
+        if (_maskName != null && !_maskName.isEmpty()) {
+            return String.format("%s (%s)", _maskName, _id);
+        } else {
+            return super.forDisplay();
+        }
     }
 }

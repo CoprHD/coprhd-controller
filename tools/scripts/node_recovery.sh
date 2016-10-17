@@ -13,7 +13,8 @@ purge_data() {
     for corrupted_host in ${CORRUPTED_HOST[@]}; do
         echo "Purging data of $corrupted_host"
         ssh_execute ${corrupted_host} "/etc/storageos/storageos stop"
-        ssh_execute ${corrupted_host} "rm -rf /data/db/1 /data/geodb/1"
+        ssh_execute ${corrupted_host} "find /data/db -maxdepth 1 -mindepth 1 -print0 | xargs -0 rm -rf"
+        ssh_execute ${corrupted_host} "find /data/geodb -maxdepth 1 -mindepth 1 -print0 | xargs -0 rm -rf"
     done
 }
 
@@ -37,7 +38,9 @@ clean_tracker_info() {
         echo "delete /config/dbDowntimeTracker/dbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
         echo "delete /config/dbDowntimeTracker/geodbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
     elif [[ "${PRODUCT_VERSION}" == "vipr-3.0."* ]]; then
-        echo "Please check if need to delete db downtime info in zk.."
+        siteid=$(sudo /etc/systool --getvdcprops | awk -F '=' '/\<site_my_uuid\>/ {print $2}')
+        echo "delete /sites/$siteid/config/dbDowntimeTracker/dbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
+        echo "delete /sites/$siteid/config/dbDowntimeTracker/geodbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
     fi
 }
 
@@ -49,7 +52,7 @@ rebuild_data() {
 }
 
 confirm_db_repair_finished() {
-    local message="Please check 'Database Housekeeping Stauts', it's finished?"
+    local message="Please check 'Database Housekeeping Status', it's finished?"
     while true; do
         read -p "$message(yes/no)" yn
         case $yn in
@@ -86,6 +89,10 @@ CORRUPTED_HOST=($@)
 if [ ${#} -eq 0 -o ${#} -gt $[ $NODE_COUNT / 2 ] ] ; then
     usage
     exit 2
+fi
+if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
+    usage
+    exit 0
 fi
 
 comands=(input_password purge_data db_repair clean_tracker_info rebuild_data)

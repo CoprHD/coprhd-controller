@@ -37,3 +37,15 @@ table.scheduledOrders.dataTable.afterCreate(function(table) {
     watchOrderStatus(dataTable, itemsJson, ['executionWindow', 'executionWindowId']);
 });
 </script>
+
+<script type="text/javascript">
+function renderButtonBar(o, val) {
+    if (o.aData.scheduledEventId) {
+	    var message = Messages.get("scheduledOrders.editSchedule");
+	    var href = "/scheduledorders/edit/" + o.aData.id;
+	    return "<a class='btn btn-default btn-xs' role='button' href=' " + href + "'> " + message + " </a>";
+    } else {
+        return "";
+    }
+}
+</script>

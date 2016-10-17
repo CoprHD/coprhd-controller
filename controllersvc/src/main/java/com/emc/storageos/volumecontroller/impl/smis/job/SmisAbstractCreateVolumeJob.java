@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -183,6 +184,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             CIMObjectPath volumePath) {
         String elementName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ELEMENT_NAME);
         volume.setDeviceLabel(elementName);
+        volume.setCompressionRatio(SmisUtils.getCompressionRatioForVolume(volumeInstance));
     }
 
     /**
@@ -294,6 +296,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
     private CIMInstance commonVolumeUpdate(DbClient dbClient, WBEMClient client, Volume volume, CIMObjectPath volumePath) {
         CIMInstance volumeInstance = null;
         try {
+            _log.info("Executing CIMInstance update for volume {} at volume path {}", volume.forDisplay(), volumePath);
             volumeInstance = client.getInstance(volumePath, true, false, null);
             if (volumeInstance != null) {
                 String alternateName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_NAME);
@@ -314,7 +317,8 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
 
             volume.setInactive(false);
         } catch (Exception e) {
-            _log.error("Caught an exception while trying to update volume attributes", e);
+            _log.error("Caught an exception while trying to update attributes for volume {} and volume path {}", 
+                    volume.forDisplay(), volumePath, e);
             // If we could not get the common attributes, for whatever reason, we will mark it as a non-retryable failure
             setPostProcessingFailedStatus("Caught an exception while trying to update volume attributes: " + e.getMessage());
         }

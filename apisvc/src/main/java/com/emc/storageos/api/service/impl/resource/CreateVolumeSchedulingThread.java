@@ -6,11 +6,13 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -23,6 +25,7 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -69,11 +72,13 @@ class CreateVolumeSchedulingThread implements Runnable {
         _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
-            List recommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
+            Map<VpoolUse, List<Recommendation>> recommendationMap = 
+                    this.blockService._placementManager.getRecommendationsForVirtualPool(
                     varray, project, vpool, capabilities);
 
-            if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
+            if (recommendationMap.isEmpty()) {
+                throw APIException.badRequests.
+                noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
             }
 
             // At this point we are committed to initiating the request.
@@ -84,7 +89,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 
             // Call out to the respective block service implementation to prepare
             // and create the volumes based on the recommendations.
-            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities);
+            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendationMap, taskList, task, capabilities);
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {

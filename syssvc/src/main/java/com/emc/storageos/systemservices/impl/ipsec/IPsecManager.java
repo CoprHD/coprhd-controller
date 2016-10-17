@@ -79,6 +79,7 @@ public class IPsecManager {
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
         status.setVersion(vdcConfigVersion);
 
+        String ipsecKeyUpdatedTime = ipsecConfig.getIpsecKeyUpdatedTime();
         String ipsecStatus = ipsecConfig.getIpsecStatus();
         if (ipsecStatus != null && ipsecStatus.equals(STATUS_DISABLED)) {
             status.setStatus(ipsecStatus);
@@ -91,6 +92,11 @@ public class IPsecManager {
                 status.setStatus(STATUS_DEGRADED);
                 status.setDisconnectedNodes(disconnectedNodes);
             }
+
+            if (ipsecKeyUpdatedTime == null ) { // No this field in last version
+                ipsecKeyUpdatedTime = vdcConfigVersion;
+            }
+            status.setUpdatedTime(ipsecKeyUpdatedTime);
         }
 
         return status;

@@ -10,12 +10,14 @@
             <map>
                 <entry key="FileController"  value="rmi://${node_id}:10099/FileController"/>
                 <entry key="BlockController" value="rmi://${node_id}:10099/BlockController"/>
-                <entry key="BlockExportController"
-                       value="rmi://${node_id}:10099/BlockExportController"/>
+                <entry key="BlockExportController" value="rmi://${node_id}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
+                <entry key="ProtectionOrchestrationController" value="rmi://${node_id}:10099/ProtectionOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
-                <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
+                <entry key="ComputeSystemController" value="rmi://${node_id}:10099/ComputeSystemController"/>
                 <entry key="ObjectController" value="rmi://${node_id}:10099/ObjectController"/>
+                <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
+                <entry key="ComputeSystemOrchestrationController" value="rmi://${node_id}:10099/ComputeSystemOrchestrationController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -25,6 +27,7 @@
                 <value>datadomain</value>
                 <value>vnxfile</value>
                 <value>vnxe</value>
+                <value>unity</value>
                 <value>netapp</value>
                 <value>netappc</value>
                 <value>hds</value>
@@ -48,7 +51,10 @@
                 <value>scaleioapi</value>
                 <value>xtremio</value>
                 <value>ecs</value>
+                <value>ceph</value>
                 <value>externaldevice</value>
+                <value>workflow</value>            
+                <value>compute-system-orchestration</value>
             </set>
         </property>
     </bean>

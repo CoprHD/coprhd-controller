@@ -105,6 +105,14 @@ public class MigrationHandlerImpl implements MigrationHandler {
         this.coordinator = coordinator;
     }
 
+    public CoordinatorClient getCoordinator() {
+		return coordinator;
+	}
+
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+	
     /**
      * Set db client
      * 
@@ -129,6 +137,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
         this.service = service;
     }
 
+    public Map<String, List<BaseCustomMigrationCallback>> getCustomMigrationCallbacks() {
+		return customMigrationCallbacks;
+	}
+    
     /**
      * set versioned custom migration callbacks
      * 
@@ -243,7 +255,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 // check if we have a schema upgrade to deal with
                 if (!currentSchemaVersion.equals(targetVersion)) {
                     log.info("Start scanning and creating new column families");
-                    schemaUtil.checkCf();
+                    schemaUtil.checkCf(true);
                     log.info("Scanning and creating new column families succeed");
                     
                     DbSchemasDiff diff = new DbSchemasDiff(persistedSchema, currentSchema,

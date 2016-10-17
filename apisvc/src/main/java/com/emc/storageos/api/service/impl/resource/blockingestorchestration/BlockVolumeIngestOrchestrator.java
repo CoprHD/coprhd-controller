@@ -96,6 +96,11 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 String replicaState = PropertySetterUtil.extractValueFromStringSet(
                         SupportedVolumeInformation.REPLICA_STATE.toString(), unManagedVolume.getVolumeInformation());
                 volume.setReplicaState(replicaState);
+                String replicationGroupName = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedVolumeInformation.FULL_COPY_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
+                if (replicationGroupName != null && !replicationGroupName.isEmpty()) {
+                    volume.setReplicationGroupInstance(replicationGroupName);
+                }
             }
 
             // Create snapshot sessions for each synchronization aspect for the volume.

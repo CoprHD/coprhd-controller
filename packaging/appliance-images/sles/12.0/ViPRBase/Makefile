@@ -1,6 +1,6 @@
 RUN_DIR=`pwd`
 NAME=ViPRBase
-VERSION=3.0.0.0
+VERSION=3.6.0.0
 JOB=1
 CONF=${RUN_DIR}/${NAME}.conf
 CREATE_APPLIANCE_DIR=/opt/ADG/createAppliance
@@ -22,8 +22,7 @@ bless:
 	${CREATE_APPLIANCE_TOOL} -b ${CONF} ${JOB}
 
 clean:
-	git checkout ${RUN_DIR}/LISTS/${NAME}.list
-	rm -rf config.sh
+	rm -rf config.sh ViPRBase.list
 	rm -rf ${JOB_DIR}
 
 destroy: clean

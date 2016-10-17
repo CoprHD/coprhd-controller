@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -30,7 +31,8 @@ public class CompatiblePoolMatcher extends AttributeMatcher {
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         // Filter out incompatible pools.
         _logger.info("Compatible Pools Matcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
@@ -45,6 +47,11 @@ public class CompatiblePoolMatcher extends AttributeMatcher {
 
         }
         _logger.info("Compatible Pools Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
+
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No matching compatible stoarge pool found. ");
+            _logger.error(errorMessage.toString());
+        }
         return matchedPools;
     }
 

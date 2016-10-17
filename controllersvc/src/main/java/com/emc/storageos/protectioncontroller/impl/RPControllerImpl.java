@@ -6,7 +6,9 @@
 package com.emc.storageos.protectioncontroller.impl;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.protectioncontroller.RPController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -75,8 +78,8 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
 
     @Override
     public void performProtectionOperation(URI protectionDevice, URI id,
-            URI copyID, String pointInTime, String op, String task) throws InternalException {
-        execFS("performProtectionOperation", protectionDevice, id, copyID, pointInTime, op, task);
+            URI copyID, String pointInTime, String imageAccessMode, String op, String task) throws InternalException {
+        execFS("performProtectionOperation", protectionDevice, id, copyID, pointInTime, imageAccessMode, op, task);
     }
 
     @Override
@@ -109,13 +112,30 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         execFS("deleteSnapshot", protectionDevice, snapshot, task);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
+     * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
     @Override
     public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
             String taskId) {
         execFS("updateApplication", systemURI, addVolumesNotInCG, removeVolumesURI, applicationId, taskId);
-        
+
+    }
+
+    @Override
+    public Map<URI, String> getCopyAccessStates(URI protectionDevice, List<URI> volumeURIs) {
+        final DiscoveredSystemObject device = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
+        final Controller controller = lookupDeviceController(device);
+
+        // Try to grab a handle on the RPDeviceController so we can call directly into it.
+        if (controller instanceof RPDeviceController) {
+            return ((RPDeviceController) controller).getCopyAccessStates(protectionDevice, volumeURIs);
+        }
+
+        // Problem calling the controller so just return an empty map
+        return new HashMap<URI, String>();
     }
 }

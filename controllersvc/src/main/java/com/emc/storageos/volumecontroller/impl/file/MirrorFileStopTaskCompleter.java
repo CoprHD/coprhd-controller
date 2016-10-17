@@ -27,8 +27,8 @@ public class MirrorFileStopTaskCompleter extends MirrorFileTaskCompleter {
     private Collection<FileShare> srcfileshares;
     private Collection<FileShare> tgtfileshares;
 
-    public MirrorFileStopTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFileStopTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
     }
 
     public MirrorFileStopTaskCompleter(Class clazz, URI id, String opId) {

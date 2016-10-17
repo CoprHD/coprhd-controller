@@ -10,6 +10,11 @@ package com.iwave.ext.linux.command;
  * @author Chris Dail
  */
 public class MountCommand extends LinuxCommand {
+    public MountCommand(Integer timeoutVal) {
+        setCommand(CommandConstants.TIMEOUT + " " + timeoutVal.toString() + " " + CommandConstants.MOUNT);
+        setRunAsRoot(true);
+    }
+
     public MountCommand() {
         setCommand(CommandConstants.MOUNT);
         setRunAsRoot(true);
@@ -22,4 +27,13 @@ public class MountCommand extends LinuxCommand {
     public void setMountAll() {
         addArgument("-a");
     }
+
+    public void enableOptions() {
+        addArgument("-o");
+    }
+
+    public void setOptions(String arg, String sec) {
+        addArgument(arg + ",sec=" + sec);
+    }
+
 }

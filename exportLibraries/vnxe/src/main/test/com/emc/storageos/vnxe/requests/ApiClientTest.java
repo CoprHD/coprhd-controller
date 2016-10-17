@@ -14,8 +14,12 @@ import org.junit.Test;
 
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeApiClient;
+import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
+import com.emc.storageos.vnxe.models.Snap;
+import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
@@ -28,23 +32,28 @@ import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 import com.emc.storageos.vnxe.models.VNXeLicense;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXePool;
+import com.emc.storageos.vnxe.models.VNXeStorageSystem;
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
 
 public class ApiClientTest {
     private static KHClient _client;
     private static VNXeApiClient apiClient;
-    private static String host = EnvConfig.get("sanity", "vnxe.host");
-    private static String userName = EnvConfig.get("sanity", "vnxe.username");
-    private static String password = EnvConfig.get("sanity", "vnxe.password");
+    private static String host = EnvConfig.get("sanity", "unity.host");
+    private static String userName = EnvConfig.get("sanity", "unity.username");
+    private static String password = EnvConfig.get("sanity", "unity.password");
+    private static int port = 443;
 
     @BeforeClass
     public static void setup() throws Exception {
-        synchronized (_client) {
-            _client = new KHClient(host, userName, password);
-        }
-        synchronized (apiClient) {
-            apiClient = new VNXeApiClient(_client);
-        }
+        VNXeApiClientFactory factory = new VNXeApiClientFactory();
+        factory.setConnectionTimeoutMs(30000);
+        factory.setConnManagerTimeout(60000);
+        factory.setMaxConnections(300);
+        factory.setMaxConnectionsPerHost(100);
+        factory.setNeedCertificateManager(true);
+        factory.setSocketConnectionTimeoutMs(3600000);
+        factory.init();
+        apiClient = factory.getUnityClient(host, port, userName, password);
     }
 
     // @Test
@@ -119,9 +128,9 @@ public class ApiClientTest {
         }
     }
 
-    // @Test
+    @Test
     public void createLun() {
-        String name = "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+        String name = "tyu-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
         System.out.println(job.getId());
     }
@@ -186,7 +195,7 @@ public class ApiClientTest {
         init.setName("lgly6193.lss.emc.com");
         List<VNXeHostInitiator> inits = new ArrayList<VNXeHostInitiator>();
         inits.add(init);
-        VNXeExportResult result = apiClient.exportLun(lunId, inits);
+        VNXeExportResult result = apiClient.exportLun(lunId, inits, null);
         System.out.println(result.getHlu());
     }
 
@@ -205,8 +214,8 @@ public class ApiClientTest {
 
     // @Test
     public void getLun() {
-        apiClient.getLun("sv_1");
-        apiClient.getLun("sv_1");
+        apiClient.getLun("sv_4");
+        apiClient.getLun("sv_5");
     }
 
     // @Test
@@ -249,13 +258,14 @@ public class ApiClientTest {
 
     }
 
-    // @Test
+    @Test
     public void getSystem() {
-        apiClient.getStorageSystem();
-        apiClient.getNasServers();
+        VNXeStorageSystem system = apiClient.getStorageSystem();
+        System.out.println(system.getModel());
+        // apiClient.getNasServers();
     }
 
-    @Test
+    // @Test
     public void getStorageTier() {
         List<VNXeStorageTier> tiers = apiClient.getStorageTiers();
         for (VNXeStorageTier tier : tiers) {
@@ -264,4 +274,100 @@ public class ApiClientTest {
         }
     }
 
+    // @Test
+    public void createConsistencyGroup() {
+        VNXeCommandResult result = apiClient.createConsistencyGroup("testGroup1");
+        System.out.println(result.getStorageResource().getId());
+    }
+
+    // @Test
+    public void createSnap() {
+        VNXeCommandJob job = apiClient.createSnap("res_47", "snap1vipr41812", false);
+        System.out.println(job.getId());
+    }
+
+    // @Test
+    public void deleteSnap() {
+        apiClient.deleteSnap("38654705983");
+    }
+
+    // @Test
+    public void getSnapsBygroupId() {
+        List<Snap> snaps = apiClient.getSnapshotsBySnapGroup("85899345949");
+        for (Snap snap : snaps) {
+            System.out.println(snap.getId());
+        }
+
+    }
+
+    // @Test
+    public void restoreSnap() {
+        VNXeCommandJob job = apiClient.restoreSnap("38654706051");
+        System.out.println(job.getId());
+    }
+
+    // @Test
+    public void getSnap() {
+        Snap snap = apiClient.getSnapshot("38654706039");
+        System.out.print(snap.getAttachedWWN());
+        System.out.print(snap.isAttached());
+    }
+
+    // @Test
+    public void getJob() {
+        JobRequest req = new JobRequest(_client, "N-612");
+        VNXeCommandJob job = req.get();
+        System.out.println(job.getMessageOut().getMessage());
+    }
+
+    // @Test
+    public void getQuota() {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_client);
+        List<VNXUnityTreeQuota> list = req.get();
+        System.out.println(list.get(0).getPath());
+    }
+
+    // @Test
+    public void getCG() {
+        StorageResourceRequest req = new StorageResourceRequest(_client);
+        StorageResource res = req.get("res_1");
+        System.out.println(res.getName());
+        System.out.println(res.getLuns().size());
+    }
+
+    // @Test
+    public void getHostInitiator() {
+        HostInitiatorRequest req = new HostInitiatorRequest(_client);
+        VNXeHostInitiator res = req.get("HostInitiator_4");
+        System.out.println(res.getPortWWN());
+        System.out.println(res.getNodeWWN());
+    }
+
+    // @Test
+    public void getLunSnap() {
+        List<Snap> snaps = apiClient.getSnapshotsForLun("sv_3");
+        for (Snap snap : snaps) {
+            System.out.println(snap.getName());
+        }
+    }
+
+    // @Test
+    public void createLunInCG() {
+        List<String> names = new ArrayList<String>();
+        names.add("vv5113");
+        VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(names, "pool_1", 2000000000L, true, null, "res_116");
+        System.out.println(job.getId());
+    }
+
+    // @Test
+    public void getCgIdByName() {
+        String id = apiClient.getConsistencyGroupIdByName("cg5118");
+        System.out.println(id);
+    }
+
+    // @Test
+    public void modifyHlu() {
+        apiClient.modifyHostLunHlu("Host_20", "Host_20_sv_189_prod", 0);
+
+    }
 }

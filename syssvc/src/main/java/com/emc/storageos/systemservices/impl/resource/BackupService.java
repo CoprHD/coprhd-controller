@@ -31,6 +31,9 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.management.backup.*;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,12 +55,7 @@ import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
 import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
-import com.emc.storageos.management.backup.BackupFile;
-import com.emc.storageos.management.backup.BackupFileSet;
-import com.emc.storageos.management.backup.BackupOps;
-import com.emc.storageos.management.backup.BackupSetInfo;
 import com.emc.storageos.management.backup.exceptions.BackupException;
-import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
@@ -214,14 +212,12 @@ public class BackupService {
         try {
             backupConfig = backupScheduler.getCfg();
             String externalServerUrl = backupConfig.getExternalServerUrl();
-            String userName = backupConfig.getExternalServerUserName();
-            String password = backupConfig.getExternalServerPassword();
             if (externalServerUrl == null) {
                 log.warn("External server has not been configured");
                 throw new IllegalStateException("External server has not been configured");
             }
-            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
-            List<String> backupFiles = ftpClient.listAllFiles();
+            BackupClient client = getExternalServerClient(backupConfig);
+            List<String> backupFiles = client.listAllFiles();
             ExternalBackups backups = new ExternalBackups(backupFiles);
             return backups;
         } catch (Exception e) {
@@ -255,11 +251,7 @@ public class BackupService {
 
             SchedulerConfig cfg = backupScheduler.getCfg();
 
-            String serverUri = cfg.getExternalServerUrl();
-            String username = cfg.getExternalServerUserName();
-            String password = cfg.getExternalServerPassword();
-
-            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, serverUri, username, password);
+            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, getExternalServerClient(cfg));
 
             log.info("The backupInfo={}", backupInfo);
             return backupInfo;
@@ -518,7 +510,7 @@ public class BackupService {
         }else {
             initDownload(backupName);
 
-            downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
+            downloadTask = new DownloadExecutor(getExternalServerClient(backupScheduler.getCfg()), backupName, backupOps);
 
             Thread downloadThread = new Thread(downloadTask);
             downloadThread.setDaemon(true);
@@ -544,8 +536,9 @@ public class BackupService {
 
         //Step1: get the size of compressed backup file from server
         long size = 0;
+
         try {
-            FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
+            BackupClient client = getExternalServerClient(cfg);
             size = client.getFileSize(backupName);
         }catch(Exception  e) {
             log.warn("Failed to get the backup file size, e=", e);
@@ -556,34 +549,30 @@ public class BackupService {
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
         s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
-        try {
-            Map<String,URI> nodesInfo = backupOps.getNodesInfo();
-            int numberOfNodes = nodesInfo.size();
-            Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
-            Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
-            for (int i =1; i <= numberOfNodes; i++) {
-                sizesToDownload.put("vipr"+i, (long)0);
-                downloadedSizes.put("vipr"+i, (long)0);
-            }
 
-            // the zipped backup file will be downloaded to this node
-            // so set the size to be downloaded on this node to the size of zip file
-            String localHostName = InetAddress.getLocalHost().getHostName();
-            sizesToDownload.put(localHostName, size);
-            s.setSizeToDownload(sizesToDownload);
-
-            // check if we've already downloaded some part of zip file before,
-            // if so, updated the downloaded size
-            File downloadFolder = backupOps.getDownloadDirectory(backupName);
-            File zipfile = new File(downloadFolder, backupName);
-            if (zipfile.exists()) {
-                downloadedSizes.put(localHostName, zipfile.length());
-            }
-            s.setDownloadedSize(downloadedSizes);
-        }catch(UnknownHostException |URISyntaxException e) {
-            log.error("Failed to set the download size e={}", e.getMessage());
-            throw new RuntimeException(e);
+        Map<String, String> hosts = backupOps.getHosts();
+        int numberOfNodes = hosts.size();
+        Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
+        Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
+        for (String hostID : hosts.keySet()) {
+            sizesToDownload.put(hostID, (long)0);
+            downloadedSizes.put(hostID, (long)0);
         }
+
+        // the zipped backup file will be downloaded to this node
+        // so set the size to be downloaded on this node to the size of zip file
+        String localHostID = backupOps.getLocalHostID();
+        sizesToDownload.put(localHostID, size);
+        s.setSizeToDownload(sizesToDownload);
+
+        // check if we've already downloaded some part of zip file before,
+        // if so, updated the downloaded size
+        File downloadFolder = backupOps.getDownloadDirectory(backupName);
+        File zipfile = new File(downloadFolder, backupName);
+        if (zipfile.exists()) {
+            downloadedSizes.put(localHostID, zipfile.length());
+        }
+        s.setDownloadedSize(downloadedSizes);
 
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
@@ -704,6 +693,11 @@ public class BackupService {
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
         log.info("Receive restore request");
 
+        if (password == null || password.isEmpty()) {
+            log.error("The password is missing");
+            throw new IllegalArgumentException("The password is missing");
+        }
+
         if (!canDoRestore(backupName, isLocal)) {
             return Response.status(ASYNC_STATUS).build();
         }
@@ -782,21 +776,18 @@ public class BackupService {
             checkExternalServer();
 
             SchedulerConfig cfg = backupScheduler.getCfg();
-            String externalServerUrl = cfg.getExternalServerUrl();
-            String userName = cfg.getExternalServerUserName();
-            String password = cfg.getExternalServerPassword();
-            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
+            BackupClient client = getExternalServerClient(cfg);
             List<String> backupFiles = new ArrayList();
-
             try {
-                backupFiles = ftpClient.listFiles(backupName);
+                backupFiles = client.listFiles(backupName);
+
                 log.info("The remote backup files={}", backupFiles);
 
                 if (backupFiles.isEmpty()) {
                     throw BackupException.fatals.backupFileNotFound(backupName);
                 }
             }catch (Exception e) {
-                log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
+                log.error("Failed to list {} from server {} e=", backupName, cfg.getExternalServerUrl(), e);
                 throw BackupException.fatals.externalBackupServerError(backupName);
             }
         }
@@ -969,5 +960,12 @@ public class BackupService {
                 add(drUtil.getLocalSite().getName());
             }
         };
+    }
+    private BackupClient getExternalServerClient(SchedulerConfig cfg ) {
+        if (ExternalServerType.CIFS.equals(cfg.getExternalServerType())) {
+            return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }else {
+            return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }
     }
 }

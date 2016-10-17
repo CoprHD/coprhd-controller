@@ -4,23 +4,29 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
+import static com.emc.storageos.db.client.model.StorageSystem.AsyncActions.CreateGroupReplica;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnStoragePoolToStorageSystemURI;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
-
-import static com.emc.storageos.db.client.model.StorageSystem.AsyncActions.CreateGroupReplica;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnStoragePoolToStorageSystemURI;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * StorageSystemMatcher is responsible to match the storage systems of Storage
@@ -35,7 +41,8 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
      * Check whether the given StoragePool supports ConsistencyGroups
      */
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         final List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         final Iterator<StoragePool> poolIterator = pools.iterator();
         Map<URI, StorageSystem> storageSystems = getStorageSystems(pools);
@@ -55,14 +62,21 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
         }
         _logger.info("Pool Matching MultiVolumeConsistency Matcher Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
-
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No matching stoarge pool found with consistency group support. ");
+            _logger.error(errorMessage.toString());
+        }
         return matchedPools;
     }
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
+        if (attributeMap == null || attributeMap.get(Attributes.multi_volume_consistency.name()) == null) {
+            return false;
+        }
+
         final Boolean multiVolumeConsistency = (Boolean) attributeMap.get(Attributes.multi_volume_consistency.name());
-        return (null != attributeMap && multiVolumeConsistency != null && multiVolumeConsistency);
+        return (multiVolumeConsistency != null && multiVolumeConsistency);
     }
 
     private Map<URI, StorageSystem> getStorageSystems(List<StoragePool> pools) {
@@ -91,7 +105,8 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
         if (StorageSystem.Type.scaleio.name().equalsIgnoreCase(system.getSystemType())
                 || StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
                 || StorageSystem.Type.hds.name().equalsIgnoreCase(system.getSystemType())
-                || StorageSystem.Type.openstack.name().equalsIgnoreCase(system.getSystemType())) {
+                || StorageSystem.Type.openstack.name().equalsIgnoreCase(system.getSystemType())
+                || StorageSystem.Type.ceph.name().equalsIgnoreCase(system.getSystemType())) {
             return true;
         }
         return false;

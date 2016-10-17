@@ -9,11 +9,8 @@ import static com.emc.sa.util.ResourceType.VOLUME;
 import static com.emc.sa.util.ResourceType.VPLEX_CONTINUOUS_COPY;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +24,6 @@ import play.data.binding.As;
 import play.i18n.Messages;
 import play.mvc.Util;
 import play.mvc.With;
-import util.AppSupportUtil;
 import util.BlockConsistencyGroupUtils;
 import util.BourneUtil;
 import util.MessagesUtils;
@@ -40,7 +36,6 @@ import util.datatable.DataTablesSupport;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -148,6 +143,9 @@ public class BlockVolumes extends ResourceController {
         if (volume.getStorageController() != null) {
             renderArgs.put("storageSystem", StorageSystemUtils.getStorageSystemRef(volume.getStorageController()));
         }
+        if (volume.getCompressionRatio() != null) {
+            renderArgs.put("compressionRatio", volume.getCompressionRatio());
+        }
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
@@ -216,13 +214,28 @@ public class BlockVolumes extends ResourceController {
 
     public static void volumeSnapshotSessions(String volumeId) {
 
-        ViPRCoreClient client = BourneUtil.getViprClient();
+		ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
 
-        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        List<BlockSnapshotSessionRestRep> snapshotSessions = Lists.newArrayList();
 
-        render(snapshotSessions, volumeId);
+        if (volume.getConsistencyGroup() != null) {
+            
+            URI consistencygroup = volume.getConsistencyGroup().getId();
+
+            List<NamedRelatedResourceRep> cgSessions = client.blockConsistencyGroups().getSnapshotSessions(consistencygroup);
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(cgSessions);
+
+        } else {
+
+            List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        }
+
+		render(snapshotSessions, volumeId);
     }
 
     public static void unlinkTargetSnapshot(String sessionId, String volumeId, Boolean deleteOption) {

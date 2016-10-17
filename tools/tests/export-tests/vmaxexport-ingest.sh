@@ -275,7 +275,7 @@ setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS"
-    smisprovider create VMAX-PROVIDER $BF_VMAX_SMIS_IP 5988 admin '#1Password' false
+    smisprovider create VMAX-PROVIDER $BF_VMAX_SMIS_IP $BF_VMAX_SMIS_PORT admin '#1Password' $BF_VMAX_SMIS_SSL
     storagedevice discover_all --ignore_error
 
     storagepool update $BF_VMAX_NATIVEGUID --type block --volume_type THIN_ONLY

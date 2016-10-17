@@ -1,4 +1,3 @@
-#{extends 'layout.html' /}
 
 #{extends 'layout.html' /}
 <body class="wLeftNav">
@@ -9,7 +8,13 @@
       </div>
       <div class="collapse navbar-collapse" id="navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
-          #{get 'navBarRight' /}        
+          #{get 'navBarRight' /}
+          <li id="colWiz">
+            <div href>
+              <!--#{icon 'glyphicon-list-alt'/} &{'nav.wizard'}-->
+            </div>
+
+          </li>
           <li id="nav_help">
             #{if customDocLink}
               #{get 'customDocLink'/}
@@ -25,7 +30,6 @@
     </nav>
   </header>
   #{get 'navBarLeft'/}
-
   <div class="container">
     #{get 'breadcrumbs'/}
     #{doLayout /}

@@ -25,6 +25,7 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
      */
     private ServerUrlChanges serverUrlChanges;
     private DomainChanges domainChanges;
+    private TenantsSynchronizationOptionsChanges tenantsSynchronizationOptionsChanges;
     private GroupWhitelistValueChanges groupWhitelistValueChanges;
     private GroupObjectClassChanges groupObjectClassChanges;
     private GroupMemberAttributeChanges groupMemberAttributeChanges;
@@ -64,6 +65,19 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
     public void setGroupWhitelistValueChanges(
             GroupWhitelistValueChanges groupWhitelistValueChanges) {
         this.groupWhitelistValueChanges = groupWhitelistValueChanges;
+    }
+
+    @XmlElement(name = "tenants_synchronization_options_changes")
+    public TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges() {
+        if (tenantsSynchronizationOptionsChanges == null) {
+            tenantsSynchronizationOptionsChanges = new AuthnUpdateParam.TenantsSynchronizationOptionsChanges();
+        }
+        return tenantsSynchronizationOptionsChanges;
+    }
+
+    public void setTenantsSynchronizationOptionsChanges(
+            TenantsSynchronizationOptionsChanges tenantsSynchronizationOptionsChanges) {
+        this.tenantsSynchronizationOptionsChanges = tenantsSynchronizationOptionsChanges;
     }
 
     @XmlElement(name = "group_objclass_changes")
@@ -174,6 +188,52 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
          * domain to remove
          */
         @XmlElement(name = "domain")
+        public Set<String> getRemove() {
+            if (remove == null) {
+                remove = new LinkedHashSet<String>();
+            }
+            return remove;
+        }
+
+        public void setRemove(Set<String> remove) {
+            this.remove = remove;
+        }
+    }
+
+    public static class TenantsSynchronizationOptionsChanges {
+
+        private Set<String> add;
+        private Set<String> remove;
+
+        /**
+         * List of tenants synchronization options to add.
+         *
+         */
+        @XmlElementWrapper(name = "add")
+        /**
+         * Tenants synchronization options for Keystone Authentication Provider.
+         */
+        @XmlElement(name = "tenantsSynchronizationOptions")
+        public Set<String> getAdd() {
+            if (add == null) {
+                add = new LinkedHashSet<String>();
+            }
+            return add;
+        }
+
+        public void setAdd(Set<String> add) {
+            this.add = add;
+        }
+
+        /**
+         * List of tenants synchronization options to remove.
+         *
+         */
+        @XmlElementWrapper(name = "remove")
+        /**
+         * tenants synchronization option to remove
+         */
+        @XmlElement(name = "tenantsSynchronizationOptions")
         public Set<String> getRemove() {
             if (remove == null) {
                 remove = new LinkedHashSet<String>();

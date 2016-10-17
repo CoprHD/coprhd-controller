@@ -9,8 +9,10 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -25,6 +27,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class BlockConsistencyGroupUtils {
@@ -241,6 +244,39 @@ public class BlockConsistencyGroupUtils {
 
         return localSystemUris;
     }
+    
+    /**
+     * Gets all the active volumes in the passed CG.
+     * 
+     * @param cg A reference to a VPLEX CG
+     * @param dbClient A reference to a database client
+     * @param personalityType The RecoverPoint personality type. Used to isolate VPlex volumes
+     *            in the consistency group to those of that personality type. Optional field
+     *            left null if not desired.
+     * 
+     * @return A list of the active VPLEX volumes in the passed VPLEX CG.
+     */
+    static public List<Volume> getActiveVolumesInCG(BlockConsistencyGroup cg, DbClient dbClient,
+            PersonalityTypes personalityType) {
+        List<Volume> volumeList = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
+                uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (!volume.getInactive()) {
+                // If the personalityType is specified, we want to ensure we only consider
+                // volumes with that personality type.
+                if (personalityType == null ||
+                        (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
+                    volumeList.add(volume);
+                }
+            }
+        }
+        return volumeList;
+    }
 
     /**
      * Gets the active VPLEX volumes in the passed VPLEX CG.
@@ -270,7 +306,7 @@ public class BlockConsistencyGroupUtils {
                         // referencing the consistency group. The backend volumes for the
                         // VPLEX volume will also now reference the consistency group.
                         // At this point we just want the VPLEX volumes.
-                        if (!Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+                        if (volume.isVPlexVolume(dbClient)) {
                             // If the personalityType is specified, we want to ensure we only consider
                             // volumes with that personality type.
                             if (personalityType == null ||
@@ -392,5 +428,27 @@ public class BlockConsistencyGroupUtils {
         }
 
         return result;
+    }
+    
+    /**
+     * Given a list of volumes find all unique CG URIs.
+     * 
+     * @param volumes List of volumes to parse over and find all CGs related to the volumes
+     * @return Set of unique CG URIs
+     */
+    public static Set<URI> getAllCGsFromVolumes(List<Volume> volumes) {
+        // Using a Set to store all unique CG URIs collected from the
+        // volumes passed in.
+        Set<URI> cgURIs = new HashSet<URI>();
+        
+        if (volumes != null) {
+            for (Volume vol : volumes) {
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                    cgURIs.add(vol.getConsistencyGroup());
+                }
+            }
+        }
+        
+        return cgURIs; 
     }
 }

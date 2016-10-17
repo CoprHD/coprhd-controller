@@ -21,6 +21,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -45,9 +46,8 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
     Collection<ExportGroupRestRep> filteredExportGroups;
 
     @Override
-    public void precheck() {
-        vmware.disconnect();
-
+    public void precheck() throws Exception {
+        super.precheck();
         if (BlockStorageUtils.isCluster(hostId)) {
             clusterInstance = BlockStorageUtils.getCluster(hostId);
             exports = BlockStorageUtils.findExportsContainingCluster(hostId, null, null);
@@ -70,18 +70,32 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         if (volumes.size() < volumeIds.size()) {
             logWarn("unexport.host.service.not.found", volumeIds.size(), volumes.size());
         }
+        for (BlockObjectRestRep volume : volumes) {
+            String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+            if (!StringUtils.isEmpty(datastoreName)) {
+                Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+                if (datastore != null) {
+                    vmware.verifyDatastoreForRemoval(datastore);
+                }
+            }
+        }
     }
 
     @Override
     public void execute() throws Exception {
-        connectAndInitializeHost();
 
         for (BlockObjectRestRep volume : volumes) {
             String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
             if (!StringUtils.isEmpty(datastoreName)) {
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                 if (datastore != null) {
+                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
                     vmware.unmountVmfsDatastore(host, cluster, datastore);
+                    datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+                    if (storageIOControlEnabled && datastore != null && datastore.getSummary() != null
+                            && datastore.getSummary().isAccessible()) {
+                        vmware.setStorageIOControl(datastore, true);
+                    }
                 }
             }
         }
@@ -89,7 +103,16 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             vmware.detachLuns(host, cluster, volume);
         }
+
         vmware.disconnect();
+        ExecutionUtils.clearRollback();
+
+        for (BlockObjectRestRep volume : volumes) {
+            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
+            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
+                vmware.removeVmfsDatastoreTag(volume, hostId);
+            }
+        }
 
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);
@@ -119,12 +142,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
                 ExecutionUtils.addAffectedResource(hostOrClusterId.toString());
             }
         }
-        for (BlockObjectRestRep volume : volumes) {
-            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
-            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
-                vmware.removeVmfsDatastoreTag(volume, hostId);
-            }
-        }
+
         connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
     }

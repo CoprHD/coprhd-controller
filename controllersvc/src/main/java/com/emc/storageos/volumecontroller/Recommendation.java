@@ -14,6 +14,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
  */
 @SuppressWarnings("serial")
 public class Recommendation implements Serializable {
+    // Underlying Recommendation this Recommendation is built on
+    private Recommendation recommendation;
 	
 	// The virtual array for the recommendation.
     private URI virtualArray;
@@ -131,4 +133,12 @@ public class Recommendation implements Serializable {
 		buffer.append("--------------------------------------------\n");
 		return buffer.toString();
 	}
+
+    public Recommendation getRecommendation() {
+                return recommendation;
+            }
+
+    public void setRecommendation(Recommendation recommendation) {
+                this.recommendation = recommendation;
+            }
 }

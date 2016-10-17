@@ -19,6 +19,7 @@ public class LicenseFeature implements Serializable {
 
     private static final long serialVersionUID = -5873033105809411374L;
     public static final String MODELID_DELIMETER = ":";
+    public static final String NEW_MANAGED_LICENSE_SUBMODEL = "MANAGED";   // For original managed capacity license
     public static final String OLD_LICENSE_SUBMODEL = "LEGACY";   // For original managed capacity license
     public static final String TRIAL_LICENSE_SUBMODEL = "TRIAL";   // For trial license
 

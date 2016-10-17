@@ -4,8 +4,8 @@
  */
 package controllers.catalog;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getCatalogClient;
 import static util.BourneUtil.getViprClient;
 
@@ -13,44 +13,23 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.util.TextUtils;
-import com.emc.vipr.model.catalog.ServiceFieldRestRep;
-import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
-import com.emc.vipr.model.catalog.ServiceItemRestRep;
-
-import models.BreadCrumb;
-import models.datatable.OrderDataTable;
-import models.datatable.OrderDataTable.OrderInfo;
-import models.datatable.RecentOrdersDataTable;
-
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.ISODateTimeFormat;
 
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Http;
-import play.mvc.Util;
-import play.mvc.With;
-import util.CatalogServiceUtils;
-import util.MessagesUtils;
-import util.ModelExtensions;
-import util.OrderUtils;
-import util.StringOption;
-import util.TagUtils;
-import util.api.ApiMapperUtils;
-import util.datatable.DataTableParams;
-import util.datatable.DataTablesSupport;
-
+import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.Tags;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
@@ -59,17 +38,50 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleInfo;
+import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
+import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
+import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import controllers.Common;
+import controllers.Tasks;
+import controllers.Tasks.WorkflowStep;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.resources.AffectedResources;
 import controllers.resources.AffectedResources.ResourceDetails;
 import controllers.security.Security;
 import controllers.tenant.TenantSelector;
+import controllers.util.FlashException;
 import controllers.util.Models;
+import models.BreadCrumb;
+import models.datatable.OrderDataTable;
+import models.datatable.OrderDataTable.OrderInfo;
+import models.datatable.RecentOrdersDataTable;
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Http;
+import play.mvc.Util;
+import play.mvc.With;
+import util.BourneUtil;
+import util.CatalogServiceUtils;
+import util.MessagesUtils;
+import util.ModelExtensions;
+import util.OrderUtils;
+import util.StringOption;
+import util.TagUtils;
+import util.TimeUtils;
+import util.api.ApiMapperUtils;
+import util.datatable.DataTableParams;
+import util.datatable.DataTablesSupport;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -77,6 +89,7 @@ public class Orders extends OrderExecution {
     private static final int NORMAL_DELAY = 3000;
     private static final int LONG_DELAY = 15000;
     private static final int DEFAULT_DELAY = 60000;
+    private static final int RECEIPT_UPDATE_ATTEMPTS = 5;
 
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
@@ -144,6 +157,36 @@ public class Orders extends OrderExecution {
         renderJSON(results);
     }
 
+    @FlashException(referrer = { "receiptContent" })
+    public static void rollbackTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.tasks().rollback(uri(taskId));
+            flash.put("info", MessagesUtils.get("resources.tasks.rollbackMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
+    @FlashException(referrer = { "receiptContent" })
+    public static void retryTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.tasks().resume(uri(taskId));
+            flash.put("info", MessagesUtils.get("resources.tasks.retryMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
+    @FlashException(referrer = { "receiptContent" })
+    public static void resumeTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.tasks().resume(uri(taskId));
+            flash.put("info", MessagesUtils.get("resources.tasks.resumeMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
     /**
      * Resubmits an order, creating a new copy with the same parameters.
      * 
@@ -191,16 +234,31 @@ public class Orders extends OrderExecution {
         checkAuthenticity();
 
         OrderCreateParam order = createAndValidateOrder(serviceId);
-        OrderRestRep submittedOrder = null;
+        String status = null;
+        String orderId = null;
         try {
-            submittedOrder = getCatalogClient().orders().submit(order);
+            if (isSchedulerEnabled()) {
+                ScheduledEventCreateParam event = createScheduledOrder(order);
+                if (Validation.hasErrors()) {
+                    Validation.keep();
+                    Common.flashParamsExcept("json", "body");
+                    Services.showForm(serviceId);
+                }
+                ScheduledEventRestRep submittedEvent = getCatalogClient().orders().submitScheduledEvent(event);
+                status = submittedEvent.getEventStatus();
+                orderId = submittedEvent.getLatestOrderId().toString();
+            } else {
+                OrderRestRep submittedOrder = getCatalogClient().orders().submit(order);
+                status = submittedOrder.getOrderStatus();
+                orderId = submittedOrder.getId().toString();
+            }
         } catch (Exception e) {
-            Logger.error(e, MessagesUtils.get("order.submitFailed"));
-            flash.error(MessagesUtils.get("order.submitFailed"));
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
             Common.handleError();
         }
 
-        if (OrderRestRep.ERROR.equalsIgnoreCase(submittedOrder.getOrderStatus())) {
+        if (OrderRestRep.ERROR.equalsIgnoreCase(status)) {
             flash.error(MessagesUtils.get("order.submitFailed"));
         }
         else {
@@ -209,8 +267,7 @@ public class Orders extends OrderExecution {
 
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-
-        String orderId = submittedOrder.getId().toString();
+        
         receipt(orderId);
     }
 
@@ -265,9 +322,13 @@ public class Orders extends OrderExecution {
             return new OrderDetails(orderId);
         }
 
+        Map<URI, String> oldTasksStateMap = null;
+        int updateAttempts = 0;
+
         // Wait for an update to the order
         while (true) {
             OrderDetails details = new OrderDetails(orderId);
+
             if (details.isNewer(lastUpdated)) {
                 Logger.debug("Found update for order %s newer than: %s", details.order.getOrderNumber(), lastUpdated);
                 return details;
@@ -277,11 +338,39 @@ public class Orders extends OrderExecution {
                 return details;
             }
 
+            if (oldTasksStateMap != null && details.viprTasks != null) {
+                if (isTaskStateChanged(oldTasksStateMap, details.viprTasks)) {
+                    Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
+                    return details;
+                }
+            } else {
+                oldTasksStateMap = createTaskStateMap(details.viprTasks);
+            }
+
+            if (++updateAttempts >= RECEIPT_UPDATE_ATTEMPTS) {
+                Logger.debug("Updating order %s after %d attempts to find order change", details.order.getOrderNumber(),
+                        RECEIPT_UPDATE_ATTEMPTS);
+                return details;
+            }
+
             // Pause and check again, delay is based on order state
             int delay = getWaitDelay(details);
             Logger.debug("No update for order %s, waiting for %s ms", details.order.getOrderNumber(), delay);
             await(delay);
         }
+    }
+
+    private static Map<URI, String> createTaskStateMap(List<TaskResourceRep> tasks) {
+        Map<URI, String> taskMap = Maps.newHashMap();
+        for (TaskResourceRep task : tasks) {
+            taskMap.put(task.getId(), task.getState());
+        }
+        return taskMap;
+    }
+
+    private static boolean isTaskStateChanged(Map<URI, String> oldTasksStateMap, List<TaskResourceRep> viprTasks) {
+        Map<URI, String> currentTaskStateMap = createTaskStateMap(viprTasks);
+        return !Maps.difference(oldTasksStateMap, currentTaskStateMap).areEqual();
     }
 
     private static int getWaitDelay(OrderDetails details) {
@@ -350,6 +439,10 @@ public class Orders extends OrderExecution {
         public List<ResourceDetails> affectedResources;
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
+        public ScheduledEventRestRep scheduledEvent;
+        public Date scheduleStartDateTime; 
+        
+        public Map<URI, String> viprTaskStepMessages;
 
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
@@ -365,6 +458,7 @@ public class Orders extends OrderExecution {
             ViPRCoreClient client = getViprClient();
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
+            setTaskStepMessages();
 
             checkLastUpdated(viprTasks);
 
@@ -389,6 +483,32 @@ public class Orders extends OrderExecution {
                         rollbackTaskLogs.add(log);
                     }
                     checkLastUpdated(log);
+                }
+            }
+            URI scheduledEventId = order.getScheduledEventId();
+            if (scheduledEventId != null) {
+                scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
+                                        scheduledEvent.getScheduleInfo().getStartDate(), 
+                                        scheduledEvent.getScheduleInfo().getHourOfDay(), 
+                                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                DateTime startDateTime = DateTime.parse(isoDateTimeStr);
+                scheduleStartDateTime = startDateTime.toDate();
+            }
+        }
+
+        private void setTaskStepMessages() {
+            viprTaskStepMessages = Maps.newHashMap();
+            for (TaskResourceRep task : viprTasks) {
+                if (task.getWorkflow() != null && TaskUtil.isSuspended(task)) {
+                    List<WorkflowStep> steps = Tasks.getWorkflowSteps(task.getWorkflow().getId());
+                    String message = "";
+                    for (WorkflowStep step : steps) {
+                        if (TaskUtil.isSuspended(task) && step.isSuspended()) {
+                            message += step.message;
+                        }
+                    }
+                    viprTaskStepMessages.put(task.getId(), message);
                 }
             }
         }
@@ -480,6 +600,10 @@ public class Orders extends OrderExecution {
             } catch (RuntimeException e) {
                 return false;
             }
+        }
+
+        public ScheduledEventRestRep getScheduledEvent() {
+            return scheduledEvent;
         }
     }
 

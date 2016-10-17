@@ -154,7 +154,7 @@
         $('#storageArray_confirmPassword').val('');        
         $('#storageArray_smisUserPassword').val('');        
         $('#storageArray_smisConfirmPassword').val('');    
-        
+        $('#storageArray_secretKey').val('');
         
         if ( isUnregistered ) {
             var saveTxt = '${messages.get("button.save")}';
@@ -198,6 +198,7 @@
         }
         
         var useSSL = calculateUseSSL(target, storageArrayType, targetCheckboxIsOriginalTarget)
+
         if (useSSL) {
             storageArrayType += "_useSSL";
         }
@@ -260,7 +261,12 @@
       // toggle required for serialNumber and name depend on storage array type
       //
       if (isSmisStorageSystem(selectedType) ) {
-    	  	$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.smisProviderIpAddress')}"+":");
+      		if(selectedType == "xtremio") {
+      			$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.xtremProviderIpAddress')}"+":");
+      		}
+      		else {
+    	  		$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.smisProviderIpAddress')}"+":");
+    	  	}
     	  	$('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.smisProviderIpAddress.help')}");
 //    		$('#storageArray_serialNumberControlGroup').hide().removeClass('required');    		
 //	  		$('#storageArray_nameControlGroup').show().addClass('required');   
@@ -271,14 +277,19 @@
                 $('#storageArray_useSSLControlGroup').show();
             }
             
+            $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
             if (!editMode) {
             	$('#storageArray_elementManagerURLControlGroup').show();
-                if ($('#storageArray_type').val() == '${scaleIOStorageSystemType}') {
+            	$('#storageArray_hyperScaleHostControlGroup').hide();
+            	$('#storageArray_hyperScalePortControlGroup').hide();
+            	$('#storageArray_hyperScaleUsernameControlGroup').hide();
+            	$('#storageArray_hyperScalePasswordControlGroup').hide();
+            	$('#storageArray_hyperScalePasswordConfirmControlGroup').hide();
+                if (selectedType == 'scaleio') {
                     $('#storageArray_secondaryUsernameControlGroup').show();
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
-                } else if ($('#storageArray_type').val() == '${scaleIOApiStorageSystemType}') {              	
-                	
+                } else if (selectedType == 'scaleioapi') {
                 	$('#storageArray_userNameControlGroup').hide();
                 	$('#storageArray_userPasswordControlGroup').hide();
                 	$('#storageArray_confirmPasswordControlGroup').hide();
@@ -286,6 +297,28 @@
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
                     $('#storageArray_elementManagerURLControlGroup').hide();
+                } else if (selectedType == 'ceph') {
+                    $('#storageArray_userNameControlGroup').show();
+                	$('#storageArray_secretKeyControlGroup').show().attr('required', true);
+                    $('#storageArray_useSSLControlGroup').hide().attr('required', false);
+                    $('#storageArray_portNumberControlGroup').hide().attr('required', false);
+                    $('#storageArray_userPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_confirmPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_secondaryUsernameControlGroup').hide().attr('required', false);
+                    $('#storageArray_secondaryPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').hide().attr('required', false);
+                    $('#storageArray_elementManagerURLControlGroup').hide();
+                } else if (selectedType == 'ibmxiv') {
+                	$('#storageArray_secondaryUsernameControlGroup').hide();
+                    $('#storageArray_secondaryPasswordControlGroup').hide();
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
+                    $('#storageArray_elementManagerURLControlGroup').hide();
+                    $('#storageArray_hyperScaleHostControlGroup').show();
+                	$('#storageArray_hyperScalePortControlGroup').show();
+                	$('#storageArray_hyperScaleUsernameControlGroup').show();
+                	$('#storageArray_hyperScalePasswordControlGroup').show();
+                	$('#storageArray_hyperScalePasswordConfirmControlGroup').show();
+					$('#storageArray_useSSL').attr('disabled', true);
                 } else {
                 	$('#storageArray_userNameControlGroup').show();
                 	$('#storageArray_userPasswordControlGroup').show();
@@ -299,12 +332,27 @@
                 $('#storageArray_secondaryPasswordControlGroup').hide();
                 $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
                 $('#storageArray_elementManagerURLControlGroup').hide();
+                $('#storageArray_hyperScaleHostControlGroup').hide();
+            	$('#storageArray_hyperScalePortControlGroup').hide();
+            	$('#storageArray_hyperScaleUsernameControlGroup').hide();
+            	$('#storageArray_hyperScalePasswordControlGroup').hide();
+            	$('#storageArray_hyperScalePasswordConfirmControlGroup').hide();
+                
+                $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
+                if (selectedType == 'ceph') {
+                    $('#storageArray_useSSLControlGroup').hide().attr('required', false);
+                    $('#storageArray_portNumberControlGroup').hide().attr('required', false);
+                    $('#storageArray_userPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_confirmPasswordControlGroup').hide().attr('required', false);
+                }
             }
             
             $('fieldset.onboardSmisProvider').hide();            
     	
 	  		if ( !editMode ) {
-	  			$('#storageArray_useSSL').trigger('change'); // trigger change 
+				if (selectedType != 'ceph') {
+	  			    $('#storageArray_useSSL').trigger('change'); // trigger change
+	  			}
 	  		} else {
 	  		    // if it is a smis managed storage system, hide all but name field for editing purpose
 	  		    $('#storageArray_useSSLControlGroup').hide();
@@ -313,7 +361,7 @@
                 $('#storageArray_userNameControlGroup').hide();
                 $('#storageArray_userPasswordControlGroup').hide();
                 $('#storageArray_confirmPasswordControlGroup').hide();
-	  		    
+                $('#storageArray_secretKeyControlGroup').hide();
 	  		}
 	  		
       } else  if (isNonSmisStorageSystem(selectedType) ) {
@@ -329,11 +377,17 @@
 	  		$('#storageArray_secondaryPasswordControlGroup').hide();
 	  		$('#storageArray_secondaryPasswordConfirmControlGroup').hide();
 	  		$('#storageArray_elementManagerURLControlGroup').hide();
+            $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
+            $('#storageArray_hyperScaleHostControlGroup').hide();
+        	$('#storageArray_hyperScalePortControlGroup').hide();
+        	$('#storageArray_hyperScaleUsernameControlGroup').hide();
+        	$('#storageArray_hyperScalePasswordControlGroup').hide();
+        	$('#storageArray_hyperScalePasswordConfirmControlGroup').hide();
             if ( !editMode ) {
                 $('#storageArray_useSSL').trigger('change'); // trigger change
             }
 	  		
-	        if ( $('#storageArray_type').val() == '${vnxfileStorageSystemType}') {
+	        if ( selectedType == 'vnxfile') {
 	            $('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.vnxFileIPAddress')}"+":");
 	            $('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.vnxFileIPAddress.help')}");
 	            
@@ -344,7 +398,7 @@
 	        } else {
 	            $('fieldset.onboardSmisProvider').hide();            
 	        }	  		
-      }            
+      }
     }
     
     function handleListPools() {
@@ -362,7 +416,7 @@
     }
     
     function autoPopulateSmisIp (){
-    	 if ( $('#storageArray_type').val() == '${vnxfileStorageSystemType}') {
+		if ( $('#storageArray_type').val() == 'vnxfile') {
     		var smisIp = $('#storageArray_smisProviderIpAddress').val();  		 
   			var existingDiscoveryVal = $('#storageArray_ipAddress').data('existingVal');
   			var existingSmisVal = $('#storageArray_smisProviderIpAddress').data('existingVal');
@@ -473,7 +527,33 @@
     #{field 'storageArray.elementManagerURL'}
       #{Form.inputTextControlGroup field:field /}
     #{/field}  
+
+    #{field 'storageArray.secretKey'}
+    %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
     
+    #{field 'storageArray.hyperScaleHost'}
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'storageArray.hyperScalePort'}
+     #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'storageArray.hyperScaleUsername'}
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+ 
+    #{field 'storageArray.hyperScalePassword'}
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+ 
+    #{field 'storageArray.hyperScalePasswordConfirm'}
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
     </fieldset>
 
     <fieldset class="onboardSmisProvider" style="display:none">

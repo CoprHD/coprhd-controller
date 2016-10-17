@@ -32,10 +32,10 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     private static final Logger _log = LoggerFactory.getLogger(OpenSourceLicenseManagerImpl.class);
 
     private static final String LICENSE_TEXT = "INCREMENT ViPR_Controller EMCLM 1.0 permanent uncounted " +
-            "VENDOR_STRING=CAPACITY=300;CAPACITY_UNIT=TB;UNIT=TrialMode;SWID=R27WRZ98BBF6XS;PLC=VIPR; " +
-            "HOSTID=ANY dist_info=\"ACTIVATED TO ViPR Trial\" ISSUER=EMC " +
-            "ISSUED=10-Dec-2013 NOTICE=\"ACTIVATED TO License Site Number: " +
-            "ViPRTrialSite\" SN=ViPRTrial SIGN=\"00E7 2A99 8BF5 1676 9FB1 " +
+            "VENDOR_STRING=CAPACITY=1000;CAPACITY_UNIT=PB;CAPACITY_TYPE=MANAGED;SWID=R27WRZ98BBF6XS;PLC=VIPR; " +
+            "HOSTID=ANY dist_info=\"Distributed under the Apache License, Version 2.0\" ISSUER=CoprHD " +
+            "ISSUED=10-Jan-2014 NOTICE=\"Distributed under the Apache License, Version 2.0\" " +
+            "SN=CoprHD SIGN=\"00E7 2A99 8BF5 1676 9FB1 " +
             "297E 83A6 C000 8165 7A29 B14E 478D 3759 98DD 250E\"";
 
     @Override
@@ -46,25 +46,23 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     
 
     /**
-     * Check if it is a one-node deployment required by trial package in vipr 1.1
-     * @return true if it is a 1+0 vipr deployment
+     * Check if it is trial package
+     * @return false in CoprHD environment
      */
     public boolean isTrialPackage() {
-        // check if it is 1+0 deployment of controller
-        return (_coordinator.getNodeCount() == 1 && 
-            Constants.CONTROL_NODE_SYSSVC_ID_PATTERN.matcher(
-               _coordinator.getMySvcId()).matches());
+        // always return false in CoprHD environment
+        return false;
     }
  
     /**
-     * Check if the license is a trial license. For Opensource it's always true.
+     * Check if the license is a trial license. For Opensource it's always false.
      * 
      * @param license license object
      * @return true if the license object is a trial license
      */
     @Override
     public boolean isTrialLicense(License license) {
-        return true;
+        return false;
     }	
  
     /**
@@ -77,15 +75,16 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         LicenseFeature licenseFeature = new LicenseFeature();
         licenseFeature.setDateExpires(null);
         licenseFeature.setExpired(false);
-        licenseFeature.setStorageCapacity("322122547200");
+        licenseFeature.setStorageCapacity("1152921504606846976");
         licenseFeature.setProductId("R27WRZ98BBF6XS");
         licenseFeature.setSerial("R27WRZ98BBF6XS");
-        licenseFeature.setModelId(LicenseConstants.VIPR_CONTROLLER);
+        String subModelId=LicenseFeature.NEW_MANAGED_LICENSE_SUBMODEL;
+        licenseFeature.setModelId(LicenseConstants.VIPR_CONTROLLER + LicenseFeature.MODELID_DELIMETER+ subModelId);
         licenseFeature.setDateIssued("01/10/2014");
         licenseFeature.setLicenseIdIndicator("U");
         licenseFeature.setVersion("2.0");
-        licenseFeature.setNotice("ACTIVATED TO License Site Number: \"ViPRTrialSite\"");
-        licenseFeature.setTrialLicense(true);
+        licenseFeature.setNotice("Distributed under the Apache License, Version 2.0");
+        licenseFeature.setTrialLicense(false);
         licenseFeature.setLicensed(true);
 
         license.addLicenseFeature(licenseFeature);

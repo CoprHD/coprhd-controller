@@ -173,6 +173,7 @@ public class StoragePortAssociationHelper {
             if (varraysToRemove != null) {
                 varraysToRemoveIds = varraysToRemove.getVarrays();
             }
+
             Set<String> varraysWithOutChangedConnectivity = new HashSet<>(varraysToAddIds);
             varraysWithOutChangedConnectivity.addAll(varraysToRemoveIds);
 
@@ -199,6 +200,7 @@ public class StoragePortAssociationHelper {
                     }
                 }
             }
+
             if (!varraysWithChangedConnectivity.isEmpty()) {
                 // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
                 // our system's storage pools.
@@ -206,14 +208,18 @@ public class StoragePortAssociationHelper {
                 _log.info("Varrays which changed connectivity to storage system {} are {}", storageSystemURI, varraysWithChangedConnectivity);
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithChangedConnectivity, dbClient);
                 _log.info("There are {} vpools for varrays. Execute all vpool matchers for vpools {}", vpoolURIs.size(), vpoolURIs);
-                ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.VPOOL_MATCHERS);
+                StringBuffer errorMessage = new StringBuffer();
+                ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator,
+                        AttributeMatcher.VPOOL_MATCHERS, errorMessage);
             }
             if (!varraysWithOutChangedConnectivity.isEmpty()) {
                 _log.info("Varrays which did not change connection to storage system {} are {}", storageSystemURI, varraysWithOutChangedConnectivity);
                 // Match the VPools defined in VArrays without changed connectivity to the StoragePools only with num paths matcher
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithOutChangedConnectivity, dbClient);
                 _log.info("There are {} vpools for varrays. Execute num paths matcher for vpools {}", vpoolURIs.size(), vpoolURIs);
-                ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.CONNECTIVITY_PLACEMENT_MATCHERS);
+                StringBuffer errorMessage = new StringBuffer();
+                ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator,
+                        AttributeMatcher.CONNECTIVITY_PLACEMENT_MATCHERS, errorMessage);
             }
             // get all the system that were affected and update their virtual
             // arrays
@@ -264,8 +270,9 @@ public class StoragePortAssociationHelper {
                     }
                 }
             }
+            StringBuffer errorMessage = new StringBuffer();
             // Match the VPools to the StoragePools
-            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(pools, dbClient, coordinator);
+            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(pools, dbClient, coordinator, errorMessage);
             // get all the system that were affected and update their virtual
             // arrays
             HashSet<URI> systemsToProcess = StoragePoolAssociationHelper.getStorageSytemsFromPorts(ports, remPorts);
@@ -538,7 +545,7 @@ public class StoragePortAssociationHelper {
         for (StoragePort sport : sports) {
             if (TransportType.IP.name().equalsIgnoreCase(sport.getTransportType())) {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, sport.getStorageDevice());
-                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())) {
+                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.unity.name().equals(system.getSystemType())) {
                     network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
                     vNasList = getStoragePortVirtualNAS(sport, dbClient);
                     if (network != null && network.getInactive() == false

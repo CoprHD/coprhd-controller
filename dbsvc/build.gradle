@@ -58,12 +58,47 @@ scripts {
                     project.configurations.cliRuntime +
                     project.configurations.cliRuntimeOnly
     }
+
     nodetool {
         mainClass = "org.apache.cassandra.tools.NodeTool"
         jvmArgs += " -Dstorage-config=${project.installDir}/conf"
         maxMemory = "32m"
         service = false
     }
+
+    sstableupgrade {
+        mainClass = "org.apache.cassandra.tools.StandaloneUpgrader"
+        extraDefines = """
+if [[ \$1 == "StorageOS" ]]; then
+        extraJvmArgs=" -Dcassandra.storagedir=/data/db/1/data"
+        extraJvmArgs+=" -Dcassandra.config=db-tool-conf.yaml"
+else 
+        extraJvmArgs=" -Dcassandra.storagedir=/data/geodb/1/data"
+        extraJvmArgs+=" -Dcassandra.config=geodb-tool-conf.yaml"
+fi
+"""
+        jvmArgs += " \\\n     \${extraJvmArgs}"
+        service = false
+    }
+
+/* Due to a bug in Cassandra 2.1.11, we can't add sstable2json
+ * script.
+ * TODO: try this script if upgrading Cassandra
+    sstable2json {
+        mainClass = "org.apache.cassandra.tools.SSTableExport"
+        extraDefines = """
+if [[ \$1 == "StorageOS" ]]; then
+        extraJvmArgs=" -Dcassandra.storagedir=/data/db/1/data"
+        extraJvmArgs+=" -Dcassandra.config=db-tool-conf.yaml"
+else 
+        extraJvmArgs=" -Dcassandra.storagedir=/data/geodb/1/data"
+        extraJvmArgs+=" -Dcassandra.config=geodb-tool-conf.yaml"
+fi
+"""
+        jvmArgs += " \\\n     \${extraJvmArgs}"
+        service = false
+    }
+*/
 }
 
 dependencies {
@@ -100,7 +135,7 @@ def testUsingSpringLoaded(parentTask, classes) {
             main = "org.junit.runner.JUnitCore"
             args clazz
             jvmArgs "-Djava.library.path=/opt/storageos/lib/", "-javaagent:${configurations.springloaded.asPath}", "-noverify"
-            maxHeapSize "1024m"
+            maxHeapSize "2048m"
             // Displays stdout/stderr at info level
             logging.captureStandardOutput LogLevel.INFO
             logging.captureStandardError LogLevel.INFO

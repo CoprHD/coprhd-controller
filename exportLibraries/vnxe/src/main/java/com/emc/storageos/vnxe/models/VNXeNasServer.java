@@ -15,10 +15,11 @@ public class VNXeNasServer extends VNXeBase {
     private VNXeBase homeSP;
     private VNXeBase currentSP;
     private VNXePool pool;
-    private boolean isSystem;
+    private boolean isSystem = false;
     private List<Integer> operationalStatus;
     private long sizeUsed;
     private NasServerModeEnum mode;
+    private boolean isReplicationDestination = false;
 
     public String getName() {
         return name;
@@ -67,6 +68,15 @@ public class VNXeNasServer extends VNXeBase {
     public void setIsSystem(boolean isSystem) {
         this.isSystem = isSystem;
     }
+
+    public boolean getIsReplicationDestination() {
+        return isReplicationDestination;
+    }
+
+    public void setIsReplicationDestination(boolean isReplicationDestination) {
+        this.isReplicationDestination = isReplicationDestination;
+    }
+
 
     public List<Integer> getOperationalStatus() {
         return operationalStatus;

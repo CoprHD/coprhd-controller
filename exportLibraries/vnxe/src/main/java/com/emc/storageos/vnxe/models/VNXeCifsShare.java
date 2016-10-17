@@ -18,6 +18,7 @@ public class VNXeCifsShare extends VNXeBase {
     private String modifiedTime;
     private Boolean isACEEnabled;
     private String path;
+    private VNXeBase snap;
 
     public String getName() {
         return name;
@@ -66,6 +67,14 @@ public class VNXeCifsShare extends VNXeBase {
 
     public void setFilesystem(VNXeBase filesystem) {
         this.filesystem = filesystem;
+    }
+
+    public VNXeBase getSnap() {
+        return snap;
+    }
+
+    public void setSnap(VNXeBase snap) {
+        this.snap = snap;
     }
 
     public String getModifiedTime() {

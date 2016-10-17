@@ -10,15 +10,24 @@
 
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
+#{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
 
 <body>
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
-      <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
-      #{if !isActiveSite }
-          <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
+      <a class="navbar-brand">#{Branding.applicationName/}</a>
+      #{if isActiveSite }
+        #{if isMultiDrSite}
+          <span class="navbar-brand" style="background-color:#d8d9d8">Active Site: ${localSiteName}</span>
+        #{/if}
+        #{elseif localSiteName != 'Default Site'}
+          <span class="navbar-brand" style="background-color:#d8d9d8">Site: ${localSiteName}</span>
+        #{/elseif}
       #{/if}
+      #{else}
+        <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
+      #{/else}
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
         <span class="sr-only">&{'navigation.toggle'}</span><span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -31,6 +40,7 @@
         #{get 'navBarRight' /}
         #{if isActiveSite }
         	#{viprSystemTasks/}
+        	#{viprEvents/}
 	    	#{nav.vdcMenu vdcs:vdcs, token:token/}
 	    #{/if}
         <li id="nav_help">
@@ -43,6 +53,17 @@
             </a>
           #{/else}
         </li>
+        #{if isActiveSite && !util.SetupUtils.isOssBuild()}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+         #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+        <li id="colWiz" ng-controller="navBarController">
+          <a href ng-click="toggleGuide(false)">
+            #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
+          </a>
+        </li>
+        #{/deadbolt.restrict}
+        #{/deadbolt.restrict}
+        #{/if}
 
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.tenantName} -  ${currentUser?.commonName} <b class="caret"></b></a>
@@ -153,7 +174,10 @@
       #{nav.item 'viewCatalog', href: @catalog.ServiceCatalog.view()/}
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
           #{nav.item 'editCatalog', href: @catalog.EditCatalog.edit() /}
-      #{/deadbolt.restrict}              
+      #{/deadbolt.restrict}
+      #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+          #{nav.item 'viewImage', href: @catalog.CatalogImages.list() /}
+      #{/deadbolt.restrict}
       #{nav.separator/}
       #{nav.item 'viewOrders', href: @catalog.Orders.list()/}
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
@@ -186,6 +210,7 @@
         #{nav.item 'object.buckets', href: @resources.ObjectBuckets.buckets()/}
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
+        #{nav.item 'events', href: @Events.listAll()/}
       #{/nav.menuSection}
     #{/nav.menu}
   #{/license.ifController}   
@@ -277,6 +302,11 @@
               #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
+			  #{if util.SetupUtils.isOssBuild() || !util.SetupUtils.isAppliance()}
+              	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+            		#{nav.item 'storageSystemTypes', href: @arrays.StorageSystemTypes.list()/}
+              	#{/deadbolt.restrict}
+			  #{/if}
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
               #{if isActiveSite }
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
@@ -312,7 +342,15 @@
 
 #{/nav.mainMenu}
 #{get 'menu'/}
-
+#{if isActiveSite && !util.SetupUtils.isOssBuild() }
+#{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+  #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+  <div id="wizard" ng-controller="wizardController" ng-init="checkGuide()" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
+    #{GettingStarted.gettingStarted/}
+  </div>
+  #{/deadbolt.restrict}
+#{/deadbolt.restrict}
+#{/if}
 #{nav.contentArea}
   #{get 'breadcrumbs'/}
   #{doLayout /}

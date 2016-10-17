@@ -1141,6 +1141,11 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
             return false;
         }
 
+        @Override
+        public void setFailureHandler(LdapFailureHandler failureHandler) {
+
+        }
+
     }
 
     private class TestStorageOSPersonAttributeDao implements StorageOSPersonAttributeDao {
@@ -1178,6 +1183,11 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         @Override
         public Map<URI, UserMapping> peekUserTenants(String username, URI uri, List<UserMapping> userMappings) {
             return null;
+        }
+
+        @Override
+        public void setFailureHandler(LdapFailureHandler failureHandler) {
+
         }
 
     }

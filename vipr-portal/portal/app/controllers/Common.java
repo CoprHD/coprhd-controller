@@ -33,6 +33,7 @@ import play.mvc.Router;
 import play.mvc.Util;
 import play.mvc.With;
 import util.BourneUtil;
+import util.DisasterRecoveryUtils;
 import util.LicenseUtils;
 import util.MessagesUtils;
 import util.VirtualDataCenterUtils;
@@ -111,6 +112,13 @@ public class Common extends Controller {
     @Before(priority = 0)
     public static void xssCheck() {
         for (String param : params.all().keySet()) {
+
+            // skip xss sanitation for fields which name contains password
+            if (param.toLowerCase().contains("password")) {
+                Logger.debug("skip sanitation for " + param);
+                return;
+            }
+
             String[] data = params.getAll(param);
 
             if ((data != null) && (data.length > 0)) {
@@ -139,7 +147,7 @@ public class Common extends Controller {
         renderArgs.put(VDCS, getVDCs());
 
         // Notifications are only shown for tenant approvers
-        if (Security.isTenantApprover()) {
+        if (Security.isTenantApprover() && DisasterRecoveryUtils.isActiveSite()) {
             renderArgs.put(NOTIFICATIONS, Notifications.getNotifications());
         }
         addReferrer();

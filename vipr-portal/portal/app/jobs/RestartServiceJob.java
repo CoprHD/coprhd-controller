@@ -20,6 +20,6 @@ public class RestartServiceJob extends Job {
 
     @Override
     public void doJob() throws Exception {
-        client.control().restartService(nodeId, serviceName);
+        client.control().restartServiceByNodeId(nodeId, serviceName);
     }
 }

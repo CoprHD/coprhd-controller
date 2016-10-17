@@ -49,7 +49,11 @@ public class DataObjectInactiveFieldScrubber extends BaseCustomMigrationCallback
     @Override
     public void process() throws MigrationCallbackException {
         InactiveCheckScanner scanner = new InactiveCheckScanner(packages);
-        scanner.scan(Cf.class);
+        try {
+            scanner.scan(Cf.class);
+        } catch (Exception e) {
+        	throw new MigrationCallbackException(this.getName()+" process failed ", e);
+        }
     }
 
     /**

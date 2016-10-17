@@ -1,0 +1,126 @@
+   <input type="hidden" name="scheduler.currentTimezoneOffsetInMins" value="{{scheduler.currentTimezoneOffsetInMins}}"/>
+	   	      
+   <div class="form-group" ng-if="isSchedulerEnabled()">
+     <label class="control-label col-sm-3">&{"scheduler.startDate"}:</label>
+     <div class="col-sm-6 controls">
+         <div class="row col-gap-sm">
+	        <div class="col-xs-5">
+         	<date-picker ng-model="scheduler.startDate" close="true"></date-picker>
+         	<input type="hidden" name="scheduler.startDate" value="{{scheduler.startDate}}"/>
+         	</div>
+         	<div class="col-xs-5">
+	     	   <time-picker ng-model="scheduler.startTime"></time-picker>
+	     	   <input type="hidden" name="scheduler.startTime" value="{{scheduler.startTime}}"/>
+	     	</div>
+         </div>
+         <div class="row col-gap-sm">
+	        <span class="help-block">&{"scheduler.startDate.helpText"}</span>
+	    </div>
+     </div>
+   </div>
+   
+   <div class="form-group" ng-if="isSchedulerEnabled() && isRecurringAllowed()">
+     <label class="control-label col-sm-3" for="scheduler.recurrence">&{"scheduler.recurrence"}:</label>
+     
+     <div class="col-sm-6 controls">
+         <div class="radio">
+	   	   <label>
+	   	   <input type="radio" id="scheduler.recurrence" name="scheduler.recurrence" 
+	   	      value="1" ng-model="scheduler.recurrence"/>
+	   	      &{"scheduler.onlyonce"}
+	   	   </label>   
+	   	 </div>
+
+         <div class="radio">
+	   	   <label>
+	   	   <input type="radio" id="scheduler.recurrence" name="scheduler.recurrence" 
+	   	      value="0" ng-model="scheduler.recurrence"/>
+	   	      &{"scheduler.indefinitely"}
+	   	   </label>   
+	   	 </div>
+	   	 
+	   	 <div class="radio">
+	   	   <label>
+		   	   <input type="radio" id="scheduler.recurrence" name="scheduler.recurrence" 
+		   	      value="-1" ng-model="scheduler.recurrence"/>
+		   	      &{"scheduler.endAfterRecurrences"} 
+		   </label>
+   	     </div> 
+   	     
+      </div>
+    </div>
+   
+   <div class="form-group" ng-if="isSchedulerEnabled() && isRecurring()">
+     <label class="control-label col-sm-3" for="scheduler.cycleFrequency">&{"scheduler.cycleFrequency"}:</label>
+     <div class="col-sm-6 controls">
+	     <div class="row col-gap-sm">
+	        <div class="col-xs-2">
+	        	<input type="number" id="scheduler.cycleFrequency" name="scheduler.cycleFrequency" class="form-control" 
+	        	   ng-model="scheduler.cycleFrequency" min="1" max="100" onkeypress="return event.charCode >= 48 && event.charCode <= 57 && this.value.length < 3"/>
+	        </div>
+	        <div class="col-xs-3">
+	        	<select id="scheduler.cycleType" name="scheduler.cycleType" ng-model="scheduler.cycleType" class="form-control" >
+		           <option value="HOURLY">&{'scheduler.hours'}</option>
+		           <option value="DAILY">&{'scheduler.days'}</option>
+		           <option value="WEEKLY">&{'scheduler.weeks'}</option>
+		           <option value="MONTHLY">&{'scheduler.months'}</option>
+	          	 </select>
+	        </div>
+	        
+	         <div class="col-xs-1" ng-show="scheduler.cycleType == 'WEEKLY'">
+	            <label class="control-label" for="scheduler.dayOfWeek">&{'scheduler.on'}</label>
+	         </div>
+	          
+	          <div class="col-xs-3" ng-show="scheduler.cycleType == 'WEEKLY'"> 
+	             <select id="scheduler.dayOfMonth" name="scheduler.dayOfWeek" ng-model="scheduler.dayOfWeek" class="form-control" >
+		           <option value="{{k}}" ng-repeat="(k, v) in {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday' }"> 
+		             {{v}}
+		           </option>
+	          	 </select>
+	          </div>
+	         
+	         <div class="col-xs-2" ng-show="scheduler.cycleType == 'MONTHLY'">
+	            <label class="control-label" for="scheduler.dayOfWeek">&{'scheduler.onday'}</label>
+	         </div>
+	         
+	          <div class="col-xs-2" ng-show="scheduler.cycleType == 'MONTHLY'">
+	           	<select id="scheduler.dayOfMonth" name="scheduler.dayOfMonth" ng-model="scheduler.dayOfMonth" class="form-control" >
+		           <option value="{{x}}" ng-repeat="x in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]"> 
+		             {{x}}
+		           </option>
+	          	 </select>
+	          </div>
+	       
+	     </div>
+     </div>
+   </div>
+   
+   <div class="form-group" ng-if="isSchedulerEnabled() && isRecurring() && scheduler.recurrence == -1">
+     <label class="control-label col-sm-3" for="scheduler.rangeOfRecurrence">&{"scheduler.rangeOfRecurrence"}:</label>
+     <div class="col-sm-6 controls">
+        <div class="row col-gap-sm">
+     		<div class="col-xs-3" ng-show="scheduler.recurrence == -1"> 
+	             <input type="number" id="scheduler.rangeOfRecurrence" name="scheduler.rangeOfRecurrence" class="form-control" 
+	        	   ng-model="scheduler.rangeOfRecurrence" min="2" max="200" onkeypress="return event.charCode >= 48 && event.charCode <= 57 && this.value.length < 3"/>
+	        </div>
+	    </div>
+     </div>
+   </div>
+
+   <div class="form-group" ng-if="isAutomaticExpirationAllowed()">
+     <label class="control-label col-sm-3" for="scheduler.maxNumOfCopies">&{"scheduler.expiration"}:</label>
+     <div class="col-sm-6 controls">
+        <div class="row col-gap-sm">
+     		<div class="col-xs-3"> 
+	             <input type="number" id="scheduler.maxNumOfCopies" name="scheduler.maxNumOfCopies" class="form-control" 
+	        	   ng-model="scheduler.maxNumOfCopies" min="1" max="256" onkeypress="return event.charCode >= 48 && event.charCode <= 57 && this.value.length < 3" />
+	        	 
+	        </div>
+	          
+	    </div>
+	    <div class="row col-gap-sm">
+	        <span class="help-block">&{"scheduler.expiration.helpText"}</span>
+	    </div>
+     </div>
+   </div> 
+ 

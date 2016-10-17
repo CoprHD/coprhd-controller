@@ -33,6 +33,11 @@ public class XtremIOSystem {
     @JsonProperty(value = "ud-ssd-space-in-use")
     private Long usedCapacity; // KB
 
+    @SerializedName("vol-size")
+    @JsonProperty(value = "vol-size")
+    // provisioned capacity of all volumes
+    private Long subscribedCapacity; // KB
+
     public String getName() {
         return name;
     }
@@ -71,6 +76,14 @@ public class XtremIOSystem {
 
     public void setUsedCapacity(Long usedCapacity) {
         this.usedCapacity = usedCapacity;
+    }
+
+    public Long getSubscribedCapacity() {
+        return subscribedCapacity;
+    }
+
+    public void setSubscribedCapacity(Long subscribedCapacity) {
+        this.subscribedCapacity = subscribedCapacity;
     }
 
     public String toString() {

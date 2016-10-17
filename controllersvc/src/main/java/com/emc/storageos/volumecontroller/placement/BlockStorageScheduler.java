@@ -451,12 +451,12 @@ public class BlockStorageScheduler {
                             + "Examining storage ports and qualifying only storage ports used in the RecoverPoint masking view(s)");
                     // Explore storage ports in the masking views and collect them.
                     Set<URI> rpTargetPorts = new HashSet<URI>();
-                    if (exportGroup.getExportMasks() == null) {
+                    if (exportGroup == null || exportGroup.getExportMasks() == null || exportGroup.getExportMasks().isEmpty()) {
                         continue;
                     }
-                    for (String maskId : exportGroup.getExportMasks()) {
-                        ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(maskId));
-                        rpTargetPorts.addAll(Collections2.transform(mask.getStoragePorts(),
+                    List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                    for (ExportMask exportMask : exportMasks) {
+                        rpTargetPorts.addAll(Collections2.transform(exportMask.getStoragePorts(),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
                     }
 
@@ -894,47 +894,6 @@ public class BlockStorageScheduler {
             uris.add(port.getId());
         }
         return uris;
-    }
-
-    /**
-     * Selects and returns the list targets (storage ports) that need to be removed from
-     * an export mask when the initiators are removed from the storage group. If checks if
-     * the targets are used by other initiators before they can be removed. It returns
-     * an empty list if there are not any targets to remove.
-     * 
-     * @param mask the export mask from which the initiator will be removed
-     * @param initiators the initiators being removed
-     * @return a list of targets that are no longer needed by an initiators.
-     */
-    public List<URI> getRemoveInitiatorStoragePorts(
-            ExportMask mask, List<Initiator> initiators) {
-        // uris of ports candidates for removal
-        Set<URI> portUris = new HashSet<URI>();
-        List<URI> remainingInitiators = ExportUtils.getExportMaskAllInitiators(mask, _dbClient); // ask Ameer - do i need this function
-        for (Initiator initiator : initiators) {
-            portUris.addAll(ExportUtils.getInitiatorPortsInMask(mask, initiator, _dbClient));
-            remainingInitiators.remove(initiator.getId());
-        }
-
-        // for the remaining initiators, get the networks and check if the ports are in use
-        if (!remainingInitiators.isEmpty()) {
-            Iterator<Initiator> remInitiators = _dbClient.queryIterativeObjects(Initiator.class,
-                    remainingInitiators);
-            List<URI> initiatorPortUris = null;
-            while (remInitiators.hasNext()) {
-                Initiator initiator = remInitiators.next();
-                // stop looping if all the the ports are found to be in use
-                if (portUris.isEmpty()) {
-                    break;
-                }
-                initiatorPortUris = ExportUtils.getInitiatorPortsInMask(mask, initiator, _dbClient);
-                _log.info("Ports {} are in use in by initiator {} ",
-                        initiatorPortUris, initiator.getInitiatorPort());
-                portUris.removeAll(initiatorPortUris);
-            }
-        }
-        _log.info("Ports {} are going to be removed", portUris);
-        return new ArrayList<URI>(portUris);
     }
 
     /**
@@ -1886,6 +1845,7 @@ public class BlockStorageScheduler {
         // This check is needed for arrays with single storage HA domain
         return (!(system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name()))
                 && !(system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name()))
+                && !(system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name()))
                 && (HDSUtils.checkForAMSSeries(system) || HDSUtils.checkForHUSSeries(system)));
     }
 
@@ -1942,7 +1902,7 @@ public class BlockStorageScheduler {
         Map<URI, List<URI>> assignments =
                 assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
-
+        ExportUtils.addPrezonedAssignments(existingZoningMap, assignments, preZonedZoningMap);
         return assignments;
     }
 
@@ -2076,7 +2036,7 @@ public class BlockStorageScheduler {
                     }
                 }
             }
-            _log.info("Zoning map after the assignment of pre-zoned ports: ", newZoningMap);
+            _log.info("Zoning map after the assignment of pre-zoned ports: {}", newZoningMap);
         } catch (Exception ex) {
             _log.error("Failed to assign from pre-zoned storage ports because: ", ex);
             if (allocateFromPrezonedPortsOnly(virtualArrayUri, storage.getSystemType(), backend)) {

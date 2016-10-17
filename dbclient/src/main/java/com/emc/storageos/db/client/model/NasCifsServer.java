@@ -57,7 +57,11 @@ public class NasCifsServer extends AbstractSerializableNestedObject {
     public void setId(int id) {
         setField(ID, id);
     }
-
+    
+    public void setId(String id) {
+        setField(ID, id);
+    }
+    
     /**
      * @return the type
      */

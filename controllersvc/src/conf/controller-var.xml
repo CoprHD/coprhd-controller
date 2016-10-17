@@ -16,14 +16,16 @@
                 <entry key="ImageServerController" value="rmi://localhost:10099/ImageServerController"/>
                 <entry key="RPController"  value="rmi://localhost:10099/RPController"/>
                 <entry key="VPlexController"  value="rmi://localhost:10099/VPlexController"/>
-                <entry key="BlockExportController"
-                       value="rmi://localhost:10099/BlockExportController"/>
+                <entry key="BlockExportController" value="rmi://localhost:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://localhost:10099/BlockOrchestrationController"/>
+                <entry key="ProtectionOrchestrationController" value="rmi://localhost:10099/ProtectionOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://localhost:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://localhost:10099/FileReplicationController" />
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="SRDFController" value="rmi://localhost:10099/SRDFController" />
                 <entry key="ObjectController" value="rmi://localhost:10099/ObjectController"/>
+                <entry key="WorkflowController" value="rmi://localhost:10099/WorkflowController"/>
+                <entry key="ComputeSystemOrchestrationController" value="rmi://localhost:10099/ComputeSystemOrchestrationController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -35,6 +37,7 @@
                 <value>vplex</value>
                 <value>vnxfile</value>
                 <value>vnxe</value>
+                <value>unity</value>
                 <value>vmax</value>
                 <value>vnxblock</value>
                 <value>mds</value>
@@ -58,7 +61,10 @@
                 <value>scaleioapi</value>
                 <value>xtremio</value>
                 <value>ecs</value>
+                <value>ceph</value>
                 <value>externaldevice</value>
+                <value>workflow</value>
+                <value>compute-system-orchestration</value>
             </set>
         </property>
     </bean>

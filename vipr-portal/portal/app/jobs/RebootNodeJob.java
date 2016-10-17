@@ -18,6 +18,6 @@ public class RebootNodeJob extends Job {
 
     @Override
     public void doJob() throws Exception {
-        client.control().rebootNode(nodeId);
+        client.control().rebootNodeByNodeId(nodeId);
     }
 }

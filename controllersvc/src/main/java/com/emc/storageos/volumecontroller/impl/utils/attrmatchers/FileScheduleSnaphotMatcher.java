@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
@@ -30,7 +31,8 @@ public class FileScheduleSnaphotMatcher extends AttributeMatcher {
     private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _logger.info("FileScheduleSnaphotMatcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
 
         Boolean schedule = (Boolean) attributeMap.get(Attributes.schedule_snapshots.toString());
@@ -47,6 +49,10 @@ public class FileScheduleSnaphotMatcher extends AttributeMatcher {
             if (getScheduleSupportFromPool(pool)) {
                 matchedPools.add(pool);
             }
+        }
+        if(CollectionUtils.isEmpty(matchedPools)){
+            errorMessage.append("No matching storage pools found for File snapshot scheduling. ");
+            _logger.error(errorMessage.toString());
         }
         _logger.info("FileScheduleSnaphotMatchern Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

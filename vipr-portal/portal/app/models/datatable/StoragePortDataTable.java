@@ -81,6 +81,9 @@ public class StoragePortDataTable extends DataTable {
             if (OperationalStatus.OK.name().equals(storagePort.getOperationalStatus())
                     && CompatibilityStatus.UNKNOWN.name().equals(storagePort.getCompatibilityStatus())) {
                 this.operationalStatus = OperationalStatus.UNKNOWN.name();
+            } else if (OperationalStatus.OK.name().equals(storagePort.getOperationalStatus())
+                    && CompatibilityStatus.INCOMPATIBLE.name().equals(storagePort.getCompatibilityStatus())) {
+                this.operationalStatus = OperationalStatus.NOT_OK.name();
             } else {
                 this.operationalStatus = storagePort.getOperationalStatus();
             }

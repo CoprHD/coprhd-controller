@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
@@ -17,6 +18,8 @@ import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 public class VolumeGroupSnapshotSessionCreateParam extends SnapshotSessionCreateParam {
     // By default, consider snapshot session to be created for all array groups in Application
     private Boolean partial = Boolean.FALSE;
+    // alternative to partial flag and list of volumes
+    private List<String> subGroups;
 
     public VolumeGroupSnapshotSessionCreateParam() {
     }
@@ -39,5 +42,21 @@ public class VolumeGroupSnapshotSessionCreateParam extends SnapshotSessionCreate
 
     public void setPartial(Boolean partial) {
         this.partial = partial;
+    }
+
+    /**
+     * @return the subGroups
+     */
+    @XmlElementWrapper(required = true, name = "subgroups")
+    @XmlElement(required = false, name = "subgroup")
+    public List<String> getSubGroups() {
+        return subGroups;
+    }
+
+    /**
+     * @param subGroups the subGroups to set
+     */
+    public void setSubGroups(List<String> subGroups) {
+        this.subGroups = subGroups;
     }
 }

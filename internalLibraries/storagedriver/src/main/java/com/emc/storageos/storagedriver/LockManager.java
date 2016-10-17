@@ -14,17 +14,19 @@ public interface LockManager {
      * If timeout is 0, returns immediately
      *
      * @param lockName unique lock name
-     * @param timeout  time to wait for lock
-     * @param unit     unit for time
-     * @return
+     * @param timeout time to try to wait for lock. 0 - return immediately, -1 = wait forever
+     * @param unit timeout unit
+     *
+     * @return true if lock is acquired, false otherwise
      */
     public boolean acquireLock(String lockName, long timeout, TimeUnit unit);
 
     /**
      * Releases lock.
-     * @param lockName
+     * @param lockName lock name
+     * @return true if lock is released, false otherwise
      */
-    public void releaseLock(String lockName);
+    public boolean releaseLock(String lockName);
 
 }
 

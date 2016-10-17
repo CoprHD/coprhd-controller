@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.plugins.common.Constants;
+
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -22,6 +24,7 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -38,7 +41,7 @@ import com.google.common.collect.Sets;
  * 
  * This is a somewhat inexact test. We cannot guarantee that an Export will succeed
  * even with this check, because we don't know the distribution of initiators in the
- * Export to Networks. On the other hand, this check can cause Pools to be excldued
+ * Export to Networks. On the other hand, this check can cause Pools to be excluded
  * that could be used in certain circumstances because the user actually used fewer
  * initiator than num_paths.
  * 
@@ -72,7 +75,8 @@ public class NumPathsMatcher extends AttributeMatcher {
      */
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         boolean checkIP = false;
         boolean checkFC = false;
         // If not a block vpool, then everything matches.
@@ -118,7 +122,8 @@ public class NumPathsMatcher extends AttributeMatcher {
                 // If we need two or more paths, must have at least two HA Domains
                 if (!system.getIsDriverManaged()
                         && !system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
-                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())) {
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name())) {
                     if (maxPaths >= 2 && cachedUsableFCHADomains.get(dev) < 2) {
                         _logger.info("NumPathsMatcher disqualified pool: " + pool.getNativeGuid() + " max_paths: " + maxPaths
                                 + " because insufficient FC cpus (StorageHADomains)");
@@ -134,9 +139,14 @@ public class NumPathsMatcher extends AttributeMatcher {
                             + " because insufficient IP ports");
                     continue;
                 }
+
+                StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                        StorageDriverManager.STORAGE_DRIVER_MANAGER);
                 // If we need two or more paths, must have at least two HA Domains
-                if (!system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
-                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())) {
+                if (!storageDriverManager.isDriverManaged(system.getSystemType())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name())) {
                     if (maxPaths >= 2 && cachedUsableIPHADomains.get(dev) < 2) {
                         _logger.info("NumPathsMatcher disqualified pool: " + pool.getNativeGuid() + " max_paths: " + maxPaths
                                 + " because insufficient IP cpus (StorageHADomains)");
@@ -145,6 +155,10 @@ public class NumPathsMatcher extends AttributeMatcher {
                 }
             }
             matchedPools.add(pool);
+        }
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No storage pool is matching with the VPool maximum path parameter %d. ", maxPaths));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("NumPathsMatcher maxPaths: " + maxPaths + " passed " + matchedPools.size() + " pools");
         return matchedPools;
@@ -172,6 +186,7 @@ public class NumPathsMatcher extends AttributeMatcher {
             StorageProtocol.Transport transportType,
             Set<String> vArrays, Map<URI, Integer> cachedUsablePorts,
             Map<URI, Integer> cachedUsableHADomains) {
+
         Integer usable = cachedUsablePorts.get(storageDeviceURI);
         if (usable != null) {
             return usable;
@@ -220,7 +235,7 @@ public class NumPathsMatcher extends AttributeMatcher {
             // must not be null or incompatible or inactive
             _logger.debug("Checking port: " + storagePort.getNativeGuid());
             if (transportType.name().equals(storagePort.getTransportType()) &&
-                    _portMetricsProcessor.isPortUsable(storagePort) &&
+                    _portMetricsProcessor.isPortUsable(storagePort, vArrays) &&
                     !_portMetricsProcessor.isPortOverCeiling(storagePort, storageDevice, false)) {
                 haDomains.add(storagePort.getStorageHADomain());
                 usable++;

@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -28,4 +26,13 @@ public interface ExternalDeviceExceptions {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR)
     public ExternalDeviceException noNativeIdDefinedForPort(String storageSystem, String storagePort);
+    
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DISCONNECT_STORAGE_SYSTEM_ERROR)
+    public ExternalDeviceException doDisconnectFailed(String method, String errorMsg);
+    
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DRIVERTASK_ERROR)
+    public ExternalDeviceException cantFindStorageSystemForDriverTask(String systemId, String taskId);
+    
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DRIVERTASK_ERROR)
+    public ExternalDeviceException cantFindDriverTaskOnSystem(String taskId, String systemId);    
 }

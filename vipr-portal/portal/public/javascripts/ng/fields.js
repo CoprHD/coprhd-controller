@@ -635,7 +635,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                             var x = e.pageX;
                             var y = e.pageY;
                             var el = document.elementFromPoint(x, y);
-                            angular.element(el).trigger('click');
+                            el.click();
                         }
                     });
                 };

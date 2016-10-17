@@ -15,12 +15,13 @@ public class VNXeHost extends VNXeBase {
     private Health health;
     private String name;
     private String description;
-    private HostTypeEnum type;
+    private Integer type;
     private String address;
     private String osType;
     private List<VNXeBase> hostIPPorts;
-    private List<VNXeHostInitiator> iscsiHostInitiators;
-    private List<VNXeHostInitiator> fcHostInitiators;
+    private List<VNXeBase> iscsiHostInitiators;
+    private List<VNXeBase> fcHostInitiators;
+    private List<VNXeBase> hostLUNs;
 
     public List<Integer> getOperationalStatus() {
         return operationalStatus;
@@ -54,11 +55,11 @@ public class VNXeHost extends VNXeBase {
         this.description = description;
     }
 
-    public HostTypeEnum getType() {
+    public Integer getType() {
         return type;
     }
 
-    public void setType(HostTypeEnum type) {
+    public void setType(int type) {
         this.type = type;
     }
 
@@ -86,20 +87,27 @@ public class VNXeHost extends VNXeBase {
         this.hostIPPorts = hostIPPorts;
     }
 
-    public List<VNXeHostInitiator> getIscsiHostInitiators() {
+    public List<VNXeBase> getIscsiHostInitiators() {
         return iscsiHostInitiators;
     }
 
-    public void setIscsiHostInitiators(List<VNXeHostInitiator> iscsiHostInitiators) {
+    public void setIscsiHostInitiators(List<VNXeBase> iscsiHostInitiators) {
         this.iscsiHostInitiators = iscsiHostInitiators;
     }
 
-    public List<VNXeHostInitiator> getFcHostInitiators() {
+    public List<VNXeBase> getFcHostInitiators() {
         return fcHostInitiators;
     }
 
-    public void setFcHostInitiators(List<VNXeHostInitiator> fcHostInitiators) {
+    public void setFcHostInitiators(List<VNXeBase> fcHostInitiators) {
         this.fcHostInitiators = fcHostInitiators;
     }
 
+    public List<VNXeBase> getHostLUNs() {
+        return hostLUNs;
+    }
+
+    public void setHostLUNs(List<VNXeBase> hostLUNs) {
+        this.hostLUNs = hostLUNs;
+    }
 }

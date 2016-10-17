@@ -6,13 +6,19 @@ import java.util.List;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -30,14 +36,22 @@ public interface FileServiceApi {
     /**
      * Create filesystems
      * 
-     * @param param -The filesystem creation post parameter
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
+     * @param param
+     *            -The filesystem creation post parameter
+     * @param project
+     *            -project requested
+     * @param varray
+     *            -source VirtualArray
+     * @param vpool
+     *            -VirtualPool requested
+     * @param recommendations
+     *            -Placement recommendation object
+     * @param taskList
+     *            -list of tasks for source filesystems
+     * @param task
+     *            -task ID
+     * @param vpoolCapabilities
+     *            -wrapper for vpool params
      * @return TaskList
      * 
      * @throws InternalException
@@ -46,16 +60,20 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
      * 
-     * @param systemURI -URI of the system owing the filesystems.
-     * @param fileSystemURIs- The URIs of the filesystems to be deleted.
-     * @param deletionType -The type of deletion to perform.
+     * @param systemURI
+     *            -URI of the system owing the filesystems.
+     * @param fileSystemURIs-
+     *            The URIs of the filesystems to be deleted.
+     * @param deletionType
+     *            -The type of deletion to perform.
      * @param
-     * @param task -The task identifier.
+     * @param task
+     *            -The task identifier.
      * 
      * @throws InternalException
      */
@@ -85,14 +103,22 @@ public interface FileServiceApi {
     /**
      * Create Continuous Copies for existing source file system
      * 
-     * @param fs -source file system for which mirror file system to be created
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
+     * @param fs
+     *            -source file system for which mirror file system to be created
+     * @param project
+     *            -project requested
+     * @param varray
+     *            -source VirtualArray
+     * @param vpool
+     *            -VirtualPool requested
+     * @param recommendations
+     *            -Placement recommendation object
+     * @param taskList
+     *            -list of tasks for source filesystems
+     * @param task
+     *            -task ID
+     * @param vpoolCapabilities
+     *            -wrapper for vpool params
      * @return TaskList
      * 
      * @throws InternalException
@@ -100,6 +126,151 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+                    throws InternalException;
+
+    /**
+     * Create CIFS share for the FileSystem
+     * 
+     * @param storageSystem
+     * @param fileSystem
+     * @param smbShare
+     * @param task
+     * @throws InternalException
+     */
+    void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String task)
             throws InternalException;
 
+    /**
+     * Create NFS Exports for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param exports
+     * @param opId
+     * @throws InternalException
+     */
+    void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
+            throws InternalException;
+
+    /**
+     * Update NFS Exports Rules for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param param
+     * @param unmountExport
+     * @param opId
+     * @throws InternalException
+     */
+    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
+            throws InternalException;
+
+    /**
+     * Update CIFS Share ACLs for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param shareName
+     * @param param
+     * @param opId
+     * @throws InternalException
+     */
+    void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws InternalException;
+
+    /**
+     * Create FileSystem Snapshot
+     * 
+     * @param storage
+     * @param snapshot
+     * @param fsURI
+     * @param opId
+     * @throws InternalException
+     */
+    void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
+            throws InternalException;
+
+    /**
+     * Delete FileSystem Share
+     * 
+     * @param storage
+     * @param uri
+     * @param fileSMBShare
+     * @param task
+     * @throws InternalException
+     */
+    void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws InternalException;
+
+    /**
+     * Delete FileSystem Export Rules
+     * 
+     * @param storage
+     * @param uri
+     * @param allDirs
+     * @param subDirs
+     * @param taskId
+     * @throws InternalException
+     */
+    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId)
+            throws InternalException;
+
+    /**
+     * Fail over the File System to target system
+     * 
+     * @param fsURI
+     * @param nfsPort
+     * @param cifsPort
+     * @param replicateConfiguration
+     * @param taskId
+     * @throws InternalException
+     */
+    public void failoverFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws InternalException;
+
+    /**
+     * Fail Back to source File System.
+     * 
+     * @param fsURI
+     * @param nfsPort
+     * @param cifsPort
+     * @param replicateConfiguration
+     * @param taskId
+     * @throws InternalException
+     */
+    public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws InternalException;
+
+    /**
+     * Restore File System Snapshot
+     * 
+     * @param storage
+     * @param fs
+     * @param snapshot
+     * @param opId
+     * @throws ControllerException
+     */
+    void restoreFS(URI storage, URI fs, URI snapshot, String opId)
+            throws InternalException;
+
+    /**
+     * 
+     * @param storage
+     * @param pool
+     * @param uri
+     * @param forceDelete
+     * @param deleteType
+     * @param opId
+     * @throws ControllerException
+     */
+    void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws InternalException;
+
+    /**
+     * 
+     * @param storage
+     * @param uri
+     * @param shareName
+     * @param taskId
+     * @throws InternalException
+     */
+    void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
 }

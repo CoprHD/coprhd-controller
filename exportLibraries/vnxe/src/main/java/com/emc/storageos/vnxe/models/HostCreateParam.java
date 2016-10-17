@@ -14,6 +14,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class HostCreateParam extends ParamBase {
     private int type;
     private String description;
+    private String osType;
 
     public int getType() {
         return type;
@@ -29,6 +30,14 @@ public class HostCreateParam extends ParamBase {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getOsType() {
+        return osType;
+    }
+
+    public void setOsType(String osType) {
+        this.osType = osType;
     }
 
 }

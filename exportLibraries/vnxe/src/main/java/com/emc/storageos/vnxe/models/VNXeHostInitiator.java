@@ -22,6 +22,7 @@ public class VNXeHostInitiator extends VNXeBase {
     private List<VNXeBase> paths;
     private String nodeWWN;
     private String portWWN;
+    private String hostOsType;
 
     public List<Integer> getOperationalStatus() {
         return operationalStatus;
@@ -117,6 +118,14 @@ public class VNXeHostInitiator extends VNXeBase {
 
     public void setPortWWN(String portWWN) {
         this.portWWN = portWWN;
+    }
+
+    public String getHostOsType() {
+        return hostOsType;
+    }
+
+    public void setHostOsType(String hostOsType) {
+        this.hostOsType = hostOsType;
     }
 
     public static enum HostInitiatorTypeEnum {

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
+import com.emc.storageos.vnxe.models.HostInitiatorModifyParam;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 
@@ -20,9 +21,12 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
     private static final Logger _logger = LoggerFactory.getLogger(HostInitiatorRequest.class);
     private static final String URL = "/api/instances/hostInitiator/";
     private static final String URL_ALL = "/api/types/hostInitiator/instances";
+    private static final String MODIFY = "/action/modify";
+    private static final String FIELDS = "parentHost,nodeWWN,portWWN,type";
 
     public HostInitiatorRequest(KHClient client) {
         super(client);
+        _fields = FIELDS;
 
     }
 
@@ -34,7 +38,13 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
 
     public VNXeHostInitiator getByIQNorWWN(String initiatorId) {
         _url = URL_ALL;
-        setFilter(VNXeConstants.INITIATORID_FILTER + initiatorId);
+        String filter = null;
+        if (_client.isUnity()) {
+            filter = VNXeConstants.INITIATORID_FILTER + "\"" + initiatorId + "\"";
+        } else {
+            filter = VNXeConstants.INITIATORID_FILTER + initiatorId;
+        }
+        setFilter(filter);
         VNXeHostInitiator result = null;
         List<VNXeHostInitiator> initList = getDataForObjects(VNXeHostInitiator.class);
         // it should just return 1
@@ -49,5 +59,18 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
     public VNXeCommandResult createHostInitiator(HostInitiatorCreateParam param) {
         _url = URL_ALL;
         return postRequestSync(param);
+    }
+
+    /**
+     * Modify the host initiator
+     * 
+     * @param param The parameters to modify the host initiator. 
+     * @param id The host initiator Id
+     * @return VNXeCommandResult, indicating if the command is successful
+     */
+    public VNXeCommandResult modifyHostInitiator(HostInitiatorModifyParam param, String id) {
+        _url = URL + id + MODIFY;
+        return postRequestSync(param);
+
     }
 }

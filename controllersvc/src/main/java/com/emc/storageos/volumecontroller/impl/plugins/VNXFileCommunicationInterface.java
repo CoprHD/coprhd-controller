@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.nas.vnxfile.xmlapi.TreeQuota;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -51,6 +52,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
@@ -70,6 +72,7 @@ import com.emc.storageos.vnx.xmlapi.VNXDataMoverIntf;
 import com.emc.storageos.vnx.xmlapi.VNXException;
 import com.emc.storageos.vnx.xmlapi.VNXFileSshApi;
 import com.emc.storageos.vnx.xmlapi.VNXFileSystem;
+import com.emc.storageos.vnx.xmlapi.VNXQuotaTree;
 import com.emc.storageos.vnx.xmlapi.VNXStoragePool;
 import com.emc.storageos.vnx.xmlapi.VNXVdm;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -106,6 +109,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
+    private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final Long TBsINKB = 1073741824L;
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
@@ -439,8 +443,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             allExistingPorts.addAll(notVisiblePorts);
             StoragePortAssociationHelper.updatePortAssociations(allNewPorts, _dbClient);
             StoragePortAssociationHelper.updatePortAssociations(allExistingPorts, _dbClient);
+            StringBuffer errorMessage = new StringBuffer();
             ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(poolsToMatchWithVpool, _dbClient, _coordinator,
-                    storageSystemId);
+                    storageSystemId, errorMessage);
 
             // Update the virtual nas association with virtual arrays!!!
             // For existing virtual nas ports!!
@@ -1258,7 +1263,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _dbClient.createObject(newNasServers);
             discoveredVNasServers.addAll(newNasServers);
         }
-        
+
         // Verify the existing vnas servers!!!
         DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNasServers, _dbClient, system.getId());
 
@@ -1522,8 +1527,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StoragePort storagePort = this.getStoragePortPool(storageSystem);
 
             List<VNXFileSystem> discoveredFS = discoverAllFileSystems(storageSystem);
-            
-            
+
+            StringSet umfsIds = new StringSet();
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
@@ -1551,6 +1556,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         }
 
                         allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
+                        umfsIds.add(fs.getFsId() + "");
                         /**
                          * Persist 200 objects and clear them to avoid memory issue
                          */
@@ -1578,6 +1584,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile: %s",
                     storageSystemId.toString());
+
+            if (null != umfsIds && !umfsIds.isEmpty()) {
+                // Discovering unmanaged quota directories
+                discoverUmanagedFileQuotaDirectory(profile, umfsIds);
+            }
+
         } catch (Exception e) {
             if (storageSystem != null) {
                 cleanupDiscovery(storageSystem);
@@ -1597,6 +1609,146 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 }
             }
         }
+    }
+
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, StringSet umfsIds) throws Exception {
+        URI storageSystemId = profile.getSystemId();
+
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+
+        if (null == storageSystem) {
+            return;
+        }
+
+        try {
+            Map<String, Object> reqAttributeMap = getRequestParamsMap(storageSystem);
+            reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+            _discExecutor.setKeyMap(reqAttributeMap);
+
+            // Retrieve all the qtree info.
+            List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem);
+            if (null != qtrees && !qtrees.isEmpty()) {
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+
+                for (TreeQuota quotaTree : qtrees) {
+                    String fsNativeId;
+                    // Process the QD's only of unmanaged file systems.
+                    if (!umfsIds.contains(quotaTree.getFileSystem())) {
+                        continue;
+                    }
+                    String qdName = "";
+                    if (quotaTree.getPath() != null) {
+                        // Ignore / from QD path
+                        qdName = quotaTree.getPath().substring(1);
+                    }
+                    
+                    String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                            storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quotaTree.getFileSystem() + "");
+
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
+
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
+                            storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
+                    }
+                    
+                    UnManagedFileQuotaDirectory tempUnManagedFileQuotaDirectory = checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID);
+                    boolean unManagedFileQuotaDirectoryExists = tempUnManagedFileQuotaDirectory == null ? false : true;
+                    
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory;
+                    
+                    if(!unManagedFileQuotaDirectoryExists){
+                        unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));                            
+                    }else {
+                        unManagedFileQuotaDirectory = tempUnManagedFileQuotaDirectory;
+                    }
+                    
+                    unManagedFileQuotaDirectory.setLabel(qdName);
+
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGuid);
+                    unManagedFileQuotaDirectory.setOpLock(false);
+                    if (quotaTree.getLimits() != null) {
+                        /* 
+                         * response is in MB, so Byte = 1024 * 1024 * response
+                         */
+                        unManagedFileQuotaDirectory.setSize(
+                                Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()) * BYTESCONV * BYTESCONV);
+                    }
+
+                    if (!unManagedFileQuotaDirectoryExists) {
+                        //Set ID only for new UnManagedQuota Directory 
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    }
+
+                }
+
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+            }
+
+        } catch (Exception e) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discovery of UMFS Quota Directory failed. Storage system: "
+                    + storageSystemId);
+            throw e;
+        }
+    }
+
+    private UnManagedFileQuotaDirectory checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        UnManagedFileQuotaDirectory umfsQd = null;
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+
+        Iterator<URI> iter = result.iterator();
+        while (iter.hasNext()) {
+            URI unManagedFSQDUri = iter.next();
+            umfsQd = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, unManagedFSQDUri);
+
+            return umfsQd;
+        }
+        return umfsQd;  
+    }
+    
+
+    /**
+     * check Storage quotadir exists in DB
+     * 
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getQuotaDirsByNativeGuid(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
     }
 
     private void validateListSizeLimitAndPersist(List<UnManagedFileSystem> newUnManagedFileSystems,
@@ -1710,8 +1862,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-                
-               // Retrieve FS-mountpath map for the Data Mover.
+
+                // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
                         mover.getAdapterName());
                 VNXFileSshApi sshDmApi = new VNXFileSshApi();
@@ -1805,7 +1957,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                         _logger.info("UnManaged File System {} valid or invalid {}",
                                 vnxufs.getLabel(), vnxufs.getInactive());
-                                               
+
                         unManagedExportBatch.add(vnxufs);
 
                         if (unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
@@ -1950,10 +2102,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-                
-                //get vnas uri
+
+                // get vnas uri
                 URI moverURI = getNASUri(mover, storageSystem);
-                
+
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
                         mover.getAdapterName());
@@ -2019,8 +2171,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                 vnxufs.setHasShares(true);
                                 vnxufs.putFileSystemCharacterstics(
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                        .toString(), TRUE);
-                                
+                                                .toString(), TRUE);
+
                                 _logger.debug("Export map for VNX UMFS {} = {}",
                                         vnxufs.getLabel(), vnxufs.getUnManagedSmbShareMap());
 
@@ -2053,9 +2205,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                     }
 
                                 }
-                                
-                                //set vNAS on umfs
-                                StringSet moverSet= new StringSet();
+
+                                // set vNAS on umfs
+                                StringSet moverSet = new StringSet();
                                 moverSet.add(moverURI.toString());
                                 vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
 
@@ -2142,16 +2294,17 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
 
     }
-    
+
     /**
      * get the nas or vnas uri
+     * 
      * @param storageHADomain
      * @param storageSystem
      * @return
      */
     private URI getNASUri(StorageHADomain storageHADomain, StorageSystem storageSystem) {
         URI moverURI = null;
-        if ( storageHADomain.getVirtual() == true) {
+        if (storageHADomain.getVirtual() == true) {
             VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, storageHADomain.getName());
             moverURI = virtualNAS.getId();
         } else {
@@ -2160,7 +2313,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
         return moverURI;
     }
-
 
     private List<UnManagedCifsShareACL> applyCifsSecurityRules(UnManagedFileSystem vnxufs, String expPath,
             Map<String, String> fsExportInfo, StoragePort storagePort) {
@@ -2288,7 +2440,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-                //get vnas uri
+                // get vnas uri
                 URI moverURI = getNASUri(mover, storageSystem);
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
@@ -2411,8 +2563,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                             vnxufs.setHasExports(true);
                                             vnxufs.putFileSystemCharacterstics(
                                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                                    .toString(), TRUE);
-                                            
+                                                            .toString(), TRUE);
+
                                             // Set the correct storage port
                                             if (null != storagePort) {
                                                 StringSet storagePorts = new StringSet();
@@ -2453,18 +2605,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         }
                         _logger.info("No of exports found for path {} = {} ", fsMountPath, noOfExports);
 
-                        if (noOfExports == 0 ) {
+                        if (noOfExports == 0) {
                             _logger.info("FileSystem {} does not have any exports ", vnxufs.getLabel());
                             vnxufs.setHasExports(false);
                         }
                         // Don't consider the unmanaged file systems with invalid exports!!!
                         if (inValidExports) {
-                        	_logger.info("Ignoring unmanaged file system {}, due to invalid exports", vnxufs.getLabel());
-                        	vnxufs.setInactive(true);
+                            _logger.info("Ignoring unmanaged file system {}, due to invalid exports", vnxufs.getLabel());
+                            vnxufs.setInactive(true);
                         }
-                        
-                        //set the  vNAS uri in umfs
-                        StringSet moverSet= new StringSet();
+
+                        // set the vNAS uri in umfs
+                        StringSet moverSet = new StringSet();
                         moverSet.add(moverURI.toString());
                         vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
                         _logger.info("nas server id {} and fs name {}", mover.getName(), fsName);
@@ -2965,6 +3117,33 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
 
         return fileSystems;
+    }
+
+    private List<TreeQuota> getAllQuotaTrees(final StorageSystem system)
+            throws VNXException {
+
+        List<TreeQuota> quotaTrees = new ArrayList<TreeQuota>();
+        List<TreeQuota> tempQuotaTrees = null;
+
+        try {
+
+            _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
+                    "vnxallquotas"));
+
+            tempQuotaTrees = (ArrayList<TreeQuota>) _discExecutor.getKeyMap()
+                    .get(VNXFileConstants.QUOTA_DIR_LIST);
+
+            if (null != tempQuotaTrees && !tempQuotaTrees.isEmpty()) {
+                quotaTrees.addAll(tempQuotaTrees);
+                _logger.info("Found {} Quota directories ", tempQuotaTrees.size());
+            } else {
+                _logger.info("No Quota directories found ");
+            }
+        } catch (BaseCollectionException e) {
+            throw new VNXException("Get QuotaTrees op failed", e);
+        }
+
+        return quotaTrees;
     }
 
     private void associateExportWithFS(UnManagedFileSystem vnxufs,

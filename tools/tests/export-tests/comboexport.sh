@@ -224,7 +224,7 @@ setup_common() {
 setup_vmax() {
     # do this only once
     echo "Setting up $VMAX_NATIVEGUID"
-    smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP 5988 admin '#1Password' false
+    smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT admin '#1Password' $VMAX_SMIS_SSL
     storagedevice discover_all --ignore_error
 
     storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -253,7 +253,7 @@ setup_vmax() {
 setup_vnx() {
     # do this only once
     echo "Setting up $VNXB_NATIVEGUID"
-    smisprovider create VNX-PROVIDER $VNX_SMIS_IP 5988 admin '#1Password' false
+    smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT admin '#1Password' $VNX_SMIS_SSL
     storagedevice discover_all --ignore_error
 
     storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY

@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
@@ -105,6 +106,8 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class DbClientImpl implements DbClient {
     private static final int COMPLETED_PROGRESS = 100;
+    private static final int SUSPENDED_NO_ERROR_PROGRESS = 25;
+    private static final int SUSPENDED_ERROR_PROGRESS = 33;
     public static final String DB_STAT_OPTIMIZE_DISK_SPACE = "DB_STAT_OPTIMIZE_DISK_SPACE";
     public static final String DB_LOG_MINIMAL_TTL = "DB_LOG_MINIMAL_TTL";
     public static final String DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY = "DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY";
@@ -117,9 +120,9 @@ public class DbClientImpl implements DbClient {
     private static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_PAGE_SIZE = 100;
     
-    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
-            Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
-            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
+    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(Token.class,
+            StorageOSUserDAO.class, VirtualDataCenter.class, PropertyListDataObject.class, PasswordHistory.class,
+            CustomConfig.class, VdcVersion.class, StorageSystemType.class);
 
     protected DbClientContext localContext;
     protected DbClientContext geoContext;
@@ -1690,7 +1693,31 @@ public class DbClientImpl implements DbClient {
     }
 
     @Override
-    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) {
+    public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
+            String opId, String message) throws DatabaseException {
+        Operation updateOperation = new Operation();
+        updateOperation.suspendedNoError(message);
+        return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+    
+    @Override
+    public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
+            String opId) throws DatabaseException {
+        Operation updateOperation = new Operation();
+        updateOperation.suspendedNoError();
+        return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+
+    @Override
+    public Operation suspended_error(Class<? extends DataObject> clazz, URI id,
+            String opId, ServiceCoded serviceCoded) throws DatabaseException {
+        Operation updateOperation = new Operation();
+        updateOperation.suspendedError(serviceCoded);
+        return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+    
+    @Override
+    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
         Operation updateOperation = new Operation();
         updateOperation.setMessage(message);
         return updateTaskStatus(clazz, id, opId, updateOperation);
@@ -1852,10 +1879,10 @@ public class DbClientImpl implements DbClient {
                     task.setMessage(operation.getMessage());
 
                     // Some code isn't updating progress to 100 when completed, so fix this here
-                    if (Objects.equal(task.getStatus(), "pending")) {
+                    if (Objects.equal(task.getStatus(), "pending") || Objects.equal(task.getStatus(), "suspended_no_error") || 
+                            Objects.equal(task.getStatus(), "suspended_error")) {
                         task.setProgress(operation.getProgress());
-                    }
-                    else {
+                    } else {
                         task.setProgress(COMPLETED_PROGRESS);
                     }
                     task.setStartTime(operation.getStartTime());
@@ -1954,4 +1981,6 @@ public class DbClientImpl implements DbClient {
         String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
+
+    
 }

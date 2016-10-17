@@ -33,6 +33,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,28 +51,9 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
-import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
-import com.emc.storageos.db.client.model.ComputeSystem;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
-import com.emc.storageos.db.client.model.FCEndpoint;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.common.VdcUtil;
@@ -167,9 +150,23 @@ public class VirtualArrayService extends TaggedResource {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualArrayList getVirtualArrayList(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualArrayList getVirtualArrayList(
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId,
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId ) {
         _geoHelper.verifyVdcId(shortVdcId);
+
         VirtualArrayList list = new VirtualArrayList();
+        TenantOrg tenant_input = null;
+
+        // if input tenant is not empty, but user have no access to it, return empty list.
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant_input = getTenantIfHaveAccess(tenantId);
+            if (tenant_input == null) {
+                return list;
+            }
+        }
+
+
         List<VirtualArray> nhObjList = Collections.emptyList();
         if (_geoHelper.isLocalVdcId(shortVdcId)) {
             _log.debug("retrieving virtual arrays via dbclient");
@@ -189,21 +186,46 @@ public class VirtualArrayService extends TaggedResource {
         }
 
         StorageOSUser user = getUserFromContext();
-        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}
+
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
         if (_permissionsHelper.userHasGivenRole(user,
                 null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
             for (VirtualArray nh : nhObjList) {
-                list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                        nh.getId(), nh.getLabel()));
-            }
-        } else {
-            // otherwise, filter by only authorized to use
-            URI tenant = URI.create(user.getTenantId());
-            for (VirtualArray nh : nhObjList) {
-                if (_permissionsHelper.tenantHasUsageACL(tenant, nh)) {
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), nh)) {
                     list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
                             nh.getId(), nh.getLabel()));
                 }
+            }
+        } else {
+            // otherwise, filter by only authorized to use
+            URI tenant = null;
+            if (tenant_input == null) {
+                tenant = URI.create(user.getTenantId());
+            } else {
+                tenant = tenant_input.getId();
+            }
+
+            Set<VirtualArray> varraySet = new HashSet<VirtualArray>();
+            for (VirtualArray virtualArray : nhObjList) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, virtualArray)) {
+                    varraySet.add(virtualArray);
+                }
+            }
+
+            // if no tenant specified in request, also adding varrays which sub-tenants of the user have access to.
+            if (tenant_input == null) {
+                List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (VirtualArray virtualArray : nhObjList) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualArray)) {
+                        varraySet.add(virtualArray);
+                    }
+                }
+            }
+
+            for (VirtualArray virtualArray : varraySet) {
+                list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
+                        virtualArray.getId(), virtualArray.getLabel()));
             }
         }
         return list;
@@ -408,8 +430,8 @@ public class VirtualArrayService extends TaggedResource {
         VirtualArray varray = new VirtualArray();
         varray.setId(URIUtil.createId(VirtualArray.class));
         varray.setLabel(param.getLabel());
-        if (param.getAutoSanZoning() != null) {
-            varray.setAutoSanZoning(param.getAutoSanZoning());
+        if (param.getBlockSettings().getAutoSanZoning() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
         } else {
             varray.setAutoSanZoning(true);
         }
@@ -448,8 +470,8 @@ public class VirtualArrayService extends TaggedResource {
             varray.setLabel(param.getLabel());
         }
 
-        if (param.getAutoSanZoning() != null) {
-            varray.setAutoSanZoning(param.getAutoSanZoning());
+        if (param.getBlockSettings().getAutoSanZoning() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {
@@ -670,8 +692,6 @@ public class VirtualArrayService extends TaggedResource {
         for (URI uri : storagePortURIs) {
             StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
             if ((storagePort != null)
-                    && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                            .equals(storagePort.getCompatibilityStatus())
                     && (RegistrationStatus.REGISTERED.toString().equals(storagePort
                             .getRegistrationStatus()))
                     && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
@@ -695,7 +715,11 @@ public class VirtualArrayService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/vpools")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public VirtualPoolList getVirtualArrayVirtualPool(@PathParam("id") URI id) {
+    public VirtualPoolList getVirtualArrayVirtualPool(
+            @PathParam("id") URI id,
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId) {
+        TenantOrg tenant_input = getTenantIfHaveAccess(tenantId);
+
         VirtualPoolList cosList = new VirtualPoolList();
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -713,17 +737,22 @@ public class VirtualArrayService extends TaggedResource {
             }
 
             /*
-             * An user can see the vpool if:
+             * when input tenant parameter is null, An user can see the vpool if:
              * 1. be sysadmin or sysmonitor or restricted sysadmin
              * 2. mapped to that tenant.
              * 3. tenant admin but not mapping to the tenant cannot see it
+             *
+             * when input tenant parameter is not null, in addition to above conditions need be met,
+             * the specified tenant also need have access to the vpool.
              */
             StorageOSUser user = getUserFromContext();
             if (_permissionsHelper.userHasGivenRole(user, null,
                     Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN) ||
                     userTenantHasPermissionForVirtualPool(cosId.toString())) {
-                _log.debug("Adding VirtualPool");
-                cosList.getVirtualPool().add(toVirtualPoolResource(cos));
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), cos)) {
+                    _log.debug("Adding VirtualPool");
+                    cosList.getVirtualPool().add(toVirtualPoolResource(cos));
+                }
             }
         }
         return cosList;
@@ -731,7 +760,7 @@ public class VirtualArrayService extends TaggedResource {
 
     /**
      * Determines if the VirtualPool with the passed id is accessible to
-     * the user's tenant organization.
+     * the user's tenant (includes the subtenants user has TenantAdmin role) .
      * 
      * @param vpoolId The VirtualPool id.
      * 
@@ -747,10 +776,22 @@ public class VirtualArrayService extends TaggedResource {
 
         StorageOSUser user = getUserFromContext();
         URI tenantURI = URI.create(user.getTenantId());
-        _log.debug("Tenant is {}", tenantURI.toString());
-        boolean hasUsageACL = _permissionsHelper.tenantHasUsageACL(tenantURI, vpool);
-        _log.debug("Tenant has usage ACL for VirtualPool {}: {}", vpoolId, hasUsageACL);
-        return hasUsageACL;
+
+        // check user's home tenant
+        if (_permissionsHelper.tenantHasUsageACL(tenantURI, vpool)) {
+            _log.debug("Home tenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
+            return true;
+        }
+
+        // check user's subtenant
+        for (String subtenantId : _permissionsHelper.getSubtenantsForUser(user)) {
+            if (_permissionsHelper.tenantHasUsageACL(URI.create(subtenantId), vpool)) {
+                _log.debug("Subtenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -938,12 +979,14 @@ public class VirtualArrayService extends TaggedResource {
         list.setVArrayId(id);
         ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
         List<StoragePool> pools = getVirtualArrayPools(Arrays.asList(id), cache).get(id);
+
         Map<String, Set<String>> availableAttrs = _matcherFramework.getAvailableAttributes(id, pools, cache,
                 AttributeMatcher.VPOOL_MATCHERS);
         cache.clearCache();
         for (Map.Entry<String, Set<String>> entry : availableAttrs.entrySet()) {
             list.getAttributes().add(new VirtualPoolAvailableAttributesResourceRep(entry.getKey(), entry.getValue()));
         }
+
         return list;
     }
 

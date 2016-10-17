@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -60,43 +61,50 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
      * @param cos : vpool
      * @param objValueToCompare : volumeParam container values.
      * @param dbClient
-     * @param matcherGroupName : groupName to execute the matchers.
-     *            matchers are grouped by its relativity
+     * @param matcherGroupName : groupName to execute the matchers.matchers are grouped by its relativity
+     * @param errorMessage : will contain error message
+     * @return Returns list of matched StoragePool instances
      */
     public List<StoragePool> matchAttributes(List<StoragePool> allPools, Map<String, Object> attributeMap,
-            DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName) {
+            DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
+
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
-        matchedPools.addAll(allPools);
-        try {
-            _logger.info("Starting execution of {} group matchers .", matcherGroupName);
-            @SuppressWarnings("unchecked")
-            List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
-            ObjectLocalCache cache = new ObjectLocalCache(dbClient);
-            initializeCommonReferencesForAllMatchers(cache, coordinator);
-            for (AttributeMatcher matcher : attrMatcherList) {
-                int poolSizeAtTheStart = matchedPools.size();
-                if (!matchedPools.isEmpty()) {
-                    _logger.debug("passing {} pools to match", matchedPools.size());
-                    matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap);
-                    if (matchedPools.isEmpty()) {
-                        _logger.info(String.format("Failed to find match because of %s",
-                                matcher.getClass().getSimpleName()));
-                    } else if (matchedPools.size() < poolSizeAtTheStart) {
-                        _logger.info(String.format("%s eliminated %d pools from the matched list",
-                                matcher.getClass().getSimpleName(), poolSizeAtTheStart - matchedPools.size()));
+        if (!CollectionUtils.isEmpty(allPools)) {
+            matchedPools.addAll(allPools);
+            try {
+                _logger.info("Starting execution of {} group matchers .", matcherGroupName);
+                @SuppressWarnings("unchecked")
+                List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
+                ObjectLocalCache cache = new ObjectLocalCache(dbClient);
+                initializeCommonReferencesForAllMatchers(cache, coordinator);
+                for (AttributeMatcher matcher : attrMatcherList) {
+                    int poolSizeAtTheStart = matchedPools.size();
+                    if (!matchedPools.isEmpty()) {
+                        _logger.debug("passing {} pools to match", matchedPools.size());
+                        matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap, errorMessage);
+                        if (matchedPools.isEmpty()) {
+                            _logger.info(String.format("Failed to find match because of %s",
+                                    matcher.getClass().getSimpleName()));
+                        } else if (matchedPools.size() < poolSizeAtTheStart) {
+                            _logger.info(String.format("%s eliminated %d pools from the matched list",
+                                    matcher.getClass().getSimpleName(), poolSizeAtTheStart - matchedPools.size()));
+                        }
+                    } else {
+                        _logger.info("No storage pools found matching with attributeMap passed");
+                        break;
                     }
-                } else {
-                    _logger.info("No storage pools found matching with attributeMap passed");
-                    break;
                 }
+                cache.clearCache();
+            } catch (Exception ex) {
+                // Clearing the matched pools as there is an exception occurred while processing.
+                matchedPools.clear();
+                _logger.error("Exception occurred while matching pools with vPools", ex);
+            } finally {
+                _logger.info("Ended execution of {} group matchers .", matcherGroupName);
             }
-            cache.clearCache();
-        } catch (Exception ex) {
-            // Clearing the matched pools as there is an exception occurred while processing.
-            matchedPools.clear();
-            _logger.error("Exception occurred while matching pools with vPools", ex);
-        } finally {
-            _logger.info("Ended execution of {} group matchers .", matcherGroupName);
+        } else {
+            errorMessage.append("Virtual pool does not have matching Storage pool.");
+            _logger.error(errorMessage.toString());
         }
         return matchedPools;
     }

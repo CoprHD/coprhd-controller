@@ -76,7 +76,7 @@ public class PartitionManager {
         List<List<T>> volume_partitions = Lists.partition(records, partitionSize);
         for (List<T> partition : volume_partitions) {
             try {
-                dbClient.persistObject(partition);
+                dbClient.updateObject(partition);
                 _log.info("{} {} Records updated to DB", partition.size(), type);
             } catch (DatabaseException e) {
                 _log.error("Error updating {} records into the database:", type, e);
@@ -97,7 +97,7 @@ public class PartitionManager {
         List<List<T>> volume_partitions = Lists.partition(records, partitionSize);
         for (List<T> partition : volume_partitions) {
             try {
-                dbClient.updateAndReindexObject(partition);
+                dbClient.updateObject(partition);
                 _log.info("{} {} Records updated and reindexed to DB", partition.size(), type);
             } catch (DatabaseException e) {
                 _log.error("Error updating {} records into the database:", type, e);

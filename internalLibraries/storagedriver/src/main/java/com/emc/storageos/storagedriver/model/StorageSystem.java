@@ -64,6 +64,11 @@ public class StorageSystem extends StorageObject {
         elementReplica, groupReplica
     }
 
+    // List of native ids of storage providers which can manage this system.
+    // Type: Input
+    List<String> storageProvidersNativeIds;
+
+
     private List<CapabilityInstance> capabilities;
 
     public String getSystemType() {

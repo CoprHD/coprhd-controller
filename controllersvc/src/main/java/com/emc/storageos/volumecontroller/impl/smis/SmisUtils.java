@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -265,5 +266,36 @@ public class SmisUtils {
                 .append(Constants.SMIS80_DELIMITER).append(elementName)
                 .append(Constants.SMIS80_DELIMITER).append("0");
         return sb.toString();
+    }
+
+    /**
+     * Gets the session label from settings instance.
+     *
+     * @param snapshot the snapshot
+     * @return the session label from settings instance
+     */
+    public static String getSessionLabelFromSettingsInstance(BlockSnapshot snapshot) {
+        String sessionLabel = null;
+        String settingsInstance = snapshot.getSettingsInstance();
+        if (settingsInstance != null && !settingsInstance.isEmpty()) {
+            String[] instanceArray = settingsInstance.split(Constants.SMIS80_DELIMITER_REGEX);
+            sessionLabel = instanceArray[3];
+        }
+        return sessionLabel;
+    }
+    
+    public static String getCompressionRatioForVolume(CIMInstance volumeInstance) {
+        String compressionRatio = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_EMC_COMPRESSION_RATIO);
+        if (compressionRatio != null && !compressionRatio.isEmpty() && !compressionRatio.equals("0")) {
+            compressionRatio = (Double.valueOf(compressionRatio) / 10) + ":1";
+        } else {
+            compressionRatio = Constants.DEFAULT_COMPRESSION_RATIO;
+        }
+        return compressionRatio;
+    }
+
+    public static boolean getEMCCompressionForStorageGroup(CIMInstance storageGroup) {
+        String emcCompression = CIMPropertyFactory.getPropertyValue(storageGroup, SmisConstants.CP_EMC_COMPRESSION);
+        return (emcCompression != null) ? emcCompression.equalsIgnoreCase(Boolean.TRUE.toString()) : false;
     }
 }

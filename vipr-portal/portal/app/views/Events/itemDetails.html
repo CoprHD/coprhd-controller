@@ -1,0 +1,30 @@
+<dl class="dl-horizontal">
+
+  <dt>&{'events.approveDetails'}:</dt>
+  <dd>
+    #{list approveDetails, as:'detail'}
+       <li> ${detail}
+    #{/list}&nbsp;
+  </dd>
+
+  <dt>&{'events.declineDetails'}:</dt>
+  <dd>
+    #{list declineDetails, as:'detail'}
+       <li> ${detail}
+    #{/list}&nbsp;
+  </dd>
+
+  #{if event.eventStatus != 'pending'}
+  <dt>&{'events.tasks'}:</dt>
+  <dd>
+    #{list tasks, as:'task'}
+      <a href="@{Tasks.details(task.id)}">${task.name}</a>#{if !task_isLast}, #{/if}
+    #{/list}
+    #{else}&nbsp;#{/else}
+  </dd>
+  #{/if}
+  
+  <dt>&{'events.id'}:</dt>
+  <dd><a href="@{Events.details(event.id)}">${event.id}</a></dd>   
+
+</dl>

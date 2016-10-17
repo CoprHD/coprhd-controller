@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StatTimeSeries;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -40,7 +41,7 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
      * @param deletedVolume
      */
     private void removeDeletedVolumeReference(DbClient dbClient, Volume deletedVolume) {
-        if (deletedVolume != null && deletedVolume.getAssociatedSourceVolume() != null) {
+        if (deletedVolume != null && !NullColumnValueGetter.isNullURI(deletedVolume.getAssociatedSourceVolume())) {
             Volume srcVolume = dbClient.queryObject(Volume.class, deletedVolume.getAssociatedSourceVolume());
 
             // remove reference of deleted volume from fullCopies

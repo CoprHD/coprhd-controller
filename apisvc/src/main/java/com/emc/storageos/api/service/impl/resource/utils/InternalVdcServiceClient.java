@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
 
+import com.emc.storageos.security.authentication.InternalTenantServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

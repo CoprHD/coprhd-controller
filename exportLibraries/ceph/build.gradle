@@ -1,0 +1,6 @@
+dependencies {
+    compile library(ceph),
+            library(jna),
+            project(":errorhandling"),
+            project(":serviceutils")
+}

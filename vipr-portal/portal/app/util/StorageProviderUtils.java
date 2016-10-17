@@ -71,7 +71,7 @@ public class StorageProviderUtils {
 
     public static Task<StorageProviderRestRep> create(String name, String ipAddress, Integer portNumber, String userName,
             String password, Boolean useSSL, String interfaceType, String secondaryUsername, String secondaryPassword,
-            String elementManagerURL) {
+            String elementManagerURL, String secondaryURL, String secretKey) {
         StorageProviderCreateParam update = new StorageProviderCreateParam();
         update.setName(name);
         update.setIpAddress(ipAddress);
@@ -82,19 +82,22 @@ public class StorageProviderUtils {
         update.setInterfaceType(interfaceType);
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
+        update.setSecondaryURL(StringUtils.defaultIfEmpty(secondaryURL, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
         if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
         	update.setUserName(secondaryUsername);
         	update.setPassword(secondaryPassword);
         	update.setSecondaryUsername(null);
         	update.setSecondaryPassword(null);
+        } else if (StorageProviderTypes.isCeph(interfaceType)) {
+            update.setPassword(secretKey);
         }
         return getViprClient().storageProviders().create(update);
     }
 
     public static StorageProviderRestRep update(URI id, String name, String ipAddress, Integer portNumber,
             String userName, String password, Boolean useSSL, String interfaceType, String secondaryUsername,
-            String secondaryPassword, String elementManagerURL) {
+            String secondaryPassword, String elementManagerURL, String secondaryURL, String secretKey) {
         StorageProviderUpdateParam update = new StorageProviderUpdateParam();
         update.setName(name);
         update.setIpAddress(ipAddress);
@@ -106,11 +109,29 @@ public class StorageProviderUtils {
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
+        update.setSecondaryURL(StringUtils.defaultIfEmpty(secondaryURL, null));
         if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
         	update.setUserName(secondaryUsername);
         	update.setPassword(secondaryPassword);
         	update.setSecondaryUsername(null);
         	update.setSecondaryPassword(null);
+        } else if (StorageProviderTypes.isCeph(interfaceType)) {
+            update.setPassword(secretKey);
+            if (id != null) {
+                update.setInterfaceType(null);
+            }
+        }
+        StorageProviderRestRep provider = getStorageProvider(id);
+        if (provider.getSecondaryUsername() != null && !provider.getSecondaryUsername().equals(secondaryUsername)) {
+            update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, ""));
+        }
+        if (provider.getSecondaryURL() != null && !provider.getSecondaryURL().equals(secondaryURL)) {
+            update.setSecondaryURL(StringUtils.defaultIfEmpty(secondaryURL, ""));
+        }
+        if (StringUtils.isEmpty(secondaryURL) && !secondaryUsername.isEmpty() && !StorageProviderTypes.isScaleIOApi(interfaceType)) {
+            update.setSecondaryURL(StringUtils.defaultIfEmpty(secondaryURL, ""));
+        } else if (StringUtils.isEmpty(secondaryUsername) && secondaryURL != null) {
+            update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, ""));
         }
         return getViprClient().storageProviders().update(id, update);
     }

@@ -12,8 +12,10 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.ManagedResourceCapacity;
 
@@ -24,7 +26,10 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class ManagedCapacityImpl implements Runnable {
 
@@ -142,7 +147,28 @@ public class ManagedCapacityImpl implements Runnable {
         manCap.setType(ManagedResourcesCapacity.CapacityResourceType.POOL);
         aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient, StoragePool.class, "freeCapacity");
         manCap.setNumResources(aggr.getCount());
-        manCap.setResourceCapacity(aggr.getValue() * KB);
+        double capacity = aggr.getValue();
+
+        // We must consider storage systems with sharedStorageCapacity == true (e.g. Ceph),
+        // because each their pool reports total storage free capacity.
+        // We get all such systems and subtract its pool size multiplied by (pools count - 1) from total capacity.
+        // Get all StoragePools where storageDevice is a StorageSystem where sharedStorageCapacity is true
+        Joiner j = new Joiner(dbClient).join(StorageSystem.class, "ss").match("sharedStorageCapacity", true)
+                .join("ss", StoragePool.class, "sp", "storageDevice").go();
+        Map<StorageSystem, Collection<URI>> ssToPoolMap = j.pushList("ss").pushUris("sp").map();
+        // From the joiner, get the StorageSystems (which is a small amount of objects) and the SPs (which is large, so get URIs and use query)
+        for (Entry<StorageSystem, Collection<URI>> ssToPoolEntry : ssToPoolMap.entrySet()) {
+            Collection<URI> poolURIs = ssToPoolEntry.getValue();
+            int extraPoolCount = poolURIs.size() - 1;
+            if (extraPoolCount <= 0) {
+                // Do nothing if none of the only pool belongs to Storage System
+                continue;
+            }
+            StoragePool pool = dbClient.queryObject(StoragePool.class, poolURIs.iterator().next());
+            capacity -= extraPoolCount * pool.getFreeCapacity();
+        }
+
+        manCap.setResourceCapacity(capacity * KB);
         resourcesCapacity.getResourceCapacityList().add(manCap);
         if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();

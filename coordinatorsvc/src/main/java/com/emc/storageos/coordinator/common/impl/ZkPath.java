@@ -25,7 +25,13 @@ public enum ZkPath {
     LOCKDATA("/lockdata"),
     KVSTORE("/kvstore"),
     SITES("/sites"),
-    BARRIER("/barrier");
+    BARRIER("/barrier"),
+
+    // for DR site, under "/sites/{site-id}/config/"
+    SITEERROR("/siteError"),
+    SITENETWORKSTATE("/siteNetworkState"),
+    SITEMONITORSTATE("/siteMonitorState"),
+    SITETARGETCONFIG("/sitetargetconfig");
 
     private final String _path;
 

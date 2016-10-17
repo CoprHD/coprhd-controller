@@ -24,12 +24,12 @@ import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -39,6 +39,7 @@ import com.emc.storageos.networkcontroller.BaseSANCIMObject;
 import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.exceptions.NetworkControllerSessionLockedException;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.mds.Zone;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneMember;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneMember.ConnectivityMemberType;
@@ -47,8 +48,6 @@ import com.emc.storageos.networkcontroller.impl.mds.Zoneset;
 import com.emc.storageos.volumecontroller.impl.smis.CIMArgumentFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
@@ -730,8 +729,10 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                     activeZoneset.setActive(cimBooleanProperty(activeZonesetIns, _active));
 
                     // if zoneName not specified, get all zones in the zoneset.
-                    if (StringUtils.isEmpty(zoneName)) {
-                        activeZoneset.setZones(getZonesetZones(client, activeZonesetIns.getObjectPath(), !excludeMembers, !excludeAliases));
+                    if (StringUtils.isEmpty(zoneName)
+                            || (zoneName != null && zoneName.startsWith(NetworkDeviceController.ZONESET_QUERY_FILTER))) {
+                        activeZoneset.setZones(
+                                getZonesetZones(client, activeZonesetIns.getObjectPath(), !excludeMembers, !excludeAliases, zoneName));
                     } else {
                         // looking for a zone with given zoneName
                         Zone zone = getZone(client, zoneName, fabricWwn, true, !excludeMembers, !excludeAliases);
@@ -752,7 +753,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                         if (!zoneset.getActive() && StringUtils.equals(zoneset.getName(), activeZoneset.getName())) {
                             // found a pending active zoneset, consolidate its zones into active zoneset
                             if (StringUtils.isEmpty(zoneName)) {
-                                zoneset.setZones(getZonesetZones(client, zonesetIns.getObjectPath(), !excludeMembers, !excludeAliases));
+                                zoneset.setZones(
+                                        getZonesetZones(client, zonesetIns.getObjectPath(), !excludeMembers, !excludeAliases, null));
 
                                 // consolidate active and pending zones in the zoneset
                                 List<String> activeZoneNames = new ArrayList<String>();
@@ -823,7 +825,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
     @SuppressWarnings("unchecked")
     public List<Zone> getZonesetZones(WBEMClient client,
-            CIMObjectPath zonesetPath, boolean includeMembers, boolean includeAliases) throws WBEMException {
+ CIMObjectPath zonesetPath, boolean includeMembers, boolean includeAliases,
+            String filter) throws WBEMException {
         List<Zone> zones = new ArrayList<Zone>();
         if (zonesetPath != null) {
             CloseableIterator<CIMInstance> zoneItr = null;
@@ -832,9 +835,24 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                         zonesetPath, _Brocade_ZoneInZoneSet, _Brocade_Zone, null,
                         null, false, null);
 
+                String filterCriteria = null;
+                if (!StringUtils.isEmpty(filter)) {
+                    filterCriteria = filter.substring(NetworkDeviceController.ZONESET_QUERY_FILTER.length());
+                }
+
                 while (zoneItr.hasNext()) {
-                    Zone zone = getZoneFromZoneInstance(client, zoneItr.next(), includeMembers, includeAliases);
-                    zones.add(zone);
+                    CIMInstance zoneIns = zoneItr.next();
+                    boolean getZone = true;
+                    if (!StringUtils.isEmpty(filter)) {
+                        String zoneName = cimStringProperty(zoneIns, _element_name);
+                        if (!zoneName.contains(filterCriteria)) {
+                            getZone = false;
+                        }
+                    }
+                    if (getZone) {
+                        Zone zone = getZoneFromZoneInstance(client, zoneIns, includeMembers, includeAliases);
+                        zones.add(zone);
+                    }
                 }
             } finally {
                 if (zoneItr != null) {

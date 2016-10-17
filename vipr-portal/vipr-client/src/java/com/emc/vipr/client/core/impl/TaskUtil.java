@@ -20,7 +20,7 @@ import com.emc.vipr.client.impl.RestClient;
 public class TaskUtil {
 
     public enum State {
-        queued, pending, error
+        queued, pending, error, suspended_no_error, suspended_error
     }
 
     public static TaskResourceRep refresh(RestClient client, TaskResourceRep task) {
@@ -33,7 +33,7 @@ public class TaskUtil {
 
     public static TaskResourceRep waitForTask(RestClient client, TaskResourceRep task, long timeoutMillis) {
         long startTime = System.currentTimeMillis();
-        while (isRunning(task)) {
+        while (isRunning(task) || isSuspended(task)) {
             if (timeoutMillis > 0 && (System.currentTimeMillis() - startTime) > timeoutMillis) {
                 throw new TimeoutException("Timed out waiting for task to complete");
             }
@@ -61,12 +61,17 @@ public class TaskUtil {
                 State.queued.name().equalsIgnoreCase(task.getState());
     }
 
+    public static boolean isSuspended(TaskResourceRep task) {
+        return State.suspended_no_error.name().equalsIgnoreCase(task.getState()) ||
+                State.suspended_error.name().equalsIgnoreCase(task.getState());
+    }
+
     public static boolean isQueued(TaskResourceRep task) {
         return State.queued.name().equalsIgnoreCase(task.getState());
     }
 
     public static boolean isComplete(TaskResourceRep task) {
-        return !isRunning(task);
+        return !isRunning(task) && !isSuspended(task);
     }
 
     public static boolean isError(TaskResourceRep task) {

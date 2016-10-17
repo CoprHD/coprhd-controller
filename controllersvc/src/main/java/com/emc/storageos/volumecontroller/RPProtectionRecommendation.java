@@ -28,7 +28,7 @@ public class RPProtectionRecommendation extends Recommendation {
     private List<RPRecommendation> targetJournalRecommendations;
           
     private URI vpoolChangeVolume;
-    private URI vpoolChangeVpool;          
+    private URI vpoolChangeNewVpool;          
     private boolean vpoolChangeProtectionAlreadyExists;
 
     //Placement status
@@ -56,7 +56,7 @@ public class RPProtectionRecommendation extends Recommendation {
     	this.sourceJournalRecommendation = copy.getSourceJournalRecommendation();
     	this.setStandbyJournalRecommendation(copy.getStandbyJournalRecommendation());
     	this.vpoolChangeVolume = copy.getVpoolChangeVolume();
-    	this.vpoolChangeVpool = copy.getVpoolChangeVpool();    	
+    	this.vpoolChangeNewVpool = copy.getVpoolChangeNewVpool();    	
     	
     	this.sourceRecommendations = new ArrayList<RPRecommendation>();
     	this.getSourceRecommendations().addAll(copy.getSourceRecommendations());    	
@@ -115,12 +115,12 @@ public class RPProtectionRecommendation extends Recommendation {
         return vpoolChangeVolume;
     }
 
-    public void setVpoolChangeVpool(URI id) {
-        vpoolChangeVpool = id;
+    public void setVpoolChangeNewVpool(URI id) {
+        vpoolChangeNewVpool = id;
     }
 
-    public URI getVpoolChangeVpool() {
-        return vpoolChangeVpool;
+    public URI getVpoolChangeNewVpool() {
+        return vpoolChangeNewVpool;
     }
 
     public boolean isVpoolChangeProtectionAlreadyExists() {

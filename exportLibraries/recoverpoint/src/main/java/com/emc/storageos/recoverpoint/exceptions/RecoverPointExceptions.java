@@ -83,6 +83,10 @@ public interface RecoverPointExceptions {
     public RecoverPointException failedToEnableCopy(final String cgCopyName, final String cgName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToEnableDirectAccessForCopy(final String cgCopyName, final String cgName, final Throwable cause,
+            String state);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToDisableCopy(final String cgCopyName, final String cgName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
@@ -216,6 +220,10 @@ public interface RecoverPointExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedStandbyProdCopyLookup(final String volumeWWN,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToDeleteReplicationSet(final String volumeWWN,
             final Throwable cause);
 
@@ -231,6 +239,9 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToCreateBookmark();
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToCreateBookmarkOnRecoverPoint(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToImageAccessBookmark();
@@ -323,7 +334,19 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToLookupConsistencyGroups(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToAddVolumeToApplication(final String volumeLabel, final String reason);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToSwapCopy(final String copyName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToGetCopyAccessStateProtectionSystemMismatch(final URI volume, final URI protectionSystem);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException waitForInvalidCopyState(final String state);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException unableToPerformValidation(final String errMsg);
 }

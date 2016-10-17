@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
@@ -47,6 +50,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMB
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportSecurityType;
+import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.netappc.NetAppCException;
 import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.plugins.AccessProfile;
@@ -63,10 +67,14 @@ import com.google.common.base.Joiner;
 import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
+import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
 import com.iwave.ext.netappc.SVMNetInfo;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 import com.iwave.ext.netappc.model.CifsAcl;
+
+
 
 public class NetAppClusterModeCommIntf extends
         ExtendedCommunicationInterfaceImpl {
@@ -80,6 +88,7 @@ public class NetAppClusterModeCommIntf extends
     private static final int BYTESCONVERTER = 1024;
     private static final String TRUE = "true";
     private static final String FALSE = "false";
+    private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_SHARE_ACL = "UnManagedCifsShareACL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
@@ -92,6 +101,8 @@ public class NetAppClusterModeCommIntf extends
     private static final String NFS = "NFS";
     private static final String SPACE_GUARANTEE_NONE = "none";
     private static final String VOLUME_STATE_OFFLINE = "offline";
+    private static final String VOL_ROOT = "/vol/";
+    private static final String ROOT_VOL = "/vol0";
 
     List<UnManagedFileExportRule> unManagedExportRulesInsert = null;
     List<UnManagedFileExportRule> unManagedExportRulesUpdate = null;
@@ -117,9 +128,9 @@ public class NetAppClusterModeCommIntf extends
     public enum SupportedNtpFileSystemInformation {
         ALLOCATED_CAPACITY("size-used"), PROVISIONED_CAPACITY("size-total"), STORAGE_POOL(
                 "containing-aggregate-name"), NATIVE_GUID("NativeGuid"), NAME("name"), SVM(
-                "owning-vserver-name"), IS_SVM_ROOT("is-vserver-root"), IS_NODE_ROOT(
-                "is-node-root"), PATH("junction-path"), SPACE_GUARANTEE(
-                "space-guarantee"), STATE("state");
+                        "owning-vserver-name"), IS_SVM_ROOT("is-vserver-root"), IS_NODE_ROOT(
+                                "is-node-root"), PATH("junction-path"), SPACE_GUARANTEE(
+                                        "space-guarantee"), STATE("state");
 
         private String _infoKey;
 
@@ -158,7 +169,8 @@ public class NetAppClusterModeCommIntf extends
     /**
      * Discover a NetApp Cluster mode array along with its Storage Pools, Port Groups and Storage Ports
      * 
-     * @param accessProfile access profile contains credentials to contact the device.
+     * @param accessProfile
+     *            access profile contains credentials to contact the device.
      * @throws BaseCollectionException
      */
     @Override
@@ -169,6 +181,7 @@ public class NetAppClusterModeCommIntf extends
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
             discoverUmanagedFileSystems(accessProfile);
+            discoverUmanagedFileQuotaDirectory(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
             discoverUnManagedNewExports(accessProfile);
         } else {
@@ -197,7 +210,7 @@ public class NetAppClusterModeCommIntf extends
         NetAppClusterApi netAppCApi = new NetAppClusterApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         Collection<String> attrs = new ArrayList<String>();
         for (String property : ntpPropertiesList) {
@@ -260,8 +273,17 @@ public class NetAppClusterModeCommIntf extends
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
                         poolName, NativeGUIDGenerator.POOL);
                 StoragePool pool = pools.get(poolNativeGuid);
-
-                String nativeId = path;
+                
+                String nativeId;
+                if("".equals(filesystem)){
+                    continue;
+                }
+                
+                if (filesystem.startsWith(VOL_ROOT)) {
+                    nativeId = filesystem;
+                } else {
+                    nativeId = VOL_ROOT + filesystem;
+                }
 
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(),
@@ -291,10 +313,9 @@ public class NetAppClusterModeCommIntf extends
                 String address = getSVMAddress(svm, svms);
                 if (svm != null && !svm.isEmpty()) {
                     // Need to use storage port for SVM.
-                    String portNativeGuid =
-                            NativeGUIDGenerator.generateNativeGuid(storageSystem,
-                                    address,
-                                    NativeGUIDGenerator.PORT);
+                    String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
+                            address,
+                            NativeGUIDGenerator.PORT);
 
                     storagePort = getSVMStoragePort(storageSystem, portNativeGuid, svm);
                 }
@@ -320,7 +341,8 @@ public class NetAppClusterModeCommIntf extends
                 validateListSizeLimitAndPersist(unManagedFileSystems, existingUnManagedFileSystems, Constants.DEFAULT_PARTITION_SIZE * 2);
             }
 
-            // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.
+            // Process those active unmanaged fs objects available in database but not in newly discovered items, to
+            // mark them inactive.
             markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
             _logger.info("New unmanaged NetappC file systems count: {}", newFileSystemsCount);
             _logger.info("Update unmanaged NetappC file systems count: {}", existingFileSystemsCount);
@@ -368,6 +390,168 @@ public class NetAppClusterModeCommIntf extends
         }
     }
 
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
+        URI storageSystemId = profile.getSystemId();
+
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+
+        if (null == storageSystem) {
+            return;
+        }
+
+        NetAppClusterApi netAppCApi = new NetAppClusterApi.Builder(
+                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                storageSystem.getUsername(), storageSystem.getPassword())
+                        .https(true).build();
+        try {
+            // Retrieve all the qtree info.
+            List<Qtree> qtrees = netAppCApi.listQtrees();
+            List<Quota> quotas;
+            try {// Currently there are no API's available to check the quota status in general
+                quotas = netAppCApi.listQuotas();// TODO check weather quota is on before doing this call
+            } catch (Exception e) {
+                _logger.error("Error while fetching quotas", e.getMessage());
+                return;
+            }
+            if (quotas != null) {
+                Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
+                qtrees.forEach(qtree -> {
+                    if (qtree.getQtree() != null && !qtree.getQtree().equals("")) {
+                        qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
+                    }
+                });
+
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+                String tempVolume=null;
+                String tempQuotaTree=null;
+                String tempQuotaTarget=null;
+
+                for (Quota quota : quotas) {
+                    /* Temporary fix TODO 
+                     * Fix for situations where QuotaTree is null
+                     * Extracting QuotaTree id from quotaTarget.
+                     */
+                    if ("".equals(quota.getQtree())) {
+                        tempQuotaTarget = quota.getQuotaTarget();
+                        tempVolume = quota.getVolume();
+                        if (!"".equals(tempVolume)) {
+                            Pattern pattern = Pattern.compile(tempVolume + "/(.*$)");
+                            Matcher matcher = pattern.matcher(tempQuotaTarget);
+                            if (matcher.find()) {
+                                tempQuotaTree = matcher.group(1);
+                            }
+                            if ("".equals(tempQuotaTree)) {
+                                continue;
+                            }
+                            quota.setQtree(tempQuotaTree);
+                        } else {
+                            continue;
+                        }
+                    }
+                    String fsNativeId;
+                    if (quota.getVolume().startsWith(VOL_ROOT)) {
+                        fsNativeId = quota.getVolume();
+                    } else {
+                        fsNativeId = VOL_ROOT + quota.getVolume();
+                    }
+
+                    if (fsNativeId.contains(ROOT_VOL)) {
+                        _logger.info("Ignore and not discover root filesystem on NTP array");
+                        continue;
+                    }
+
+                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), fsNativeId);
+
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
+                    }
+
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(quota.getQtree());
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
+                    unManagedFileQuotaDirectory.setNativeId("/vol/" + quota.getVolume() + "/" + quota.getQtree());
+                    if ("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
+                        unManagedFileQuotaDirectory.setOpLock(true);
+                    }
+                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    }
+
+                }
+
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+            }
+
+        } catch (NetAppException ve) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed.  Storage system: "
+                    + storageSystemId);
+            throw ve;
+        } catch (Exception e) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed. Storage system: "
+                    + storageSystemId, e);
+            throw NetAppException.exceptions.discoveryFailed(storageSystemId.toString(), e);
+        }
+    }
+
+    /**
+     * check Storage quotadir exists in DB
+     * 
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getQuotaDirsByNativeGuid(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
+
     private void discoverUnManagedNewExports(AccessProfile profile) {
         URI storageSystemId = profile.getSystemId();
         StorageSystem storageSystem = _dbClient.queryObject(
@@ -390,7 +574,7 @@ public class NetAppClusterModeCommIntf extends
         NetAppClusterApi netAppCApi = new NetAppClusterApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         Collection<String> attrs = new ArrayList<String>();
         for (String property : ntpPropertiesList) {
@@ -405,7 +589,7 @@ public class NetAppClusterModeCommIntf extends
                 netAppCApi = new NetAppClusterApi.Builder(
                         storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                         storageSystem.getUsername(), storageSystem.getPassword())
-                        .https(true).svm(svmInfo.getName()).build();
+                                .https(true).svm(svmInfo.getName()).build();
                 // Get exports on the array and loop through each export.
                 List<ExportsRuleInfo> exports = netAppCApi.listNFSExportRules(null);
 
@@ -501,7 +685,8 @@ public class NetAppClusterModeCommIntf extends
                                 unManagedFs.setHasExports(true);
                                 unManagedFs.putFileSystemCharacterstics(
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                        .toString(), TRUE);
+                                                .toString(),
+                                        TRUE);
                                 _dbClient.persistObject(unManagedFs);
                                 _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                         newUnManagedExportRules.size());
@@ -530,8 +715,7 @@ public class NetAppClusterModeCommIntf extends
                             unManagedExportRulesToUpdate.clear();
                         }
 
-                    }
-                    else {
+                    } else {
                         _logger.info("FileSystem " + unManagedFs
                                 + "is not present in ViPR DB. Hence ignoring "
                                 + deviceExport + " export");
@@ -615,8 +799,7 @@ public class NetAppClusterModeCommIntf extends
             // Example version String for NetappC looks like 8.2
             _logger.info("Verifying version details : Minimum Supported Version {} - Discovered NetApp Cluster Mode Version {}",
                     minimumSupportedVersion, firmwareVersion);
-            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, firmwareVersion) < 0)
-            {
+            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, firmwareVersion) < 0) {
                 storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
                 storageSystem.setReachableStatus(false);
                 DiscoveryUtils.setSystemResourcesIncompatible(_dbClient, _coordinator, storageSystem.getId());
@@ -768,14 +951,15 @@ public class NetAppClusterModeCommIntf extends
     /**
      * Discover the IP Interfaces/Storage Ports for NetApp Cluster mode array
      * 
-     * @param system Storage system information
+     * @param system
+     *            Storage system information
      * @return Map of new and existing storage ports
      * @throws NetAppCException
      */
     private Map<String, List<StoragePort>> discoverPorts(StorageSystem storageSystem,
             List<StorageVirtualMachineInfo> svms,
             List<StorageHADomain> haDomains)
-            throws NetAppCException {
+                    throws NetAppCException {
 
         URI storageSystemId = storageSystem.getId();
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
@@ -796,10 +980,9 @@ public class NetAppClusterModeCommIntf extends
                             continue;
                         }
                         URIQueryResultList results = new URIQueryResultList();
-                        String portNativeGuid =
-                                NativeGUIDGenerator.generateNativeGuid(storageSystem,
-                                        intf.getIpAddress(),
-                                        NativeGUIDGenerator.PORT);
+                        String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
+                                intf.getIpAddress(),
+                                NativeGUIDGenerator.PORT);
                         _dbClient.queryByConstraint(
                                 AlternateIdConstraint.Factory
                                         .getStoragePortByNativeGuidConstraint(portNativeGuid),
@@ -903,13 +1086,14 @@ public class NetAppClusterModeCommIntf extends
     /**
      * Discover the Storage Virtual Machines (Port Groups) for NetApp Cluster mode array
      * 
-     * @param system Storage system information
+     * @param system
+     *            Storage system information
      * @return Map of new and existing port groups
      * @throws NetAppCException
      */
     private HashMap<String, List<StorageHADomain>> discoverPortGroups(StorageSystem system,
             List<StorageVirtualMachineInfo> vServerList)
-            throws NetAppCException {
+                    throws NetAppCException {
 
         HashMap<String, List<StorageHADomain>> portGroups = new HashMap<String, List<StorageHADomain>>();
         List<StorageHADomain> newPortGroups = new ArrayList<StorageHADomain>();
@@ -1019,8 +1203,7 @@ public class NetAppClusterModeCommIntf extends
     private HashMap<String, HashSet<UnManagedSMBFileShare>> getAllCifsShares(
             List<Map<String, String>> listShares) {
         // Discover All FileSystem
-        HashMap<String, HashSet<UnManagedSMBFileShare>> sharesHashMap =
-                new HashMap<String, HashSet<UnManagedSMBFileShare>>();
+        HashMap<String, HashSet<UnManagedSMBFileShare>> sharesHashMap = new HashMap<String, HashSet<UnManagedSMBFileShare>>();
         UnManagedSMBFileShare unManagedSMBFileShare = null;
         HashSet<UnManagedSMBFileShare> unManagedSMBFileShareHashSet = null;
         // prepare smb shares map elem for each fs path
@@ -1116,8 +1299,7 @@ public class NetAppClusterModeCommIntf extends
         _logger.info("gets all acls of fileshares given fsid ", fsId);
         // get list of acls for given set of shares
         UnManagedCifsShareACL unManagedCifsShareACL = null;
-        List<UnManagedCifsShareACL> unManagedCifsShareACLList =
-                new ArrayList<UnManagedCifsShareACL>();
+        List<UnManagedCifsShareACL> unManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
         // get acls for each share
         List<CifsAcl> cifsAclList = null;
         for (UnManagedSMBFileShare unManagedSMBFileShare : unManagedSMBFileShareHashSet) {
@@ -1181,7 +1363,7 @@ public class NetAppClusterModeCommIntf extends
         NetAppClusterApi netAppCApi = new NetAppClusterApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         Collection<String> attrs = new ArrayList<String>();
         for (String property : ntpPropertiesList) {
@@ -1202,7 +1384,7 @@ public class NetAppClusterModeCommIntf extends
                 netAppCApi = new NetAppClusterApi.Builder(
                         storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                         storageSystem.getUsername(), storageSystem.getPassword())
-                        .https(true).svm(svmInfo.getName()).build();
+                                .https(true).svm(svmInfo.getName()).build();
 
                 // Get All cifs shares and ACLs
                 List<Map<String, String>> listShares = netAppCApi.listShares(null);
@@ -1227,7 +1409,8 @@ public class NetAppClusterModeCommIntf extends
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                             .generateNativeGuidForPreExistingFileSystem(
                                     storageSystem.getSystemType(), storageSystem
-                                            .getSerialNumber().toUpperCase(), fileSystem);
+                                            .getSerialNumber().toUpperCase(),
+                                    fileSystem);
 
                     UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
                     boolean fsAlreadyExists = unManagedFs == null ? false : true;
@@ -1247,14 +1430,15 @@ public class NetAppClusterModeCommIntf extends
                             unManagedFs.setHasShares(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                            .toString(),
+                                    TRUE);
                             _logger.debug("SMB Share map for NetAppC UMFS {} = {}",
                                     unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                         }
                         // get the acls details for given fileshare of given fs
                         UnManagedCifsShareACL existingACL = null;
-                        List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList =
-                                getACLs(unManagedSMBFileShareHashSet, netAppCApi, storageSystem, unManagedFs.getId());
+                        List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList = getACLs(unManagedSMBFileShareHashSet, netAppCApi,
+                                storageSystem, unManagedFs.getId());
                         if (tempUnManagedCifsShareAclList != null &&
                                 !tempUnManagedCifsShareAclList.isEmpty()) {
                             for (UnManagedCifsShareACL unManagedCifsShareACL : tempUnManagedCifsShareAclList) {
@@ -1369,7 +1553,8 @@ public class NetAppClusterModeCommIntf extends
     /**
      * Discover the storage pools for NetApp Cluster mode array
      * 
-     * @param system Storage system information
+     * @param system
+     *            Storage system information
      * @return Map of new and existing storage pools
      * @throws NetAppCException
      */
@@ -1584,8 +1769,10 @@ public class NetAppClusterModeCommIntf extends
      * Names returned from array are only of the form: <fs name>.
      * Therefore, match occurs if file system name 'ends' with the name returned from array.
      * 
-     * @param fileSystem name of the file system (volume in NetAppC terminology)
-     * @param fileSystemInfo list of file system attributes for each file.
+     * @param fileSystem
+     *            name of the file system (volume in NetAppC terminology)
+     * @param fileSystemInfo
+     *            list of file system attributes for each file.
      * @return
      */
     private String getOwningSVM(String fileSystem, List<Map<String, String>> fileSystemInfo) {
@@ -1624,8 +1811,10 @@ public class NetAppClusterModeCommIntf extends
     /**
      * Return the IP address for the specified SVM.
      * 
-     * @param svmName name of the SVM looking for.
-     * @param svmInfo List of SVMs with their information.
+     * @param svmName
+     *            name of the SVM looking for.
+     * @param svmInfo
+     *            List of SVMs with their information.
      * @return IP address of the specified SVM if found, otherwise null.
      */
     private String getSVMAddress(String svmName, List<StorageVirtualMachineInfo> svmInfo) {
@@ -1644,7 +1833,8 @@ public class NetAppClusterModeCommIntf extends
             if (svmName.equals(info.getName())) {
                 List<SVMNetInfo> netInfo = info.getInterfaces();
                 for (SVMNetInfo intf : netInfo) {
-                    // If role ends with _mgmt e.g. cluster_mgmt, node_mgmt, it is the management interface which should be excluded while
+                    // If role ends with _mgmt e.g. cluster_mgmt, node_mgmt, it is the management interface which should
+                    // be excluded while
                     // assigning ports to unmanaged file systems or exports
                     if (intf.getRole().contains(MANAGEMENT_INTERFACE)) {
                         continue;
@@ -1718,23 +1908,28 @@ public class NetAppClusterModeCommIntf extends
         if (fileSystemChars
                 .get(SupportedNtpFileSystemInformation
                         .getFileSystemInformation(SupportedNtpFileSystemInformation.SPACE_GUARANTEE
-                                .toString())).equalsIgnoreCase(SPACE_GUARANTEE_NONE)) {
+                                .toString()))
+                .equalsIgnoreCase(SPACE_GUARANTEE_NONE)) {
             unManagedFileSystemCharacteristics.put(
                     SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(), TRUE);
+                            .toString(),
+                    TRUE);
         } else {
             unManagedFileSystemCharacteristics.put(
                     SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(), FALSE);
+                            .toString(),
+                    FALSE);
         }
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                        .toString(), TRUE);
+                        .toString(),
+                TRUE);
 
         unManagedFileSystemCharacteristics.put(
-        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), FALSE);
+                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                        .toString(),
+                FALSE);
 
         if (null != storagePort) {
             StringSet storagePorts = new StringSet();
@@ -1783,7 +1978,8 @@ public class NetAppClusterModeCommIntf extends
                                     .toString())));
             unManagedFileSystemInformation.put(
                     SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                            .toString(), allocatedCapacity);
+                            .toString(),
+                    allocatedCapacity);
         }
 
         // Get FileSystem used Space.
@@ -1798,7 +1994,8 @@ public class NetAppClusterModeCommIntf extends
                                     .toString())));
             unManagedFileSystemInformation.put(
                     SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                            .toString(), provisionedCapacity);
+                            .toString(),
+                    provisionedCapacity);
         }
 
         // Save off FileSystem Name, Path, Mount and label information
@@ -1939,8 +2136,7 @@ public class NetAppClusterModeCommIntf extends
                 // TODO: This functionality has to be revisited to handle uids for anon.
                 if ((null != anon) && (anon.equals(ROOT_UID))) {
                     anon = ROOT_USER_ACCESS;
-                }
-                else {
+                } else {
                     anon = DEFAULT_ANONMOUS_ACCESS;
                 }
                 expRule.setAnon(anon);
@@ -2059,14 +2255,14 @@ public class NetAppClusterModeCommIntf extends
             String anon = export.getSecurityRuleInfos().get(0).getAnon();
             if ((null != anon) && (anon.equals(ROOT_UID))) {
                 anon = ROOT_USER_ACCESS;
-            }
-            else {
+            } else {
                 anon = DEFAULT_ANONMOUS_ACCESS;
             }
 
             tempUnManagedFSExport = new UnManagedFSExport(clientList, port,
                     port + ":" + export.getPathname(), export.getSecurityRuleInfos().get(0)
-                            .getSecFlavor(), permission, anon, NFS,
+                            .getSecFlavor(),
+                    permission, anon, NFS,
                     port, export.getPathname(), export.getPathname());
         }
         return tempUnManagedFSExport;

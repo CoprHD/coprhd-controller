@@ -42,7 +42,7 @@ public class DifferenceEngine {
         List<ApiService> removedServices = Lists.newArrayList();
 
         for (ApiService apiService : oldApi) {
-            if (!containsService(apiService.javaClassName, newApi)) {
+            if (!containsService(apiService.getFqJavaClassName(), newApi)) {
                 removedServices.add(apiService);
             }
         }

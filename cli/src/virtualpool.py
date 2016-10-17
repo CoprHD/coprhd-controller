@@ -32,6 +32,8 @@ class VirtualPool(object):
 
     URI_VPOOL = "/{0}/vpools"
     URI_VPOOL_BY_VDC_ID = "/{0}/vpools?vdc-id={1}"
+    URI_VPOOL_BY_VDC_ID_AND_TENANT_ID = "/{0}/vpools?vdc-id={1}&tenant-id={2}"
+    URI_VPOOL_BY_TENANT_ID = "/{0}/vpools?tenant-id={1}"
     URI_VPOOL_SHOW = URI_VPOOL + "/{1}"
     URI_VPOOL_STORAGEPOOL = URI_VPOOL_SHOW + "/storage-pools"
     URI_VPOOL_ACL = URI_VPOOL_SHOW + "/acl"
@@ -49,6 +51,7 @@ class VirtualPool(object):
     DRIVE_TYPE_LIST = ['SSD', 'FC', 'SAS', 'NL_SAS', 'SATA', 'HARD_DISK_DRIVE']
     RPO_UNITS = ['SECONDS', 'MINUTES', 'HOURS', 'WRITES',
                  'BYTES', 'KB', 'MB', 'GB', 'TB']
+    PLACEMENT_POLICY_TYPE_LIST = ['default_policy', 'array_affinity']
 
     ALREADY_EXISTS_STR = 'label {0} already exists'
 
@@ -60,17 +63,28 @@ class VirtualPool(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def vpool_list_uris(self, vpooltype, vdcname=None):
+    def vpool_list_uris(self, vpooltype, vdcname=None, tenant=None):
         '''
         This function will give us the list of VPool uris
         separated by comma.
         '''
         vdcuri = None
         vdcrestapi = None
-        if(vdcname != None):
-            vdcrestapi = self.URI_VPOOL_BY_VDC_ID.format(vpooltype, vdcname)
+
+        if(tenant != None):
+            from tenant import Tenant
+            tenant_obj = Tenant(self.__ipAddr, self.__port)
+            tenanturi = tenant_obj.tenant_query(tenant)
+            if(vdcname != None):
+                vdcrestapi = self.URI_VPOOL_BY_VDC_ID_AND_TENANT_ID.format(vpooltype, vdcname, tenanturi)
+            else:
+                vdcrestapi = self.URI_VPOOL_BY_TENANT_ID.format(vpooltype, tenanturi)
         else:
-            vdcrestapi = self.URI_VPOOL.format(vpooltype)
+            if(vdcname != None):
+                vdcrestapi = self.URI_VPOOL_BY_VDC_ID.format(vpooltype, vdcname)
+            else:
+                vdcrestapi = self.URI_VPOOL.format(vpooltype)
+
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET", vdcrestapi, None)
@@ -78,12 +92,12 @@ class VirtualPool(object):
         o = common.json_decode(s)
         return o['virtualpool']
 
-    def vpool_list(self, vpooltype, vdcname=None):
+    def vpool_list(self, vpooltype, vdcname=None, tenant=None):
         '''
         this function is wrapper to the vpool_list_uris
         to give the list of vpool uris.
         '''
-        uris = self.vpool_list_uris(vpooltype, vdcname)
+        uris = self.vpool_list_uris(vpooltype, vdcname, tenant)
         return uris
 
     def vpool_show_uri(self, vpooltype, uri, xml=False):
@@ -527,11 +541,12 @@ class VirtualPool(object):
                      varrays, provisiontype, rp, rp_policy,
                      systemtype, raidlevel, fastpolicy, drivetype, expandable,
                      usematchedpools, max_snapshots ,maxretention, longtermretention, max_mirrors, vpoolmirror,
-                     multivolconsistency, autotierpolicynames,
+                     multivolconsistency, autotierpolicynames, enablecompression,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-                     fr_policy, fr_copies, mindatacenters, snapshotsched):
+                     fr_policy, fr_copies, mindatacenters, snapshotsched, placementpolicy,
+                     dedupcapable):
 
         '''
         This is the function will create the VPOOL with given name and type.
@@ -634,6 +649,8 @@ class VirtualPool(object):
                 parms['paths_per_initiator'] = pathsperinitiator
             if (thinpreallocper):
                 parms['thin_volume_preallocation_percentage'] = thinpreallocper
+            if (placementpolicy):
+                parms['placement_policy'] = placementpolicy
 
             if(raidlevel):
                 if(systemtype is None):
@@ -670,12 +687,18 @@ class VirtualPool(object):
             if(expandable):
                 parms['expandable'] = expandable
 
+            if(dedupcapable):
+                parms['dedup_capable'] = dedupcapable
+
             if(fastexpansion):
                 parms['fast_expansion'] = fastexpansion
 
             if(autotierpolicynames):
                 parms['unique_auto_tier_policy_names'] = \
                     autotierpolicynames
+
+            if(enablecompression):
+                parms['compression_enabled'] = enablecompression
 
             if (multivolconsistency is not None):
                 if(multivolconsistency.upper() == 'TRUE'):
@@ -768,11 +791,12 @@ class VirtualPool(object):
             self, name, label, description, vpooltype, systemtype, drivetype,
             protocol_add, protocol_remove, varray_add, varray_remove,
             use_matched_pools, max_snapshots, max_mirrors, longtermretention, multivolconsistency,
-            expandable, autotierpolicynames, ha, fastpolicy, minpaths,
+            expandable, autotierpolicynames, enablecompression, ha, fastpolicy, minpaths,
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched):
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched, placementpolicy, 
+            dedupcapable):
 
         '''
         This is the function will update the VPOOL.
@@ -940,10 +964,12 @@ class VirtualPool(object):
             parms["min_datacenters"] = mindatacenters
             
 
-        if(expandable):
+        if(expandable or dedupcapable):
             vpool = self.vpool_show_uri(vpooltype, vpooluri)
-            if(vpool['num_resources'] == 0):
+            if(vpool['num_resources'] == 0 and expandable):
                 parms['expandable'] = expandable
+            elif(vpool['num_resources'] == 0 and dedupcapable):
+                parms['dedup_capable'] = dedupcapable
             else:
                 raise SOSError(SOSError.VALUE_ERR,
                                "Update virtual pool is not allowed if it has active resources")
@@ -975,9 +1001,15 @@ class VirtualPool(object):
                 parms['auto_tiering_policy_name'] = ""
             else:
                 parms['auto_tiering_policy_name'] = fastpolicy
+        
+        if(enablecompression): 
+            parms['compression_enabled'] = enablecompression
 
         if(autotierpolicynames):
             parms['unique_auto_tier_policy_names'] = autotierpolicynames
+
+        if (placementpolicy):
+            parms['placement_policy'] = placementpolicy
 
         # A path is an Initiator Target combination, Is applied as a per Host
         # limit
@@ -1081,6 +1113,11 @@ def create_parser(subcommand_parsers, common_parser):
                                'Thick ',
                                metavar='<provisiontype>',
                                dest='provisiontype')
+
+    create_parser.add_argument('-dedupcapable', '-dd',
+                               help='deduplication capable',
+                               choices=VirtualPool.BOOL_TYPE_LIST,
+                               dest='dedupcapable')
     create_parser.add_argument('-maxsnapshots', '-msnp',
                                help='Maximum number of native snapshots',
                                metavar='<max_snapshots>',
@@ -1202,6 +1239,12 @@ def create_parser(subcommand_parsers, common_parser):
         metavar='<unique_auto_tier_policy_names>',
         choices=VirtualPool.BOOL_TYPE_LIST)
     create_parser.add_argument(
+        '-enablecompression', '-ec',
+        help='enable compression on VMAX3 all flash arrays',
+        dest='enablecompression',
+        metavar='<enable_compression>',
+        choices=VirtualPool.BOOL_TYPE_LIST)
+    create_parser.add_argument(
         '-maxpaths', '-mxp',
         help='The maximum number of paths that can be ' +
         'used between a host and a storage volume',
@@ -1250,6 +1293,13 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<srdf>',
                                nargs='+')
 
+    create_parser.add_argument('-placementpolicy', '-pp',
+                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
+                               'if not set, default_policy will be used for the virtual pool',
+                               dest='placementpolicy',
+                               metavar='<placementpolicy>',
+                               choices=VirtualPool.PLACEMENT_POLICY_TYPE_LIST)
+
     create_parser.set_defaults(func=vpool_create)
 
 
@@ -1285,6 +1335,7 @@ def vpool_create(args):
                                args.continuouscopiesvpool,
                                args.multivolconsistency,
                                args.autotierpolicynames,
+                               args.enablecompression,
                                args.ha,
                                args.minpaths,
                                args.maxpaths,
@@ -1298,7 +1349,9 @@ def vpool_create(args):
                                args.fr_policy,
                                args.fr_copies,
                                args.mindatacenters,
-                               args.snapshotsched)
+                               args.snapshotsched,
+							   args.placementpolicy,
+                               args.dedupcapable)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1415,6 +1468,12 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='expandable',
                                metavar='<expandable>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-dedupcapable', '-dd',
+                               help='True/False Indicates if dedup capability ' +
+                               ' should be supported',
+                               dest='dedupcapable',
+                               metavar='<dedupcapable>',
+                               choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-autoCrossConnectExport','-acc',
                                help='AutocrossconnectExport Enable/Disable',
                                metavar='<autoCrossConnectExport>',
@@ -1435,6 +1494,11 @@ def update_parser(subcommand_parsers, common_parser):
                                'policy names for fastpolicy',
                                dest='autotierpolicynames',
                                metavar='<unique_auto_tier_policy_names>',
+                               choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-enablecompression', '-ec',
+                               help='enable compression on VMAX3 all flash arrays',
+                               dest='enablecompression',
+                               metavar='<enable_compression>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-maxpaths', '-mxp',
                                help='The maximum number of paths that can ' +
@@ -1519,7 +1583,13 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='fr_removecopies',
                                metavar='<fr_removecopies>',
                                nargs='+')
-    
+
+    update_parser.add_argument('-placementpolicy', '-pp',
+                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool',
+                               dest='placementpolicy',
+                               metavar='<placementpolicy>',
+                               choices=VirtualPool.PLACEMENT_POLICY_TYPE_LIST)
+
     quota.add_update_parser_arguments(update_parser)
     update_parser.set_defaults(func=vpool_update)
 
@@ -1552,7 +1622,8 @@ def vpool_update(args):
            args.quota_enable is not None or args.quota_capacity is not None or
            args.systemtype is not None or args.drivetype is not None or
            args.fr_policy is not None or args.fr_addcopies is not None or
-           args.fr_removecopies is not None):
+           args.fr_removecopies is not None or args.dedupcapable is not None or
+           args.placementpolicy is not None):
             obj = VirtualPool(args.ip, args.port)
             obj.vpool_update(args.name,
                              args.label,
@@ -1571,6 +1642,7 @@ def vpool_update(args):
                              args.multivolconsistency,
                              args.expandable,
                              args.autotierpolicynames,
+                             args.enablecompression,
                              args.ha,
                              args.fastpolicy,
                              args.minpaths,
@@ -1591,10 +1663,12 @@ def vpool_update(args):
                              args.fr_policy, args.fr_addcopies,
                              args.fr_removecopies,
                              args.mindatacenters,
-                             args.snapshotsched)
+                             args.snapshotsched,
+                             args.placementpolicy,
+                             args.dedupcapable)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
-                           "Please provide atleast one of parameters")
+                           "Please provide at least one of parameters")
 
     except SOSError as e:
         common.format_err_msg_and_raise("update", "vpool", e.err_text,
@@ -1989,6 +2063,11 @@ def list_parser(subcommand_parsers, common_parser):
                             metavar='<vdcname>',
                             dest='vdcname')
 
+    list_parser.add_argument('-tenant', '-tn',
+                            help='name of Tenant',
+                            dest='tenant',
+                            metavar='<tenant>')
+
 
 def vpool_list(args):
     obj = VirtualPool(args.ip, args.port)
@@ -2003,10 +2082,9 @@ def vpool_list(args):
             type = 'file'
 
         output = []
-        uris = obj.vpool_list(type, args.vdcname)
+        uris = obj.vpool_list(type, args.vdcname, args.tenant)
         if(len(uris) > 0):
             for item in obj.vpool_list_by_hrefs(uris):
-
                 if (type is 'block' or type is 'file'):
                     # append quota attributes
                     quota_obj.append_quota_attributes(type + "_vpool",

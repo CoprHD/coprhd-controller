@@ -20,7 +20,8 @@
     type:{
       type: "assetType.vipr.blockSnapshotType",
       required: "false",
-      lockable: true
+      lockable: true,
+      omitNone: true
     },
         
     readOnly: {

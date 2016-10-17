@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.ParametersOut;
+import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
@@ -57,30 +58,37 @@ public class VNXeBlockSnapshotCreateJob extends VNXeJob {
                 VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
                 VNXeCommandJob vnxeJob = vnxeApiClient.getJob(getJobIds().get(0));
                 ParametersOut output = vnxeJob.getParametersOut();
-
-                VNXeLunSnap vnxeLunSnap = vnxeApiClient.getLunSnapshot(output.getId());
-                VNXeLun lun = vnxeApiClient.getLun(vnxeLunSnap.getLun().getId());
-
                 BlockSnapshot snapshot = snapshots.get(0);
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 snapshot.setNativeId(output.getId());
                 snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, snapshot));
-                snapshot.setDeviceLabel(vnxeLunSnap.getName());
                 snapshot.setIsSyncActive(true);
                 snapshot.setInactive(false);
                 snapshot.setCreationTime(Calendar.getInstance());
-                snapshot.setAllocatedCapacity(lun.getSnapsSizeAllocated());
-                snapshot.setProvisionedCapacity(lun.getSnapsSize());
-                _logger.info(String.format("Going to set blocksnapshot %1$s nativeId to %2$s (%3$s). Associated volume is %4$s (%5$s)",
-                        snapshot.getId().toString(), output.getId(), vnxeLunSnap.getName(), volume.getNativeId(), volume.getLabel()));
-                dbClient.persistObject(snapshot);
+                
+                if (vnxeApiClient.isUnityClient()) {
+                    Snap snap = vnxeApiClient.getSnapshot(output.getId());
+                    snapshot.setDeviceLabel(snap.getName());
+                    snapshot.setAllocatedCapacity(snap.getSize());
+                    snapshot.setProvisionedCapacity(snap.getSize());
+                } else {
+                    VNXeLunSnap vnxeLunSnap = vnxeApiClient.getLunSnapshot(output.getId());
+                    VNXeLun lun = vnxeApiClient.getLun(vnxeLunSnap.getLun().getId());
+                    snapshot.setDeviceLabel(vnxeLunSnap.getName());
+                    snapshot.setAllocatedCapacity(lun.getSnapsSizeAllocated());
+                    snapshot.setProvisionedCapacity(lun.getSnapsSize());
+                }
+
+                _logger.info(String.format("Going to set blocksnapshot %1$s nativeId to %2$s. Associated volume is %3$s (%4$s)",
+                        snapshot.getId().toString(), output.getId(), volume.getNativeId(), volume.getLabel()));
+                dbClient.updateObject(snapshot);
                 getTaskCompleter().ready(dbClient);
 
             } else if (_status == JobStatus.FAILED) {
                 _logger.info("Failed to create snapshot");
                 BlockSnapshot snapshot = snapshots.get(0);
                 snapshot.setInactive(true);
-                dbClient.persistObject(snapshot);
+                dbClient.updateObject(snapshot);
             }
         } catch (Exception e) {
             _logger.error("Caught an exception while trying to updateStatus for VNXeBlockSnapshotCreateJob", e);

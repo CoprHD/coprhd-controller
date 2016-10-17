@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -85,6 +87,10 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     private static final String CIM_BAD_REQUEST = "HTTP 400 - Bad Request (CIMError: \"request-not-well-formed\", OpenPegasus Error: \"Bad opening element: on line 1\")";
     private static final int MAXIMUM_LUN = 511;
     private static final String INVALID_LUN_ERROR_MSG = "Logical unit number provided (%d) is larger than allowed (%d).";
+    
+    private static final String QUANTITY = "Quantity";
+    private static final String SIZE = "Size";
+    private static final String ELEMENT_NAMES = "ElementNames";
 
     CIMArgumentFactory _cimArgument = null;
     CIMPropertyFactory _cimProperty = null;
@@ -259,9 +265,67 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             // throw exception, so that caller can send error if volumes are not deleted by checking CG members
             // after this call
             throw new Exception("Failed with return code: " + obj);
+        } else if (returnCode != CIM_SUCCESS_CODE && methodName.equals(CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL)
+                && checkIfVolumeSizeExceedingPoolSize(inArgs, outArgs)) {
+            throw DeviceControllerException.exceptions.volumeSizeExceedingPoolSize(getVolumeName(inArgs));
         } else if (returnCode != CIM_SUCCESS_CODE) {
             throw new Exception("Failed with return code: " + obj);
         }
+    }
+
+    /**
+     * Method checks whether the requested volume size exceeds pool size
+     * @param inArgs Requested args
+     * @param outArgs Original args
+     * @return boolean
+     */
+    private boolean checkIfVolumeSizeExceedingPoolSize(CIMArgument[] inArgs, CIMArgument[] outArgs) {
+        if (getVolumeSize(inArgs) > getVolumeSize(outArgs)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Method returns the requested volume name 
+     * @param inArgs
+     * @return
+     */
+    private String getVolumeName(CIMArgument[] inArgs) {
+        String volumeName = null;
+        for (CIMArgument arg : inArgs) {
+            if (arg != null) {
+                if (arg.getName().equals(ELEMENT_NAMES)) {
+                    String[] elements = (String[]) arg.getValue();
+                    if (elements != null) {
+                        String tempName = elements[0];
+                        if (elements.length == 1) {
+                            volumeName = tempName;
+                        } else {
+                            volumeName = tempName.substring(0, tempName.length() - 2);
+                        }
+                    }
+                }
+            }
+        }
+        return volumeName;
+    }
+
+    //Internal method to get volume size
+    private Long getVolumeSize(CIMArgument[] inArgs) {
+        int quantity = 0;
+        Long size = 0L;
+        for(CIMArgument arg : inArgs){
+            if (arg != null) {
+                if (arg.getName().equals(QUANTITY)) {
+                    quantity = Integer.parseInt(arg.getValue().toString());
+                }
+                if(arg.getName().equals(SIZE)) {
+                    size = Long.parseLong(arg.getValue().toString());
+                }
+            }
+        }
+        return quantity*size ;
     }
 
     /**
@@ -745,6 +809,12 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return getConnection(storageDevice).getCimClient().associatorInstances(
                 path, null, resultClass, null, null, false, prop);
     }
+    
+    public CloseableIterator<CIMInstance> getReferenceInstances(
+            StorageSystem storageDevice, CIMObjectPath path, String resultClass, String role, String[] prop)
+            throws WBEMException {
+        return getConnection(storageDevice).getCimClient().referenceInstances(path, resultClass, role, false, prop);
+    }
 
     /*
      * Return CIM instance if there is one, otherwise return null.
@@ -1062,13 +1132,13 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 _cimArgument.uint16("Consistency", 3),
                 _cimArgument.uint16("Mode", 3),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
-                _cimArgument.reference(CP_SOURCE_GROUP, cgPath) };
+                _cimArgument.reference(CP_SOURCE_GROUP, cgPath),
+                _cimArgument.string(RELATIONSHIP_NAME, label)};
         final List<CIMArgument> args = new ArrayList<CIMArgument>(
                 Arrays.asList(basicArgs));
         // If active, add the RelationshipName
         if (!createInactive) {
             args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
-            args.add(_cimArgument.string(RELATIONSHIP_NAME, label));
         }
         return args.toArray(new CIMArgument[args.size()]);
     }

@@ -18,6 +18,16 @@ import java.util.Map;
  */
 public class DriverUtil {
 
+    private static Map<CapUnit, Long> factors = new HashMap <>();
+
+    static {
+        factors.put(CapUnit.KB, 1024L);
+        factors.put(CapUnit.MB, 1024L * 1024L);
+        factors.put(CapUnit.GB, 1024L * 1024L * 1024L);
+        factors.put(CapUnit.TB, 1024L * 1024L * 1024L * 1024L);
+        factors.put(CapUnit.PB, 1024L * 1024L * 1024L * 1024L * 1024L);
+    }
+
     /**
      * Convert WWN number like "500009735014fc18" to "50:00:09:73:50:14:fc:18".
      *
@@ -48,13 +58,22 @@ public class DriverUtil {
         if (value == null) {
             return null;
         }
-        Map<CapUnit, Long> factors = new HashMap <>();
-        factors.put(CapUnit.KB, 1L);
-        factors.put(CapUnit.MB, 1024L );
-        factors.put(CapUnit.GB, 1024L * 1024L);
-        factors.put(CapUnit.TB, 1024L * 1024L * 1024L);
-        factors.put(CapUnit.PB, 1024L * 1024L * 1024L * 1024L);
-        Double valueInBytes = value * factors.get(unit);
+        Double valueInBytes = value * factors.get(unit) / 1024L;
         return valueInBytes.longValue();
+    }
+
+    /**
+     * Convert the given number from bytes to given cap unit.
+     *
+     * @param value Number in bytes.
+     * @param unit KB, MB, GB or PB.
+     * @return The number in the given unit.
+     */
+    public static Long convertFromBytes(Long value, CapUnit unit) {
+        if (value == null) {
+            return null;
+        }
+        Long valueInBytes = value / factors.get(unit);
+        return valueInBytes;
     }
 }

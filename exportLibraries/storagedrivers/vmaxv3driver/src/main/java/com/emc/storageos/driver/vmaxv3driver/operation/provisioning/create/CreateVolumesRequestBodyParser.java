@@ -11,6 +11,8 @@ import com.emc.storageos.driver.vmaxv3driver.exception.Vmaxv3RestCallException;
 import com.emc.storageos.driver.vmaxv3driver.rest.request.RequestStorageGroupPost;
 import com.emc.storageos.driver.vmaxv3driver.rest.request.SloBasedStorageGroupParam;
 import com.emc.storageos.driver.vmaxv3driver.rest.request.VolumeAttribute;
+import com.emc.storageos.driver.vmaxv3driver.util.CapUnit;
+import com.emc.storageos.driver.vmaxv3driver.util.DriverUtil;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
@@ -97,7 +99,8 @@ public class CreateVolumesRequestBodyParser implements RequestBodyParser {
         param.setSloId(Vmaxv3Constants.DEFAULT_VALUE_STORAGE_GROUP_SLO);
         param.setWorkloadSelection(Vmaxv3Constants.DEFAULT_VALUE_STORAGE_GROUP_WORKLOAD);
         VolumeAttribute volumeAttribute = new VolumeAttribute();
-        volumeAttribute.setVolume_size(String.valueOf(volume.getRequestedCapacity()));
+        volumeAttribute.setVolume_size(String.valueOf(
+            DriverUtil.convertFromBytes(volume.getRequestedCapacity(), CapUnit.GB)));
         volumeAttribute.setCapacityUnit(Vmaxv3Constants.DEFAULT_VALUE_VOLUME_CAPACITY_UNIT);
         param.setVolumeAttribute(volumeAttribute);
         List<SloBasedStorageGroupParam> params = new ArrayList<>();

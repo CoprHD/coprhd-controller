@@ -5,6 +5,8 @@
 
 package com.emc.storageos.driver.vmaxv3driver;
 
+import com.emc.storageos.driver.vmaxv3driver.util.CapUnit;
+
 /**
  * This class defines all the constants of this project.
  *
@@ -47,7 +49,7 @@ public class Vmaxv3Constants {
     public static final String DEFAULT_VALUE_STORAGE_GROUP_SLO = "Optimized";
     public static final String DEFAULT_VALUE_STORAGE_GROUP_WORKLOAD = "NONE";
     public static final String DEFAULT_VALUE_STORAGE_GROUP_NAME= "VSBS_%1$s_%2$s_%3$s_%4$s";
-    public static final String DEFAULT_VALUE_VOLUME_CAPACITY_UNIT= "GB";
+    public static final String DEFAULT_VALUE_VOLUME_CAPACITY_UNIT= CapUnit.GB.toString();
 
 
 }

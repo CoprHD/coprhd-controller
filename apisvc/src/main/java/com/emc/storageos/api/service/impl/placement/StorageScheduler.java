@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
@@ -1679,7 +1680,9 @@ public class StorageScheduler implements Scheduler {
         }
         URI storageControllerUri = placement.getCandidateSystems().get(0);
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageControllerUri);
-        volume.setSystemType(storageSystem.getSystemType());
+        String systemType = storageSystem.checkIfVmax3() ? 
+                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+        volume.setSystemType(systemType);
         volume.setStorageController(storageControllerUri);
         volume.setPool(poolId);
         if (consistencyGroup != null) {

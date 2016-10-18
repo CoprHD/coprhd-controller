@@ -1585,7 +1585,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         volume.setPool(pool.getId());
                         volume.setStorageController(pool.getStorageDevice());
                         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, pool.getStorageDevice());
-                        volume.setSystemType(storageSystem.getSystemType());
+                        String systemType = storageSystem.checkIfVmax3() ? 
+                                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+                        volume.setSystemType(systemType);
                     }
                 }
             }

@@ -87,17 +87,6 @@ public class NetworkUtil {
         return network;
     }
 
-    public static NetworkLite getNetworkLiteOfInitiatorPair(String endpoint, DbClient dbClient) {
-        NetworkLite network = null;
-        network = getEndpointNetworkLite(endpoint, dbClient);
-        if (network == null) {
-            String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(endpoint, dbClient);
-            if (associatedInitiatorEndpoint != null) {
-                network = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, dbClient);
-            }
-        }
-        return network;
-    }
 
     /**
      * Get the network that has the endpoint
@@ -158,15 +147,6 @@ public class NetworkUtil {
         return networks;
     }
 
-    public static Set<NetworkLite> getAllNetworksForEndpoint(String endpoint, DbClient dbClient) {
-        Set<NetworkLite> networks = new HashSet<NetworkLite>();
-        NetworkLite networkLite = getNetworkLiteOfInitiatorPair(endpoint, dbClient);
-        if (networkLite != null) {
-            networks.add(networkLite);
-            networks.addAll(getNetworkLiteRoutedNetworks(networkLite, dbClient));
-        }
-        return networks;
-    }
 
     /**
      * Returns an instance of NetworkLite for every network that is routed to the request network.
@@ -568,31 +548,6 @@ public class NetworkUtil {
         return map;
     }
 
-    /**
-     * This is same as {@link NetworkUtil#getInitiatorsByNetwork(Collection, DbClient)}, except this method considers the associated
-     * initiator also.
-     * 
-     * @param initiators the collection of initiators
-     * @param dbClient
-     * @return a map of network-to-initiators
-     */
-    public static Map<NetworkLite, List<Initiator>> getNetworkToInitiatorsMap(Collection<Initiator> initiators, DbClient dbClient) {
-        Map<NetworkLite, List<Initiator>> map = new HashMap<NetworkLite, List<Initiator>>();
-        NetworkLite network = null;
-        List<Initiator> netInitiators = null;
-        for (Initiator initiator : initiators) {
-            network = NetworkUtil.getNetworkLiteOfInitiatorPair(initiator.getInitiatorPort(), dbClient);
-            if (network != null) {
-                netInitiators = map.get(network);
-                if (netInitiators == null) {
-                    netInitiators = new ArrayList<Initiator>();
-                    map.put(network, netInitiators);
-                }
-                netInitiators.add(initiator);
-            }
-        }
-        return map;
-    }
 
     /**
      * Returns the ports in the given network in a port-wwn-to-port map.

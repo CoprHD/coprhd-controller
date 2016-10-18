@@ -16,9 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +57,7 @@ import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerExc
 import com.emc.storageos.networkcontroller.impl.mds.Zone;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneMember;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
@@ -234,7 +233,14 @@ public class NetworkScheduler {
         _log.info("Placing a zone for initiator {} and port {}", initiatorPort, storagePortWwn);
 
         // do some validation
-        NetworkLite iniNet = NetworkUtil.getNetworkLiteOfInitiatorPair(initiatorPort, _dbClient);
+        NetworkLite iniNet = NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient);
+        if (iniNet == null) {
+            // now check its associated endpoint is part of network or not.
+            String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(initiatorPort, _dbClient);
+            if (associatedInitiatorEndpoint != null && !associatedInitiatorEndpoint.isEmpty()) {
+                iniNet = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, _dbClient);
+            }
+        }
         NetworkLite portNet = getStoragePortNetwork(storagePort);
         if (iniNet == null || portNet == null || !NetworkUtil.checkInitiatorAndPortConnected(iniNet, portNet)) {
             _log.debug(String.format(

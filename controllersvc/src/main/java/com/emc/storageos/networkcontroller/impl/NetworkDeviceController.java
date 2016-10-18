@@ -2113,7 +2113,8 @@ public class NetworkDeviceController implements NetworkController {
      */
     public ZoneInfoMap getInitiatorsZoneInfoMap(List<Initiator> initiators, List<StoragePort> storagePorts) {
         ZoneInfoMap zoningMap = new ZoneInfoMap();
-        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
+        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+        updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!Transport.FC.toString().equals(entry.getKey().getTransportType())) {
                 continue;
@@ -2136,7 +2137,8 @@ public class NetworkDeviceController implements NetworkController {
      */
     public Map<String, List<Zone>> getInitiatorsZones(Collection<Initiator> initiators) {
         Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
-        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
+        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+        updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 Map<String, List<Zone>> map = getInitiatorsInNetworkZones(entry.getKey(), entry.getValue());
@@ -2144,6 +2146,36 @@ public class NetworkDeviceController implements NetworkController {
             }
         }
         return zonesMap;
+    }
+
+    /**
+     * Update the network to initiators map by considering associated initiator network.
+     * 
+     * @param map map need to be modified.
+     * @param initiators list for initiators
+     * @param dbClient dbClient
+     */
+    private void updateNetworkToInitiatorsMap(Map<NetworkLite, List<Initiator>> map, Collection<Initiator> initiators,
+            DbClient dbClient) {
+
+        NetworkLite network = null;
+        List<Initiator> netInitiators = null;
+        for (Initiator initiator : initiators) {
+            String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(initiator.getInitiatorPort(), dbClient);
+            if (associatedInitiatorEndpoint != null && !associatedInitiatorEndpoint.isEmpty()) {
+                network = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, dbClient);
+                if (network != null) {
+                    netInitiators = map.get(network);
+                    if (netInitiators == null) {
+                        netInitiators = new ArrayList<Initiator>();
+                        map.put(network, netInitiators);
+                    }
+                    netInitiators.add(initiator);
+                }
+            }
+        }
+
+
     }
 
     /**
@@ -2208,8 +2240,8 @@ public class NetworkDeviceController implements NetworkController {
                 // possibly the first time this export mask is processed, populate from existing zones
                 List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
                 List<Initiator> initiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
-
+                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+                updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
                 StringSetMap zoningMap = new StringSetMap();
                 for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
                     if (!Transport.FC.toString().equals(network.getTransportType())) {

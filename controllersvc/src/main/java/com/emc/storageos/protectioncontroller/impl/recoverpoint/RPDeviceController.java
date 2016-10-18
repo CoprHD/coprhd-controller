@@ -5219,6 +5219,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             snapshot.setDeviceLabel(targetVolume.getDeviceLabel());
             snapshot.setStorageController(targetVolume.getStorageController());
+            snapshot.setSystemType(targetVolume.getSystemType());
             snapshot.setVirtualArray(targetVolume.getVirtualArray());
             snapshot.setNativeId(targetVolume.getNativeId());
             snapshot.setAlternateName(targetVolume.getAlternateName());

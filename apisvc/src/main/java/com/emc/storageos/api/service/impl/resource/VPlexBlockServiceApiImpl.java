@@ -2043,6 +2043,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             volume.setProtocol(protocols);
         }
         volume.setStorageController(storageSystemURI);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
+        volume.setSystemType(storageSystem.getSystemType());
         volume.setPool(storagePoolURI);
         volume.setOpStatus(new OpStatusMap());
 
@@ -3245,6 +3247,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         snapshot.setParent(new NamedURI(nativeSnapshotSourceVolume.getId(), nativeSnapshotSourceVolume.getLabel()));
         snapshot.setLabel(label);
         snapshot.setStorageController(nativeSnapshotSourceVolume.getStorageController());
+        snapshot.setSystemType(nativeSnapshotSourceVolume.getSystemType());
         snapshot.setVirtualArray(nativeSnapshotSourceVolume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(nativeSnapshotSourceVolume.getProtocol());

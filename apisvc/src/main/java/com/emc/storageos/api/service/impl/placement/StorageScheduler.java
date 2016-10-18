@@ -1677,7 +1677,10 @@ public class StorageScheduler implements Scheduler {
                         VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-        volume.setStorageController(placement.getCandidateSystems().get(0));
+        URI storageControllerUri = placement.getCandidateSystems().get(0);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageControllerUri);
+        volume.setSystemType(storageSystem.getSystemType());
+        volume.setStorageController(storageControllerUri);
         volume.setPool(poolId);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
@@ -1778,6 +1781,7 @@ public class StorageScheduler implements Scheduler {
         }
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
+        createdMirror.setSystemType(volume.getSystemType());
         createdMirror.setVirtualArray(volume.getVirtualArray());
         // Setting the source Volume autoTieringPolicy in Mirror.
         // @TODO we must accept the policy as an input for mirrors and requires API changes.

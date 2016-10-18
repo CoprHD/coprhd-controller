@@ -442,15 +442,20 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume.setAccessState(VolumeAccessState.NOT_READY.name());
         }
 
+        URI storageSystemUri = null;
         if (!remote) {
-            volume.setStorageController(placement.getSourceStorageSystem());
+            storageSystemUri = placement.getSourceStorageSystem();
+            volume.setStorageController(storageSystemUri);
             volume.setPool(placement.getSourceStoragePool());
         } else {
-            volume.setStorageController(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
-                    .get(varray.getId()).getTargetStorageDevice());
+            storageSystemUri = ((SRDFRecommendation) placement).getVirtualArrayTargetMap()
+                    .get(varray.getId()).getTargetStorageDevice();
+            volume.setStorageController(storageSystemUri);
             volume.setPool(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStoragePool());
         }
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+        volume.setSystemType(storageSystem.getSystemType());
 
         volume.setOpStatus(new OpStatusMap());
         Operation op = new Operation();

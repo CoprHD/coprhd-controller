@@ -416,6 +416,7 @@ public abstract class BlockIngestOrchestrator {
         volume.setVirtualPool(vPool.getId());
         volume.setVirtualArray(virtualArray.getId());
         volume.setStorageController(system.getId());
+        volume.setSystemType(system.getSystemType());
         volume.setPool(unManagedVolume.getStoragePoolUri());
         // adding capacity
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(

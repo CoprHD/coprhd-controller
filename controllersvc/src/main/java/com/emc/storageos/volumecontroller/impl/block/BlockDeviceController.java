@@ -2305,6 +2305,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     sourceSnapshot.setParent(new NamedURI(aSnapshot.getId(), aSnapshot.getLabel()));
                     sourceSnapshot.setSourceNativeId(aSnapshot.getNativeId());
                     sourceSnapshot.setStorageController(storage);
+                    sourceSnapshot.setSystemType(system.getSystemType());
                     if (!NullColumnValueGetter.isNullURI(cgURI)) {
                         sourceSnapshot.setConsistencyGroup(cgURI);
                     }

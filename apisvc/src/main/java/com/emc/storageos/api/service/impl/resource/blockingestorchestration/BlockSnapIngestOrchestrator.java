@@ -133,6 +133,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         snapShot.setSnapsetLabel(snapsetName);
 
         snapShot.setStorageController(requestContext.getStorageSystem().getId());
+        snapShot.setSystemType(requestContext.getStorageSystem().getSystemType());
         snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());
         snapShot.setProject(new NamedURI(requestContext.getProject().getId(), snapShot.getLabel()));
         snapShot.setWWN(unManagedVolume.getWwn());

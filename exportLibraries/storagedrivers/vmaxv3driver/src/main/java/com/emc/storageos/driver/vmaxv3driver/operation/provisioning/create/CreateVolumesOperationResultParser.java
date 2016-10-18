@@ -7,6 +7,8 @@ package com.emc.storageos.driver.vmaxv3driver.operation.provisioning.create;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationResultParser;
 import com.emc.storageos.driver.vmaxv3driver.rest.response.Volume;
+import com.emc.storageos.driver.vmaxv3driver.util.CapUnit;
+import com.emc.storageos.driver.vmaxv3driver.util.DriverUtil;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 
 import java.util.List;
@@ -50,6 +52,7 @@ public class CreateVolumesOperationResultParser implements OperationResultParser
             target.setWwn(source.getWwn());
             target.setDisplayName(source.getVolumeId());
             target.setDeviceLabel(source.getVolumeId());
+            target.setProvisionedCapacity(DriverUtil.convert2Bytes(CapUnit.GB, source.getCap_gb()));
         }
         return this.passedInOut;
     }

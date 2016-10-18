@@ -25,10 +25,16 @@ public class DriverUtilTest {
 
     @Test
     public void testConvertToBytes() {
-        logger.debug("Bytes of 64KB = {}", DriverUtil.convert2KB(CapUnit.KB,64.0));
-        logger.debug("Bytes of 100MB = {}", DriverUtil.convert2KB(CapUnit.MB, 100.0));
-        logger.debug("Bytes of 1GB = {}", DriverUtil.convert2KB(CapUnit.GB, 1.0));
-        logger.debug("Bytes of 49044.02 GB = {}", DriverUtil.convert2KB(CapUnit.GB, 49044.02));
+        logger.debug("KB of 64KB = {}", DriverUtil.convert2KB(CapUnit.KB,64.0));
+        logger.debug("KB of 100MB = {}", DriverUtil.convert2KB(CapUnit.MB, 100.0));
+        logger.debug("KB of 1GB = {}", DriverUtil.convert2KB(CapUnit.GB, 1.0));
+        logger.debug("KB of 49044.02 GB = {}", DriverUtil.convert2KB(CapUnit.GB, 49044.02));
+
+        logger.debug("Bytes of 64KB = {}", DriverUtil.convert2Bytes(CapUnit.KB,64.0));
+        logger.debug("Bytes of 100MB = {}", DriverUtil.convert2Bytes(CapUnit.MB, 100.0));
+        logger.debug("Bytes of 1GB = {}", DriverUtil.convert2Bytes(CapUnit.GB, 1.0));
+        logger.debug("Bytes of 49044.02 GB = {}", DriverUtil.convert2Bytes(CapUnit.GB, 49044.02));
+
     }
 
     @Test

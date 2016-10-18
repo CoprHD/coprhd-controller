@@ -52,13 +52,25 @@ public class DriverUtil {
      * Convert the given value(with given unit) into kilobytes.
      * @param unit CapUnit enum value: KB, MB, GB, TB, PB
      * @param value The value to be converted
-     * @return Value in bytes
+     * @return Value in KB
      */
     public static Long convert2KB(CapUnit unit, Double value) {
+        Long bytes = convert2Bytes(unit, value);
+        return bytes == null ? null : bytes / 1024;
+    }
+
+
+    /**
+     * Convert the given value(with given unit) into bytes.
+     * @param unit CapUnit enum value: KB, MB, GB, TB, PB
+     * @param value The value to be converted
+     * @return Value in bytes
+     */
+    public static Long convert2Bytes(CapUnit unit, Double value) {
         if (value == null) {
             return null;
         }
-        Double valueInBytes = value * factors.get(unit) / 1024L;
+        Double valueInBytes = value * factors.get(unit);
         return valueInBytes.longValue();
     }
 

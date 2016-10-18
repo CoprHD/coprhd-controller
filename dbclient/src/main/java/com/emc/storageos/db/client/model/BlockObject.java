@@ -66,7 +66,7 @@ public abstract class BlockObject extends DataObject {
     // Name reference of replication group that the object belong to.
     private String _replicationGroupInstance;
 
-    // The storage system type this Volume belongs to
+    // The storage system type this BlockObject belongs to
     private String _systemType;
 
     @AlternateId("AltIdIndex")

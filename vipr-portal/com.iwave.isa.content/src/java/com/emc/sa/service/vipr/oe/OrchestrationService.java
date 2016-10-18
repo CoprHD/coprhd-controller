@@ -89,7 +89,7 @@ public class OrchestrationService extends ViPRService {
 	public void execute() throws Exception {
 	    ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
         try {
-            workflowDefinitionParser();
+            wfExecutor();
 
             ExecutionUtils.currentContext().logInfo("Orchestration Engine Successfully executed Workflow:"
                     + params.get(OrchestrationServiceConstants.WF_ID));
@@ -105,7 +105,7 @@ public class OrchestrationService extends ViPRService {
      * Method to parse Workflow Definition JSON
      * @throws Exception
      */
-    public void workflowDefinitionParser() throws Exception {
+    public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
 

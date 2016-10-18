@@ -147,6 +147,8 @@ public class HostMapper {
         to.setHostName(from.getHostName());
         if (from.getVirtualMachine() != null) {
             to.setIsVirtualMachine(from.getVirtualMachine());
+        } else {
+            to.setIsVirtualMachine(false);
         }
         to.setType(from.getType());
         to.setUsername(from.getUsername());

@@ -1062,7 +1062,13 @@ public class ExportUtils {
      */
     public static boolean isInitiatorInVArraysNetworks(URI virtualArrayURI, Initiator initiator, DbClient dbClient) {
         boolean foundAnAssociatedNetwork = false;
-        Set<NetworkLite> networks = NetworkUtil.getAllNetworksForEndpoint(initiator.getInitiatorPort(), dbClient);
+        Set<NetworkLite> networks = NetworkUtil.getEndpointAllNetworksLite(initiator.getInitiatorPort(), dbClient);
+        // now check its associated initiator is part of network or not.
+        Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+        if (associatedInitiator != null) {
+            Set<NetworkLite> associatedNetworks = NetworkUtil.getEndpointAllNetworksLite(associatedInitiator.getInitiatorPort(), dbClient);
+            networks.addAll(associatedNetworks);
+        }
         if (networks == null || networks.isEmpty()) {
             // No network associated with the initiator, so it should be removed from the list
             _log.info(String.format("Initiator %s (%s) is not associated with any network.",

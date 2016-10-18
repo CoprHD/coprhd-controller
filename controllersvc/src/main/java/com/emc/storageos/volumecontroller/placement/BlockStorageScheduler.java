@@ -1152,9 +1152,14 @@ public class BlockStorageScheduler {
     public static NetworkLite lookupNetworkLite(DbClient dbClient, StorageProtocol.Transport transportType,
             String endpoint) {
         try {
-            NetworkLite netLite = NetworkUtil.getNetworkLiteOfInitiatorPair(endpoint, dbClient);
+            NetworkLite netLite = NetworkUtil.getEndpointNetworkLite(endpoint, dbClient);
             if (netLite == null) {
-                return null;
+                // now check its associated endpoint is part of network or not.
+                String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(endpoint, dbClient);
+                if (associatedInitiatorEndpoint != null && !associatedInitiatorEndpoint.isEmpty()) {
+                    netLite = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, dbClient);
+                }
+                return netLite;
             }
             if (!netLite.registered()) {
                 _log.info("Network lookup: the endpoint network is deregistered.");
@@ -2024,7 +2029,8 @@ public class BlockStorageScheduler {
                 // At this time we are not discovering routed zones but we will take care of this
                 Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
                         _dbClient, storage.getId(), virtualArrayUri, pathParams);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getNetworkToInitiatorsMap(newInitiators, _dbClient);
+                Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+                updateNetworkToInitiatorsMap(initiatorsByNetwork, initiators, _dbClient);
                 Map<Initiator, NetworkLite> initiatorToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);
@@ -2089,6 +2095,35 @@ public class BlockStorageScheduler {
             }
         }
         return newZoningMap;
+    }
+
+    /**
+     * Update the network to initiators map by considering associated initiator network.
+     * 
+     * @param map map need to be modified.
+     * @param initiators list for initiators
+     * @param dbClient dbClient
+     */
+    private void updateNetworkToInitiatorsMap(Map<NetworkLite, List<Initiator>> map, Collection<Initiator> initiators,
+            DbClient dbClient) {
+
+        NetworkLite network = null;
+        List<Initiator> netInitiators = null;
+        for (Initiator initiator : initiators) {
+            String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(initiator.getInitiatorPort(), dbClient);
+            if (associatedInitiatorEndpoint != null && !associatedInitiatorEndpoint.isEmpty()) {
+                network = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, dbClient);
+                if (network != null) {
+                    netInitiators = map.get(network);
+                    if (netInitiators == null) {
+                        netInitiators = new ArrayList<Initiator>();
+                        map.put(network, netInitiators);
+                    }
+                    netInitiators.add(initiator);
+                }
+            }
+        }
+
     }
 
     /**

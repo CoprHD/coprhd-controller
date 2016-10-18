@@ -537,6 +537,7 @@ DATADOMAINF_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 SRDF_VOLUME=srdfSanity-${HOSTNAME}-${RANDOM}
 SRDF_V3_VMAXA_SID=${SRDF_V3_VMAXA_NATIVEGUID:10:24}
 SRDF_V3_VMAXB_SID=${SRDF_V3_VMAXB_NATIVEGUID:10:24}
+SRDF_SSH_ERROR=0
 SRDF_SSH_RESULT=""
 SRDF_USED_RDFGS=()
 SRDF_RDF_NUMBER=1
@@ -548,7 +549,9 @@ ssleep() {
 }
 
 srdf_ssh(){
-    SRDF_SSH_RESULT=$(sshpass -p $2 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$1 $3)
+    SRDF_SSH_ERROR=0
+    SRDF_SSH_RESULT=""
+    SRDF_SSH_RESULT=$(sshpass -p $2 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=no root@$1 $3) || SRDF_SSH_ERROR=$?
 }
 
 srdf_generate_rdfg_name() {
@@ -1802,8 +1805,8 @@ srdf_network_setup() {
     run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     secho "Sleeping 30 seconds..."
     sleep 30
-    transportzone listall | grep -q ${SRDF_VMAXA_VSAN}
-    if [ $? -ne 0 ]; then
+    is_present=$(transportzone listall | (grep ${SRDF_VMAXA_VSAN} || echo ''))
+    if [ "$is_present" == '' ]; then
         echo "Discovering network"
         run networksystem discover $BROCADE_NETWORK
         secho "Sleeping 30 seconds..."
@@ -1819,19 +1822,17 @@ srdf_create_rdfg() {
     retry=${SRDF_RDF_CREATE_RETRY}
     while : ; do
         SRDF_USED_RDFGS=()
-        SRDF_SSH_RESULT=""
 
         srdf_get_rdfg_number
         echo "Creating RDF group ${SRDF_PROJECT} with group number ${SRDF_RDF_NUMBER}"
-
         srdf_run_symrdf addgrp -rdfg ${SRDF_RDF_NUMBER} -dir ${SRDF_V3_VMAXA_DIR} -remote_rdfg ${SRDF_RDF_NUMBER} -remote_sid ${SRDF_V3_VMAXB_SID} -remote_dir ${SRDF_V3_VMAXB_DIR}
-        ret=$?
+        ret=${SRDF_SSH_ERROR}
         if [ $ret -eq 0 ]; then
             echo "Completed creating group"
-            break
+            return
         elif [ $ret -eq 1 ]; then
             echo "Failed to create group"
-            break
+            return 1
         elif [ $retry -gt 0 ]; then
             retry=$[$retry-1]
             if [ $ret -eq 2 ]; then
@@ -1845,7 +1846,8 @@ srdf_create_rdfg() {
 
             echo "Retrying with new group name/number"
         else
-            break
+            echo "Failed to create group"
+            return 1
         fi
     done
 }
@@ -1877,41 +1879,51 @@ srdf_get_rdfg_number() {
 srdf_find_rdfgs() {
     cmd="${SYMCLI_PATH}/symcfg list -sid ${3} -rdfg all | grep '^[ 0-9].*[0-9]$' | awk '{print \$1}' 2>&1"
     srdf_ssh "${1}" "${2}" "$cmd"
-    if [[ ${SRDF_SSH_RESULT} != "" ]]; then
+
+    if [ "${SRDF_SSH_RESULT}" != "" ]; then
         SRDF_USED_RDFGS+=(${SRDF_SSH_RESULT})
+    else
+        echo "Failed to get RDF groups"
+        return 1
     fi
 }
 
 srdf_run_symrdf() {
     cmd="${SYMCLI_PATH}/symrdf $@ -label $SRDF_PROJECT -sid ${SRDF_V3_VMAXA_SID} -noprompt 2>&1"
     srdf_ssh "${SRDF_V3_VMAXA_SMIS_IP}" "${SRDF_V3_VMAXA_SSH_PW}" "$cmd"
-    ret=$?
+    ret=${SRDF_SSH_ERROR}
     if [ $ret -ne 0 ]; then
         echo "Failed to call symrdf $1 - $SRDF_SSH_RESULT"
-        echo ${SRDF_SSH_RESULT} | grep -q "^The SYMAPI database file is already locked by another process"
-        if [ $? -eq 0 ]; then
-            return 2
+
+        is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^The SYMAPI database file is already locked by another process" || echo ''))
+        if [ "$is_present" != '' ]; then
+            SRDF_SSH_ERROR=2
+            return
         fi
 
-        echo ${SRDF_SSH_RESULT} | grep -q "^The specified dynamic RDF group label is in use"
-        if [ $? -eq 0 ]; then
-            return 3
+        is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^The specified dynamic RDF group label is in use" || echo ''))
+        if [ "$is_present" != '' ]; then
+           SRDF_SSH_ERROR=3
+           return
         fi
 
-        echo ${SRDF_SSH_RESULT} | grep -q "^The .* RDF group number specified is already defined"
-        if [ $? -eq 0 ]; then
-            return 4
+        is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^The .* RDF group number specified is already defined" || echo ''))
+        if [ "$is_present" != '' ]; then
+            SRDF_SSH_ERROR=4
+            return
         fi
 
-        return 1
+        SRDF_SSH_ERROR=1
+        return
     fi
 
-    echo ${SRDF_SSH_RESULT} | grep -q "^Successfully"
-    if [ $? -ne 0 ]; then
+    is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^Successfully" || echo ''))
+    if [ "$is_present" == '' ]; then
         echo "Operation $1 failed for RDF group $SRDF_PROJECT - ${SRDF_SSH_RESULT}"
-        return 1
+        SRDF_SSH_ERROR=1
+    else
+        echo "Operation $1 completed for RDF group ${SRDF_PROJECT}"
     fi
-    echo "Operation $1 completed for RDF group ${SRDF_PROJECT}"
 }
 
 srdf_common_setup() {

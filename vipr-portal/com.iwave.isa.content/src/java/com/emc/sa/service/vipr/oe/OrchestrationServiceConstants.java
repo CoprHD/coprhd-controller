@@ -45,6 +45,11 @@ public final class OrchestrationServiceConstants {
             this.inputType = inputType;
         }
 
+        @Override
+        public String toString() {
+            return inputType;
+        }
+
        public static InputType fromString(String v)
        {
             for (InputType e : InputType.values())
@@ -73,7 +78,7 @@ public final class OrchestrationServiceConstants {
 
         @Override
         public String toString() {
-		return stepType;
+		    return stepType;
         }
         public static StepType fromString(String v) {
             for (StepType e : StepType.values())

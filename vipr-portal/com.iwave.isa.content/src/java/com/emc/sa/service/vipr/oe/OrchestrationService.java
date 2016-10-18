@@ -56,10 +56,10 @@ public class OrchestrationService extends ViPRService {
     private String oeOrderJson;
 
     //<StepId, {"key" : "values...", "key" : "values ..."} ...>
-    final private HashMap<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
-    final private HashMap<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
+    final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
+    final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
 
-    final private HashMap<String, Step> stepsHash = new HashMap<String, WorkflowDefinition.Step>();
+    final private Map<String, Step> stepsHash = new HashMap<String, WorkflowDefinition.Step>();
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
@@ -81,7 +81,7 @@ public class OrchestrationService extends ViPRService {
 				getExecutionState().getProxyToken());
 		
 		// merge params into Workflow Definition JSON to make  Order JSON
-		oeOrderJson = OrchestrationUtils.makeOrderJson(params);
+		//oeOrderJson = OrchestrationUtils.makeOrderJson(params);
 		
 	}
 
@@ -91,7 +91,7 @@ public class OrchestrationService extends ViPRService {
         try {
             workflowDefinitionParser();
 
-            ExecutionUtils.currentContext().logInfo("Orchestration Engine SSuccessfully executed Workflow:"
+            ExecutionUtils.currentContext().logInfo("Orchestration Engine Successfully executed Workflow:"
                     + params.get(OrchestrationServiceConstants.WF_ID));
         } catch (final Exception e)
         {
@@ -105,8 +105,8 @@ public class OrchestrationService extends ViPRService {
      * Method to parse Workflow Definition JSON
      * @throws Exception
      */
-    public void workflowDefinitionParser() throws Exception
-    {
+    public void workflowDefinitionParser() throws Exception {
+
         logger.info("Parsing Workflow Definition");
 
         //TODO get json from DB
@@ -118,46 +118,31 @@ public class OrchestrationService extends ViPRService {
                 "Workflow: " + obj.getWorkflowName() + "\t Description:" + obj.getDescription());
 
 
-        //Store Steps in a Map with key as StepId
         final ArrayList<Step> steps = obj.getSteps();
-        for (Step step : steps) 
+        for (Step step : steps)
             stepsHash.put(step.getStepId(), step);
-        
-        //Get first Step to execute
-        Step step = stepsHash.get("Start");
+
+        Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefault();
 
-        while (!next.equals("End"))
-        {
+        while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
             ExecutionUtils.currentContext().logInfo("Orchestration Engine Running " +
                     "Step: " + step.getStepId());
 
-            logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
+            updateInputPerStep(step);
 
-            Map<String, Input> input = step.getInput();
-            if (input != null)
-                inputPerStep.put(step.getStepId(), makeInputPerStep(input));
-
-
-            StepAttribute stepAttribute = step.getStepAttribute();
             //TODO implement waitfortask
+            StepAttribute stepAttribute = step.getStepAttribute();
+
             String result = null;
 
-	    StepType type = StepType.fromString(step.getType());
-            switch(type)
-            {
+            StepType type = StepType.fromString(step.getType());
+            switch (type) {
                 case VIPR_REST: {
                     ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName());
-                    /* TODO GET from DB
-                     * handle Async and Sync
-		     * Set return code
-                     */
-                    //result = ViPRExecutionUtils.execute(new RunAnsible(step.getOpName()));
-		    //code = x;
-                    //List<URI> newViprTasks = OrchestrationUtils.updateOrder(result, getClient());
-                    //OrchestrationUtils.waitForViprTasks(newViprTasks, getClient(), stepAttribute.getTimeout());
+
                     break;
                 }
                 case REST: {
@@ -167,42 +152,34 @@ public class OrchestrationService extends ViPRService {
                 case ANSIBLE: {
                     ExecutionUtils.currentContext().logInfo("Running Ansible Step");
                     logger.info("Running AnsibleStep:{}", step);
-                    //TODO call Ansible
-                    //result = ViPRExecutionUtils.execute(new RunAnsible(step.getOpName()));
 
                     break;
                 }
                 default:
                     logger.error("Operation Type Not found. Type:{}", step.getType());
+
                     throw new IllegalStateException(result);
             }
 
-            if (step.getOutput() != null) 
-                outputPerStep.put(step.getStepId(), makeOutputPerStep(result, step.getOutput()));
-	    
+            updateOutputPerStep(step, result);
 
-	    if (step.getSuccessCritera() == null) {
-		if (evaluateDefaultValue(step, code)) {
-			next = step.getNext().getDefault();
-			ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
-                        	"Step: " + step.getStepId() + ":" + step + "result:" + result);
-                	continue;
-		}
-            }
 
-            else if(findStatus(step.getSuccessCritera(), result))
-            {
+            if ((step.getSuccessCritera() == null && evaluateDefaultValue(step, code)) || findStatus(step.getSuccessCritera(), result)) {
+
                 next = step.getNext().getDefault();
                 ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
                         "Step: " + step.getStepId() + ":" + step + "result:" + result);
-                continue;
+
+            } else {
+
+                next = step.getNext().getFailedStep();
+                ExecutionUtils.currentContext().logError("Orchestration Engine failed to run step " +
+                        "Step: " + step.getStepId() + ":" + step + "result:" + result);
+
             }
 
-	    ExecutionUtils.currentContext().logError("Orchestration Engine failed to run step " +
-			"Step: " + step.getStepId() + ":" + step + "result:" + result);
-            next = step.getNext().getFailedStep();
             if (next == null) {
-                ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrive next step " +
+                ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrieve next step " +
                         "Step: " + step.getStepId() + ":" + step);
 
                 throw new IllegalStateException(result);
@@ -213,10 +190,16 @@ public class OrchestrationService extends ViPRService {
     /**
      * Method to collect all required inputs per step for execution
      *
-     * @param input It is the GSON Object of Step Input
-     * @return It returns the the required inputs for a step
+     * @param step It is the GSON Object of Step
+     *
      */
-    private Map<String, List<String>> makeInputPerStep( final Map<String, Input> input) {
+    private void updateInputPerStep(final Step step) throws Exception
+    {
+        logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
+
+        Map<String, Input> input = step.getInput();
+        if (input == null)
+            return;
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
@@ -225,67 +208,85 @@ public class OrchestrationService extends ViPRService {
         {
             String key = it.next().toString();
             Input value = input.get(key);
-	    InputType OBJ = InputType.fromString(value.getType());
-            switch (OBJ)
+
+            if (value == null) {
+                logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getStepId());
+
+                throw new IllegalStateException();
+            }
+
+            switch (InputType.fromString(value.getType()))
             {
                 case FROM_USER:
                 case OTHERS:
                 case ASSET_OPTION:
                 {
-		    //TODO parse this when assent option is available
-		    logger.info("input type: OTHERS ASSET_OPTION FROM_USER");
-		    break;
-                    /*final String paramVal = params.get(key).toString();
+                    //TODO handle multiple , separated values
+                    final String paramVal = (params.get(key).toString() == null) ? (params.get(key).toString()) : (value.getDefault()) ;
+
+                    if (paramVal == null) {
+                        logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
+
+                        throw new IllegalStateException();
+                    }
+
                     List<String> valueList = new ArrayList<String>();
                     valueList.add(paramVal);
                     inputs.put(key, valueList);
-                    break;*/
+
+                    break;
                 }
                 case FROM_STEP_INPUT:
-                {
-		    //TODO parse this when assent option is available
-		    logger.info("input type:FROM_STEP_INPUT");
-		    break;
-                    //TODO if data is still not present waitfortask ... Do some more validation
-                    /*final String[] paramVal = value.getOtherStepValue().split(".");
-                    final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
-                    final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
-
-                    List<String> data = inputPerStep.get(stepId).get(attribute);
-
-                    inputs.put(key, data);
-                    break;*/
-                }
                 case FROM_STEP_OUTPUT:
                 {
-		    //TODO parse this when assent option is available
-		    logger.info("input type:FROM_STEP_OUTPUT");
-		    break;
-                    /*final String[] paramVal = value.getOtherStepValue().split(".");
+                    final String[] paramVal = value.getOtherStepValue().split(".");
                     final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
                     final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
-                    List<String> data = outputPerStep.get(stepId).get(attribute);
+
+                    List<String> data;
+                    if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                        data = inputPerStep.get(stepId).get(attribute);
+                    else
+                        data = outputPerStep.get(stepId).get(attribute);
+
+                    if (data == null) {
+                        //TODO if data is still not present waitfortask ... Do some more validation
+
+                        logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
+                        throw new IllegalStateException();
+                    }
 
                     inputs.put(key, data);
-                    break;*/
+                    break;
                 }
                 default:
                     logger.error("Input Type:{} is Invalid", value.getType());
+
+                    throw new IllegalStateException();
             }
         }
-        return inputs;
+
+        inputPerStep.put(step.getStepId(), inputs);
     }
 
-    private Map<String, List<String>> makeOutputPerStep(final String result, final Map<String, String> output) {
+    /**
+     * Parse REST Response and get output values as specified by the user in the workflow definition
+     *
+     * Example of Supported output variable formats:
+     * "state"
+     * "task.resource.id"
+     * "task.state"
+     *
+     * @param step
+     * @param result
+     */
+    private void updateOutputPerStep(final Step step, final String result)
+    {
+        final Map<String, String> output = step.getOutput();
+        if (output == null)
+            return;
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
-
-        /**
-         * Supported output evaluation:
-         * "state"
-         * "task.resource.id"
-         * "task.state"
-         */
 
         Set keyset = output.keySet();
         Iterator it = keyset.iterator();
@@ -295,10 +296,16 @@ public class OrchestrationService extends ViPRService {
             out.put(key, evaluateValue(result, value));
         }
 
-        return out;
+        outputPerStep.put(step.getStepId(), out);
     }
 
-    private boolean evaluateDefaultValue(Step step, int returnCode) {
+    /**
+     * Evaluate
+     * @param step
+     * @param returnCode
+     * @return
+     */
+    private boolean evaluateDefaultValue(final Step step, final int returnCode) {
         if (step.getType().equals(StepType.ANSIBLE.toString()))
         {
             if (returnCode == 0 )
@@ -316,6 +323,14 @@ public class OrchestrationService extends ViPRService {
         return false;
     }
 
+    /**
+     * This evaluates the expression from ViPR GSON structure.
+     * e.g: It evaluates "task.resource.id" from ViPR REST Response
+     *
+     * @param result
+     * @param value
+     * @return
+     */
     private List<String> evaluateValue(final String result, String value) {
 
         final Gson gson = new Gson();
@@ -351,29 +366,32 @@ public class OrchestrationService extends ViPRService {
         return valueList;
     }
 
+    /**
+     * This evaluates the status of a step from the SuccessCriteria mentioned in workflow definition JSON
+     * e.g: Supported Expression Language for SuccessCriteria
+     * 	Supported condition type code == x [x can be any number]
+     *  code == 404
+     *  code == 0
+     *  "#task_state == 'pending' and #description == 'create export1'";
+     *  "#state == 'ready'";
+     *
+     * @param successCriteria
+     * @param result
+     * @return
+     */
     private boolean findStatus(String successCriteria, final String result) {
 
-	logger.info("Find status for:{}", successCriteria);
+        logger.info("Find status for:{}", successCriteria);
         ExpressionParser parser = new SpelExpressionParser();
         Expression e2 = parser.parseExpression(successCriteria);
         EvaluationContext con2 = new StandardEvaluationContext(this);
-        /*
-	Supported condition type code == x [x can be any number]
-        code == 404
-        code == 0 
-        */
-        if (successCriteria.contains(OrchestrationServiceConstants.RETURN_CODE))
-        {
+
+        if (successCriteria.contains(OrchestrationServiceConstants.RETURN_CODE)) {
             boolean val = e2.getValue(con2, Boolean.class);
             logger.info("Evaluated value for errorCode or returnCode is:{}", val);
 
             return val;
         }
-
-        /*
-        "#task_state == 'pending' and #description == 'create export1'";
-        "#state == 'ready'";
-        */
 
         String[] statemets = successCriteria.split("or|and");
         Matcher matcher = Pattern.compile("#(\\w+)").matcher(successCriteria);
@@ -422,6 +440,7 @@ public class OrchestrationService extends ViPRService {
 
         return val1;
     }
+
 }
 
 

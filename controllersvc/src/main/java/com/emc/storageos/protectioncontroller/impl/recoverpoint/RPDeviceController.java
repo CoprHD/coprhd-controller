@@ -5593,7 +5593,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.failedToImageAccessBookmark();
             }
             
-            completer.ready(_dbClient, _locker);
+            WorkflowStepCompleter.stepSucceded(stepId);
+            _log.info("restoreVolume step is complete");
 
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);

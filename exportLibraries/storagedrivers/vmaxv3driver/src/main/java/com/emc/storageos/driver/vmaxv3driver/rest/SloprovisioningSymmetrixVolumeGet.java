@@ -36,7 +36,9 @@ public class SloprovisioningSymmetrixVolumeGet extends RestActionImpl {
     public Object perform(RestClient client) {
         String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_VOLUME,
             this.symmetrixId, this.volumeId);
+        logger.info("SloprovisioningSymmetrixVolumeGet request path = {}", path);
         String responseBody = client.request(path);
+        logger.info("SloprovisioningSymmetrixVolumeGet response body = {}", responseBody);
         Volume result = parseRestResult(responseBody);
         return result;
     }

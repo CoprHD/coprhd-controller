@@ -15,7 +15,7 @@
      	#{/ifnot}
     #{/ifnot}
     #{if projects || applications}
-    		#{Form.selectFilter filters:filterOptions/}
+    		#{Form.selectFilter filters:filterOptions, selectedFilter:session?.activeFilter/}
     		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
       		#{Form.selectApplication applications:applications, selectedApplication:session?.activeAppId/}
   
@@ -30,7 +30,7 @@
   #{/ifnot}
   #{if projects || applications}
     <div class="well well-sm form-inline">
-    		#{Form.selectFilter filters:filterOptions/}
+    		#{Form.selectFilter filters:filterOptions, selectedFilter:session?.activeFilter/}
     		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
       		#{Form.selectApplication applications:applications, selectedApplication:session?.activeAppId/}
     </div>
@@ -40,6 +40,7 @@
 
 function loadOptions() {
 	var filteredValue = $('#filter option:selected').val();
+	alert(filteredValue);
 	if(filteredValue=="Application") {
 		$('.application-select *').attr("style", "");
 		$('.application-select select').attr("style", "display:none");
@@ -55,6 +56,7 @@ function loadOptions() {
 	
 $(document).ready(function() {
 	$('.application-select *').attr("style", "display:none");
+	loadOptions();
 	$('#filter').on('change',loadOptions);
 });
 </script>

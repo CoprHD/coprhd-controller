@@ -1,7 +1,7 @@
 %{
   fieldName = _fieldName ?: 'filter'
   filters = _caller.filterOptions
-  selectedFilter = 'Project'
+  selectedFilter = _selectedFilter ?: 'Project'
 }%    
 
 <span class="filter-select">

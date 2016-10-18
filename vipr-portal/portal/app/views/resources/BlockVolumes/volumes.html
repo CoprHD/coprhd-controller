@@ -42,6 +42,7 @@
 
     
     $(document).ready(function() {
+    	reloadVolumesbyFilter();
     	$('#application').on('change', function() {reloadVolumes("Application");});
      	$('#project').on('change', function() {reloadVolumes("Project");});
      	$('#filter').on('change', reloadVolumesbyFilter)

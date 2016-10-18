@@ -29,6 +29,8 @@ public class ResourceController extends Controller {
 
     public static final String ACTIVE_PROJECT_ID = "activeProjectId";
     public static final String ACTIVE_APP_ID = "activeAppId";
+    public static final String ACTIVE_FILTER = "activeFilter";
+    public static final String APPLICATION_FILTER = "Application";
 
     protected static void addReferenceData() {
         TenantSelector.addRenderArgs();
@@ -100,6 +102,15 @@ public class ResourceController extends Controller {
         if (StringUtils.isNotBlank(activeProjectId)
                 && ResourceType.PROJECT.equals(ResourceType.fromResourceId(activeProjectId))) {
             session.put(ACTIVE_PROJECT_ID, activeProjectId);
+            session.put(ACTIVE_FILTER, "Project");
+        }
+    }
+
+    @Util
+    public static void setActiveAppId(String activeAppId) {
+        if (StringUtils.isNotBlank(activeAppId)) {
+            session.put(ACTIVE_APP_ID, activeAppId);
+            session.put(ACTIVE_FILTER, APPLICATION_FILTER);
         }
     }
 

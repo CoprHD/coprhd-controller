@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 import sun.net.util.IPAddressUtil;
 
@@ -384,7 +386,66 @@ public class ExportMaskUtils {
         }
         return false;
     }
+    
+    /**
+     * For a given export group and storage system, this will check wheather there are any export mask exists
+     * in storage system which matches export group and storage ports in VArray
+     * 
+     * @param dbClient
+     * @param exportGroup
+     * @param storageURI
+     * @return 
+     */
+    public static boolean hasExportMaskForStorageAndVArray(DbClient dbClient,
+            ExportGroup exportGroup,
+            URI storageURI) {
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                storageURI, exportGroup.getVirtualArray(), dbClient);
+        StringSet maskUriSet = exportGroup.getExportMasks();
+        if (maskUriSet != null) {
+            for (String maskUriString : maskUriSet) {
+                ExportMask mask = dbClient.queryObject(ExportMask.class,
+                        URI.create(maskUriString));
+                URI maskStorageURI = mask.getStorageDevice();
+                if (maskStorageURI.equals(storageURI)) {
+                    for (String storagePort : mask.getStoragePorts()) {
+                        if(storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort))
+                            return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
+    /**
+     * For a given storage system and varray this will fetch the set of storage ports which are part of both
+     * the storage system and varray.
+     * @param storageURI
+     * @param varray
+     * @param dbClient
+     * @return
+     */
+    public static Set<String> getStoragePortUrisAssociatedWithVarrayAndStorageArray(URI storageURI, URI varray, DbClient dbClient) {
+        URIQueryResultList storagePortsAssociatedWithVarray = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varray.toString()),
+                storagePortsAssociatedWithVarray);
+        //Get all the storage ports that are in the varray belonging to the storage array
+        Set<URI> storagePortsSetAssociatedWithVarray = new HashSet<>();
+        storagePortsSetAssociatedWithVarray.addAll(storagePortsAssociatedWithVarray);
+        
+        URIQueryResultList storagePortsAssociatedWithStorageSystem = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortsForStorageSystemConstraint(storageURI.toString()),
+                storagePortsAssociatedWithStorageSystem);
+        
+        Set<URI> storagePortsSetAssociatedWithStorageSystem = new HashSet<>();
+        storagePortsSetAssociatedWithStorageSystem.addAll(storagePortsAssociatedWithStorageSystem);
+        
+        return Sets.intersection(storagePortsSetAssociatedWithVarray, storagePortsSetAssociatedWithStorageSystem)
+                .stream().map(storagePortUri -> storagePortUri.toString()).collect(Collectors.toSet());
+    }
+
+    
     /**
      * Generate a name for the export mask based on the initiators sent in.
      * If there are no initiators, just use the generated export group name.
@@ -498,6 +559,21 @@ public class ExportMaskUtils {
         if (exportMask.getVolumes() != null) {
             volumeURIs.addAll(Collections2.transform(exportMask.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        }
+        return volumeURIs;
+    }
+
+    /**
+     * Returns a list of all the user added Volumes in an ExportMask
+     *
+     * @param exportMask
+     * @return
+     */
+    static public List<URI> getUserAddedVolumeURIs(ExportMask exportMask) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+        if (exportMask.getUserAddedVolumes() != null) {
+            volumeURIs.addAll(
+                    Collections2.transform(exportMask.getUserAddedVolumes().values(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
         }
         return volumeURIs;
     }
@@ -1375,5 +1451,83 @@ public class ExportMaskUtils {
 
         exportMask.setResource(resourceRef);
         return true;
+    }
+
+    /**
+     * Check to see if the export mask contains exactly the ports sent in.
+     * 
+     * @param mask
+     *            export mask
+     * @param ports
+     *            ports of a compute resource
+     * @param dbClient
+     *            db client
+     * @return true if contains a subset and ONLY that subset
+     */
+    public static boolean hasExactlyTheseInitiators(ExportMask mask, Collection<String> ports, DbClient dbClient) {
+        Collection<String> normalizedPorts = new HashSet<String>();
+
+        for (String port : ports) {
+            normalizedPorts.add(Initiator.normalizePort(port));
+        }
+
+        Collection<String> maskInitiators = new HashSet<String>();
+        if (mask.getExistingInitiators() != null) {
+            maskInitiators.addAll(mask.getExistingInitiators());
+        }
+
+        if (mask.getInitiators() != null) {
+            for (String initiatorId : mask.getInitiators()) {
+                Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null & initiator.getInitiatorPort() != null) {
+                    maskInitiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));
+                }
+            }
+        }
+
+        if (mask.getUserAddedInitiators() != null) {
+            maskInitiators.addAll(mask.getUserAddedInitiators().keySet());
+        }
+
+        return (normalizedPorts.size() == maskInitiators.size()) && maskInitiators.containsAll(normalizedPorts);
+    }
+
+    /**
+     * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
+     * 
+     * @param mask
+     *            export mask
+     * @param ports
+     *            ports of a compute resource
+     * @param dbClient
+     *            db client
+     * @return true if contains a subset and ONLY that subset
+     */
+    public static boolean hasExactlySubsetOfTheseInitiators(ExportMask mask, List<String> ports, DbClient dbClient) {
+        Collection<String> normalizedPorts = new HashSet<String>();
+
+        for (String port : ports) {
+            normalizedPorts.add(Initiator.normalizePort(port));
+        }
+
+        Collection<String> maskInitiators = new HashSet<String>();
+        if (mask.getExistingInitiators() != null) {
+            maskInitiators.addAll(mask.getExistingInitiators());
+        }
+
+        if (mask.getInitiators() != null) {
+            for (String initiatorId : mask.getInitiators()) {
+                Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null & initiator.getInitiatorPort() != null) {
+                    maskInitiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));
+                }
+            }
+        }
+
+        if (mask.getUserAddedInitiators() != null) {
+            maskInitiators.addAll(mask.getUserAddedInitiators().keySet());
+        }
+
+        return normalizedPorts.containsAll(maskInitiators);
     }
 }

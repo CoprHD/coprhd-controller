@@ -26,6 +26,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidator {
@@ -118,7 +119,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                         break;
                     }
                 }
-                Collection<String> knownInitiators = Collections2.transform(initiatorsInIG,
+                Collection<String> knownInitiators = Collections2.transform(Lists.newArrayList(initiatorsInIG),
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
                         CommonTransformerFunctions.fctnInitiatorToPortName());

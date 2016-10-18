@@ -6,7 +6,6 @@
   filterOptions = _caller.filterOptions
   filteredValue=_filteredValue
 }%
-
 #{if tenants?.size() > 1}
   #{tenantSelector}  
     #{ifnot projects}
@@ -40,7 +39,6 @@
 
 function loadOptions() {
 	var filteredValue = $('#filter option:selected').val();
-	alert(filteredValue);
 	if(filteredValue=="Application") {
 		$('.application-select *').attr("style", "");
 		$('.application-select select').attr("style", "display:none");

@@ -2342,6 +2342,12 @@ public class BlockService extends TaskResourceService {
         if (param.getCreateInactive() != null) {
             createInactive = param.getCreateInactive();
         }
+        
+        // Set whether or not the snapshot is a snapshot of the HA side of a VPLEX duistributed volume.
+        Boolean isHaSnap = Boolean.FALSE;
+        if (param.getHaSnap() != null) {
+            isHaSnap = param.getHaSnap();
+        }
 
         // Set whether the snapshot should be read only
         Boolean readOnly = Boolean.FALSE;
@@ -2364,7 +2370,7 @@ public class BlockService extends TaskResourceService {
         String snapshotNamePattern = param.getName();
         String snapshotName = TimeUtils.formatDateForCurrent(snapshotNamePattern);
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
-                snapshotType, snapshotName, getFullCopyManager());
+                snapshotType, snapshotName, isHaSnap, getFullCopyManager());
 
         // Create the snapshots for the volume(s) being snapped and
         // initialize the task list.

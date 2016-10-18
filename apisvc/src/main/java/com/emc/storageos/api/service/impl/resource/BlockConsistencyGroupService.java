@@ -561,7 +561,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
             // Validate the snapshot request.
             String snapshotName = TimeUtils.formatDateForCurrent(param.getName());
-            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());
+            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, false, getFullCopyManager());
             // Set the create inactive flag.
             final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
                     : param.getCreateInactive();

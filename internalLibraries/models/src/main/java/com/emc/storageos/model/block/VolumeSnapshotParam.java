@@ -17,6 +17,7 @@ public class VolumeSnapshotParam {
     private Boolean createInactive;
     private Boolean readOnly;
     private String type;
+    private Boolean haSnap;
 
     public VolumeSnapshotParam() {
     }
@@ -88,4 +89,13 @@ public class VolumeSnapshotParam {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
+	
+    @XmlElement(name = "ha_snap", required = false, defaultValue = "false")
+    public Boolean getHaSnap() {
+        return haSnap;
+    }
+
+    public void setHaSnap(Boolean haSnap) {
+        this.haSnap = haSnap;
+    }
 }

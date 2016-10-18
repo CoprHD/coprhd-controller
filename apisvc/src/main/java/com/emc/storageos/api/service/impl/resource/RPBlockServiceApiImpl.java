@@ -2387,8 +2387,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * {@inheritDoc}
      */
     @Override
-    public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap, String snapshotType, String snapshotName,
-            BlockFullCopyManager fcManager) {
+    public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap, String snapshotType,
+            String snapshotName, Boolean isHaSnap, BlockFullCopyManager fcManager) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
 
         // For RP snapshots, validate that the volume type is not a target,
@@ -2423,12 +2423,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 for (Volume vplexVolume : volumesToSnap) {
                     if (vplexVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())
                             || vplexVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                        baseVolumesToSnap.add(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(vplexVolume));
+                        baseVolumesToSnap.add(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(vplexVolume, isHaSnap));
                     }
                 }
             }
             List<Volume> volumes = (vplex ? baseVolumesToSnap : volumesToSnap);
-            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, fcManager);
+            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, isHaSnap, fcManager);
         } else {
             ArgValidator.checkFieldNotEmpty(volumesToSnap, "volumes");
             ArgValidator.checkFieldNotEmpty(snapshotName, "name");

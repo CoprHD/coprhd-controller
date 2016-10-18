@@ -197,7 +197,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
 
         // Validate the snapshot request.
         String snapshotName = param.cgsnapshot.name;
-        blockServiceApiImpl.validateCreateSnapshot(snapVolume, volumeList, snapshotType, snapshotName, getFullCopyManager());
+        blockServiceApiImpl.validateCreateSnapshot(snapVolume, volumeList, snapshotType, snapshotName, false, getFullCopyManager());
 
         // Set the create inactive flag.
         Boolean createInactive = Boolean.FALSE;

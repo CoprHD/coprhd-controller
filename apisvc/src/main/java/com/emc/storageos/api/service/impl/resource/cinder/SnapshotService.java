@@ -235,7 +235,7 @@ public class SnapshotService extends TaskResourceService {
         volumesToSnap.addAll(api.getVolumesToSnap(volume, snapshotType));
 
         api.validateCreateSnapshot(volume, volumesToSnap, snapshotType,
-                snapshotName, fcManager);
+                snapshotName, false, fcManager);
 
         String taskId = UUID.randomUUID().toString();
         List<URI> snapshotURIs = new ArrayList<URI>();
@@ -392,7 +392,7 @@ public class SnapshotService extends TaskResourceService {
                     _request, _tenantsService);
 
             api.validateCreateSnapshot(volume, volumesToSnap, snapshotType,
-                    label, fcManager);
+                    label, false, fcManager);
 
             _log.debug("Update snapshot: not a duplicate name");
             snap.setLabel(label);

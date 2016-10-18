@@ -1480,15 +1480,18 @@ public class VPlexUtil {
     /**
      * Checks vplex back end volumes having backend cg
      * 
-     * @param blockObjectList
-     * @param dbClient
-     * @return
+     * @param blockObjectList The list of volumes to verify.
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
+     * @param dbClient A reference to a database client
+     * 
+     * @return true if the backend CG is created when the volume is in a CG, else false
      */
-    public static boolean isBackendVolumesNotHavingBackendCG(List<? extends BlockObject> blockObjectList, DbClient dbClient) {
+    public static boolean isBackendVolumesNotHavingBackendCG(List<? extends BlockObject> blockObjectList,
+            Boolean isHaSnap, DbClient dbClient) {
         boolean result = false;
         for (BlockObject blockObject : blockObjectList) {
             if (blockObject instanceof Volume) {
-                Volume srcVolume = getVPLEXBackendVolume((Volume) blockObject, true, dbClient);
+                Volume srcVolume = getVPLEXBackendVolume((Volume) blockObject, !isHaSnap, dbClient);
                 if (srcVolume.isInCG() && !ControllerUtils.checkCGCreatedOnBackEndArray(srcVolume)) {
                     _log.error("Vplex backend volume {} is not associated with backend cg", srcVolume.getId());
                     result = true;

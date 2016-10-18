@@ -433,11 +433,13 @@ public interface BlockServiceApi {
      *            The snapshot technology type.
      * @param snapshotName
      *            The snapshot name.
-     * @param A
+     * @param isHaSnap
+     *            true if this is an HA side snap request for a VPLEX distributed volume, else false.
+     * @param fcManager
      *            reference to the block full copy manager.
      */
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager);
+            String snapshotType, String snapshotName, Boolean isHaSnap, BlockFullCopyManager fcManager);
 
     /**
      * When a request is made to create a snapshot for a specific volume, this

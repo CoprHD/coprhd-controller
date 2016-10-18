@@ -1088,7 +1088,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
+            String snapshotType, String snapshotName, Boolean isHaSnap, BlockFullCopyManager fcManager) {
         // Make sure a name was specified.
         ArgValidator.checkFieldNotEmpty(snapshotName, "name");
 
@@ -1185,7 +1185,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @param volume
      *            A reference to a volume.
-     * 
+     *            
      * @return The number of snapshots on a volume.
      */
     protected int getNumNativeSnapshots(Volume volume) {

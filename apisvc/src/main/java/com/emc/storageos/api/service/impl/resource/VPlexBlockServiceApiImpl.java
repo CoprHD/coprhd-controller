@@ -3267,20 +3267,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * source volume for a snapshot of the VPLEX volume.
      *
      * @param vplexVolume A reference to the VPLEX volume.
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      *
      * @return A reference to the backend volume to serve as the snapshot
      *         source.
      */
-    public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume) {
+    public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume, Boolean isHaSnap) {
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
                     .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
-
+        
         // Get the backend volume that will serve as the source volume
         // for a native snapshot.
-        Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+        Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, !isHaSnap, _dbClient);
         if (snapshotSourceVolume == null) {
             throw InternalServerErrorException.internalServerErrors
                     .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolume.forDisplay());
@@ -3289,6 +3290,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return snapshotSourceVolume;
     }
 
+    // TBD remove
+    public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume) {
+        return getVPLEXSnapshotSourceVolume(vplexVolume, false);
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -3346,10 +3352,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Counts and returns the number of snapshots on a VPLEX volume.
      *
-     * NOTE: We use the VPLEX volume vpool max snapshots value. The source
-     * backend volume, which is actually snapped natively, should have the
-     * same vpool and hence same max snapshots. However, this could be an
-     * issue for distributed volumes if we snap both sides.
+     * NOTE: The number of snapshots on a VPLEX volume are the total of the
+     * native snapshots on backend volumes.
      *
      * @param vplexVolume A reference to a VPLEX volume.
      *
@@ -3357,8 +3361,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected int getNumNativeSnapshots(Volume vplexVolume) {
-        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
-        return super.getNumNativeSnapshots(snapshotSourceVolume);
+        // All VPLEX volumes should have a source side backend volume.
+        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, false);
+        int numNativeSnaps = super.getNumNativeSnapshots(snapshotSourceVolume);
+        
+        // If distributed, include snapshots on the HA side backend volume.
+        StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+        if ((associatedVolumeIds != null) && (associatedVolumeIds.size() > 1)) {
+            snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, true);
+            numNativeSnaps += super.getNumNativeSnapshots(snapshotSourceVolume);
+        }
+        
+        return numNativeSnaps;
     }
 
     /**
@@ -3369,8 +3383,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected void checkForDuplicatSnapshotName(String name, Volume vplexVolume) {
-        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+        // All VPLEX volumes should have a source side backend volume.
+        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, false);
         super.checkForDuplicatSnapshotName(name, snapshotSourceVolume);
+        
+        // If distributed, check the HA side backend volume.
+        StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+        if ((associatedVolumeIds != null) && (associatedVolumeIds.size() > 1)) {
+            snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, true);
+            super.checkForDuplicatSnapshotName(name, snapshotSourceVolume);            
+        }
     }
 
     /**
@@ -3723,8 +3745,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
-        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, fcManager);
+            String snapshotType, String snapshotName, Boolean isHaSnap, BlockFullCopyManager fcManager) {
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap), volumesToSnap, snapshotType,
+                snapshotName, isHaSnap, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,
         // we don't support creation of a snapshot. In this case the
@@ -3741,7 +3764,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         // if the backend cg volume in the consistency group does not have back end cg on array, return error
-        if (VPlexUtil.isBackendVolumesNotHavingBackendCG(volumesToSnap, _dbClient)) {
+        if (VPlexUtil.isBackendVolumesNotHavingBackendCG(volumesToSnap, false, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
         }
 

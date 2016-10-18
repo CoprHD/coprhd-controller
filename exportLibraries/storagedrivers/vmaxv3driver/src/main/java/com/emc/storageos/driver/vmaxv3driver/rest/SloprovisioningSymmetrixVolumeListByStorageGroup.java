@@ -42,7 +42,9 @@ public class SloprovisioningSymmetrixVolumeListByStorageGroup extends RestAction
         this.client = client;
         String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_VOLUME_LIST_BY_STORAGE_GROUP,
             this.symmetrixId, this.storageGroupId);
+        logger.info("SloprovisioningSymmetrixVolumeListByStorageGroup request path = {}", path);
         String responseBody = client.request(path);
+        logger.info("SloprovisioningSymmetrixVolumeListByStorageGroup response body = {}", responseBody);
         List<String> volumeIds = parseRestResult(responseBody);
         return volumeIds;
     }

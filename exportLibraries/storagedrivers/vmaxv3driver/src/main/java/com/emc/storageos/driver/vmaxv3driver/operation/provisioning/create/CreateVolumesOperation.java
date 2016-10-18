@@ -70,7 +70,7 @@ public class CreateVolumesOperation extends OperationImpl {
             // 2. Query the created volumes in the StorageGroup and prepare the returned volumes
             // for the SDK method call.
             List<String> volumeIds = (List<String>)new SloprovisioningSymmetrixVolumeListByStorageGroup(
-                this.storageSystemId, requestBean.getStorageGroupId());
+                this.storageSystemId, requestBean.getStorageGroupId()).perform(this.getClient());
             List<Volume> volumes = new ArrayList<>();
             for (String volumeId : volumeIds) {
                 Volume volume = (Volume)new SloprovisioningSymmetrixVolumeGet(

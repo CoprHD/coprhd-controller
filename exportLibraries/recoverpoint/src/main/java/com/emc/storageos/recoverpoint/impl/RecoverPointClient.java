@@ -3131,8 +3131,8 @@ public class RecoverPointClient {
             ConsistencyGroupCopyUID standbyProdCopy = RecoverPointUtils.getStandbyProductionCopy(cgSettings, state);
 
             if (standbyProdCopy != null) {
-                String stanbyProdCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
-                logger.info(String.format("Determined that standby production copy %s exists in CG %s.", stanbyProdCopyName,
+                String standbyProdCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
+                logger.info(String.format("Determined that standby production copy %s exists in CG %s.", standbyProdCopyName,
                         volume.getRpProtectionName()));
                 return true;
             }
@@ -3624,19 +3624,21 @@ public class RecoverPointClient {
 
         // we can't call validateAddConsistencyGroupCopy here because during a swap operation, it throws an exception
         // which is just a warning that a full sweep will be required. There didn't seem to be a way to catch
-        // just the warning and let other errors propegate as errors.
-        logger.info("Add Production copy (no validation): " + copyParams.toString());
+        // just the warning and let other errors propagate as errors.
+        logger.info(String.format("Add Production copy %s (no validation): ", copyParams.getName(), copyParams.toString()));
         functionalAPI.addConsistencyGroupCopy(copySettingsParam);
 
         // add journals
         for (CreateVolumeParams journalVolume : copyParams.getJournals()) {
-            logger.info("Adding Journal : " + journalVolume.toString() + " for Production copy : " + copyParams.getName());
+            logger.info(String.format("Adding Journal for Production copy %s : %s", copyParams.getName(), journalVolume.toString()));
             functionalAPI.addJournalVolume(copyUid,
                     RecoverPointUtils.getDeviceID(allSites, journalVolume.getInternalSiteName(), journalVolume.getWwn()));
         }
 
         if (rSets != null) {
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgUID);
+            // Keep track of volumes added so we don't add the same one again. Prevents an exception from being thrown.
+            List<String> volumesAdded = new ArrayList<String>();
             for (CreateRSetParams rSet : rSets) {
                 ReplicationSetUID rSetUid = null;
                 if (rSet != null && rSet.getName() != null && !rSet.getName().isEmpty()) {
@@ -3649,10 +3651,12 @@ public class RecoverPointClient {
                 }
                 if (rSetUid != null) {
                     for (CreateVolumeParams volume : rSet.getVolumes()) {
-                        if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())) {
-                            logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, copyParams.toString()));
+                        if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())
+                                && !volumesAdded.contains(volume.getWwn())) {
+                            logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, volume.toString()));
                             functionalAPI.addUserVolume(copyUid, rSetUid,
                                     RecoverPointUtils.getDeviceID(allSites, volume.getInternalSiteName(), volume.getWwn()));
+                            volumesAdded.add(volume.getWwn());
                         }
                     }
                 }

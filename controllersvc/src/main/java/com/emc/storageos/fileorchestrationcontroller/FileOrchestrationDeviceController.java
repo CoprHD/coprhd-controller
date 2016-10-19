@@ -1513,20 +1513,23 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             if (!sourceFSACLMap.isEmpty() && targetFSACLMap.isEmpty()) {
                 // target share doesn't have any ACLs but corresponding share on source does have ACL
+                s_logger.info("Target NFS doesn't have any ACL but corresponding NFS on source does have ACL.");
                 for (String fsPath : sourceFSACLMap.keySet()) {
                     List<NfsACE> aclToAdd = null;
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, sourceFileShare);
                     aclToAdd = sourceFSACLMap.get(fsPath);
                     params.setAcesToAdd(aclToAdd);
+                    s_logger.info("Invoking updateNFSACL on FS: {}, with params: {}", targetFileShare.getName(), params);
                     updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                 }
             } else if (!targetFSACLMap.isEmpty() && sourceFSACLMap.isEmpty()) {
-                // source FS doesn't have any ACLs but corresponding FS on target has ACL
+                s_logger.info("Source NFS doesn't have any ACL but corresponding NFS on target has ACL.");
                 for (String fsPath : targetFSACLMap.keySet()) {
                     List<NfsACE> aclToDelete = null;
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, targetFileShare);
                     aclToDelete = targetFSACLMap.get(fsPath);
                     params.setAcesToDelete(aclToDelete);
+                    s_logger.info("Invoking updateNFSACL on FS: {}, with params: {}", targetFileShare.getName(), params);
                     updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                 }
             } else if (!sourceFSACLMap.isEmpty() && !targetFSACLMap.isEmpty()) {
@@ -1600,6 +1603,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
 
                     if (!params.retrieveAllACL().isEmpty()) {
+                        s_logger.info("Invoking updateNFSACL on FS: {}, with params: {}", targetFileShare.getName(), params);
                         updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                     }
                 }

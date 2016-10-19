@@ -1,5 +1,5 @@
 #{extends 'main.html' /}
-#{set navSelected: ['nav.settings', 'nav.storageSystemTypes'] /}
+#{set navSelected: ['nav.settings', 'nav.storageDrivers'] /}
 
 #{alerts/}
 
@@ -9,6 +9,7 @@
         #{Form.fileUploadControlGroup field:field/}
      #{/field}
      #{Form.buttonBar}
-      	<button type="submit" class="btn btn-default">#{icon 'upload'/} &{'storageSystemTypes.uploadButton'}</button>
+         #{if driverName}<input name="driverName" value="${driverName}" style="display:none;" />#{/if}
+        <button type="submit" class="btn btn-default" onclick="if (!confirm('&{'storageDrivers.upgrade.confirm'}')){return false;}">#{icon 'upload'/} &{'storageSystemTypes.uploadButton'}</button>
      #{/Form.buttonBar}
 #{/form}

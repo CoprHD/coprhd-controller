@@ -1,0 +1,98 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageDrivers'] /}
+
+<script type="text/javascript">
+    $(document).ready(function() {
+    });
+</script>
+
+<script type="text/javascript">
+function storageDriverStatus(o, val) {
+    if (!o.aData.status) {
+        return "";
+    }
+    var labels = {
+        'Ready': 'label-success',
+        'In Use': 'label-success',
+        'Installing': 'label-info',
+        'Uninstalling': 'label-info',
+        'Upgrading': 'label-info'
+    }
+    var icons = {
+        'Ready': 'glyphicon glyphicon-ok',
+        'In Use': 'glyphicon glyphicon-ok',
+        'Installing': 'glyphicon glyphicon-refresh rotate',
+        'Uninstalling': 'glyphicon glyphicon-refresh rotate',
+        'Upgrading': 'glyphicon glyphicon-refresh rotate'
+    }
+
+    var messages = {
+            'Ready': Messages.get("renderFunctions.storageDriver.status.ready"),
+            'In Use': Messages.get("renderFunctions.storageDriver.status.inUse"),
+            'Installing': Messages.get("renderFunctions.storageDriver.status.installing"),
+            'Uninstalling': Messages.get("renderFunctions.storageDriver.status.uninstalling"),
+            'Upgrading': Messages.get("renderFunctions.storageDriver.status.upgrading")
+    };
+
+    var label = defaultValue(labels[o.aData.status], 'label-default');
+    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
+}
+</script>
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-site">
+        <a class="btn btn-default btn-xs" ng-show="allowUpgrade" role="button" href="{{upgradeUrl}}">{{'storageDrivers.upgradeButton' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-show="allowDelete" role="button" href="{{deleteUrl}}"onclick="if (!confirm('&{'storageDrivers.delete.confirm'}')){return false;}">{{'storageDrivers.deleteButton' | t}}</a>
+    </div>
+</script>
+
+<script type="text/javascript">
+var deleteUrl = #{jsAction @remove(':driverName') /}
+var upgradeUrl = #{jsAction @upgrade(':driverName') /}
+
+angular.module('tags').directive({
+    actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+             scope.deleteUrl = deleteUrl({'driverName': scope.row.driverName});
+             scope.upgradeUrl = upgradeUrl({'driverName': scope.row.driverName});
+
+             scope.allowUpgrade = false;
+             scope.allowDelete = false;
+             if (scope.row.status.toUpperCase() == "READY") {
+                  scope.allowUpgrade = true;
+                  scope.allowDelete = true;
+             }
+             if (scope.row.status.toUpperCase() == "IN USE") {
+                 scope.allowUpgrade = true;
+             }
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+}
+</script>
+
+#{DataTable.header titleKey:'storageDrivers.list.title' /}
+#{DataTable.crudTable id:'storageDrivers',
+                      dataTable:dataTable,
+                      disableSelectable: true,
+                      disableDeletable: true,
+                      disableEditable: true,
+                      deleteConfirm:messages.get('storageDrivers.deleteConfirm')}
+#{/DataTable.crudTable}

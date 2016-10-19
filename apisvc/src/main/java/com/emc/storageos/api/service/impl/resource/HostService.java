@@ -1135,6 +1135,8 @@ public class HostService extends TaskResourceService {
         
         if (param.getVirtualMachine() != null) {
             host.setVirtualMachine(param.getVirtualMachine());
+        } else {
+            host.setVirtualMachine(false);
         }
 
     }

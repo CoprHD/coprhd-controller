@@ -695,9 +695,9 @@
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
         }
-      ]
-    },
-    {
+      ] 
+    }, 
+    { 
       "title": "guide.title",
       "image": "icon_host.png",
       "description": "guide.description",
@@ -724,9 +724,20 @@
         },
 		{
           "image": "Service_Remove_Block_Snapshot.png",
-          "baseService": "RemoveBlockSnapshot"
+          "baseService": "RemoveBlockSnapshot" 
         }
       ]
-    }
+    }, 
+    { 
+      "title": "oe_services.title",
+      "image": "icon_orchestration.png",
+      "description": "oe_services.description",
+      "services": [
+        { 
+          "image": "icon_orchestration.png", 
+          "baseService": "OrchestrationService"
+        } 
+      ]
+    } 
   ]
 }

@@ -243,8 +243,8 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
             hostToNetToInitiatorsMap.put(hostB, net2InitiatorsMapB);
         }
 
-        PortAllocationContext net1ctx = createVmaxNet1();
-        PortAllocationContext net2ctx = createVmaxNet2();
+        PortAllocationContext net1ctx = createVmaxNet11();
+        PortAllocationContext net2ctx = createVmaxNet22();
         PortAllocationContext[] contexts = new PortAllocationContext[] { net1ctx, net2ctx };
         
         testAllocationAssignmentWithSwitchAffinity(contexts, hostToNetToInitiatorsMap, maxPaths, minPaths, 
@@ -1153,5 +1153,79 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
             }
         }
         return hostInitiatorsMap;
+    }
+    
+    protected static PortAllocationContext createVmaxNet11() {
+        NetworkLite tz = new NetworkLite(URI.create("net1"), "net1");
+        PortAllocationContext context = new PortAllocationContext(tz, "test");
+        StoragePort port;
+        port = createFCPort("FA-7E:0", "50:00:00:00:00:00:00:00");
+        addPort(context, port, "mds-a");
+        port = createFCPort("FA-7E:1", "50:00:00:00:00:00:00:01");
+        addPort(context, port, "mds-a");
+
+        port = createFCPort("FA-8E:0", "50:00:00:00:00:00:01:00");
+        addPort(context, port, "mds-a");
+        port = createFCPort("FA-8E:1", "50:00:00:00:00:00:01:01");
+        addPort(context, port, "mds-a");
+
+        port = createFCPort("FA-9E:0", "50:00:00:00:00:00:02:00");
+        addPort(context, port, "mds-a");
+        port = createFCPort("FA-9E:1", "50:00:00:00:00:00:02:01");
+        addPort(context, port, "mds-a");
+
+        port = createFCPort("FA-10E:0", "50:00:00:00:00:00:03:00");
+        addPort(context, port, "mds-b");
+        port = createFCPort("FA-10E:1", "50:00:00:00:00:00:03:01");
+        addPort(context, port, "mds-b");
+
+        port = createFCPort("FA-11E:0", "50:00:00:00:00:00:04:00");
+        addPort(context, port, "mds-b");
+        port = createFCPort("FA-11E:1", "50:00:00:00:00:00:04:01");
+        addPort(context, port, "mds-a");
+
+        port = createFCPort("FA-12E:0", "50:00:00:00:00:00:05:00");
+        addPort(context, port, "mds-b");
+        port = createFCPort("FA-12E:1", "50:00:00:00:00:00:05:01");
+        addPort(context, port, "mds-b");
+
+        return context;
+    }
+    
+    protected static PortAllocationContext createVmaxNet22() {
+        NetworkLite tz = new NetworkLite(URI.create("net2"), "net2");
+        PortAllocationContext context = new PortAllocationContext(tz, "test");
+        StoragePort port;
+
+        port = createFCPort("FA-7F:2", "50:00:00:00:00:01:00:02");
+        addPort(context, port, "mds-a");
+        port = createFCPort("FA-7F:3", "50:00:00:00:00:01:00:03");
+        addPort(context, port, "mds-a");
+
+        port = createFCPort("FA-8F:2", "50:00:00:00:00:01:01:02");
+        addPort(context, port, "mds-a");
+        port = createFCPort("FA-8F:3", "50:00:00:00:00:01:01:03");
+        addPort(context, port, "mds-a");
+
+        port = createFCPort("FA-9F:2", "50:00:00:00:00:01:02:02");
+        addPort(context, port, "mds-b");
+        port = createFCPort("FA-9F:3", "50:00:00:00:00:01:02:03");
+        addPort(context, port, "mds-b");
+
+        port = createFCPort("FA-10F:2", "50:00:00:00:00:01:03:02");
+        addPort(context, port, "mds-b");
+        port = createFCPort("FA-10F:3", "50:00:00:00:00:01:03:03");
+        addPort(context, port, "mds-b");
+
+        port = createFCPort("FA-11F:2", "50:00:00:00:00:01:04:02");
+        addPort(context, port, "mds-b");
+        port = createFCPort("FA-11F:3", "50:00:00:00:00:01:04:03");
+        addPort(context, port, "mds-b");
+
+        port = createFCPort("FA-12F:2", "50:00:00:00:00:01:05:02");
+        addPort(context, port, "mds-a");
+        port = createFCPort("FA-12F:3", "50:00:00:00:00:01:05:03");
+        addPort(context, port, "mds-a");
+        return context;
     }
 }

@@ -385,6 +385,7 @@ public class BlockStorageScheduler {
         
         boolean isSwitchLocalityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
                 DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        _log.info(String.format("The switch affinity is %s .", isSwitchLocalityEnabled));
 
         // Loop through all the required Networks, allocating ports as necessary.
         Map<NetworkLite, List<StoragePort>> portsAllocated = new HashMap<NetworkLite, List<StoragePort>>();
@@ -2270,6 +2271,8 @@ public class BlockStorageScheduler {
                 } else {
                     result.put(switchName, numberOfPath);
                 }
+                _log.info(String.format("Initiator: %s switch : %s count: %d", initiator.getInitiatorPort(), 
+                        switchName, count));
             }
         }
         return result;

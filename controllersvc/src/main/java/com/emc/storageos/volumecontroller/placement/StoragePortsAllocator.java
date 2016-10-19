@@ -578,10 +578,11 @@ public class StoragePortsAllocator {
             allocatedPort = chooseCandidate(candidates, context._storagePortToUsage);
             if (sameSwitchPort) {
                 String switchName = context._storagePortToSwitchName.get(allocatedPort);
-                _log.info("The switch that the storage port connected to is %s", switchName);
+                _log.info(String.format("The switch that the storage port connected to is %s", switchName));
                 Integer path = switchToMaxPortNumber.get(switchName);
                 if (path != null && path > 1) {
                     path--;
+                    switchToMaxPortNumber.put(switchName, path);
                 } else if (path != null && path == 1) {
                     switchToMaxPortNumber.remove(switchName);
                 }

@@ -1,8 +1,7 @@
 package models.datatable;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.testng.collections.Lists;
 
 import util.datatable.DataTable;
 
@@ -23,7 +22,7 @@ public class StorageDriverDataTable extends DataTable {
     public static class StorageDriverInfo {
         public String driverName;
         public String driverVersion;
-        public List<String> supportedStorageSystems = Lists.newArrayList();
+        public List<String> supportedStorageSystems = new ArrayList<String>();
         public String type;
         public String defaultNonSslPort;
         public String defaultSslPort;

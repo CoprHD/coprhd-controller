@@ -235,7 +235,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
         Assert.assertEquals(String.format("We should have found %d migrated VNX volumes.", VNX_VOLUME_COUNT),
                 VNX_VOLUME_COUNT, vnxMigratedCount);
         Assert.assertEquals(String.format("We should have found %d migrated VMAX volumes.", VMAX_VOLUME_COUNT),
-                VPLEX_VOLUME_COUNT, vmaxMigratedCount);
+                VMAX_VOLUME_COUNT, vmaxMigratedCount);
         Assert.assertEquals(String.format("We should have found %d migrated VMAX3 volumes.", VMAX3_VOLUME_COUNT),
                 VMAX3_VOLUME_COUNT, vmax3MigratedCount);
         Assert.assertEquals(String.format("We should have found %d migrated VMAX3 snapshots.", SNAPSHOT_COUNT),

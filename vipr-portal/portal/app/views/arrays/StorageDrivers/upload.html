@@ -1,5 +1,11 @@
+%{
+  titleKey = 'storageDrivers.' + (driverName == null ? 'install' : 'upgrade') + '.title';
+}%
+
+#{set 'title'}&{titleKey}#{/set}
+
 #{extends 'main.html' /}
-#{set navSelected: ['nav.settings', 'nav.storageDrivers'] /}
+#{set navSelected: ['nav.assets', 'nav.storageDrivers'] /}
 
 #{alerts/}
 

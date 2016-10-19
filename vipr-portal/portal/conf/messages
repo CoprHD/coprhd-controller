@@ -3897,6 +3897,9 @@ storageDrivers.install.init.success=Install request initiated ...
 storageDrivers.delete.init.success=Uninstall request initiated ...
 storageDrivers.upgrade.init.success=Upgrade request initiated  ...
 
+storageDrivers.install.title=Install Storage Driver
+storageDrivers.upgrade.title=Upgrade Storage Driver
+
 tasks.task=Task
 tasks.id=ID
 tasks.opId=Operation ID

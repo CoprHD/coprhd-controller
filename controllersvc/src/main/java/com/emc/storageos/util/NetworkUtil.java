@@ -74,18 +74,7 @@ public class NetworkUtil {
         return getEndpointNetworkLite(endpoint, dbClient, null);
     }
 
-    public static NetworkLite getNetworkLiteOfInitiatorPair(Initiator initiator, DbClient dbClient) {
-        NetworkLite network = null;
-        network = getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
-        if (network == null) {
-            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
-            if (associatedInitiator != null) {
-                network = NetworkUtil.getEndpointNetworkLite(associatedInitiator.getInitiatorPort(), dbClient);
-            }
-        }
 
-        return network;
-    }
 
 
     /**

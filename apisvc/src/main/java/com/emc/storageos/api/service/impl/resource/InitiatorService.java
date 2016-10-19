@@ -8,7 +8,6 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,6 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -72,8 +70,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
-import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
-import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Service providing APIs for host initiators.
@@ -189,21 +185,22 @@ public class InitiatorService extends TaskResourceService {
 
         Initiator initiator = queryObject(Initiator.class, id, true);
         Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
-        // check initiator belong to same host
-        URI firstHost = initiator.getHost();
-        URI secondtHost = pairInitiator.getHost();
-
-        if (firstHost.compareTo(secondtHost) != 0) {
-            APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
-        }
-
-        // if host in use. do not associate its initiator.
-        if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
-
-            APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
-        }
 
         if (pairInitiator != null && initiator != null) {
+            // check initiator belong to same host
+            URI firstHost = initiator.getHost();
+            URI secondtHost = pairInitiator.getHost();
+
+            if (firstHost.compareTo(secondtHost) != 0) {
+                APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
+            }
+
+            // if host in use. do not associate its initiator.
+            if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
+
+                APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
+            }
+
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);
             _dbClient.updateObject(initiator);

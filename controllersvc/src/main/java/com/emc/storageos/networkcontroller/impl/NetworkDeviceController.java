@@ -2149,8 +2149,7 @@ public class NetworkDeviceController implements NetworkController {
         updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!entry.getValue().isEmpty()) {
-                Map<String, List<Zone>> map = getInitiatorsInNetworkZones(entry.getKey(), entry.getValue());
-                zonesMap.putAll(map);
+                zonesMap.putAll(getInitiatorsInNetworkZones(entry.getKey(), entry.getValue()));
             }
         }
         return zonesMap;

@@ -470,7 +470,18 @@ public class ComputeSystemHelper {
             }
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
-                if (doesInitiatorPairHasConnectivity(storageSystem, varrays, initiator, dbClient)) {
+                boolean hasConnectivity = false;
+                _log.info("Validating port connectivity for initiator: ({})", initiator.getInitiatorPort());
+                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator, dbClient);
+                if (!hasConnectivity) {
+                    Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+                    if (pairedInitiator != null) {
+                        _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
+                        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator, dbClient);
+                    }
+                }
+
+                if (hasConnectivity) {
                     validInitiators.add(initiator);
                 }
             }
@@ -478,31 +489,6 @@ public class ComputeSystemHelper {
         return validInitiators;
     }
 
-    /**
-     * Checks if at least one of the initiators in the pair is reachable to the storage system.
-     * 
-     * @param storageSystem
-     * @param varrays
-     * @param initiator
-     * @return true if initiator port or associated initiator port is reachable to storage system; false otherwise
-     */
-    public static boolean doesInitiatorPairHasConnectivity(StorageSystem storageSystem,
-            List<URI> varrays,
-            Initiator initiator, DbClient dbClient) {
-
-        boolean hasConnectivity = false;
-
-        _log.info("Validating port connectivity for initiator: ({})", initiator.getInitiatorPort());
-        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator, dbClient);
-        if (!hasConnectivity) {
-            Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
-            if (pairedInitiator != null) {
-                _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
-                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator, dbClient);
-            }
-        }
-        return hasConnectivity;
-    }
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.

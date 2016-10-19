@@ -16,9 +16,12 @@ public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl
 
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationMigrationApiImpl.class);		
     
+    public ApplicationMigrationApiImpl() {
+        super();
+    }
+    
     public ApplicationMigrationApiImpl(String migrationType) {
 		super(migrationType);
-		// TODO Auto-generated constructor stub
 	}
     
     //Migration related methods

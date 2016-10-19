@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
 import java.io.IOException;
@@ -22,7 +26,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.VolumeSystemTypeMigration;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
@@ -62,7 +65,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
         _dbClient.createObject(vplex);
 
         // create vplex test volumes
-        for (int i = 0; i < VPLEX_VOLUME_COUNT; i++) {
+        for (int i = 1; i <= VPLEX_VOLUME_COUNT; i++) {
             Volume volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setLabel("VplexSystemTypeMigrationTester" + i);
@@ -78,7 +81,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
         _dbClient.createObject(vnx);
 
         // create vnx test volumes
-        for (int i = 0; i < VNX_VOLUME_COUNT; i++) {
+        for (int i = 1; i <= VNX_VOLUME_COUNT; i++) {
             Volume volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setLabel("VnxSystemTypeMigrationTester" + i);
@@ -94,7 +97,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
         _dbClient.createObject(vmax);
 
         // create vmax test volumes
-        for (int i = 0; i < VMAX_VOLUME_COUNT; i++) {
+        for (int i = 1; i <= VMAX_VOLUME_COUNT; i++) {
             Volume volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setLabel("VmaxSystemTypeMigrationTester" + i);
@@ -112,8 +115,8 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
         vmax3.setFirmwareVersion("5977.931.886");
         _dbClient.createObject(vmax3);
 
-        // create 50 vmax3 test volumes
-        for (int i = 0; i < VMAX3_VOLUME_COUNT; i++) {
+        // create vmax3 test volumes
+        for (int i = 1; i <= VMAX3_VOLUME_COUNT; i++) {
             Volume volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setLabel("Vmax3SystemTypeMigrationTester" + i);
@@ -125,7 +128,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
 
         List<BlockSnapshot> snapsToCreate = new ArrayList<BlockSnapshot>();
         // create vmax3 test snapshots
-        for (int i = 0; i < SNAPSHOT_COUNT; i++) {
+        for (int i = 1; i <= SNAPSHOT_COUNT; i++) {
             BlockSnapshot snap = new BlockSnapshot();
             snap.setId(URIUtil.createId(BlockSnapshot.class));
             snap.setLabel("SnapshotSystemTypeMigrationTester" + i);
@@ -136,7 +139,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
 
         List<BlockMirror> mirrorsToCreate = new ArrayList<BlockMirror>();
         // create vmax3 test mirrors
-        for (int i = 0; i < MIRROR_COUNT; i++) {
+        for (int i = 1; i <= MIRROR_COUNT; i++) {
             BlockMirror mirror = new BlockMirror();
             mirror.setId(URIUtil.createId(BlockMirror.class));
             mirror.setLabel("MirrorSystemTypeMigrationTester" + i);
@@ -219,6 +222,13 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
                         mirror.forDisplay(), mirror.getSystemType());
             }
         }
+
+        log.info("vplexMigratedCount: " + vplexMigratedCount);
+        log.info("vnxMigratedCount: " + vnxMigratedCount);
+        log.info("vmaxMigratedCount: " + vmaxMigratedCount);
+        log.info("vmax3MigratedCount: " + vmax3MigratedCount);
+        log.info("snapshotMigratedCount: " + snapshotMigratedCount);
+        log.info("mirrorMigratedCount: " + mirrorMigratedCount);
 
         Assert.assertEquals(String.format("We should have found %d migrated VPLEX volumes.", VPLEX_VOLUME_COUNT),
                 VPLEX_VOLUME_COUNT, vplexMigratedCount);

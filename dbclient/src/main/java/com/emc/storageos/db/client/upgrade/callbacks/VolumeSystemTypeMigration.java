@@ -1,8 +1,13 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +24,14 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
+/**
+ * If we are upgrading from any version 3.5 or before, the BlockObject.systemType
+ * property should be set to according to the system type of the BlockObject's
+ * storage device. This includes Volumes, BlockSnapshots, and BlockMirrors.
+ * 
+ * @author beachn
+ * @since 3.5+
+ */
 public class VolumeSystemTypeMigration extends BaseCustomMigrationCallback {
     private static final Logger logger = LoggerFactory.getLogger(VolumeSystemTypeMigration.class);
 
@@ -46,16 +59,16 @@ public class VolumeSystemTypeMigration extends BaseCustomMigrationCallback {
                     break;
                 }
 
-                List<BlockObject> blockObjectsToUpdate = new ArrayList<BlockObject>();
-                List<? extends BlockObject> pageOfBlockObjects = dbClient.queryObject(clazz, blockObjectUris);
-                logger.info("processing page of {} {} BlockObjects", pageOfBlockObjects.size(), clazz.getSimpleName());
+                logger.info("processing page of {} {} BlockObjects", blockObjectUris.size(), clazz.getSimpleName());
+                Iterator<? extends BlockObject> pageIterator = dbClient.queryIterativeObjects(clazz, blockObjectUris, true);
 
-                for (BlockObject blockObject : pageOfBlockObjects) {
+                while (pageIterator.hasNext()) {
+                    BlockObject blockObject = pageIterator.next();
                     if (blockObject.getSystemType() == null || blockObject.getSystemType().isEmpty()) {
                         String deviceSystemType = getDeviceSystemType(dbClient, storageSystemTypeMap, blockObject);
                         if (deviceSystemType != null) {
                             blockObject.setSystemType(deviceSystemType);
-                            blockObjectsToUpdate.add(blockObject);
+                            dbClient.updateObject(blockObject);
                             blockObjectUpdatedCount++;
                             logger.info("set storage system type to {} for BlockObject {}",
                                     deviceSystemType, blockObject.forDisplay());
@@ -66,8 +79,6 @@ public class VolumeSystemTypeMigration extends BaseCustomMigrationCallback {
                     }
                 }
 
-                logger.info("updating system type on {} {} BlockObjects", blockObjectsToUpdate.size(), clazz.getSimpleName());
-                dbClient.updateObject(blockObjectsToUpdate);
                 nextId = blockObjectUris.get(blockObjectUris.size() - 1);
                 totalBlockObjectCount += blockObjectUris.size();
             }

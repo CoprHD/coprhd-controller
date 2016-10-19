@@ -5,7 +5,6 @@
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
@@ -15,9 +14,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;

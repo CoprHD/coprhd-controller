@@ -763,7 +763,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
             if (replicateConfiguration) {
-                
+
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
                 Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
 
@@ -772,12 +772,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     stepDescription = String.format("Replicating NFS ACL from source file system : %s to file target system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_ACLS_METHOD,
-                            systemSource.getId(), fsURI);
+                            systemSource.getId(), targetFileShare.getId());
                     String replicateNFSACLsStep = workflow.createStepId();
                     workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
                             systemSource.getSystemType(), getClass(), replicateNFSACLsMethod, null, replicateNFSACLsStep);
                 }
-                
+
                 // Replicate NFS export and rules to Target Cluster.
                 FSExportMap targetnfsExportMap = targetFileShare.getFsExports();
                 FSExportMap sourcenfsExportMap = sourceFileShare.getFsExports();

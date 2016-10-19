@@ -1442,15 +1442,15 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyNFSACL(String fspath, IsilonNFSACL acl) throws IsilonException {
-        // try {
-        fspath = fspath.substring(1);// remove '/' prefix
-        // fspath = URLEncoder.encode(fspath, "UTF-8");
-        fspath = fspath.concat("?acl");// add suffix ?acl
-        /*
-         * } catch (UnsupportedEncodingException e) {
-         * e.printStackTrace();
-         * }
-         */
+        try {
+            fspath = fspath.substring(1);// remove '/' prefix
+            fspath = URLEncoder.encode(fspath, "UTF-8");
+            fspath = fspath.concat("?acl");// add suffix ?acl
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
     }
 

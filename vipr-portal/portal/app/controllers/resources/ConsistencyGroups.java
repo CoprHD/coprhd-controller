@@ -44,7 +44,7 @@ import controllers.util.Models;
 
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN"), @Restrict("PROJECT_ADMIN") })
-public class ConsistencyGroups extends Controller {
+public class ConsistencyGroups extends ResourceController {
 	private static final String ACTIVE_PROJECT_ID = "activeProjectId";
 
 	public static void list() {
@@ -56,7 +56,7 @@ public class ConsistencyGroups extends Controller {
 				return proj1.getName().compareTo(proj2.getName());
 			}
 		});
-		String activeProjectId = flash.get(ACTIVE_PROJECT_ID);
+		String activeProjectId = session.get(ACTIVE_PROJECT_ID);
 		if (activeProjectId == null && !projects.isEmpty()) {
 			activeProjectId = projects.get(0).getId().toString();
 		}
@@ -70,6 +70,7 @@ public class ConsistencyGroups extends Controller {
 		List<BlockConsistencyGroup> items = Lists.newArrayList();
 
 		if (StringUtils.isNotBlank(projectId)) {
+		    setActiveProjectId(projectId);
 			for (BlockConsistencyGroupRestRep cg : BlockConsistencyGroupUtils.getBlockConsistencyGroups(projectId)) {
 				items.add(new BlockConsistencyGroup(cg));
 			}

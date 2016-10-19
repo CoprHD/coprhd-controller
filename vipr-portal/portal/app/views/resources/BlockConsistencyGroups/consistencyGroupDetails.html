@@ -1,6 +1,11 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.storage', 'nav.block.consistencygroups'] /}
 
+#{breadcrumb.container}
+  #{breadcrumb.item @resources.ConsistencyGroups.list()}&{'resources.consistencygroup'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${blockConsistencyGroup?.blockConsistencyGroup?.name}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
 <div class="clear"></div>
 
 <div id="consistencyGroupDetails" class="container" style="margin-bottom: 2em;">

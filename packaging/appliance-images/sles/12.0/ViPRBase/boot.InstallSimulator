@@ -45,6 +45,12 @@ if [ ! -d /data/simulators ]; then
    sed -i "s|port(5989)|port(6989)|g" /data/simulators/hds-sim/conf/serverConfig.groovy
 fi
 
+# This is to allocate less memory for vipr java process and allow sims to run 
+sed -i "s|Xmx\$(_get_mem_fraction_mb 9.8m 0.1267)m|Xmx128m|g" /opt/storageos/bin/geodbsvc
+sed -i "s|Xmx\$(_get_mem_fraction_mb 19.7m 0.2535)m|Xmx256m|g" /opt/storageos/bin/dbsvc
+systemctl restart storageos-geodb.service
+systemctl restart storageos-db.service
+
 # Install UNIT files for systemd
 chmod -R 777 /aio-simulators/AIO_scripts/intitScripts
 cp -p /aio-simulators/AIO_scripts/intitScripts/* /etc/init.d/

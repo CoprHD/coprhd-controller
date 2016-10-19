@@ -1739,6 +1739,14 @@ public class VolumeGroupService extends TaskResourceService {
          */
         // TODO consider copyOnHaSide from user's request once the underlying implementation supports it.
         List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, false);
+        if (!vmax3Volumes.isEmpty()) {
+            // check snap session name provided is not duplicate
+            VolumeGroupCopySetList sessionSet = getVolumeGroupSnapsetSessionSets(volumeGroup);
+            if (sessionSet.getCopySets().contains(name)) {
+                // duplicate name
+                throw APIException.badRequests.duplicateCopySetName(name, ReplicaTypeEnum.SNAPSHOT_SESSION.toString());
+            }
+        }
 
         // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);

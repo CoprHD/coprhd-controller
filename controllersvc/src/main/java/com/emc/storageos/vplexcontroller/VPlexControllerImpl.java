@@ -184,6 +184,12 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
             throws InternalException {
         queueRequest("restoreSnapshotSession", vplexURI, snapSessionURI, opId);
     }
+    
+    @Override
+    public void relinkTargetsToSnapshotSession(URI vplexURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException {
+        queueRequest("relinkTargetsToSnapshotSession", vplexURI, tgtSnapSessionURI, snapshotURIs, opId);        
+    }
 
     @Override
     public void updateVolumeGroup(URI vplexURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList, URI volumeGroup,

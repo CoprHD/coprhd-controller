@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -63,6 +64,8 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 public class VPlexUtil {
     private static Logger _log = LoggerFactory.getLogger(VPlexUtil.class);
@@ -1639,4 +1642,116 @@ public class VPlexUtil {
             }
         }
     }
+    
+    /**
+     * Gets a list of the VPLEX volumes, if any, that are built on the passed snapshots.
+     *     
+     * @param snapshots A list of snapshots
+     * @param dbClient A reference to a database client
+     * 
+     * @return A list of the VPLEX volumes built on the passed snapshots.
+     */
+    public static List<Volume> getVPlexVolumesBuiltOnSnapshots(List<BlockSnapshot> snapshots, DbClient dbClient) {
+        List<Volume> vplexVolumes = new ArrayList<Volume>();
+        for (BlockSnapshot snapshotToResync : snapshots) {
+            String nativeGuid = snapshotToResync.getNativeGuid();
+            List<Volume> volumes = CustomQueryUtility.getActiveVolumeByNativeGuid(dbClient, nativeGuid);
+            if (!volumes.isEmpty()) {
+                // If we find a volume instance with the same native GUID as the
+                // snapshot, then this volume represents the snapshot target volume
+                // and a VPLEX volume must have been built on top of it. Note that
+                // for a given snapshot, I should only ever find 0 or 1 volumes with
+                // the nativeGuid of the snapshot. Get the VPLEX volume built on
+                // this volume.
+                Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volumes.get(0));
+                vplexVolumes.add(vplexVolume);
+            }
+        }
+        return vplexVolumes;
+    }
+
+    /**
+     * Groups VPLEX volumes into a Table indexed by:
+     *    1. The backend Storage Controller of the VPLEX backend volume 
+     *    2. The backend replica group of the VPLEX backend volume
+     *    3. and a list of all VPLEX volumes that have backend volumes in that backend replica group
+     *    
+     * Optional: Will also populate two lists dividing the volumes in an RG and not in an RG
+     * if those lists are passed in as not null.     
+     * 
+     * @param vplexVolumes VPlex Volumes to 
+     * @param volumesNotInRG A container to store all volumes NOT in an RG
+     * @param volumesInRG A container to store all the volumes in an RG
+     * @param dbClient DbClient reference
+     * @return an indexed Table: StorageController(URI)/RG(String)/Volumes(List)
+     */
+    public static Table<URI, String, List<Volume>> groupVPlexVolumesByRG(List<Volume> vplexVolumes, List<Volume> volumesNotInRG, 
+            List<Volume> volumesInRG, DbClient dbClient) {
+        Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+
+        // Group volumes by array groups
+        for (Volume volume : vplexVolumes) {
+            Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+            if (backedVol != null) {
+                URI backStorage = backedVol.getStorageController();
+                String replicaGroup = backedVol.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                    List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                    if (volumeList == null) {
+                        volumeList = new ArrayList<Volume>();
+                        groupVolumes.put(backStorage, replicaGroup, volumeList);
+                    }
+                    volumeList.add(volume);
+                    // Keeps track of the volumes that will be processed because
+                    // they are in found to be in an RG.
+                    if (volumesInRG != null) {
+                        volumesInRG.add(volume);
+                    }
+                } else {
+                    // Keeps track of the volumes that will not be processed here
+                    // since they are not in a RG.
+                    if (volumesNotInRG != null) {
+                        volumesNotInRG.add(volume);
+                    }
+                }
+            }
+        }
+        
+        return groupVolumes;
+    }
+    
+    /**
+     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
+     *
+     * @param groupName The replication group name
+     * @param storageSystemUri The backend storage system URI
+     * @param personality Optional argument to filter on volume personality
+     * @param dbClient DbClient reference
+     * @return The list of Vplex virtual volumes
+     */
+    public static List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri, String personality, DbClient dbClient) {
+        List<Volume> vplexVols = new ArrayList<Volume>();
+        // Get all backend volumes with the same replication group name
+        List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName));
+        for (Volume volume : volumes) {
+            URI system = volume.getStorageController();
+            if (system != null && system.equals(storageSystemUri)) {
+                // Get the vplex virtual volume
+                List<Volume> vplexVolumes = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                                getVolumesByAssociatedId(volume.getId().toString()));
+                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                    Volume vplexVol = vplexVolumes.get(0);
+                    if ((personality == null) || vplexVol.checkPersonality(personality)) {
+                        vplexVols.add(vplexVol);
+                    }
+                }
+
+            }
+        }
+        return vplexVols;
+    }
 }
+

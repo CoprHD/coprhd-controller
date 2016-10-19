@@ -15,8 +15,11 @@ import com.emc.sa.model.util.TenantUtils;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OrderFinder extends TenantModelFinder<Order> {
+    private static final Logger log = LoggerFactory.getLogger(OrderFinder.class);
 
     public OrderFinder(DBClientWrapper client) {
         super(Order.class, client);
@@ -67,17 +70,19 @@ public class OrderFinder extends TenantModelFinder<Order> {
         return findByIds(toURIs(orderIds));
     }
 
-    public List<Order> findByUserId(String userId) {
-        List<NamedElement> orderIds = findIdsByUserId(userId);
+    public List<Order> findByUserId(String userId, long startTime, long endTime, int maxCount) {
+        List<NamedElement> orderIds = findIdsByUserId(userId, startTime, endTime, maxCount);
         return findByIds(toURIs(orderIds));
     }
 
-    public List<NamedElement> findIdsByUserId(String userId) {
+    public List<NamedElement> findIdsByUserId(String userId, long startTime, long endTime, int maxCount) {
         if (StringUtils.isBlank(userId)) {
             return Lists.newArrayList();
         }
 
-        List<NamedElement> orderIds = client.findByAlternateId(Order.class, Order.SUBMITTED_BY_USER_ID, userId);
+
+        List<NamedElement> orderIds = client.findByAlternateId(Order.class, Order.SUBMITTED_BY_USER_ID, userId,
+                startTime, endTime, maxCount);
         return orderIds;
     }
 

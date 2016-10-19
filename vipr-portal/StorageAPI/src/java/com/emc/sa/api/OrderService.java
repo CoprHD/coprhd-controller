@@ -38,6 +38,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
@@ -507,7 +508,6 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the list of orders
-     * 
      * @param tenantId the URN of a tenant
      * @brief List Orders
      * @return a list of orders
@@ -540,11 +540,28 @@ public class OrderService extends CatalogTaggedResourceService {
     @GET
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderList getUserOrders() throws DatabaseException {
+    public OrderList getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
+                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
+                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String maxCount)
+            throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();
 
-        List<Order> orders = orderManager.getUserOrders(user);
+        log.info("starTime={} endTime={} maxCount={} user={}", new Object[] {startTime, endTime, maxCount, user});
+
+        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
+        long endTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
+        int max = maxCount.isEmpty()? 0 : Integer.parseInt(maxCount);
+
+        // for debug only
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -1);
+        startTimeInMacros = cal.getTime().getTime();
+        endTimeInMacros = new Date().getTime();
+
+        log.info("startTime={} endTime={}", startTimeInMacros, endTimeInMacros);
+
+        List<Order> orders = orderManager.getUserOrders(user,startTimeInMacros, endTimeInMacros, max);
 
         return toOrderList(orders);
     }

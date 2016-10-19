@@ -88,8 +88,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     }
 
     @Override
-    protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
-            final ConstraintImpl constraint) {
+    protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
         query.autoPaginate(true);
         FilteredQueryHitIterator<T> it;
         if (_timeToStartFrom > 0) {

@@ -25,7 +25,7 @@ public interface OrderManager {
 
     public List<Order> getOrders(URI tenantId);
 
-    public List<Order> getUserOrders(StorageOSUser user);
+    public List<Order> getUserOrders(StorageOSUser user, long startTime, long endTime, int maxCount);
 
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus);
 

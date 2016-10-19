@@ -107,24 +107,31 @@ public abstract class ConstraintImpl implements Constraint {
             throw DatabaseException.retryables.connectionFailed(e);
         }
 
-        queryWithAutoPaginate(genQuery(), result, this);
+        queryWithAutoPaginate(genQuery(), result);
     }
 
     protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
 
     protected abstract RowQuery<String, IndexColumnName> genQuery();
 
-    protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
-            final ConstraintImpl constraint) {
+    protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
         query.autoPaginate(true);
+        QueryHitIterator<T> it = getQueryHitIterator(query, result);
+        it.prime();
+        result.setResult(it);
+    }
+
+    protected <T> QueryHitIterator<T> getQueryHitIterator(RowQuery<String, IndexColumnName> query,
+                                                          final QueryResult<T> result) {
+        final ConstraintImpl constraint = this;
         QueryHitIterator<T> it = new QueryHitIterator<T>(query) {
             @Override
             protected T createQueryHit(Column<IndexColumnName> column) {
                 return constraint.createQueryHit(result, column);
             }
         };
-        it.prime();
-        result.setResult(it);
+
+        return it;
     }
 
     protected abstract URI getURI(Column<IndexColumnName> col);
@@ -175,7 +182,7 @@ public abstract class ConstraintImpl implements Constraint {
 
         for (Column<IndexColumnName> col : columns) {
             T obj = createQueryHit(result, col);
-            if (!ids.contains(obj)) {
+            if (obj != null && !ids.contains(obj)) {
                 ids.add(createQueryHit(result, col));
             }
         }
@@ -222,7 +229,7 @@ public abstract class ConstraintImpl implements Constraint {
 
                 if (start) {
                     T obj = createQueryHit(result, col);
-                    if (!ids.contains(obj)) {
+                    if (obj != null && !ids.contains(obj)) {
                         ids.add(obj);
                     }
                     count++;

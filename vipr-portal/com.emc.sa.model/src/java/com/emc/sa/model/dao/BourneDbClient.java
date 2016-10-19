@@ -116,14 +116,22 @@ public class BourneDbClient implements DBClientWrapper {
 
     public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value)
             throws DataAccessException {
+        return findByAlternateId(clazz, columnField, value, 0, 0, -1);
+    }
 
-        LOG.debug("findByAlternateId({}, {}, {})", new Object[] { clazz, columnField, value });
+    public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value,
+                                                                       long startTime, long endTime, int maxCount)
+            throws DataAccessException {
+
+        LOG.info("findByAlternateId(class={}, columnField={}, value={}, maxCount={})",
+                new Object[] { clazz, columnField, value, maxCount});
 
         DataObjectType doType = TypeMap.getDoType(clazz);
 
-        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value);
+        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value,
+                startTime, endTime);
 
-        return queryNamedElementsByConstraint(constraint);
+        return queryNamedElementsByConstraint(constraint, maxCount);
     }
 
     public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
@@ -134,11 +142,19 @@ public class BourneDbClient implements DBClientWrapper {
     }
 
     protected List<NamedElement> queryNamedElementsByConstraint(Constraint constraint) {
+        return queryNamedElementsByConstraint(constraint, -1);
+    }
+
+    protected List<NamedElement> queryNamedElementsByConstraint(Constraint constraint, int maxCount) {
 
         NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
 
         try {
-            getDbClient().queryByConstraint(constraint, queryResults);
+            if (maxCount >0) {
+                getDbClient().queryByConstraint(constraint, queryResults, null, maxCount);
+            }else {
+                getDbClient().queryByConstraint(constraint, queryResults);
+            }
         } catch (DatabaseException e) {
             throw new DataAccessException(e);
         }

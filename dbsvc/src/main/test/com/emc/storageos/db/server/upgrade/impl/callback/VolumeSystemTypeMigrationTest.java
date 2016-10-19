@@ -149,57 +149,22 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
     @Override
     protected void verifyResults() throws Exception {
         log.info("Verifying results of volume system type migration test.");
-        List<URI> blockObjectUris = _dbClient.queryByType(BlockObject.class, true);
-        Iterator<BlockObject> blockObjects = _dbClient.queryIterativeObjects(BlockObject.class, blockObjectUris, true);
+
         Map<URI, String> storageSystemTypeMap = new HashMap<URI, String>();
+
+        List<URI> volumeUris = _dbClient.queryByType(Volume.class, true);
+        Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeUris, true);
 
         int vplexMigratedCount = 0;
         int vnxMigratedCount = 0;
         int vmaxMigratedCount = 0;
         int vmax3MigratedCount = 0;
-        int snapshotMigratedCount = 0;
-        int mirrorMigratedCount = 0;
-        while (blockObjects.hasNext()) {
-            BlockObject blockObject = blockObjects.next();
+        while (volumes.hasNext()) {
+            Volume volume = volumes.next();
+            String deviceSystemType = getDeviceSystemType(storageSystemTypeMap, volume);
 
-            if (blockObject instanceof BlockSnapshot) {
-                if (NullColumnValueGetter.isNotNullValue(blockObject.getSystemType())) {
-                    snapshotMigratedCount++;
-                } else {
-                    log.info("found null system type for snapshot {}", blockObject.forDisplay());
-                }
-                continue;
-            }
-
-            if (blockObject instanceof BlockMirror) {
-                if (NullColumnValueGetter.isNotNullValue(blockObject.getSystemType())) {
-                    mirrorMigratedCount++;
-                } else {
-                    log.info("found null system type for mirror {}", blockObject.forDisplay());
-                }
-                continue;
-            }
-
-            String deviceSystemType = null;
-            URI storageSystemUri = blockObject.getStorageController();
-            if (storageSystemTypeMap.containsKey(storageSystemUri)) {
-                deviceSystemType = storageSystemTypeMap.get(storageSystemUri);
-            } else {
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-                if (storageSystem != null) {
-                    deviceSystemType = storageSystem.checkIfVmax3() ? DiscoveredDataObject.Type.vmax3.name()
-                            : storageSystem.getSystemType();
-                    storageSystemTypeMap.put(storageSystemUri, deviceSystemType);
-                    log.info("adding storage system type {} for storage system URI {}",
-                            deviceSystemType, storageSystemUri);
-                } else {
-                    log.warn("could not find storage system by URI {} for BlockObject {}",
-                            storageSystemUri, blockObject.forDisplay());
-                }
-            }
-
-            if (deviceSystemType != null && deviceSystemType.equalsIgnoreCase(blockObject.getSystemType())) {
-                log.info("found block object system type {}", blockObject.getSystemType());
+            if (deviceSystemType != null && deviceSystemType.equalsIgnoreCase(volume.getSystemType())) {
+                log.info("found block object system type {}", volume.getSystemType());
                 switch (deviceSystemType) {
                     case "vplex":
                         vplexMigratedCount++;
@@ -218,8 +183,40 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
                         break;
                 }
             } else {
-                log.error("block object {} found not migrated properly with system type {}",
-                        blockObject.forDisplay(), blockObject.getSystemType());
+                log.error("volume {} found not migrated properly with system type {}",
+                        volume.forDisplay(), volume.getSystemType());
+            }
+        }
+
+        int snapshotMigratedCount = 0;
+        List<URI> snapshotUris = _dbClient.queryByType(BlockSnapshot.class, true);
+        Iterator<BlockSnapshot> snapshots = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris, true);
+        while (snapshots.hasNext()) {
+            BlockSnapshot snapshot = snapshots.next();
+            String deviceSystemType = getDeviceSystemType(storageSystemTypeMap, snapshot);
+
+            if (deviceSystemType != null && deviceSystemType.equalsIgnoreCase(snapshot.getSystemType())) {
+                log.info("found block snapshot system type {}", snapshot.getSystemType());
+                snapshotMigratedCount++;
+            } else {
+                log.error("snapshot {} found not migrated properly with system type {}",
+                        snapshot.forDisplay(), snapshot.getSystemType());
+            }
+        }
+
+        int mirrorMigratedCount = 0;
+        List<URI> mirrorUris = _dbClient.queryByType(BlockMirror.class, true);
+        Iterator<BlockMirror> mirrors = _dbClient.queryIterativeObjects(BlockMirror.class, mirrorUris, true);
+        while (mirrors.hasNext()) {
+            BlockMirror mirror = mirrors.next();
+            String deviceSystemType = getDeviceSystemType(storageSystemTypeMap, mirror);
+
+            if (deviceSystemType != null && deviceSystemType.equalsIgnoreCase(mirror.getSystemType())) {
+                log.info("found block mirror system type {}", mirror.getSystemType());
+                mirrorMigratedCount++;
+            } else {
+                log.error("mirror {} found not migrated properly with system type {}",
+                        mirror.forDisplay(), mirror.getSystemType());
             }
         }
 
@@ -235,6 +232,27 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
                 SNAPSHOT_COUNT, snapshotMigratedCount);
         Assert.assertEquals(String.format("We should have found %d migrated VMAX3 mirrors.", MIRROR_COUNT),
                 MIRROR_COUNT, mirrorMigratedCount);
+    }
+
+    private String getDeviceSystemType(Map<URI, String> storageSystemTypeMap, BlockObject blockObject) {
+        String deviceSystemType = null;
+        URI storageSystemUri = blockObject.getStorageController();
+        if (storageSystemTypeMap.containsKey(storageSystemUri)) {
+            deviceSystemType = storageSystemTypeMap.get(storageSystemUri);
+        } else {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+            if (storageSystem != null) {
+                deviceSystemType = storageSystem.checkIfVmax3() ? DiscoveredDataObject.Type.vmax3.name()
+                        : storageSystem.getSystemType();
+                storageSystemTypeMap.put(storageSystemUri, deviceSystemType);
+                log.info("adding storage system type {} for storage system URI {}",
+                        deviceSystemType, storageSystemUri);
+            } else {
+                log.warn("could not find storage system by URI {} for BlockObject {}",
+                        storageSystemUri, blockObject.forDisplay());
+            }
+        }
+        return deviceSystemType;
     }
 
 }

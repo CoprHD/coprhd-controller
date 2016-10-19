@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.testng.Assert;
 
+import com.emc.sa.service.DummyDbClient;
 import com.emc.sa.service.vipr.oe.primitive.Parameter.Type;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;

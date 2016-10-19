@@ -15,8 +15,10 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.primitive;
+package com.emc.sa.service;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,9 +38,12 @@ import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesMetadata.TimeBucket;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TimeSeries;
@@ -377,6 +382,38 @@ public class DummyDbClient implements DbClient {
     public <T> void queryByConstraint(final Constraint constraint,
             final QueryResultList<T> result) throws DatabaseException {
         checkStarted();
+        if(!(constraint instanceof AlternateIdConstraint )) {
+            return;
+        }
+        
+        final Class<? extends DataObject> doType = constraint.getDataObjectType();
+        final String fieldName = constraint.toConstraintDescriptor().getColumnFieldName();
+        final Object fieldValue = constraint.toConstraintDescriptor().getArguments().get(0);
+            
+        ArrayList<NamedElement> list = new ArrayList<NamedElement>();
+        for(final Entry<URI, DataObject> entry : _idToObjectMap.entrySet() ) {
+            if(entry.getValue().getClass().isAssignableFrom(doType)) {
+                for(final Method method : doType.getDeclaredMethods()) {
+                    final Name cfName = method.getDeclaredAnnotation(Name.class);
+                    if(null != cfName ){
+                        try {
+                            if(method.invoke(entry.getValue()).equals(fieldValue)) {
+                                NamedElement element = new NamedElement();
+                                element.setId(entry.getValue().getId());
+                                element.setName(fieldValue.toString());
+                                list.add(element);
+                            }
+                        } catch (IllegalAccessException
+                                | IllegalArgumentException
+                                | InvocationTargetException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
+        
+        result.setResult((java.util.Iterator<T>) list.iterator());
     }
 
     @Override

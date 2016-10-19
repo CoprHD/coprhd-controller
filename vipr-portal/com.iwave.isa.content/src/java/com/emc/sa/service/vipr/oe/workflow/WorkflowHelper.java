@@ -60,18 +60,22 @@ public final class WorkflowHelper {
      * Create or update a workflow definition
      */
     public static void persist(final WorkflowDefinition definition, final DbClient dbClient) {
+        
         final String name = definition.getWorkflowName();
         final URI id = getWorkflowId(name, dbClient);
         
         if(id == null) {
+            
             final OEWorkflow oeWorkflow = new OEWorkflow();
             
             oeWorkflow.setId(URIUtil.createId(OEWorkflow.class));
             oeWorkflow.setName(name);
+            oeWorkflow.setDocument(GSON.toJson(definition));
             
             dbClient.createObject(oeWorkflow);
             
         } else {
+            
             final OEWorkflow oeWorkflow = dbClient.queryObject(OEWorkflow.class, id);
             
             oeWorkflow.setDocument(GSON.toJson(definition));

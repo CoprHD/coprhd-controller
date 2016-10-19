@@ -265,6 +265,20 @@ public class VolumeGroupService extends TaskResourceService {
         return _migrationServiceApis.get(migrationType);
     }
 
+    /**
+     * @return the _migrationServiceApis
+     */
+    public static Map<String, MigrationServiceApi> getMigrationServiceApis() {
+        return _migrationServiceApis;
+    }
+
+    /**
+     * @param _migrationServiceApis the _migrationServiceApis to set
+     */
+    public static void setMigrationServiceApis(Map<String, MigrationServiceApi> _migrationServiceApis) {
+        VolumeGroupService._migrationServiceApis = _migrationServiceApis;
+    }
+
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");

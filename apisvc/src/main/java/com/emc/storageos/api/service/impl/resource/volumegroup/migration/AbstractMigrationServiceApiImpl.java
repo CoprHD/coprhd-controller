@@ -26,8 +26,12 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
 	    // A logger reference.
 	    private static final Logger logger = LoggerFactory
 	            .getLogger(AbstractMigrationServiceApiImpl.class);
+	    
+        public AbstractMigrationServiceApiImpl() {
+            super();
+        }
 
-	    protected final static String CONTROLLER_SVC = "controllersvc";
+        protected final static String CONTROLLER_SVC = "controllersvc";
 	    protected final static String CONTROLLER_SVC_VER = "1";
 	    
 	    @Autowired

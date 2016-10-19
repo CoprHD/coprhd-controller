@@ -95,7 +95,10 @@ public class BourneUtil {
         config.setRequestLoggingEnabled(isConfigPropertySet("storageos.api.debugging"));
 
 		// Client timeout
-		PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+		PropertyInfo propInfo = null;
+		if(!Play.mode.isDev()) {
+			propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+		}
 		String timeoutProperty = null;
 		int timeout = 5;
 		if (propInfo != null) {

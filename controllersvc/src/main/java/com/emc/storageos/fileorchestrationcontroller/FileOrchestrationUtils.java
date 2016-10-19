@@ -293,7 +293,7 @@ public class FileOrchestrationUtils {
             while (aclIter.hasNext()) {
                 NFSShareACL dbNFSAcl = aclIter.next();
                 String fsPath = dbNFSAcl.getFileSystemPath();
-                if (map.get(dbNFSAcl) == null) {
+                if (map.get(fsPath) == null) {
                     List<NfsACE> acl = new ArrayList<NfsACE>();
                     NfsACE ace = convertNFSShareACLToNfsACE(fs, dbNFSAcl);
                     acl.add(ace);

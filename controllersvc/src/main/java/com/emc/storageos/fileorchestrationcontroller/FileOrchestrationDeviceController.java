@@ -1536,11 +1536,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // both source and target FS have some ACL
                 for (String sourceFSACLPath : sourceFSACLMap.keySet()) {
 
-                    /*
-                     * List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
-                     * List<NfsACE> aclToDelete = new ArrayList<NfsACE>();
-                     * List<NfsACE> aclToModify = new ArrayList<NfsACE>();
-                     */
+
+                    List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
+                    List<NfsACE> aclToDelete = new ArrayList<NfsACE>();
+                    List<NfsACE> aclToModify = new ArrayList<NfsACE>();
 
                     // Segregate source and target NFS ACL
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(sourceFSACLPath, sourceFileShare);
@@ -1552,59 +1551,58 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
                     List<NfsACE> targetNFSACL = targetFSACLMap.get(targetFSACLPath);
 
-                    /*
-                     * HashMap<String, NfsACE> sourceUserToNFSACLMap = FileOrchestrationUtils
-                     * .getUserToNFSACEMap(sourceNFSACL);
-                     * 
-                     * HashMap<String, NfsACE> targetUserToNFSACLMap = FileOrchestrationUtils
-                     * .getUserToNFSACEMap(targetNFSACL);
-                     * 
-                     * // ACL To Add
-                     * for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
-                     * if (targetUserToNFSACLMap.get(sourceACEUser) == null) {
-                     * NfsACE nfsACE = sourceUserToNFSACLMap.get(sourceACEUser);
-                     * nfsACE.setFileSystemId(targetFileShare.getId());
-                     * aclToAdd.add(nfsACE);
-                     * }
-                     * }
-                     * 
-                     * // ACL To Delete
-                     * for (String targetACEUser : targetUserToNFSACLMap.keySet()) {
-                     * if (sourceUserToNFSACLMap.get(targetACEUser) == null) {
-                     * aclToDelete.add(targetUserToNFSACLMap.get(targetACEUser));
-                     * }
-                     * }
-                     * 
-                     * // ACL to Modify
-                     * targetNFSACL.removeAll(aclToDelete);
-                     * sourceNFSACL.removeAll(aclToAdd);
-                     * 
-                     * sourceUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(sourceNFSACL);
-                     * targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
-                     * 
-                     * for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
-                     * if (targetUserToNFSACLMap.get(sourceACEUser) != null
-                     * && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
-                     * .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
-                     * 
-                     * NfsACE ace = targetUserToNFSACLMap.get(sourceACEUser);
-                     * ace.setPermissions(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions());
-                     * aclToModify.add(ace);
-                     * }
-                     * }
-                     * 
-                     * // params = new FileNfsACLUpdateParams();
-                     * 
-                     * if (!aclToAdd.isEmpty()) {
-                     * params.setAcesToAdd(aclToAdd);
-                     * }
-                     * if (!aclToDelete.isEmpty()) {
-                     * params.setAcesToDelete(aclToDelete);
-                     * }
-                     * if (!aclToModify.isEmpty()) {
-                     * params.setAcesToModify(aclToModify);
-                     * }
-                     */
+                    HashMap<String, NfsACE> sourceUserToNFSACLMap = FileOrchestrationUtils
+                            .getUserToNFSACEMap(sourceNFSACL);
+
+                    HashMap<String, NfsACE> targetUserToNFSACLMap = FileOrchestrationUtils
+                            .getUserToNFSACEMap(targetNFSACL);
+
+                    // ACL To Add
+                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
+                        if (targetUserToNFSACLMap.get(sourceACEUser) == null) {
+                            NfsACE nfsACE = sourceUserToNFSACLMap.get(sourceACEUser);
+                            nfsACE.setFileSystemId(targetFileShare.getId());
+                            aclToAdd.add(nfsACE);
+                        }
+                    }
+
+                    // ACL To Delete
+                    for (String targetACEUser : targetUserToNFSACLMap.keySet()) {
+                        if (sourceUserToNFSACLMap.get(targetACEUser) == null) {
+                            aclToDelete.add(targetUserToNFSACLMap.get(targetACEUser));
+                        }
+                    }
+
+                    // ACL to Modify
+                    targetNFSACL.removeAll(aclToDelete);
+                    sourceNFSACL.removeAll(aclToAdd);
+
+                    sourceUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(sourceNFSACL);
+                    targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
+
+
+                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
+                        if (targetUserToNFSACLMap.get(sourceACEUser) != null
+                                && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
+                                .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
+
+                            NfsACE ace = targetUserToNFSACLMap.get(sourceACEUser);
+                            ace.setPermissions(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions());
+                            aclToModify.add(ace);
+                        }
+                    }
+
+
+                    if (!aclToAdd.isEmpty()) {
+                        params.setAcesToAdd(aclToAdd);
+                    }
+                    if (!aclToDelete.isEmpty()) {
+                        params.setAcesToDelete(aclToDelete);
+                    }
+                    if (!aclToModify.isEmpty()) {
+                        params.setAcesToModify(aclToModify);
+                    }
+
 
                     params.setAcesToDelete(targetNFSACL);
                     params.setAcesToAdd(sourceNFSACL);

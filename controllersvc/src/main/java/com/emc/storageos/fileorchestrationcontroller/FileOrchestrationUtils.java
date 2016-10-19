@@ -273,9 +273,14 @@ public class FileOrchestrationUtils {
 
     public static HashMap<String, NfsACE> getUserToNFSACEMap(List<NfsACE> nfsACL) {
         HashMap<String, NfsACE> aclMap = new HashMap<String, NfsACE>();
+        String user = null;
+        String domain = null;
         for (NfsACE ace : nfsACL) {
-            if (ace.getUser() != null && !ace.getUser().isEmpty()) {
-                aclMap.put(ace.getUser(), ace);
+            domain = ace.getDomain();
+            user = ace.getUser();
+            user = domain == null ? "null+" + user: domain + "+" + user;
+            if (user != null && !user.isEmpty()) {
+                aclMap.put(user, ace);
             }
         }
         return aclMap;

@@ -477,13 +477,15 @@ public interface BlockServiceApi {
      *            The snapshot name.
      * @param snapshotURIs
      *            [OUT] The URIs for the prepared snapshots.
+     * @param isHaSnap
+     *            true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId
      *            The unique task identifier
      * 
      * @return The list of snapshots
      */
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapShotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId);
+            String snapshotName, List<URI> snapshotURIs, Boolean isHaSnap, String taskId);
 
     /**
      * Uses the appropriate controller to create the snapshots.

@@ -2408,7 +2408,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     && reqVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
                 if (!NullColumnValueGetter.isNullURI(reqVolume.getConsistencyGroup())) {
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, reqVolume.getConsistencyGroup());
-                    if (containsMixedBackingArrays(cg)) {
+                    if (containsMixedBackingArrays(cg, isHaSnap)) {
                         throw APIException.badRequests.notSupportedSnapshotWithMixedArrays(cg.getId());
                     }
                 }
@@ -2444,19 +2444,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Determines if the CG source volumes contain mixed backing arrays.
      *
      * @param cg the consistency group to search.
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @return true if the CG contains source volumes with mixed backing arrays, false otherwise.
      */
-    private boolean containsMixedBackingArrays(BlockConsistencyGroup cg) {
+    private boolean containsMixedBackingArrays(BlockConsistencyGroup cg, Boolean isHaSnap) {
         // Get the active RP SOURCE VPLEX volumes for the consistency group.
         List<Volume> vplexVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, PersonalityTypes.SOURCE);
 
         if (vplexVolumes.size() > 1) {
             // Get the first volume's source side backing array. Compare the backing arrays
             // from other source volume's in the CG to see if they are different.
-            URI storageSystemToCompare = getSourceBackingVolumeStorageSystem(vplexVolumes.get(0));
+            URI storageSystemToCompare = getSourceBackingVolumeStorageSystem(vplexVolumes.get(0), isHaSnap);
 
             for (Volume volume : vplexVolumes) {
-                URI storageSystem = getSourceBackingVolumeStorageSystem(volume);
+                URI storageSystem = getSourceBackingVolumeStorageSystem(volume, isHaSnap);
                 if (!storageSystem.equals(storageSystemToCompare)) {
                     // The backing storage systems for the source side are different between
                     // volumes in the CG.
@@ -2471,13 +2472,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * Gets the non-HA side backing volume storage system for the given VPlex volume.
      *
-     * @param vplexVolume
-     *            the VPlex volume.
+     * @param vplexVolume the VPlex volume.
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @return the storage system URI corresponding to the backing volume.
      */
-    private URI getSourceBackingVolumeStorageSystem(Volume vplexVolume) {
+    private URI getSourceBackingVolumeStorageSystem(Volume vplexVolume, Boolean isHaSnap) {
         // Get the backing volume associated with the source side only
-        Volume localVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+        Volume localVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, !isHaSnap, _dbClient);
 
         return localVolume.getStorageController();
     }
@@ -2489,13 +2490,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapShotType The snapshot technology type.
      * @param snapshotName The snapshot name.
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId The unique task identifier
      *
      * @return The list of snapshots
      */
     @Override
-    public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType, String snapshotName, List<URI> snapshotURIs,
-            String taskId) {
+    public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
+            String snapshotName, List<URI> snapshotURIs, Boolean isHaSnap, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int index = 1;

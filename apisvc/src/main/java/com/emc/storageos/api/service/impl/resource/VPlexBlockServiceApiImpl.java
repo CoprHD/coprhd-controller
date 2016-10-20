@@ -3224,21 +3224,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volume The volume for which the snapshot is being created.
      * @param snapsetLabel The snapset label for grouping this snapshot.
      * @param label The label for the new snapshot.
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      *
      * @return A reference to the new BlockSnapshot instance.
      */
     @Override
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume vplexVolume, String snapsetLabel, String label) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume vplexVolume, String snapsetLabel, String label, Boolean isHaSnap) {
 
         // When creating a snapshot for a VPLEX volume, we create a
-        // native snapshot of the source backend volume for the
-        // VPLEX volume. The source backend volume is the associated
-        // volume in the same virtual arrays as the VPLEX volume.
-        Volume nativeSnapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+        // native snapshot of the source or HA side backend volume for the
+        // VPLEX volume.
+        Volume nativeSnapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, isHaSnap);
 
         // Note that when creating the ViPR snapshot, some of the properties
         // of the snapshot come from the VPLEX volume, while others come
-        // from the source backend volume.
+        // from the backend volume.
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
         snapshot.setSourceNativeId(nativeSnapshotSourceVolume.getNativeId());
@@ -3746,7 +3746,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
             String snapshotType, String snapshotName, Boolean isHaSnap, BlockFullCopyManager fcManager) {
-        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap), volumesToSnap, snapshotType,
+        // TBD Change. We should pass the backend volumes that would be snapped.
+        List<Volume> backendVolumesToSnap = new ArrayList<Volume>();
+        for (Volume vplexVolumeToSnap : volumesToSnap) {
+            backendVolumesToSnap.add(getVPLEXSnapshotSourceVolume(vplexVolumeToSnap, isHaSnap));
+        }
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap), backendVolumesToSnap, snapshotType,
                 snapshotName, isHaSnap, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,

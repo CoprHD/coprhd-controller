@@ -1126,7 +1126,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
                 if (system.getSystemType().equals(StorageSystem.Type.vmax.toString())) {
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                    for (Volume volumeToSnap : getActiveCGVolumes(cg)) {
+                    // TBD Change: Already have volumes to snap, why get them again. These are the
+                    // CG volumes.
+                    for (Volume volumeToSnap : volumesToSnap) {
                         if (volumeToSnap.getIsComposite()) {
                             throw APIException.methodNotAllowed.notSupportedWithReason(
                                     String.format("Volume %s is a member of vmax consistency group which has meta volumes.",
@@ -1220,6 +1222,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *            The snapshot name.
      * @param snapshotURIs
      *            [OUT] The URIs for the prepared snapshots.
+     * @param isHaSnap
+     *            true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId
      *            The unique task identifier
      * 
@@ -1227,7 +1231,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId) {
+            String snapshotName, List<URI> snapshotURIs, Boolean isHaSnap, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int count = 1;
@@ -1236,7 +1240,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             String rgName = volume.getReplicationGroupInstance();
             VolumeGroup application = volume.getApplication(_dbClient);
             if (volume.isVPlexVolume(_dbClient)) {
-                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), !isHaSnap, _dbClient);
                 if (backendVol != null && !backendVol.getInactive()) {
                     rgName = backendVol.getReplicationGroupInstance();
                 }
@@ -1254,7 +1258,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 label = String.format("%s-%s", snapshotName, count++);
             }
 
-            BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, label);
+            BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, label, isHaSnap);
             snapshot.setTechnologyType(snapshotType);
             snapshot.setOpStatus(new OpStatusMap());
             Operation op = new Operation();
@@ -1292,9 +1296,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *            The snapset label for grouping this snapshot
      * @param label
      *            The label for the new snapshot
+     * @param isHaSnap
+     *            true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @return A reference to the new BlockSnapshot instance.
      */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapsetLabel, String label) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapsetLabel, String label, Boolean isHaSnap) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
         URI cgUri = volume.getConsistencyGroup();

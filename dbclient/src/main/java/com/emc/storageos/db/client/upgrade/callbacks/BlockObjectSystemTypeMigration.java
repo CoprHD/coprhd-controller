@@ -32,8 +32,8 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
  * @author beachn
  * @since 3.5+
  */
-public class VolumeSystemTypeMigration extends BaseCustomMigrationCallback {
-    private static final Logger logger = LoggerFactory.getLogger(VolumeSystemTypeMigration.class);
+public class BlockObjectSystemTypeMigration extends BaseCustomMigrationCallback {
+    private static final Logger logger = LoggerFactory.getLogger(BlockObjectSystemTypeMigration.class);
 
     @Override
     public void process() throws MigrationCallbackException {

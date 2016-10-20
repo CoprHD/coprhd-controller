@@ -25,13 +25,13 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.db.client.upgrade.callbacks.VolumeSystemTypeMigration;
+import com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
-public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
+public class BlockObjectSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
 
-    private static final Logger log = LoggerFactory.getLogger(VolumeSystemTypeMigrationTest.class);
+    private static final Logger log = LoggerFactory.getLogger(BlockObjectSystemTypeMigrationTest.class);
 
     private static final int VPLEX_VOLUME_COUNT = 125;
     private static final int VNX_VOLUME_COUNT = 125;
@@ -45,7 +45,7 @@ public class VolumeSystemTypeMigrationTest extends DbSimpleMigrationTestBase {
         customMigrationCallbacks.put("3.5", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 2L;
             {
-                add(new VolumeSystemTypeMigration());
+                add(new BlockObjectSystemTypeMigration());
             }
         });
 

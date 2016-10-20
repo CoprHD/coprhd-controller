@@ -40,6 +40,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigrationTest extends DbS
     private static final String VPLEX_LOCAL_ALREADY_SET_LABEL_VAL = "ALREADY_SET_SO_SKIP";
     private static final String VPLEX_LOCAL_NO_BACKEND = "VplexMigrationTester_Local_noBackendVols";
     private static final String NON_VPLEX_VOL = "VnxMigrationTest_NotAVplexVolume";
+    private static final String BVOL = "Bvol";
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -84,7 +85,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigrationTest extends DbS
         // create backend volumes for distributed
         Volume bvol1 = new Volume();
         bvol1.setId(URIUtil.createId(Volume.class));
-        bvol1.setLabel("BVol1");
+        bvol1.setLabel(BVOL + "1");
         bvol1.setStorageController(vnx.getId());
         bvol1.setReplicationGroupInstance(DIST_REPL_GRP_SRC);
         bvol1.setVirtualArray(varray1Uri);
@@ -92,7 +93,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigrationTest extends DbS
 
         Volume bvol2 = new Volume();
         bvol2.setId(URIUtil.createId(Volume.class));
-        bvol2.setLabel("BVol2");
+        bvol2.setLabel(BVOL + "2");
         bvol2.setStorageController(vnx.getId());
         bvol2.setReplicationGroupInstance("DistributedReplicationGroupInstance123HA");
         bvol2.setVirtualArray(varray2Uri);
@@ -113,7 +114,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigrationTest extends DbS
 
         Volume bvol3 = new Volume();
         bvol3.setId(URIUtil.createId(Volume.class));
-        bvol3.setLabel("BVol3");
+        bvol3.setLabel(BVOL + "3");
         bvol3.setStorageController(vnx.getId());
         bvol3.setReplicationGroupInstance(DIST_REPL_GRP_SRC);
         bvol3.setVirtualArray(varray1Uri);
@@ -141,7 +142,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigrationTest extends DbS
 
         Volume bvol4 = new Volume();
         bvol4.setId(URIUtil.createId(Volume.class));
-        bvol4.setLabel("BVol4");
+        bvol4.setLabel(BVOL + "4");
         bvol4.setStorageController(vnx.getId());
         bvol4.setReplicationGroupInstance(DIST_REPL_GRP_SRC);
         bvol4.setVirtualArray(varray1Uri);
@@ -193,7 +194,9 @@ public class VplexVolumeBackingReplicationGroupInstanceMigrationTest extends DbS
                     notUpdatedCount++;
                     break;
                 default:
-                    throw new AssertionError("Unexpected volume found: " + volume.forDisplay());
+                    if (volume.getLabel() != null && !volume.getLabel().startsWith(BVOL)) {
+                        throw new AssertionError("Unexpected volume found: " + volume.forDisplay());
+                    }
             }
         }
 

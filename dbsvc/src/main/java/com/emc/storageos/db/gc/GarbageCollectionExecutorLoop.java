@@ -107,6 +107,8 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
             return;
         }
     	
+    	log.info("Begin to GC...");
+    	
         try {
             if (!preGC()) {
                 return; // can't run GC now
@@ -133,6 +135,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         		postGC();
         	} finally {
         		releaseLockForGC(lock);
+        		log.info("GC is finished.");
         	}
         }
     }
@@ -160,7 +163,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         InterProcessLock lock = null;
         String lockName = getGCZKLockName();
         try {
-            log.debug("try to get ZK lock {}", lockName);
+            log.info("try to get ZK GC lock {}", lockName);
 
             lock = coordinator.getLock(lockName);
             if (lock.acquire(0, TimeUnit.SECONDS) == false) {// try to get the lock timeout=0
@@ -168,7 +171,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
                 return null; // failed to get the lock
             }
 
-            log.debug("Get lock {}", lockName);
+            log.info("Get GC lock {}", lockName);
         } catch (Exception e) {
             log.info("Failed to acquire lock for GC {} Exception e=", lockName, e);
             lock = null;
@@ -181,7 +184,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     	String lockName = getGCZKLockName();
         try {
             lock.release();
-            log.debug("Release the ZK lock of {}", lockName);
+            log.info("Release the ZK lock of {}", lockName);
         } catch (Exception e) {
             log.error("Failed to release the lock for GC {} e=", lockName, e);
         }

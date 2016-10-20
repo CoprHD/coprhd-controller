@@ -1519,7 +1519,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, sourceFileShare);
                     aclToAdd = sourceFSACLMap.get(fsPath);
                     params.setAcesToAdd(aclToAdd);
-                    s_logger.info("Invoking updateNFSACL on FS: {}, with params: {}", targetFileShare.getName(), params);
+                    s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
                     updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                 }
             } else if (!targetFSACLMap.isEmpty() && sourceFSACLMap.isEmpty()) {
@@ -1529,7 +1529,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, targetFileShare);
                     aclToDelete = targetFSACLMap.get(fsPath);
                     params.setAcesToDelete(aclToDelete);
-                    s_logger.info("Invoking updateNFSACL on FS: {}, with params: {}", targetFileShare.getName(), params);
+                    s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
                     updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                 }
             } else if (!sourceFSACLMap.isEmpty() && !targetFSACLMap.isEmpty()) {
@@ -1580,7 +1580,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     sourceUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(sourceNFSACL);
                     targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
 
-
                     for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
                         if (targetUserToNFSACLMap.get(sourceACEUser) != null
                                 && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
@@ -1603,12 +1602,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         params.setAcesToModify(aclToModify);
                     }
 
-
-                    params.setAcesToDelete(targetNFSACL);
-                    params.setAcesToAdd(sourceNFSACL);
-
                     if (!params.retrieveAllACL().isEmpty()) {
-                        s_logger.info("Invoking updateNFSACL on FS: {}, with params: {}", targetFileShare.getName(), params);
+                        s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
                         updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                     }
                 }

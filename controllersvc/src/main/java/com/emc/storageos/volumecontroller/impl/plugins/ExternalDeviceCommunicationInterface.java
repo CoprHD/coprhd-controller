@@ -533,7 +533,6 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
                     pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-                    pool.setOperationalStatus(com.emc.storageos.db.client.model.StoragePool.PoolOperationalStatus.READY.toString());
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,

@@ -135,7 +135,6 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
 /**
@@ -2052,6 +2051,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             volume.setProtocol(protocols);
         }
         volume.setStorageController(storageSystemURI);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
+        String systemType = storageSystem.checkIfVmax3() ? 
+                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+        volume.setSystemType(systemType);
         volume.setPool(storagePoolURI);
         volume.setOpStatus(new OpStatusMap());
 
@@ -3254,6 +3257,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         snapshot.setParent(new NamedURI(nativeSnapshotSourceVolume.getId(), nativeSnapshotSourceVolume.getLabel()));
         snapshot.setLabel(label);
         snapshot.setStorageController(nativeSnapshotSourceVolume.getStorageController());
+        snapshot.setSystemType(nativeSnapshotSourceVolume.getSystemType());
         snapshot.setVirtualArray(nativeSnapshotSourceVolume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(nativeSnapshotSourceVolume.getProtocol());

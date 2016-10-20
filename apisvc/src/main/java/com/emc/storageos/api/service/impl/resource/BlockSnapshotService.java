@@ -997,6 +997,7 @@ public class BlockSnapshotService extends TaskResourceService {
         volume.setVirtualArray(snapshot.getVirtualArray());
         volume.setProject(snapshot.getProject());
         volume.setStorageController(snapshot.getStorageController());
+        volume.setSystemType(snapshot.getSystemType());
         StringSet protocols = new StringSet();
         protocols.addAll(snapshot.getProtocol());
         volume.setProtocol(protocols);

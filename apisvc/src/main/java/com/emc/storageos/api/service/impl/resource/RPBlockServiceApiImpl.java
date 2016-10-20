@@ -1584,6 +1584,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     if (!vplex) {
                         volume.setPool(pool.getId());
                         volume.setStorageController(pool.getStorageDevice());
+                        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, pool.getStorageDevice());
+                        String systemType = storageSystem.checkIfVmax3() ? 
+                                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+                        volume.setSystemType(systemType);
                     }
                 }
             }
@@ -2685,6 +2689,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         snapshot.setLabel(modifiedSnapshotName);
 
         snapshot.setStorageController(volume.getStorageController());
+        snapshot.setSystemType(volume.getSystemType());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());

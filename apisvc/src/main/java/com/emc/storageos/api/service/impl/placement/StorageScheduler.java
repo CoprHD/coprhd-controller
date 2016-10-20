@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
@@ -1677,7 +1678,12 @@ public class StorageScheduler implements Scheduler {
                         VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-        volume.setStorageController(placement.getCandidateSystems().get(0));
+        URI storageControllerUri = placement.getCandidateSystems().get(0);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageControllerUri);
+        String systemType = storageSystem.checkIfVmax3() ? 
+                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+        volume.setSystemType(systemType);
+        volume.setStorageController(storageControllerUri);
         volume.setPool(poolId);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
@@ -1778,6 +1784,7 @@ public class StorageScheduler implements Scheduler {
         }
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
+        createdMirror.setSystemType(volume.getSystemType());
         createdMirror.setVirtualArray(volume.getVirtualArray());
         // Setting the source Volume autoTieringPolicy in Mirror.
         // @TODO we must accept the policy as an input for mirrors and requires API changes.

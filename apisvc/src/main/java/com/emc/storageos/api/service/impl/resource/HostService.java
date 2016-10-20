@@ -284,6 +284,23 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
+        // trying to modify cluster attribute on virtual machine.
+        if (updateParam.getVirtualMachine() == null && host.getVirtualMachine() == true) {
+            if (updateParam.getCluster() != null) {
+
+                throw APIException.badRequests.virtualHostCantNotbeInCluster();
+            }
+        }
+        // trying to modify virtual machine attribute of host which is part of cluster.
+        if (updateParam.getCluster() == null && !NullColumnValueGetter.isNullURI(host.getCluster())) {
+
+            if (updateParam.getVirtualMachine() != null && updateParam.getVirtualMachine()) {
+
+                throw APIException.badRequests.virtualHostCantNotbeInCluster();
+            }
+
+        }
+
         URI oldClusterURI = host.getCluster();
         populateHostData(host, updateParam);
         if (updateParam.getHostName() != null) {
@@ -523,6 +540,14 @@ public class HostService extends TaskResourceService {
         }
         // validate the cluster is present, active, and in the same tenant org
         if (!NullColumnValueGetter.isNullURI(hostParam.getCluster())) {
+
+            // validate host is not a virtual host for cluster association.
+            if (hostParam.getVirtualMachine() != null && hostParam.getVirtualMachine()) {
+
+                throw APIException.badRequests.virtualHostCantNotbeInCluster();
+
+            }
+
             cluster = queryObject(Cluster.class, hostParam.getCluster(),
                     true);
             if (!cluster.getTenant().equals(tenanUri)) {
@@ -973,7 +998,7 @@ public class HostService extends TaskResourceService {
             // Make sure the port is a valid RBD pseudo port
             if (!RBDUtility.isValidRBDPseudoPort(port)) {
                 throw APIException.badRequests.invalidRBDInitiatorPort();
-        }
+            }
             if (param.getNode() != null) {
                 throw APIException.badRequests.invalidNodeForRBDPort();
             }

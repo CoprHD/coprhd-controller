@@ -10,7 +10,7 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.MigrateApplicationParams;
+import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.vipr.client.Tasks;
 
 /**
@@ -40,7 +40,7 @@ public class CreateApplicationMigration extends WaitForTasks<TaskResourceRep> {
      */
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
-        MigrateApplicationParams param = new MigrateApplicationParams();
+    	ApplicationMigrationParam param = new ApplicationMigrationParam();
         param.setTargetVirtualArray(targetVarray);
         param.setTargetVirtualPool(targetVpool);
         

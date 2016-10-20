@@ -29,7 +29,13 @@ public class ExportMask extends DataObject {
     private URI _storageDevice;
     private String _maskName;
     private String _nativeId;
+
+    // Volumes in the mask
+    // Map URI --> HLU
     private StringMap _volumes;
+
+    // Initiators in the mask
+    // Initiators known by ViPR in the compute resource of the mask
     private StringSet _initiators;
     private StringSet _storagePorts;
 
@@ -37,19 +43,23 @@ public class ExportMask extends DataObject {
     // so that export operations can be performed on existing
     // array masking components
 
-    // Volumes that were added to the mask by Bourne user.
+    // Volumes that were added to the mask by ViPR user.
     // Map WWN --> BlockObject::URI
     private StringMap _userAddedVolumes;
 
-    // Volumes that were already in mask.
+    // Volumes that were not added to the mask by ViPR user.
+    // Note: Regardless of ViPR's knowledge of volume in our own DB.
+    // Volumes in this list do not appear in _volumes or _userAddedVolumes.
     // Map WWN --> HLU
     private StringMap _existingVolumes;
 
-    // Initiators that were added to the mask by Bourne user.
+    // Initiators that were added to the mask by ViPR user.
     // Map portName --> Initiator::URI
     private StringMap _userAddedInitiators;
 
-    // Initiators that were already in the mask (created outside of Bourne).
+    // Initiators that were not added to the mask by ViPR user and not
+    // associated with the compute resource(s) of the mask.
+    // Note: initiators in this list do not appear in _initiators or _userAddedInitiators.
     // Set portName
     private StringSet _existingInitiators;
 
@@ -729,57 +739,6 @@ public class ExportMask extends DataObject {
         return hasInitiator;
     }
 
-    public boolean hasInitiators(List<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return maskInitiators.containsAll(normalizedPorts);
-    }
-
-    public boolean hasExactlyTheseInitiators(Collection<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return (normalizedPorts.size() == maskInitiators.size()) && maskInitiators.containsAll(normalizedPorts);
-    }
-
-    /**
-     * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
-     * 
-     * @param ports ports of a compute resource
-     * @return true if contains a subset and ONLY that subset
-     */
-    public boolean hasExactlySubsetOfTheseInitiators(List<String> ports) {
-        Collection<String> normalizedPorts = new HashSet<String>();
-        for (String port : ports) {
-            normalizedPorts.add(Initiator.normalizePort(port));
-        }
-        Collection<String> maskInitiators = new HashSet<String>();
-        if (_existingInitiators != null) {
-            maskInitiators.addAll(_existingInitiators);
-        }
-        if (_userAddedInitiators != null) {
-            maskInitiators.addAll(_userAddedInitiators.keySet());
-        }
-        return normalizedPorts.containsAll(maskInitiators);
-    }
-
     public boolean hasExistingInitiator(List<Initiator> initiators) {
         if (_existingInitiators != null) {
             for (Initiator initiator : initiators) {
@@ -796,6 +755,9 @@ public class ExportMask extends DataObject {
     }
 
     public boolean hasExistingVolume(BlockObject blockObject) {
+        if (checkForNull(blockObject)) {
+            return false;
+        }
         return hasExistingVolume(blockObject.getWWN());
     }
 

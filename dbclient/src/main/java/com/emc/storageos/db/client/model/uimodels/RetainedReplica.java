@@ -22,7 +22,7 @@ public class RetainedReplica extends DataObject {
     public static final String ASSOCIATED_REPLICA_IDS = "associatedReplicaIds";
     
     private URI scheduledEventId; // which scheduled events create the resource
-    private URI resourceId;       // source volume or cg
+    private URI resourceId;       // source volume, cg or application Id
     private StringSet associatedReplicaIds; // newly created snapshots or fullcopies for retention
     
     @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)

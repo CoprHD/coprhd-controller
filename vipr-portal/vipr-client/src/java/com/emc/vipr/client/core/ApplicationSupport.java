@@ -50,7 +50,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.MigrateApplicationParams;
+import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
@@ -454,7 +454,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      * @param param target varray and vpool id
      * @return
      */
-    private TaskList sendMigrationRequest(URI applicationId, String request, MigrateApplicationParams param) {
+    private TaskList sendMigrationRequest(URI applicationId, String request, ApplicationMigrationParam param) {
         UriBuilder uriBuilder = client.uriBuilder(request);
         TaskResourceRep task = client.postURI(TaskResourceRep.class, param, uriBuilder.build(applicationId));
         TaskList tasks = new TaskList();
@@ -483,7 +483,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      * @param param target varray and vpool id
      * @return
      */
-    public TaskList createMigration(URI applicationId, MigrateApplicationParams param) {
+    public TaskList createMigration(URI applicationId, ApplicationMigrationParam param) {
         return sendMigrationRequest(applicationId, APP_SUPPORT_CREATE_MIGRATION_URL, param);
     }
     
@@ -504,7 +504,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      * @param param optional remove migration environment flag
      * @return
      */
-    public TaskList commitMigration(URI applicationId, MigrateApplicationParams param) {
+    public TaskList commitMigration(URI applicationId, ApplicationMigrationParam param) {
         return sendMigrationRequest(applicationId, APP_SUPPORT_COMMIT_MIGRATION_URL, param);
     }
     
@@ -515,7 +515,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      * @param param optional remove migration environment flag
      * @return
      */
-    public TaskList cancelMigration(URI applicationId, MigrateApplicationParams param) {
+    public TaskList cancelMigration(URI applicationId, ApplicationMigrationParam param) {
         return sendMigrationRequest(applicationId, APP_SUPPORT_CANCEL_MIGRATION_URL, param);
     }
     

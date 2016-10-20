@@ -288,6 +288,11 @@
         </property>
     </bean>
 
+    <bean id="applicationMigrationApiImpl" class="com.emc.storageos.api.service.impl.resource.volumegroup.migration.ApplicationMigrationApiImpl">
+         <property name="dbClient" ref="dbclient"/>
+         <property name="coordinator" ref="coordinator"/>
+    </bean>
+
     <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -298,6 +303,11 @@
             	<entry key="block" value-ref="defaultBlockServiceApiImpl" />
                 <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
                 <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+            </map>
+        </property>
+        <property name="migrationServiceApis">
+        	<map>
+            	<entry key="vmax" value-ref="applicationMigrationApiImpl" />               
             </map>
         </property>
     </bean>

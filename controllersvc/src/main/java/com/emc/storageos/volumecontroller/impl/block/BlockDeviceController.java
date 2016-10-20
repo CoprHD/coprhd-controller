@@ -6032,8 +6032,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
-            String opId) throws InternalException {
-        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, opId);
+            Boolean updateStatus, String opId) throws InternalException {
+        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, updateStatus, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.
@@ -6047,22 +6047,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // For CG's, ensure 1 target per ReplicationGroup
             if (tgtSnapSession.hasConsistencyGroup()
                     && NullColumnValueGetter.isNotNullValue(tgtSnapSession.getReplicationGroupInstance())) {
-                Iterator<BlockSnapshot> iterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
-                List<BlockSnapshot> snapshots = Lists.newArrayList(iterator);
-                Set<String> replicationGroups = new HashSet<>();
-                List<URI> filtered = new ArrayList<>();
-
-                for (BlockSnapshot snapshot : snapshots) {
-                    String repGrpInstance = snapshot.getReplicationGroupInstance();
-                    if (replicationGroups.contains(repGrpInstance)) {
-                        continue;
-                    }
-
-                    replicationGroups.add(repGrpInstance);
-                    filtered.add(snapshot.getId());
-                }
-
-                snapshotsIterable = filtered;
+                snapshotsIterable = ControllerUtils.ensureOneSnapshotPerReplicationGroup(snapshotURIs, _dbClient);
             }
 
             String waitFor = null;

@@ -47,6 +47,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.api.service.impl.resource.volumegroup.migration.MigrationServiceApi;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -83,7 +84,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.MigrateApplicationParams;
+import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
@@ -225,6 +226,9 @@ public class VolumeGroupService extends TaskResourceService {
 
     // Block service implementations
     private static Map<String, BlockServiceApi> _blockServiceApis;
+    
+	// Migration service implementations
+    private static Map<String, MigrationServiceApi> _migrationServiceApis;
 
     /**
      * Setter for the placement manager.
@@ -250,6 +254,29 @@ public class VolumeGroupService extends TaskResourceService {
 
     private static BlockServiceApi getBlockServiceImpl(final String type) {
         return _blockServiceApis.get(type);
+    }
+    
+    //Migration service impls
+    public void setMigrationApis(final Map<String, MigrationServiceApi> migrationInterfaces) {
+        _migrationServiceApis = migrationInterfaces;
+    }
+
+    private static MigrationServiceApi getMigrationServiceImpl(final String migrationType) {
+        return _migrationServiceApis.get(migrationType);
+    }
+
+    /**
+     * @return the _migrationServiceApis
+     */
+    public static Map<String, MigrationServiceApi> getMigrationServiceApis() {
+        return _migrationServiceApis;
+    }
+
+    /**
+     * @param _migrationServiceApis the _migrationServiceApis to set
+     */
+    public static void setMigrationServiceApis(Map<String, MigrationServiceApi> _migrationServiceApis) {
+        VolumeGroupService._migrationServiceApis = _migrationServiceApis;
     }
 
     @Override
@@ -3812,7 +3839,7 @@ public class VolumeGroupService extends TaskResourceService {
 
             return volumes;
         }
-
+                
         /**
          * Valid the volumes to be removed from the volume group. Called by updateVolumeGroup()
          * 
@@ -4119,7 +4146,7 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
     }
-
+ 
     /**
      * Initiate the Migration of an Application Group
      * This will create an Application Group on the Target System and
@@ -4136,7 +4163,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCreate(@PathParam("id") URI id, MigrateApplicationParams param) {
+    public TaskResourceRep migrationCreate(@PathParam("id") URI id, ApplicationMigrationParam param) {
         
         // validate input
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
@@ -4148,6 +4175,14 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
+        
+        if (!application.getMigrationType().equalsIgnoreCase(VolumeGroup.MigrationType.VMAX.name())) {
+        	//TODO: throw an exception here or handle differently
+        }
+                
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(application.getMigrationType());
+        migrationApiImpl.migrationCreate(id, param);
+        
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE);
         // TODO : change toCompletedTask to toTask once this method is implemented
@@ -4178,6 +4213,7 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         // Create a task for the volume and set the
         // initial task state to pending.
+        
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
                 ResourceOperationTypeEnum.MIGRATION_MIGRATE);
         // TODO : change toCompletedTask to toTask once this method is implemented
@@ -4198,7 +4234,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/commit")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCommit(@PathParam("id") URI id, MigrateApplicationParams param) {
+    public TaskResourceRep migrationCommit(@PathParam("id") URI id, ApplicationMigrationParam param) {
         
         // validate input
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);
@@ -4229,7 +4265,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCancel(@PathParam("id") URI id, MigrateApplicationParams param) {
+    public TaskResourceRep migrationCancel(@PathParam("id") URI id, ApplicationMigrationParam param) {
         
         // validate input
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, ID_FIELD);

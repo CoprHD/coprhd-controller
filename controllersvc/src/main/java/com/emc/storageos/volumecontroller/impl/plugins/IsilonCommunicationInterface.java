@@ -41,7 +41,6 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
-import com.emc.storageos.db.client.model.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.CopyTypes;

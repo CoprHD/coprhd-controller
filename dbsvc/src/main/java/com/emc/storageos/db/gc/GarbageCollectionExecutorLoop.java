@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
+
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,9 +86,27 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     protected abstract <T extends DataObject> GarbageCollectionRunnable genGCTask(Class<T> clazz);
 
     protected abstract void postGC();
+    
+    /**
+     * return ZK lock name for GC
+     * @return
+     */
+    protected abstract String getGCZKLockName();
 
     @Override
     public void run() {
+    	InterProcessLock lock = null;
+    	try {
+    		lock = getLockForGC();
+            if (lock == null) {
+            	log.info("Can't get GC lock, wait for next run.");
+                return;
+            }
+        } catch (Exception e) {
+            log.info("Failed to acquire ZK lock for GC", e);
+            return;
+        }
+    	
         try {
             if (!preGC()) {
                 return; // can't run GC now
@@ -108,7 +129,11 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
                 waitTasksToComplete();
             }
         } finally {
-            postGC();
+        	try {
+        		postGC();
+        	} finally {
+        		releaseLockForGC(lock);
+        	}
         }
     }
 
@@ -129,5 +154,36 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
 
         futures.clear();
         log.info("GC tasks are done");
+    }
+    
+    private InterProcessLock getLockForGC() {
+        InterProcessLock lock = null;
+        String lockName = getGCZKLockName();
+        try {
+            log.debug("try to get ZK lock {}", lockName);
+
+            lock = coordinator.getLock(lockName);
+            if (lock.acquire(0, TimeUnit.SECONDS) == false) {// try to get the lock timeout=0
+                log.info("Can't get ZK lock for GC");
+                return null; // failed to get the lock
+            }
+
+            log.debug("Get lock {}", lockName);
+        } catch (Exception e) {
+            log.info("Failed to acquire lock for GC {} Exception e=", lockName, e);
+            lock = null;
+        }
+
+        return lock;
+    }
+
+    private void releaseLockForGC(InterProcessLock lock) {
+    	String lockName = getGCZKLockName();
+        try {
+            lock.release();
+            log.debug("Release the ZK lock of {}", lockName);
+        } catch (Exception e) {
+            log.error("Failed to release the lock for GC {} e=", lockName, e);
+        }
     }
 }

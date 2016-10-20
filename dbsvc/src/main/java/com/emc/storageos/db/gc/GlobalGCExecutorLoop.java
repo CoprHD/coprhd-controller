@@ -86,4 +86,9 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
             }
         }
     }
+    
+    @Override
+	protected String getGCZKLockName() {
+		return "LocalGCLock";
+	}
 }

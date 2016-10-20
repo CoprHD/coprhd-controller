@@ -2550,7 +2550,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
                 Volume volumeToSnap = volume;
                 if (vplex) {
-                    volumeToSnap = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(volume);
+                    volumeToSnap = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(volume, isHaSnap);
                 }
 
                 boolean isRPTarget = false;

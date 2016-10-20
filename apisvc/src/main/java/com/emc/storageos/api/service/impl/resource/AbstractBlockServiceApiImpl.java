@@ -1283,7 +1283,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return A reference to the new BlockSnapshot instance.
      */
     protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String label) {
-        return prepareSnapshotFromVolume(volume, label, label);
+        //TBD check
+        return prepareSnapshotFromVolume(volume, label, label, false);
     }
 
     /**

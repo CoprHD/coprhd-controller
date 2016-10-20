@@ -207,8 +207,9 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         List<URI> snapIdList = new ArrayList<URI>();
         List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
         TaskList response = new TaskList();
+        // TBD check
         snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-                volumeList, snapshotType, snapshotName, snapIdList, taskId));
+                volumeList, snapshotType, snapshotName, snapIdList, false, taskId));
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }

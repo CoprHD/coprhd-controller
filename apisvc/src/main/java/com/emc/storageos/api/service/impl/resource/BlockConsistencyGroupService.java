@@ -571,8 +571,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // Prepare and create the snapshots for the group.
             List<URI> snapIdList = new ArrayList<URI>();
             List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
+            // TBD check
             snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-                    volumeList, snapshotType, snapshotName, snapIdList, taskId));
+                    volumeList, snapshotType, snapshotName, snapIdList, false, taskId));
             for (BlockSnapshot snapshot : snapshotList) {
                 taskList.getTaskList().add(toTask(snapshot, taskId));
             }

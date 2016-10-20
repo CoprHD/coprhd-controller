@@ -82,6 +82,8 @@ public class IBMSVCDiscovery {
 
             if (result.isSuccess()) {
 
+                connectionManager.setConnInfoToRegistry(result.getProperty("SerialNumber"), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
+
                 _log.info(String.format("Processing storage system %s.", storageSystem.getIpAddress()));
 
                 storageSystem.setSerialNumber(result.getProperty("SerialNumber"));
@@ -145,6 +147,7 @@ public class IBMSVCDiscovery {
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
+        DriverTask.TaskStatus overallTaskState = DriverTask.TaskStatus.READY;
 
         _log.info("discoverStoragePools() information for storage system {}, name {} - start",
                 storageSystem.getIpAddress(), storageSystem.getSystemName());
@@ -218,20 +221,22 @@ public class IBMSVCDiscovery {
                                 resultStoragePool.getErrorString()), resultStoragePool.isSuccess());
                         task.setMessage(String.format("Processing storage pool %s failed : ", storagePool.getPoolName())
                                 + resultStoragePool.getErrorString());
-                        task.setStatus(DriverTask.TaskStatus.FAILED);
+                        overallTaskState = DriverTask.TaskStatus.FAILED;
+                        //task.setStatus(DriverTask.TaskStatus.FAILED);
                     }
                 }
 
                 task.setMessage(String.format("All storage pool discovery for the storage system %s completed.",
                         storageSystem.getIpAddress()));
-                task.setStatus(DriverTask.TaskStatus.READY);
+                //task.setStatus(DriverTask.TaskStatus.READY);
 
             } else {
                 _log.error(String.format("All storage pool discovery for the storage system failed %s\n",
                         resultAllStoragePool.getErrorString()), resultAllStoragePool.isSuccess());
                 task.setMessage(String.format("All storage pool discovery for the storage system %s failed : ",
                         storageSystem.getIpAddress()) + resultAllStoragePool.getErrorString());
-                task.setStatus(DriverTask.TaskStatus.FAILED);
+                //task.setStatus(DriverTask.TaskStatus.FAILED);
+                overallTaskState = DriverTask.TaskStatus.FAILED;
             }
 
         } catch (Exception e) {
@@ -239,7 +244,8 @@ public class IBMSVCDiscovery {
                     storageSystem.getSystemName());
             task.setMessage(String.format("Unable to query the Storage Pools information for the host %s",
                     storageSystem.getSystemName()) + e.getMessage());
-            task.setStatus(DriverTask.TaskStatus.FAILED);
+            //task.setStatus(DriverTask.TaskStatus.FAILED);
+            overallTaskState = DriverTask.TaskStatus.FAILED;
             e.printStackTrace();
         } finally {
             if(connection != null){
@@ -249,19 +255,20 @@ public class IBMSVCDiscovery {
 
         _log.info("discoverStoragePools() information for storage system {}, nativeId {} - end\n",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
-
+        task.setStatus(overallTaskState);
         return task;
     }
 
     /**
      * Discover Storage Ports
-     * @param storageSystem
-     * @param storagePorts
-     * @return
+     * @param storageSystem Storage System to discover
+     * @param storagePorts StoragePorts Discovered Type: Output
+     * @return DriverTask
      */
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_DISCOVER_STORAGE_PORTS);
+        DriverTask.TaskStatus overallTaskState = DriverTask.TaskStatus.READY;
 
         _log.info("discoverStoragePorts() information for storage system {}, name {} - start",
                 storageSystem.getIpAddress(), storageSystem.getSystemName());
@@ -308,16 +315,17 @@ public class IBMSVCDiscovery {
                             _log.info(String.format("Processed storage port %s.\n", storagePort.getPortNetworkId()));
                         }
 
-                        task.setMessage(String.format("All storage pool discovery for the storage system %s completed.",
-                                storageSystem.getIpAddress()));
-                        task.setStatus(DriverTask.TaskStatus.READY);
+                        task.setMessage(String.format("Storage port discovery for the cluster node %s completed.",
+                                clusterNode.getNodeName()));
+                        //task.setStatus(DriverTask.TaskStatus.READY);
 
                     } else {
                         _log.warn(String.format("Processing storage port for the cluster node failed %s\n",
                                 resultStoragePort.getErrorString()), resultClusterNodes.isSuccess());
-                        task.setMessage(String.format("Processing storage pool for the cluster node %s failed : ",
+                        task.setMessage(String.format("Processing storage port for the cluster node %s failed : ",
                                 clusterNode.getNodeName()) + resultStoragePort.getErrorString());
-                        task.setStatus(DriverTask.TaskStatus.FAILED);
+                        //task.setStatus(DriverTask.TaskStatus.FAILED);
+                        overallTaskState = DriverTask.TaskStatus.FAILED;
                         continue;
                     }
 
@@ -329,14 +337,16 @@ public class IBMSVCDiscovery {
                         resultClusterNodes.getErrorString()), resultClusterNodes.isSuccess());
                 task.setMessage(String.format("All storage port discovery for the storage system %s failed : ",
                         storageSystem.getIpAddress()) + resultClusterNodes.getErrorString());
-                task.setStatus(DriverTask.TaskStatus.FAILED);
+                //task.setStatus(DriverTask.TaskStatus.FAILED);
+                overallTaskState = DriverTask.TaskStatus.FAILED;
             }
         } catch (Exception e) {
             _log.error("Unable to query the storage ports information for the host {}\n",
                     storageSystem.getSystemName());
             task.setMessage(String.format("Unable to query the Storage Ports information for the host %s",
                     storageSystem.getSystemName()) + e.getMessage());
-            task.setStatus(DriverTask.TaskStatus.FAILED);
+            //task.setStatus(DriverTask.TaskStatus.FAILED);
+            overallTaskState = DriverTask.TaskStatus.FAILED;
             e.printStackTrace();
         }finally {
             if(connection != null){
@@ -346,7 +356,7 @@ public class IBMSVCDiscovery {
 
         _log.info("discoverStoragePorts() information for storage system {}, nativeId {} - end\n",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
-
+        task.setStatus(overallTaskState);
         return task;
     }
 
@@ -360,7 +370,7 @@ public class IBMSVCDiscovery {
                                                     List<StorageHostComponent> storageHosts) {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_DISCOVER_STORAGE_HOSTS);
-
+        DriverTask.TaskStatus overallTaskState = DriverTask.TaskStatus.READY;
         _log.info("discoverStorageHostComponents() for storage system {} - start", storageSystem.getNativeId());
 
         SSHConnection connection = null;
@@ -403,7 +413,7 @@ public class IBMSVCDiscovery {
 
                         _log.info(String.format("Processed host Id (%s).\n", resultHostInitiator.getHostId()));
                         task.setMessage(String.format("Processed the host Id (%s).", resultHostInitiator.getHostId()));
-                        task.setStatus(DriverTask.TaskStatus.READY);
+                        //task.setStatus(DriverTask.TaskStatus.READY);
 
                     } else {
                         _log.error(
@@ -412,7 +422,8 @@ public class IBMSVCDiscovery {
                                 resultHostInitiator.isSuccess());
                         task.setMessage(String.format("Querying host initiator for host Id %s failed : ",
                                 resultHostInitiator.getHostId()) + resultHostInitiator.getErrorString());
-                        task.setStatus(DriverTask.TaskStatus.FAILED);
+                        //task.setStatus(DriverTask.TaskStatus.FAILED);
+                        overallTaskState = DriverTask.TaskStatus.FAILED;
                     }
                 }
 
@@ -420,14 +431,16 @@ public class IBMSVCDiscovery {
                 _log.error(String.format("Querying all host failed %s\n", resultAllHost.getErrorString()),
                         resultAllHost.isSuccess());
                 task.setMessage(String.format("Querying all host failed : %s", resultAllHost.getErrorString()));
-                task.setStatus(DriverTask.TaskStatus.FAILED);
+                //task.setStatus(DriverTask.TaskStatus.FAILED);
+                overallTaskState = DriverTask.TaskStatus.FAILED;
             }
 
         } catch (Exception e) {
             _log.error("Unable to query the hosts information on the storage system {}", storageSystem.getNativeId());
             task.setMessage(String.format("Unable to query the hosts information on the storage system %s",
                     storageSystem.getNativeId()) + e.getMessage());
-            task.setStatus(DriverTask.TaskStatus.FAILED);
+            //task.setStatus(DriverTask.TaskStatus.FAILED);
+            overallTaskState = DriverTask.TaskStatus.FAILED;
             e.printStackTrace();
         } finally {
             if(connection != null){
@@ -437,7 +450,7 @@ public class IBMSVCDiscovery {
         }
 
         _log.info("discoverStorageHostComponents() for storage system {} - end", storageSystem.getNativeId());
-
+        task.setStatus(overallTaskState);
         return task;
     }
 
@@ -521,7 +534,56 @@ public class IBMSVCDiscovery {
     }
 
     public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
-        // TODO Auto-generated method stub
+
+        /*Map<String, HostExportInfo> volumeExportInfo = new HashMap<>();
+
+        _log.info("getVolumeExportInfoForHosts() information for storage system {}, volume id {} - start",
+                volume.getStorageSystemId(), volume.getNativeId());
+
+        SSHConnection connection = null;
+
+        try {
+            connection = connectionManager.getClientBySystemId(volume.getStorageSystemId());
+
+            IBMSVCQueryVolumeHostMappingResult resultVolumeHostMapping = IBMSVCCLI.queryVolumeHostMapping(connection, volume.getNativeId());
+
+            if (resultVolumeHostMapping.isSuccess()) {
+
+                for (IBMSVCHost host : resultVolumeHostMapping.getHostList()) {
+                    _log.info(String.format("Processing host export info %s.\n", host.getHostName()));
+
+                    List<String> storageObjectNativeIds = new ArrayList<>();
+                    List<Initiator> initiators = new ArrayList<>();
+                    List<StoragePort> targets = new ArrayList<>();
+                    HostExportInfo hostExportInfo = new HostExportInfo(host.getHostName(), storageObjectNativeIds, initiators, targets);
+                    // TODO: Populate storageObjectNativeIds, initiators and targets
+
+                    volumeExportInfo.put(host.getHostName(), hostExportInfo);
+
+                    _log.info(String.format("Processed host export info %s.\n", host.getHostName()));
+                }
+
+
+            } else {
+                _log.error(String.format("Processing volume host mapping failed for volume %s - %s\n",
+                        volume.getNativeId(), resultVolumeHostMapping.getErrorString()), resultVolumeHostMapping.isSuccess());
+
+            }
+
+        } catch (Exception e) {
+            _log.error("Unable to query the storage volumes to host mapping information for the volume {}",
+                    volume.getNativeId());
+            e.printStackTrace();
+        } finally {
+            if(connection != null){
+                connection.disconnect();
+            }
+        }
+
+        _log.info("getVolumeExportInfoForHosts() information for storage system {}, volume id {} - end",
+                volume.getStorageSystemId(), volume.getNativeId());
+
+        return volumeExportInfo;*/
         return null;
     }
 

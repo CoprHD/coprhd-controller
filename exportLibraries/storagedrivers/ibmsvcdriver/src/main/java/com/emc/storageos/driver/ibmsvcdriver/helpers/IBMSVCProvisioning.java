@@ -15,6 +15,7 @@ import com.emc.storageos.driver.ibmsvcdriver.api.*;
 import com.emc.storageos.driver.ibmsvcdriver.connection.ConnectionManager;
 import com.emc.storageos.driver.ibmsvcdriver.connection.SSHConnection;
 import com.emc.storageos.driver.ibmsvcdriver.exceptions.IBMSVCDriverException;
+import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCClusterNode;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCDriverTask;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCStorageDriver;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCConstants;
@@ -26,7 +27,9 @@ import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -311,6 +314,8 @@ public class IBMSVCProvisioning {
                                                 List<StoragePort> selectedPorts) {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_EXPORT_STORAGE_VOLUMES);
+        StringBuilder errBuffer = new StringBuilder();
+        int volumesMapped = 0;
 
         for (StorageVolume storageVolume : volumes) {
 
@@ -321,42 +326,60 @@ public class IBMSVCProvisioning {
             try {
                 connection = connectionManager.getClientBySystemId(storageVolume.getStorageSystemId());
 
+                // Get hosts by initiators or create hosts if host does not exist
                 Set<String> uniqueHostSet = createHostsFromInitiators(connection, storageVolume.getStorageSystemId(), initiators);
 
-                if (!uniqueHostSet.isEmpty()) {
-                    // create an iterator
 
-                    // check values
+                if (!uniqueHostSet.isEmpty()) {
+
+                    Boolean allSuccess = true;
+
+                    //Export vDisk to each host
                     for (Object anUniqueHostSet : uniqueHostSet) {
 
                         String hostName = anUniqueHostSet.toString();
-
-                        addVdiskAccess(connection, hostName, storageVolume.getNativeId());
+                        String volumeId = storageVolume.getNativeId();
+                        addVdiskAccess(connection, hostName, volumeId);
 
                         _log.info("Exporting the volume Id {} to the host {}", storageVolume.getNativeId(), hostName);
 
+                        String hluString = volumeToHLUMap.get(volumeId);
+                        Integer hlu = -1;
+
+                        if(NumberUtils.isNumber(hluString)){
+                            hlu = Integer.valueOf(hluString);
+                        }else{
+                            _log.warn("HLU cannot be converted to Integer. Assuming -1. Exporting the volume Id {} to the host {} HLU {}", storageVolume.getNativeId(), hostName, hlu);
+                        }
+
                         IBMSVCExportVolumeResult result = IBMSVCCLI.exportStorageVolumes(connection,
-                                storageVolume.getNativeId(), storageVolume.getDeviceLabel(), hostName);
+                                storageVolume.getNativeId(), storageVolume.getDeviceLabel(), hostName, hlu);
 
                         if (result.isSuccess()) {
                             _log.info(String.format("Exported the storage volume %s to the host %s.\n",
                                     storageVolume.getDeviceLabel(), result.getHostName()));
-                            task.setMessage(String.format("Exported the storage volume %s to the host %s.",
-                                    storageVolume.getDeviceLabel(), result.getHostName()));
-                            task.setStatus(DriverTask.TaskStatus.READY);
+
+                            populateStoragePortsAndHLU(connection, hostName, volumeId, selectedPorts, availablePorts, volumeToHLUMap);
+                            // TODO: Is it OK to set usedRecommendedPorts to false all times?
+                            usedRecommendedPorts.setValue(false);
                         } else {
+                            allSuccess = false;
                             _log.error(String.format("Export storage volume %s to the host %s failed %s\n",
                                             storageVolume.getDeviceLabel(), result.getHostName(), result.getErrorString()),
                                     result.isSuccess());
                             task.setMessage(String.format("Export storage volume %s to the host %s failed : ",
                                     storageVolume.getDeviceLabel(), result.getHostName()) + result.getErrorString());
-                            task.setStatus(DriverTask.TaskStatus.FAILED);
                         }
                     }
 
-                } else {
+                    // If all exports are success
+                    if(allSuccess){
+                        task.setMessage(String.format("Exported the storage volume %s to host %s.",
+                                storageVolume.getDeviceLabel(), String.join(",", uniqueHostSet)));
+                        volumesMapped++;
+                    }
 
-                    // Create host on the array if it does not exist
+                } else {
 
                     _log.info("None of the initiator port hosts are registered with the storage system {}.",
                             storageVolume.getStorageSystemId());
@@ -381,6 +404,15 @@ public class IBMSVCProvisioning {
 
             _log.info("exportVolumesToInitiators() for storage system {} - end", storageVolume.getStorageSystemId());
         }
+
+        if (volumesMapped == volumes.size()) {
+            task.setStatus(DriverTask.TaskStatus.READY);
+        } else if (volumesMapped == 0) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        } else {
+            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+        }
+
         return task;
     }
 
@@ -396,12 +428,13 @@ public class IBMSVCProvisioning {
     private void addVdiskAccess(SSHConnection connection, String hostName, String volumeID) throws IBMSVCDriverException{
         IBMSVCQueryHostIOGrpResult histIoGrps = IBMSVCCLI.queryHostIOGrps(connection, hostName);
         List<String> ioGrps = histIoGrps.getIOGroupIDList();
+
         if(ioGrps.isEmpty()){
             _log.warn("Host {} has no IO Grps ", hostName);
             return;
         }
 
-        String iogrps = String.join(":",ioGrps);
+        String iogrps = String.join(":", ioGrps);
 
         IBMSVCAddVdiskAccessResult addVdiskAccessResult = IBMSVCCLI.addVdiskAccess(connection, volumeID, iogrps);
 
@@ -443,6 +476,7 @@ public class IBMSVCProvisioning {
             String initiatorPort = initiator.getPort();
             String hostName = initiator.getHostName();
 
+
             Boolean initiatorMatched = false;
             for (Initiator hostInitiator : ibmHostInitiatorList) {
                 if (initiatorPort.equals(hostInitiator.getPort())) {
@@ -468,6 +502,8 @@ public class IBMSVCProvisioning {
             String unAssignedInitiatorPort = unAssignedInitiator.getPort();
             if(Character.isDigit(hostName.charAt(0))){
                 hostName = "_" + hostName;
+                _log.warn(String.format("Host name starts with a digit. Pre-fixing _ to hostName - %s %n",
+                        hostName));
             }
 
             // TODO: Assuming input hostname is equal to hostname defined on the array.
@@ -502,7 +538,7 @@ public class IBMSVCProvisioning {
     /**
      * Get Least Used IOGrp
      * 1. Get list of all IOGrps
-     * 2. Filter out IO Groups with node count > 0
+     * 2. Filter IO Groups with node count > 0
      * 3. Identify IO Group with least host count and vdisk count
      * @param connection - SSHConnection to the array
      * @param storageSystemId - Storage System ID
@@ -528,12 +564,10 @@ public class IBMSVCProvisioning {
                     leastUsedIOgrp = iogrp;
                 }
 
-                if(leastUsedIOgrp.getHostCount() > hostCount){
-                    leastUsedIOgrp = iogrp;
-                }else if(leastUsedIOgrp.getHostCount() == hostCount){
-                    if(leastUsedIOgrp.getVdiskCount() > vdiskCount){
+                if(leastUsedIOgrp.getHostCount() > hostCount
+                            || (leastUsedIOgrp.getHostCount() == hostCount
+                                    && leastUsedIOgrp.getVdiskCount() > vdiskCount)){
                         leastUsedIOgrp = iogrp;
-                    }
                 }
             }
 
@@ -549,6 +583,12 @@ public class IBMSVCProvisioning {
         return leastUsedIOgrp;
     }
 
+    /**
+     * Get List of initiators on array
+     * @param connection
+     * @param storageSystemId
+     * @return
+     */
     private List<Initiator> getIBMSVCHostInitiatorList(SSHConnection connection, String storageSystemId) {
 
         _log.info("getIBMSVCHostInitiatorList() for storage system {} - start", storageSystemId);
@@ -558,7 +598,7 @@ public class IBMSVCProvisioning {
         IBMSVCQueryAllHostResult resultAllHost = IBMSVCCLI.queryAllHosts(connection);
 
         if (resultAllHost.isSuccess()) {
-            _log.info(String.format("Queried all host information.\n"));
+            _log.info(String.format("Queried all host information.%n"));
 
             for (IBMSVCHost host : resultAllHost.getHostList()) {
 
@@ -570,9 +610,11 @@ public class IBMSVCProvisioning {
                     _log.info(
                             String.format("Queried host initiator for host Id %s.\n", resultHostInitiator.getHostId()));
 
-                    for (Initiator initiator : resultHostInitiator.getHostInitiatorList()) {
+                    hostInitiatorList.addAll(resultHostInitiator.getHostInitiatorList());
+
+                    /*for (Initiator initiator : resultHostInitiator.getHostInitiatorList()) {
                         hostInitiatorList.add(initiator);
-                    }
+                    }*/
                 } else {
                     _log.error(String.format("Querying host initiator for host failed %s\n",
                             resultHostInitiator.getErrorString()), resultHostInitiator.isSuccess());
@@ -585,6 +627,122 @@ public class IBMSVCProvisioning {
         _log.info("getIBMSVCHostInitiatorList() for storage system {} - end", storageSystemId);
 
         return hostInitiatorList;
+    }
+
+    /**
+     * Populate Storage Ports and HLU
+     * @param connection SSH Connection to array
+     * @param hostName Hostname Type: Input
+     * @param volumeId VolumeID Type: Input
+     * @param selectedPorts Selected Ports Type: Output
+     * @param volumeToHLUMap Volume to HLU Map Type: Output
+     * @throws IBMSVCDriverException
+     */
+    private void populateStoragePortsAndHLU(SSHConnection connection, String hostName, String volumeId, List<StoragePort> selectedPorts, List<StoragePort> availablePorts, Map<String, String> volumeToHLUMap) throws IBMSVCDriverException{
+        // Get storage port list for host using custom algorithm
+        List<StoragePort> storagePorts = identifyStoragePortListForHost(connection, hostName);
+
+        for (StoragePort availablePort : availablePorts){
+            for(StoragePort storagePort : storagePorts){
+                if(availablePort.getNativeId().equalsIgnoreCase(storagePort.getNativeId())){
+                    selectedPorts.add(availablePort);
+                }
+            }
+        }
+
+        //Get Assigned HLU ID
+        IBMSVCQueryHostVolMapResult queryHostVolMapResult = IBMSVCCLI.queryHostVolMap(connection, hostName);
+        if(queryHostVolMapResult.isSuccess()){
+            volumeToHLUMap.put(volumeId, queryHostVolMapResult.getVolHluMap().get(volumeId));
+        }else{
+            _log.warn(String.format("Unable to get HLU while exporting storage volume %s to the host %s%n",
+                    volumeId, hostName));
+        }
+    }
+
+    /**
+     * identifyStoragePortListForHost
+     * Customer specific port selection algorithm
+     * Algorithm:
+     *  If hostname ends with a zero use node ports 0 and 1
+     * Assumptions:
+     *  1. Node has 4 Ports
+     *  3. First two Node ports (WWNs with ) are on one fabric and second two Node ports are on the other
+     *  2. Host name ends in a digit
+     * @param connection - SSH Connection to array
+     * @param hostName - Host Name
+     * @return List of storage ports
+     * @throws IBMSVCDriverException
+     */
+    public List<StoragePort> identifyStoragePortListForHost(SSHConnection connection, String hostName) throws IBMSVCDriverException{
+        Integer lastCharacterDigit;
+
+        _log.info("identifyStoragePortListForHost() for host {} - start", hostName);
+
+        String lastCharacter = hostName.substring(hostName.length() - 1);
+        try{
+            lastCharacterDigit = Integer.valueOf(lastCharacter);
+        }catch (NumberFormatException e){
+            //e.printStackTrace();
+            //throw new IBMSVCDriverException(String.format("identifyStoragePortListForHost() for host failed %s - %s%n", hostName, "Last character not a digit"));
+            _log.warn(String.format("identifyStoragePortListForHost() for host failed %s - %s%n", hostName, "Last character not a digit. Considering it as 0."));
+            lastCharacterDigit = 0;
+        }
+
+        List<StoragePort> storagePorts = new ArrayList<>();
+
+        IBMSVCQueryHostIOGrpResult hostIOGrpResult= IBMSVCCLI.queryHostIOGrps(connection, hostName);
+        List<String> ioGrpList = hostIOGrpResult.getIOGroupIDList();
+
+        for(String ioGrpId : ioGrpList){
+
+            IBMSVCQueryAllClusterNodeResult queryAllClusterNodeResult = IBMSVCCLI.queryAllClusterNodes(connection, ioGrpId);
+            List<IBMSVCClusterNode> clusterNodes = queryAllClusterNodeResult.getClusterNodes();
+
+            for(IBMSVCClusterNode clusterNode : clusterNodes){
+                IBMSVCQueryStoragePortResult storagePortResult = IBMSVCCLI.queryStoragePort(connection, clusterNode.getNodeId());
+                List<StoragePort> nodeStoragePortList = storagePortResult.getStoragePorts();
+
+                if(nodeStoragePortList.size() < 4){
+                    throw new IBMSVCDriverException(String.format("identifyStoragePortListForHost() for host failed %s - Node %s has less than 4 ports %n", hostName, clusterNode.getNodeName()));
+                }
+
+                if((lastCharacterDigit % 2) == 0){
+                    storagePorts.add(getStoragePortById(nodeStoragePortList,'1'));
+                    storagePorts.add(getStoragePortById(nodeStoragePortList,'4'));
+                    _log.info("identifyStoragePortListForHost() for host {} - Storage Ports - {},{}", hostName, getStoragePortById(nodeStoragePortList, '1'), getStoragePortById(nodeStoragePortList, '4'));
+                }else{
+                    storagePorts.add(getStoragePortById(nodeStoragePortList,'2'));
+                    storagePorts.add(getStoragePortById(nodeStoragePortList, '3'));
+                    _log.info("identifyStoragePortListForHost() for host {} - Storage Ports - {},{}", hostName, getStoragePortById(nodeStoragePortList, '2'), getStoragePortById(nodeStoragePortList,'3'));
+                }
+
+            }
+
+        }
+
+        _log.info("identifyStoragePortListForHost() for host {} - end", hostName);
+
+        return storagePorts;
+
+    }
+
+    /**
+     * Get Storage Port by ID
+     * Note: Each IBM SVC Node has 4 Ports(WWNs). The 10th character of the WWN is marked as 1,2,3,4
+     * WWNs containing 1 and 2 are on one fabric, 3 & 4 on the other.
+     * @param nodeStoragePortList - List of storage ports of a Node
+     * @param id - ID to check - can be 1,2,3,4
+     * @return StoragePOrt
+     */
+    private StoragePort getStoragePortById(List<StoragePort> nodeStoragePortList, Character id){
+
+        for (StoragePort nodeStoragePort : nodeStoragePortList){
+            if(nodeStoragePort.getPortName().charAt(10) == id){
+                return nodeStoragePort;
+            }
+        }
+        return null;
     }
 
     /**

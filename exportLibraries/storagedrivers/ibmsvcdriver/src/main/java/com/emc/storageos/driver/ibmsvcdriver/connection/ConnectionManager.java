@@ -102,10 +102,12 @@ public class ConnectionManager {
 
                 _log.info("Connection Created to the host {}", hostName);
 
-                _log.info(String.format("Setting conn info in registry %s - %s - %s - %s - %s", connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
-                        connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password()));
-                setConnInfoToRegistry(connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
-                        connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password());
+                if(connectionInfo.get_systemNativeId() != null){
+                    _log.info(String.format("Setting conn info in registry %s - %s - %s - %s - %s", connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
+                            connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password()));
+                    setConnInfoToRegistry(connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
+                            connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password());
+                }
 
             } catch (Exception e) {
                 _log.error("Failed creating connection to the host {}", hostName + e.getMessage());
@@ -347,8 +349,6 @@ public class ConnectionManager {
      */
     public String getConnInfoFromRegistry(String systemNativeId, String attrName) {
 
-        _log.info(String.format(" DriverRegistry %s.%n", this.driverRegistry.getDriverAttributes(IBMSVCConstants.DRIVER_NAME)));
-
         Map<String, List<String>> attributes = this.driverRegistry
                 .getDriverAttributesForKey(IBMSVCConstants.DRIVER_NAME, systemNativeId);
         if (attributes == null) {
@@ -391,7 +391,7 @@ public class ConnectionManager {
         _log.info(String.format("Setting client connection for the Storage System %s - %s.%n", IBMSVCConstants.DRIVER_NAME, systemNativeId));
 
         this.driverRegistry.setDriverAttributesForKey(IBMSVCConstants.DRIVER_NAME, systemNativeId, attributes);
-        _log.info(String.format(" DriverRegistry %s.%n", this.driverRegistry.getDriverAttributes(IBMSVCConstants.DRIVER_NAME)));
+        //_log.info(String.format(" DriverRegistry %s.%n", this.driverRegistry.getDriverAttributes(IBMSVCConstants.DRIVER_NAME)));
     }
 
     /**
@@ -424,8 +424,6 @@ public class ConnectionManager {
                 password = getConnInfoFromRegistry(systemId, IBMSVCConstants.PASSWORD);
 
                 _log.info(String.format("After getting the connection details from the Registry %s.%n", systemId));
-
-                _log.info(String.format("Get conn info in registry %s - %s - %s - %s", ipAddress, port, username, password));
 
                 if (ipAddress != null && username != null && password != null) {
 

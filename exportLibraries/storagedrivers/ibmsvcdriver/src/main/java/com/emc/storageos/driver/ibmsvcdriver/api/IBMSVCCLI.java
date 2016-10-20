@@ -60,9 +60,17 @@ public class IBMSVCCLI {
         return command.getResults();
     }
 
-    public static IBMSVCQueryStoragePortResult queryStoragePort(SSHConnection connection, String portName) {
+    public static IBMSVCQueryAllClusterNodeResult queryAllClusterNodes(SSHConnection connection, String ioGrpId) {
+        _log.info("Starting queryAllClusterNodes() for Querying IBM-SVC All Storage Port information...");
+        IBMSVCQueryAllClusterNodeCommand command = new IBMSVCQueryAllClusterNodeCommand(ioGrpId);
+        executeCommand(connection, command);
+        _log.info("Ending queryAllClusterNodes() for Querying IBM-SVC All Storage Port information.");
+        return command.getResults();
+    }
+
+    public static IBMSVCQueryStoragePortResult queryStoragePort(SSHConnection connection, String nodeName) {
         _log.info("Starting queryStoragePort() for Querying IBM-SVC Storage Port information...");
-        IBMSVCQueryStoragePortCommand command = new IBMSVCQueryStoragePortCommand(portName);
+        IBMSVCQueryStoragePortCommand command = new IBMSVCQueryStoragePortCommand(nodeName);
         executeCommand(connection, command);
         _log.info("Ending queryStoragePort() for Querying IBM-SVC Storage Port information.");
         return command.getResults();
@@ -113,6 +121,22 @@ public class IBMSVCCLI {
         IBMSVCQueryHostVolMapCommand command = new IBMSVCQueryHostVolMapCommand(hostId);
         executeCommand(connection, command);
         _log.info("Ending IBMSVCQueryHostVolMapCommand() for Querying IBM-SVC Host Mapped Volumes information.");
+        return command.getResults();
+    }
+
+    public static IBMSVCQueryVolumeHostMappingResult queryVolumeHostMapping(SSHConnection connection, String volumeId){
+        _log.info("Starting IBMSVCQueryVolumeHostMappingCommand() for Querying IBM-SVC Volume to Host mapping information...");
+        IBMSVCQueryVolumeHostMappingCommand command = new IBMSVCQueryVolumeHostMappingCommand(volumeId);
+        executeCommand(connection, command);
+        _log.info("Ending IBMSVCQueryVolumeHostMappingCommand() for Querying IBM-SVC Volume to Host mapping information...");
+        return command.getResults();
+    }
+
+    public static IBMSVCQueryFabricResult queryFabricConnectivity(SSHConnection connection, String volumeId){
+        _log.info("Starting IBMSVCQueryFabricCommand() for Querying IBM-SVC Fabric Connectivity information...");
+        IBMSVCQueryFabricCommand command = new IBMSVCQueryFabricCommand(volumeId);
+        executeCommand(connection, command);
+        _log.info("Ending IBMSVCQueryFabricCommand() for Querying IBM-SVC Fabric Connectivity information...");
         return command.getResults();
     }
 
@@ -168,9 +192,9 @@ public class IBMSVCCLI {
     }
 
     public static IBMSVCExportVolumeResult exportStorageVolumes(SSHConnection connection, String volumeId,
-                                                                String volumeName, String hostName) {
+                                                                String volumeName, String hostName, Integer hlu) {
         _log.info("Starting exportStorageVolumes() for Exporting IBM-SVC Storage Volume...");
-        IBMSVCExportVolumeCommand command = new IBMSVCExportVolumeCommand(volumeId, volumeName, hostName);
+        IBMSVCExportVolumeCommand command = new IBMSVCExportVolumeCommand(volumeId, volumeName, hostName, hlu);
         executeCommand(connection, command);
         _log.info("Ending exportStorageVolumes() for Exporting IBM-SVC Storage Volume.");
         return command.getResults();

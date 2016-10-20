@@ -12,6 +12,7 @@ package com.emc.storageos.driver.ibmsvcdriver.api;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class IBMSVCQueryHostVolMapResult {
 
@@ -20,6 +21,8 @@ public class IBMSVCQueryHostVolMapResult {
     private String errorString;
 
     private int volCount;
+
+    private Map<String, String>volHluMap;
 
     public IBMSVCQueryHostVolMapResult() {
         super();
@@ -47,6 +50,14 @@ public class IBMSVCQueryHostVolMapResult {
 
     public int getVolCount(){
         return volCount;
+    }
+
+    public Map<String, String> getVolHluMap() {
+        return volHluMap;
+    }
+
+    public void setVolHluMap(Map<String, String> volHluMap) {
+        this.volHluMap = volHluMap;
     }
 
 }

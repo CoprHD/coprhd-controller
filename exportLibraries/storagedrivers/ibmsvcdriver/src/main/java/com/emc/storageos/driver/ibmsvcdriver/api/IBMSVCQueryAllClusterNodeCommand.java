@@ -28,6 +28,11 @@ public class IBMSVCQueryAllClusterNodeCommand extends AbstractIBMSVCQueryCommand
         addArgument("svcinfo lsnode -delim : -nohdr");
     }
 
+    public IBMSVCQueryAllClusterNodeCommand(String ioGrpId) {
+        addArgument("svcinfo lsnode -delim : -nohdr");
+        addArgument("-filtervalue IO_group_id="+ioGrpId);
+    }
+
     @Override
     protected void processError() throws CommandException {
         results.setErrorString(getErrorMessage());
@@ -53,6 +58,7 @@ public class IBMSVCQueryAllClusterNodeCommand extends AbstractIBMSVCQueryCommand
                 clusterNode.setNodeId(nodeData[0]);
                 clusterNode.setNodeName(nodeData[1]);
                 clusterNode.setNodeWWNN(nodeData[3]);
+                clusterNode.setIoGrpId(nodeData[5]);
                 results.addClusterNode(clusterNode);
                 break;
         }

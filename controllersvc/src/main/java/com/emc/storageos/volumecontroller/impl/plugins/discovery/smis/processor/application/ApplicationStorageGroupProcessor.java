@@ -2,12 +2,13 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
 import org.slf4j.Logger;
@@ -15,25 +16,27 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.StorageHADomain;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 public class ApplicationStorageGroupProcessor extends Processor {
     private Logger _logger = LoggerFactory
             .getLogger(ApplicationStorageGroupProcessor.class);
+    private AccessProfile _profile = null;
     private DbClient _dbClient;
     protected List<Object> _args;
+    URI _storageSystemURI = null;
+    String _migrationType = VolumeGroup.MigrationType.VMAX.toString();
+    String _migrationGroupBy = VolumeGroup.MigrationGroupBy.STORAGEGROUP.toString();
+    String _description = "VMAX Application Storage Group";
+    StringSet _roles = new StringSet(Arrays.asList(VolumeGroup.VolumeGroupRole.APPLICATION.toString()));
 
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -41,16 +44,17 @@ public class ApplicationStorageGroupProcessor extends Processor {
         try {
             @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
+            _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
+            String serialID = (String) keyMap.get(Constants._serialID);
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             _logger.info(String.format("Discovering Storage Groups"));
-            List<String> bookKeepingList = new ArrayList<>();
+            Set<String> bookKeepingList = new HashSet<String>();
             while (it.hasNext()) {
                 CIMObjectPath deviceMaskingGroup = it.next();
                 String instanceID = deviceMaskingGroup
                         .getKey(Constants.INSTANCEID).getValue().toString();
                 instanceID = instanceID.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
                 bookKeepingList.add(instanceID);
-                String serialID = (String) keyMap.get(Constants._serialID);
                 if (instanceID.contains(serialID)) {
                     addPath(keyMap, operation.getResult(), deviceMaskingGroup);
                     VolumeGroup volumeGroup = checkVolumeGroupExistsInDB(instanceID, _dbClient);
@@ -58,14 +62,19 @@ public class ApplicationStorageGroupProcessor extends Processor {
                         volumeGroup = new VolumeGroup();
                         volumeGroup.setId(URIUtil.createId(VolumeGroup.class));
                         volumeGroup.setLabel(instanceID);
-                        volumeGroup.setDescription("VMAX Application Storage Group");
+                        volumeGroup.addRoles(_roles);
+                        volumeGroup.setMigrationType(_migrationType);
+                        volumeGroup.setMigrationGroupBy(_migrationGroupBy);
+                        volumeGroup.setDescription(_description);
                         _dbClient.createObject(volumeGroup);
+                    } else {
+                        volumeGroup.setInactive(false); // Keep it active if the Storage Group is recreated
                     }
                 }
             }
-            // HY: Do the bookkeeping here...
-            // HY: We need to persist the System Serial Number as part of the Volume Storage Group because the Application is persisted on
-            // the Array.
+            //Bookkeeping
+            performVolumeGroupsBookKeeping(bookKeepingList, _dbClient, serialID);
+            
         } catch (Exception e) {
             _logger.error("Storage Group Discovery Failed : ", e);
         }
@@ -97,4 +106,32 @@ public class ApplicationStorageGroupProcessor extends Processor {
         return volumeGroup;
     }
 
+    /**
+     * if the StorageGroup had been deleted from the Array, the re-discovery cycle should set the VolumeGroup to inactive.
+     * 
+     * @param volumeGroupIds
+     * @param dbClient
+     * @param serialID
+     * @throws IOException
+     */
+    private void performVolumeGroupsBookKeeping(Set<String> volumeGroupIds, DbClient dbClient, String serialID)
+            throws IOException {
+
+        String prefixConstraint = String.format("%s+%s", Constants.SYMMETRIX_U, serialID);
+        URIQueryResultList volumeGroupResults = new URIQueryResultList();
+        dbClient.queryByConstraint(PrefixConstraint.Factory.getLabelPrefixConstraint(VolumeGroup.class, prefixConstraint),
+                volumeGroupResults);
+        while (volumeGroupResults.iterator().hasNext()) {
+            VolumeGroup volumeGroupInDB = dbClient.queryObject(VolumeGroup.class, volumeGroupResults.iterator().next());
+            if (null == volumeGroupInDB || volumeGroupInDB.getInactive()) {
+                continue;
+            }
+            if (!volumeGroupIds.contains(volumeGroupInDB.getLabel())) {
+                _logger.info("Volume Group set to inactive", volumeGroupInDB);
+                volumeGroupInDB.setInactive(true);
+                dbClient.updateObject(volumeGroupInDB);
+            }
+        }
+
+    }
 }

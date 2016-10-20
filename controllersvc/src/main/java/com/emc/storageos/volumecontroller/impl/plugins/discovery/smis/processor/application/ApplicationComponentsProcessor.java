@@ -37,6 +37,8 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
             _logger.info(String.format("Processing association information for Masking View: %s", maskingViewName));
             VolumeGroup volumeGroup = null;
             List<String> initiatorList = new ArrayList<>();
+            List<String> volumeList = new ArrayList<>();
+
             String targetMaskingGroupInstanceID = null;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
@@ -62,10 +64,14 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                     initiatorList.add(associatedInstancePath
                             .getKey(Constants.INSTANCEID).getValue().toString()
                             .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS));
+                } else if (associatedInstancePath.toString().contains(SmisConstants.SYMM_STORAGEVOLUME)) {
+                    // We need to add the volume device ids here
+                    volumeList.add(associatedInstancePath.getKey(Constants.DEVICEID).getValue().toString());
                 }
+
             }
             // Now process the needful information for the Volume Group here...
-            // We have the MaskViewName, portGroupInstanceId and initiator List
+            // We have the MaskViewName, portGroupInstanceId, Volume List and initiator List
 
         } catch (Exception e) {
             _logger.error("Processing association information for Masking Views failed : ", e);

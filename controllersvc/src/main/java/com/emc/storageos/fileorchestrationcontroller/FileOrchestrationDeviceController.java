@@ -1561,7 +1561,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
                         if (targetUserToNFSACLMap.get(sourceACEUser) == null) {
                             NfsACE nfsACE = sourceUserToNFSACLMap.get(sourceACEUser);
-                            nfsACE.setFileSystemId(targetFileShare.getId());
                             aclToAdd.add(nfsACE);
                         }
                     }

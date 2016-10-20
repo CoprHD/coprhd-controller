@@ -18,18 +18,18 @@ public class NfsACL implements Serializable {
      * response data attributes.
      */
 
-    private String fSMountPath;
+    private String fsMountPath;
     private String subDir;
 
     private List<NfsACE> nfsAces;
 
     @XmlElement(name = "mount_path")
     public String getFSMountPath() {
-        return fSMountPath;
+        return fsMountPath;
     }
 
-    public void setFSMountPath(String fSMountPath) {
-        this.fSMountPath = fSMountPath;
+    public void setFSMountPath(String fsMountPath) {
+        this.fsMountPath = fsMountPath;
     }
 
     @XmlElement(name = "sub_dir")
@@ -53,7 +53,7 @@ public class NfsACL implements Serializable {
 
 
     public NfsACL(String path, List<NfsACE> nfsAces) {
-        this.fSMountPath = path;
+        this.fsMountPath = path;
         this.nfsAces = nfsAces;
     }
 
@@ -64,9 +64,9 @@ public class NfsACL implements Serializable {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("NfsACL [");
-        if (fSMountPath != null) {
-            builder.append("fSMountPath=");
-            builder.append(fSMountPath);
+        if (fsMountPath != null) {
+            builder.append("fsMountPath=");
+            builder.append(fsMountPath);
             builder.append(", ");
         }
         if (subDir != null) {

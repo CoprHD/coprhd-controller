@@ -300,13 +300,12 @@ public class FileOrchestrationUtils {
             while (aclIter.hasNext()) {
                 NFSShareACL dbNFSAcl = aclIter.next();
                 String fsPath = dbNFSAcl.getFileSystemPath();
+                NfsACE ace = convertNFSShareACLToNfsACE(dbNFSAcl);
                 if (map.get(fsPath) == null) {
                     List<NfsACE> acl = new ArrayList<NfsACE>();
-                    NfsACE ace = convertNFSShareACLToNfsACE(fs, dbNFSAcl);
                     acl.add(ace);
                     map.put(fsPath, acl);
                 } else {
-                    NfsACE ace = convertNFSShareACLToNfsACE(fs, dbNFSAcl);
                     map.get(fsPath).add(ace);
                 }
             }
@@ -314,7 +313,7 @@ public class FileOrchestrationUtils {
         return map;
     }
 
-    public static NfsACE convertNFSShareACLToNfsACE(FileShare fs, NFSShareACL dbNFSAcl) {
+    public static NfsACE convertNFSShareACLToNfsACE(NFSShareACL dbNFSAcl) {
         NfsACE dest = new NfsACE();
 
         dest.setDomain(dbNFSAcl.getDomain());

@@ -14,66 +14,55 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 
 
 public abstract class AbstractMigrationServiceApiImpl implements MigrationServiceApi {
-	
-	    // A logger reference.
+		 
+		// A logger reference.
 	    private static final Logger logger = LoggerFactory
 	            .getLogger(AbstractMigrationServiceApiImpl.class);
 
 	    protected final static String CONTROLLER_SVC = "controllersvc";
 	    protected final static String CONTROLLER_SVC_VER = "1";
+	    	    
+	    protected DbClient dbClient;
 	    
-	    @Autowired
-	    private PermissionsHelper _permissionsHelper;
+	    protected BlockStorageScheduler blockScheduler;
 
-	    @Autowired
-	    protected DependencyChecker _dependencyChecker;
-	
-	    protected DbClient _dbClient;
-
-	    private CoordinatorClient _coordinator;
-
-	    // Permissions helper getter/setter
-	    public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
-	        _permissionsHelper = permissionsHelper;
+	    protected CoordinatorClient coordinator = null;
+	    
+	    //
+	    public void setBlockScheduler(BlockStorageScheduler blockScheduler) {
+	    	this.blockScheduler = blockScheduler;
 	    }
-
-	    public PermissionsHelper getPermissionsHelper() {
-	        return _permissionsHelper;
-	    }
-
-	    // Dependency checker getter/setter
-	    public void setDependencyChecker(DependencyChecker dependencyChecker) {
-	        _dependencyChecker = dependencyChecker;
-	    }
-
-	    public DependencyChecker getDependencyChecker() {
-	        return _dependencyChecker;
+	    
+	    public BlockStorageScheduler getBlockScheduler() {
+	    	return this.blockScheduler;
 	    }
 
 	    // Coordinator getter/setter
 	    public void setCoordinator(CoordinatorClient locator) {
-	        _coordinator = locator;
+	        coordinator = locator;
 	    }
 
 	    public CoordinatorClient getCoordinator() {
-	        return _coordinator;
+	        return coordinator;
 	    }
 
 	    // Db client getter/setter
 	    public void setDbClient(DbClient dbClient) {
-	        _dbClient = dbClient;
+	        this.dbClient = dbClient;
 	    }
 
 	    public DbClient getDbClient() {
-	        return _dbClient;
+	        return this.dbClient;
 	    }	  
 
 	    /**
@@ -89,7 +78,7 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
 	     * @param migrationType
 	     *           
 	     */
-	    public AbstractMigrationServiceApiImpl(String migrationType) {
+	    public AbstractMigrationServiceApiImpl(String migrationType) {	    	
 	        if (migrationType != null) {
 	            s_migrationImplementations.put(migrationType, this);
 	        }
@@ -114,10 +103,10 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
 	    protected <T extends Controller> T getController(Class<T> clazz, String hw) {
 	        T controller;
 	        try {
-	            controller = _coordinator.locateService(
+	            controller = coordinator.locateService(
 	                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
 	        } catch (RetryableCoordinatorException rex) {
-	            controller = _coordinator.locateService(
+	            controller = coordinator.locateService(
 	                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
 	        }
 	        return controller;
@@ -138,6 +127,6 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
 	     * @return
 	     */
 	    protected <T extends Controller> T getController(Class<T> clazz, String hw, String externalDevice) {
-	        return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, externalDevice, clazz.getSimpleName());
+	        return coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, externalDevice, clazz.getSimpleName());
 	    }
 }

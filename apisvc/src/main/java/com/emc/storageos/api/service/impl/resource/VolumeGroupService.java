@@ -229,7 +229,7 @@ public class VolumeGroupService extends TaskResourceService {
     
 	// Migration service implementations
     private static Map<String, MigrationServiceApi> _migrationServiceApis;
-
+    
     /**
      * Setter for the placement manager.
      * 
@@ -256,15 +256,15 @@ public class VolumeGroupService extends TaskResourceService {
         return _blockServiceApis.get(type);
     }
     
-    //Migration service impls
-    public void setMigrationApis(final Map<String, MigrationServiceApi> migrationInterfaces) {
-        _migrationServiceApis = migrationInterfaces;
-    }
+    public static MigrationServiceApi getMigrationServiceApiImpl(String migrationType) {
+		return _migrationServiceApis.get(migrationType);
+	}
 
-    private static MigrationServiceApi getMigrationServiceImpl(final String migrationType) {
-        return _migrationServiceApis.get(migrationType);
-    }
+	public static void setMigrationServiceApis(Map<String, MigrationServiceApi> migrationServiceApis) {
+		_migrationServiceApis = migrationServiceApis;
+	}
 
+    
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
@@ -4166,7 +4166,7 @@ public class VolumeGroupService extends TaskResourceService {
         	//TODO: throw an exception here or handle differently
         }
                 
-        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(application.getMigrationType());
+        MigrationServiceApi migrationApiImpl = getMigrationServiceApiImpl(application.getMigrationType());
         migrationApiImpl.migrationCreate(id, param);
         
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,

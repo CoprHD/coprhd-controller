@@ -163,6 +163,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         configureValidators(sharedLogger, initiatorValidator, maskValidator);
 
         ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
+        chain.setExceptionContext(ctx);
         chain.addValidator(initiatorValidator);
         chain.addValidator(maskValidator);
 

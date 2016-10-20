@@ -106,6 +106,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         validator.setInitiatorsToValidate(ctx.getInitiators());
 
         DefaultValidator defaultValidator = new DefaultValidator(validator, config, logger, "Export Mask");
+        defaultValidator.setExceptionContext(ctx);
         return defaultValidator;
     }
 

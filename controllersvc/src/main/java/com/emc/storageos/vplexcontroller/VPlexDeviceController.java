@@ -3718,7 +3718,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (!remainingVolumesInMask.isEmpty()) {
                     _log.info("this mask is not empty, so just updating: "
                             + exportMask.getMaskName());
-                    
+                    hasSteps = true;
                     // Make a zoning paramter structure from the ExportMask
                     List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
@@ -3734,9 +3734,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             previousStep, vplex.getId(), vplex.getSystemType(),
                             this.getClass(), storageViewRemoveVolumesExecuteMethod, storageViewRemoveVolumesRollbackMethod, null);
 
-                    // Invoke the zoning code directly, i.e. inline, not in a workflow
+                    // Add a step to remove zone
                     String stepId = workflow.createStepId();
-                    _networkDeviceController.zoneExportRemoveVolumes(zoningParam, volumeURIList, stepId);
+                    Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
+                            zoningParam, volumeURIList);
+                    Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();
+                    previousStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(),
+                            previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
+                            zoneRemoveVolumesMethod, zoneNullRollbackMethod, stepId);
 
                     // this next chunk of code covers the situation where the export mask
                     // is referenced by another export group containing different
@@ -3974,7 +3979,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportMaskValidationContext ctx = new ExportMaskValidationContext();
         ctx.setStorage(vplex);
         ctx.setExportMask(exportMask);
-        ctx.setBlockObjects(volumeURIList, _dbClient);
+        ctx.setInitiators(initiators);
         ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
         validator.removeVolumes(ctx).validate();
 

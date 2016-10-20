@@ -53,7 +53,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 return;
             }
 
-            if (shouldUpdateDatabase(status)) {
+            if (status == Operation.Status.ready) {
                 for (URI volumeURI : _volumes) {
                     BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
                     _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
@@ -78,38 +78,6 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
         } finally {
             super.complete(dbClient, status, coded);
         }
-    }
-
-    /**
-     * This completer may complete with a ready or error status.  In the case of an error status,
-     * we can check the {@link ExportOperationContext} to see if the volumes were added and perform
-     * the necessary database updates.
-     *
-     * @param status    Status of the operation.
-     * @return          true, if the status is ready or the volumes were added despite error status.
-     */
-    private boolean shouldUpdateDatabase(Operation.Status status) {
-        return status == Operation.Status.ready || wereVolumesAdded();
-    }
-
-    private boolean wereVolumesAdded() {
-        Object context = WorkflowService.getInstance().loadStepData(getOpId());
-
-        if (context != null && context instanceof ExportOperationContext) {
-            List<ExportOperationContext.ExportOperationContextOperation> operations = ((ExportOperationContext)context).getOperations();
-
-            if (operations != null) {
-                for (ExportOperationContext.ExportOperationContextOperation operation : operations) {
-                    // VMAX check
-                    if (OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equalsIgnoreCase(operation.getOperation())) {
-                        // TODO Check arguments.
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 
 }

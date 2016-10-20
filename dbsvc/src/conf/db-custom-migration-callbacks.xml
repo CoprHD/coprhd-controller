@@ -138,7 +138,8 @@
         </entry>
         <entry key="3.5">
             <list>
-                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumeSystemTypeMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeBackingReplicationGroupInstanceMigration"/>
             </list>
         </entry>
     </util:map>

@@ -501,11 +501,13 @@ public interface BlockServiceApi {
      *            activated, false otherwise.
      * @param readOnly
      *            true if the snapshot should be read only, false otherwise
+     * @param isHaSnap
+     *            true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId
      *            The unique task identifier.
      */
-    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
+    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs, String snapshotType, 
+            Boolean createInactive, Boolean readOnly, Boolean isHaSnap, String taskId);
 
     /**
      * Uses the appropriate controller to delete the snapshot.

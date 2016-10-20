@@ -3338,15 +3338,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
      * @param readOnly true if the snapshot should be read only, false otherwise
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId The unique task identifier.
      */
     @Override
-    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs, String snapshotType,
+            Boolean createInactive, Boolean readOnly, Boolean isHaSnap, String taskId) {
 
-        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(reqVolume);
+        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap);
         super.createSnapshot(snapshotSourceVolume, snapshotURIs, snapshotType,
-                createInactive, readOnly, taskId);
+                createInactive, readOnly, isHaSnap, taskId);
     }
 
     /**

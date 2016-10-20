@@ -255,8 +255,9 @@ public class SnapshotService extends TaskResourceService {
 
         Boolean readOnly = false;
         // Invoke the block service API implementation to create the snapshot
+        // TBD check
         api.createSnapshot(volume, snapshotURIs, snapshotType, createInactive,
-                readOnly, taskId);
+                readOnly, false, taskId);
 
         SnapshotCreateResponse snapCreateResp = new SnapshotCreateResponse();
         for (TaskResourceRep rep : response.getTaskList()) {

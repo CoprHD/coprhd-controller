@@ -2761,16 +2761,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
      * @param readOnly true if the snapshot should be read only, false otherwise
+     * @param isHaSnap true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId The unique task identifier.
      */
     @Override
-    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs, String snapshotType,
+            Boolean createInactive, Boolean readOnly, Boolean isHaSnap, String taskId) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());
         URI storageControllerURI = null;
         if (vplex) {
-            Volume backendVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume);
+            Volume backendVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap);
             storageControllerURI = backendVolume.getStorageController();
         } else {
             storageControllerURI = reqVolume.getStorageController();
@@ -2783,10 +2784,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);
         } else {
             if (vplex) {
-                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume), snapshotURIs, snapshotType,
-                        createInactive, readOnly, taskId);
+                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap), snapshotURIs, snapshotType,
+                        createInactive, readOnly, isHaSnap, taskId);
             } else {
-                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, taskId);
+                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, isHaSnap, taskId);
             }
         }
     }

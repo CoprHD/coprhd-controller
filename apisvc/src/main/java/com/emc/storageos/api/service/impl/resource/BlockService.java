@@ -2391,7 +2391,7 @@ public class BlockService extends TaskResourceService {
 
         // Invoke the block service API implementation to create the snapshot
         blockServiceApiImpl.createSnapshot(requestedVolume, snapshotURIs, snapshotType,
-                createInactive, readOnly, taskId);
+                createInactive, readOnly, isHaSnap, taskId);
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, true,

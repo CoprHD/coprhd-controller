@@ -1335,12 +1335,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *            activated, false otherwise.
      * @param readOnly
      *            true if the snapshot should be read only, false otherwise
+     * @param isHaSnap
+     *            true if this is an HA side snap request for a VPLEX distributed volume, else false.
      * @param taskId
      *            The unique task identifier.
      */
     @Override
-    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+    public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs, String snapshotType,
+            Boolean createInactive, Boolean readOnly, Boolean isHaSnap, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);

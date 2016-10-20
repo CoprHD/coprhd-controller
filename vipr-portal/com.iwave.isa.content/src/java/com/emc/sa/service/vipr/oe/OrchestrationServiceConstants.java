@@ -27,32 +27,67 @@ public final class OrchestrationServiceConstants {
     public static final String WF_ID = "WorkflowId";
     public static final long DEFAULT_STEP_TIMEOUT = 3600; //min
 
+    //SuccessCriteria Constants
+    public static final String ERROR_CODE = "errorCode";
+    public static final String RETURN_CODE = "returnCode";
+    public static final String TASK = "task";
+
     public enum InputType {
         FROM_USER("InputFromUser"),
-        FROM_STEP("InputFromOtherSTep"),
+        FROM_STEP_INPUT("FromOtherStepInput"),
+        FROM_STEP_OUTPUT("FromOtherStepOutput"),
         OTHERS("Others"),
-        ASSET_OPTION("AssetOption"),
-        START("Start"),
-        END("End");
+        ASSET_OPTION("AssetOption");
 
         private final String inputType;
         private InputType(final String inputType)
         {
             this.inputType = inputType;
         }
+
+        @Override
+        public String toString() {
+            return inputType;
+        }
+
+       public static InputType fromString(String v)
+       {
+            for (InputType e : InputType.values())
+            {
+                if (v.equals(e.inputType)) 
+                    return e;
+            }
+
+            return null;
+        }
+
     }
 
-    public enum OperationType {
+    public enum StepType {
         VIPR_REST("ViPR REST API"),
         REST("REST API"),
-        SHELL("Shell Script"),
-        PYTHON("Python Script"),
-        ANSIBLE("Ansible Script");
+        ANSIBLE("Ansible Script"),
+        START("Start"),
+        END("End");
 
-        private final String operationType;
-        private OperationType(final String operationType)
+        private final String stepType;
+        private StepType(final String stepType)
         {
-            this.operationType = operationType;
+            this.stepType = stepType;
+        }
+
+        @Override
+        public String toString() {
+		    return stepType;
+        }
+        public static StepType fromString(String v) {
+            for (StepType e : StepType.values())
+            {
+                if (v.equals(e.stepType)) 
+                    return e;
+            }
+
+            return null;
         }
     }
 }

@@ -26,6 +26,7 @@ public class SSHCommandExecutor implements CommandExecutor {
     private static final String DEFAULT_SUDO_COMMAND = "sudo -S -p '' sh -c ";
     private static final long MILLIS_PER_SECOND = 1000;
     private static final long SLEEP_TIME = 100;
+    private static final int CONNECTION_TIMEOUT = 60 * 60 * 1000;
 
     private String sudoCommand = DEFAULT_SUDO_COMMAND;
     private SSHConnection connection;
@@ -100,16 +101,19 @@ public class SSHCommandExecutor implements CommandExecutor {
             session = createClient().getSession(connection.getUsername(), connection.getHost(), connection.getPort());
             session.setPassword(connection.getPassword());
             session.setUserInfo(new SSHUserInfo(connection.getPassword()));
-            if (connectTimeout > 0) {
-                session.connect(connectTimeout);
-            }
-            else {
-                session.connect();
-            }
 
             if (readTimeout > 0) {
                 session.setTimeout(readTimeout);
+            } else {
+                session.setTimeout(CONNECTION_TIMEOUT);
             }
+
+            if (connectTimeout > 0) {
+                session.connect(connectTimeout);
+            } else {
+                session.connect(CONNECTION_TIMEOUT);
+            }
+
         } catch (JSchException e) {
             throw new SSHException(e);
         }

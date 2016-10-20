@@ -549,34 +549,30 @@ public class BackupService {
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
         s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
-        try {
-            Map<String,URI> nodesInfo = backupOps.getNodesInfo();
-            int numberOfNodes = nodesInfo.size();
-            Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
-            Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
-            for (int i =1; i <= numberOfNodes; i++) {
-                sizesToDownload.put("vipr"+i, (long)0);
-                downloadedSizes.put("vipr"+i, (long)0);
-            }
 
-            // the zipped backup file will be downloaded to this node
-            // so set the size to be downloaded on this node to the size of zip file
-            String localHostName = InetAddress.getLocalHost().getHostName();
-            sizesToDownload.put(localHostName, size);
-            s.setSizeToDownload(sizesToDownload);
-
-            // check if we've already downloaded some part of zip file before,
-            // if so, updated the downloaded size
-            File downloadFolder = backupOps.getDownloadDirectory(backupName);
-            File zipfile = new File(downloadFolder, backupName);
-            if (zipfile.exists()) {
-                downloadedSizes.put(localHostName, zipfile.length());
-            }
-            s.setDownloadedSize(downloadedSizes);
-        }catch(UnknownHostException |URISyntaxException e) {
-            log.error("Failed to set the download size e={}", e.getMessage());
-            throw new RuntimeException(e);
+        Map<String, String> hosts = backupOps.getHosts();
+        int numberOfNodes = hosts.size();
+        Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
+        Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
+        for (String hostID : hosts.keySet()) {
+            sizesToDownload.put(hostID, (long)0);
+            downloadedSizes.put(hostID, (long)0);
         }
+
+        // the zipped backup file will be downloaded to this node
+        // so set the size to be downloaded on this node to the size of zip file
+        String localHostID = backupOps.getLocalHostID();
+        sizesToDownload.put(localHostID, size);
+        s.setSizeToDownload(sizesToDownload);
+
+        // check if we've already downloaded some part of zip file before,
+        // if so, updated the downloaded size
+        File downloadFolder = backupOps.getDownloadDirectory(backupName);
+        File zipfile = new File(downloadFolder, backupName);
+        if (zipfile.exists()) {
+            downloadedSizes.put(localHostID, zipfile.length());
+        }
+        s.setDownloadedSize(downloadedSizes);
 
         backupOps.persistBackupRestoreStatus(s, false, true);
     }

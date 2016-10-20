@@ -398,9 +398,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidIscsiInitiatorPort();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidRBDInitiatorPort();
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameter(final String parameterName,
             final String parameterValue);
 
@@ -910,9 +907,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidNodeForiScsiPort();
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeForRBDPort();
-
     @DeclareServiceCode(ServiceCode.API_INVALID_PROTECTION_VPOOLS)
     public BadRequestException invalidProtectionVirtualPools();
 
@@ -1071,6 +1065,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterValueIsNotValid(final String parameterName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName,final String validCharacters);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterValueCannotBeUpdated(final String parameterName,
@@ -2259,7 +2256,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolNotAllCGVolumes();
-
+        
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolVolumeIsNotInCG();
 
@@ -3119,4 +3116,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddProtectionWhenSnapshotsExist(final String volumeLabel);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
 }

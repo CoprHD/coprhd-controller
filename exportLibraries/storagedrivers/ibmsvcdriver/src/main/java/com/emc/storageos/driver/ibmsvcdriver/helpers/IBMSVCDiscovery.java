@@ -341,9 +341,9 @@ public class IBMSVCDiscovery {
                 overallTaskState = DriverTask.TaskStatus.FAILED;
             }
         } catch (Exception e) {
-            _log.error("Unable to query the storage ports information for the host {}\n",
+            _log.error("Unable to query the storage ports information for the Storge System {}\n",
                     storageSystem.getSystemName());
-            task.setMessage(String.format("Unable to query the Storage Ports information for the host %s",
+            task.setMessage(String.format("Unable to query the Storage Ports information for the Storge System %s",
                     storageSystem.getSystemName()) + e.getMessage());
             //task.setStatus(DriverTask.TaskStatus.FAILED);
             overallTaskState = DriverTask.TaskStatus.FAILED;

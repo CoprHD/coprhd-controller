@@ -9,6 +9,7 @@
  * it is provided by or on behalf of EMC.
  */
 
+
 package com.emc.storageos.driver.ibmsvcdriver.helpers;
 
 import com.emc.storageos.driver.ibmsvcdriver.api.*;
@@ -27,7 +28,6 @@ import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang.mutable.MutableBoolean;
@@ -332,7 +332,7 @@ public class IBMSVCProvisioning {
 
                 if (!uniqueHostSet.isEmpty()) {
 
-                    Boolean allSuccess = true;
+                    boolean allSuccess = true;
 
                     //Export vDisk to each host
                     for (Object anUniqueHostSet : uniqueHostSet) {
@@ -477,7 +477,7 @@ public class IBMSVCProvisioning {
             String hostName = initiator.getHostName();
 
 
-            Boolean initiatorMatched = false;
+            boolean initiatorMatched = false;
             for (Initiator hostInitiator : ibmHostInitiatorList) {
                 if (initiatorPort.equals(hostInitiator.getPort())) {
                     //uniqueHostSet.add(hostName);
@@ -728,21 +728,25 @@ public class IBMSVCProvisioning {
     }
 
     /**
-     * Get Storage Port by ID
-     * Note: Each IBM SVC Node has 4 Ports(WWNs). The 10th character of the WWN is marked as 1,2,3,4
+     * Get Storage Port by ID - Customer Specific port selection logic
+     * Note: Each IBM SVC Node has 4 Ports(WWNs). The 13th character of the WWN is marked as 1,2,3,4
      * WWNs containing 1 and 2 are on one fabric, 3 & 4 on the other.
      * @param nodeStoragePortList - List of storage ports of a Node
      * @param id - ID to check - can be 1,2,3,4
      * @return StoragePOrt
      */
-    private StoragePort getStoragePortById(List<StoragePort> nodeStoragePortList, Character id){
-
-        for (StoragePort nodeStoragePort : nodeStoragePortList){
-            if(nodeStoragePort.getPortName().charAt(10) == id){
-                return nodeStoragePort;
+    private StoragePort getStoragePortById(List<StoragePort> nodeStoragePortList, Character id) throws IBMSVCDriverException{
+        try{
+            for (StoragePort nodeStoragePort : nodeStoragePortList){
+                if(nodeStoragePort.getNativeId() != null && nodeStoragePort.getNativeId().charAt(10) == id){
+                    return nodeStoragePort;
+                }
             }
+        }catch (Exception e){
+            throw new IBMSVCDriverException(String.format("Unable to get Storage Port by ID %s - %s", id, e.toString()));
         }
-        return null;
+
+        throw new IBMSVCDriverException(String.format("Unable to get Storage Port by ID %s", id));
     }
 
     /**

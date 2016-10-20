@@ -51,4 +51,9 @@ class LocalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     @Override
     protected void postGC() {
     }
+
+	@Override
+	protected String getGCZKLockName() {
+		return "LocalGCLock";
+	}
 }

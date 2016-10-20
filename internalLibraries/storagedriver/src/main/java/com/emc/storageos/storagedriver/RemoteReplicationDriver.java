@@ -29,52 +29,46 @@ public interface RemoteReplicationDriver {
     /**
      * Create replication pairs in existing replication group container.
      * At the completion of this operation all remote replication pairs should be associated to their group and should
-     * be in the following state:
-     *  a) createActive is true:
-     *     Pairs state: ACTIVE;
+     * be in the following state as defined in the replicationPair argument:
+     *  a) Pairs state: ACTIVE;
      *     R1 elements should be read/write enabled;
      *     R2 elements should be read enabled/write disabled;
      *     data on R2 elements is synchronized with R1 data copied to R2;
      *     replication links are set to ready state;
      *
-     *  b) createActive is false:
-     *     Pairs state: SPLIT;
+     *  b) Pairs state: SPLIT;
      *     R1 elements should be read/write enabled;
      *     R2 elements should be read/write enabled;
      *     replication links are set to not ready state;
      *     The state of replication pairs is same as after 'split' operation.
      *
-     * @param replicationPairs list of replication pairs to create
-     * @param createActive true, if pairs should start replication link automatically after creation (link in ready state), false otherwise
+     * @param replicationPairs list of replication pairs to create; each pair is in either active or split state
      * @param capabilities storage capabilities for the pairs
      * @return driver task
      */
-    public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, StorageCapabilities capabilities);
+    public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities);
 
     /**
      * Create replication pairs in existing replication set. Pairs are created outside of group container.
      * At the completion of this operation all remote replication pairs should be associated to their set and should
      * be in the following state:
-     *  a) createActive is true:
-     *     Pairs state: ACTIVE;
+     *  a) Pairs state: ACTIVE;
      *     R1 elements should be read/write enabled;
      *     R2 elements should be read enabled/write disabled;
      *     data on R2 elements is synchronized with R1 data copied to R2;
      *     replication links are set to ready state;
      *
-     *  b) createActive is false:
-     *     Pairs state: SPLIT;
+     *  b) Pairs state: SPLIT;
      *     R1 elements should be read/write enabled;
      *     R2 elements should be read/write enabled;
      *     replication links are set to not ready state;
      *     The state of replication pairs is same as after 'split' operation.
      *
-     * @param replicationPairs list of replication pairs to create
-     * @param createActive true, if pairs should start replication link automatically after creation (link in ready state), false otherwise
+     * @param replicationPairs list of replication pairs to create; each pair is in either active or split state
      * @param capabilities storage capabilities for the pairs
      * @return driver task
      */
-    public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, StorageCapabilities capabilities);
+    public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities);
 
     /**
      * Delete remote replication pairs. Should not delete backend volumes.

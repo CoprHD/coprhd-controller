@@ -13,8 +13,8 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface RemoteReplicationDevice {
 
-    public void createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, TaskCompleter taskCompleter);
-    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, TaskCompleter taskCompleter);
+    public void createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter);
+    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter);
     public void deleteReplicationPair(URI replicationPair, TaskCompleter taskCompleter);
 
     // replication link operations

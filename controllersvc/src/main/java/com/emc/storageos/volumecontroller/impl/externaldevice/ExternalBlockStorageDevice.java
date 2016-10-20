@@ -1708,7 +1708,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, boolean createActive, TaskCompleter taskCompleter) {
+    public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, TaskCompleter taskCompleter) {
 
         // prepare driver replication pairs and call driver
         List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
@@ -1717,7 +1717,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive, TaskCompleter taskCompleter) {
+    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter) {
 
     }
 

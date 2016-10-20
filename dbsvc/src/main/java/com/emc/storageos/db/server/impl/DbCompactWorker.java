@@ -31,7 +31,7 @@ public class DbCompactWorker implements Runnable{
     private void runDbCompactWithRetry(String keyspace) {
         for (int i=0; i<retryTimes; i++) {
             try {
-                StorageService.instance.forceKeyspaceCompaction(keyspace);
+                //StorageService.instance.forceKeyspaceCompaction(keyspace);
                 log.info("{} db compact successfully", keyspace);
                 return;
             } catch (Exception e) {

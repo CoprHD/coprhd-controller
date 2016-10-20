@@ -375,11 +375,11 @@ public class DbManager implements DbManagerMBean {
         log.info("Check if data synced with Cassandra data center {}", dcName);
         
         // Compact HINTS column family and eliminate deleted hints before checking hinted handoff logs
-        try {
+        /*try {
             StorageService.instance.forceKeyspaceCompaction("system", SystemKeyspace.HINTS_CF);
         } catch (Exception ex) {
             log.warn("Fail to compact system HINTS_CF", ex);
-        }
+        }*/
         
         List<InetAddress> allNodes = new ArrayList<>();
         Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();

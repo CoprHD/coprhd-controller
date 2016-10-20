@@ -1569,7 +1569,7 @@ public class DbIndexTest extends DbsvcTestBase {
         for (int i = 0; i < dataFiles.length; i++) {
             String fileName = dataFiles[i];
             Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
-            SSTableExport.export(desc, outs, null, null);
+            //SSTableExport.export(desc, outs, null, null);
             if (i + 1 < dataFiles.length) {
                 outs.println(",");
             }

@@ -1,25 +1,14 @@
 .exampleEditor {
     background: #2a3239;
-    max-height: 100vh;
+    max-height: 90vh;
     max-width: 100vw;
     overflow: hidden;
 }
 
-.jsPlumb_dragged {
-    z-index: 999;
-}
 #diagramContainer {
     width:10000px;
     height:10000px;
     position:relative;
-}
-#example-item-primary-card-wrapper {
-    position:absolute;
-    left: 5000px;
-    top: 5000px;
-    height: 300px;
-    width:330px;
-    overflow: visible;
 }
 .example-item-card-wrapper {
     position:absolute;
@@ -27,19 +16,6 @@
     z-index:200;
     min-width: 100px;
     //min-height: 70px;
-}
-.example-item-primary {
-    overflow: hidden;
-    height: 300px;
-    width:330px;
-    padding-top: 0px;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-bottom:30px;
-    overflow: hidden;
-    background-color: #428bca;
-    border-color: #357ebd;
-    border-radius: 6px;
 }
 .item {
     margin-top: 0;
@@ -50,12 +26,6 @@
     border-color: #357ebd;
     border-radius: 3px;
 }
-.example-item {
-    pointer-events:none;
-}
-.example-draggable {
-    position:absolute;
-}
 #sb-site {
     background-color: #eee !important;
 
@@ -65,31 +35,19 @@
     background-color: #333 !important;
     z-index:999 !important;
     width: 240px;
-    height: 100vh;
+    height: 90vh;
     float: right;
 }
 .buttonbar {
     margin: 40px;
-}
-    
-.passEndpoint {
-    //margin-left: 80px;
 }
 
 .passEndpoint svg circle {
     fill: green;
 }
 
-.failEndpoint {
-    //margin-left: -80px;
-}
-
 .failEndpoint svg circle {
     fill: red;
-}
-
-.inputEndpoint {
-    //margin-left: -80px;
 }
 
 .inputEndpoint svg circle {
@@ -122,11 +80,11 @@
     pointer-events:none;
 }
 
-.draggable-card {
+.draggable-step {
     display: inline-block;
 }
 
-.draggable-card .itemText {
+.draggable-step .itemText {
     font-size: 16px;
 }
 

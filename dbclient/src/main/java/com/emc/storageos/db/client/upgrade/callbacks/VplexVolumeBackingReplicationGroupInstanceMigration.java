@@ -60,7 +60,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigration extends BaseCus
                 Volume volume = volumesIter.next();
 
                 // Must skip VPLEX vols with no backend volumes (ingested case)
-                if (null == volume.getAssociatedVolumes() && volume.getAssociatedVolumes().isEmpty()) {
+                if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
                     logger.warn("VPLEX volume {} has no backend volumes, so cannot update backingReplicationGroupInstance, skipping...",
                             volume.forDisplay());
                     continue;

@@ -54,6 +54,7 @@ import com.emc.storageos.model.file.FileSystemDeleteParam;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.NfsACE;
+import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.QuotaDirectoryDeleteParam;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
@@ -224,22 +225,8 @@ public class FileSystems extends ResourceController {
     public static void fileSystemNfsACLs(String fileSystemId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NfsACE> nfsAcls = client.fileSystems().getAllNfsACLs(
+        List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
                 uri(fileSystemId));
-        /*
-         * We want to display only one for a path.
-         * Hence removing duplicates here.
-         */
-        Set<String> fsPathSet = new HashSet<String>();
-        for (Iterator<NfsACE> iterator = nfsAcls.iterator(); iterator.hasNext();) {
-            NfsACE nfsACE =  iterator.next();
-            String fsPath = nfsACE.getFSMountPath();
-            if(fsPathSet.contains(fsPath)) {
-                iterator.remove();
-            } else {
-                fsPathSet.add(fsPath);
-            }
-        }
         render(nfsAcls);
     }
 
@@ -279,13 +266,15 @@ public class FileSystems extends ResourceController {
         renderArgs.put("fileSystemId", uri(fileSystemId));
         renderArgs.put("fileSystemName", uri(fileSystemId));
         ViPRCoreClient client = BourneUtil.getViprClient();
-        List<NfsACE> nfsAcls = client.fileSystems().getNfsACLs(
+        List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
                 uri(fileSystemId), subDir);
-        // NfsACL nfsAcl = new NfsACL();
+        NfsACL nfsAcl = new NfsACL();
         List<NfsACLDataTable.NfsAclInfo> nfsAccessControlList = Lists
                 .newArrayList();
         if (nfsAcls.size() > 0) {
-            for (NfsACE ace : nfsAcls) {
+            nfsAcl = nfsAcls.get(0);
+            List<NfsACE> acl = nfsAcl.getNfsAces();
+            for (NfsACE ace : acl) {
                 String name = ace.getUser();
                 String type = ace.getType();
                 String permissions = ace.getPermissions();

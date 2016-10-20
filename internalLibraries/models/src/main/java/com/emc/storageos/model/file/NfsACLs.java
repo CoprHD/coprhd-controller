@@ -5,11 +5,10 @@
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.net.URI;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "nfs_acls")
@@ -17,31 +16,59 @@ public class NfsACLs implements Serializable {
 
     private static final long serialVersionUID = 1780598964262028652L;
 
-    private List<NfsACE> nfsAces;
+    private URI fileSystemId;
+    private URI snapshotId;
+    private List<NfsACL> nfsACLs;
 
     public NfsACLs() {
     }
 
-    @XmlElementWrapper(name = "acl")
-    @XmlElement(name = "ace")
-    public List<NfsACE> getNfsAces() {
-        return nfsAces;
+    @XmlElement(name = "nfs_acl")
+    public List<NfsACL> getNfsACLs() {
+        return nfsACLs;
     }
 
-    public void setNfsAces(List<NfsACE> nfsAces) {
-        this.nfsAces = nfsAces;
+    @XmlElement(name = "file_system_id")
+    public URI getFileSystemId() {
+        return fileSystemId;
     }
 
-    public void addACE(NfsACE ace) {
-        if (this.nfsAces == null) {
-            this.nfsAces = new ArrayList<NfsACE>();
-        }
-        this.nfsAces.add(ace);
+    public void setFileSystemId(URI fileSystemId) {
+        this.fileSystemId = fileSystemId;
+    }
+
+    @XmlElement(name = "snapshot_id")
+    public URI getSnapshotId() {
+        return snapshotId;
+    }
+
+    public void setSnapshotId(URI snapshotId) {
+        this.snapshotId = snapshotId;
+    }
+
+    public void setNfsACLs(List<NfsACL> nfsACLs) {
+        this.nfsACLs = nfsACLs;
     }
 
     @Override
     public String toString() {
-        return "NfsACL [" + nfsAces + "]";
+        StringBuilder builder = new StringBuilder();
+        builder.append("NfsACLs [");
+        if (fileSystemId != null) {
+            builder.append("fileSystemId=");
+            builder.append(fileSystemId);
+            builder.append(", ");
+        }
+        if (snapshotId != null) {
+            builder.append("snapshotId=");
+            builder.append(snapshotId);
+            builder.append(", ");
+        }
+        if (nfsACLs != null) {
+            builder.append("nfsACLs=");
+            builder.append(nfsACLs);
+        }
+        builder.append("]");
+        return builder.toString();
     }
-
 }

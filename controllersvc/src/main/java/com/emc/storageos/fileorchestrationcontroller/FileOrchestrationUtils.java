@@ -316,22 +316,13 @@ public class FileOrchestrationUtils {
 
     public static NfsACE convertNFSShareACLToNfsACE(FileShare fs, NFSShareACL dbNFSAcl) {
         NfsACE dest = new NfsACE();
-        dest.setFileSystemId(fs.getId());
 
-        String fsPath = dbNFSAcl.getFileSystemPath();
-        dest.setFSMountPath(fsPath);
-        String basePath = fs.getPath();
-        if (fsPath.length() > basePath.length()) {
-            dest.setSubDir(fsPath.substring(basePath.length() + 1));
-        }
         dest.setDomain(dbNFSAcl.getDomain());
         dest.setPermissions(dbNFSAcl.getPermissions());
-
         dest.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
         if (dbNFSAcl.getPermissionType() != null && !dbNFSAcl.getPermissionType().isEmpty()) {
             dest.setPermissionType(dbNFSAcl.getPermissionType());
         }
-
         dest.setType("user");
         if (dbNFSAcl.getType() != null && !dbNFSAcl.getType().isEmpty()) {
             dest.setType(dbNFSAcl.getType());

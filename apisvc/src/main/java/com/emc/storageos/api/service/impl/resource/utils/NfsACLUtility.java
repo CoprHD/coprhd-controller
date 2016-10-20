@@ -5,8 +5,10 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.file.NfsACE.NfsPermissionType;
 import com.emc.storageos.model.file.NfsACE.NfsUserType;
+import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -269,6 +272,8 @@ public class NfsACLUtility {
      */
     public NfsACLs getNfsAclFromDB(boolean allDirs) {
         NfsACLs acls = new NfsACLs();
+        List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
+        Map<String, List<NfsACE>> nfsAclMap = new HashMap<String, List<NfsACE>>();
 
         _log.info("Sub-directory {} and allDirs {}", this.subDir, allDirs);
 
@@ -278,8 +283,32 @@ public class NfsACLUtility {
 
         // Group the ACLs based on file system path!!!
         for (NFSShareACL nfsAcl : nfsAcls) {
+            String fsPath = nfsAcl.getFileSystemPath();
+            List<NfsACE> nfsAceList = nfsAclMap.get(fsPath);
+            if (nfsAceList == null) {
+                nfsAceList = new ArrayList<NfsACE>();
+
+            }
             NfsACE ace = getNFSAce(nfsAcl);
-            acls.addACE(ace);
+            nfsAceList.add(ace);
+            nfsAclMap.put(fsPath, nfsAceList);
+        }
+
+        // Convert all ACE to ACLs!!
+        for (Map.Entry<String, List<NfsACE>> pathAcls : nfsAclMap.entrySet()) {
+
+            String mountPath = pathAcls.getKey();
+            NfsACL nfsAcl = new NfsACL(mountPath, pathAcls.getValue());
+
+            if (mountPath.length() > fs.getPath().length()) {
+                nfsAcl.setSubDir(mountPath.substring(fs.getPath().length() + 1));
+            }
+
+            nfsAclList.add(nfsAcl);
+        }
+
+        if (!nfsAclList.isEmpty()) {
+            acls.setNfsACLs(nfsAclList);
         }
 
         return acls;
@@ -294,17 +323,7 @@ public class NfsACLUtility {
     private NfsACE getNFSAce(NFSShareACL orig) {
 
         NfsACE dest = new NfsACE();
-        if (this.fs != null) {
-            dest.setFileSystemId(this.fs.getId());
-        } else {
-            dest.setSnapshotId(this.snapShot.getId());
-        }
-        String fsPath = orig.getFileSystemPath();
-        dest.setFSMountPath(fsPath);
-        String basePath = fs != null ? fs.getPath() : snapShot.getPath();
-        if (fsPath.length() > basePath.length()) {
-            dest.setSubDir(fsPath.substring(basePath.length() + 1));
-        }
+
         dest.setDomain(orig.getDomain());
         dest.setPermissions(orig.getPermissions());
 

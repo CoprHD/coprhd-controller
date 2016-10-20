@@ -6,10 +6,8 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,16 +15,14 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.emc.storageos.util.VPlexUtil;
 
 /**
  * If we are upgrading from any version 3.5 or before, the Volume.backingReplicationGroupInstance
@@ -75,7 +71,7 @@ public class VplexVolumeBackingReplicationGroupInstanceMigration extends BaseCus
                 // to be the same as the source side backend volume (both sides should be the same,
                 // but we will default to the source side in an HA situation for consistency).
                 if (NullColumnValueGetter.isNullValue(volume.getBackingReplicationGroupInstance())) {
-                    Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                    Volume sourceSideBackingVolume = getVPLEXBackendVolume(volume, true, dbClient, true);
                     if (sourceSideBackingVolume != null) {
                         String instance = sourceSideBackingVolume.getReplicationGroupInstance();
                         if (NullColumnValueGetter.isNotNullValue(instance)) {
@@ -111,5 +107,52 @@ public class VplexVolumeBackingReplicationGroupInstanceMigration extends BaseCus
             }
         }
         return vplexStorageSystems;
+    }
+
+    /**
+     * NOTE: copied from VPlexUtil, which isn't visible from dbclient.
+     * 
+     * Returns the source or ha backend volume of the passed VPLEX volume.
+     * 
+     * @param vplexVolume A reference to the VPLEX volume.
+     * @param sourceVolume A boolean thats used to return either source
+     *            or ha backend volume.
+     * @param dbClient an instance of {@link DbClient}
+     * @param errorIfNotFound A boolean thats used to either return null or throw error
+     * 
+     * @return A reference to the backend volume
+     *         If sourceVolume is true returns source backend
+     *         volume else returns ha backend volume.
+     * 
+     */
+    private Volume getVPLEXBackendVolume(Volume vplexVolume, boolean sourceVolume, DbClient dbClient, boolean errorIfNotFound) {
+        StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+        Volume backendVolume = null;
+        if (associatedVolumeIds == null) {
+            if (errorIfNotFound) {
+                throw InternalServerErrorException.internalServerErrors
+                        .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            } else {
+                return backendVolume;
+            }
+        }
+
+        // Get the backend volume either source or ha.
+        for (String associatedVolumeId : associatedVolumeIds) {
+            Volume associatedVolume = dbClient.queryObject(Volume.class,
+                    URI.create(associatedVolumeId));
+            if (associatedVolume != null) {
+                if (sourceVolume && associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray())) {
+                    backendVolume = associatedVolume;
+                    break;
+                }
+                if (!sourceVolume && !(associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray()))) {
+                    backendVolume = associatedVolume;
+                    break;
+                }
+            }
+        }
+
+        return backendVolume;
     }
 }

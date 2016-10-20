@@ -68,8 +68,8 @@ public class OrchestrationService extends ViPRService {
     private String eval;
     private final List<String> evaluateVal = new ArrayList<String>();
     private int code;
-   
-     public String getEval() {
+
+    public String getEval() {
         return eval;
     }
 
@@ -78,37 +78,37 @@ public class OrchestrationService extends ViPRService {
     }
 
     @Override
-	public void precheck() throws Exception {
+    public void precheck() throws Exception {
 
-	    // get input params from order form
+        // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
 
         // validate input params to insure service will run
-        
-		// add a proxy token that OE can use to login to ViPR API
-		params.put("ProxyToken", ExecutionUtils.currentContext().
-				getExecutionState().getProxyToken());
 
-	}
+        // add a proxy token that OE can use to login to ViPR API
+        params.put("ProxyToken", ExecutionUtils.currentContext().
+                getExecutionState().getProxyToken());
 
-	@Override
-	public void execute() throws Exception {
-	    ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
+    }
+
+    @Override
+    public void execute() throws Exception {
+        ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
         try {
             wfExecutor();
 
             ExecutionUtils.currentContext().logInfo("Orchestration Engine Successfully executed Workflow:"
                     + params.get(OrchestrationServiceConstants.WF_ID));
-        } catch (final Exception e)
-        {
+        } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("Orchestration Engine Workflow Failed" + e);
             throw e;
         }
-	}
+    }
 
 
     /**
      * Method to parse Workflow Definition JSON
+     *
      * @throws Exception
      */
     public void wfExecutor() throws Exception {
@@ -148,8 +148,8 @@ public class OrchestrationService extends ViPRService {
             switch (type) {
                 case VIPR_REST: {
                     ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName());
-                    
-		    break;
+
+                    break;
                 }
                 case REST: {
 
@@ -184,8 +184,7 @@ public class OrchestrationService extends ViPRService {
         }
     }
 
-    private String updateResult(final boolean status, final String result, final Step step)
-    {
+    private String updateResult(final boolean status, final String result, final Step step) {
         if (status) {
             ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
                     "Step: " + step.getStepId() + ":" + step + "result:" + result);
@@ -199,14 +198,13 @@ public class OrchestrationService extends ViPRService {
         return step.getNext().getFailedStep();
 
     }
+
     /**
      * Method to collect all required inputs per step for execution
      *
      * @param step It is the GSON Object of Step
-     *
      */
-    private void updateInputPerStep(final Step step) throws Exception
-    {
+    private void updateInputPerStep(final Step step) throws Exception {
         logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
 
         Map<String, Input> input = step.getInput();
@@ -216,8 +214,7 @@ public class OrchestrationService extends ViPRService {
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
         final Iterator it = input.keySet().iterator();
-        while(it.hasNext())
-        {
+        while (it.hasNext()) {
             String key = it.next().toString();
             Input value = input.get(key);
 
@@ -227,14 +224,12 @@ public class OrchestrationService extends ViPRService {
                 throw new IllegalStateException();
             }
 
-            switch (InputType.fromString(value.getType()))
-            {
+            switch (InputType.fromString(value.getType())) {
                 case FROM_USER:
                 case OTHERS:
-                case ASSET_OPTION:
-                {
+                case ASSET_OPTION: {
                     //TODO handle multiple , separated values
-                    final String paramVal = (params.get(key) == null) ? (params.get(key).toString()) : (value.getDefault()) ;
+                    final String paramVal = (params.get(key) == null) ? (params.get(key).toString()) : (value.getDefault());
 
                     if (paramVal == null) {
                         if (value.getRequired().equals("true")) {
@@ -250,29 +245,26 @@ public class OrchestrationService extends ViPRService {
                     break;
                 }
                 case FROM_STEP_INPUT:
-                case FROM_STEP_OUTPUT:
-                {
-		    if (value.getOtherStepValue() == null && value.getDefault() == null && value.getRequired().equals("true")) {
+                case FROM_STEP_OUTPUT: {
+                    if (value.getOtherStepValue() == null && value.getDefault() == null && value.getRequired().equals("true")) {
                         logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
 
                         throw new IllegalStateException();
                     }
 
-                    if (value.getOtherStepValue() == null)
-                    {
-                        if (value.getDefault() != null)
-                        {
+                    if (value.getOtherStepValue() == null) {
+                        if (value.getDefault() != null) {
                             inputs.put(key, Arrays.asList(value.getDefault()));
                             break;
-			}
-                    	logger.info("Could not get input value for:{}", value.getOtherStepValue());
-			break;
-		    }
+                        }
+                        logger.info("Could not get input value for:{}", value.getOtherStepValue());
+                        break;
+                    }
 
                     final String[] paramVal = value.getOtherStepValue().split("\\.");
                     final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
                     final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
-		    Map<String, List<String>> stepInput;
+                    Map<String, List<String>> stepInput;
                     if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
                         stepInput = inputPerStep.get(stepId);
                     else
@@ -280,19 +272,18 @@ public class OrchestrationService extends ViPRService {
 
                     if (stepInput == null || (stepInput != null && stepInput.get(attribute) == null)) {
 
-		    	if (value.getDefault() != null)
-			{
-				inputs.put(key, Arrays.asList(value.getDefault()));
-				break;
-			}
+                        if (value.getDefault() != null) {
+                            inputs.put(key, Arrays.asList(value.getDefault()));
+                            break;
+                        }
 
-			if (value.getRequired().equals("false"))
-				break;
+                        if (value.getRequired().equals("false"))
+                            break;
 
                         //TODO if data is still not present waitfortask ... Do some more validation
 
                         logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
-                        
+
                         throw new IllegalStateException();
                     }
 
@@ -311,7 +302,7 @@ public class OrchestrationService extends ViPRService {
 
     /**
      * Parse REST Response and get output values as specified by the user in the workflow definition
-     *
+     * <p/>
      * Example of Supported output variable formats:
      * "state"
      * "task.resource.id"
@@ -340,14 +331,14 @@ public class OrchestrationService extends ViPRService {
 
     /**
      * Evaluate
+     *
      * @param step
      * @param returnCode
      * @return
      */
     private boolean evaluateDefaultValue(final Step step, final int returnCode) {
-        if (step.getType().equals(StepType.ANSIBLE.toString()))
-        {
-            if (returnCode == 0 )
+        if (step.getType().equals(StepType.ANSIBLE.toString())) {
+            if (returnCode == 0)
                 return true;
 
             return false;
@@ -379,8 +370,7 @@ public class OrchestrationService extends ViPRService {
         logger.debug("Find value of:{}", value);
         List<String> valueList = new ArrayList<String>();
 
-        if (!value.contains(OrchestrationServiceConstants.TASK))
-        {
+        if (!value.contains(OrchestrationServiceConstants.TASK)) {
             Expression expr = parser.parseExpression(value);
             EvaluationContext context = new StandardEvaluationContext(res);
             String val = (String) expr.getValue(context);
@@ -408,11 +398,11 @@ public class OrchestrationService extends ViPRService {
     /**
      * This evaluates the status of a step from the SuccessCriteria mentioned in workflow definition JSON
      * e.g: Supported Expression Language for SuccessCriteria
-     * 	Supported condition type code == x [x can be any number]
-     *  code == 404
-     *  code == 0
-     *  "#task_state == 'pending' and #description == 'create export1'";
-     *  "#state == 'ready'";
+     * Supported condition type code == x [x can be any number]
+     * code == 404
+     * code == 0
+     * "#task_state == 'pending' and #description == 'create export1'";
+     * "#state == 'ready'";
      *
      * @param successCriteria
      * @param result
@@ -420,10 +410,10 @@ public class OrchestrationService extends ViPRService {
      */
     private boolean findStatus(String successCriteria, final String result) {
 
-	if (successCriteria == null || result == null) {
-		logger.info("Nothing to evaluate");
-		return true;
-	}
+        if (successCriteria == null || result == null) {
+            logger.info("Nothing to evaluate");
+            return true;
+        }
         logger.info("Find status for:{}", successCriteria);
         ExpressionParser parser = new SpelExpressionParser();
         Expression e2 = parser.parseExpression(successCriteria);
@@ -483,7 +473,7 @@ public class OrchestrationService extends ViPRService {
 
         return val1;
     }
-
 }
+
 
 

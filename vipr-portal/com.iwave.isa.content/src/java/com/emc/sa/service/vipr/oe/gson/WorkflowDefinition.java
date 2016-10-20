@@ -53,26 +53,26 @@ public class WorkflowDefinition {
 
         @SerializedName("Type")
         private String type;
-       
-	@SerializedName("FriendlyName")
+
+        @SerializedName("FriendlyName")
         private String friendlyName;
-        
-	@SerializedName("Required")
+
+        @SerializedName("Required")
         private String required;
-        
-	@SerializedName("Default")
+
+        @SerializedName("Default")
         private String Default;
-        
-	@SerializedName("AssetValue")
+
+        @SerializedName("AssetValue")
         private String assetValue;
-        
-	@SerializedName("OtherStepValue")
+
+        @SerializedName("OtherStepValue")
         private String otherStepValue;
-        
-	@SerializedName("Group")
+
+        @SerializedName("Group")
         private String group;
-        
-	@SerializedName("Lockdown")
+
+        @SerializedName("Lockdown")
         private String lockdown;
 
         public String getType() {
@@ -107,6 +107,7 @@ public class WorkflowDefinition {
             return lockdown;
         }
     }
+
 
     public  static class StepAttribute {
 
@@ -208,8 +209,10 @@ public class WorkflowDefinition {
         public String getDefault() {
             return defaultstep;
         }
-   	public String getFailedStep() {
+
+        public String getFailedStep() {
             return failedStep;
         }
     }
+
 }

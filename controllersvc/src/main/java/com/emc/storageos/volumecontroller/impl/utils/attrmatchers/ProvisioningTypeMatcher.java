@@ -13,11 +13,12 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedProvisioningTypes;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
@@ -38,7 +39,8 @@ public class ProvisioningTypeMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         String provisioningType = attributeMap.get(Attributes.provisioning_type.toString()).toString();
         _logger.info("Pools Matching provisioningType Started {}, {} :", provisioningType,
                 Joiner.on("\t").join(getNativeGuidFromPools(pools)));
@@ -65,6 +67,10 @@ public class ProvisioningTypeMatcher extends AttributeMatcher {
                 _logger.info("Ignoring pool {} as thin resources are not supported :", pool.getNativeGuid());
                 filteredPoolList.remove(pool);
             }
+        }
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("No matching storage pool found for %s provisioning type. ", provisioningType));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching provisioningType Ended {}, {}", provisioningType,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));

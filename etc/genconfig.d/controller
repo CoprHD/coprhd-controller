@@ -19,9 +19,12 @@ _get_controller_props() {
             controller_ddmc_firmware_version \
             controller_discovery_core_pool_size \
             controller_discovery_interval \
+            controller_arrayaffinity_discovery_interval \
             controller_discovery_refresh_interval \
+			controller_arrayaffinity_discovery_refresh_interval \
             controller_enable_auto_discovery_metering_scan_single_node_deployments \
             controller_enable_autodiscovery \
+            controller_enable_arrayaffinity_discovery \
             controller_enable_autoscan \
             controller_enable_metering \
             controller_enable_monitoring \

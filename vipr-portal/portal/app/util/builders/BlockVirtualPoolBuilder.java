@@ -12,6 +12,7 @@ import java.util.Set;
 
 import models.DriveTypes;
 import models.HighAvailability;
+import models.VirtualPoolPlacementPolicy;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -57,6 +58,12 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return this;
     }
 
+    public BlockVirtualPoolBuilder setPlacementPolicy(String placementPolicy) {
+        String policyName = StringUtils.defaultIfBlank(placementPolicy, VirtualPoolPlacementPolicy.DEFAULT);
+        virtualPool.setPlacementPolicy(policyName);
+        return this;
+    }
+
     public BlockVirtualPoolBuilder setMinPaths(int paths) {
         virtualPool.setMinPaths(paths);
         return this;
@@ -74,6 +81,11 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
 
     public BlockVirtualPoolBuilder setAutoTieringPolicyName(String autoTieringPolicyName) {
         virtualPool.setAutoTieringPolicyName(StringUtils.trimToNull(autoTieringPolicyName));
+        return this;
+    }
+
+    public BlockVirtualPoolBuilder setCompressionEnabled(boolean compressionEnabled) {
+        virtualPool.setCompressionEnabled(compressionEnabled);
         return this;
     }
 
@@ -334,4 +346,13 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         }
         return Collections.emptyList();
     }
+    
+    public BlockVirtualPoolBuilder setDedupCapable(boolean dedupCapable) {
+        virtualPool.setDedupCapable(dedupCapable);
+        return this;
+    }
+    
+	public Boolean getDedupCapable(boolean dedupCapable) {
+		return virtualPool.getDedupCapable();
+	}
 }

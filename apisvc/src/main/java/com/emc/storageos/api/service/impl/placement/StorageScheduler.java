@@ -9,24 +9,28 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
@@ -34,13 +38,17 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePool.PoolClassNames;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -52,13 +60,12 @@ import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -72,6 +79,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBui
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -80,12 +89,19 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMa
 public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
     private static final String SCHEDULER_NAME = "block";
+    // factor to adjust weight of array depending on export type
+    // for host export, shared arrays (host has shared volumes on those arrays) will have less weight
+    // for cluster export, exclusive arrays (those have only exclusive volumes to the hosts in the cluster), will have less weight
+    // if the factor is 0, then shared arrays will not be treated as preferred arrays for host export,
+    // and exclusive arrays will not be treated as preferred arrays for cluster export
+    private static double AFFINITY_FACTOR = 0.999;
     private DbClient _dbClient;
 
     private CoordinatorClient _coordinator;
+    private CustomConfigHandler _customConfigHandler;
     private PortMetricsProcessor _portMetricsProcessor;
 
-    private final Comparator<StoragePool> _storagePoolComparator = new StoragePoolFreeCapacityComparator();
+    private final Comparator<StoragePool> _storagePoolComparator = new StoragePoolDefaultComparator();
     private AttributeMatcherFramework _matcherFramework;
 
     public void setDbClient(DbClient dbClient) {
@@ -94,6 +110,10 @@ public class StorageScheduler implements Scheduler {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
+    }
+
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        _customConfigHandler = customConfigHandler;
     }
 
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
@@ -145,11 +165,20 @@ public class StorageScheduler implements Scheduler {
 
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
 
         // Get all storage pools that match the passed CoS params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities);
+        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities, attributeMap);
+
+        if (CollectionUtils.isEmpty(candidatePools)) {
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(neighborhood.getLabel(), cos.getLabel(), errorMessage.toString());
+        }
 
         // Get the recommendations for the candidate pools.
         recommendations = getRecommendationsForPools(neighborhood.getId().toString(), candidatePools, capabilities);
@@ -212,7 +241,11 @@ public class StorageScheduler implements Scheduler {
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
                 _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vPool.getLabel(), vArray.getLabel());
+                StringBuffer errorMessage = new StringBuffer();
+                if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                    errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+                }
+                throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), errorMessage.toString());
             }
 
             // place all mirrors for this storage system in the matched pools
@@ -280,10 +313,14 @@ public class StorageScheduler implements Scheduler {
         // StorageSystem that the source volume was created against.
         List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
         if (matchedPools == null || matchedPools.isEmpty()) {
-            _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}.", new Object[] { vArray.getId(),
-                    vPool.getId(), blockObject.getId() });
+            StringBuffer errMes = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errMes = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}. {}", new Object[] { vArray.getId(),
+                    vPool.getId(), blockObject.getId(), errMes });
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarrayForClones(vPool.getLabel(), vArray.getLabel(),
-                    blockObject.getId());
+                    blockObject.getId(), errMes.toString());
         }
 
         _log.info(String.format("Found %s candidate pools for placement of %s clone(s) of volume %s .",
@@ -336,7 +373,7 @@ public class StorageScheduler implements Scheduler {
          * of pool's subscribed capacity to total capacity(suborder).
          * This order is kept through the selection procedure.
          */
-        Collections.sort(storagePools, new StoragePoolDefaultComparator());
+        Collections.sort(storagePools, _storagePoolComparator);
     }
 
     /**
@@ -386,6 +423,12 @@ public class StorageScheduler implements Scheduler {
         }
         // Get pools for VirtualPool and VirtualArray
         List<StoragePool> matchedPoolsForCos = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
+
+        if (matchedPoolsForCos.isEmpty()) {
+            _log.warn("vPool {} does not have any valid storage pool in vArray {}.",
+                    vpool.getId(), varray.getId());
+            throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
+        }
 
         AttributeMapBuilder provMapBuilder = new ProvisioningAttributeMapBuilder(capabilities.getSize(),
                 varrayId, capabilities.getThinVolumePreAllocateSize());
@@ -474,6 +517,11 @@ public class StorageScheduler implements Scheduler {
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(sourceStorageSystem.getId().toString());
             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+        } else if (capabilities.getExcludedStorageDevice() != null) {
+            StorageSystem excludedStorageSystem = capabilities.getExcludedStorageDevice();
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(excludedStorageSystem.getId().toString());
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.exclude_storage_system.name(), storageSystemSet);            
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
@@ -530,29 +578,45 @@ public class StorageScheduler implements Scheduler {
             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_notification_limit.name(), capabilities.getSupportsNotificationLimit());
         }
 
+        if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
+                VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
+                VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
+            // only enforce array affinity policy for vpool without RP, SRDF, VPLEX
+            boolean arrayAffinity = VirtualPool.ResourcePlacementPolicyType.array_affinity.name().equals(vpool.getPlacementPolicy());
+            if (arrayAffinity && capabilities.getCompute() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
+                provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
+            }
+        }
+
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);
         }
         _log.info("Populated attribute map: {}", attributeMap);
-
+        StringBuffer errorMessage = new StringBuffer();
         // Execute basic precondition check to verify that vArray has active storage pools in the vPool.
         // We will return a more accurate error condition if this basic check fails.
         List<StoragePool> matchedPools = _matcherFramework.matchAttributes(
                 matchedPoolsForCos, attributeMap, _dbClient, _coordinator,
-                AttributeMatcher.BASIC_PLACEMENT_MATCHERS);
+                AttributeMatcher.BASIC_PLACEMENT_MATCHERS, errorMessage);
         if (matchedPools == null || matchedPools.isEmpty()) {
             _log.warn("vPool {} does not have active storage pools in vArray  {} .",
                     vpool.getId(), varray.getId());
-            throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
+
+        errorMessage.setLength(0);
 
         // Matches the pools against the VolumeParams.
         // Use a set of matched pools returned from the basic placement matching as the input for this call.
         matchedPools = _matcherFramework.matchAttributes(
                 matchedPools, attributeMap, _dbClient, _coordinator,
-                AttributeMatcher.PLACEMENT_MATCHERS);
+                AttributeMatcher.PLACEMENT_MATCHERS, errorMessage);
         if (matchedPools == null || matchedPools.isEmpty()) {
+            if (optionalAttributes != null) {
+                optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
+            }
             _log.warn("Varray {} does not have storage pools which match vpool {} properties and have specified  capabilities.",
                     varray.getId(), vpool.getId());
             return storagePools;
@@ -560,6 +624,326 @@ public class StorageScheduler implements Scheduler {
 
         storagePools.addAll(matchedPools);
         return storagePools;
+    }
+
+    /**
+     * Try to determine a list of storage pools from the passed list of storage
+     * pools that can accommodate the passed number of resources of the passed
+     * size accord to array affinity policy.
+     *
+     * @param varrayId String of VirtualArray ID for the recommendations.
+     * @param capabilities VirtualPoolCapabilityValuesWrapper.
+     * @param candidatePools The list of candidate storage pools.
+     * @param inCG In a Consistency Group
+     *
+     * @return The list of Recommendation instances reflecting the recommended
+     *         pools.
+     */
+    private List<Recommendation> performArrayAffinityPlacement(String varrayId, VirtualPoolCapabilityValuesWrapper capabilities,
+            List<StoragePool> candidatePools, boolean inCG) {
+        Map<URI, Double> arrayToHostWeightMap = new HashMap<URI, Double>();
+        Map<URI, Set<URI>> preferredPoolMap = null;
+        boolean canUseNonPreferred = false;
+        if (capabilities.getArrayAffinity()) {
+            String computeIdStr = capabilities.getCompute();
+            preferredPoolMap = getPreferredPoolMap(computeIdStr, arrayToHostWeightMap);
+            _log.info("ArrayAffinity - preferred arrays for {} - {}", computeIdStr, arrayToHostWeightMap);
+
+            int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, CustomConfigConstants.GLOBAL_KEY, null));
+            canUseNonPreferred = preferredPoolMap.keySet().size() < limit;
+        } else {
+            preferredPoolMap = new HashMap<URI, Set<URI>>();
+            canUseNonPreferred = true;
+        }
+
+        _log.info("ArrayAffinity - allow non preferred array {}", canUseNonPreferred);
+
+        // group pools by array
+        Map<URI, List<StoragePool>> candidatePoolMap = groupPoolsByArray(candidatePools,
+                canUseNonPreferred, arrayToHostWeightMap.keySet());
+
+        if (candidatePoolMap == null || candidatePoolMap.isEmpty()) {
+            throw APIException.badRequests.noCandidateStoragePoolsForArrayAffinity();
+        }
+
+        // get all the candidate arrays
+        List<StorageSystem> candidateSystems = _dbClient.queryObject(StorageSystem.class, candidatePoolMap.keySet());
+
+        // all pools that can be used for placement
+        List<StoragePool> poolList = new ArrayList<StoragePool>();
+        for (List<StoragePool> pools : candidatePoolMap.values()) {
+            poolList.addAll(pools);
+        }
+
+        // compute and set storage pools' and arrays' average port usage metrics before sorting
+        _log.info("ArrayAffinity - compute port metrics");
+        _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
+
+        // sort the arrays, first by host/cluster's preference, then by array's average port metrics
+        // then by free capacity and capacity utilization
+        Collections.sort(candidateSystems, new StorageSystemArrayAffinityComparator(arrayToHostWeightMap, candidatePoolMap));
+        _log.info("ArrayAffinity - sorted candidate systems {}",
+                Joiner.on(',').join(Collections2.transform(candidateSystems, CommonTransformerFunctions.fctnDataObjectToID())));
+
+        // process the sorted candidate arrays
+        for (StorageSystem system : candidateSystems) {
+            URI systemURI = system.getId();
+            // get all available pools of the array
+            List<StoragePool> availablePools = candidatePoolMap.get(system.getId());
+
+            // sort the pools by free capacity, and capacity utilization
+            StoragePoolCapacityComparator poolComparator = new StoragePoolCapacityComparator();
+            Collections.sort(availablePools, poolComparator);
+
+            // split the pools into two lists by preference, both are sorted
+            Set<URI> preferredPoolURIs = preferredPoolMap.get(systemURI);
+            List<StoragePool> preferredPools = new ArrayList<StoragePool>();
+            List<StoragePool> nonPreferredPools = new ArrayList<StoragePool>();
+            for (StoragePool pool : availablePools) {
+                if (preferredPoolURIs != null && preferredPoolURIs.contains(pool.getId())) {
+                    preferredPools.add(pool);
+                } else {
+                    nonPreferredPools.add(pool);
+                }
+            }
+
+            // create a list of secondary pools (preferred and non preferred)
+            // the list is sorted by preference first, then by capacity
+            // the list will be used only if preferred pools along cannot satisfy the request
+            //
+            // IBM XIV, all volumes in a CG must belong to same pool
+            List<StoragePool> secondaryPools = new ArrayList<StoragePool>();
+            // for IBM XIV, all volumes in a CG must be in same pool
+            if (inCG && Type.ibmxiv.name().equals(system.getSystemType())) {
+                if (preferredPools.isEmpty()) {
+                    if (!nonPreferredPools.isEmpty()) {
+                        // only keep first non preferred pool
+                        secondaryPools.add(nonPreferredPools.get(0));
+                    }
+                } else {
+                    // only keep first preferred pool
+                    preferredPools = Arrays.asList(preferredPools.get(0));
+
+                    // only keep the first non preferred pool if it has more capacity than the preferred one
+                    if (!nonPreferredPools.isEmpty() &&
+                            poolComparator.compare(nonPreferredPools.get(0), preferredPools.get(0)) < 0) {
+                        secondaryPools.add(nonPreferredPools.get(0));
+                    }
+                }
+            } else {
+                // preferred pools alone will be tried first, then the secondary pools will be tried
+                // only if there is a non preferred pool
+                if (!nonPreferredPools.isEmpty()) {
+                    secondaryPools.addAll(preferredPools);
+                    secondaryPools.addAll(nonPreferredPools);
+                }
+            }
+
+            // start from preferredPools
+            if (!preferredPools.isEmpty()) {
+                _log.info("ArrayAffinity - preferred pools {}", Joiner.on(',').join(preferredPools));
+                List<Recommendation> recommendations = getRecommendedPools(varrayId, preferredPools, capabilities, false);
+                if (!recommendations.isEmpty()) {
+                    return recommendations;
+                } else {
+                    _log.info("ArrayAffinity - no recommended pools found from perferred pools");
+                }
+            }
+
+            // then secondaryPools
+            if (!secondaryPools.isEmpty()) {
+                _log.info("ArrayAffinity - secondary pools {}", Joiner.on(',').join(secondaryPools));
+                // send both preferred and non preferred pools for the system
+                List<Recommendation> recommendations = getRecommendedPools(varrayId, availablePools, capabilities, false);
+                if (!recommendations.isEmpty()) {
+                    return recommendations;
+                } else {
+                    _log.info("ArrayAffinity - no recommended pools found from secondary pools");
+                }
+            }
+        }
+
+        // No recommendations found on any storage system.
+        return new ArrayList<Recommendation>();
+    }
+
+    /**
+     * Find out storage systems and pools of existing mapped volumes of a host/cluster
+     *
+     * @param compute URI string of the host or cluster
+     * @param arrayToHostWeightMap map of system URI to weight of hosts for which the array is a preferred array
+     *
+     * @return a map of system URI to URIs of pools
+     */
+    private Map<URI, Set<URI>> getPreferredPoolMap(String compute, Map<URI, Double> arrayToHostWeightMap) {
+        if (compute == null) {
+            return new HashMap<URI, Set<URI>>();
+        }
+
+        URI computeURI = URIUtil.uri(compute);
+        if (URIUtil.isType(computeURI, Cluster.class)) {
+            return getPreferredPoolMapForCluster(computeURI, arrayToHostWeightMap);
+        } else {
+            return getPreferredPoolMapForHost(computeURI, arrayToHostWeightMap, ExportGroup.ExportGroupType.Host.name());
+        }
+    }
+
+    /**
+     * Find out storage systems and pools of existing mapped volumes of a cluster
+     *
+     * @param clusterURI URI of the cluster
+     * @param arrayToHostWeightMap map of system URI to count of hosts for which the array is a preferred array
+     *
+     * @return a map of system URI to URIs of pools
+     */
+    private Map<URI, Set<URI>> getPreferredPoolMapForCluster(URI clusterURI, Map<URI, Double> arrayToHostWeightMap) {
+        Map<URI, Set<URI>> poolMap = new HashMap<URI, Set<URI>>();
+        List<Host> hosts =
+                CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
+        for (Host host : hosts) {
+            Map<URI, Set<URI>> arrayToPoolsMap = getPreferredPoolMapForHost(host.getId(), arrayToHostWeightMap, ExportGroupType.Cluster.name());
+            for (Map.Entry<URI, Set<URI>> entry : arrayToPoolsMap.entrySet()) {
+                URI systemURI = entry.getKey();
+                Set<URI> pools = poolMap.get(systemURI);
+                if (pools == null) {
+                    pools = new HashSet<URI>();
+                    poolMap.put(systemURI, pools);
+                }
+
+                pools.addAll(entry.getValue());
+            }
+        }
+
+        return poolMap;
+    }
+
+    /**
+     * Find out storage systems and pools of existing mapped volumes of a host
+     *
+     * @param hostURI URI of the host
+     * @param arrayToHostWeightMap map of system URI to weight of hosts for which the array is a preferred array
+     * @param exportType Cluster or Host export
+     * @return a map of system URI to URIs of pools
+     */
+    private Map<URI, Set<URI>> getPreferredPoolMapForHost(URI hostURI, Map<URI, Double> arrayToHostWeightMap, String exportType) {
+        Map<URI, String> poolToTypeMap = new HashMap<URI, String>();
+
+        Host host = _dbClient.queryObject(Host.class, hostURI);
+        if (host != null && !host.getInactive()) {
+            // add preferred pool Ids from array affinity discovery
+            _log.info("ArrayAffinity - host {} - preferredPools {}", hostURI.toString(),
+                    CommonTransformerFunctions.collectionString(host.getPreferredPools()));
+            for (Map.Entry<String, String> entry : host.getPreferredPools().entrySet()) {
+                poolToTypeMap.put(URI.create(entry.getKey()), entry.getValue());
+            }
+
+            // discover preferred pools from ViPR DB
+            List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, ExportGroup.class,
+                    AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "hosts", hostURI.toString()));
+            for (ExportGroup exportGroup : exportGroups) {
+                StringMap volumeStringMap = exportGroup.getVolumes();
+                String type = exportGroup.getType();
+                if (volumeStringMap != null && !volumeStringMap.isEmpty()) {
+                    for (String volumeIdStr : volumeStringMap.keySet()) {
+                        URI volumeURI = URI.create(volumeIdStr);
+                        if (URIUtil.isType(volumeURI, Volume.class)) {
+                            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                            if (volume != null && !volume.getInactive()) {
+                                URI poolURI = volume.getPool();
+                                String oldType = poolToTypeMap.get(poolURI);
+                                if (oldType == null || (!oldType.equals(type) && type.equals(ExportGroupType.Cluster.name()))) {
+                                    poolToTypeMap.put(poolURI, type);
+                                    _log.info("ArrayAffinity - host {} preferred pool in ViPR - {}, type {}", hostURI.toString(), poolURI.toString(), type);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // group pools by array
+        Map<URI, Set<URI>> arrayToPoolsMap = new HashMap<URI, Set<URI>>();
+        if (!poolToTypeMap.isEmpty()) {
+            List<StoragePool> pools = _dbClient.queryObject(StoragePool.class, poolToTypeMap.keySet());
+            for (StoragePool pool : pools) {
+                if (pool != null && !pool.getInactive()) {
+                    URI systemURI = pool.getStorageDevice();
+                    Set<URI> groupPools = arrayToPoolsMap.get(systemURI);
+                    if (groupPools == null) {
+                        groupPools = new HashSet<URI>();
+                        arrayToPoolsMap.put(systemURI, groupPools);
+                    }
+
+                    groupPools.add(pool.getId());
+                }
+            }
+
+            // calculate weight
+            // if any of preferred pools is shared, the array is shared
+            // if all of the preferred pools are exclusive, the array is exclusive
+            for (URI systemURI : arrayToPoolsMap.keySet()) {
+                Set<URI> groupPools = arrayToPoolsMap.get(systemURI);
+                boolean hasCluster = false;
+                for (URI poolURI : groupPools) {
+                    if (ExportGroupType.Cluster.name().equals(poolToTypeMap.get(poolURI))) {
+                        hasCluster = true;
+                        break;
+                    }
+                }
+
+                Double weight = 1.0;
+                if (ExportGroupType.Host.name().equals(exportType)) {
+                    if (hasCluster) {
+                        weight = AFFINITY_FACTOR;
+                    }
+                } else { // cluster
+                    if (!hasCluster) {
+                        weight = AFFINITY_FACTOR;
+                    }
+                }
+
+                // update weigth
+                Double oldWeight = arrayToHostWeightMap.get(systemURI);
+                if (oldWeight == null) {
+                    oldWeight = 0.0;
+                }
+
+                arrayToHostWeightMap.put(systemURI, oldWeight + weight);
+            }
+        }
+
+        return arrayToPoolsMap;
+    }
+
+    /*
+     * Group storage pools by storage array
+     *
+     * @param pools storage pool to be grouped
+     * @param canUseNonPreferred boolean if non preferred systems can be used
+     * @param preferredSystemIds Ids of preferred systems
+     * @return a map of storage system URI to URIs of storage pools
+     */
+    private Map<URI, List<StoragePool>> groupPoolsByArray(List<StoragePool> pools, boolean canUseNonPreferred, Set<URI> preferredSystemIds) {
+        Map<URI, List<StoragePool>> poolMap = new HashMap<URI, List<StoragePool>>();
+        for (StoragePool pool : pools) {
+            if (pool != null && !pool.getInactive()) {
+                URI systemURI = pool.getStorageDevice();
+                if (canUseNonPreferred || preferredSystemIds.contains(systemURI)) {
+                    List<StoragePool> groupPools = poolMap.get(systemURI);
+                    if (groupPools == null) {
+                        groupPools = new ArrayList<StoragePool>();
+                        poolMap.put(systemURI, groupPools);
+                    }
+
+                    groupPools.add(pool);
+                }
+            }
+        }
+
+        return poolMap;
     }
 
     /**
@@ -661,7 +1045,7 @@ public class StorageScheduler implements Scheduler {
         // compute and set storage pools' average port usage metrics before sorting.
         _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
 
-        // Select the from the pool the one that has the largest free capacity with least usage port metric
+        // Select from the poolList the one that has the largest free capacity with least usage port metric
         Collections.sort(poolList, _storagePoolComparator);
 
         return poolList.get(0);
@@ -691,55 +1075,35 @@ public class StorageScheduler implements Scheduler {
         // be recommended.
         URI cgURI = capabilities.getBlockConsistencyGroup();
         int count = capabilities.getResourceCount();
+
+        boolean inCG = false;
         if ((count > 1) && (!NullColumnValueGetter.isNullURI(cgURI))) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             if (cg == null) {
                 throw APIException.internalServerErrors.invalidObject(cgURI.toString());
             }
 
-            if (!cg.created()) {
-                // Sorting the pools here ensures they are in the desired order
-                // and will be in the desired order for each storage system.
-                sortPools(candidatePools);
+            if (!cg.created()) { // don't know ConsistencyGroup's StorageSystem type yet
+                inCG = true;
+            }
+        }
 
-                // Organize the candidate pools by storage system. We use a
-                // linked map to ensure that when we iterate over the key set
-                // the order will be the order the entries were inserted to
-                // the map. Because we sorted the candidate pools first, this
-                // ensures the first system in the map has the most desirable
-                // pool according to the sorting algorithm.
-                Map<URI, List<StoragePool>> systemPoolMap = new LinkedHashMap<URI, List<StoragePool>>();
-                for (StoragePool candidatePool : candidatePools) {
-                    URI systemURI = candidatePool.getStorageDevice();
-                    List<StoragePool> systemPools = null;
-                    if (systemPoolMap.containsKey(systemURI)) {
-                        systemPools = systemPoolMap.get(systemURI);
-                    } else {
-                        systemPools = new ArrayList<StoragePool>();
-                        systemPoolMap.put(systemURI, systemPools);
-                    }
-                    systemPools.add(candidatePool);
-                }
-
-                // Now attempt to find a recommendation from the set of
-                // storage pools for a storage system until we find a
-                // a recommendation or run out of systems.
-                Iterator<URI> systemIter = systemPoolMap.keySet().iterator();
-                while (systemIter.hasNext()) {
-                    URI systemURI = systemIter.next();
-                    List<StoragePool> systemCandidatePools = systemPoolMap.get(systemURI);
-                    List<Recommendation> recommendations = getRecommendedPools(varrayId,
-                            systemCandidatePools, capabilities, false);
-                    if (!recommendations.isEmpty()) {
-                        return recommendations;
-                    }
-                }
-
+        // Handle array affinity placement
+        // If inCG is true, it is similar to the array affinity case.
+        // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
+        if (capabilities.getResourceCount() > 1 && inCG || capabilities.getArrayAffinity()) {
+            _log.info("Calling performArrayAffinityPlacement");
+            List<Recommendation> recommendations = performArrayAffinityPlacement(varrayId, capabilities, candidatePools, inCG);
+            if (!recommendations.isEmpty()) {
+                return recommendations;
+            } else {
                 // No recommendations found on any storage system.
                 return new ArrayList<Recommendation>();
             }
         }
 
+        // this is the behavior without array affinity policy
+        _log.info("Calling getRecommendedPools");
         return getRecommendedPools(varrayId, candidatePools, capabilities, true);
     }
 
@@ -764,17 +1128,11 @@ public class StorageScheduler implements Scheduler {
         long thinVolumePreAllocateSize = capabilities.getThinVolumePreAllocateSize();
 
         if (orderPools) {
-            if (capabilities.getResourceCount() == 1) {
-                // For single resource request, select storage pool randomly from
-                // all candidate pools (to minimize collisions).
-                Collections.shuffle(candidatePools);
-            } else {
-                // Sort all pools in descending order by free capacity (first order)
-                // and in ascending order by ratio of pool's subscribed capacity to
-                // total capacity(suborder). This order is kept through the
-                // selection procedure.
-                sortPools(candidatePools);
-            }
+            // Sort all pools in descending order by free capacity (first order)
+            // and in ascending order by ratio of pool's subscribed capacity to
+            // total capacity(suborder). This order is kept through the
+            // selection procedure.
+            sortPools(candidatePools);
         }
 
         // We need to create recommendations for one or more pools
@@ -795,16 +1153,6 @@ public class StorageScheduler implements Scheduler {
             if (poolWithRequiredCapacity != null) {
                 StoragePool recommendedPool = poolWithRequiredCapacity;
                 candidatePools.remove(recommendedPool);
-
-                // IBM XIV needs all volumes in the same pool in order to add to a CG
-                if (recommendedPool.getPoolClassName() != null
-                        && recommendedPool.getPoolClassName().equals(PoolClassNames.IBMTSDS_VirtualPool.name())
-                        && capabilities.getBlockConsistencyGroup() != null
-                        && currentCount != capabilities.getResourceCount()) {
-                    // can not put all resources to the same IBM XIV pool
-                    _log.info("Skip IBM XIV pool {} as it doesn't have enough space to support all the resources", recommendedPool.getId());
-                    continue;
-                }
 
                 _log.debug("Recommending storage pool {} for {} resources.",
                         recommendedPool.getId(), currentCount);
@@ -846,66 +1194,137 @@ public class StorageScheduler implements Scheduler {
         return recommendations;
     }
 
-    /**
-     * Used in StoragePool selection.
-     */
-    static public class StoragePoolFreeCapacityComparator implements Comparator<StoragePool> {
-        @Override
-        public int compare(StoragePool rhs, StoragePool lhs) {
-            int result;
-
-            // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double rhsAvgPortMetrics = rhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : rhs
-                    .getAvgStorageDevicePortMetrics();
-            double lhsAvgPortMetrics = lhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : lhs
-                    .getAvgStorageDevicePortMetrics();
-
-            if (rhs.getFreeCapacity() > 0 && rhsAvgPortMetrics < lhsAvgPortMetrics) {
-                result = -1;
-            } else if (rhs.getFreeCapacity() < lhs.getFreeCapacity()) {
-                result = -1;
-            } else if (rhs.getFreeCapacity() > lhs.getFreeCapacity()) {
-                result = 1;
-            } else {
-                result = 0;
-            }
-            return result;
-        }
-    }
 
     /**
      * Sort all pools in ascending order of its storage system's average port usage metrics (first order),
      * descending order by free capacity (second order) and in ascending order by ratio
      * of pool's subscribed capacity to total capacity(suborder).
      */
-    private class StoragePoolDefaultComparator implements Comparator<StoragePool> {
+    public static class StoragePoolDefaultComparator implements Comparator<StoragePool> {
         @Override
         public int compare(StoragePool sp1, StoragePool sp2) {
-            int result;
+            int result = 0;
 
             // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() <= 0.0
+            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() < 0.0
                     ? Double.MAX_VALUE : sp1.getAvgStorageDevicePortMetrics();
-            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() <= 0.0
+            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() < 0.0
                     ? Double.MAX_VALUE : sp2.getAvgStorageDevicePortMetrics();
 
-            if (sp1.getFreeCapacity() > 0 && sp1AvgPortMetrics < sp2AvgPortMetrics) {
-                result = -1;
-            } else if (sp1.getFreeCapacity() > sp2.getFreeCapacity()) {
-                result = -1;
-            } else if (sp1.getFreeCapacity() < sp2.getFreeCapacity()) {
-                result = 1;  // swap
-            } else if (sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity() < sp2.getSubscribedCapacity().doubleValue()
-                    / sp2.getTotalCapacity()) {
-                result = -1;
-            } else if (sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity() > sp2.getSubscribedCapacity().doubleValue()
-                    / sp2.getTotalCapacity()) {
-                result = 1;  // swap
-            } else {
-                result = 0;
+            if (sp1.getFreeCapacity() > 0 && sp2.getFreeCapacity() > 0) { // compare metrics if they have free capacity
+                result = Double.compare(sp1AvgPortMetrics, sp2AvgPortMetrics);
+            }
+
+            if (result == 0) {
+                result = Long.compare(sp2.getFreeCapacity(), sp1.getFreeCapacity());  // descending order
+            }
+
+            if (result == 0) {
+                result = Double.compare(sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity(),
+                        sp2.getSubscribedCapacity().doubleValue() / sp2.getTotalCapacity());
+            }
+            // if result is 1, swap
+
+            return result;
+        }
+    }
+
+    /**
+     * Sort pools in descending order by free capacity (first order) and in ascending order by ratio
+     * of pool's subscribed capacity to total capacity(second order).
+     */
+    private class StoragePoolCapacityComparator implements Comparator<StoragePool> {
+        @Override
+        public int compare(StoragePool sp1, StoragePool sp2) {
+            int result = Long.compare(sp2.getFreeCapacity(), sp1.getFreeCapacity()); // descending order
+            if (result == 0) {
+                result = Double.compare(sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity(),
+                        sp2.getSubscribedCapacity().doubleValue() / sp2.getTotalCapacity());
             }
 
             return result;
+        }
+    }
+
+    /**
+     * Sort storage systems in descending order of its hosts count (first order),
+     * and in ascending order of its average port usage metrics (second order),
+     * and in descending order by system's candidate pools' overall free capacity (third order),
+     * and in ascending order by ratio of system's candidate pools' overall subscribed capacity to overall total capacity (fourth order)
+     */
+    private class StorageSystemArrayAffinityComparator implements Comparator<StorageSystem> {
+        private Map<URI, Double> arrayToHostWeight;
+        private Map<URI, List<StoragePool>> candidatePoolMap;
+
+        public StorageSystemArrayAffinityComparator(Map<URI, Double> arrayToHostWeight, Map<URI, List<StoragePool>> candidatePoolMap) {
+            this.arrayToHostWeight = arrayToHostWeight;
+            this.candidatePoolMap = candidatePoolMap;
+        }
+
+        @Override
+        public int compare(StorageSystem sys1, StorageSystem sys2) {
+            int result = 0;
+            if (arrayToHostWeight != null && !arrayToHostWeight.isEmpty()) {
+                Double sys1HostWeight = arrayToHostWeight.get(sys1.getId()) == null ? 0.0 : arrayToHostWeight.get(sys1.getId());
+                Double sys2HostWeight = arrayToHostWeight.get(sys2.getId()) == null ? 0.0 : arrayToHostWeight.get(sys2.getId());
+                result = Double.compare(sys2HostWeight, sys1HostWeight);
+            }
+
+            if (result == 0) {
+                Double sys1Metric = _portMetricsProcessor.computeStorageSystemAvgPortMetrics(sys1.getId());
+                Double sys2Metric = _portMetricsProcessor.computeStorageSystemAvgPortMetrics(sys2.getId());
+                result = Double.compare(sys1Metric, sys2Metric);
+            }
+
+            if (result == 0) {
+                Long sys1FreeCapacity = getFreeCapacityForSystemPools(candidatePoolMap.get(sys1.getId()));
+                Long sys2FreeCapacity = getFreeCapacityForSystemPools(candidatePoolMap.get(sys2.getId()));
+                result = Long.compare(sys2FreeCapacity, sys1FreeCapacity);
+            }
+
+            if (result == 0) {
+                Long sys1SubscribedCapacity = getSubscribedCapacityForSystemPools(candidatePoolMap.get(sys1.getId()));
+                Long sys2SubscribedCapacity = getSubscribedCapacityForSystemPools(candidatePoolMap.get(sys2.getId()));
+                Long sys1TotalCapacity = getTotalCapacityForSystemPools(candidatePoolMap.get(sys1.getId()));
+                Long sys2TotalCapacity = getTotalCapacityForSystemPools(candidatePoolMap.get(sys2.getId()));
+                result = Double.compare(sys1SubscribedCapacity.doubleValue() / sys1TotalCapacity,
+                        sys2SubscribedCapacity.doubleValue() / sys2TotalCapacity);
+            }
+
+            return result;
+        }
+
+        /**
+         * Gets the overall free capacity for the given candidate pools of a system.
+         */
+        private long getFreeCapacityForSystemPools(List<StoragePool> pools) {
+            long freeCapacity = 0;
+            for (StoragePool pool : pools) {
+                freeCapacity += pool.getFreeCapacity();
+            }
+            return freeCapacity;
+        }
+
+        /**
+         * Gets the overall subscribed capacity for the given candidate pools of a system.
+         */
+        private Long getSubscribedCapacityForSystemPools(List<StoragePool> pools) {
+            long subscribedCapacity = 0;
+            for (StoragePool pool : pools) {
+                subscribedCapacity += pool.getSubscribedCapacity();
+            }
+            return subscribedCapacity;
+        }
+
+        /**
+         * Gets the overall total capacity for the given candidate pools of a system.
+         */
+        private long getTotalCapacityForSystemPools(List<StoragePool> pools) {
+            long totalCapacity = 0;
+            for (StoragePool pool : pools) {
+                totalCapacity += pool.getTotalCapacity();
+            }
+            return totalCapacity;
         }
     }
 
@@ -1187,6 +1606,10 @@ public class StorageScheduler implements Scheduler {
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
+        if (vpool.getDedupCapable() != null) {
+        	volume.setIsDeduplicated(vpool.getDedupCapable());
+        }
+
         dbClient.createObject(volume);
         return volume;
     }
@@ -1280,6 +1703,10 @@ public class StorageScheduler implements Scheduler {
             if (null != autoTierPolicyUri) {
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
+        }
+        
+        if (vpool.getDedupCapable() != null) {
+        	volume.setIsDeduplicated(vpool.getDedupCapable());
         }
 
         if (newVolume) {

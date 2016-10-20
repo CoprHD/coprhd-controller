@@ -65,6 +65,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
@@ -268,7 +269,7 @@ public class BlockFullCopyManager {
         int count = param.getCount() == null ? 1 : param.getCount();
 
         // Get the full copy name.
-        String name = param.getName();
+        String name = TimeUtils.formatDateForCurrent(param.getName());
 
         // Get whether or not the full copy should be created inactive.
         // Check if the request calls for activation of the full copy

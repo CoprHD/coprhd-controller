@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,8 @@ public class VNXeExpandVolumeJob extends VNXeJob {
             Volume volumeObj = dbClient.queryObject(Volume.class, volumeId);
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, volumeObj.getPool());
+                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, volumeObj.getPool(), 
+                        Arrays.asList(volumeObj.getId().toString()));
             }
 
             if (_status == JobStatus.SUCCESS && volumeObj != null) {

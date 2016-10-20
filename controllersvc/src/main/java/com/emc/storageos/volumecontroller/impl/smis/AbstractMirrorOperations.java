@@ -83,7 +83,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
             CIMArgument[] inArgs = null;
             if (storage.checkIfVmax3()) {
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, source, targetPool);
+                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, storage, source, targetPool);
                 CIMInstance replicaSettingData = getDefaultReplicationSettingData(storage);
                 inArgs = _helper.getCreateElementReplicaMirrorInputArguments(storage, source, targetPool,
                         createInactive, targetLabelToUse, volumeGroupPath, replicaSettingData);

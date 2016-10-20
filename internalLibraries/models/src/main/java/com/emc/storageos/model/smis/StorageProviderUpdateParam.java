@@ -21,6 +21,7 @@ public class StorageProviderUpdateParam {
     private String interfaceType;
     private String secondaryUsername;
     private String secondaryPassword;
+    private String secondaryURL;
     private String elementManagerURL;
 
     public StorageProviderUpdateParam() {
@@ -155,6 +156,19 @@ public class StorageProviderUpdateParam {
         this.secondaryPassword = secondaryPassword;
     }
 
+    /**
+     * URL of the Management system that is associated with the Provider.
+     * 
+     */
+    @XmlElement(required = false, name = "secondary_url")
+    public String getSecondaryURL() {
+        return secondaryURL;
+    }
+
+    public void setSecondaryURL(String secondaryURL) {
+        this.secondaryURL = secondaryURL;
+    }
+    
     /**
      * URL of the Element Management system that is associated with the Provider.
      * 

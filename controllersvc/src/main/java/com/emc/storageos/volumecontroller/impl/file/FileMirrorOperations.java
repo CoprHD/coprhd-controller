@@ -20,10 +20,10 @@ public interface FileMirrorOperations {
     /**
      * Create a mirror for a filesystem
      * 
-     * @param storage - URI of storage controller.
-     * @param mirror
-     * @param createInactive
-     * @param taskCompleter
+     * @param system - URI of storage controller.
+     * @param source - source file system
+     * @param target - target file system
+     * @param completer - task completer
      * @throws DeviceControllerException
      */
     void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
@@ -55,9 +55,9 @@ public interface FileMirrorOperations {
      * Pause Mirror session between between source and target.
      * This operation will cancel any running/paused job and then disable the policy
      * 
-     * @param StorageSystem system
-     * @param FileShare target
-     * @param TaskCompleter completer
+     * @param system
+     * @param target
+     * @param completer
      * @throws DeviceControllerException
      * 
      */
@@ -99,9 +99,10 @@ public interface FileMirrorOperations {
     /**
      * Delete Mirror of a filesystem
      * 
-     * @param storage
-     * @param mirror
-     * @param taskCompleter
+     * @param system
+     * @param source
+     * @param target
+     * @param completer
      * @throws DeviceControllerException
      */
     void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws DeviceControllerException;
@@ -112,17 +113,19 @@ public interface FileMirrorOperations {
      * @param system
      * @param target
      * @param completer
+     * @param devPolicyName
      * @throws DeviceControllerException
      */
-    void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+    void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName) throws DeviceControllerException;
 
     /**
      * Refresh Mirror State of a filesystem
      * 
-     * @param storage
+     * @param system
      * @param source
      * @param target
-     * @param taskCompleter
+     * @param completer
+     *
      * @throws DeviceControllerException
      */
     void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
@@ -131,11 +134,11 @@ public interface FileMirrorOperations {
     /**
      * Update Replication Policy of a filesystem
      * 
-     * @param storage
+     * @param system
      * @param rpoValue
      * @param rpoType
      * @param target
-     * @param taskCompleter
+     * @param completer
      * @throws DeviceControllerException
      */
     void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)

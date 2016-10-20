@@ -1,3 +1,12 @@
+<script type="text/javascript">
+function post(event, url) {
+	if(event.stopPropagation) {
+        event.stopPropagation();
+	}
+    event.cancelBubble=true;
+    $.post(url);
+}
+</script>
 <table class="viprTasks table table-hover table-condensed table-striped editableRows">
   <thead>
     <tr>
@@ -15,10 +24,47 @@
       <td>${task.name}</td>
       <td>#{Resources.link task?.resource?.id}#{Resources.image task.resource.id /} ${task?.resource?.name}#{/Resources.link}</a></td>
       <td>#{Tasks.progress task.progress, state:task.state/}</td>
-      <td>#{Tasks.state task.state/}</td>
+      #{if task.state == 'suspended_no_error' }
+		<script>
+	              $('#migrationAlert').show();
+	    </script>
+      	<td>#{Tasks.state task.state/}
+      	        #{if task.allowedOperations == 'none_specified' || task.allowedOperations == 'retry_only' || task.allowedOperations == 'retry_rollback'}
+      			<a href="#" onclick="post(event, '@{retryTask(_order.id, task.id)}');"
+	              class="btn btn-default">&{'resources.tasks.resume'}</a>
+	            #{/if}
+      	        #{if task.allowedOperations == 'none_specified' || task.allowedOperations == 'rollback_only' || task.allowedOperations == 'retry_rollback'}
+	            <a href="#" onclick="post(event, '@{rollbackTask(_order.id, task.id)}');"
+	              class="btn btn-default">&{'resources.tasks.rollback'}</a>
+	            #{/if}
+	            </td>
+      #{/if}
+      #{elseif task.state == 'suspended_error' }
+      	<td>#{Tasks.state task.state/}
+      	        #{if task.allowedOperations == 'none_specified' || task.allowedOperations == 'retry_only' || task.allowedOperations == 'retry_rollback'}
+      			<a href="#" onclick="post(event, '@{retryTask(_order.id, task.id)}');"
+	              class="btn btn-default">&{'resources.tasks.retry'}</a>
+	            #{/if}
+      	        #{if task.allowedOperations == 'none_specified' || task.allowedOperations == 'rollback_only' || task.allowedOperations == 'retry_rollback'}
+	            <a href="#" onclick="post(event, '@{rollbackTask(_order.id, task.id)}');"
+	              class="btn btn-default">&{'resources.tasks.rollback'}</a>
+	            #{/if}
+	            </td>
+      #{/elseif}
+      #{else}
+		<script>
+	              $('#migrationAlert').hide();
+	    </script>
+      	<td>#{Tasks.state task.state/}</td>
+      #{/else}
       <td><span data-relative-time="${task?.startTime?.timeInMillis}"></span></td>
       <td><span data-elapsed-time="${task?.startTime?.timeInMillis}#{if task.endTime}:${task.endTime.timeInMillis}#{/if}"></span></td>
     </tr>
+    #{if _viprTaskStepMessages[task.id] != null } 
+    <tr>
+      <td colspan="6" style="border-top:0px">${_viprTaskStepMessages[task.id]}</td>
+    </tr>
+    #{/if}
   #{/list}
   </tbody>
 </table>

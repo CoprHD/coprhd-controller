@@ -31,12 +31,12 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 public interface DiscoveryDriver extends StorageDriver {
 
     /**
-     * Discover storage systems and their capabilities
+     * Discover storage system and it's capabilities
      *
-     * @param storageSystems StorageSystems to discover. Type: Input/Output.
+     * @param storageSystem StorageSystem to discover. Type: Input/Output.
      * @return
      */
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems);
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem);
 
     /**
      * Discover storage pools and their capabilities.

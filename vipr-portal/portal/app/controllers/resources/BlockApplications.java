@@ -26,7 +26,6 @@ import models.datatable.ApplicationSnapshotDataTable;
 import models.datatable.ApplicationSnapshotSetDataTable;
 import models.datatable.ApplicationSnapshotSetDataTable.ApplicationSnapshotSets;
 import models.datatable.ApplicationSupportDataTable;
-import models.datatable.BlockSnapshotSessionsDataTable.BlockSnapshotSession;
 import models.datatable.ApplicationSnapshotDataTable.ApplicationSnapshots;
 import models.datatable.BlockVolumesDataTable;
 import models.datatable.ApplicationFullCopySetsDataTable;
@@ -42,8 +41,6 @@ import controllers.resources.BlockApplications.VolumeApplicationDataTable.Volume
 public class BlockApplications extends ResourceController {
 
     private static ApplicationSupportDataTable blockApplicationsDataTable = new ApplicationSupportDataTable();
-    private static Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
-    private static Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
 
     public static void blockApplications() {
         renderArgs.put("dataTable", blockApplicationsDataTable);
@@ -103,9 +100,11 @@ public class BlockApplications extends ResourceController {
     public static void applicationVolumeJson(String id) {
         List<VolumeApplication> volumeDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> volumes = AppSupportUtil.getVolumesByApplication(id);
+        Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
         for (NamedRelatedResourceRep volume : volumes) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get((volume.getId()));
-            volumeDetails.add(new VolumeApplication(blockVolume));
+            volumeDetails.add(new VolumeApplication(blockVolume, virtualArrays, virtualPools));
         }
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
@@ -121,9 +120,11 @@ public class BlockApplications extends ResourceController {
         List<VolumeApplication> volumeDetails = Lists.newArrayList();
         String[] copySets = copyLabel.split("~~~");
         List<NamedRelatedResourceRep> volumeDetailClone = AppSupportUtil.getVolumeGroupFullCopiesForSet(copySets[0], copySets[1]);
+        Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
         for (NamedRelatedResourceRep volume : volumeDetailClone) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get(volume.getId());
-            volumeDetails.add(new VolumeApplication(blockVolume));
+            volumeDetails.add(new VolumeApplication(blockVolume, virtualArrays, virtualPools));
         }
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
@@ -178,7 +179,7 @@ public class BlockApplications extends ResourceController {
             public VolumeRestRep associatedVolume;
             public String associatedVolumeRG;
 
-            public VolumeApplication(VolumeRestRep volume) {
+            public VolumeApplication(VolumeRestRep volume, Map<URI, String> virtualArrays, Map<URI, String> virtualPools) {
                 super(volume, virtualArrays, virtualPools);
                 if (volume.getProtection() != null && volume.getProtection().getFullCopyRep() != null) {
                     associatedSourceVolume = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume();

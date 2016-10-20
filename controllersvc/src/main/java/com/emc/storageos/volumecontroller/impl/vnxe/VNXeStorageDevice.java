@@ -256,7 +256,8 @@ public class VNXeStorageDevice extends VNXeOperations
      * ControllerServiceImpl.enqueueJob(new QueueJob(deleteFSJob));
      * } else {
      * _logger.error("No job returned from deleteFileSystem");
-     * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
+     * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
+     * "No Job returned from deleteFileSystem");
      * return BiosCommandResult.createErrorResult(error);
      * }
      * 
@@ -325,6 +326,7 @@ public class VNXeStorageDevice extends VNXeOperations
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxeClient(storage);
             String fsId = args.getFs().getNativeId();
+            String fsName = args.getFsName();
             String permission = exp.getPermissions();
 
             String path = "/";
@@ -411,8 +413,8 @@ public class VNXeStorageDevice extends VNXeOperations
                         subdirName = mountPathArg.substring(mountPathFs.length() + 1);
                         path += subdirName;
                     }
+                    String shareName = VNXeUtils.buildNfsShareName(fsName, subdirName);
 
-                    String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
@@ -428,7 +430,8 @@ public class VNXeStorageDevice extends VNXeOperations
                     }
                 } else {
                     String snapId = args.getSnapNativeId();
-                    String shareName = VNXeUtils.buildNfsShareName(snapId, path);
+                    String snapName = args.getSnapshotName();
+                    String shareName = VNXeUtils.buildNfsShareName(snapName, path);
                     job = apiClient.createNfsShareForSnap(snapId, roClients, rwClients, rootClients, access, path, shareName, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
@@ -1093,74 +1096,74 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doExportGroupCreate(StorageSystem storage,
+    public void doExportCreate(StorageSystem storage,
             ExportMask exportMask, Map<URI, Integer> volumeMap,
             List<Initiator> initiators, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        _logger.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
+        _logger.info("{} doExportCreate START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumeMap, _dbClient);
         exportMaskOperationsHelper.createExportMask(storage, exportMask.getId(), volumeLunArray,
                 targets, initiators, taskCompleter);
-        _logger.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
+        _logger.info("{} doExportCreate END ...", storage.getSerialNumber());
 
     }
 
     @Override
-    public void doExportGroupDelete(StorageSystem storage,
-            ExportMask exportMask, TaskCompleter taskCompleter)
+    public void doExportDelete(StorageSystem storage,
+            ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        _logger.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
-        List<URI> volumes = new ArrayList<URI>();
+        _logger.info("{} doExportDelete START ...", storage.getSerialNumber());
+        List<URI> volumesImpacted = new ArrayList<URI>();
         StringMap maskVolumes = exportMask.getVolumes();
 
         if (maskVolumes != null && !maskVolumes.isEmpty()) {
             for (String volURI : maskVolumes.keySet()) {
-                volumes.add(URI.create(volURI));
+                volumesImpacted.add(URI.create(volURI));
             }
         }
         exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
-                volumes, new ArrayList<URI>(), new ArrayList<Initiator>(),
+                volumesImpacted, new ArrayList<URI>(), new ArrayList<Initiator>(),
                 taskCompleter);
-        _logger.info("{} doExportGroupDelete END ...", storage.getSerialNumber());
+        _logger.info("{} doExportDelete END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
-            URI volume, Integer lun, TaskCompleter taskCompleter)
+            URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), map, _dbClient);
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray,
-                taskCompleter);
+        exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
+                initiators, taskCompleter);
         _logger.info("{} doExportAddVolume END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportAddVolumes(StorageSystem storage,
-            ExportMask exportMask, Map<URI, Integer> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<Initiator> initiators,
+            Map<URI, Integer> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
         _logger.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumes, _dbClient);
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray,
-                taskCompleter);
+        exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
+                initiators, taskCompleter);
         _logger.info("{} doExportAddVolume END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportRemoveVolume(StorageSystem storage,
-            ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+            ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(),
-                Arrays.asList(volume), taskCompleter);
+        exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(),
+                Arrays.asList(volume), initiators, taskCompleter);
         _logger.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
 
     }
@@ -1168,56 +1171,56 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public void doExportRemoveVolumes(StorageSystem storage,
             ExportMask exportMask, List<URI> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         _logger.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), volumes,
-                taskCompleter);
+        exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), volumes,
+                initiators, taskCompleter);
         _logger.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportAddInitiator(StorageSystem storage,
-            ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         _logger.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(),
-                Arrays.asList(initiator), targets, taskCompleter);
+        exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(),
+                volumeURIs, Arrays.asList(initiator), targets, taskCompleter);
         _logger.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportAddInitiators(StorageSystem storage,
-            ExportMask exportMask, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter)
+            ExportMask exportMask, List<URI> volumeURIs,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), initiators, targets,
-                taskCompleter);
+        exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, initiators,
+                targets, taskCompleter);
         _logger.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportRemoveInitiator(StorageSystem storage,
-            ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumes, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         _logger.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                Arrays.asList(initiator), targets, taskCompleter);
+        exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, Arrays.asList(initiator), targets, taskCompleter);
         _logger.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
 
     }
 
     @Override
     public void doExportRemoveInitiators(StorageSystem storage,
-            ExportMask exportMask, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter)
+            ExportMask exportMask, List<URI> volumes,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                initiators, targets, taskCompleter);
+        exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, initiators, targets, taskCompleter);
         _logger.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
 
     }
@@ -1467,11 +1470,11 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
-    
+
     @Override
     public String doAddStorageSystem(StorageSystem storage)
             throws DeviceControllerException {
@@ -1496,7 +1499,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -1514,7 +1517,7 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -1949,7 +1952,7 @@ public class VNXeStorageDevice extends VNXeOperations
                     }
                 } else {
 
-                    shareName = VNXeUtils.buildNfsShareName(args.getSnapNativeId(), path);
+                    shareName = VNXeUtils.buildNfsShareName(args.getSnapshotName(), path);
 
                     if (isDeleteRule) {
                         job = apiClient.deleteNfsShareForSnapshot(rule.getDeviceExportId());
@@ -2143,43 +2146,6 @@ public class VNXeStorageDevice extends VNXeOperations
                         return BiosCommandResult.createErrorResult(error);
                     }
                 }
-                FileShareExport fsExport = null;
-                if (args.getFileObjExports() != null) {
-                    Collection<FileExport> expList = args.getFileObjExports().values();
-                    Iterator<FileExport> it = expList.iterator();
-                    FileExport exp = null;
-                    while (it.hasNext()) {
-                        exp = it.next();
-                        fsExport = new FileShareExport(exp);
-                        if (fsExport != null) {
-                            String vnxeShareId = fsExport.getIsilonId();
-                            _logger.info("Delete IsilonExport id {} for path {}",
-                                    vnxeShareId, fsExport.getPath());
-                            if (isFile) {
-                                String fsId = args.getFs().getNativeId();
-                                job = apiClient.removeNfsShare(vnxeShareId, fsId);
-                            } else {
-                                job = apiClient.deleteNfsShareForSnapshot(vnxeShareId);
-                            }
-                            if (job != null) {
-                                if (isFile) {
-                                    completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
-                                } else {
-                                    completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
-                                }
-
-                                VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
-                                        completer, fsExport, fsExport.getPath(), isFile);
-                                ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
-                            } else {
-                                _logger.error("No job returned from exportFileSystem");
-                                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
-                                        "No Job returned from deleteFileSystem");
-                                return BiosCommandResult.createErrorResult(error);
-                            }
-                        }
-                    }
-                }
             } else if (subDir != null && !subDir.isEmpty()) {
                 // Filter for a specific Sub Directory export
                 _logger.info("Deleting all subdir exports rules at ViPR and  sub directory export at device {}", subDir);
@@ -2345,7 +2311,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
+        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Create Quota Directory", "VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);
         return result;
     }
@@ -2354,7 +2320,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
+        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Delete Quota Directory", "VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);
         return result;
     }
@@ -2363,7 +2329,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
+        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Update Quota Directory", "VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);
         return result;
     }
@@ -2373,7 +2339,7 @@ public class VNXeStorageDevice extends VNXeOperations
             FileDeviceInputOutput args) {
 
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update CIFS Share ACLs", "VNXe"));
     }
 
     @Override
@@ -2381,7 +2347,7 @@ public class VNXeStorageDevice extends VNXeOperations
             FileDeviceInputOutput args) {
 
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete CIFS Share ACLs", "VNXe"));
     }
 
     @Override
@@ -2517,25 +2483,27 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
-    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update NFS Share ACLs", "VNXe"));
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "VNXe"));
     }
 
     @Override
@@ -2544,8 +2512,9 @@ public class VNXeStorageDevice extends VNXeOperations
         // If this operation is unsupported by default it's not necessarily an error
         return;
     }
-    
-    //file mirror related operations
+
+    // file mirror related operations
+    @Override
     public void doCreateMirror(StorageSystem storage, URI mirror,
             Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
@@ -2614,25 +2583,42 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter) {
+    public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList,
+            TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
     }
 
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "VNXe"));
     }
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshots by Policy", "VNXe"));
+    }
+
+    @Override
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

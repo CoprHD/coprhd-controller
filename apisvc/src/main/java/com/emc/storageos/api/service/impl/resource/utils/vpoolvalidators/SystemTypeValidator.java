@@ -16,16 +16,6 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
 
-    private boolean compareSystemTypes(
-            StringSet systemTypes, StringSet availableSystemTypes) {
-        for (String systemType : systemTypes) {
-            if (!availableSystemTypes.contains(systemType)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -45,7 +35,8 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())
-                    && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(updateParam.getSystemType())) {
+                    && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(updateParam.getSystemType())
+                    && !getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             }
         }

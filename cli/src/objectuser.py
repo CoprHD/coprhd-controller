@@ -87,7 +87,7 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
                              required=True)
     create_secretkey_parser.add_argument('-autogenerate', '-autogen',
                                dest='autogenerate',
-                               help='Execute in synchronous mode',
+                               help='Auto generates the secret key',
                                action='store_true')
     
     

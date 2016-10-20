@@ -1,0 +1,151 @@
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.storage', 'nav.events'] /}
+#{set 'title'}&{'resources.event'}#{/set}
+
+
+#{breadcrumb.container}
+  #{breadcrumb.item @listAll()}&{'resources.events'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<style>
+.btn {
+margin-bottom: 5px;
+}
+</style>
+<script>
+    var eventDetails = ${eventSummaryJson.raw()}
+</script>
+
+<div class="clear"/>
+#{alerts disappear:true/}
+<div id="eventDetails" class="events-container" style="margin-bottom: 2em;" ng-controller="eventDetailsCtrl">
+  #{if event}
+  
+    <div class="form-header">
+      <div class="description">
+        <h2>#{icon 'events'/} &{'events.event'}: {{event.name}}</h2>
+      </div>
+      <div style="clear:both"></div>
+    </div>  
+    
+    <div class="pull-right">
+    #{if event.eventStatus.toString() == 'pending' || event.eventStatus.toString() == 'failed'}
+          <a class="btn btn-success" href="#" onclick="$('#approveEvent').modal('show');"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
+          <a class="btn btn-warning" href="#" onclick="$('#declineEvent').modal('show');"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
+	#{/if}
+    </div>
+    
+    <dl class="dl-horizontal smallColumn">
+    
+      <dt>&{'events.id'}:</dt>
+      <dd>{{event.id}}&nbsp;</dd>
+
+      <dt>&{'events.name'}:</dt>
+      <dd>{{event.name}}&nbsp;</dd>
+
+      <dt>&{'events.resource'}:</dt>
+      <dd><v-resource-link id="{{event.resourceId}}">{{event.resourceName}}</v-resource-link>&nbsp;</dd>
+
+      <dt>&{'events.eventStatus'}:</dt>
+      <dd>{{event.eventStatus}}&nbsp;</dd>
+
+      <dt>&{'events.description'}:</dt>
+      <dd>{{event.description}}&nbsp;</dd>
+
+      <dt>&{'events.warning'}:</dt>
+      <dd>{{event.warning}}&nbsp;</dd>
+
+      <dt>&{'events.created'}:</dt>
+      <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
+      
+      #{if event.eventStatus.toString() != 'pending'}
+	  <dt>&{'events.executionTime'}:</dt>
+	  <dd id="executionTime">{{getLocalDateTime($('#executionTime'),event.eventExecutionTime)}}&nbsp;</dd>
+	  #{/if}
+      
+       <dt>&{'events.approveDetails'}:</dt>
+	   <dd>
+          #{list approveDetails, as:'detail'}
+		    <li> ${detail}
+		  #{/list}&nbsp;
+	   </dd>
+	   
+	   <dt>&{'events.declineDetails'}:</dt>
+	   <dd>
+		 #{list declineDetails, as:'detail'}
+		    <li> ${detail}
+		 #{/list}&nbsp;
+	   </dd>
+	   
+      <dt>&{'events.tasks'}:</dt>
+      <dd>
+      #{list tasks, as:'task'}
+      <a href="@{Tasks.details(task.id)}">${task.name}</a>#{if !task_isLast}, #{/if}
+      #{/list}
+      #{else}&nbsp;#{/else}
+      </dd>
+    </dl>
+    
+   <div class="alert alert-danger" ng-show="event.isError">
+    <span style="font-weight: bold;">Error {{event.serviceCode_error}}:  {{event.serviceCode_errorDesc}}</span>
+    <br/>
+    {{event.serviceCode_message}}<br/>
+   </div>
+    
+  #{/if}
+  #{else}
+    <p id="alerts_info" class="alert alert-danger">
+        &{'events.notfound',eventId}
+    </p>
+  #{/else}
+</div>
+
+#{include 'Events/approveEvents.html'/}  
+#{include 'Events/declineEvents.html'/}  
+
+#{set 'moreScripts'}
+#{get 'moreScripts' /}
+<script type="text/javascript">
+function renderTime(o, val) {
+  var time_ms = o.aData.timeMillis;
+  if (time_ms) {
+	  return render.localDate(o,time_ms)
+  }
+  return "";
+}
+
+function renderMessage(o, val) {
+  var message = o.aData.message;
+  if (message) {
+    return "<div class='log-message'>" + escapeHTML(message) + "</div>";
+  }
+  return ""; 
+}
+
+function renderDetails(data) {
+  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.nodeId'}</dt><dd>" + data.node_id + "</dd>";
+
+  details += "<dt>&{'system.logs.nodeName'}</dt><dd>" + data.node_name + "</dd>";
+  
+  if (data["thread"]) {
+	details += "<dt>&{'system.logs.thread'}</dt><dd>" + data.thread + "</dd>";
+  }
+  if (data["class"]) {
+    details += "<dt>&{'system.logs.class'}</dt><dd>" + data["clazz"] + ":" + data.line + "</dd></dl>";
+  }
+  details += "<pre style='margin:15px;'>" + escapeHTML(data["message"]) + "</pre>";
+  return details;
+}
+  
+function escapeHTML(s) {
+  if (s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  return "";
+}  
+
+</script>
+
+#{/set}

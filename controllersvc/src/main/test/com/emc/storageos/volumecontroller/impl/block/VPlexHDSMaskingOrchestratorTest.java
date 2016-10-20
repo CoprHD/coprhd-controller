@@ -176,7 +176,7 @@ public class VPlexHDSMaskingOrchestratorTest extends StoragePortsAllocatorTest {
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("hds", null);
             StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
-                    null);
+                    null, null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
         }
         _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");

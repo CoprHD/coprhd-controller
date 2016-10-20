@@ -87,10 +87,15 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>	
 	</bean>	
-	<bean id="orderService" class="com.emc.sa.api.OrderService">
+	<bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
+        <property name="coordinator" ref="coordinator"/>
+        <property name="scheduleInterval" value="60"/>
 	</bean>
+    <bean id="scheduledEventService" class="com.emc.sa.api.ScheduledEventService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 	<bean id="serviceDescriptorService" class="com.emc.sa.api.ServiceDescriptorService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>	
@@ -115,6 +120,7 @@
 				<ref bean="catalogServiceService" />
 				<ref bean="executionWindowService" />
 				<ref bean="orderService" />
+                <ref bean="scheduledEventService" />
 				<ref bean="serviceDescriptorService" />
 				<ref bean="userPreferenceService" />
 				<ref bean="catalogPreferenceService" />

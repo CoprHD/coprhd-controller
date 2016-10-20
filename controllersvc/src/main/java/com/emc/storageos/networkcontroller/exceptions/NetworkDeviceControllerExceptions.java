@@ -25,6 +25,9 @@ public interface NetworkDeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_SESSION_TIMEOUT)
     public NetworkControllerTimeoutException timeoutWaitingOnPrompt(String expectedPrompts);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_SESSION_TIMEOUT)
+    public NetworkControllerTimeoutException timeoutWaitingOnPendingActions();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_SESSION_LOCKED)
     public NetworkControllerSessionLockedException zoneSessionLocked(int attempts);
@@ -302,5 +305,8 @@ public interface NetworkDeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException failedToFindNetworkSystem(final Collection<String> endpoints, final String network);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public NetworkDeviceControllerException zonesetCloneFailed(final String zonesetClone, final String zoneset);
 
 }

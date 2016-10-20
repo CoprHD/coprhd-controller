@@ -111,8 +111,12 @@
           "baseService": "CreateVolume"
         },
         {
-          "image": "icon_db_remove.png",
+          "image": "icon_db_unexport_remove.png",
           "baseService": "RemoveBlockStorage"
+        },
+        {
+          "image": "icon_db_remove.png",
+          "baseService": "RemoveUnexportedBlockStorage"
         },
         {
           "image": "icon_db_expand.png",
@@ -242,6 +246,14 @@
           "baseService": "UnexportSnapshot"
         },
         {
+          "image": "icon_host_add_copy.png",
+          "baseService": "ExportContinuousCopy"
+        },
+        {
+          "image": "icon_host_remove_copy.png",
+          "baseService": "UnexportContinuousCopy"
+        },
+        {
           "image": "Service_Add_Journal_Capacity.png",
           "baseService": "AddJournalCapacity"
         },
@@ -311,7 +323,7 @@
         {
           "image": "Service_Change_File_Virtual_Pool.png",
           "baseService": "ChangeFileVirtualPool"
-        }    
+        }            
       ]
     },
     {
@@ -367,7 +379,31 @@
         {
           "image": "Service_Failover_File_System.png",
           "baseService": "FailoverFileSystem"
+        },
+        {
+          "image": "Service_Failback_File_System.png",
+          "baseService": "FailbackFileSystem"
         }
+      ]
+    },
+    {
+      "title": "file.linux.title",
+      "image": "Category_File_Services_Linux.png",
+      "description": "file.linux.description",
+      "services": [
+        {
+          "image": "Service_Linux_Mount_NFS_Export.png",
+          "baseService": "LinuxMountNFSExport"
+        },
+        {
+          "image": "Service_Linux_Unmount_NFS_Export.png",
+          "baseService": "LinuxUnmountNFSExport"
+        },
+        {
+          "image": "Service_Linux_Create_Mount_NFS_Export.png",
+          "baseService": "LinuxCreateMountNFSExport"
+        }
+            
       ]
     },
     {
@@ -658,6 +694,37 @@
         {
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
+        }
+      ]
+    },
+    {
+      "title": "guide.title",
+      "image": "icon_host.png",
+      "description": "guide.description",
+      "services": [
+        {
+          "image": "icon_db_create.png",
+          "baseService": "CreateVolume"
+        },
+        {
+          "image": "icon_db_unexport_remove.png",
+          "baseService": "RemoveBlockStorage"
+        },
+        {
+          "image": "icon_db_expand.png",
+          "baseService": "ExpandBlockStorage"
+        },
+        {
+          "image": "Service_Create_Block_Snapshot.png",
+          "baseService": "CreateBlockSnapshot"
+        },
+		{
+          "image": "Service_Restore_Block_Snapshot.png",
+          "baseService": "RestoreBlockSnapshot"
+        },
+		{
+          "image": "Service_Remove_Block_Snapshot.png",
+          "baseService": "RemoveBlockSnapshot"
         }
       ]
     }

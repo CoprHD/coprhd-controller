@@ -3,6 +3,7 @@ package com.emc.sa.service.vipr.migration;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
@@ -23,12 +24,19 @@ public class VplexDataMigrationService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
 
-    @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
+    @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
+
+    @Param(value = ServiceParams.MIGRATION_SUSPEND, required = false)
+    private Boolean migrationSuspend;
+
+    @Param(value = ServiceParams.DISPLAY_JOURNALS, required = false)
+    protected String displayJournals;
 
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup));
+        boolean forceFlag = BlockProvider.YES_VALUE.equalsIgnoreCase(displayJournals);
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, migrationSuspend, forceFlag));
         addAffectedResources(tasks);
     }
 }

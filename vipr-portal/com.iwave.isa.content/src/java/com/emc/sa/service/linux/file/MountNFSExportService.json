@@ -1,0 +1,46 @@
+{
+  baseKey:"MountNFSExport.File.Linux",
+  serviceId:"LinuxMountNFSExport",
+  destructive: true,
+  fields:{
+    host:{
+      type:"assetType.vipr.linuxFileHost"
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystem:{
+      type:"assetType.vipr.fileExportedFilesystem"
+    },
+    
+    subDirectory:{
+      type:"assetType.vipr.subDirectory"
+    },
+    
+    securityType:{
+      type:"assetType.vipr.securityType"
+    },
+    
+    fsType:{
+      type: "choice",
+      initialValue: "auto",
+      select: "one",
+      options: {
+        "auto": "auto",
+        "nfs": "nfs",
+        "nfs4": "nfs4"
+      },
+      lockable: true
+    },
+        
+    mountPath:{
+      type:"text",
+      validation:{
+       	regEx:"/[A-Za-z0-9/_\.\-]*"
+      }
+    }
+  }
+}

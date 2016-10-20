@@ -1076,7 +1076,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         }
 
-        String lastDeleteSRDFMirrorStep = null;
+        String lastDeleteSRDFMirrorStep = waitFor;
         if (!srdfGroupMap.isEmpty()) {
             // Add step to resume each Active SRDF group
             for (URI srdfGroupURI : srdfGroupMap.keySet()) {
@@ -2469,6 +2469,31 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private String generateRDFGroupLock(StorageSystem sourceSystem, RemoteDirectorGroup rdfGroup) {
         return sourceSystem.getSerialNumber() + "-rdfg-" + rdfGroup.getSourceGroupId();
     }
-    
-    
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+}
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+    }
 }

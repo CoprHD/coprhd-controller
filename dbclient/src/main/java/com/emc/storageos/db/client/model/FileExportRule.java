@@ -5,7 +5,9 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.TreeSet;
 
 @Cf("FileExportRule")
 public class FileExportRule extends ExportRule {
@@ -43,13 +45,28 @@ public class FileExportRule extends ExportRule {
     public void calculateExportRuleIndex() {
 
         if (getExportPath() != null && getSecFlavor() != null) {
+
+            // Convert the security types to ordered comma separated string!!!
+            Set<String> orderedSecTypes = new TreeSet<String>();
+            for (String secType : getSecFlavor().split(",")) {
+                orderedSecTypes.add(secType.trim());
+            }
+            Iterator<String> orderedList = orderedSecTypes.iterator();
+            String securityTypes = orderedList.next();
+            while (orderedList.hasNext()) {
+                securityTypes += "," + orderedList.next();
+            }
+            // Update the security type and export index!!!
+            this.secFlavor = securityTypes;
+            setChanged("secFlavor");
+
             if (getFileSystemId() != null) {
                 this.setFsExportIndex(getFileSystemId().toString() + getExportPath()
-                        + getSecFlavor());
+                        + securityTypes);
             }
             if (getSnapshotId() != null) {
                 this.setSnapshotExportIndex(getSnapshotId().toString() + getExportPath()
-                        + getSecFlavor());
+                        + securityTypes);
             }
         }
 

@@ -266,10 +266,6 @@
         </property>
     </bean>
 
-    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
-
-    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor"/>
-
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />
         <property name="application" ref="syssvcApp" />
@@ -300,6 +296,7 @@
             <list>
                 <ref bean="passwordExpireRuleHandler" />
                 <ref bean="uniqueNodeNameHandler" />
+                <ref bean="loginBannerHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
                 <ref bean="authLoginAttemptsHandler" />
                 <ref bean="authLockoutTimeHandler" />
@@ -329,6 +326,8 @@
     <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
         <property name="coordinator" ref="coordinatorclientext"/>
     </bean>
+
+    <bean id="loginBannerHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.LoginBannerHandler"/>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
         <property name="coordinator" ref="coordinator"/>
@@ -638,5 +637,27 @@
     	<property name="jobProducer" ref="dbConsistencyJobProducer" />
     	<property name="name" value="SyssvcDBCheckHandler"/>
     </bean>
+    
+    <bean id="drZkHealthMonitor" class="com.emc.storageos.systemservices.impl.util.DrZkHealthMonitor">
+    	<property name="drUtil" ref="drUtil" />
+    	<property name="coordinator" ref="coordinatorclientext" />
+    	<property name="name" value="DrZkMonitor"/>
+    	<property name="initDelayInSecs" value="180"/>
+    	<property name="frequencyInSecs" value="60"/>
+    </bean>
+    
+    <bean id="drDbHealthMonitor" class="com.emc.storageos.systemservices.impl.util.DrDbHealthMonitor">
+    	<property name="drUtil" ref="drUtil" />
+    	<property name="coordinatorClient" ref="coordinator" />
+    	<property name="name" value="DrDbMonitor"/>
+    	<property name="initDelayInSecs" value="180"/>
+    	<property name="frequencyInSecs" value="60"/>
+    </bean>
+    
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor">
+    	<property name="name" value="DrNetworkMonitor"/>
+    </bean>
+    
 </beans>
     

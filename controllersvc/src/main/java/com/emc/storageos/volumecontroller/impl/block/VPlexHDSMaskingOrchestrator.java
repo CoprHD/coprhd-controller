@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -219,10 +220,14 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
      * 
-     * @param candidatePorts -- List of ports from which to choose
-     * @param portsRequested -- Integer number of ports requested
-     * @param net -- NetworkLite network
-     * @param varrayURI -- URI of VirtualArray
+     * @param candidatePorts
+     *            -- List of ports from which to choose
+     * @param portsRequested
+     *            -- Integer number of ports requested
+     * @param net
+     *            -- NetworkLite network
+     * @param varrayURI
+     *            -- URI of VirtualArray
      * @return List of StoragePorts allocated.
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
@@ -235,8 +240,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated =
-                    allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
             allocator.setContext(context);
             return portsAllocated;
         } else {
@@ -257,9 +261,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumeMap, completer);
+                exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     /**
@@ -268,7 +272,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
      */
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -290,19 +294,20 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
+            // Fetch the Initiators
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorId : exportMask.getInitiators()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null) {
+                    initiators.add(initiator);
+                }
+            }
+
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             exportMask = refreshExportMask(array, device, exportMask);
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
-                // Fetch the Initiators
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                    }
-                }
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
@@ -314,10 +319,10 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                         exportMask.addVolume(volume, volumeMap.get(volume));
                     }
                 }
-                device.doExportGroupCreate(array, exportMask, volumeMap,
+                device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to create or add volumes to export mask for hds: ", ex);
@@ -329,15 +334,15 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -365,20 +370,49 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
 
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device, exportMask);
-            // Determine if we're deleting the last volume.
+
+            // Determine if we're deleting the last volume in the mask.
+            StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) {
-                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            List<URI> passedVolumesInMask = new ArrayList<>(volumes);
+            if (maskVolumesMap != null) {
+                remainingVolumes.addAll(maskVolumesMap.keySet());
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
+                
+                // Remove any volumes from the volume list that are no longer
+                // in the export mask. When a failure occurs removing a backend
+                // volume from a mask, the rollback method will try and remove it
+                // again. However, in the case of a distributed volume, one side
+                // may have succeeded, so we will try and remove it again. Previously,
+                // this was not a problem. However, new validation exists at the
+                // block level that checks to make sure the volume to remove is
+                // actually in the mask, which now causes a failure when you remove
+                // it a second time. So, we check here and remove any volumes that
+                // are not in the mask to handle this condition.
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                    passedVolumesInMask.remove(volume);
+                }
             }
-            // If so, delete the ExportMask.
+            
+            // None of the volumes is in the export mask, so we are done.
+            if (passedVolumesInMask.isEmpty()) {
+                _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            
+            // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                    && !exportMask.hasAnyExistingVolumes()){
+                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);

@@ -28,7 +28,8 @@ public class FileExportUpdateParams implements Serializable {
     public enum ExportOperationErrorType {
         INVALID_SECURITY_TYPE, INVALID_ANON, EXPORT_NOT_FOUND, NO_ERROR, EXPORT_EXISTS, NO_HOSTS_FOUND,
         MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR,
-        SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY
+        SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY,
+        STORAGE_SYSTEM_NOT_SUPPORT_MUL_SECS
     }
 
     public enum ExportSecurityType {
@@ -48,6 +49,7 @@ public class FileExportUpdateParams implements Serializable {
 
     /**
      * List of exportRules to be added
+     * 
      * @param exportRulesToAdd
      * 
      */
@@ -63,6 +65,7 @@ public class FileExportUpdateParams implements Serializable {
 
     /**
      * List of exportRules to be deleted
+     * 
      * @param exportRulesToDelete
      */
     public void setExportRulesToDelete(ExportRules exportRulesToDelete) {
@@ -76,6 +79,7 @@ public class FileExportUpdateParams implements Serializable {
 
     /**
      * List of exportRules to be modified
+     * 
      * @param exportRulesToModify
      */
     public void setExportRulesToModify(ExportRules exportRulesToModify) {
@@ -102,11 +106,19 @@ public class FileExportUpdateParams implements Serializable {
         return sb.toString();
 
     }
-
+    
+    /**
+     * Non payload models - for internal use only: use query parameter subDir instead
+     */
     public String getSubDir() {
         return subDir;
     }
 
+    /**
+     * Non payload models - for internal use only: use query parameter subDir instead
+     * 
+     * @param subDir
+     */
     public void setSubDir(String subDir) {
         this.subDir = subDir;
     }

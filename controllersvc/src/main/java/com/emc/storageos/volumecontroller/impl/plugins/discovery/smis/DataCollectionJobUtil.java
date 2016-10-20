@@ -114,6 +114,9 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.unity.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateUnityAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
+                StorageSystem.Type.isDriverManagedStorageProvider(((StorageProvider) taskObject).getInterfaceType())){
+            populateExternalProviderAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
@@ -133,6 +136,16 @@ public class DataCollectionJobUtil {
         }
 
         return profile;
+    }
+
+    private void populateExternalProviderAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(getSystemType(providerInfo));
+        accessProfile.setProviderPort(String.valueOf(providerInfo.getPortNumber()));
     }
 
     private void populateScaleIOAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
@@ -591,13 +604,21 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getSmisPassword());
             accessProfile.setLastSampleTime(0L);
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
-            accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getIpAddress());
-            accessProfile.setUserName(storageDevice.getUsername());
-            accessProfile.setserialID(storageDevice.getSerialNumber());
-            accessProfile.setPassword(storageDevice.getPassword());
-            accessProfile.setPortNumber(storageDevice.getPortNumber());
-            accessProfile.setLastSampleTime(0L);
+            if (StorageSystem.Type.isProviderStorageSystem(storageDevice.getSystemType())) {
+                injectDiscoveryProfile(accessProfile, storageDevice);
+                // set port number to provider port
+                StorageProvider provider = getActiveProviderForStorageSystem(storageDevice, accessProfile);
+                accessProfile.setPortNumber(provider.getPortNumber());
+            } else {
+                // directly managed
+                accessProfile.setSystemType(storageDevice.getSystemType());
+                accessProfile.setIpAddress(storageDevice.getIpAddress());
+                accessProfile.setUserName(storageDevice.getUsername());
+                accessProfile.setserialID(storageDevice.getSerialNumber());
+                accessProfile.setPassword(storageDevice.getPassword());
+                accessProfile.setPortNumber(storageDevice.getPortNumber());
+                accessProfile.setLastSampleTime(0L);
+            }
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
@@ -1084,11 +1105,21 @@ public class DataCollectionJobUtil {
                 // even if the current provider is already active, we need to update the provider details
                 // in storage system object, so that any change in provider object will take effect.
                 if (provider.getId().equals(storageSystemInDb.getActiveProviderURI())) {
-                    storageSystemInDb.setSmisProviderIP(provider.getIPAddress());
-                    storageSystemInDb.setSmisPortNumber(provider.getPortNumber());
-                    storageSystemInDb.setSmisUserName(provider.getUserName());
-                    storageSystemInDb.setSmisPassword(provider.getPassword());
-                    storageSystemInDb.setSmisUseSSL(provider.getUseSSL());
+                    if (!StringUtils.equals(provider.getIPAddress(), storageSystemInDb.getSmisProviderIP())) {
+                        storageSystemInDb.setSmisProviderIP(provider.getIPAddress());
+                    }
+                    if (provider.getPortNumber() != storageSystemInDb.getSmisPortNumber()) {
+                        storageSystemInDb.setSmisPortNumber(provider.getPortNumber());
+                    }
+                    if (!StringUtils.equals(provider.getUserName(), storageSystemInDb.getSmisUserName())) {
+                        storageSystemInDb.setSmisUserName(provider.getUserName());
+                    }
+                    if (!StringUtils.equals(provider.getPassword(), storageSystemInDb.getSmisPassword())) {
+                        storageSystemInDb.setSmisPassword(provider.getPassword());
+                    }
+                    if (provider.getUseSSL() != storageSystemInDb.getSmisUseSSL()) {
+                        storageSystemInDb.setSmisUseSSL(provider.getUseSSL());
+                    }
                 }
             }
         }

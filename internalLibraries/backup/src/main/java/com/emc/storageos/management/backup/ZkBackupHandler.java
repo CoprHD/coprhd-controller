@@ -40,9 +40,14 @@ public class ZkBackupHandler extends BackupHandler {
     private static final String ZK_CURRENT_EPOCH = "currentEpoch";
     private static final String CONNECT_ZK_HOST = "localhost";
     private static final int CONNECT_ZK_PORT = 2181;
+    private int nodeCount = 0;
     private File zkDir;
     private List<String> fileTypeList;
     private File siteIdFile;
+
+    public void setNodeCount(int nodeCount) {
+        this.nodeCount = nodeCount;
+    }
 
     public File getSiteIdFile() {
         return siteIdFile;
@@ -107,6 +112,12 @@ public class ZkBackupHandler extends BackupHandler {
      * Just backup the zk files in the leader node
      */
     public boolean isEligibleForBackup() {
+        // on DR active site (1+0), the node may be 'follower' mode when telneting localhost with port 2181
+        // because of a trick which was to solve a zk limitation in 3.4.6
+        if(nodeCount == 1) {
+            return true;
+        }
+
         String result = readZkInfo("stat", "Mode");
         if (result == null || !result.contains(": ")) {
             throw BackupException.fatals.failedToParseLeaderStatus(result);

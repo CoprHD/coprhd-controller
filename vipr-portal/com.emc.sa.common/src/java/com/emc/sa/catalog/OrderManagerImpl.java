@@ -7,16 +7,19 @@ package com.emc.sa.catalog;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
+import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.uimodels.*;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.vipr.model.catalog.OrderRestRep;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,17 +30,6 @@ import com.emc.sa.asset.AssetOptionsManager;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
-import com.emc.storageos.db.client.model.uimodels.ApprovalRequest;
-import com.emc.storageos.db.client.model.uimodels.ApprovalStatus;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
-import com.emc.storageos.db.client.model.uimodels.ExecutionStatus;
-import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderAndParams;
-import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
@@ -48,29 +40,6 @@ import com.emc.sa.zookeeper.OrderExecutionQueue;
 import com.emc.sa.zookeeper.OrderMessage;
 import com.emc.sa.zookeeper.OrderNumberSequence;
 import com.emc.storageos.auth.TokenManager;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -129,15 +98,47 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
-
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
         ServiceDescriptor serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), catalogService.getBaseService());
 
         order.setOrderNumber(getNextOrderNumber());
         order.setSummary(catalogService.getTitle());
-        if (catalogService.getExecutionWindowRequired()) {
-            order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+
+        if (order.getScheduledEventId() == null) {
+            // Order is scheduled with traditional way but not the new scheduler framework
+
+            if (catalogService.getExecutionWindowRequired()) {
+                if (catalogService.getDefaultExecutionWindowId() == null ||
+                    catalogService.getDefaultExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                    // For default execution window, null is deemed as NEXT window as well.
+                    // But we always need to set order execution window to NEXT explicitly to different it
+                    // with INFINITE window in new scheduler framework.
+
+                    // Set schedule time to latest updated time.  It would still be scheduled in executed window
+                    Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                    scheduleTime.setTime(new Date());
+                    order.setScheduledTime(scheduleTime);
+                    order.setExecutionWindowId(new NamedURI(ExecutionWindow.NEXT, "NEXT"));
+                } else {
+                    // Set schedule time to
+                    // either 1) the next execution window starting time
+                    // or     2) the current time if it is in current execution window
+                    ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
+                    ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
+                    order.setScheduledTime(helper.getScheduledTime());
+                    order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+                }
+            } else {
+                // In traditional order procedure,
+                // If no execution window is indicated, order will be submitted to DQ immediately.
+                ;
+            }
+        } else {
+            // Order is scheduled with new scheduler framework
+            // ExecutionWindow and ScheduleTime are already set via Parameter
+            ;
         }
+
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());
         order.setOrderStatus(OrderStatus.PENDING.name());
@@ -149,7 +150,7 @@ public class OrderManagerImpl implements OrderManager {
         for (OrderParameter orderParameter : orderParameters) {
             ServiceField serviceField = findServiceField(serviceDescriptor, orderParameter.getLabel());
             String friendlyLabel = serviceField.getLabel();
-
+    
             StringBuilder friendlyValue = new StringBuilder();
             List<String> values = TextUtils.parseCSV(orderParameter.getValue());
             for (String value : values) {
@@ -161,6 +162,7 @@ public class OrderManagerImpl implements OrderManager {
 
             orderParameter.setFriendlyLabel(friendlyLabel);
             orderParameter.setFriendlyValue(friendlyValue.toString());
+            
             createOrderParameter(orderParameter);
         }
 
@@ -515,21 +517,50 @@ public class OrderManagerImpl implements OrderManager {
                 break;
             case SUCCESS:
                 processSuccessOrder(order, service);
+                processScheduledEvent(order);
                 break;
             case ERROR:
                 processErrorOrder(order, service);
+                processScheduledEvent(order);
                 break;
         }
     }
 
     private void processPendingOrder(Order order, CatalogService service) {
         if (Boolean.TRUE.equals(service.getApprovalRequired())) {
-            requireApproval(order, service);
+            if (order.getScheduledEventId() != null) {
+                // For scheduled event, the 1st order's APPROVAL request will be used to approve
+                // the whole set of following orders (i.e. taking effect on the scheduled event.
+                ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
+                if (scheduledEvent != null) {
+                    // Scheduler would always set the outofdate orders to ERROR and schedule a new order.
+                    // Here all the previous scheduled orders have not been approved yet.
+                    // We would always send a new approval request for the latest scheduled order.
+                    if (scheduledEvent.getEventStatus() == ScheduledEventStatus.APPROVAL) {
+                        requireApproval(order, service);
+                        return;
+                    }
+
+                    // For the following orders, skipping order approval request (the event is already APPROVED)
+                } else {
+                    // Send Approval Request for the 1st order (Now the scheduled event is not persisted into DB yet.)
+                    requireApproval(order, service);
+                    return;
+                }
+            } else {
+                // send approval request for the original order request.
+                requireApproval(order, service);
+                return;
+            }
         }
-        else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+
+        if (order.getScheduledEventId() != null) {
+            // scheduledEvent always requires orders to be scheduled.
             scheduleOrder(order, service);
-        }
-        else {
+        } else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+            // direct orders would be executed in the next execution window.
+            scheduleOrder(order, service);
+        } else {
             submitOrderToQueue(order);
         }
     }
@@ -540,9 +571,11 @@ public class OrderManagerImpl implements OrderManager {
         switch (status) {
             case APPROVED:
                 approveOrder(order, service);
+                authorizeScheduledEvent(order, service, true);
                 break;
             case REJECTED:
                 rejectOrder(order, service);
+                authorizeScheduledEvent(order, service, false);
                 break;
         }
     }
@@ -550,13 +583,16 @@ public class OrderManagerImpl implements OrderManager {
     private void processApprovedOrder(Order order, CatalogService service) {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
         notificationManager.notifyUserOfApprovalStatus(order, service, approval);
-        if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+
+        if (order.getScheduledEventId() != null) {
+            // orders always need to be scheduled via scheduledEvent.
             scheduleOrder(order, service);
-        }
-        else {
+        } else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+            // direct orders would be executed in the next execution window.
+            scheduleOrder(order, service);
+        } else {
             submitOrderToQueue(order);
         }
-
     }
 
     private void processRejectedOrder(Order order, CatalogService service) {
@@ -590,6 +626,14 @@ public class OrderManagerImpl implements OrderManager {
         processApprovedOrder(order, service);
     }
 
+    private void authorizeScheduledEvent(Order order, CatalogService service, boolean approved) {
+        ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
+        if (scheduledEvent != null) {
+            scheduledEvent.setEventStatus(approved? ScheduledEventStatus.APPROVED: ScheduledEventStatus.REJECTED);
+            client.save(scheduledEvent);
+        }
+    }
+
     private void rejectOrder(Order order, CatalogService service) {
         order.setOrderStatus(OrderStatus.REJECTED.name());
         updateOrder(order);
@@ -611,6 +655,9 @@ public class OrderManagerImpl implements OrderManager {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalStatus(ApprovalStatus.PENDING.name());
         approvalRequest.setOrderId(order.getId());
+        if (order.getScheduledEventId() != null) {
+            approvalRequest.setScheduledEventId(order.getScheduledEventId());
+        }
         approvalRequest.setTenant(order.getTenant());
         approvalManager.createApproval(approvalRequest);
 
@@ -636,18 +683,21 @@ public class OrderManagerImpl implements OrderManager {
         updateOrder(order);
     }
 
-    @Override
-    public void pauseOrder(Order order) {
-        log.info(String.format("Order %s is paused", order.getId()));
-        order.setOrderStatus(OrderStatus.PAUSED.name());
-        updateOrder(order);
+    public void processScheduledEvent(Order order) {
+        URI scheduledEventId = order.getScheduledEventId();
+        ScheduledEvent scheduledEvent = client.scheduledEvents().findById(scheduledEventId);
+        if (scheduledEvent != null) {
+            if (scheduledEvent.getEventType() == ScheduledEventType.ONCE) {
+                // For ONCE event, update its status to FINISHED after order finished.
+                // For REOCCURRENCE event, update its status during scheduler thread.
+                if (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
+                    OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
+                    OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR) ) {
+                    scheduledEvent.setEventStatus(ScheduledEventStatus.FINISHED);
+                    client.save(scheduledEvent);
+                }
+            }
+        }
+        return;
     }
-
-    @Override
-    public void resumeOrder(Order order) {
-        log.info(String.format("Order %s is resumed", order.getId()));
-        order.setOrderStatus(OrderStatus.EXECUTING.name());
-        updateOrder(order);
-    }
-
 }

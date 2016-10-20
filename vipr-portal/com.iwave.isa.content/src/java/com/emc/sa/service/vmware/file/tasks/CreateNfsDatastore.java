@@ -4,14 +4,14 @@
  */
 package com.emc.sa.service.vmware.file.tasks;
 
-import static com.emc.sa.service.vmware.VMwareUtils.isAlreadyExists;
-import static com.emc.sa.service.vmware.VMwareUtils.isPermissionDenied;
-import static com.emc.sa.service.vmware.VMwareUtils.isPlatformConfigFault;
+import static com.iwave.ext.vmware.VMwareUtils.isAlreadyExists;
+import static com.iwave.ext.vmware.VMwareUtils.isPermissionDenied;
+import static com.iwave.ext.vmware.VMwareUtils.isPlatformConfigFault;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.AlreadyExists;
 import com.vmware.vim25.MethodFault;
 import com.vmware.vim25.mo.Datastore;

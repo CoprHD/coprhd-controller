@@ -39,10 +39,12 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.vplex.api.VPlexApiClient;
+import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 public class ImplicitUnManagedObjectsMatcher {
     private static final String LOCAL = "LOCAL";
-    private static final String CLUSTER_PREFIX = "cluster-";
     private static final Logger _log = LoggerFactory
             .getLogger(ImplicitUnManagedObjectsMatcher.class);
     private static final String INVALID = "Invalid";
@@ -162,7 +164,7 @@ public class ImplicitUnManagedObjectsMatcher {
      * @param vpool virtual pool (new or updated)
      * @param dbClient dbclient
      */
-    private static void matchVirtualPoolWithUnManagedVolumeVPLEX(List<UnManagedVolume> modifiedUnManagedVolumes, VirtualPool vpool,
+    private static void matchVirtualPoolWithUnManagedVolumeVPLEX(List<UnManagedVolume> modifiedUnManagedVolumes, VirtualPool vpool, 
             DbClient dbClient) {
         // This method only applies to VPLEX vpools
         if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
@@ -179,14 +181,19 @@ public class ImplicitUnManagedObjectsMatcher {
         for (Entry<StorageSystem, List<URI>> ssToUmvEntry : ssToUmvMap.entrySet()) {
             StorageSystem vplex = ssToUmvEntry.getKey();
 
-            // Formulate a cluster ID (1 or 2) to name map (cluster-1, cluster-2) so we can map the StorageSystem's knowledge of clusters
-            // to the UnManagedVolume's knowledge of which cluster is being used in order to make intelligent virtual pool inclusion.
-            Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-            if (vplex.getVplexAssemblyIdtoClusterId() != null) {
-                for (Map.Entry<String, String> assemblyIdToClusterId : vplex.getVplexAssemblyIdtoClusterId().entrySet()) {
-                    // Create "1" -> "cluster-1" or "2" -> "cluster-2"
-                    clusterIdToNameMap.put(assemblyIdToClusterId.getValue(), CLUSTER_PREFIX + assemblyIdToClusterId.getValue());
-                }
+            // fetch the current mapping of VPLEX cluster ids to cluster names (e.g., "1"=>"cluster-1";"2"=>"cluster-2")
+            // the cluster names can be changed by the VPLEX admin, so we cannot rely on the default cluster-1 or cluster-2
+            Map<String, String> clusterIdToNameMap = null;
+            try {
+                VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, dbClient); 
+                clusterIdToNameMap = client.getClusterIdToNameMap();
+            } catch (Exception ex) {
+                _log.warn("Exception caught while getting cluster name info from VPLEX {}", vplex.forDisplay());
+            }
+            if (null == clusterIdToNameMap || clusterIdToNameMap.isEmpty()) {
+                _log.warn("Could not update virtual pool matches for VPLEX {} because cluster name info couldn't be retrieved", 
+                        vplex.forDisplay());
+                continue;
             }
 
             // Create a map of virtual arrays to their respective VPLEX cluster (a varray is not allowed to have both VPLEX clusters)

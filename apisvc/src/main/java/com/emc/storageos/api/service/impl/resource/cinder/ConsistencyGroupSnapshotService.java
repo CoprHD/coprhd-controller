@@ -40,7 +40,7 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
-import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.ConsistencyGroupSnapshotCreateRequest;
 import com.emc.storageos.cinder.model.ConsistencyGroupSnapshotCreateResponse;
 import com.emc.storageos.cinder.model.ConsistencyGroupSnapshotDetail;
@@ -84,7 +84,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupService {
 
     private static final Logger _log = LoggerFactory.getLogger(ConsistencyGroupSnapshotService.class);
-
+    
     // Block service implementations
     private Map<String, BlockServiceApi> _blockServiceApis;
 
@@ -232,7 +232,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                 if (extensions == null) {
                     extensions = new StringMap();
                 }
-                extensions.put("status", ComponentStatus.CREATING.getStatus().toLowerCase());
+                extensions.put("status", CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase());
                 extensions.put("taskid", rep.getId().toString());
                 snap.setExtensions(extensions);
                 ScopedLabelSet tagSet = new ScopedLabelSet();
@@ -246,7 +246,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             cgSnapshotCreateRes.name = param.cgsnapshot.name;
         }
 
-        return CinderApiUtils.getCinderResponse(cgSnapshotCreateRes, header, true);
+        return CinderApiUtils.getCinderResponse(cgSnapshotCreateRes, header, true,CinderConstants.STATUS_OK);
 
     }
 
@@ -314,23 +314,23 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                     if (tsk.getId().toString().equals(taskInProgressId)) {
                         if (tsk.getStatus().equals("ready"))
                         {
-                            cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
-                            snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+                            cgSnapshotDetail.status = CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase();
+                            snapshot.getExtensions().put("status", CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
                             {
-                                cgSnapshotDetail.status = ComponentStatus.CREATING.getStatus().toLowerCase();
+                                cgSnapshotDetail.status = CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase();
                             } else if (tsk.getDescription().equals(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT.getDescription()))
                             {
-                                cgSnapshotDetail.status = ComponentStatus.DELETING.getStatus().toLowerCase();
+                                cgSnapshotDetail.status = CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase();
                             }
                         }
                         else if (tsk.getStatus().equals("error"))
                         {
-                            cgSnapshotDetail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
-                            snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
+                            cgSnapshotDetail.status = CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase();
+                            snapshot.getExtensions().put("status", CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
                         }
                         _dbClient.updateObject(snapshot);
@@ -345,11 +345,11 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             else
             {
                 // status is available
-                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
+                cgSnapshotDetail.status = CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase();
             }
         }
         cgSnapshotDetail.description = (description == null) ? "" : description;
-        return CinderApiUtils.getCinderResponse(cgSnapshotDetail, header, true);
+        return CinderApiUtils.getCinderResponse(cgSnapshotDetail, header, true,CinderConstants.STATUS_OK);
 
     }
 
@@ -389,7 +389,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(cgSnapshotDetailListResponse, header, false);
+        return CinderApiUtils.getCinderResponse(cgSnapshotDetailListResponse, header, false,CinderConstants.STATUS_OK);
 
     }
 

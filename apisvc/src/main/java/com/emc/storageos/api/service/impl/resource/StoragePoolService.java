@@ -266,13 +266,13 @@ public class StoragePoolService extends TaggedResource {
     public StoragePoolRestRep deregisterStoragePool(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, StoragePool.class, "id");
         StoragePool pool = queryResource(id);
-
+        StringBuffer errorMessage = new StringBuffer();
         if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
                 pool.getRegistrationStatus())) {
             pool.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             // run implicit pool matcher algorithm to update the matched pools in VirtualPool.
             if (null == pool.getConnectedVirtualArrays() || pool.getConnectedVirtualArrays().isEmpty()) {
-                ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(Arrays.asList(pool), _dbClient, _coordinator);
+                ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(Arrays.asList(pool), _dbClient, _coordinator,errorMessage);
             }
             _dbClient.persistObject(pool);
             // Record the storage pool deregister event.
@@ -343,7 +343,9 @@ public class StoragePoolService extends TaggedResource {
         // If there is change in varray, then update new matched pools
         // for all VirtualPool.
         if (neighborhoodChange) {
-            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(Arrays.asList(storagePool), _dbClient, _coordinator);
+            StringBuffer errorMessage = new StringBuffer();
+            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(Arrays.asList(storagePool), _dbClient, _coordinator,
+                    errorMessage);
         }
 
         Integer currentMaxSubscriptionPercentFromArray = storagePool.getMaxThinPoolSubscriptionPercentageFromArray();

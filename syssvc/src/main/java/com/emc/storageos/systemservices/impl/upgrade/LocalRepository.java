@@ -35,6 +35,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
@@ -498,32 +499,17 @@ public class LocalRepository {
     }
 
     /***
-     * Update data revision property
+     * Update data revision properties to local
      *
-     * @param revisionTag
-     * @param committed 
-     * @param vdcConfigVersion
+     * @param localRevisionProps
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String revisionTag, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
-        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
+    public void setDataRevisionPropertyInfo(PropertyInfoExt localRevisionProps) throws LocalRepositoryException {
+        final String prefix = String.format("setDataRevisionPropertyInfo(): to=%s " , localRevisionProps);
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
-        StringBuilder s = new StringBuilder();
-        s.append(KEY_DATA_REVISION);
-        s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(revisionTag == null ? "" : revisionTag);
-        s.append(PropertyInfoExt.ENCODING_NEWLINE);
-        s.append(KEY_DATA_REVISION_COMMITTED);
-        s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(String.valueOf(committed));
-        s.append(PropertyInfoExt.ENCODING_NEWLINE);
-        s.append(KEY_VDC_CONFIG_VERSION);
-        s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(String.valueOf(vdcConfigVersion));
-        
-        createTmpFile(tmpFilePath, s.toString(), prefix);
+        createTmpFile(tmpFilePath, localRevisionProps.toString(false), prefix);
 
         try {
             final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
@@ -534,26 +520,21 @@ public class LocalRepository {
         }
     }
 
+    
     /***
      * Get data revision from disk
      * 
      * @return DataRevisonTag
      */
-    public String getDataRevision() throws LocalRepositoryException {
-        final String prefix = "getDataRevision(): ";
+    public PropertyInfoExt getDataRevisionPropertyInfo() throws LocalRepositoryException {
+        final String prefix = "getDataRevisionPropertyInfo(): ";
         _log.debug(prefix);
 
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
         String[] props = exec(prefix, cmd1);
 
         _log.debug(prefix + "properties={}", Strings.repr(props));
-        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
-        String revision = map.get(KEY_DATA_REVISION);
-        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
-        if (committed != null && Boolean.valueOf(committed)) {
-            return revision;
-        }
-        return SiteInfo.DEFAULT_TARGET_VERSION;
+        return new PropertyInfoExt(props);
     }
 
     /***

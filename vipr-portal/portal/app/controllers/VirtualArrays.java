@@ -12,7 +12,10 @@ import static controllers.Common.getUserMessage;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +57,7 @@ import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.builders.ACLUpdateBuilder;
 import util.datatable.DataTablesSupport;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
@@ -75,6 +79,8 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import controllers.arrays.Networks;
 import controllers.deadbolt.Restrict;
@@ -90,6 +96,24 @@ public class VirtualArrays extends ViprResourceController {
     protected static final String DELETED_SUCCESS = "VirtualArrays.delete.success";
     protected static final String DELETED_ERROR = "VirtualArrays.delete.error";
     protected static final String UNKNOWN = "VirtualArrays.unknown";
+
+    private static final String SIMPLE  ="SIMPLE";
+    private static final String MAPPING1X1 ="1X1MAPPING";
+
+    private static final String UNITY = "unity";
+    private static final String VMAX = "vmax";
+    private static final String XTREMIO = "xtremio";
+    private static final String SUFFIX_ALL_FLASH = "F";
+
+    private static final String ALL_FLASH_VARRAY = "va-all-flash";
+    private static final String VARRAY_PREFIX = "va-";
+    private static final String VARRAY_POSTFIX = "-auto-";
+
+    private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
+    private static final String GUIDE_DATA = "GUIDE_DATA";
+    private static final String GUIDE_VISIBLE = "guideVisible";
+    private static final String STORAGE_SYSTEMS = "storage_systems";
+    private static final String VARRAYS = "varrays";
 
     /**
      * Simple create and save operation that takes only the name.
@@ -111,6 +135,219 @@ public class VirtualArrays extends ViprResourceController {
         flash.success(MessagesUtils.get(SAVED_SUCCESS, virtualArray.name));
         virtualArray.load(varray);
         edit(virtualArray.id);
+    }
+
+	/**
+	 * Create default virtual array for checklist
+	 */
+	public static void createDefaultVarray(String defaultVarrayType) {
+		boolean isVarrayAvail = false;
+
+		if (StringUtils.equals(defaultVarrayType, SIMPLE)) {
+			// Check if virtual array is already created
+			String existVarrayId = null;
+			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
+			for (VirtualArrayRestRep availVarray : availVarrays) {
+				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
+					existVarrayId = availVarray.getId().toString();
+					isVarrayAvail = true;
+					break;
+				}
+			}
+
+			if (isVarrayAvail && existVarrayId != null) { // Virtual Array already created, add rest of storage
+				//List Storages already attached to this virtual array
+				HashMap <String, String > attachedStorageMaps = new HashMap<String, String>();
+				List<String> ids = Lists.newArrayList();
+
+				for(StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(existVarrayId)) {
+					attachedStorageMaps.put(storageSystem.getId().toString(), storageSystem.getId().toString());
+				}
+
+				for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+					if(attachedStorageMaps.isEmpty()) {
+						// Check if storage system is of type UNITY, VMAX or XtremIO
+						if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
+							ids.add(storageSystem.getId().toString());
+						}
+                        if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                            String modelType = storageSystem.getModel();
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                                ids.add(storageSystem.getId().toString());
+                            }
+                        }
+					}
+					else {
+						if(null == attachedStorageMaps.get(storageSystem.getId().toString())) {
+							// Check if storage system is of type UNITY, VMAX or XtremIO
+							if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
+								ids.add(storageSystem.getId().toString());
+							}
+                            if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                                String modelType = storageSystem.getModel();
+                                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                                    ids.add(storageSystem.getId().toString());
+                                }
+                            }
+ 						}
+					}
+				}
+				addStorageSysVarray(existVarrayId, ids);
+			} 
+			else { //First time adding virtual array
+				addAllFlashVirtualArray();
+			}
+		} 
+		else if (StringUtils.equals(defaultVarrayType, MAPPING1X1)) {
+			// Read available virtual array
+			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
+			// If storage system ids are passed, use them and create virtual arrays
+			JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+			JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
+			JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+			if (varrays == null) {
+	            varrays = new JsonArray();
+	        }
+			if(storage_systems != null ) {
+				for(Object storageobject : storage_systems) {
+					JsonObject storage = (JsonObject) storageobject;
+					String storageid = storage.get("id").getAsString();
+					String storagename = storage.get("name").getAsString();
+
+					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
+					if (storageSystem != null && isEMCAFA(storageSystem)) {
+						VirtualArrayForm virtualArray = new VirtualArrayForm();
+						String vArrayName = VARRAY_PREFIX + storagename;
+
+						for (VirtualArrayRestRep availVarray : availVarrays) {
+							if (StringUtils.equals(availVarray.getName(), vArrayName)) {
+								Calendar localCalendar = Calendar.getInstance();
+								long currTime = localCalendar.getTimeInMillis() / 1000; // Made time in seconds for name length
+								vArrayName = vArrayName + VARRAY_POSTFIX + currTime;
+								break;
+							}
+						}
+						virtualArray.name = vArrayName;
+						VirtualArrayRestRep varray = virtualArray.save();
+						virtualArray.load(varray);
+
+						addVarrayStorageSystem(virtualArray.id, storageid);
+						buildVarrayCookies(virtualArray.id, virtualArray.name, varrays);
+					}
+				}
+		        dataObject.add(VARRAYS, varrays);
+		        saveJsonAsCookie(GUIDE_DATA, dataObject);
+			}
+			else {
+				// Create a storage system map that have virtual arrays attached
+				HashMap<String, String> storageSysVarrayMap = new HashMap<String, String>();
+				for (VirtualArrayRestRep availVarray : VirtualArrayUtils.getVirtualArrays()) {
+					for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(availVarray.getId().toString())) {
+						storageSysVarrayMap.put(storageSystem.getId().toString(), storageSystem.getId().toString());
+					}
+				}
+				// Get all storage systems, and create varrays for those storage system that do not have varray
+				for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+					if (storageSysVarrayMap.get(storageSystem.getId().toString()) == null) {
+						if (isEMCAFA(storageSystem)) {
+							createVirtualArray(storageSystem);
+						}
+					}
+				}
+			}
+			list();
+		}
+		// List page so that user can add virtual array them self
+		else {
+			list();
+		}
+	}
+
+	private static boolean isEMCAFA(StorageSystemRestRep storageSystem) {
+
+		if (StringUtils.equals(XTREMIO,	storageSystem.getSystemType())) {
+			return true;
+		}
+        if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType()) ) {
+            String modelType = storageSystem.getModel();
+            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+            	return true;
+            }
+        }
+        return false;
+	}
+
+    private static void updateVarrayCookie(String varrayid, String varrayname){
+        JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+        JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+        if (varrays == null) {
+            varrays = new JsonArray();
+        }
+        JsonObject jsonvarray = new JsonObject();
+        jsonvarray.addProperty("id", varrayid);
+        jsonvarray.addProperty("name", varrayname);
+
+        varrays.add(jsonvarray);
+        dataObject.add(VARRAYS, varrays);
+        saveJsonAsCookie(GUIDE_DATA, dataObject);
+    }
+
+    private static void buildVarrayCookies( String varrayid, String varrayname, JsonArray varrays) {
+    	JsonObject jsonvarray = new JsonObject();
+        jsonvarray.addProperty("id", varrayid);
+        jsonvarray.addProperty("name", varrayname);
+
+        varrays.add(jsonvarray);
+    }
+
+    private static void addAllFlashVirtualArray() {
+		VirtualArrayForm virtualArray = new VirtualArrayForm();
+		virtualArray.name = ALL_FLASH_VARRAY;
+		virtualArray.validate("virtualArray");
+		if (Validation.hasErrors()) {
+			flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+			list();
+		}
+
+		VirtualArrayRestRep varray = virtualArray.save();
+		virtualArray.load(varray);
+
+		List<String> ids = Lists.newArrayList();
+
+		for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+			// Check if storage system is of type UNITY, VMAX or XtremIO
+			if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
+				ids.add(storageSystem.getId().toString());
+			}
+            if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                String modelType = storageSystem.getModel();
+                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                    ids.add(storageSystem.getId().toString());
+                }
+            }
+		}
+		addStorageSysVarray(virtualArray.id, ids);
+    }
+
+    private static void createVirtualArray(StorageSystemRestRep storageSystem) {
+    	// Check for existing virtual array
+    	String vArrayName = VARRAY_PREFIX + storageSystem.getName();
+		List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
+		for (VirtualArrayRestRep availVarray : availVarrays) {
+			if (StringUtils.equals(availVarray.getName(), vArrayName)) {
+				Calendar localCalendar = Calendar.getInstance();
+				long currTime = localCalendar.getTimeInMillis() / 1000; // Made time in seconds for name length
+				vArrayName = vArrayName + VARRAY_POSTFIX + currTime;
+				break;
+			}
+		}
+		VirtualArrayForm virtualArray = new VirtualArrayForm();
+		virtualArray.name = vArrayName;
+		VirtualArrayRestRep varray = virtualArray.save();
+		virtualArray.load(varray);
+
+		addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
+		updateVarrayCookie(virtualArray.id, virtualArray.name);
     }
 
     /**
@@ -152,9 +389,19 @@ public class VirtualArrays extends ViprResourceController {
      *            the virtual array form.
      */
     private static void edit(VirtualArrayForm virtualArray) {
+    	// Check edit of virtual array is called when guide is visible
+       	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
+       	String isGuideAdd = null;
+       	if (jobject != null && jobject.get(GUIDE_VISIBLE) != null) {
+       		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+       	}
+       	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
+       		renderArgs.put(GUIDE_VISIBLE, isGuideAdd);
+       	}
         Map<Boolean, String> autoSanZoningOptions = Maps.newHashMap();
         autoSanZoningOptions.put(Boolean.TRUE, Messages.get("virtualArray.autoSanZoning.true"));
         autoSanZoningOptions.put(Boolean.FALSE, Messages.get("virtualArray.autoSanZoning.false"));
+
         renderArgs.put("autoSanZoningOptions", autoSanZoningOptions);
         renderArgs.put("storageSystems", new VirtualArrayStorageSystemsDataTable());
         renderArgs.put("virtualPools", new VirtualArrayVirtualPoolsDataTable());
@@ -236,9 +483,17 @@ public class VirtualArrays extends ViprResourceController {
         render(dataTable);
     }
 
-    /**
-     * Lists the virtual arrays and renders the result using JSON.
-     */
+	/**
+	 * Add default virtual array for All flash VMAX
+	 */
+
+	public static void defaultvarray() {
+		render();
+	}
+
+	/**
+	 * Lists the virtual arrays and renders the result using JSON.
+	 */
     public static void listJson() {
         try {
             performListJson(VirtualArrayUtils.getVirtualArrays(), new JsonItemOperation());
@@ -696,6 +951,53 @@ public class VirtualArrays extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(items, params));
     }
 
+    public static void getConnectedStorage() {
+        List<VirtualArrayRestRep> virtualarrays = VirtualArrayUtils.getVirtualArrays();
+        Set<String> connectedstoragesystems = new HashSet<String>();
+        for (VirtualArrayRestRep virtualarray:virtualarrays) {
+            for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(virtualarray.getId().toString())) {
+                connectedstoragesystems.add(storageSystem.getId().toString());
+            }
+        }
+        renderJSON(connectedstoragesystems);
+    }
+
+    public static void getDisconnectedStorage(@As(",") String[] ids) {
+        Set<String> connectedstoragesystems = new HashSet<String>();
+        Set<String> disConnectedstoragesystems = new HashSet<String>();
+
+		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+		if (dataObject != null) {
+			JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+			if (varrays != null) {
+				for (Object virtualarray : varrays) {
+					JsonObject varrayobject = (JsonObject) virtualarray;
+					String varrayid = varrayobject.get("id").getAsString();
+                    VirtualArrayRestRep virtualArrayRestRep = VirtualArrayUtils.getVirtualArray(varrayid);
+                    if (virtualArrayRestRep == null || virtualArrayRestRep.getInactive()) {
+                        // ignore for now
+                        continue;
+                    }
+					for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(varrayid)) {
+						connectedstoragesystems.add(storageSystem.getId().toString());
+					}
+				}
+			}
+		}
+
+		for (String id : ids) {
+			StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
+			if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+				// ignore for now
+				continue;
+			}
+			if (!connectedstoragesystems.contains(id)) {
+				disConnectedstoragesystems.add(storageSystem.getName());
+			}
+		}
+		renderJSON(disConnectedstoragesystems);
+	}
+
     /**
      * Adds all ports of the given storage systems to the virtual array.
      * 
@@ -717,6 +1019,50 @@ public class VirtualArrays extends ViprResourceController {
         }
         edit(virtualArrayId);
     }
+
+	/**
+	 * Adds all ports of the given storage systems to the virtual array.
+	 * 
+	 * @param virtualArrayId
+	 *            the virtual array ID.
+	 * @param ids
+	 *            the storage system IDs.
+	 */
+	private static void addStorageSysVarray(String virtualArrayId, List<String> ids) {
+		List<URI> storagePorts = Lists.newArrayList();
+		for (URI storageSystemId : uris(ids)) {
+			List<StoragePortRestRep> ports = StoragePortUtils
+					.getStoragePortsByStorageSystem(storageSystemId);
+			storagePorts.addAll(ResourceUtils.ids(ports));
+		}
+        VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
+		if (!storagePorts.isEmpty()) {
+			updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
+		}
+        updateVarrayCookie(virtualArray.getId().toString(), virtualArray.getName() );
+		list();
+	}
+
+	/**
+	 * Adds all ports of the given storage systems to a virtual array.
+	 *
+	 * @param virtualArrayId
+	 *            the virtual array ID.
+	 * @param ids
+	 *            the storage system IDs.
+	 */
+	private static void addVarrayStorageSystem(String virtualArrayId, String id) {
+
+		List<URI> storagePorts = Lists.newArrayList();
+		URI storageSystemId = uri(id);
+		List<StoragePortRestRep> ports = StoragePortUtils.getStoragePortsByStorageSystem(storageSystemId);
+		storagePorts.addAll(ResourceUtils.ids(ports));
+
+		if (!storagePorts.isEmpty()) {
+			VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
+			updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
+		}
+	}
 
     /**
      * Gets the list of storage systems that may be associated to a virtual array.
@@ -767,6 +1113,7 @@ public class VirtualArrays extends ViprResourceController {
         public Boolean autoSanZoning = Boolean.TRUE;
         public Boolean enableTenants = Boolean.FALSE;
         public List<String> tenants = new ArrayList<String>();
+        public String defaultvarraytype;
 
         public boolean isNew() {
             return StringUtils.isBlank(id);

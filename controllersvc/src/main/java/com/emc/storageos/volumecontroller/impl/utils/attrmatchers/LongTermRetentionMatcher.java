@@ -4,16 +4,18 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
+import com.google.common.base.Joiner;
 
 /**
  * ActivePoolMatcher is responsible to check pool activeness, ready state
@@ -26,7 +28,8 @@ public class LongTermRetentionMatcher extends AttributeMatcher {
             .getLogger(LongTermRetentionMatcher.class);
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         Boolean retention = (Boolean) attributeMap.get(Attributes.long_term_retention_policy.toString());
         _logger.info("Long Term Retention Matcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
@@ -38,6 +41,11 @@ public class LongTermRetentionMatcher extends AttributeMatcher {
             }
         }
         _logger.info("Long Term Retention Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
+
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No matching stoarge pool with long term retention %s found. ", retention.toString()));
+            _logger.error(errorMessage.toString());
+        }
         return matchedPools;
     }
 

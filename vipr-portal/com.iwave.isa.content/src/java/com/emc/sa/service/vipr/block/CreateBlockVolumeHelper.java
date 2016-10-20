@@ -40,9 +40,9 @@ public class CreateBlockVolumeHelper {
     @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroup;
 
-    public List<URI> createVolumes() {
+    public List<URI> createVolumes(URI computeResource) {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
-                sizeInGb, count, consistencyGroup);
+                sizeInGb, count, consistencyGroup, computeResource);
         for (URI volumeId : volumeIds) {
             logInfo("create.block.volume.create.volume", volumeId);
         }

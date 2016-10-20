@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,24 +21,34 @@ import org.apache.commons.logging.LogFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
+import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -45,8 +57,11 @@ import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -55,15 +70,31 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
+import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
+import com.vmware.vim25.HostScsiDisk;
+import com.vmware.vim25.StorageIORMConfigSpec;
+import com.vmware.vim25.TaskInfo;
+import com.vmware.vim25.TaskInfoState;
+import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.HostSystem;
+import com.vmware.vim25.mo.StorageResourceManager;
+import com.vmware.vim25.mo.Task;
 
 public class ComputeSystemControllerImpl implements ComputeSystemController {
 
@@ -91,10 +122,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UPDATE_EXPORT_GROUP_STEP = "UpdateExportGroupStep";
     private static final String UPDATE_FILESHARE_EXPORT_STEP = "UpdateFileshareExportStep";
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
-    private static final String UPDATE_INITIATOR_CLUSTER_NAMES_STEP = "UpdateInitiatorClusterNamesStep";
+    private static final String UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP = "UpdateHostAndInitiatorClusterNamesStep";
+
+    private static final String VERIFY_DATASTORE_STEP = "VerifyDatastoreStep";
+
+    private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
+    private static final String MOUNT_AND_ATTACH_STEP = "MountAndAttachStep";
+
+    private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
+    private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+
+    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
+
+    private Map<String, HostMountAdapter> _mountAdapters;
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;
@@ -118,6 +161,38 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public void setBlockScheduler(BlockStorageScheduler blockScheduler) {
         _blockScheduler = blockScheduler;
+    }
+
+    public Map<String, HostMountAdapter> getMountAdapters() {
+        return _mountAdapters;
+    }
+
+    public void setMountAdapters(Map<String, HostMountAdapter> mountAdapters) {
+        this._mountAdapters = mountAdapters;
+    }
+
+    /**
+     * Empty rollback method
+     * 
+     * @return workflow method that is empty
+     */
+    private Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    /**
+     * A rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain. It says the rollback step succeeded,
+     * which will then allow other rollback operations to execute for other
+     * workflow steps executed by the other controller.
+     * 
+     * @param stepId
+     *            The id of the step being rolled back.
+     * 
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     @Override
@@ -199,21 +274,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Gets all export groups that contain references to the provided host or initiators
      * Export groups that don't contain initiators for a host may stil reference the host
      * 
-     * @param hostId the host id
-     * @param initiators list of initiators for the given host
+     * @param _dbClient2
+     * 
+     * @param hostId
+     *            the host id
+     * @param initiators
+     *            list of initiators for the given host
      * @return list of export groups containing references to the host or initiators
      */
-    protected List<ExportGroup> getExportGroups(URI hostId, List<Initiator> initiators) {
+    public static List<ExportGroup> getExportGroups(DbClient dbClient, URI hostId, List<Initiator> initiators) {
         HashMap<URI, ExportGroup> exports = new HashMap<URI, ExportGroup>();
         // Get all exports that use the host's initiators
         for (Initiator item : initiators) {
-            List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(_dbClient, item.getId().toString());
+            List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(dbClient, item.getId().toString());
             for (ExportGroup export : list) {
                 exports.put(export.getId(), export);
             }
         }
         // Get all exports that reference the host (may not contain host initiators)
-        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(dbClient, hostId.toString());
         for (ExportGroup export : hostExports) {
             exports.put(export.getId(), export);
         }
@@ -292,15 +371,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    @Override
     public void addInitiatorToExport(URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
         addInitiatorsToExport(hostId, uris, taskId);
     }
 
-    public void addInitiatorsToExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
+    @Override
+    public void addInitiatorsToExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(initiators, false, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -315,15 +396,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void removeInitiatorFromExport(URI hostId, URI initId, String taskId) throws ControllerException {
+    @Override
+    public void removeInitiatorFromExport(URI eventId, URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
-        removeInitiatorsFromExport(hostId, uris, taskId);
+        removeInitiatorsFromExport(eventId, hostId, uris, taskId);
     }
 
-    public void removeInitiatorsFromExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
+    @Override
+    public void removeInitiatorsFromExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(initiators, true, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, true, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -350,10 +433,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
             List<URI> exportGroups = Lists.newArrayList();
 
-            // 1. For hosts in this cluster, remove them from other shared exports that don't belong to this current cluster
+            // 1. For hosts in this cluster, remove them from other shared exports that don't belong to this current
+            // cluster
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
+                for (ExportGroup exportGroup : getExportGroups(_dbClient, hostId, hostInitiators)) {
                     if (exportGroup.forCluster() && !exportGroup.hasCluster(clusterId)) {
                         _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
                                 + ". Will remove this host from the export");
@@ -376,20 +460,28 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster) throws ControllerException {
+    @Override
+    public void addHostsToExport(URI eventId, List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new HostCompleter(hostIds, false, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            if (!NullColumnValueGetter.isNullURI(oldCluster)) {
-                waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster);
+            URI vCenterDataCenterId = NullColumnValueGetter.getNullURI();
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+            if (cluster != null && !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+                vCenterDataCenterId = cluster.getVcenterDataCenter();
             }
 
-            waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
+            if (!NullColumnValueGetter.isNullURI(oldCluster)) {
+                waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
+            }
 
-            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
+
+            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -400,16 +492,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, String taskId) throws ControllerException {
+    @Override
+    public void removeHostsFromExport(URI eventId, List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new HostCompleter(hostIds, false, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
 
-            waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
+                    vCenterDataCenterId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -420,6 +516,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipId, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -476,7 +573,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForRemoveInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> initiatorsURI) {
 
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorsURI);
-        List<ExportGroup> exportGroups = getExportGroups(hostId, initiators);
+        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
         for (ExportGroup export : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
@@ -502,15 +599,29 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
-        for (ExportGroup export : getSharedExports(clusterId)) {
-            waitFor = addStepsForRemoveHostFromExport(workflow, waitFor, hostIds, export.getId());
+    public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, URI vcenterDataCenter,
+            boolean isVcenter) {
+        List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
+        String newWaitFor = waitFor;
+        if (isVcenter && !NullColumnValueGetter.isNullURI(vcenterDataCenter)) {
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+            for (URI host : hostIds) {
+                hostExports.put(host, exportIds);
+            }
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
+
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
         }
-        return waitFor;
+        for (ExportGroup export : exportGroups) {
+            newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
+        }
+        return newWaitFor;
     }
 
     public String addStepsForRemoveHostFromExport(Workflow workflow, String waitFor, List<URI> hostIds, URI exportId) {
         ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
+        String newWaitFor = waitFor;
         if (export != null) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
@@ -526,15 +637,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
-            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                    String.format("Updating export group %s", export.getId()), waitFor,
-                    export.getId(), export.getId().toString(),
-                    this.getClass(),
-                    updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
-                    null, null);
+            if (updatedHosts.isEmpty()) {
+                newWaitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
+                        String.format("Deleting export group %s", export.getId()), newWaitFor,
+                        export.getId(), export.getId().toString(),
+                        this.getClass(),
+                        deleteExportGroupMethod(export.getId()),
+                        null, null);
+            } else {
+                newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                        String.format("Updating export group %s", export.getId()), newWaitFor,
+                        export.getId(), export.getId().toString(),
+                        this.getClass(),
+                        updateExportGroupMethod(export.getId(),
+                                updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
+                                updatedClusters, updatedHosts, updatedInitiators),
+                        null, null);
+            }
         }
-        return waitFor;
+        return newWaitFor;
     }
 
     /**
@@ -542,16 +663,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * - Add all hosts in the cluster that are not in the cluster's export groups
      * - Remove all hosts in cluster's export groups that don't belong to the cluster
      * 
-     * @param workflow the workflow
-     * @param waitFor waitfor step
-     * @param clusterHostIds hosts that belong to the cluster
-     * @param clusterId cluster id
+     * @param workflow
+     *            the workflow
+     * @param waitFor
+     *            waitfor step
+     * @param clusterHostIds
+     *            hosts that belong to the cluster
+     * @param clusterId
+     *            cluster id
      * @return
      */
     public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds,
             URI clusterId) {
 
-        for (ExportGroup export : getSharedExports(clusterId)) {
+        for (ExportGroup export : getSharedExports(_dbClient, clusterId)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
@@ -595,9 +720,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
+    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
-        for (ExportGroup eg : getSharedExports(clusterId)) {
+        List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
+
+        for (ExportGroup eg : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(eg.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(eg.getClusters());
@@ -629,16 +756,27 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             updatedClusters, updatedHosts, updatedInitiators),
                     null, null);
         }
+
+        if (isVcenter) {
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+            for (URI host : hostIds) {
+                hostExports.put(host, exportIds);
+            }
+            waitFor = this.attachAndMountVolumes(hostExports, waitFor, workflow);
+        }
+
         return waitFor;
     }
 
-    public String addStepForUpdatingInitiatorClusterName(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
+    public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId,
+            URI vCenterDataCenterId) {
         for (URI hostId : hostIds) {
-            waitFor = workflow.createStep(UPDATE_INITIATOR_CLUSTER_NAMES_STEP,
-                    String.format("Updating initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
+            waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
+                    String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
                     hostId, hostId.toString(),
                     this.getClass(),
-                    updateInitiatorClusterNameMethod(hostId, clusterId),
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId, vCenterDataCenterId),
                     null, null);
         }
         return waitFor;
@@ -696,8 +834,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 
-    protected List<ExportGroup> getSharedExports(URI clusterId) {
+    public static List<ExportGroup> getSharedExports(DbClient _dbClient, URI clusterId) {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+        if (cluster == null) {
+            return Lists.newArrayList();
+        }
         return CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, ExportGroup.class,
                 AlternateIdConstraint.Factory.getConstraint(
@@ -724,7 +865,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
-        for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
+        for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
@@ -768,14 +909,27 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
-            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) {
+            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) throws Exception {
         Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
         Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
         ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
         ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
-                newHosts, newInitiators, stepId);
+
+        try {
+            if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
+                throw new Exception("Export group is being updated by another operation");
+            }
+            exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+            _dbClient.updateObject(exportGroupObject);
+
+            _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                    stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+            blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
+                    newHosts, newInitiators, stepId);
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
@@ -806,12 +960,350 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         waitForAsyncFileExportTask(fileShareId, stepId);
     }
 
+    /**
+     * Creates a workflow method to attach disks and mount datastores on a host for all volumes in a given export group
+     * 
+     * @param exportGroup
+     *            export group that contains volumes
+     * @param hostId
+     *            host to attach and mount to
+     * @param vcenter
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @return workflow method for attaching and mounting disks and datastores
+     */
+    public Workflow.Method attachAndMountMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("attachAndMount", exportGroup, hostId, vcenter, vcenterDatacenter);
+    }
+
+    /**
+     * Creates a workflow method to unmount datastores and detach disks from a host for all volumes in a given export
+     * group
+     * 
+     * @param exportGroup
+     *            export group that contains volumes
+     * @param hostId
+     *            host to unmount and detach from
+     * @param vcenter
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @return workflow method for unmounting and detaching disks and datastores
+     */
+    public Workflow.Method unmountAndDetachMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("unmountAndDetach", exportGroup, hostId, vcenter, vcenterDatacenter);
+    }
+
+    /**
+     * Attaches and mounts every disk and datastore associated with the volumes in the export group.
+     * For each volume in the export group, the associated disk is attached to the host and any datastores backed by the
+     * volume are mounted
+     * to the host.
+     * 
+     * @param exportGroupId
+     *            export group that contains volumes
+     * @param hostId
+     *            host to attach and mount to
+     * @param vcenterId
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @param stepId
+     *            the id of the workflow step
+     */
+    public void attachAndMount(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+            HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
+                _log.info("Refreshing storage");
+                storageAPI.refreshStorage();
+                for (String volume : exportGroup.getVolumes().keySet()) {
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    try {
+                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
+                                storageAPI.attachScsiLun(entry);
+                            }
+                        }
+                    } catch (VMWareException ex) {
+                        _log.warn(ex.getMessage(), ex);
+                    }
+
+                    storageAPI.getStorageSystem().rescanVmfs();
+
+                    if (blockObject != null && blockObject.getTag() != null) {
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                                String datastoreName = getDatastoreName(tagValue);
+                                try {
+                                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                    if (datastore != null) {
+                                        _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                                        storageAPI.mountDatastore(datastore);
+                                    }
+                                } catch (VMWareException ex) {
+                                    _log.warn(ex.getMessage(), ex);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
+    }
+
+    /**
+     * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
+     * virtual machines.
+     * 
+     * @param exportGroup
+     *            export group that contains volumes
+     * @param vcenter
+     *            vcenter that the datastore belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the datastore belongs to
+     * @return workflow method for unmounting and detaching disks and datastores
+     */
+    public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("verifyDatastore", exportGroup, vcenter, vcenterDatacenter);
+    }
+
+    /**
+     * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
+     * virtual machines.
+     * 
+     * @param exportGroupId
+     *            export group that contains volumes
+     * @param vcenterId
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @param stepId
+     *            the id of the workflow step
+     */
+    public void verifyDatastore(URI exportGroupId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
+                for (String volume : exportGroup.getVolumes().keySet()) {
+
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    if (blockObject != null && blockObject.getTag() != null) {
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                                String datastoreName = getDatastoreName(tagValue);
+                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                if (datastore != null) {
+                                    ComputeSystemHelper.verifyDatastore(datastore, api);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
+    }
+
+    /**
+     * Unmounts and detaches every datastore and disk associated with the volumes in the export group.
+     * For each volume in the export group, the backed datastore is unmounted and the associated disk is detached from
+     * the host.
+     * 
+     * @param exportGroupId
+     *            export group that contains volumes
+     * @param hostId
+     *            host to attach and mount to
+     * @param vcenterId
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @param stepId
+     *            the id of the workflow step
+     */
+    public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+            HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
+                for (String volume : exportGroup.getVolumes().keySet()) {
+
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    if (blockObject != null && blockObject.getTag() != null) {
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                                String datastoreName = getDatastoreName(tagValue);
+
+                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                if (datastore != null) {
+                                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                    if (storageIOControlEnabled) {
+                                        setStorageIOControl(api, datastore, false);
+                                    }
+                                    _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                    storageAPI.unmountVmfsDatastore(datastore);
+                                    if (storageIOControlEnabled) {
+                                        setStorageIOControl(api, datastore, true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                            _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                            storageAPI.detachScsiLun(entry);
+                        }
+                    }
+                    storageAPI.refreshStorage();
+
+                }
+            }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
+    }
+
+    /**
+     * Sets the Storage I/O control on a datastore
+     * 
+     * @param vcenter
+     *            vcenter API for the vcenter
+     * @param datastore
+     *            the datastore to set storage I/O control
+     * @param enabled
+     *            if true, enables storage I/O control, otherwise disables storage I/O control
+     */
+    public void setStorageIOControl(VCenterAPI vcenter, Datastore datastore, boolean enabled) {
+        StorageResourceManager manager = vcenter.getStorageResourceManager();
+        StorageIORMConfigSpec spec = new StorageIORMConfigSpec();
+        spec.setEnabled(enabled);
+
+        Task task = null;
+        try {
+            _log.info("Setting Storage I/O to " + enabled + " on datastore " + datastore.getName());
+            task = manager.configureDatastoreIORM_Task(datastore, spec);
+            boolean cancel = false;
+            long maxTime = System.currentTimeMillis() + (60 * 1000);
+            while (!isComplete(task)) {
+                Thread.sleep(5000);
+
+                if (System.currentTimeMillis() > maxTime) {
+                    cancel = true;
+                    break;
+                }
+            }
+
+            if (cancel) {
+                cancelTask(task);
+            }
+        } catch (Exception e) {
+            _log.error("Error setting storage i/o control");
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            cancelTaskNoException(task);
+        }
+    }
+
+    /**
+     * Cancels the VMWare Task without throwing an exception
+     * 
+     * @param task
+     *            the task to cancel
+     */
+    public void cancelTaskNoException(Task task) {
+        try {
+            cancelTask(task);
+        } catch (Exception e) {
+            _log.error("Error when cancelling VMware task");
+        }
+    }
+
+    /**
+     * Cancels a VMWare task
+     * 
+     * @param task
+     *            the task to cancel
+     * @throws Exception
+     *             if an error occurs during task cancellation
+     */
+    public void cancelTask(Task task) throws Exception {
+        if (task == null || task.getTaskInfo() == null) {
+            _log.warn("VMware task is null or has no task info. Unable to cancel it.");
+        } else {
+            TaskInfoState state = task.getTaskInfo().getState();
+            if (state == TaskInfoState.queued || state == TaskInfoState.running) {
+                task.cancelTask();
+            }
+        }
+    }
+
+    /**
+     * Checks if the VMWare task has completed
+     * 
+     * @param task
+     *            the task to check
+     * @return true if the task has completed, otherwise returns false
+     * @throws Exception
+     *             if an error occurs while monitoring the task
+     */
+    private boolean isComplete(Task task) throws Exception {
+        TaskInfo info = task.getTaskInfo();
+        TaskInfoState state = info.getState();
+        if (state == TaskInfoState.success) {
+            return true;
+        } else if (state == TaskInfoState.error) {
+            return true;
+        }
+        return false;
+    }
+
     public Workflow.Method deleteExportGroupMethod(URI exportGroupURI) {
         return new Workflow.Method("deleteExportGroup", exportGroupURI);
     }
 
     public void deleteExportGroup(URI exportGroup, String stepId) {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
+        _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
         blockController.exportGroupDelete(exportGroup, stepId);
     }
 
@@ -891,13 +1383,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public Workflow.Method updateInitiatorClusterNameMethod(URI hostId, URI clusterId) {
-        return new Workflow.Method("updateInitiatorClusterName", hostId, clusterId);
+    public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId, URI vCenterDataCenterId) {
+        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId, vCenterDataCenterId);
     }
 
-    public void updateInitiatorClusterName(URI hostId, URI clusterId, String stepId) {
+    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
-        ComputeSystemHelper.updateInitiatorClusterName(_dbClient, clusterId, hostId);
+        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
+        ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
@@ -905,8 +1398,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Waits for the file export or unexport task to complete.
      * This is required because FileDeviceController does not use a workflow.
      * 
-     * @param fileShareId id of the FileShare being exported
-     * @param stepId id of the workflow step
+     * @param fileShareId
+     *            id of the FileShare being exported
+     * @param stepId
+     *            id of the workflow step
      */
     private void waitForAsyncFileExportTask(URI fileShareId, String stepId) {
         boolean done = false;
@@ -939,182 +1434,144 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, String taskId)
-            throws ControllerException {
-        TaskCompleter completer = null;
-        try {
+    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
+            String taskId) {
+        // Host changes are processed using AbstractDiscoveryAdapter
+    }
 
-            Iterator<URI> it = deletedHosts.iterator();
-            while (it.hasNext()) {
-                URI deletedHost = it.next();
-                Host host = _dbClient.queryObject(Host.class, deletedHost);
-                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-                    if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.getAutoExportEnabled()) {
-                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
-                                host.getId(),
-                                cluster.getId()));
-                        it.remove();
+    /**
+     * Creates workflow steps for unmounting datastores and detaching disks
+     * 
+     * @param vCenterHostExportMap
+     *            the map of hosts and export groups to operate on
+     * @param waitFor
+     *            the step to wait on for this workflow step
+     * @param workflow
+     *            the workflow to create the step
+     * @return the step id
+     */
+    private String unmountAndDetachVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
+        if (vCenterHostExportMap == null) {
+            return waitFor;
+        }
+        for (URI hostId : vCenterHostExportMap.keySet()) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                if (vcenterDataCenter != null) {
+                    URI vCenterId = vcenterDataCenter.getVcenter();
+
+                    for (URI export : vCenterHostExportMap.get(hostId)) {
+                        waitFor = workflow.createStep(UNMOUNT_AND_DETACH_STEP,
+                                String.format("Unmounting and detaching volumes from export group %s", export), waitFor,
+                                export, export.toString(),
+                                this.getClass(),
+                                unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
+                                        vcenterDataCenter.getId()),
+                                rollbackMethodNullMethod(), null);
                     }
                 }
             }
+        }
+        return waitFor;
+    }
 
-            completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
-            String waitFor = null;
+    /**
+     * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
+     * virtual machines.
+     * 
+     * @param vCenterHostExportMap
+     *            the map of hosts and export groups to operate on
+     * @param virtualDataCenter
+     *            the datacenter that the hosts belong to
+     * @param waitFor
+     *            the step to wait on for this workflow step
+     * @param workflow
+     *            the workflow to create the step
+     * @return the step id
+     */
+    private String verifyDatastoreForRemoval(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
+        if (vCenterHostExportMap == null) {
+            return waitFor;
+        }
+        String wait = waitFor;
+        for (URI hostId : vCenterHostExportMap.keySet()) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                if (vcenterDataCenter != null) {
+                    URI vCenterId = vcenterDataCenter.getVcenter();
 
-            Map<URI, ExportGroupState> exportGroups = Maps.newHashMap();
-            _log.info("There are " + changes.size() + " changes");
-
-            for (HostStateChange change : changes) {
-
-                _log.info("HostChange: " + change);
-
-                URI hostId = change.getHost().getId();
-                URI currentCluster = change.getHost().getCluster();
-                URI oldCluster = change.getOldCluster();
-
-                Cluster oldClusterRef = !NullColumnValueGetter.isNullURI(oldCluster) ? _dbClient.queryObject(Cluster.class, oldCluster)
-                        : null;
-                Cluster currentClusterRef = !NullColumnValueGetter.isNullURI(currentCluster) ? _dbClient.queryObject(Cluster.class,
-                        currentCluster) : null;
-
-                // For every host change (added/removed initiator, cluster change), get all exports that this host currently belongs to
-                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
-                List<Initiator> newInitiatorObjects = _dbClient.queryObject(Initiator.class, change.getNewInitiators());
-
-                // only update initiators if any of them have changed for this host
-                if (!change.getNewInitiators().isEmpty() || !change.getOldInitiators().isEmpty()) {
-                    for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        _log.info("Detected new/removed initiators for export " + export.getId() + " Change: " + change);
-                        List<Initiator> validInitiators = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
-                                newInitiatorObjects);
-                        Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
-                                CommonTransformerFunctions.fctnDataObjectToID());
-                        if (currentClusterRef == null || currentClusterRef.getAutoExportEnabled()) {
-                            egh.addInitiators(validInitiatorIds);
-                            egh.removeInitiators(change.getOldInitiators());
-                        } else {
-                            // prevent old initiators from being deleted by completer
-                            change.getOldInitiators().clear();
-                        }
-                    }
-                }
-
-                // check for any cluster changes
-                boolean isRemovedFromCluster = !NullColumnValueGetter.isNullURI(oldCluster)
-                        && NullColumnValueGetter.isNullURI(currentCluster)
-                        && ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster);
-
-                // being removed from a cluster and no longer in a cluster
-                if (isRemovedFromCluster && oldClusterRef.getAutoExportEnabled()) {
-                    for (ExportGroup export : getSharedExports(oldCluster)) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        _log.info("Host removed from cluster and no longer in a cluster. Export: " + export.getId() + " Remove Host: "
-                                + hostId + " Remove initiators: " + hostInitiatorIds);
-                        egh.removeHost(hostId);
-                        egh.removeInitiators(hostInitiatorIds);
-                    }
-                } else {
-
-                    boolean isAddedToCluster = NullColumnValueGetter.isNullURI(oldCluster)
-                            && !NullColumnValueGetter.isNullURI(currentCluster)
-                            && ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster);
-
-                    boolean isMovedToDifferentCluster = !NullColumnValueGetter.isNullURI(oldCluster)
-                            && !NullColumnValueGetter.isNullURI(currentCluster)
-                            && !oldCluster.equals(currentCluster)
-                            && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
-
-                    if ((isAddedToCluster && currentClusterRef.getAutoExportEnabled())
-                            || (isMovedToDifferentCluster && (currentClusterRef.getAutoExportEnabled() || oldClusterRef
-                                    .getAutoExportEnabled()))) {
-                        for (ExportGroup export : getSharedExports(currentCluster)) {
-                            ExportGroupState egh = getExportGroupState(exportGroups, export);
-                            _log.info("Non-clustered being added to a cluster. Export: " + export.getId() + " Add Host: " + hostId
-                                    + " Add initiators: " + hostInitiatorIds);
-                            List<Initiator> validInitiators = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
-                                    hostInitiators);
-                            Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
-                                    CommonTransformerFunctions.fctnDataObjectToID());
-                            egh.addHost(hostId);
-                            egh.addInitiators(validInitiatorIds);
-                        }
-                    }
-
-                    if (isMovedToDifferentCluster && (oldClusterRef.getAutoExportEnabled() || currentClusterRef.getAutoExportEnabled())) {
-                        for (ExportGroup export : getSharedExports(oldCluster)) {
-                            ExportGroupState egh = getExportGroupState(exportGroups, export);
-                            _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId
-                                    + " Remove initiators: " + hostInitiatorIds);
-                            egh.removeHost(hostId);
-                            egh.removeInitiators(hostInitiatorIds);
-                        }
+                    for (URI export : vCenterHostExportMap.get(hostId)) {
+                        wait = workflow.createStep(VERIFY_DATASTORE_STEP,
+                                String.format("Verifying datastores for removal from export %s", export), wait,
+                                export, export.toString(),
+                                this.getClass(),
+                                verifyDatastoreMethod(export, vCenterId,
+                                        vcenterDataCenter.getId()),
+                                rollbackMethodNullMethod(), null);
                     }
                 }
             }
+        }
+        return wait;
+    }
 
-            _log.info("Number of deleted hosts: " + deletedHosts.size());
+    /**
+     * Creates workflow steps for attaching disks and mounting datastores
+     * 
+     * @param vCenterHostExportMap
+     *            the map of hosts and export groups to operate on
+     * @param waitFor
+     *            the step to wait on for this workflow step
+     * @param workflow
+     *            the workflow to create the step
+     * @return the step id
+     */
+    private String attachAndMountVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
+        if (vCenterHostExportMap == null) {
+            return waitFor;
+        }
 
-            for (URI hostId : deletedHosts) {
+        for (URI hostId : vCenterHostExportMap.keySet()) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                URI virtualDataCenter = esxHost.getVcenterDataCenter();
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                URI vCenterId = vcenterDataCenter.getVcenter();
 
-                Host host = _dbClient.queryObject(Host.class, hostId);
-                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
-                Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
-
-                for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                    // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
-                    boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
-                            && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
-                            && export.hasBlockObject(host.getBootVolumeId());
-                    if (!isBootVolumeExport) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        egh.removeHost(host.getId());
-                        egh.removeInitiators(hostInitiatorIds);
-                    }
-                }
-
-            }
-
-            _log.info("Number of deleted clusters: " + deletedClusters.size());
-
-            for (URI clusterId : deletedClusters) {
-                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
-                if (!cluster.getAutoExportEnabled()) {
-                    _log.info("Cluster " + clusterId + " can not be deleted because it has auto exports disabled");
-                } else {
-                    // the cluster's hosts will already be processed as deletedHosts
-                    List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
-                    for (ExportGroup export : clusterExportGroups) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        egh.removeCluster(clusterId);
-                    }
-                }
-            }
-
-            _log.info("Number of ExportGroupStates: " + exportGroups.size());
-
-            // Generate export removes first and then export adds
-            for (ExportGroupState export : exportGroups.values()) {
-                if (export.hasRemoves()) {
-                    waitFor = generateSteps(export, waitFor, workflow, false);
+                for (URI export : vCenterHostExportMap.get(hostId)) {
+                    waitFor = workflow.createStep(MOUNT_AND_ATTACH_STEP,
+                            String.format("Mounting and attaching volumes from export group %s", export), waitFor,
+                            export, export.toString(),
+                            this.getClass(),
+                            attachAndMountMethod(export, esxHost.getId(), vCenterId,
+                                    vcenterDataCenter.getId()),
+                            rollbackMethodNullMethod(), null);
                 }
             }
-            for (ExportGroupState export : exportGroups.values()) {
-                if (export.hasAdds()) {
-                    waitFor = generateSteps(export, waitFor, workflow, true);
-                }
-            }
+        }
+        return waitFor;
+    }
 
-            workflow.executePlan(completer, "Success", null, null, null, null);
-        } catch (Exception ex) {
-            String message = "processHostChanges caught an exception.";
-            _log.error(message, ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            completer.error(_dbClient, serviceError);
+    /**
+     * Adds the host and export to a map of host -> list of export groups
+     * 
+     * @param vCenterHostExportMap
+     *            the map to add the host and export
+     * @param hostId
+     *            the host id
+     * @param export
+     *            the export group id
+     */
+    private void addVcenterHost(Map<URI, Collection<URI>> vCenterHostExportMap, URI hostId, URI export) {
+        if (vCenterHostExportMap != null) {
+            if (!vCenterHostExportMap.containsKey(hostId)) {
+                vCenterHostExportMap.put(hostId, Lists.newArrayList());
+            }
+            vCenterHostExportMap.get(hostId).add(export);
         }
     }
 
@@ -1156,6 +1613,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    /**
+     * Gets the datastore name from the tag supplied by the volume
+     * 
+     * @param tag
+     *            the volume tag
+     * @return the datastore name
+     */
+    public static String getDatastoreName(String tag) {
+        if (tag != null) {
+            Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
+            if (matcher.matches()) {
+                return matcher.group(2);
+            }
+        }
+        return null;
+    }
+
     @Override
     public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException {
         Host host = _dbClient.queryObject(Host.class, hostId);
@@ -1167,5 +1641,383 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         .setSanBootTarget(computeElement.getComputeSystem(), computeElement.getId(), hostId, volumeId, false);
             }
         }
+    }
+
+    public String addStepsForMountDevice(Workflow workflow, HostDeviceInputOutput args) {
+        String waitFor = null; // the wait for key returned by previous call
+        _log.info("Generating steps for mounting device");
+        // create a step
+        String hostname = _dbClient.queryObject(Host.class, args.getHostId()).getHostName();
+        String hostType = getHostType(args.getHostId());
+        waitFor = workflow.createStep(null,
+                String.format("Verifying mount point: %s for host: %s", args.getMountPath(), hostname),
+                null, args.getHostId(),
+                hostType,
+                this.getClass(),
+                verifyMountPointMethod(args),
+                rollbackMethodNullMethod(), null);
+
+        waitFor = workflow.createStep(null,
+                String.format("Creating Directory: %s for host: %s", args.getMountPath(), hostname),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                createDirectoryMethod(args),
+                createDirectoryRollBackMethod(args), null);
+
+        waitFor = workflow.createStep(null,
+                String.format("Adding to etc/fstab:%n%s for host: %s", args.getMountPath(), hostname),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                addtoFSTabMethod(args),
+                removeFromFSTabMethod(args), null);
+
+        waitFor = workflow.createStep(null,
+                String.format("Mounting device:%n%s for host: %s", args.getResId(), hostname),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                mountDeviceMethod(args),
+                unmountDeviceMethod(args), null);
+        return waitFor;
+    }
+
+    public String addStepsForUnmountDevice(Workflow workflow, HostDeviceInputOutput args) {
+        String waitFor = null; // the wait for key returned by previous call
+        FileMountInfo fsMount = getMountInfo(args.getHostId(), args.getMountPath(), args.getResId());
+        args.setFsType(fsMount.getFsType());
+        args.setSecurity(fsMount.getSecurityType());
+        args.setSubDirectory(fsMount.getSubDirectory());
+        _log.info("Generating steps for mounting device");
+        // create a step
+        String hostname = _dbClient.queryObject(Host.class, args.getHostId()).getHostName();
+        String hostType = getHostType(args.getHostId());
+        waitFor = workflow.createStep(null,
+                String.format("Unmounting device: %s for host: %s", args.getMountPath(), hostname),
+                null, args.getHostId(),
+                hostType,
+                this.getClass(),
+                unmountDeviceMethod(args),
+                unmountRollBackMethod(args), null);
+
+        waitFor = workflow.createStep(null,
+                String.format("removing from etc/fstab:%n%s for host: %s", args.getMountPath(), hostname),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                removeFromFSTabMethod(args),
+                removeFromFSTabRollBackMethod(args), null);
+
+        waitFor = workflow.createStep(null,
+                String.format("Delete Directory:%n%s for host: %s", args.getMountPath(), hostname),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                deleteDirectoryMethod(args),
+                createDirectoryMethod(args), null);
+        return waitFor;
+    }
+
+    public void createDirectory(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.createDirectory(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.addToFSTab(hostId, mountPath, resId, subDirectory, security, fsType);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void mount(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        mountDir(resId, hostId, mountPath, subDir, security, fsType, stepId);
+        createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
+    }
+
+    public void verifyMountPoint(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.verifyMountPoint(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void deleteDirectory(URI resId, URI hostId, String mountPath, String stepId) {
+        deleteDir(resId, hostId, mountPath, stepId);
+        removeMountDBEntry(resId, hostId, mountPath);
+    }
+
+    public void removeFromFSTab(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.removeFromFSTab(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void unmount(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.unmountDevice(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public FileMountInfo getMountInfo(URI hostId, String mountPath, URI resId) {
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(resId);
+        List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                containmentConstraint);
+
+        if (fsDBMounts != null && !fsDBMounts.isEmpty()) {
+            for (FileMountInfo dbMount : fsDBMounts) {
+                if (dbMount.getHostId().toString().equalsIgnoreCase(hostId.toString())
+                        && dbMount.getMountPath().equalsIgnoreCase(mountPath)) {
+                    _log.debug("Found DB entry with mountpath {} " + mountPath);
+                    return dbMount;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            FileMountInfo fsMount = getMountInfo(hostId, mountPath, resId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.addToFSTab(hostId, mountPath, resId, fsMount.getSubDirectory(), fsMount.getSecurityType(), "auto");
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void deleteDir(URI resId, URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.deleteDirectory(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void unmountRollBack(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        mountDir(resId, hostId, mountPath, subDir, security, fsType, stepId);
+    }
+
+    public void mountDir(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.mountDevice(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void createDirectoryRollBack(URI resId, URI hostId, String mountPath, String stepId) {
+        deleteDir(resId, hostId, mountPath, stepId);
+    }
+
+    public Method createDirectoryMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("createDirectory", args.getHostId(), args.getMountPath());
+    }
+
+    public Method addtoFSTabMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("addToFSTab", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    public Method mountDeviceMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("mount", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    public Method verifyMountPointMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("verifyMountPoint", args.getHostId(), args.getMountPath());
+    }
+
+    public Method unmountDeviceMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("unmount", args.getHostId(), args.getMountPath());
+    }
+
+    public Method removeFromFSTabMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeFromFSTab", args.getHostId(), args.getMountPath());
+    }
+
+    public Method removeFromFSTabRollBackMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeFromFSTabRollBack", args.getHostId(), args.getMountPath(), args.getResId());
+    }
+
+    public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("deleteDirectory", args.getResId(), args.getHostId(), args.getMountPath());
+    }
+
+    public Method createDirectoryRollBackMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("createDirectoryRollBack", args.getResId(), args.getHostId(), args.getMountPath());
+    }
+
+    public Method unmountRollBackMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("unmountRollBack", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    /**
+     * Get the deviceType for a StorageSystem.
+     * 
+     * @param deviceURI
+     *            -- StorageSystem URI
+     * @return deviceType String
+     */
+    public String getHostType(URI hostURI) throws ControllerException {
+        Host host = _dbClient.queryObject(Host.class, hostURI);
+        if (host == null) {
+            throw DeviceControllerException.exceptions.getDeviceTypeFailed(hostURI.toString());
+        }
+        return host.getType();
+    }
+
+    private void createMountDBEntry(URI resId, URI hostId, String mountPath, String subDir,
+            String security, String fsType) {
+        FileMountInfo fsMount = new FileMountInfo();
+        fsMount.setId(URIUtil.createId(FileMountInfo.class));
+        fsMount.setFsId(resId);
+        fsMount.setFsType(fsType);
+        fsMount.setHostId(hostId);
+        fsMount.setMountPath(mountPath);
+        fsMount.setSecurityType(security);
+        fsMount.setSubDirectory(subDir);
+        _log.debug("Storing New DB Mount Info {}" + fsMount);
+        _dbClient.createObject(fsMount);
+
+    }
+
+    private void removeMountDBEntry(URI resId, URI hostId, String mountPath) {
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(resId);
+        List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                containmentConstraint);
+        if (fsDBMounts != null && !fsDBMounts.isEmpty()) {
+            for (FileMountInfo dbMount : fsDBMounts) {
+                if (dbMount.getHostId().toString().equalsIgnoreCase(hostId.toString())
+                        && dbMount.getMountPath().equalsIgnoreCase(mountPath)) {
+                    _log.debug("Found DB entry with mountpath {} " + mountPath);
+                    // Deactivate the entry!!
+                    dbMount.setInactive(true);
+                    _dbClient.updateObject(dbMount);
+
+                }
+            }
+        }
+    }
+
+    @Override
+    public void addInitiatorsToExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        addInitiatorsToExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+    }
+
+    @Override
+    public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException {
+        removeInitiatorFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        removeInitiatorsFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException {
+        addHostsToExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, taskId, oldCluster, isVcenter);
+
+    }
+
+    @Override
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
+            throws ControllerException {
+        removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
+
     }
 }

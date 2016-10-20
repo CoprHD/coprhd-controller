@@ -23,12 +23,12 @@ public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
 
     private static final Logger _log = LoggerFactory.getLogger(MirrorFilePauseTaskCompleter.class);
 
-    public MirrorFilePauseTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFilePauseTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
     }
 
-    public MirrorFilePauseTaskCompleter(Class clazz, URI id, String opId) {
-        super(clazz, id, opId);
+    public MirrorFilePauseTaskCompleter(Class clazz, URI id, String opId, URI storageUri) {
+        super(clazz, id, opId, storageUri);
     }
 
     public MirrorFilePauseTaskCompleter(URI sourceURI, URI targetURI, String opId) {
@@ -51,9 +51,13 @@ public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        this.mirrorSyncStatus = MirrorStatus.PAUSED;
-        return mirrorSyncStatus;
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        if(fs.getStorageDevice().equals(getStorageUri())) {
+            return MirrorStatus.PAUSED.name();
+        } else {
+            return fs.getMirrorStatus();
+        }
+
     }
 
 }

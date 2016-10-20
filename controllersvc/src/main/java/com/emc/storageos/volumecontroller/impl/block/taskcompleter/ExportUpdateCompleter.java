@@ -15,11 +15,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
 /**
@@ -91,21 +93,37 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 case ready:
                     operation.ready();
                     break;
+                case suspended_no_error:
+                    operation.suspendedNoError();
+                    break;
+                case suspended_error:
+                    operation.suspendedError(coded);
+                    break;
                 default:
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             // update the export group data if the job completes successfully
             if (status.equals(Operation.Status.ready)) {
-                updateExportGroup(exportGroup);
+                updateExportGroup(exportGroup, dbClient);
             }
-            dbClient.persistObject(exportGroup);
+            if (exportGroup != null && exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
+                _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
+                exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+            }
+            dbClient.updateObject(exportGroup);
+            
+            ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
+
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
+            
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -124,11 +142,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      * Update the export group data.
      * 
      * @param exportGroup the export group to be updated.
+     * @param dbClient {@link DbClient}
      */
-    private void updateExportGroup(ExportGroup exportGroup) {
-        // TODO
-        // Consider removing clusters when all their hosts are removed
-        // and removing hosts when all their initiators are removed.
+    private void updateExportGroup(ExportGroup exportGroup, DbClient dbClient) {
         if (_addedInitiators != null) {
             exportGroup.addInitiators(_addedInitiators);
         }
@@ -161,4 +177,5 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
     }
+
 }

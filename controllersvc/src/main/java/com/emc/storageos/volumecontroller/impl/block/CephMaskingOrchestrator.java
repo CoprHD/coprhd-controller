@@ -55,7 +55,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 // Set up working flow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token, taskCompleter);
 
                 // Create a mapping of ExportMasks to Add Volumes to or
                 // add to a list of new Exports to create
@@ -73,8 +73,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     }
                 }
 
-                Map<String, List<URI>> computeResourceToInitiators =
-                        mapInitiatorsToComputeResource(exportGroup, newInitiators);
+                Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, newInitiators);
                 _log.info(String.format("Need to create ExportMasks for these compute resources %s",
                         Joiner.on(',').join(computeResourceToInitiators.entrySet())));
                 // ExportMask that need to be newly create. That is, the initiators in
@@ -92,7 +91,8 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // concept ExportMasks.
                 for (Map.Entry<URI, Map<URI, Integer>> toAddVolumes : exportMaskToVolumesToAdd.entrySet()) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, toAddVolumes.getKey());
-                    generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue());
+                    generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue(),
+                            null);
                 }
 
                 String successMessage = String.format(
@@ -119,19 +119,19 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
             if (masks != null && !masks.isEmpty()) {
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true, token, taskCompleter);
 
                 Map<URI, Integer> volumeMap = ExportUtils.getExportGroupVolumeMap(_dbClient, storage, exportGroup);
                 List<URI> volumeURIs = new ArrayList<>(volumeMap.keySet());
                 List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-                Map<URI, Map<URI, Integer>> exportMaskToVolumeCount =
-                        ExportMaskUtils.mapExportMaskToVolumeShareCount(_dbClient, volumeURIs, initiatorURIs);
+                Map<URI, Map<URI, Integer>> exportMaskToVolumeCount = ExportMaskUtils.mapExportMaskToVolumeShareCount(_dbClient, volumeURIs,
+                        initiatorURIs);
 
                 for (ExportMask exportMask : masks) {
                     List<URI> exportGroupURIs = new ArrayList<>();
                     if (!ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), exportGroupURIs)) {
                         _log.info(String.format("Adding step to delete ExportMask %s", exportMask.getMaskName()));
-                        generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null);
+                        generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null, null, taskCompleter);
                     } else {
                         Map<URI, Integer> volumeToExportGroupCount = exportMaskToVolumeCount.get(exportMask.getId());
                         List<URI> volumesToRemove = new ArrayList<>();
@@ -149,7 +149,8 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         if (!volumesToRemove.isEmpty()) {
                             _log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
                                     Joiner.on(',').join(volumesToRemove), exportMask.getMaskName()));
-                            generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToRemove, null);
+                            generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToRemove,
+                                    null, taskCompleter);
                         }
                     }
                 }
@@ -179,7 +180,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true, token, taskCompleter);
 
                 // Create a mapping of ExportMasks to Add Volumes to or
                 // add to a list of new Exports to create
@@ -214,7 +215,8 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             exportMaskToVolumesToAdd.entrySet()));
                     for (Map.Entry<URI, Map<URI, Integer>> toAddVolumes : exportMaskToVolumesToAdd.entrySet()) {
                         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, toAddVolumes.getKey());
-                        generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue());
+                        generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue(),
+                                null);
                     }
                 }
 
@@ -224,12 +226,10 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 taskCompleter.ready(_dbClient);
             }
         } catch (DeviceControllerException dex) {
-            taskCompleter.error(_dbClient, DeviceControllerErrors.ceph.
-            		operationFailed("exportGroupAddVolumes", dex.getMessage()));
+            taskCompleter.error(_dbClient, DeviceControllerErrors.ceph.operationFailed("exportGroupAddVolumes", dex.getMessage()));
         } catch (Exception ex) {
             _log.error("ExportGroup Orchestration failed.", ex);
-            taskCompleter.error(_dbClient, DeviceControllerErrors.ceph.
-            		operationFailed("exportGroupAddVolumes", ex.getMessage()));
+            taskCompleter.error(_dbClient, DeviceControllerErrors.ceph.operationFailed("exportGroupAddVolumes", ex.getMessage()));
         }
     }
 
@@ -244,13 +244,13 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (masks != null && !masks.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true, token, taskCompleter);
 
                 // Generate a mapping of volume URIs to the # of
                 // ExportGroups that it is associated with
                 List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-                Map<URI, Map<URI, Integer>> exportMaskToVolumeCount =
-                        ExportMaskUtils.mapExportMaskToVolumeShareCount(_dbClient, volumeURIs, initiatorURIs);
+                Map<URI, Map<URI, Integer>> exportMaskToVolumeCount = ExportMaskUtils.mapExportMaskToVolumeShareCount(_dbClient, volumeURIs,
+                        initiatorURIs);
 
                 // Generate a mapping of the ExportMask URI to a list volumes to
                 // remove from that ExportMask
@@ -280,7 +280,8 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, entry.getKey());
                     _log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
                             Joiner.on(',').join(entry.getValue()), exportMask.getMaskName()));
-                    generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, entry.getValue(), null);
+                    generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, entry.getValue(), null,
+                            taskCompleter);
                 }
 
                 String successMsgTemplate = "ExportGroup remove volumes successfully applied for StorageArray %s";
@@ -305,7 +306,8 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 // Set up workflow steps.
-                Workflow workflow = _workflowService.getNewWorkflow(MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
+                Workflow workflow = _workflowService.getNewWorkflow(MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators",
+                        true, token, taskCompleter);
 
                 // Populate the portNames and the mapping of the portNames to Initiator URIs
                 Map<String, URI> portNameToInitiatorURI = new HashMap<>();
@@ -316,9 +318,9 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<URI> initiatorURIsToPlace = new ArrayList<>(initiatorURIs);
                 Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
                 Set<URI> partialMasks = new HashSet<>();
-                Map<String, Set<URI>> initiatorToExport =
-                        determineInitiatorToExportMaskPlacements(exportGroup, storageURI, computeResourceToInitiators,
-                                Collections.EMPTY_MAP, portNameToInitiatorURI, partialMasks);
+                Map<String, Set<URI>> initiatorToExport = determineInitiatorToExportMaskPlacements(exportGroup, storageURI,
+                        computeResourceToInitiators,
+                        Collections.EMPTY_MAP, portNameToInitiatorURI, partialMasks);
 
                 Map<URI, List<URI>> exportToInitiators = toExportMaskToInitiatorURIs(initiatorToExport, portNameToInitiatorURI);
                 Map<URI, Integer> volumesToAdd = ExportUtils.getExportGroupVolumeMap(_dbClient, storage, exportGroup);
@@ -329,11 +331,14 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     }
                     for (URI toAddInitiator : toAddInitiators.getValue()) {
                         if (!exportMask.hasInitiator(toAddInitiator.toString())) {
-                            _log.info(String.format("Add step to add initiator %s to ExportMask %s", toAddInitiator.toString(), exportMask.getMaskName()));
-                            generateExportMaskAddInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, toAddInitiators.getValue(), null, null);
+                            _log.info(String.format("Add step to add initiator %s to ExportMask %s", toAddInitiator.toString(),
+                                    exportMask.getMaskName()));
+                            generateExportMaskAddInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask,
+                                    toAddInitiators.getValue(), null, null);
                         } else if (volumesToAdd != null && volumesToAdd.size() > 0) {
-                            _log.info(String.format("Add step to add volumes %s to ExportMask %s", Joiner.on(',').join(volumesToAdd.entrySet()), exportMask.getMaskName()));
-                            generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToAdd);
+                            _log.info(String.format("Add step to add volumes %s to ExportMask %s",
+                                    Joiner.on(',').join(volumesToAdd.entrySet()), exportMask.getMaskName()));
+                            generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToAdd, null);
                         }
                         initiatorURIsToPlace.remove(toAddInitiator);
                     }
@@ -342,13 +347,15 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // If there are any new initiators that weren't already known to the system previously, add them now.
                 if (!initiatorURIsToPlace.isEmpty() && volumesToAdd != null) {
                     Map<String, List<URI>> newComputeResources = mapInitiatorsToComputeResource(exportGroup, initiatorURIsToPlace);
-                    _log.info(String.format("Need to create ExportMasks for these compute resources %s", Joiner.on(',').join(newComputeResources.entrySet())));
+                    _log.info(String.format("Need to create ExportMasks for these compute resources %s",
+                            Joiner.on(',').join(newComputeResources.entrySet())));
                     for (Map.Entry<String, List<URI>> toCreate : newComputeResources.entrySet()) {
                         generateExportMaskCreateWorkflow(workflow, null, storage, exportGroup, toCreate.getValue(), volumesToAdd, null);
                     }
                 }
 
-                String successMessage = String.format("ExportGroup add initiators successfully applied for StorageArray %s", storage.getLabel());
+                String successMessage = String.format("ExportGroup add initiators successfully applied for StorageArray %s",
+                        storage.getLabel());
                 workflow.executePlan(taskCompleter, successMessage);
             } else {
                 taskCompleter.ready(_dbClient);
@@ -368,18 +375,17 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
-            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup.getExportMasks() != null) {
+            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token, taskCompleter);
 
                 // Create a mapping of ExportMask URI to initiators to remove
                 Map<URI, List<URI>> exportToInitiatorsToRemove = new HashMap<>();
                 Map<URI, List<URI>> exportToVolumesToRemove = new HashMap<>();
                 Map<URI, Integer> volumeMap = null;
-                for (String exportMaskURIStr : exportGroup.getExportMasks()) {
-                    URI exportMaskURI = URI.create(exportMaskURIStr);
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                for (ExportMask exportMask : exportMasks) {                  
                     if (exportMask == null) {
                         continue;
                     }
@@ -392,7 +398,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             List<URI> initiators = exportToInitiatorsToRemove.get(exportGroupURI);
                             if (initiators == null) {
                                 initiators = new ArrayList<>();
-                                exportToInitiatorsToRemove.put(exportMaskURI, initiators);
+                                exportToInitiatorsToRemove.put(exportMask.getId(), initiators);
                             }
                             initiators.add(initiatorURI);
                         } else {
@@ -402,7 +408,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             List<URI> volumeURIs = exportToVolumesToRemove.get(exportGroupURI);
                             if (volumeURIs == null) {
                                 volumeURIs = new ArrayList<>();
-                                exportToVolumesToRemove.put(exportMaskURI, volumeURIs);
+                                exportToVolumesToRemove.put(exportMask.getId(), volumeURIs);
                             }
                             for (URI volumeURI : volumeMap.keySet()) {
                                 // Only add to the remove list for the ExportMask if
@@ -427,10 +433,12 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         }
                         if (exportMaskInitiatorURIs.isEmpty()) {
                             _log.info(String.format("Adding step to delete ExportMask %s", exportMask.getMaskName()));
-                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null);
+                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null, null, taskCompleter);
                         } else {
-                            _log.info(String.format("Adding step to remove initiators %s from ExportMask %s",Joiner.on(',').join(removeInitURIs), exportMask.getMaskName()));
-                            generateExportMaskRemoveInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, removeInitURIs, true);
+                            _log.info(String.format("Adding step to remove initiators %s from ExportMask %s",
+                                    Joiner.on(',').join(removeInitURIs), exportMask.getMaskName()));
+                            generateExportMaskRemoveInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, removeInitURIs,
+                                    null, true);
                         }
                     }
                 }
@@ -447,15 +455,18 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         }
                         if (exportMaskVolumeURIs.isEmpty()) {
                             _log.info(String.format("Adding step to delete ExportMask %s", exportMask.getMaskName()));
-                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null);
+                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null, null, taskCompleter);
                         } else {
-                            _log.info(String.format("Adding step to remove volumes %s from ExportMask %s",Joiner.on(',').join(removeVolumeURIs), exportMask.getMaskName()));
-                            generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, removeVolumeURIs, null);
+                            _log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
+                                    Joiner.on(',').join(removeVolumeURIs), exportMask.getMaskName()));
+                            generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, removeVolumeURIs,
+                                    null, taskCompleter);
                         }
                     }
                 }
 
-                String successMessage = String.format("ExportGroup remove initiators successfully applied for StorageArray %s", storage.getLabel());
+                String successMessage = String.format("ExportGroup remove initiators successfully applied for StorageArray %s",
+                        storage.getLabel());
                 workflow.executePlan(taskCompleter, successMessage);
             } else {
                 taskCompleter.ready(_dbClient);

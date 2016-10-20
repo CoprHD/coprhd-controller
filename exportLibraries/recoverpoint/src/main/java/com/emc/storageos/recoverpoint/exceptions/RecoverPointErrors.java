@@ -40,4 +40,7 @@ public interface RecoverPointErrors {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public ServiceError methodNotSupported();
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public ServiceError imageAccessModeNotSupported(final String imageAccessMode);
 }

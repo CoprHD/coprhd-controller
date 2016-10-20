@@ -38,6 +38,7 @@ class Host(object):
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_HOST_LIST_IPINTERFACES = "/compute/hosts/{0}/ip-interfaces"
     URI_HOST_DISCOVER = URI_HOST_DETAILS + "/discover"
+    URI_HOST_DISCOVER_ARRAY_AFFINITY = "/compute/hosts/discover-array-affinity"
     URI_COMPUTE_HOST = "/compute/hosts"
     URI_COMPUTE_HOST_PROV_BARE_METEL = \
                     URI_COMPUTE_HOST + "/provision-bare-metal"
@@ -156,7 +157,9 @@ class Host(object):
             request['os_version'] = osversion
 
         if(cluster):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
+            from cluster import Cluster
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            request['cluster'] = cli_uri
 
         if(datacenter):
             request['vcenter_data_center'] = self.get_vcenterdatacenter_id(
@@ -188,7 +191,7 @@ class Host(object):
     def update(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, newlabel, autodiscovery,
-               bootvolume, project):
+               bootvolume, project, updateExports=False):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -241,7 +244,10 @@ class Host(object):
             request['use_ssl'] = usessl
 
         if(cluster is not None):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
+            from cluster import Cluster
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            request['cluster'] = cli_uri
+
 
         if(datacenter):
             request['vcenter_data_center'] = self.get_vcenterdatacenter_id(
@@ -254,6 +260,9 @@ class Host(object):
             path = tenant + "/" + project + "/" + bootvolume
             volume_id = Volume(self.__ipAddr, self.__port).volume_query(path)
             request['boot_volume'] = volume_id
+
+        if(updateExports is not None):
+            hostUri = hostUri + "?update_exports=" + updateExports
 
         restapi = Host.URI_HOST_DETAILS.format(hostUri)
 
@@ -274,7 +283,7 @@ class Host(object):
 
     def delete(self, host_uri, detach_storage=False):
         '''
-        Makes a REST API call to delete a storage system by its UUID
+        Makes a REST API call to delete a host by its UUID
         '''
         uri = Host.URI_HOST_DEACTIVATE.format(host_uri)
 
@@ -293,7 +302,7 @@ class Host(object):
 
     def detach(self, host_uri):
         '''
-        Makes a REST API call to delete a storage system by its UUID
+        Makes a REST API call to detach storage from host
         '''
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST",
@@ -308,7 +317,7 @@ class Host(object):
 
     def discover(self, host_uri):
         '''
-        Makes a REST API call to delete a storage system by its UUID
+        Makes a REST API call to discover host by its UUID
         '''
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST",
@@ -317,6 +326,33 @@ class Host(object):
 
         o = common.json_decode(s)
         return o
+
+    '''
+    Discover the array affinity information for hosts
+    '''
+    def discover_array_affinity(self, host_uris):
+        '''
+        Makes a REST API call to discover the array affinity information
+        on all supported storage systems for the given hosts
+        Parameters:
+            hosts: A list of host URIs
+        Returns:
+            response of the discover operation
+        '''
+
+        request =  dict()
+        if (host_uris):
+            request['hosts'] = host_uris.split(',')
+
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "POST",
+            Host.URI_HOST_DISCOVER_ARRAY_AFFINITY,
+            body)
+
+        o = common.json_decode(s)
+        return o
+
     '''
     Gets the ids and self links for all compute elements.
     '''
@@ -556,7 +592,7 @@ class Host(object):
     the compute virtual pool.
     '''
     def create_compute_hosts(self, tenant, varray, computevpool,
-                             hostnames, cluster):
+                             hostnames, cluster, datacenter, vcenter):
         #get tenant uri
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         if(tenant is None):
@@ -583,7 +619,7 @@ class Host(object):
         if(cluster):
             #cluster
             cluster_obj = Cluster(self.__ipAddr, self.__port)
-            cluster_uri = cluster_obj.cluster_query(cluster, tenant)
+            cluster_uri = cluster_obj.cluster_query(cluster, datacenter,vcenter, tenant)
             request['cluster'] = cluster_uri
 
         body = json.dumps(request)
@@ -842,6 +878,9 @@ def host_list(args):
             if(args.verbose):
                 return common.format_json_object(hostListDetails)
             else:
+                for element in hostListDetails:
+                    del element['preferred_pools']
+
                 if(args.largetable):
                     TableGenerator(hostListDetails, ['name', 'host_name',
                                    'type', 'user_name',
@@ -1071,6 +1110,11 @@ def update_parser(subcommand_parsers, common_parser):
                             dest='project',
                             metavar='<project>')
 
+    update_parser.add_argument('-updateExports', '-updateEx',
+                            help="Updates the exports during host update",
+                            dest='updateExports',
+                            default='false',
+                            choices=['true', 'false'])
 
     update_parser.set_defaults(func=host_update)
 
@@ -1111,7 +1155,7 @@ def host_update(args):
                            args.newosversion, args.newcluster,
                            args.newdatacenter, args.vcentername,
                            args.newlabel, args.autodiscovery,
-                           args.bootvolume, args.project)
+                           args.bootvolume, args.project, args.updateExports)
     except SOSError as e:
         common.format_err_msg_and_raise("update",
                                         "host", e.err_text, e.err_code)
@@ -1431,6 +1475,48 @@ def host_discover(args):
 
     return
 
+def discover_array_affinity_parser(subcommand_parsers, common_parser):
+    discover_array_affinity_parser = subcommand_parsers.add_parser(
+        'discover-array-affinity',
+        description='ViPR Host discover array affinity information CLI usage ',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Discover array affinity information for Hosts on all supported storage systems')
+    mandatory_args = discover_array_affinity_parser.add_argument_group('mandatory arguments')
+    
+    mandatory_args.add_argument('-hostnames', '-hn',
+                                metavar='<hostnames>',
+                                dest='hostnames',
+                                help='list of hostnames seperated by comma',
+                                required=True)
+    discover_array_affinity_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    discover_array_affinity_parser.set_defaults(func=host_discover_array_affinity)
+
+
+def host_discover_array_affinity(args):
+    try:
+        hostUris = []
+        hostObj = Host(args.ip, args.port)
+
+        if (len(args.hostnames) > 0):
+            for item in args.hostnames.split(','):
+                hostUri = hostObj.query_by_name(item, args.tenant)
+                hostUris.append(hostUri)
+            
+            hostObj.discover_array_affinity(",".join(hostUris))
+        else:
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "No host name specified")
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "discover_array_affinity", "hosts", e.err_text, e.err_code)
+
+    return
+
 
 def task_parser(subcommand_parsers, common_parser):
     # show command parser
@@ -1623,6 +1709,16 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                help='Name of the cluster for the host',
                                dest='cluster',
                                metavar='<cluster>')
+    create_parser.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    create_parser.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     mandatory_args.add_argument('-computevpool', '-cvp',
                                 help='name of computevpool',
                                 dest='computevpool',
@@ -1652,7 +1748,7 @@ def compute_host_create(args):
     hostObj = Host(args.ip, args.port)
     try:
         hostObj.create_compute_hosts(args.tenant, args.varray,
-        args.computevpool, args.hostnames, args.cluster)
+        args.computevpool, args.hostnames, args.cluster, args.datacenter, args.vcenter)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)
@@ -1693,6 +1789,9 @@ def host_parser(parent_subparser, common_parser):
 
     # discover ipinterfaces parser
     discover_parser(subcommand_parsers, common_parser)
+
+    # discover array affinity parser
+    discover_array_affinity_parser(subcommand_parsers, common_parser)
 
     # detach ipinterfaces parser
     detach_parser(subcommand_parsers, common_parser)

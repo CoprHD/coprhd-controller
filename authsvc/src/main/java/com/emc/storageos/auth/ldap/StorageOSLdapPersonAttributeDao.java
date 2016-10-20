@@ -704,7 +704,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
     private LdapTemplate buildLdapTeamplate(LdapOrADServer server) {
         LdapTemplate ldapTemplate = new LdapTemplate(server.getContextSource());
-        ldapTemplate.setIgnorePartialResultException(true);
+        ldapTemplate.setIgnorePartialResultException(true); // To avoid the exceptions due to referrals returned
         return ldapTemplate;
     }
 

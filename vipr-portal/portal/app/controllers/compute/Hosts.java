@@ -36,6 +36,7 @@ import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostParam;
 import com.emc.storageos.model.host.HostRestRep;
@@ -68,6 +69,7 @@ public class Hosts extends ViprResourceController {
     protected static final String UNKNOWN = "Hosts.unknown";
     protected static final String MODEL_NAME = "Host";
     protected static final String DETACH_STORAGE = "Hosts.detachStorage";
+    protected static final String DISCOVER_ARRAY_AFFINITY = "Hosts.arrayAffinityDiscoveryInitiated";
 
     public static final String CONNECTION_FAILED_MSG = "host.validation.connection.failed";
 
@@ -186,21 +188,20 @@ public class Hosts extends ViprResourceController {
         list();
     }
 
+    @FlashException("list")
+    public static void discoverArrayAffinity(@As(",") String[] ids) {
+        ArrayAffinityHostParam param = new ArrayAffinityHostParam(uris(ids));
+        HostUtils.discoverHostArrayAffinity(param);
+        flash.success(MessagesUtils.get(DISCOVER_ARRAY_AFFINITY));
+        list();
+    }
+
     public static void introspect(@As(",") String[] ids) {
         introspect(uris(ids));
     }
 
     private static void introspect(List<URI> ids) {
         performSuccess(ids, new DiscoveryOperation(), DISCOVERY_STARTED);
-        list();
-    }
-
-    @FlashException("list")
-    public static void detachStorage(@As(",") String[] ids) {
-        for (URI id : ResourceUtils.uris(ids)) {
-            HostUtils.detachStorage(id);
-        }
-        flash.success(MessagesUtils.get(DETACH_STORAGE));
         list();
     }
 

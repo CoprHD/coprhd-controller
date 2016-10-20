@@ -8,12 +8,20 @@ import static com.emc.storageos.model.property.PropertyConstants.ENCRYPTEDTEXT;
 import static com.emc.storageos.model.property.PropertyConstants.TEXT;
 import static controllers.Common.flashException;
 
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.management.backup.BackupType;
+import com.emc.storageos.management.backup.ExternalServerType;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.management.backup.util.FtpClient;
 import models.properties.BackupPropertyPage;
 import models.properties.ControllerPropertyPage;
 import models.properties.DefaultPropertyPage;
@@ -25,11 +33,13 @@ import models.properties.PropertyPage;
 import models.properties.SecurityPropertyPage;
 import models.properties.SmtpPropertyPage;
 import models.properties.SupportPropertyPage;
+import models.properties.SyslogPropertiesPage;
 import models.properties.UpgradePropertyPage;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 
+import org.apache.http.auth.AuthenticationException;
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -173,6 +183,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new SmtpPropertyPage(properties));
             addPage(pages, new UpgradePropertyPage(properties));
             addPage(pages, new PasswordPropertyPage(properties));
+            addPage(pages, new SyslogPropertiesPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
         }
         else {
@@ -187,6 +198,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new UpgradePropertyPage(properties));
             addPage(excludePages, new DefaultPropertyPage(OTHER));
             addPage(excludePages, new PasswordPropertyPage(properties));
+            addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
         }
 
@@ -245,8 +257,10 @@ public class ConfigProperties extends Controller {
                 String name = entry.getKey();
                 String value = values.get(name);
                 PropertyMetadata meta = entry.getValue();
-                if (meta.getType().equals(TEXT) || meta.getType().equals(ENCRYPTEDTEXT)) {
-                    value = value.replace("\\\\n", "\r\n");
+                if (value != null) {
+                    if (meta.getType().equals(TEXT) || meta.getType().equals(ENCRYPTEDTEXT)) {
+                        value = value.replace("\\\\n", "\r\n");
+                    }
                 }
                 Set<String> allSupportPageProperties = SupportPropertyPage.getAllProperties();
                 if (!(allSupportPageProperties.contains(name) && SetupUtils.isOssBuild())) {
@@ -265,6 +279,62 @@ public class ConfigProperties extends Controller {
         }
         else {
             return port;
+        }
+    }
+    public static void validateExternalSettings(String serverType, String serverUrl, String serverDomain, String user,
+                                                String password) {
+        BackupClient client;
+        String passwd = PasswordUtil.decryptedValue(password);
+        if (serverType.equalsIgnoreCase(ExternalServerType.CIFS.name())) {
+            if (!serverUrl.startsWith("smb://")) {
+                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
+                renderJSON(ValidationResponse.collectErrors());
+            }
+            client = new CifsClient(serverUrl, serverDomain, user, passwd);
+        } else {
+            if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
+                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
+                renderJSON(ValidationResponse.collectErrors());
+            }
+            client = new FtpClient(serverUrl, user, passwd);
+        }
+        try {
+            client.validate();
+        }catch (AuthenticationException e ){
+            Validation.addError(null,Messages.get("configProperties.backup.credential.invalid"),e.getMessage());
+        }catch (ConnectException e) {
+            Validation.addError(null,Messages.get("configProperties.backup.server.invalid"), e.getMessage());
+        }
+
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        } else {
+            renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
+        }
+
+    }
+
+  public static void connectExternalServerIpPort(String ipPortListStr){
+        if (ipPortListStr.isEmpty()) {
+            renderJSON(ValidationResponse.invalid(Messages.get("configProperties.syslog.serverPort.unavailable",null)));
+        }
+        String[] ipPortList = ipPortListStr.split(",");
+        for (String ipPort : ipPortList) {
+            String[] ipPortSpliter = ipPort.split(":");
+            String ip = ipPortSpliter[0];
+            String port = ipPortSpliter[1];
+            Socket socket = new Socket();
+            try {
+                socket.connect(new InetSocketAddress(ip,Integer.parseInt(port)),2*1000);
+                socket.close();
+            }catch (Exception e ){
+                Validation.addError(null,Messages.get("configProperties.syslog.serverPort.unavailable",ipPort));
+            }
+        }
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        } else {
+            renderJSON(ValidationResponse.valid(Messages.get("configProperties.syslog.serverPort.successful")));
         }
     }
 

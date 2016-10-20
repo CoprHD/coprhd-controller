@@ -48,7 +48,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     private static Logger _logger = LoggerFactory.getLogger(BaseIngestionRequestContext.class);
     private final DbClient _dbClient;
 
-    private final Iterator<URI> _unManagedVolumeUrisToProcessIterator;
+    private final List<URI> _unManagedVolumeUrisToProcess;
+    private Iterator<URI> _unManagedVolumeUrisToProcessIterator;
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
 
     private final VirtualPool _vpool;
@@ -92,6 +93,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     public BaseIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool,
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
         _dbClient = dbClient;
+        _unManagedVolumeUrisToProcess = unManagedVolumeUrisToProcess;
         _unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
         _vpool = vpool;
         _virtualArray = virtualArray;
@@ -132,7 +134,17 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     @Override
     public void remove() {
-        _unManagedVolumeUrisToProcessIterator.remove();
+        throw new UnsupportedOperationException("Remove operation not supported in BaseIngestionRequestContext iterator");
+    }
+
+    /**
+     * Resets the UnManagedVolume iterator and sets the current UnManagedVolume
+     * back to null.  This allows iterating over the UnManagedVolumes in the
+     * request again.
+     */
+    public void reset() {
+        _unManagedVolumeUrisToProcessIterator = _unManagedVolumeUrisToProcess.iterator();
+        _currentUnManagedVolumeUri = null;
     }
 
     /**

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -196,13 +197,13 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         int portsPerNetPerPG = oneNetwork ? 2 : 1;
         // It is best practice if each network has at least two ports, favoring fewer port groups.
         // But if "morePortGroups" is set, will make additional portGroups if there are fewer ports.
-        if (morePortGroups) {		// This can be set true for testing environments
+        if (morePortGroups) { // This can be set true for testing environments
             if (minPorts >= 4) {
-                portsPerNetPerPG = 2;	// Makes at least two Port Groups if there are two ports
+                portsPerNetPerPG = 2; // Makes at least two Port Groups if there are two ports
             }
         } else {
             if (minPorts >= 2) {
-                portsPerNetPerPG = 2;	// Default is to require at least two ports per Port Group
+                portsPerNetPerPG = 2; // Default is to require at least two ports per Port Group
             }
         }
         if (!moreThanTwoNetworks) {
@@ -261,7 +262,8 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     /**
      * Order the networks from those with least ports to those with most ports
      * 
-     * @param allocatablePorts -- Map of Network URI to list of ports
+     * @param allocatablePorts
+     *            -- Map of Network URI to list of ports
      * @return ordered list of Network URIs
      */
     private List<URI> orderNetworksByNumberOfPorts(Map<URI, List<StoragePort>> allocatablePorts) {
@@ -294,10 +296,14 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
      * 
-     * @param candidatePorts -- List of ports from which to choose
-     * @param portsRequested -- Integer number of ports requested
-     * @param net -- NetworkLite network
-     * @param varrayURI -- URI of VirtualArray
+     * @param candidatePorts
+     *            -- List of ports from which to choose
+     * @param portsRequested
+     *            -- Integer number of ports requested
+     * @param net
+     *            -- NetworkLite network
+     * @param varrayURI
+     *            -- URI of VirtualArray
      * @return List of StoragePorts allocated.
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
@@ -310,8 +316,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated =
-                    allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
             allocator.setContext(context);
             return portsAllocated;
         } else {
@@ -332,10 +337,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     @Override
     public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer)
-    {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask",
-                arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
+                arrayURI, exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     /**
@@ -344,7 +348,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
      */
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs2, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -390,10 +394,20 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                 // The default completer passed in is for add volume, create correct one
                 completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, volumeMap, stepId);
-                device.doExportGroupCreate(array, exportMask, volumeMap,
+                device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                List<URI> initiatorURIs = new ArrayList<URI>();
+                List<Initiator> initiators = new ArrayList<Initiator>();
+                for (String initiatorId : exportMask.getInitiators()) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                    if (initiator != null) {
+                        initiators.add(initiator);
+                        initiatorURIs.add(initiator.getId());
+                    }
+                }
+
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
         } catch (Exception ex) {
@@ -406,14 +420,14 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     @Override
     public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -442,26 +456,55 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device, exportMask);
 
-            // Determine if we're deleting the last volume.
+            // Determine if we're deleting the last volume in the mask.
+            StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) {
-                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            List<URI> passedVolumesInMask = new ArrayList<>(volumes);
+            if (maskVolumesMap != null) {
+                remainingVolumes.addAll(maskVolumesMap.keySet());
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
+                
+                // Remove any volumes from the volume list that are no longer
+                // in the export mask. When a failure occurs removing a backend
+                // volume from a mask, the rollback method will try and remove it
+                // again. However, in the case of a distributed volume, one side
+                // may have succeeded, so we will try and remove it again. Previously,
+                // this was not a problem. However, new validation exists at the
+                // block level that checks to make sure the volume to remove is
+                // actually in the mask, which now causes a failure when you remove
+                // it a second time. So, we check here and remove any volumes that
+                // are not in the mask to handle this condition.
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                    passedVolumesInMask.remove(volume);
+                }
             }
-            // If so, delete the ExportMask.
+            
+            // None of the volumes is in the export mask, so we are done.
+            if (passedVolumesInMask.isEmpty()) {
+                _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            
+            // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                    && !exportMask.hasAnyExistingVolumes()) {
+                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
+
     }
 
     public void setSimulation(boolean simulation) {

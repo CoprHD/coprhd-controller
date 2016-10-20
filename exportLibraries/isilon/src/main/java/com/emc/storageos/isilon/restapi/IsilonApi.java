@@ -5,9 +5,11 @@
 
 package com.emc.storageos.isilon.restapi;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -86,8 +88,7 @@ public class IsilonApi {
     private static final URI URI_SMARTQUOTA_LICENSE_INFO = URI.create("/platform/1/quota/license");
 
     public enum IsilonLicenseType {
-        SMARTQUOTA,
-        SNAPSHOT
+        SMARTQUOTA, SNAPSHOT
     }
 
     private static final Map<IsilonLicenseType, URI> licenseMap;
@@ -231,6 +232,7 @@ public class IsilonApi {
         ClientResponse clientResp = null;
 
         try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             IsilonList<String> ret = new IsilonList<String>();
             String query = (resumeToken == null) ? "?type=container" : "?type=container&resume=" + resumeToken;
             clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath + query)));
@@ -276,6 +278,7 @@ public class IsilonApi {
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             sLogger.debug("IsilonApi existsDir {} - start", fspath);
             resp = _client.head(_baseUrl.resolve(URI_IFS.resolve(fspath)));
             sLogger.debug("IsilonApi existsDir {} - complete", fspath);
@@ -327,7 +330,7 @@ public class IsilonApi {
             if (existsDir(fspath)) {
                 return;
             }
-
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             MultivaluedMap<String, String> queryParams = null;
             if (recursive) {
                 queryParams = new MultivaluedMapImpl();
@@ -379,6 +382,7 @@ public class IsilonApi {
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath
                     + (recursive ? "?recursive=1" : ""))));
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
@@ -546,10 +550,13 @@ public class IsilonApi {
     /**
      * Create snapshot Schedule implementation
      * 
-     * @param url url to post the create to
-     * @param key reference string used in error reporting, representing the
+     * @param url
+     *            url to post the create to
+     * @param key
+     *            reference string used in error reporting, representing the
      *            object type
-     * @param obj Object to post for the create
+     * @param obj
+     *            Object to post for the create
      * @return String identifier returns from the server
      * @throws IsilonException
      */
@@ -589,9 +596,12 @@ public class IsilonApi {
     /**
      * delete the snapshot schedule
      * 
-     * @param url url to delete
-     * @param id identifier to be deleted
-     * @param key reference string representing the object type being deleted
+     * @param url
+     *            url to delete
+     * @param id
+     *            identifier to be deleted
+     * @param key
+     *            reference string representing the object type being deleted
      * @throws IsilonException
      */
     private void deleteSnapshotSchedule(URI url) throws IsilonException {
@@ -620,11 +630,16 @@ public class IsilonApi {
     /**
      * Create snapshot schedule
      * 
-     * @param name String label to be used for the snapshot schedule
-     * @param path directory path to snapshot
-     * @param schedule frequency at which snapshot is taken
-     * @param pattern naming pattern for the snapshot
-     * @param duration expiration of snapshot
+     * @param name
+     *            String label to be used for the snapshot schedule
+     * @param path
+     *            directory path to snapshot
+     * @param schedule
+     *            frequency at which snapshot is taken
+     * @param pattern
+     *            naming pattern for the snapshot
+     * @param duration
+     *            expiration of snapshot
      * @return String identifier for the snapshot schedule created
      * @throws IsilonException
      */
@@ -638,21 +653,34 @@ public class IsilonApi {
     /**
      * Modify snapshot schedule
      * 
-     * @param id Identifier for the snapshot schedule to be modified
-     * @param s schedules object with the modified values
+     * @param id
+     *            Identifier for the snapshot schedule to be modified
+     * @param s
+     *            schedules object with the modified values
      * @throws IsilonException
      */
     public void modifySnapshotSchedule(String id, IsilonSnapshotSchedule s) throws IsilonException {
+        try {
+            id = URLEncoder.encode(id, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
     }
 
     /**
      * Delete a snapshot schedule
      * 
-     * @param id Identifier of the snapshot to delete
+     * @param id
+     *            Identifier of the snapshot to delete
      * @throws IsilonException
      */
     public void deleteSnapshotSchedule(String id) throws IsilonException {
+        try {
+            id = URLEncoder.encode(id, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
     }
 
@@ -711,9 +739,12 @@ public class IsilonApi {
     /**
      * Generic get resource when key is not applicable
      * 
-     * @param url url to get from
-     * @param id identifier for the object
-     * @param c Class of object representing the return value
+     * @param url
+     *            url to get from
+     * @param id
+     *            identifier for the object
+     * @param c
+     *            Class of object representing the return value
      * @return T Object parsed from the response, on success
      * @throws IsilonException
      */
@@ -1027,7 +1058,7 @@ public class IsilonApi {
     public String createQuota(String path, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         if (thresholds != null && thresholds.length > 0) {
-            quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", false, false, thresholds);
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", null, false, false, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -1057,15 +1088,16 @@ public class IsilonApi {
      * @return Identifier for the quota created
      * @throws IsilonException
      */
-    public String createQuota(String path, boolean bThresholdsIncludeOverhead,
+    public String createQuota(String path, Long fsSize, boolean bThresholdsIncludeOverhead,
             boolean bIncludeSnapshots, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
-        if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
-            quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", bThresholdsIncludeOverhead, bIncludeSnapshots,
+        if (thresholds != null && thresholds.length > 0 && (thresholds[0] > 0 || thresholds[1] > 0 || thresholds[2] > 0)) {
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", fsSize, bThresholdsIncludeOverhead, bIncludeSnapshots,
                     thresholds);
-            quota.setContainer(true); // set to true, so user see hard limit not
-                                      // cluster size.
+            if (thresholds[0] > 0) {
+                quota.setContainer(true); // set to true, so user see hard limit not cluster size.
+            }
         } else {
             quota = new IsilonSmartQuota(path, bThresholdsIncludeOverhead, bIncludeSnapshots);
         }
@@ -1076,25 +1108,29 @@ public class IsilonApi {
     }
 
     // If we want to provide the UI to enter quota we can re-use this
-    public IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, String type, Boolean bThresholdsIncludeOverhead,
-            Boolean bIncludeSnapshots, Long... thresholds) {
+    public IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, String type, Long fsSize,
+            Boolean bThresholdsIncludeOverhead, Boolean bIncludeSnapshots, Long... thresholds) {
         IsilonSmartQuota quota;
+        Long size = thresholds[0];
+        if (thresholds[0] == 0) {
+            size = fsSize;
+        }
         switch (thresholds.length) {
             case 2:
                 quota = new IsilonSmartQuota(path, type, thresholds[0],
-                        (thresholds[1] * thresholds[0]) / 100, 0L, 0L, bThresholdsIncludeOverhead,
+                        (thresholds[1] * size) / 100, 0L, 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 3:
                 quota = new IsilonSmartQuota(path, type, thresholds[0],
-                        (thresholds[1] * thresholds[0]) / 100,
-                        (thresholds[2] * thresholds[0]) / 100, 0L, bThresholdsIncludeOverhead,
+                        (thresholds[1] * size) / 100,
+                        (thresholds[2] * size) / 100, 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 4:
                 quota = new IsilonSmartQuota(path, type, thresholds[0],
-                        (thresholds[1] * thresholds[0]) / 100,
-                        (thresholds[2] * thresholds[0]) / 100,
+                        (thresholds[1] * size) / 100,
+                        (thresholds[2] * size) / 100,
                         (thresholds[3] * 60 * 60 * 24), bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
@@ -1405,9 +1441,15 @@ public class IsilonApi {
      *            object with the modified values set
      * @throws IsilonException
      */
-    public void modifyNFSACL(String path, IsilonNFSACL acl) throws IsilonException {
-        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
-        put(_baseUrl.resolve(URI_IFS), aclUrl, "ACL", acl);
+    public void modifyNFSACL(String fspath, IsilonNFSACL acl) throws IsilonException {
+        try {
+            fspath = fspath.substring(1);// remove '/' prefix
+            fspath = URLEncoder.encode(fspath, "UTF-8");
+            fspath = fspath.concat("?acl");// add suffix ?acl
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
     }
 
     /**
@@ -1418,9 +1460,15 @@ public class IsilonApi {
      * @return IsilonNFSACL object
      * @throws IsilonException
      */
-    public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
-        return getObj(_baseUrl.resolve(URI_IFS), aclUrl, IsilonNFSACL.class);
+    public IsilonNFSACL getNFSACL(String fspath) throws IsilonException {
+        try {
+            fspath = fspath.substring(1);// remove '/' prefix
+            fspath = URLEncoder.encode(fspath, "UTF-8");
+            fspath = fspath.concat("?acl");// add suffix ?acl
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return getObj(_baseUrl.resolve(URI_IFS), fspath, IsilonNFSACL.class);
     }
 
     /**
@@ -1940,7 +1988,8 @@ public class IsilonApi {
     /**
      * Create Replication Policy
      * 
-     * @param replicationPolicy IsilonSyncPolicy object
+     * @param replicationPolicy
+     *            IsilonSyncPolicy object
      * @return String identifier for the policy created
      * @throws IsilonException
      */
@@ -1951,8 +2000,10 @@ public class IsilonApi {
     /**
      * Modify Replication Policy
      * 
-     * @param id identifier/name of the Replication Policy to modify
-     * @param syncPolicy IsilonSyncPolicy object with the modified properties
+     * @param id
+     *            identifier/name of the Replication Policy to modify
+     * @param syncPolicy
+     *            IsilonSyncPolicy object with the modified properties
      * @throws IsilonException
      */
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
@@ -1962,7 +2013,8 @@ public class IsilonApi {
     /**
      * Delete replication policy
      * 
-     * @param id identifier for the replication policy object to delete
+     * @param id
+     *            identifier for the replication policy object to delete
      * @throws IsilonException
      */
     public void deleteReplicationPolicy(String id) throws IsilonException {
@@ -1972,7 +2024,8 @@ public class IsilonApi {
     /**
      * Get Replication Jobs information from the Isilon array
      * 
-     * @param id identifier for the replication policy
+     * @param id
+     *            identifier for the replication policy
      * @return Replication Jobs object
      * @throws IsilonException
      */
@@ -1983,7 +2036,8 @@ public class IsilonApi {
     /**
      * Start a Replication Job
      * 
-     * @param IsilonSyncJob Object
+     * @param IsilonSyncJob
+     *            Object
      * @return policy_name
      * @throws IsilonException
      */
@@ -1994,7 +2048,8 @@ public class IsilonApi {
     /**
      * Get Replication Reports information from the Isilon array
      * 
-     * @param Name for the replication policy
+     * @param Name
+     *            for the replication policy
      * @return Replication Report Object
      * @throws IsilonException
      */
@@ -2007,7 +2062,8 @@ public class IsilonApi {
     /**
      * Get Target Replication Reports information from the Isilon array
      * 
-     * @param Name for the replication policy
+     * @param Name
+     *            for the replication policy
      * @return Replication Report Object
      * @throws IsilonException
      */

@@ -121,7 +121,7 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final protected void createDefaultOperation(DbClient dbClient) {
+    protected void createDefaultOperation(DbClient dbClient) {
         ResourceOperationTypeEnum opType = ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM;
 
         Class type = getType();

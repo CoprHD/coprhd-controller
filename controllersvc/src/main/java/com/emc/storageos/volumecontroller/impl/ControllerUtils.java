@@ -81,6 +81,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
 /**
@@ -1034,6 +1035,33 @@ public class ControllerUtils {
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
     }
+    
+    /**
+     * From the passed list group snapshot URIs, filters the list so that only one snapshot
+     * per replication group is in the returned, filtered list.
+     * 
+     * @param snapshotURIs A list of group snapshots
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The filtered list of snapshot URIs.
+     */
+    public static List<URI> ensureOneSnapshotPerReplicationGroup(List<URI> snapshotURIs, DbClient dbClient) {
+        List<URI> filteredSnapshotURIs = new ArrayList<>();
+        Set<String> replicationGroups = new HashSet<>();
+        Iterator<BlockSnapshot> snapshotIter = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+        while (snapshotIter.hasNext()) {
+            BlockSnapshot snapshot = snapshotIter.next();
+            String repGrpInstance = snapshot.getReplicationGroupInstance();
+            if (replicationGroups.contains(repGrpInstance)) {
+                continue;
+            }
+
+            replicationGroups.add(repGrpInstance);
+            filteredSnapshotURIs.add(snapshot.getId());
+        }
+        
+        return filteredSnapshotURIs;
+    }
 
     /**
      * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
@@ -1487,7 +1515,7 @@ public class ControllerUtils {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return storage != null && storage.deviceIsType(Type.xtremio);
     }
-
+    
     /**
      * Check whether the given volume is not in a real replication group
      * 
@@ -2003,6 +2031,38 @@ public class ControllerUtils {
         URIQueryResultList resultList = new URIQueryResultList();
         dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
         return newArrayList(resultList.iterator());
+    }
+    
+    /**
+     * get the list of applications for a list of full copy volumes
+     * 
+     * @param fcVolumeIds full copy volume ids
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getApplicationsForFullCopies(List<URI> fcVolumeIds, DbClient dbClient) {
+        Set<URI> volumeGroupIds = new HashSet<URI>();
+        Iterator<Volume> fcVolumes = dbClient.queryIterativeObjects(Volume.class, fcVolumeIds);
+        while (fcVolumes.hasNext()) {
+            Volume fcVolume = fcVolumes.next();
+            if (!NullColumnValueGetter.isNullURI(fcVolume.getAssociatedSourceVolume())) {
+                BlockObject sourceObj = BlockObject.fetch(dbClient, fcVolume.getAssociatedSourceVolume());
+                if (sourceObj instanceof Volume) {
+                    for (String appId : ((Volume) sourceObj).getVolumeGroupIds()) {
+                        volumeGroupIds.add(URI.create(appId));
+                    }
+                }
+            }
+        }
+        Iterator<VolumeGroup> volumeGroups = dbClient.queryIterativeObjects(VolumeGroup.class, volumeGroupIds);
+        List<URI> applicationIds = new ArrayList<URI>();
+        while (volumeGroups.hasNext()) {
+            VolumeGroup app = volumeGroups.next();
+            if (app.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                applicationIds.add(app.getId());
+            }
+        }
+        return applicationIds;
     }
 
     /**

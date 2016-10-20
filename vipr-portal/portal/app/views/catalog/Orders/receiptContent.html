@@ -14,7 +14,6 @@
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.EXECUTING}':
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.SCHEDULED}':
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.APPROVAL}':
-        case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.PAUSED}':
             return true;
         }
         return false;
@@ -38,7 +37,6 @@
     $(document).ready(function() {
         Receipt.watchValue('#orderDetails #lastUpdated');
         Receipt.watchValue('#orderDetails #orderStatus');
-        Receipt.watchValue('#orderDetails #flowControl');
         Receipt.watchDisplay('#orderDetails .executionTime');
         Receipt.watchValue('#orderDetails #executionTime');
         Receipt.watchValue('#orderDetails #currentStep');
@@ -81,41 +79,13 @@
         updateReceipt('${orderId}');
     });
     
-    function pauseOrder(){
-    	var lastUpdated = $('#orderDetails #lastUpdated').html();
-    	var orderId = '${orderId}';
-    	 $("#pauseLink").prop('disabled', true);
-    	 $("#pauseText").text(' &{"service.order.pause"}');
-    	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};
-    	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
-             Receipt.update(data);
-             updateLocalDateTime();
-             updateTimes();
-         }).always(function() {
-             updateReceipt(orderId);
-         });
-    }
-    
-    function resumeOrder(){
-    	var lastUpdated = $('#orderDetails #lastUpdated').html();
-    	var orderId = '${orderId}';
-    	 $("#resumeLink").prop('disabled', true);
-    	 $("#resumeText").text(' &{"service.order.resume"}')
-    	var url = #{jsAction @catalog.Orders.resumeOrder(':orderId', ':lastUpdated') /};
-    	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
-             Receipt.update(data);
-             updateLocalDateTime();
-             updateTimes();
-         }).always(function() {
-             updateReceipt(orderId);
-         });
-    }
   </script>
 #{/set}
 <div>
 <div id="orderDetails" class="container" style="margin-bottom: 2em;">
   #{Orders.serviceHeader service:details.catalogService /}
   
+  <p id="migrationAlert" class="alert alert-info" style="display:none">&{'order.PausedResume'}</p>
   #{alerts disappear:true, duration:10 /}
 
   <div id="lastUpdated" style="display:none">${details.lastUpdated}</div>
@@ -124,6 +94,39 @@
       <dt>&{'order.number'}:</dt>
       <dd>${details.order.orderNumber}&nbsp;</dd>
       
+      #{if details.scheduledEvent != null}
+      <dt>&{'order.schedule'}:</dt>
+      <dd>
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 1}
+         &{'order.occur'}
+         #{localDateTime details.scheduleStartDateTime/}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+         &{'order.recur'}
+         &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
+         &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
+         &{'order.at'}
+         #{localDateTime details.scheduleStartDateTime, format: "h:mm A"/}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence > 1}
+            &{'order.occurrences', details.scheduledEvent.scheduleInfo.reoccurrence}
+         #{/if}
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
+            &{'order.occurrences.indefinite'}
+         #{/if}
+
+      </dd>
+      #{/if}
+
+      #{if details.scheduledEvent != null}
+        #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+        <dt>&{'order.currentScheduleTime'}:</dt>
+        <dd>#{localDateTime details.order.scheduledTime/}</dd>
+        #{/if}
+      #{/if}
+
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
       
@@ -168,23 +171,6 @@
         %{ isLoading = details.order.isExecuting() || details.order.isPending() }%
         *{ <span id="loading" #{if !isLoading}style="display:none"}#{/if}>&nbsp;<img src="@{'/public/img/loading.gif'}"></span> }*
         <span id="currentStep">${details.runningTaskLogs?.collect{ it.message }.join(", ")}</span>
-      </dd>
-
-      <dt>&nbsp;</dt>
-      <dd>&nbsp;</dd>
-      <dt>&nbsp;</dt>
-      <dd>
-      <span id="flowControl">
-      %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
-      #{if isExecuting}
-      <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'><span id="pauseText"></span></span></span> </a>
-      #{/if}
-       %{ isExecuting = details.order.isPaused() }%
-      #{if isExecuting}
-      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span>  </a> 
-      
-      #{/if}
-      </span>
       </dd>
     </dl>
   </div>

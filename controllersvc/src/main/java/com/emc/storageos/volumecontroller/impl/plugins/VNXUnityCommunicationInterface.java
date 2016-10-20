@@ -76,6 +76,7 @@ import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
+import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityArrayAffinityDiscoverer;
 import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUnManagedObjectDiscoverer;
 
 /**
@@ -132,6 +133,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     // client and execute requests to the VNX Unity storage system.
     private VNXeApiClientFactory clientFactory;
     private VNXUnityUnManagedObjectDiscoverer unityUnManagedObjectDiscoverer;
+    private VNXUnityArrayAffinityDiscoverer unityArrayAffinityDiscoverer;
 
     public VNXUnityCommunicationInterface() {
     };
@@ -146,6 +148,10 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
     public void setUnManagedObjectDiscoverer(VNXUnityUnManagedObjectDiscoverer volumeDiscoverer) {
         this.unityUnManagedObjectDiscoverer = volumeDiscoverer;
+    }
+
+    public void setArrayAffinityDiscoverer(VNXUnityArrayAffinityDiscoverer arrayAffinityDiscoverer) {
+        this.unityArrayAffinityDiscoverer = arrayAffinityDiscoverer;
     }
 
     /**
@@ -436,6 +442,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             viprStorageSystem.setReachableStatus(true);
 
             viprStorageSystem.setAutoTieringEnabled(isFASTVPEnabled);
+            viprStorageSystem.setModel(system.getModel());
 
             StringSet supportedActions = new StringSet();
             supportedActions.add(StorageSystem.AsyncActions.CreateElementReplica.name());
@@ -516,6 +523,63 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     _logger.error("Error while updating unmanaged object discovery status for system.", ex);
                 }
             }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param accessProfile
+     * @throws VNXeException
+     */
+    @Override
+    public void discoverArrayAffinity(AccessProfile accessProfile) throws VNXeException {
+        _logger.info("Calling discoverArrayAffinity");
+        long startTime = System.currentTimeMillis();
+
+        URI systemURI = accessProfile.getSystemId();
+        StorageSystem system = null;
+        String detailedStatusMessage = "Unknown Status";
+
+        try {
+            _logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
+                    accessProfile.getPortNumber());
+
+            // Get the VNX Unity storage system from the database.
+            system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            if (system == null || system.getInactive()) {
+                _logger.warn("System {} is no longer active", systemURI);
+                return;
+            }
+
+            _logger.info(String.format("Array Affinity Discover on VNX Unity storage system %s at IP: %s, PORT: %s",
+                    systemURI.toString(), accessProfile.getIpAddress(), accessProfile.getPortNumber()));
+            system.setArrayAffinityStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
+            _dbClient.updateObject(system);
+            unityArrayAffinityDiscoverer.discoverArrayAffinity(accessProfile, _dbClient, _partitionManager);
+            _logger.info("Finished array affinity discovery");
+
+            detailedStatusMessage = String.format("Array Affinity Discovery completed successfully for Storage System: %s",
+                    systemURI.toString());
+        } catch (Exception e) {
+            detailedStatusMessage = String.format("Array Affinity Discovery failed for VNX Unity %s: %s", systemURI.toString(),
+                    e.getLocalizedMessage());
+            _logger.error(detailedStatusMessage, e);
+            throw VNXeException.exceptions.discoveryError("Array Affinity Discovery error", e);
+        } finally {
+            if (system != null) {
+                try {
+                    // set detailed message
+                    system.setLastArrayAffinityStatusMessage(detailedStatusMessage);
+                    _dbClient.updateObject(system);
+                } catch (DatabaseException ex) {
+                    _logger.error("Error while persisting object to DB", ex);
+                }
+            }
+
+            long totalTime = System.currentTimeMillis() - startTime;
+            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(), (double) totalTime
+                    / (double) 1000));
         }
     }
 
@@ -645,7 +709,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 List<Disk> disks = client.getDisksForPool(vnxePool.getId());
                 if (disks != null) {
                     for (Disk disk : disks) {
-                        diskTypes.add(disk.getDiskTechnologyEnum().name());
+                        if (disk.getDiskTechnologyEnum() != null) {
+                            diskTypes.add(disk.getDiskTechnologyEnum().name());
+                        } 
                     }
                 }
                 pool.setSupportedDriveTypes(diskTypes);

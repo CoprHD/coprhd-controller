@@ -4,12 +4,9 @@
  */
 package com.iwave.ext.netapp;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-
-import netapp.manage.NaAPIFailedException;
-import netapp.manage.NaElement;
-import netapp.manage.NaErrno;
-import netapp.manage.NaServer;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -17,6 +14,11 @@ import org.apache.log4j.Logger;
 import com.google.common.collect.Lists;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.QuotaUser;
+
+import netapp.manage.NaAPIFailedException;
+import netapp.manage.NaElement;
+import netapp.manage.NaErrno;
+import netapp.manage.NaServer;
 
 public class QuotaCommands {
 
@@ -119,6 +121,54 @@ public class QuotaCommands {
             quota.setSoftFileLimit(result.getChildContent("soft-file-limit"));
             quota.setThreshold(result.getChildContent("threshold"));
             return quota;
+        } catch (NaAPIFailedException e) {
+            if (e.getErrno() == NaErrno.EQUOTADOESNOTEXIST) {
+                return null;
+            }
+            throw createError(elem, e);
+        } catch (Exception e) {
+            throw createError(elem, e);
+        }
+    }
+    
+    public List<Quota> getTreeQuotas() {
+        return getQuotas();
+    }
+
+    public List<Quota> getQuotas() {
+      NaElement elem = new NaElement("quota-list-entries-iter");
+        
+        try {
+            List<Quota> quotas = Lists.newArrayList();
+            NaElement result = server.invokeElem(elem);
+            
+            List<NaElement> quotaElems = new ArrayList<NaElement>();
+            
+            //Add the Quotas for first call 
+            quotaElems.addAll((List<NaElement>)result.getChildByName("attributes-list").getChildren());
+            
+            //Make further server invokes if more quotas are present
+            while(result.getChildByName("next-tag")!=null){
+                NaElement tempElem = new NaElement("quota-list-entries-iter");
+                tempElem.addNewChild("tag", result.getChildContent("next-tag"));
+                result = server.invokeElem(tempElem);
+                quotaElems.addAll((List<NaElement>)result.getChildByName("attributes-list").getChildren());
+            }
+            
+            for (NaElement quotaElem : quotaElems) {
+                Quota quota = new Quota();
+                quota.setVolume(quotaElem.getChildContent("volume"));
+                quota.setQuotaTarget(quotaElem.getChildContent("quota-target"));
+                quota.setQuotaType(quotaElem.getChildContent("quota-type"));
+                quota.setQtree(quotaElem.getChildContent("qtree"));
+                quota.setDiskLimit(quotaElem.getChildContent("disk-limit"));
+                quota.setFileLimit(quotaElem.getChildContent("file-limit"));
+                quota.setSoftDiskLimit(quotaElem.getChildContent("soft-disk-limit"));
+                quota.setSoftFileLimit(quotaElem.getChildContent("soft-file-limit"));
+                quota.setThreshold(quotaElem.getChildContent("threshold"));
+                quotas.add(quota);
+            }
+            return quotas;
         } catch (NaAPIFailedException e) {
             if (e.getErrno() == NaErrno.EQUOTADOESNOTEXIST) {
                 return null;

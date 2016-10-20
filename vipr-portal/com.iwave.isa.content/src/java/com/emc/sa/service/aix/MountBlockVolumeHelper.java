@@ -15,6 +15,7 @@ import com.emc.aix.AixSystem;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
@@ -58,6 +59,12 @@ public final class MountBlockVolumeHelper {
             logInfo("aix.mount.block.powerpath.detected");
         } else {
             logInfo("aix.mount.block.powerpath.not.detected");
+        }
+    }
+
+    public void verifyMountConfiguration(BlockObjectRestRep volume) {
+        if (BlockStorageUtils.isVolumeMounted(volume) && doFormat) {
+            ExecutionUtils.fail("failTask.verifyMountConfiguration", volume.getName(), volume.getName());
         }
     }
 

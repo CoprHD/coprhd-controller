@@ -25,11 +25,24 @@ public class TaskUtils {
     public static Task findTaskForRequestId(DbClient dbClient, URI resourceId, String requestId) {
         URIQueryResultList results = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getTasksByRequestIdConstraint(requestId), results);
-
         Iterator<URI> it = results.iterator();
         while (it.hasNext()) {
             Task task = dbClient.queryObject(Task.class, it.next());
             if (task.getResource().getURI().equals(resourceId)) {
+                return task;
+            }
+        }
+
+        return null;
+    }
+
+    public static Task findTaskForRequestIdAssociatedResource(DbClient dbClient, URI resourceId, String requestId) {
+        URIQueryResultList results = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getTasksByRequestIdConstraint(requestId), results);
+        Iterator<URI> it = results.iterator();
+        while (it.hasNext()) {
+            Task task = dbClient.queryObject(Task.class, it.next());
+            if (task.getAssociatedResourcesList().contains(resourceId)) {
                 return task;
             }
         }
@@ -75,8 +88,10 @@ public class TaskUtils {
      * NOTE: This method does NOT work well to scale if a single tenant is performing many
      * thousands of operations. Consider other constraint criteria depending on your needs.
      * 
-     * @param dbClient db client
-     * @param tenantId tenant URI
+     * @param dbClient
+     *            db client
+     * @param tenantId
+     *            tenant URI
      * @return list of Task objects associated with that tenant
      */
     public static ObjectQueryResult<Task> findTenantTasks(DbClient dbClient, URI tenantId) {

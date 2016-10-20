@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -167,21 +168,23 @@ public interface BlockStorageDevice {
      *            Operation ID
      * @throws DeviceControllerException
      */
-    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask,
+    public void doExportCreate(StorageSystem storage, ExportMask exportMask,
             Map<URI, Integer> volumeMap, List<Initiator> initiators, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
-     * Delete an export group and all associated mappings that exists at the storage systems
+     * Delete an export mask and all associated mappings that exists at the storage systems
      * 
      * @param storage
      * @param exportMask
+     * @param volumeURIs volumes that are impacted by this operation
+     * @param initiatorURIs initiators that are impacted by this operation
      * @param taskCompleter
      * @return
      * @throws DeviceControllerException
      */
-    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask,
-            TaskCompleter taskCompleter) throws DeviceControllerException;
+    public void doExportDelete(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Add one or more volumes to the ExportMask.
@@ -190,25 +193,27 @@ public interface BlockStorageDevice {
      * @param exportMask
      * @param volume
      * @param lun
+     * @param initiators 
      * @param taskCompleter
      * @return
      * @throws DeviceControllerException
      */
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume,
-            Integer lun, TaskCompleter taskCompleter) throws DeviceControllerException;
+            Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Add one or more volumes to the ExportMask.
      * 
      * @param storage
      * @param exportMask
+     * @param initiators 
      * @param volumes
      * @param taskCompleter
      * @return
      * @throws DeviceControllerException
      */
     public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask,
-            Map<URI, Integer> volumes, TaskCompleter taskCompleter)
+            List<Initiator> initiators, Map<URI, Integer> volumes, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -216,27 +221,38 @@ public interface BlockStorageDevice {
      * information required to do the remove volumes operation.
      * 
      * @param storage
-     *            URI of storage controller.
+     *            URI of storage controller
      * @param exportMask
      *            URI of ExportMask at the storage device
      * @param volume
-     *            Volume removed from export group.
+     *            Volume to remove from export mask
+     * @param initiators
+     *            Initiators that will lose access to this volume
      * @param taskCompleter
      *            The task completer
      * @throws DeviceControllerException
      */
     public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume,
-            TaskCompleter taskCompleter) throws DeviceControllerException;
+            List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
+     * Remove one or more volumes for the ExportMask. The volumeToExports parameter has all the
+     * information required to do the remove volumes operation.
+     * 
      * @param storage
+     *            URI of storage controller
      * @param exportMask
+     *            URI of ExportMask at the storage device
      * @param volumes
+     *            Volumes to remove from the export mask
+     * @param initiators
+     *            Initiators that will lose access to these volumes
      * @param taskCompleter
+     *            The task completer
      * @throws DeviceControllerException
      */
     public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumes, TaskCompleter taskCompleter) throws DeviceControllerException;
+            List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Add one or more initiators to the export group.
@@ -245,6 +261,8 @@ public interface BlockStorageDevice {
      *            URI of storage controller.
      * @param exportMask
      *            URI of ExportMask at the storage device
+     * @param volumeURIs
+     *            URIs of the volumes that are impacted by the operation
      * @param initiator
      *            Initiator to be added.
      * @param targets
@@ -254,18 +272,28 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask,
-            Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumeURIs, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
+     * Add one or more initiators to the export group.
+     * 
      * @param storage
+     *            URI of storage controller
      * @param exportMask
+     *            URI of ExportMask at the storage device
+     * @param volumeURIs
+     *            URIs of the volumes that are impacted by the operation
      * @param initiators
+     *            Initiators to be added
+     * @param targets
+     *            Targets to be added for the initiators
      * @param taskCompleter
+     *            The task completer
      * @throws DeviceControllerException
      */
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumeURIs, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -275,6 +303,8 @@ public interface BlockStorageDevice {
      *            URI of storage controller.
      * @param exportMask
      *            URI of ExportMask at the storage device
+     * @param volumes
+     *            Volumes that will no longer be visible to the removed initiators
      * @param initiator
      *            Initiator to be removed.
      * @param targets
@@ -284,18 +314,28 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask,
-            Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumes, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
+     * Remove one or more initiators from the export group.
+     * 
      * @param storage
+     *            URI of storage controller
      * @param exportMask
-     * @param initiators
+     *            URI of ExportMask at the storage device
+     * @param volumes
+     *            Volumes that will no longer be visible to the removed initiators
+     * @param targets
+     *            Targets to be removed
      * @param taskCompleter
+     *            The task completer
+     * @param initiator
+     *            Initiators to be removed
      * @throws DeviceControllerException
      */
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumes, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -644,9 +684,10 @@ public interface BlockStorageDevice {
      *            matching mask. If false, a mask with *any* of the specified initiators will be
      *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
+     * @throws DeviceControllerException TODO
      */
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts);
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException;
 
     /**
      * For the given list of initiators, go to the Storage Array and get the list of HLUs that the volumes are assigned with.
@@ -676,8 +717,9 @@ public interface BlockStorageDevice {
      * @param mask
      *            [in] - ExportMask object to be refreshed
      * @return instance of ExportMask object that has been refreshed with data from the array.
+     * @throws DeviceControllerException TODO
      */
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask);
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException;
 
     /**
      * Activates a full copy volume.
@@ -1068,4 +1110,30 @@ public interface BlockStorageDevice {
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
     
+    /**
+     * Finds the HLUs for a Host or Hosts within Cluster.
+     * 
+     * @param storage StorageSystem on which HLU needs to be determined
+     * @param initiatorURIs List of Initiator URIs. Cluster export will have more than one Initiators from different hosts
+     * @return Map of Initiators to its Volume HLUs
+     * @throws DeviceControllerException If error occurs during the processing
+     */
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException;
+    /**
+     * Set an Alias for the supplied initiator on a given Storage System
+     * 
+     * @param storage
+     * @param initiator
+     * @param initiatorAlias - User friendly name for the Initiator on the Storage System
+     */
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception;
+
+    /**
+     * Get the Alias for an initiator on the supplied Storage System if Set
+     * 
+     * @param storage
+     * @param initiator
+     */
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
+
 }

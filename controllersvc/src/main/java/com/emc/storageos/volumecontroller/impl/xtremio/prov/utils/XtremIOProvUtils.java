@@ -6,8 +6,10 @@ package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -27,10 +32,14 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
 
 public class XtremIOProvUtils {
 
@@ -43,6 +52,9 @@ public class XtremIOProvUtils {
     private static final Integer XIO_4_0_2_VERSION = 402;
 
     private static final Set<String> SUPPORTED_HOST_OS_SET = new HashSet<String>();
+
+    private XtremIOProvUtils() {
+    };
 
     static {
         SUPPORTED_HOST_OS_SET.add(Host.HostType.Windows.name());
@@ -64,7 +76,8 @@ public class XtremIOProvUtils {
             for (XtremIOSystem system : systems) {
                 if (system.getSerialNumber().equalsIgnoreCase(storageSystem.getSerialNumber())) {
                     storagePool.setFreeCapacity(system.getTotalCapacity() - system.getUsedCapacity());
-                    dbClient.persistObject(storagePool);
+                    storagePool.setSubscribedCapacity(system.getSubscribedCapacity());
+                    dbClient.updateObject(storagePool);
                     break;
                 }
             }
@@ -75,6 +88,29 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.warn("Problem when updating pool capacity for pool {}", storagePool.getNativeGuid());
         }
+    }
+
+    /**
+     * Gets the storage pool for the given storage system.
+     *
+     * @param systemId the system id
+     * @param dbClient the db client
+     * @return the xtremio storage pool
+     */
+    public static StoragePool getXtremIOStoragePool(URI systemId, DbClient dbClient) {
+        URIQueryResultList storagePoolURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceStoragePoolConstraint(systemId),
+                storagePoolURIs);
+        Iterator<URI> poolsItr = storagePoolURIs.iterator();
+        while (poolsItr.hasNext()) {
+            URI storagePoolURI = poolsItr.next();
+            StoragePool pool = dbClient.queryObject(StoragePool.class, storagePoolURI);
+            if (pool != null && !pool.getInactive()) {
+                return pool;
+            }
+        }
+        return null;
     }
 
     /**
@@ -379,9 +415,12 @@ public class XtremIOProvUtils {
      * Get the XtremIO client for making requests to the system based
      * on the passed profile.
      *
-     * @param dbClient the db client
-     * @param system the system
-     * @param xtremioRestClientFactory xtremioclientFactory.
+     * @param dbClient
+     *            the db client
+     * @param system
+     *            the system
+     * @param xtremioRestClientFactory
+     *            xtremioclientFactory.
      * @return A reference to the xtremio client.
      */
     public static XtremIOClient getXtremIOClient(DbClient dbClient, StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
@@ -400,8 +439,10 @@ public class XtremIOProvUtils {
     /**
      * Gets the XtrmeIO model.
      *
-     * @param dbClient the db client
-     * @param system the system
+     * @param dbClient
+     *            the db client
+     * @param system
+     *            the system
      * @return the XtrmeIO model
      */
     public static String getXtremIOVersion(DbClient dbClient, StorageSystem system) {
@@ -417,8 +458,10 @@ public class XtremIOProvUtils {
     /**
      * Refresh the XIO Providers & its client connections.
      *
-     * @param xioProviderList the XIO provider list
-     * @param dbClient the db client
+     * @param xioProviderList
+     *            the XIO provider list
+     * @param dbClient
+     *            the db client
      * @return the list of active providers
      */
     public static List<URI> refreshXtremeIOConnections(final List<StorageProvider> xioProviderList,
@@ -458,7 +501,8 @@ public class XtremIOProvUtils {
     /**
      * Check if the version is greater than or equal to 4.0.2
      *
-     * @param version XIO storage system firmware version
+     * @param version
+     *            XIO storage system firmware version
      * @return true if the version is 4.0.2 or greater
      */
     public static boolean isXtremIOVersion402OrGreater(String version) {
@@ -476,7 +520,8 @@ public class XtremIOProvUtils {
      *
      * From API Doc: solaris, aix, windows, esx, other, linux, hpux
      *
-     * @param hostURI - Host URI of the Initiator.
+     * @param hostURI
+     *            - Host URI of the Initiator.
      * @return operatingSystem type.
      */
     public static String getInitiatorHostOS(Host host) {
@@ -485,5 +530,98 @@ public class XtremIOProvUtils {
             osType = host.getType().toLowerCase();
         }
         return osType;
+    }
+
+    /**
+     *
+     * @param igName
+     * @param clusterName
+     * @param client
+     * @return
+     * @throws Exception
+     */
+    public static List<XtremIOVolume> getInitiatorGroupVolumes(String igName, String clusterName, XtremIOClient client) throws Exception {
+        List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+        List<XtremIOObjectInfo> igLunMaps = new ArrayList<XtremIOObjectInfo>();
+        if (client.isVersion2()) {
+            igLunMaps = client.getLunMapsForInitiatorGroup(igName, clusterName);
+        } else {
+            XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, clusterName);
+            if (ig == null) {
+                return igVolumes;
+            }
+            List<XtremIOObjectInfo> lunMaps = client.getLunMaps(clusterName);
+            String igIndex = ig.getIndex();
+            for (XtremIOObjectInfo lunMap : lunMaps) {
+                String[] lunInfo = lunMap.getName().split(XtremIOConstants.UNDERSCORE);
+                if (igIndex.equals(lunInfo[1])) {
+                    igLunMaps.add(lunMap);
+                }
+            }
+        }
+
+        for (XtremIOObjectInfo igLunMap : igLunMaps) {
+            String[] igLunInfo = igLunMap.getName().split(XtremIOConstants.UNDERSCORE);
+            igVolumes.add(client.getVolumeByIndex(igLunInfo[0], clusterName));
+        }
+        return igVolumes;
+    }
+
+    /**
+     *
+     * @param storageSerialNumber
+     * @param initiators
+     * @param initiatorsNotFound
+     * @param xioClusterName
+     * @param client
+     * @return
+     * @throws Exception
+     */
+    public static ArrayListMultimap<String, Initiator> mapInitiatorToInitiatorGroup(String storageSerialNumber,
+            Collection<Initiator> initiators, List<Initiator> initiatorsNotFound, String xioClusterName, XtremIOClient client)
+                    throws Exception {
+        ArrayListMultimap<String, Initiator> initiatorToIGMap = ArrayListMultimap.create();
+        for (Initiator initiator : initiators) {
+            String igName = getIGNameForInitiator(initiator, storageSerialNumber, client, xioClusterName);
+            if (igName == null || igName.isEmpty()) {
+                _log.info("initiator {} - no IG found.", initiator.getLabel(), igName);
+                if (initiatorsNotFound != null) {
+                    initiatorsNotFound.add(initiator);
+                }
+            } else {
+                initiatorToIGMap.put(igName, initiator);
+            }
+        }
+        _log.info("Found {} existing IGs: {} after running selection process",
+                initiatorToIGMap.size(), Joiner.on(",").join(initiatorToIGMap.asMap().entrySet()));
+        return initiatorToIGMap;
+    }
+
+    /**
+     *
+     * @param initiator
+     * @param storageSerialNumber
+     * @param client
+     * @param xioClusterName
+     * @return
+     * @throws Exception
+     */
+    public static String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
+            throws Exception {
+        String igName = null;
+        try {
+            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
+            if (null != initiatorName) {
+                // Get initiator by Name and find IG Group
+                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
+                if (null != initiatorObj) {
+                    igName = initiatorObj.getInitiatorGroup().get(1);
+                }
+            }
+        } catch (Exception e) {
+            _log.warn("Initiator {} already deleted", initiator.getLabel());
+        }
+
+        return igName;
     }
 }

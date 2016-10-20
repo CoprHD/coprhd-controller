@@ -22,6 +22,7 @@ import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.With;
 import util.CatalogServiceUtils;
+import util.DisasterRecoveryUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
 
@@ -67,7 +68,7 @@ public class Dashboard extends Controller {
         List<String> ids = Lists.newArrayList();
         List<String> removedIds = Lists.newArrayList();
 
-        if (recentCookie != null && recentCookie.value != null) {
+        if (recentCookie != null && recentCookie.value != null && DisasterRecoveryUtils.isActiveSite()) {
             ids.addAll(Arrays.asList(recentCookie.value.split(",")));
             for (String serviceId : ids) {
                 CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));

@@ -4,6 +4,7 @@
  */
 package com.emc.sa.asset.providers;
 
+import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsUtils;
@@ -15,6 +16,7 @@ import com.google.common.collect.Lists;
 
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
@@ -31,6 +33,21 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getComputeVirtualPoolOptions(AssetOptionsContext ctx) {
         debug("getting compute virtual pools");
         Collection<ComputeVirtualPoolRestRep> computeVirtualPools = getComputeVirtualPools(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        for (ComputeVirtualPoolRestRep value : computeVirtualPools) {
+            options.add(createComputeVirtualPoolOption(ctx, value));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    @Asset("computeVirtualPool")
+    @AssetDependencies({ "blockVirtualArray" })
+    public List<AssetOption> getComputeVirtualPoolForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
+        debug("getting compute virtual pools");
+
+        Collection<ComputeVirtualPoolRestRep> computeVirtualPools =
+                api(ctx).computeVpools().getByVirtualArrayAndTenant(virtualArray,ctx.getTenant());
         List<AssetOption> options = Lists.newArrayList();
         for (ComputeVirtualPoolRestRep value : computeVirtualPools) {
             options.add(createComputeVirtualPoolOption(ctx, value));

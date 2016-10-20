@@ -1,0 +1,13 @@
+dependencies {
+    compile project(":storagedriver"),
+            library(slf4j),
+            library(commons_lang),
+            library(httpclient3),
+            library(log4j),
+            library(jersey),
+            library(google_gson),
+            library(google_gson),
+            library(json_sanitizer),
+            library(commons_logging),
+            library(spring)
+}

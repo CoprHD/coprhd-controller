@@ -7,8 +7,8 @@ package com.emc.sa.service.vmware.tasks;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.MethodFault;
 
 /**

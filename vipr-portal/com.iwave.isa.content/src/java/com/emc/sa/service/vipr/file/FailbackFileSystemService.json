@@ -1,0 +1,27 @@
+{
+  baseKey:"FailbackFileSystem.File",
+  serviceId:"FailbackFileSystem",
+  fields:{
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystem:{
+      type:"assetType.vipr.protectedRemoteFileSystem",
+      lockable: true
+    },
+    
+    failbackTargetFile:{
+      type:"assetType.vipr.failbackFileTarget"
+    },
+    
+     replicateConfFailback:{
+      type: "boolean",
+      initialValue: "true",
+      required: "false",
+      lockable: true
+    }
+  }
+}

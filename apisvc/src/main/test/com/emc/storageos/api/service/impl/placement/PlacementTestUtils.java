@@ -539,7 +539,8 @@ public class PlacementTestUtils {
                 attributeMap.put(Attributes.high_availability_vpool.name(), entry.getValue());
             }
         }
-        List<StoragePool> matchedPools =  matcher.matchStoragePoolsWithAttributeOn(pools, attributeMap);
+        StringBuffer errorMessage = new StringBuffer();
+        List<StoragePool> matchedPools = matcher.matchStoragePoolsWithAttributeOn(pools, attributeMap, errorMessage);
         StringSet result = new StringSet();
         for (StoragePool matchedPool : matchedPools) {
             result.add(matchedPool.getId().toString());

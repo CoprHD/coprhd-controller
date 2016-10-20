@@ -29,8 +29,6 @@ import java.util.UUID;
 
 import javax.xml.bind.DataBindingException;
 
-import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupContext;
-import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupFactory;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +53,7 @@ import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -100,6 +99,8 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupContext;
+import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupFactory;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ApplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupCreateCompleter;
@@ -160,6 +161,7 @@ import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -188,7 +190,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String EVENT_SERVICE_SOURCE = "BlockController";
     private DbClient _dbClient;
     private static final Logger _log = LoggerFactory.getLogger(BlockDeviceController.class);
-    private static final int SCAN_LOCK_TIMEOUT = 60;   // wait at most 60 seconds for scan lock
+    private static final int SCAN_LOCK_TIMEOUT = 60; // wait at most 60 seconds for scan lock
     private Map<String, BlockStorageDevice> _devices;
 
     private RecordableEventManager _eventManager;
@@ -237,6 +239,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
     private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
+    
+    private static final String METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP = "createFullCopyOrchestrationRollbackSteps";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -251,6 +255,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String UPDATE_VOLUMES_STEP_GROUP = "UPDATE_VOLUMES";
     public static final String DELETE_GROUP_STEP_GROUP = "DELETE_GROUP";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
+
+    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
+    private static final String METHOD_CREATE_SNAPSHOT_SESSION_STEP = "createSnapshotSession";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -326,7 +333,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * was successful. This in turn allows the other steps in the workflow
      * rollback.
      *
-     * @param stepId The id of the step being rolled back.
+     * @param stepId
+     *            The id of the step being rolled back.
      *
      * @throws WorkflowException
      */
@@ -354,9 +362,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Set the status of operation to 'ready'
      *
-     * @param clazz The data object class.
-     * @param ids The ids of the data objects for which the task completed.
-     * @param opId The task id.
+     * @param clazz
+     *            The data object class.
+     * @param ids
+     *            The ids of the data objects for which the task completed.
+     * @param opId
+     *            The task id.
      */
     private void doSuccessTask(
             Class<? extends DataObject> clazz, List<URI> ids, String opId) {
@@ -373,10 +384,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Fail the task. Called when an exception occurs attempting to
      * execute a task on multiple data objects.
      *
-     * @param clazz The data object class.
-     * @param ids The ids of the data objects for which the task failed.
-     * @param opId The task id.
-     * @param serviceCoded Original exception.
+     * @param clazz
+     *            The data object class.
+     * @param ids
+     *            The ids of the data objects for which the task failed.
+     * @param opId
+     *            The task id.
+     * @param serviceCoded
+     *            Original exception.
      */
     private void doFailTask(
             Class<? extends DataObject> clazz, List<URI> ids, String opId, ServiceCoded serviceCoded) {
@@ -393,10 +408,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Fail the task. Called when an exception occurs attempting to
      * execute a task.
      *
-     * @param clazz The data object class.
-     * @param id The id of the data object for which the task failed.
-     * @param opId The task id.
-     * @param serviceCoded Original exception.
+     * @param clazz
+     *            The data object class.
+     * @param id
+     *            The id of the data object for which the task failed.
+     * @param opId
+     *            The task id.
+     * @param serviceCoded
+     *            Original exception.
      */
     private void doFailTask(
             Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded) {
@@ -465,7 +484,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 boolean createAsMetaVolume = capabilities.getIsMetaVolume()
                         || MetaVolumeUtils.createAsMetaVolume(first.getVolumeURI(), _dbClient, capabilities);
                 if (storageSystem.checkIfVmax3()) {
-                    createAsMetaVolume = false; // VMAX3 does not support META and we will get here due to change VPool scenario
+                    createAsMetaVolume = false; // VMAX3 does not support META and we will get here due to change VPool
+                                                // scenario
                 }
                 if (createAsMetaVolume) {
                     // For vmax thin meta volumes we can create multiple meta volumes in one smis request
@@ -550,9 +570,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add Steps to create any BLOCK_MIRRORs specified in the VolumeDescriptor list.
      *
-     * @param workflow -- The Workflow being built
-     * @param waitFor -- Previous steps to waitFor
-     * @param volumes -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @param workflow
+     *            -- The Workflow being built
+     * @param waitFor
+     *            -- Previous steps to waitFor
+     * @param volumes
+     *            -- List<VolumeDescriptors> -- volumes of all types to be processed
      * @return last step added to waitFor
      * @throws ControllerException
      */
@@ -582,9 +605,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add Steps to create the required consistency group
      *
-     * @param workflow -- The Workflow being built
-     * @param waitFor -- Previous steps to waitFor
-     * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @param workflow
+     *            -- The Workflow being built
+     * @param waitFor
+     *            -- Previous steps to waitFor
+     * @param volumesDescriptors
+     *            -- List<VolumeDescriptors> -- volumes of all types to be processed
      * @return last step added to waitFor
      * @throws ControllerException
      */
@@ -625,7 +651,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // journal/target volume, we want to ignore its storage system. We do not want to
             // create backing array consistency groups for RP+VPlex target volumes. Only
             // source volume.
-            // We would create backend CG only if the volume's replicationGroupInstance is set when it is prepared in apisvc level.
+            // We would create backend CG only if the volume's replicationGroupInstance is set when it is prepared in
+            // apisvc level.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rgName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
@@ -671,10 +698,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add Steps to add or remove volumes to the required consistency group
      *
-     * @param workflow -- The Workflow being built
-     * @param waitFor -- Previous steps to waitFor
-     * @param volumesDescriptorsToAdd -- List<VolumeDescriptors> -- volumes of all types to be processed for adding to CG
-     * @param volumesDescriptorsToRemove -- List<VolumeDescriptors> -- volumes of all types to be processed for removing from CG
+     * @param workflow
+     *            -- The Workflow being built
+     * @param waitFor
+     *            -- Previous steps to waitFor
+     * @param volumesDescriptorsToAdd
+     *            -- List<VolumeDescriptors> -- volumes of all types to be processed for adding to CG
+     * @param volumesDescriptorsToRemove
+     *            -- List<VolumeDescriptors> -- volumes of all types to be processed for removing from CG
      * @return last step added to waitFor
      * @throws ControllerException
      */
@@ -741,7 +772,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         deviceURI, getDeviceType(deviceURI),
                         this.getClass(),
                         new Workflow.Method("updateConsistencyGroup", deviceURI, consistencyGroupURI, volumesToAdd, volumesToRemove),
-                        null, null);
+                        rollbackMethodNullMethod(), null);
                 if (volumesToAdd != null) {
                     _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
                             Joiner.on("\t").join(volumesToAdd),
@@ -770,8 +801,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * ----> ADD -> List of Volumes to Add from this CG for this device
      * ----> REMOVE -> List of Volumes to Remove from this CG for this device
      *
-     * @param addDescriptors BLOCK_DATA descriptors of volumes to add to CG
-     * @param removeDescriptors BLOCK_DATA descriptors of volumes to remove from CG
+     * @param addDescriptors
+     *            BLOCK_DATA descriptors of volumes to add to CG
+     * @param removeDescriptors
+     *            BLOCK_DATA descriptors of volumes to remove from CG
      * @return populated map
      */
     private Map<URI, Map<URI, Map<String, List<URI>>>> createDeviceToCGMapFromDescriptors(List<VolumeDescriptor> addDescriptors,
@@ -870,10 +903,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method modifyVolumesMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method modifyVolumesMethod just above (except
+     * opId).
      * Currently this workflow step is used only for Hitachi Thin Volumes modification to update volume tieringPolicy.
      * Hitachi allows setting of tieringpolicy at LDEV level, hence We should have a LDEV id of a LogicalUnit.
-     * But LDEV is only created after we LogicalUnit is created. Hence createVolumes workflow includes creation of LU (i.e. LDEV)
+     * But LDEV is only created after we LogicalUnit is created. Hence createVolumes workflow includes creation of LU
+     * (i.e. LDEV)
      * And LDEV modification (to set tieringPolicy.)
      *
      */
@@ -946,7 +981,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createVolumesMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createVolumesMethod just above (except
+     * opId).
      */
     @Override
     public void createVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs,
@@ -1023,7 +1059,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackCreateVolumesMethod just above (except opId).
+     * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackCreateVolumesMethod just above
+     * (except opId).
      */
     @Override
     public void rollBackCreateVolumes(URI systemURI, List<URI> volumeURIs, String opId) throws ControllerException {
@@ -1090,15 +1127,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         if (exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                             // Make sure the volume is not in an export mask
                             boolean foundInMask = false;
-                            if (exportGroup.getExportMasks() != null) {
-                                for (String exportMaskId : exportGroup.getExportMasks()) {
-                                    ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
-                                    if (mask.hasVolume(volume.getId())) {
-                                        foundInMask = true;
-                                        break;
-                                    }
+                            
+                            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {                                  
+                                if (exportMask.hasVolume(volume.getId())) {
+                                    foundInMask = true;
+                                    break;
                                 }
-                            }
+                            }                            
 
                             // If we didn't find that volume in a mask, it's OK to remove it.
                             if (!foundInMask) {
@@ -1106,7 +1141,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 if (exportGroup.getVolumes().isEmpty()) {
                                     _dbClient.removeObject(exportGroup);
                                 } else {
-                                    _dbClient.updateAndReindexObject(exportGroup);
+                                    _dbClient.updateObject(exportGroup);
                                 }
                             }
                         }
@@ -1185,7 +1220,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackCreateMetaVolumeMethod just above (except opId).
+     * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackCreateMetaVolumeMethod just above
+     * (except opId).
      */
     @Override
     public void rollBackCreateMetaVolume(URI systemURI, URI volumeURI, String createStepId, String opId) throws ControllerException {
@@ -1258,7 +1294,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackExpandVolume just above (except opId).
+     * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackExpandVolume just above (except
+     * opId).
      */
     @Override
     public void rollBackExpandVolume(URI systemURI, URI volumeURI, String expandStepId, String opId) throws ControllerException {
@@ -1297,7 +1334,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     WorkflowStepCompleter.stepFailed(opId, serviceError);
                 }
             } else {
-                // We came here if: a. Volume was expanded as a regular volume. or b. Volume was expanded as a meta volume,
+                // We came here if: a. Volume was expanded as a regular volume. or b. Volume was expanded as a meta
+                // volume,
                 // but there are no dangling meta members left.
                 _log.info("rollbackExpandVolume: nothing to cleanup in rollback.");
                 WorkflowStepCompleter.stepSucceded(opId);
@@ -1320,7 +1358,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMetaVolumesMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMetaVolumesMethod just above
+     * (except opId).
      */
     @Override
     public void createMetaVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs,
@@ -1397,7 +1436,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMetaVolumeMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMetaVolumeMethod just above
+     * (except opId).
      */
     @Override
     public void createMetaVolume(URI systemURI, URI poolURI, URI volumeURI,
@@ -1445,10 +1485,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Return a Workflow.Method for expandVolume.
      *
-     * @param storage storage system
-     * @param pool storage pool
-     * @param volume volume to expand
-     * @param size size to expand to
+     * @param storage
+     *            storage system
+     * @param pool
+     *            storage pool
+     * @param volume
+     *            volume to expand
+     * @param size
+     *            size to expand to
      * @return Workflow.Method
      */
     public static Workflow.Method expandVolumesMethod(URI storage, URI pool, URI volume, Long size) {
@@ -1467,23 +1511,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         try {
             WorkflowStepCompleter.stepExecuting(opId);;
-            // Get a new workflow to execute volume expand
-            Workflow workflow = _workflowService.getNewWorkflow(this,
-                    EXPAND_VOLUME_WF_NAME, false, opId);
-            _log.info("Created new expansion workflow with operation id {}", opId);
+            final String workflowKey = "expandBlockVolume";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(opId, workflowKey)) {
+                // Get a new workflow to execute volume expand
+                Workflow workflow = _workflowService.getNewWorkflow(this,
+                        EXPAND_VOLUME_WF_NAME, false, opId);
+                _log.info("Created new expansion workflow with operation id {}", opId);
 
-            String stepId = workflow.createStepId();
-            workflow.createStep(BLOCK_VOLUME_EXPAND_GROUP, String.format(
-                    "Expand volume %s", volume), null,
-                    storage, getDeviceType(storage),
-                    BlockDeviceController.class,
-                    expandVolumesMethod(storage, pool, volume, size),
-                    rollbackExpandVolumeMethod(storage, volume, stepId),
-                    stepId);
-            _log.info("Executing workflow plan {}", BLOCK_VOLUME_EXPAND_GROUP);
+                String stepId = workflow.createStepId();
+                workflow.createStep(BLOCK_VOLUME_EXPAND_GROUP, String.format(
+                        "Expand volume %s", volume), null,
+                        storage, getDeviceType(storage),
+                        BlockDeviceController.class,
+                        expandVolumesMethod(storage, pool, volume, size),
+                        rollbackExpandVolumeMethod(storage, volume, stepId),
+                        stepId);
+                _log.info("Executing workflow plan {}", BLOCK_VOLUME_EXPAND_GROUP);
 
-            workflow.executePlan(completer, String.format(
-                    "Expansion of volume %s completed successfully", volume));
+                workflow.executePlan(completer, String.format(
+                        "Expansion of volume %s completed successfully", volume));
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(opId, workflowKey);
+            }
         } catch (Exception ex) {
             _log.error("Could not expand volume: " + volume, ex);
             String opName = ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME.getName();
@@ -1806,9 +1855,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add Steps to perform untag operations on underlying array for the volumes passed in.
      *
-     * @param workflow -- The Workflow being built
-     * @param waitFor -- Previous steps to waitFor
-     * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @param workflow
+     *            -- The Workflow being built
+     * @param waitFor
+     *            -- Previous steps to waitFor
+     * @param volumesDescriptors
+     *            -- List<VolumeDescriptors> -- volumes of all types to be processed
      * @return last step added to waitFor
      * @throws ControllerException
      */
@@ -1849,8 +1901,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Return a Workflow.Method for untagVolumes.
      *
-     * @param systemURI The system to perform the action on
-     * @param volumeURIs The volumes to perform the action on
+     * @param systemURI
+     *            The system to perform the action on
+     * @param volumeURIs
+     *            The volumes to perform the action on
      * @return the new WF
      */
     private Workflow.Method untagVolumesMethod(URI systemURI, List<URI> volumeURIs) {
@@ -1860,9 +1914,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Performs an untag operation on all volumes.
      *
-     * @param systemURI Underlying system to perform the untag operation on
-     * @param volumeURIs Volumes to untag
-     * @param opId The opId
+     * @param systemURI
+     *            Underlying system to perform the untag operation on
+     * @param volumeURIs
+     *            Volumes to untag
+     * @param opId
+     *            The opId
      * @throws ControllerException
      */
     public void untagVolumes(URI systemURI, List<URI> volumeURIs, String opId)
@@ -1921,9 +1978,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Workflow step to delete a volume
      *
-     * @param storageURI the storage system ID
-     * @param volumes the volume IDs
-     * @param token the task ID from the workflow
+     * @param storageURI
+     *            the storage system ID
+     * @param volumes
+     *            the volume IDs
+     * @param token
+     *            the task ID from the workflow
      * @return true if the step was fired off properly.
      * @throws WorkflowException
      */
@@ -2032,11 +2092,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-                WorkflowStepCompleter.stepFailed(opId, serviceError);
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
@@ -2078,7 +2136,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void establishVolumeSnapshotGroupRelation(
             URI storage, URI sourceVolume, URI snapshot, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -2131,9 +2189,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolumeGroup";
 
     @Override
-    public void
-            restoreVolume(URI storage, URI pool, URI volumeURI, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
-                    throws ControllerException {
+    public void restoreVolume(URI storage, URI pool, URI volumeURI, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
+            throws ControllerException {
 
         SimpleTaskCompleter completer = new SimpleTaskCompleter(BlockSnapshot.class, snapshot, opId);
 
@@ -2267,12 +2324,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapSession.setProject(blockSnapshot.getProject());
                 snapSession.setStorageController(storage);
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     snapSession.setConsistencyGroup(cgURI);
                     snapSession.setReplicationGroupInstance(replicationGroupName);
                     snapSession.setSessionSetName(replicationGroupName);
+                } else {
+                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
                 }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
@@ -2295,13 +2353,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // is group operation the source target group will be linked to the created
                 // group session.
                 Workflow.Method linkMethod;
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
-                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     linkMethod = linkBlockSnapshotSessionTargetGroupMethod(storage, snapSessionURI, sourceSnapshotURIs,
                             BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                } else {
+                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
                 }
+
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
@@ -2430,11 +2490,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Return a Workflow.Method for restoreVolume
      *
-     * @param storage storage system
-     * @param pool storage pool
-     * @param volume target of restore operation
-     * @param snapshot snapshot to restore from
-     * @param updateOpStatus update operation status flag
+     * @param storage
+     *            storage system
+     * @param pool
+     *            storage pool
+     * @param volume
+     *            target of restore operation
+     * @param snapshot
+     *            snapshot to restore from
+     * @param updateOpStatus
+     *            update operation status flag
      * @return Workflow.Method
      */
     public static Workflow.Method restoreVolumeMethod(URI storage, URI pool, URI volume, URI snapshot,
@@ -2511,7 +2576,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMirrorMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMirrorMethod just above (except
+     * opId).
      */
     @Override
     public void createMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean createInactive, String opId)
@@ -2557,7 +2623,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method rollbackMirrorMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method rollbackMirrorMethod just above
+     * (except opId).
      */
     public void rollbackMirror(URI storage, List<URI> mirrorList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
@@ -2567,7 +2634,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
             List<BlockMirror> mirrorsNoRollback = new ArrayList<BlockMirror>();
             for (BlockMirror mirror : mirrors) {
-                // for CG mirror, filter out mirrors with invalid replication group. It is necessary as the fracture/detach/delete will
+                // for CG mirror, filter out mirrors with invalid replication group. It is necessary as the
+                // fracture/detach/delete will
                 // expect mirrors with valid replication group
                 // for non CG mirror, filter out mirror with no native Id
                 if ((isCG && NullColumnValueGetter.isNullValue(mirror.getReplicationGroupInstance()) || (!isCG && isNullOrEmpty(mirror
@@ -2709,7 +2777,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method fractureMirrorMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method fractureMirrorMethod just above
+     * (except opId).
      */
     public void fractureMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean sync, String opId) throws ControllerException {
         TaskCompleter completer = null;
@@ -2863,7 +2932,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method detachMirrorMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method detachMirrorMethod just above (except
+     * opId).
      */
     @Override
     public void detachMirror(URI storage, List<URI> mirrorList, Boolean isCG,
@@ -2947,7 +3017,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public String addStepsForPromoteMirrors(Workflow workflow, String waitFor,
             List<URI> mirrorList, List<URI> promotees)
-            throws ControllerException {
+                    throws ControllerException {
         boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
         List<Volume> promotedVolumes = _dbClient.queryObject(Volume.class, promotees);
         if (!isCG) {
@@ -3060,7 +3130,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method deleteMirrorMethod just above (except opId).
+     * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method deleteMirrorMethod just above (except
+     * opId).
      */
     @Override
     public void deleteMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
@@ -3171,11 +3242,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * An orchestration controller method for detaching and deleting a mirror
      *
-     * @param storage URI of storage controller.
-     * @param mirrorList List of URIs of block mirrors
-     * @param promotees List of URIs of promoted volumes
-     * @param isCG CG mirror or not
-     * @param opId Operation ID
+     * @param storage
+     *            URI of storage controller.
+     * @param mirrorList
+     *            List of URIs of block mirrors
+     * @param promotees
+     *            List of URIs of promoted volumes
+     * @param isCG
+     *            CG mirror or not
+     * @param opId
+     *            Operation ID
      * @throws ControllerException
      */
     @Override
@@ -3294,7 +3370,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void establishVolumeNativeContinuousCopyGroupRelation(
             URI storage, URI sourceVolume, URI mirror, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3310,17 +3386,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     static final String FULL_COPY_WORKFLOW = "fullCopyVolumes";
     static final String FULL_COPY_CREATE_STEP_GROUP = "createFullCopiesStepGroup";
+    static final String SNAPSHOT_SESSION_CREATE_STEP_GROUP = "createSnapshotSessionStepGroup";
     static final String FULL_COPY_WFS_STEP_GROUP = "waitForSyncStepGroup";
     static final String FULL_COPY_DETACH_STEP_GROUP = "detachFullCopyStepGroup";
     static final String FULL_COPY_FRACTURE_STEP_GROUP = "fractureFullCopyStepGroup";
     static final String SNAPSHOT_DELETE_STEP_GROUP = "deleteSnapshotStepGroup";
     static final String MIRROR_FRACTURE_STEP_GROUP = "fractureMirrorStepGroup";
     static final String MIRROR_DETACH_STEP_GROUP = "detachMirrorStepGroup";
+    static final String FULL_COPY_CREATE_ORCHESTRATION_STEP = "createFullCopiesOrchestrationStep";
+    static final String SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP = "createSnapshotSessionOrchestrationStep";
 
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
             String taskId)
-            throws ControllerException {
+                    throws ControllerException {
         _log.info("START fullCopyVolumes");
         TaskCompleter taskCompleter = new CloneCreateWorkflowCompleter(fullCopyVolumes, taskId);
         Volume clone = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
@@ -3358,7 +3437,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     workflow.createStep(FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", null, storage,
                             storageSystem.getSystemType(), getClass(), createMethod,
                             rollbackMethod, null);
-                    // For driver managed arrays, we rely on drivers to complete synchronization if needed and to set clone state.
+                    // For driver managed arrays, we rely on drivers to complete synchronization if needed and to set
+                    // clone state.
                     if (!createInactive && !getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
                         // After all full copies have been created, wait for synchronization to complete
                         Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(uri), isCG);
@@ -3410,13 +3490,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     private void createFullCopyForApplicationCGs(Workflow workflow, VolumeGroup volumeGroup,
             List<URI> fullCopyVolumes, Boolean createInactive, TaskCompleter taskCompleter) {
-        boolean isCG = true;    // VolumeGroup Volumes will be in CG
+        boolean isCG = true; // VolumeGroup Volumes will be in CG
         // add VolumeGroup to taskCompleter
         taskCompleter.addVolumeGroupId(volumeGroup.getId());
 
         List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
         Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes, _dbClient);
-        for (String arrayGroupName : arrayGroupToVolumes.keySet()) {    // AG - Array Group
+        for (String arrayGroupName : arrayGroupToVolumes.keySet()) { // AG - Array Group
             List<Volume> arrayGroupVolumes = arrayGroupToVolumes.get(arrayGroupName);
             List<URI> fullCopyVolumesAG = getFullCopiesForVolumes(fullCopyVolumes, arrayGroupVolumes);
             if (fullCopyVolumesAG.isEmpty()) {
@@ -3729,7 +3809,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void establishVolumeFullCopyGroupRelation(
             URI storage, URI sourceVolume, URI fullCopy, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3759,10 +3839,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Creates a connection to monitor events generated by the storage
      * identified by the passed URI.
      *
-     * @param storage A database client URI that identifies the storage to be
+     * @param storage
+     *            A database client URI that identifies the storage to be
      *            monitored.
      *
-     * @throws ControllerException When errors occur connecting the storage for
+     * @throws ControllerException
+     *             When errors occur connecting the storage for
      *             event monitoring.
      */
     @Override
@@ -3790,10 +3872,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Removes a connection that was previously established for monitoring
      * events from the storage identified by the passed URI.
      *
-     * @param storage A database client URI that identifies the storage to be
+     * @param storage
+     *            A database client URI that identifies the storage to be
      *            disconnected.
      *
-     * @throws ControllerException When errors occur disconnecting the storage
+     * @throws ControllerException
+     *             When errors occur disconnecting the storage
      *             for event monitoring.
      */
     @Override
@@ -3859,8 +3943,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private boolean scanProvider(StorageProvider provider, StorageSystem storageSystem,
             boolean activeProvider, String opId) throws DatabaseException,
-            BaseCollectionException,
-            ControllerException {
+                    BaseCollectionException,
+                    ControllerException {
 
         Map<String, StorageSystemViewObject> storageCache = new HashMap<String, StorageSystemViewObject>();
         _dbClient.createTaskOpStatus(StorageProvider.class, provider.getId(), opId,
@@ -3874,7 +3958,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             scanCompleter.statusReady(_dbClient, "Scan for storage system has completed");
         } catch (Exception ex) {
             _log.error("Scan failed for {}--->", provider, ex);
-            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex));
+            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
             throw DeviceControllerException.exceptions.scanProviderFailed(storageSystem.getNativeGuid(),
                     provider.getId().toString());
         }
@@ -4118,7 +4202,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Get the deviceType for a StorageSystem.
      *
-     * @param deviceURI -- StorageSystem URI
+     * @param deviceURI
+     *            -- StorageSystem URI
      * @return deviceType String
      */
     String getDeviceType(URI deviceURI) throws ControllerException {
@@ -4136,7 +4221,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 2) Has valid sync state integer value
      * 3) Sync state is not already fractured (paused) and not resynchronizing
      *
-     * @param mirrorList The BlockMirrors to test
+     * @param mirrorList
+     *            The BlockMirrors to test
      * @return true, if at least one mirror is applicable for pause operation
      */
     private boolean mirrorIsPausable(List<BlockMirror> mirrorList) {
@@ -4293,6 +4379,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 lockKey = replicationGroupName;
             }
 
+            if (lockKey == null) {
+                BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+                lockKey = cgObj.getAlternateLabel() != null ? cgObj.getAlternateLabel() : cgObj.getLabel();
+            }
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, lockKey, storage));
@@ -4300,8 +4390,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (isVNX) {
                 // replication group may have been just created by another thread, in that case,
-                // group name for VNX will be array generated name (if arrayConsistency is true), or replicationGroupName if
-                // arrayConsistency is false
+                // group name for VNX will be array generated name (if arrayConsistency is true), or
+                // replicationGroupName if arrayConsistency is false
                 // so get the group name again here to be used in ControllerUtils.replicationGroupExists call
                 groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName,
                         _dbClient);
@@ -4343,7 +4433,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public boolean addToConsistencyGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
-            throws ControllerException {
+                    throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4387,7 +4477,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public boolean removeFromConsistencyGroup(URI storage, URI consistencyGroup, List<URI> removeVolumesList, boolean keepRGReference,
             String opId)
-            throws ControllerException {
+                    throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4418,8 +4508,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * This method creates SRDF target consistency group for the SRDF source consistency group 1. Creates target consistency group in ViPR
-     * DB & Array 2. Get the target volumes for the SRDF source volumes and adds them to the target consistency group Note: Target CG will
+     * This method creates SRDF target consistency group for the SRDF source consistency group 1. Creates target
+     * consistency group in ViPR
+     * DB & Array 2. Get the target volumes for the SRDF source volumes and adds them to the target consistency group
+     * Note: Target CG will
      * be created using source system provider
      *
      * @param sourceCG
@@ -4671,7 +4763,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             splitRollbackMethod, null);
                 }
             } else if (sourceObj instanceof Volume && isNonSplitSRDFSourceVolume((Volume) sourceObj)) {
-                // PRIOR to Restoring R1 Device from its Full copy Clone, we need to SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE
+                // PRIOR to Restoring R1 Device from its Full copy Clone, we need to SUSPEND the R1-R2 pair if the Copy
+                // Mode is ACTIVE
                 Volume srdfSourceVolume = (Volume) sourceObj;
                 URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
                 StringSet targets = srdfSourceVolume.getSrdfTargets();
@@ -4734,11 +4827,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Return a Workflow.Method for restoreVolume
      *
-     * @param storage storage system
-     * @param pool storage pool
-     * @param volume target of restore operation
-     * @param snapshot snapshot to restore from
-     * @param updateOpStatus update operation status flag
+     * @param storage
+     *            storage system
+     * @param pool
+     *            storage pool
+     * @param volume
+     *            target of restore operation
+     * @param snapshot
+     *            snapshot to restore from
+     * @param updateOpStatus
+     *            update operation status flag
      * @return Workflow.Method
      */
     public static Workflow.Method restoreFromCloneMethod(URI storage, List<URI> clone, Boolean updateOpStatus, boolean isCG) {
@@ -4879,9 +4977,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Return a Workflow.Method for resync
      *
-     * @param storage storage system
-     * @param clone list of clones
-     * @param updateOpStatus update operation status flag
+     * @param storage
+     *            storage system
+     * @param clone
+     *            list of clones
+     * @param updateOpStatus
+     *            update operation status flag
      * @return Workflow.Method
      */
     public static Workflow.Method resyncCloneMethod(URI storage, List<URI> clone, Boolean updateOpStatus, boolean isCG) {
@@ -5153,10 +5254,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add step to create list clone.
      *
-     * @param workflow The Workflow being built
-     * @param storageSystem Storage system
-     * @param waitFor Previous step to waitFor
-     * @param cloneList List of URIs for clones to be created
+     * @param workflow
+     *            The Workflow being built
+     * @param storageSystem
+     *            Storage system
+     * @param waitFor
+     *            Previous step to waitFor
+     * @param cloneList
+     *            List of URIs for clones to be created
      * @return last step added to waitFor
      */
     public String createListCloneStep(Workflow workflow, StorageSystem storageSystem, List<URI> cloneList, String waitFor) {
@@ -5263,10 +5368,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add Steps to create list mirror.
      *
-     * @param workflow The Workflow being built
-     * @param storageSystem Storage system
-     * @param waitFor Previous step to waitFor
-     * @param mirrorList List of URIs for mirrors to be created
+     * @param workflow
+     *            The Workflow being built
+     * @param storageSystem
+     *            Storage system
+     * @param waitFor
+     *            Previous step to waitFor
+     * @param mirrorList
+     *            List of URIs for mirrors to be created
      * @return last step added to waitFor
      */
     public String createListMirrorStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList)
@@ -5357,10 +5466,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add Steps to create list snapshot.
      *
-     * @param workflow The Workflow being built
-     * @param storageSystem Storage system
-     * @param waitFor Previous step to waitFor
-     * @param snapshotList List of URIs for snapshots to be created
+     * @param workflow
+     *            The Workflow being built
+     * @param storageSystem
+     *            Storage system
+     * @param waitFor
+     *            Previous step to waitFor
+     * @param snapshotList
+     *            List of URIs for snapshots to be created
      * @return last step added to waitFor
      */
     public String createListSnapshotStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> snapshotList)
@@ -5446,7 +5559,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Generates step id for dependent calls during rollback step execution.
      * As we cannot add new step for dependent calls to ROLLBACK steps group during workflow execution,
-     * generate a new operation id for the dependent call. This is to avoid dependent call marking the rollback step completed.
+     * generate a new operation id for the dependent call. This is to avoid dependent call marking the rollback step
+     * completed.
      * TODO find a solution
      *
      * @return the string
@@ -5552,7 +5666,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void createSnapshotSession(URI systemURI, URI snapSessionURI,
             List<List<URI>> sessionSnapshotURIs, String copyMode, String opId)
-            throws InternalException {
+                    throws InternalException {
 
         TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapSessionURI, sessionSnapshotURIs, opId);
         try {
@@ -5621,11 +5735,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Adds the step to create block snapshot session.
      *
-     * @param workflow the workflow
-     * @param systemURI the system uri
-     * @param session the snapshot session
-     * @param repGroupName the replication group name
-     * @param waitFor the wait for
+     * @param workflow
+     *            the workflow
+     * @param systemURI
+     *            the system uri
+     * @param session
+     *            the snapshot session
+     * @param repGroupName
+     *            the replication group name
+     * @param waitFor
+     *            the wait for
      * @return the stepId
      */
     public String addStepToCreateSnapshotSession(Workflow workflow, URI systemURI, URI session,
@@ -5642,9 +5761,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Create the workflow method that is invoked by the workflow service
      * to create block snapshot sessions.
      *
-     * @param systemURI The URI of the storage system on which the snapshot sessions are created.
-     * @param snapSessionURI The URIs of the sessions in ViPR.
-     * @param groupName The group name when creating a group session.
+     * @param systemURI
+     *            The URI of the storage system on which the snapshot sessions are created.
+     * @param snapSessionURI
+     *            The URIs of the sessions in ViPR.
+     * @param groupName
+     *            The group name when creating a group session.
      *
      * @return A reference to a Workflow.Method for creating an array snapshot.
      */
@@ -5656,10 +5778,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Creates array snapshots on the array with the passed URI and associates these
      * with the BlockSnapshotSession instances with the passed URIs.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URIs of the BlockSnapshotSessioninstances representing the array snapshots.
-     * @param groupName The group name when creating a group session.
-     * @param stepId The unique id of the workflow step in which the snapshots are be created.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URIs of the BlockSnapshotSessioninstances representing the array snapshots.
+     * @param groupName
+     *            The group name when creating a group session.
+     * @param stepId
+     *            The unique id of the workflow step in which the snapshots are be created.
      */
     public void createBlockSnapshotSession(URI systemURI, URI snapSessionURI, String groupName, String stepId) {
         TaskCompleter completer = null;
@@ -5682,11 +5808,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Create the workflow method that is invoked by the workflow service
      * to link a target volume to the array snapshot.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionSnapshotMap Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionSnapshotMap
+     *            Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
      *            representing the linked target.
-     * @param copyMode The manner in which the target is linked to the array snapshot.
-     * @param targetsExist true if the target exists, false if a new one needs to be created.
+     * @param copyMode
+     *            The manner in which the target is linked to the array snapshot.
+     * @param targetsExist
+     *            true if the target exists, false if a new one needs to be created.
      *
      * @return A reference to a Workflow.Method for linking a target volume to an array snapshot.
      */
@@ -5706,12 +5836,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * based on the passed copy mode and is associated with the BlockSnapshot
      * instances with the passed URI.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionSnapshotMap Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionSnapshotMap
+     *            Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
      *            representing the linked target.
-     * @param copyMode The manner in which the target is linked to the array snapshot.
-     * @param targetsExist true if the target exists, false if a new one needs to be created.
-     * @param stepId The unique id of the workflow step in which the target is linked.
+     * @param copyMode
+     *            The manner in which the target is linked to the array snapshot.
+     * @param targetsExist
+     *            true if the target exists, false if a new one needs to be created.
+     * @param stepId
+     *            The unique id of the workflow step in which the target is linked.
      */
     public boolean linkBlockSnapshotSessionTargetGroup(URI systemURI, URI snapshotSessionURI, List<URI> snapshotURIs,
             String copyMode, Boolean targetsExist, String stepId) {
@@ -5747,11 +5882,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Create the workflow method that is invoked by the workflow service
      * to link a target volume to the array snapshot.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
-     * @param copyMode The manner in which the target is linked to the array snapshot.
-     * @param targetExists true if the target exists, false if a new one needs to be created.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param copyMode
+     *            The manner in which the target is linked to the array snapshot.
+     * @param targetExists
+     *            true if the target exists, false if a new one needs to be created.
      *
      * @return A reference to a Workflow.Method for linking a target volume to an array snapshot.
      */
@@ -5766,12 +5906,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * based on the passed copy mode and is associated with the BlockSnapshot
      * instance with the passed URI.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
-     * @param copyMode The manner in which the target is linked to the array snapshot.
-     * @param targetExists true if the target exists, false if a new one needs to be created.
-     * @param stepId The unique id of the workflow step in which the target is linked.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param copyMode
+     *            The manner in which the target is linked to the array snapshot.
+     * @param targetExists
+     *            true if the target exists, false if a new one needs to be created.
+     * @param stepId
+     *            The unique id of the workflow step in which the target is linked.
      */
     public void linkBlockSnapshotSessionTarget(URI systemURI, URI snapSessionURI,
             URI snapshotURI, String copyMode, Boolean targetExists, String stepId) {
@@ -5796,9 +5942,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * to rollback a failed attempt to link a target volume to the array
      * snapshot.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance.
      *
      * @return A reference to a Workflow.Method for rolling back a failed attempt to link
      *         a target volume to an array snapshot.
@@ -5810,10 +5959,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Rollback a failed attempt to link a target volume to the array snapshot.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance.
-     * @param stepId The unique id of the workflow step in which the rollback is executed.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance.
+     * @param stepId
+     *            The unique id of the workflow step in which the rollback is executed.
      */
     public void rollbackLinkBlockSnapshotSessionTarget(URI systemURI, URI snapSessionURI, URI snapshotURI, String stepId) {
         // We do not rollback successfully linked targets. If the target
@@ -5879,8 +6032,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
-            String opId) throws InternalException {
-        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, opId);
+            Boolean updateStatus, String opId) throws InternalException {
+        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, updateStatus, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.
@@ -5894,22 +6047,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // For CG's, ensure 1 target per ReplicationGroup
             if (tgtSnapSession.hasConsistencyGroup()
                     && NullColumnValueGetter.isNotNullValue(tgtSnapSession.getReplicationGroupInstance())) {
-                Iterator<BlockSnapshot> iterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
-                List<BlockSnapshot> snapshots = Lists.newArrayList(iterator);
-                Set<String> replicationGroups = new HashSet<>();
-                List<URI> filtered = new ArrayList<>();
-
-                for (BlockSnapshot snapshot : snapshots) {
-                    String repGrpInstance = snapshot.getReplicationGroupInstance();
-                    if (replicationGroups.contains(repGrpInstance)) {
-                        continue;
-                    }
-
-                    replicationGroups.add(repGrpInstance);
-                    filtered.add(snapshot.getId());
-                }
-
-                snapshotsIterable = filtered;
+                snapshotsIterable = ControllerUtils.ensureOneSnapshotPerReplicationGroup(snapshotURIs, _dbClient);
             }
 
             String waitFor = null;
@@ -5933,9 +6071,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Create the workflow method that is invoked by the workflow service
      * to re-link a target volume to the target array snapshot.
      *
-     * @param systemURI The URI of the storage system.
-     * @param tgtSnapSessionURI The URI of the target BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param tgtSnapSessionURI
+     *            The URI of the target BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance representing the linked target volume.
      *
      * @return A reference to a Workflow.Method for re-linking a target volume to an array snapshot.
      */
@@ -5948,10 +6089,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Re-link a linked target volume to the target array snapshot on the storage
      * system with the passed URI.
      *
-     * @param systemURI The URI of the storage system.
-     * @param tgtSnapSessionURI The URI of the target BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
-     * @param stepId The unique id of the workflow step in which the target is re-linked.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param tgtSnapSessionURI
+     *            The URI of the target BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param stepId
+     *            The unique id of the workflow step in which the target is re-linked.
      */
     public void relinkBlockSnapshotSessionTarget(URI systemURI, URI tgtSnapSessionURI,
             URI snapshotURI, String stepId) {
@@ -6038,10 +6183,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Create the workflow method that is invoked by the workflow service
      * to unlink a target from an array snapshot.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
-     * @param deleteTarget True if the target volume should be deleted.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param deleteTarget
+     *            True if the target volume should be deleted.
      *
      * @return A reference to a Workflow.Method for linking a target volume to an array snapshot.
      */
@@ -6055,11 +6204,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * with the passed URI. Additionally, the target device will be deleted
      * if so requested.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
-     * @param deleteTarget True if the target volume should be deleted.
-     * @param stepId The unique id of the workflow step in which the target is unlinked.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI
+     *            The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param deleteTarget
+     *            True if the target volume should be deleted.
+     * @param stepId
+     *            The unique id of the workflow step in which the target is unlinked.
      */
     public void unlinkBlockSnapshotSessionTarget(URI systemURI, URI snapSessionURI,
             URI snapshotURI, Boolean deleteTarget, String stepId) {
@@ -6105,7 +6259,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 for (Volume volume : nativeVolumes) {
                     if (sourceGroupName.equals(volume.getReplicationGroupInstance())) {
                         sourceObj = volume;
-                        break;  // get source volume which matches session's RG name
+                        break; // get source volume which matches session's RG name
                     }
                 }
             } else {
@@ -6137,7 +6291,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             splitRollbackMethod, null);
                 }
             } else if (sourceObj instanceof Volume && isNonSplitSRDFSourceVolume((Volume) sourceObj)) {
-                // PRIOR to Restoring R1 Device from its session, we need to SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE
+                // PRIOR to Restoring R1 Device from its session, we need to SUSPEND the R1-R2 pair if the Copy Mode is
+                // ACTIVE
                 Volume srdfSourceVolume = (Volume) sourceObj;
                 URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
                 StringSet targets = srdfSourceVolume.getSrdfTargets();
@@ -6176,8 +6331,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * to restore the data on the array snapshot represented by the
      * BlockSnapshotSession instance with the passed URI to its source.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
      *
      * @return A reference to a Workflow.Method for restoring the array snapshot to its source.
      */
@@ -6189,9 +6346,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Restore the data on the array snapshot represented by the
      * BlockSnapshotSession instance with the passed URI to its source.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param stepId The unique id of the workflow step in which the session is restored.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param stepId
+     *            The unique id of the workflow step in which the session is restored.
      */
     public void restoreBlockSnapshotSession(URI systemURI, URI snapSessionURI, String stepId) {
         TaskCompleter completer = null;
@@ -6250,10 +6410,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * to delete the array snapshot represented by the BlockSnapshotSession
      * instance with the passed URI to its source.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param markInactive true if the step should mark the session inactive, false otherwise.
-     * @param groupName The group name when deleting a group snapshot session.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param markInactive
+     *            true if the step should mark the session inactive, false otherwise.
+     * @param groupName
+     *            The group name when deleting a group snapshot session.
      *
      * @return A reference to a Workflow.Method for deleting the array snapshot.
      */
@@ -6266,11 +6430,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Delete the array snapshot represented by the BlockSnapshotSession instance
      * with the passed URI to its source.
      *
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param stepId The unique id of the workflow step in which the session is deleted.
-     * @param groupName The group name when deleting a group snapshot session.
-     * @param markInactive true if the step should mark the session inactive, false otherwise.
+     * @param systemURI
+     *            The URI of the storage system.
+     * @param snapSessionURI
+     *            The URI of the BlockSnapshotSession instance.
+     * @param stepId
+     *            The unique id of the workflow step in which the session is deleted.
+     * @param groupName
+     *            The group name when deleting a group snapshot session.
+     * @param markInactive
+     *            true if the step should mark the session inactive, false otherwise.
      */
     public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, String groupName, Boolean markInactive, String stepId) {
         TaskCompleter completer = null;
@@ -6292,8 +6461,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Gets the full copies for the given volumes.
      *
-     * @param allFullCopies the requested full copies to be created
-     * @param volumes the volumes
+     * @param allFullCopies
+     *            the requested full copies to be created
+     * @param volumes
+     *            the volumes
      * @return the full copies
      */
     private List<URI> getFullCopiesForVolumes(List<URI> allFullCopies, List<Volume> volumes) {
@@ -6318,7 +6489,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * For VNX volume, it need to be removed from real replication group, so it cannot be skipped.
      *
      * @param volumeIds
-     * @param newRGName (for adding volumes to application only, null otherwise)
+     * @param newRGName
+     *            (for adding volumes to application only, null otherwise)
      * @return table with storage URI, replication group name, and volume URIs
      */
     private Table<URI, String, List<URI>> getStorageSystemRGVolumes(Collection<URI> volumeIds, String newRGName) {
@@ -6420,7 +6592,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             List<URI> removeVolumeList,
             String waitForStep, String opId) throws ControllerException {
         String waitFor = waitForStep;
-        // Note volumes could be in both addVolumeList and removeVolumeList, e.g., remove from original RG, and add to a new RG
+        // Note volumes could be in both addVolumeList and removeVolumeList, e.g., remove from original RG, and add to a
+        // new RG
         // Need to process remove list first
         if (removeVolumeList != null && !removeVolumeList.isEmpty()) {
             Volume vol = _dbClient.queryObject(Volume.class, removeVolumeList.get(0));
@@ -6494,12 +6667,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Create a method for workflow to delete array clone replication group
      * 
-     * @param storage storage system
-     * @param consistencyGroup consistency group URI
-     * @param groupName clone group name
+     * @param storage
+     *            storage system
+     * @param consistencyGroup
+     *            consistency group URI
+     * @param groupName
+     *            clone group name
      * @param keepRGName
      * @param markInactive
-     * @param sourceGroupName source group name
+     * @param sourceGroupName
+     *            source group name
      * @return the created workflow Method
      */
     public Workflow.Method deleteReplicationGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
@@ -6511,12 +6688,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Delete array clone replication group
      * 
-     * @param storage storage system
-     * @param consistencyGroup consistency group URI
-     * @param groupName clone group name
+     * @param storage
+     *            storage system
+     * @param consistencyGroup
+     *            consistency group URI
+     * @param groupName
+     *            clone group name
      * @param keepRGName
      * @param markInactive
-     * @param sourceGroupName source group name
+     * @param sourceGroupName
+     *            source group name
      * @return the created workflow Method
      */
     public void deleteReplicationGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, Boolean markInactive,
@@ -6541,12 +6722,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Add steps to restore full copy
      * 
-     * @param workflow - the workflow the steps would be added to
-     * @param waitFor - the step would be waited before the added steps would be executed
-     * @param storage - the storage controller URI
-     * @param fullcopies - the full copies to restore
+     * @param workflow
+     *            - the workflow the steps would be added to
+     * @param waitFor
+     *            - the step would be waited before the added steps would be executed
+     * @param storage
+     *            - the storage controller URI
+     * @param fullcopies
+     *            - the full copies to restore
      * @param opId
-     * @param completer - the CloneRestoreCompleter
+     * @param completer
+     *            - the CloneRestoreCompleter
      * @return the step id for the added step
      * @throws InternalException
      */
@@ -6574,5 +6760,152 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         _log.info("Created workflow step to restore volume from full copies");
 
         return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) throws InternalException {
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        URI storageURI = null;
+        boolean createInactive = false;
+
+        List<URI> fullCopyList = new ArrayList<URI>();
+        for (VolumeDescriptor descriptor : blockVolmeDescriptors) {
+            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+            if (volume != null && !volume.getInactive()) {
+                URI parentId = volume.getAssociatedSourceVolume();
+                if (!NullColumnValueGetter.isNullURI(parentId)) {
+                    fullCopyList.add(volume.getId());
+                    storageURI = volume.getStorageController();
+                    createInactive = Boolean.getBoolean(descriptor.getCapabilitiesValues().getReplicaCreateInactive());
+                }
+            }
+        }
+        
+        if (!fullCopyList.isEmpty()) {
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the block full copy on the storage system
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
+                    createInactive);
+            Workflow.Method createFullCopyOrchestrationExecutionRollbackMethod = new Workflow.Method(METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP,
+                    workflow.getWorkflowURI(), stepId);
+
+            waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, createFullCopyOrchestrationExecutionRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
+        }
+        
+        return waitFor;
+    }
+    
+    /**
+     * calls the child workflow step rollback methods
+     * 
+     * @param parentWorkflow
+     * @param orchestrationStepId
+     * @param token
+     * @return
+     * @throws WorkflowException
+     */
+    public boolean createFullCopyOrchestrationRollbackSteps(URI parentWorkflow, String orchestrationStepId, String token)
+            throws WorkflowException {
+        // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
+        // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and
+        // exportOrchestrationStepId.
+        _workflowService.rollbackChildWorkflow(parentWorkflow, orchestrationStepId, token);
+
+        return true;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.StringBuffer, java.lang.String)
+     */
+    @Override
+    public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) throws InternalException {
+        // nothing to do post create replica
+        return waitFor;
+    }
+
+    /**
+     * @param workflow
+     * @param waitFor
+     * @param volumeDescriptors
+     * @param taskId
+     * @return
+     */
+    public String addStepsForCreateSnapshotSession(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) {
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        // we expect just one snapshot session volume descriptor
+        VolumeDescriptor descriptor = blockVolmeDescriptors.get(0);
+        BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, descriptor.getVolumeURI());
+        if (session != null && !session.getInactive()) {
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the snapshot session on the storage system
+            URI storageURI = session.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI, 
+                    descriptor.getVolumeURI(),  
+                    descriptor.getSnapSessionSnapshotURIs(), 
+                    descriptor.getCapabilitiesValues().getSnapshotSessionCopyMode());
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+            waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", SNAPSHOT_SESSION_CREATE_STEP_GROUP, stepId));
+            
+        }
+        
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+    }
+
+    @Override
+    public void setInitiatorAlias(URI systemURI, URI initiatorURI, String initiatorAlias) throws Exception {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+
+        getDevice(system.getSystemType()).doInitiatorAliasSet(
+                system, initiator, initiatorAlias);
+    }
+
+    @Override
+    public String getInitiatorAlias(URI systemURI, URI initiatorURI) throws Exception {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+
+        return getDevice(system.getSystemType()).doInitiatorAliasGet(
+                system, initiator);
     }
 }

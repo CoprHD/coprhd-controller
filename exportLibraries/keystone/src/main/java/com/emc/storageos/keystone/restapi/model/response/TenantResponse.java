@@ -22,14 +22,14 @@ package com.emc.storageos.keystone.restapi.model.response;
  */
 public class TenantResponse {
 
-    private TenantV2 tenants[];
+    private KeystoneTenant tenants[];
     private String tenants_links[];
 
-    public TenantV2[] getTenants() {
+    public KeystoneTenant[] getTenants() {
         return tenants;
     }
 
-    public void setTenants(TenantV2[] tenants) {
+    public void setTenants(KeystoneTenant[] tenants) {
         this.tenants = tenants;
     }
 

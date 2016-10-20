@@ -69,6 +69,7 @@ public class VNXeJob extends Job implements Serializable {
         try {
             _logger.info("VNXeJob: Looking up job: id {}", _jobIds.get(0));
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
+            StringBuilder prettyMsg = new StringBuilder();
 
             if (vnxeApiClient == null) {
                 String errorMessage = "No VNXe client found for: " + _storageSystemUri;
@@ -92,6 +93,8 @@ public class VNXeJob extends Job implements Serializable {
                         msg.append(jobId);
                         if (msgOut != null) {
                             msg.append(" " + msgOut.getMessage());
+                            String cleanMsg = msgOut.getMessage().split("\\(Error Code")[0];
+                            prettyMsg.append(cleanMsg);
                         }
                         continue;
                     }
@@ -102,6 +105,8 @@ public class VNXeJob extends Job implements Serializable {
                             msg.append(jobId);
                             if (msgOut != null) {
                                 msg.append(" " + msgOut.getMessage());
+                                String cleanMsg = msgOut.getMessage().split("\\(Error Code")[0];
+                                prettyMsg.append(cleanMsg);
                             }
                         }
                     }
@@ -114,8 +119,8 @@ public class VNXeJob extends Job implements Serializable {
                         _logger.info("Job: {} succeeded", _jobName);
                     } else {
                         _status = JobStatus.FAILED;
-                        _errorDescription = msg.toString();
-                        _logger.info(_errorDescription);
+                        _errorDescription = prettyMsg.toString();
+                        _logger.info(msg.toString());
 
                     }
                 } else {
@@ -142,7 +147,7 @@ public class VNXeJob extends Job implements Serializable {
         if (_status == JobStatus.SUCCESS) {
             _taskCompleter.ready(jobContext.getDbClient());
         } else if (_status == JobStatus.FAILED || _status == JobStatus.FATAL_ERROR) {
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed(_errorDescription);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed(_errorDescription,"");
             _taskCompleter.error(jobContext.getDbClient(), error);
         }
     }
@@ -246,9 +251,14 @@ public class VNXeJob extends Job implements Serializable {
      * @param dbClient
      * @param vnxeApiClient
      * @param storagePoolUri
+     * @param reservedCapacityVolumesIds The volumes reserved capacity in the pool that needs to be removed
      */
-    public static void updateStoragePoolCapacity(DbClient dbClient, VNXeApiClient vnxeApiClient, URI storagePoolUri) {
+    public static void updateStoragePoolCapacity(DbClient dbClient, VNXeApiClient vnxeApiClient, URI storagePoolUri, 
+            List<String> reservedCapacityVolumeIds) {
         StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
+        if (reservedCapacityVolumeIds != null && !reservedCapacityVolumeIds.isEmpty()) {
+            storagePool.removeReservedCapacityForVolumes(reservedCapacityVolumeIds);
+        }
         String poolNativeId = storagePool.getNativeId();
         VNXePool pool = vnxeApiClient.getPool(poolNativeId);
         storagePool.setFreeCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeFree()));

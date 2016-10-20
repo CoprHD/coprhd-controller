@@ -96,6 +96,7 @@ public interface SmisConstants {
     static final int COPY_METHODOLOGY_FULL_COPY = 3;
     static final long REPLICATION_DATA_SYNC_TYPE = 8;
     static final long DEVICES_SYNC_TYPE = 3;
+    static final long MASKING_SYNC_TYPE = 7;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";
@@ -154,6 +155,8 @@ public interface SmisConstants {
     static final String CLAR_STORAGE_POOL_SETTING = "Clar_StoragePoolSetting";
     static final String SYMM_STORAGE_POOL_SETTING = "Symm_StoragePoolSetting";
     static final String CIM_STORAGE_VOLUME = "CIM_StorageVolume";
+    static final String CIM_STORAGE_HARDWARE_ID = "CIM_StorageHardwareId";
+    static final String CIM_PROTOCOL_CONTROLLER = "CIM_ProtocolController";
     static final String CIM_ALLOCATED_FROM_STORAGEPOOL = "CIM_AllocatedFromStoragePool";
     static final String CIM_SETTINGS_DEFINE_STATE = "CIM_SettingsDefineState";
     static final String CIM_PROTOCOL_CONTROLLER_FOR_UNIT = "CIM_ProtocolControllerForUnit";
@@ -415,6 +418,18 @@ public interface SmisConstants {
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
     static final String EMC_MAX_IO = "EMCMaximumIO";
 
+    // Initiator Alias
+    static final String CP_EXISTING_STORAGEID = "ExistingStorageID";
+    static final String CP_ALIAS_STORAGEID = "AliasStorageID";
+    static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
+    static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
+
+    // Compression
+    static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";
+    static final String CP_EMC_COMPRESSION = "EMCCompression";
+    static final String CP_EMC_COMPRESSION_RATIO = "EMCCompressionRatio";
+    static final String[] PS_EMC_COMPRESSION = new String[] { CP_EMC_COMPRESSION };
+
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {
             SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,
@@ -424,7 +439,7 @@ public interface SmisConstants {
     static final String[] PS_ONLY_COPY_STATE = new String[] { CP_COPY_STATE };
     static final String[] PS_ELEMENT_NAME = new String[] { SmisConstants.CP_ELEMENT_NAME };
     static final String[] PS_V3_STORAGE_GROUP_PROPERTIES = new String[] { CP_ELEMENT_NAME, CP_FAST_SETTING, CP_ASSOCIATED_TO_VIEW,
-            EMC_MAX_BANDWIDTH, EMC_MAX_IO };
+            EMC_MAX_BANDWIDTH, EMC_MAX_IO, CP_EMC_COMPRESSION };
     static final String[] PS_V3_FAST_SETTING_PROPERTIES = new String[] { CP_FAST_SETTING };
     static final String[] PS_V3_VIRTUAL_PROVISIONING_POOL_PROPERTIES = new String[] { CP_DISK_DRIVE_TYPE };
     static final String[] PS_SPACE_CONSUMED = new String[] { SmisConstants.CP_SPACE_CONSUMED };

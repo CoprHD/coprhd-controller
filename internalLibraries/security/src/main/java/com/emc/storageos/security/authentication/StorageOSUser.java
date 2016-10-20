@@ -8,6 +8,7 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringSet;
 import org.springframework.util.CollectionUtils;
 
+import java.io.*;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
@@ -17,7 +18,7 @@ import java.util.Set;
 /**
  * StorageOS user profile information.
  */
-public class StorageOSUser extends StorageOSUserDAO implements Principal {
+public class StorageOSUser extends StorageOSUserDAO implements Principal, Serializable {
     private Set<String> _roles = null;
     private String _token = null;
     private String _proxyToken = null;
@@ -157,5 +158,28 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
         }
         clone._groups = groups;
         return clone;
+    }
+
+    public byte[] serialize() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bos);
+        try {
+            out.writeObject(this);
+        } finally {
+            out.close();
+        }
+        return bos.toByteArray();
+    }
+    public static StorageOSUser deserialize(byte[] data) throws IOException,
+            ClassNotFoundException {
+        Object obj = null;
+        ByteArrayInputStream bis = new ByteArrayInputStream(data);
+        ObjectInputStream in = new ObjectInputStream(bis);
+        try {
+            obj = in.readObject();
+        } finally {
+            in.close();
+        }
+        return (StorageOSUser) obj;
     }
 }

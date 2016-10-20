@@ -6,12 +6,12 @@ package com.emc.sa.service.linux.tasks;
 
 import java.util.List;
 
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.command.powerpath.PowerPathInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathInvistaInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathHDSInquiry;
 import com.iwave.ext.linux.model.PowerPathDevice;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDevice> {
 
@@ -36,7 +36,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
             logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume)) {
+            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume.getWwn())) {
                 return device;
             }
         }
@@ -45,7 +45,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
             logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume)) {
+            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume.getWwn())) {
                 return device;
             }
         }
@@ -54,7 +54,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
             logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnHDSMatches(deviceWwn, blockVolume)) {
+            if (VolumeWWNUtils.wwnHDSMatches(deviceWwn, blockVolume.getWwn())) {
                 return device;
             }
         }

@@ -1551,6 +1551,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
                     List<NfsACE> targetNFSACL = targetFSACLMap.get(targetFSACLPath);
 
+                    if(targetNFSACL == null) {
+                        targetNFSACL = new ArrayList<NfsACE>();
+                    }
+
                     HashMap<String, NfsACE> sourceUserToNFSACLMap = FileOrchestrationUtils
                             .getUserToNFSACEMap(sourceNFSACL);
 

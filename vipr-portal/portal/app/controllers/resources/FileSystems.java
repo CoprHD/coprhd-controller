@@ -92,9 +92,9 @@ public class FileSystems extends ResourceController {
     private static FileSystemsDataTable fileSystemsDataTable = new FileSystemsDataTable();
 
     private static final StringOption[] PERMISSION_TYPES = {
-            new StringOption(FileShareExport.Permissions.rw.name(), FileShareExport.Permissions.rw.name()),
-            new StringOption(FileShareExport.Permissions.ro.name(), FileShareExport.Permissions.ro.name()),
-            new StringOption(FileShareExport.Permissions.root.name(), FileShareExport.Permissions.root.name())
+        new StringOption(FileShareExport.Permissions.rw.name(), FileShareExport.Permissions.rw.name()),
+        new StringOption(FileShareExport.Permissions.ro.name(), FileShareExport.Permissions.ro.name()),
+        new StringOption(FileShareExport.Permissions.root.name(), FileShareExport.Permissions.root.name())
     };
 
     public static void fileSystems(String projectId) {
@@ -226,6 +226,20 @@ public class FileSystems extends ResourceController {
 
         List<NfsACE> nfsAcls = client.fileSystems().getAllNfsACLs(
                 uri(fileSystemId));
+        /*
+         * We want to display only one for a path.
+         * Hence removing duplicates here.
+         */
+        Set<String> fsPathSet = new HashSet<String>();
+        for (Iterator<NfsACE> iterator = nfsAcls.iterator(); iterator.hasNext();) {
+            NfsACE nfsACE =  iterator.next();
+            String fsPath = nfsACE.getFSMountPath();
+            if(fsPathSet.contains(fsPath)) {
+                iterator.remove();
+            } else {
+                fsPathSet.add(fsPath);
+            }
+        }
         render(nfsAcls);
     }
 

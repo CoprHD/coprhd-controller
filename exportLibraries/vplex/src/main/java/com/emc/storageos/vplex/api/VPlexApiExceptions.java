@@ -841,4 +841,7 @@ public interface VPlexApiExceptions {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException cantFindDistributedDeviceForRename(final String deviceId);    
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDistributedDevice(final String name);
 }

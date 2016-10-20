@@ -546,6 +546,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
             // Only attempt to update ip interfaces or initiators for connected hosts
             HostSystemConnectionState connectionState = getConnectionState(source);
+            info("Connection status for host " + target.forDisplay() + " is " + connectionState);
             if (connectionState == HostSystemConnectionState.connected) {
 
                 // discover initiators

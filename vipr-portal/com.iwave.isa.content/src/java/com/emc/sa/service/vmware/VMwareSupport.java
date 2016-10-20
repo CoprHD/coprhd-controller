@@ -186,7 +186,7 @@ public class VMwareSupport {
      */
     public Datastore createVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, String datastoreName) {
-        HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
         Datastore datastore = execute(new CreateVmfsDatastore(host, disk, datastoreName));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastoreName);
@@ -271,7 +271,7 @@ public class VMwareSupport {
      */
     public void extendVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, Datastore datastore) {
-        HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
         execute(new ExtendVmfsDatastore(host, disk, datastore));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastore.getName());
@@ -292,7 +292,7 @@ public class VMwareSupport {
      */
     public void expandVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, Datastore datastore) {
-        HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
         execute(new ExpandVmfsDatastore(host, disk, datastore));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastore.getName());
@@ -578,13 +578,17 @@ public class VMwareSupport {
      * @return the disk for the volume.
      */
     public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
+        return findScsiDisk(host, cluster, volume, false);
+    }
+
+    public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume, boolean availableDisk) {
         // Ensure that the volume has a WWN set or we won't be able to find the disk
         if (StringUtils.isBlank(volume.getWwn())) {
             String volumeId = ResourceUtils.stringId(volume);
             String volumeName = ResourceUtils.name(volume);
             ExecutionUtils.fail("failTask.VMwareSupport.findLun", new Object[] { volumeId }, new Object[] { volumeName });
         }
-        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
+        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume, availableDisk));
 
         // Find the volume on all other hosts in the cluster
         if (cluster != null) {

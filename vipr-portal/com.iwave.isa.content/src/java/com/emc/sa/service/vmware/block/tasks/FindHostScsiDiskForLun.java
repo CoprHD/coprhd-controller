@@ -4,11 +4,14 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
+import java.util.List;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.google.common.collect.Lists;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VMwareUtils;
@@ -29,12 +32,19 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private HostStorageAPI storageAPI;
     private BlockObjectRestRep volume;
 
+    private boolean availableDisk = false;
+
     public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume) {
         this.host = host;
         this.volume = volume;
         this.storageAPI = new HostStorageAPI(host);
         this.lunDiskName = VMwareUtils.CANONICAL_NAME_PREFIX + StringUtils.lowerCase(volume.getWwn());
         provideDetailArgs(host.getName(), lunDiskName);
+    }
+
+    public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDisk) {
+        this(host, volume);
+        this.availableDisk = availableDisk;
     }
 
     @Override
@@ -66,7 +76,15 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private HostScsiDisk getLunDisk() {
-        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+
+        List<HostScsiDisk> scsiDisks = null;
+        if (availableDisk) {
+            scsiDisks = Lists.newArrayList(storageAPI.queryAvailableDisksForVmfs());
+        } else {
+            scsiDisks = storageAPI.listScsiDisks();
+        }
+
+        for (HostScsiDisk entry : scsiDisks) {
             if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn())) {
                 return entry;
             }

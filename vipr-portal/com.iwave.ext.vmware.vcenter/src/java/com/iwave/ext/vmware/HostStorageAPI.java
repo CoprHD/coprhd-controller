@@ -92,6 +92,18 @@ public class HostStorageAPI {
         }
     }
 
+    public HostScsiDisk[] queryAvailableDisksForVmfs() {
+        try {
+            return host.getHostDatastoreSystem().queryAvailableDisksForVmfs(null);
+        } catch (InvalidProperty e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
     /**
      * Gets the host datastore system for the host.
      * 

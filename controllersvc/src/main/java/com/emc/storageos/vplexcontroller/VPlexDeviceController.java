@@ -8724,6 +8724,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                     }
                     fullCopyVolume.setReplicaState(nativeFCReplicaState);
+                    // update the backingReplicationGroupInstance on the virtual volume full copy if present on backend volume
+                    if (NullColumnValueGetter.isNotNullValue(nativeFullCopyVolume.getBackingReplicationGroupInstance())) {
+                        fullCopyVolume.setBackingReplicationGroupInstance(nativeFullCopyVolume.getBackingReplicationGroupInstance());
+                    }
                     _dbClient.updateObject(fullCopyVolume);
                 } else {
                     _log.warn("Can't find native full copy volume");

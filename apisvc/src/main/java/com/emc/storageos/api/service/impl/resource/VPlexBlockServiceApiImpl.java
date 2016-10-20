@@ -479,8 +479,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Compute the volume label based on the label of the underlying volume
             String volumeLabelBuilt = null;
             Volume associatedVolume = _dbClient.queryObject(Volume.class, varrayVolumeURIs[0][i]);
+            // Get the virtual volume backing replication group instance name, if available.
+            String backingReplicationGroupInstance = null;
             if (associatedVolume != null) {
                 volumeLabelBuilt = generateLabelFromAssociatedVolume(volumeLabel, associatedVolume);
+                if (NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance())) {
+                    backingReplicationGroupInstance = associatedVolume.getReplicationGroupInstance();
+                }
             } else {
                 volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
                         vPoolCapabilities.getResourceCount());
@@ -515,6 +520,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Associating volume {}", varrayVolumeURIs[1][i].toString());
             }
             volume.setAssociatedVolumes(associatedVolumes);
+            if (null != backingReplicationGroupInstance) {
+                s_logger.info("Setting virtual volume backingReplicationGroupInstance to {}", backingReplicationGroupInstance);
+                volume.setBackingReplicationGroupInstance(backingReplicationGroupInstance);
+            }
             _dbClient.updateObject(volume);
             URI volumeId = volume.getId();
             s_logger.info("Prepared virtual volume {}", volumeId);

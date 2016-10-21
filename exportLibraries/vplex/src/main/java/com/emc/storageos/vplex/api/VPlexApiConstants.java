@@ -143,6 +143,7 @@ public class VPlexApiConstants {
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
     public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
+    public static final String ATTRIBUTE_RULE_SET_NAME_JSON_KEY = "rule-set-name";
 
     // Constant defines the JSON key for arguments passed as POST data in
     // a VPlex API POST request to execute a VPlex command.

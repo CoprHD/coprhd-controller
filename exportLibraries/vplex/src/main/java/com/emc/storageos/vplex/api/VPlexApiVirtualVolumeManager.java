@@ -2601,4 +2601,35 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
+    
+    void updateRuleSetNameForDistributedDevice(VPlexDistributedDeviceInfo ddInfo, String ruleSetName)    
+            throws VPlexApiException {
+        StringBuilder pathBuilder = new StringBuilder();
+        pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
+        pathBuilder.append(ddInfo.getPath());
+        pathBuilder.append("?");
+        pathBuilder.append(VPlexApiConstants.ATTRIBUTE_RULE_SET_NAME_JSON_KEY);
+        pathBuilder.append("=");
+        pathBuilder.append(ruleSetName);
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                URI.create(pathBuilder.toString()));
+        s_logger.info("Update rule set name URI is {}", requestURI.toString());
+        
+        // Try and update the rule set name. 
+        ClientResponse response = _vplexApiClient.put(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Update rule set name response is {}", responseStr);
+        if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+            if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                s_logger.info("Update rule set name is completing asynchronously");
+                _vplexApiClient.waitForCompletion(response);
+                response.close();
+            } else {
+                response.close();
+                String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                throw VPlexApiException.exceptions.updateRuleSetNameFailureStatus(
+                        ddInfo.getName(), String.valueOf(response.getStatus()), cause);
+            }
+        }
+    }
 }

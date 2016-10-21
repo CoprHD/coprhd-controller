@@ -841,4 +841,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexSerialNumberChanged(final String oldSerialNumber, final String newSerialNumber);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException updateRuleSetNameFailureStatus(final String deviceName, final String status, final String cause);    
 }

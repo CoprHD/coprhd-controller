@@ -368,6 +368,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
     private static final String DETACHED_DEVICE = "detachedDevice";
+    private static final String REATTACH_RULE_SET = "reattachRuleSet";
 
     private static CoordinatorClient coordinator;
 
@@ -8898,11 +8899,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private String createWorkflowStepForDetachMirror(Workflow workflow,
             StorageSystem vplexSystem, Volume vplexVolume, URI mirrorVolumeURI,
-            String stepId, String waitFor, Workflow.Method rollbackMethod) {
+            Boolean isHaSnap, String stepId, String waitFor, Workflow.Method rollbackMethod) {
         URI vplexURI = vplexSystem.getId();
         URI vplexVolumeURI = vplexVolume.getId();
         Workflow.Method detachMirrorMethod = createDetachMirrorMethod(vplexURI,
-                vplexVolumeURI, mirrorVolumeURI, vplexVolume.getConsistencyGroup());
+                vplexVolumeURI, mirrorVolumeURI, vplexVolume.getConsistencyGroup(), isHaSnap);
         workflow.createStep(DETACH_MIRROR_STEP, String.format(
                 "Detach mirror %s for VPLEX volume %s on system %s", mirrorVolumeURI,
                 vplexVolumeURI, vplexURI), waitFor, vplexURI, vplexSystem
@@ -8930,8 +8931,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @return A reference to the detach mirror workflow method.
      */
-    private Workflow.Method createDetachMirrorMethod(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI, URI cgURI) {
-        return new Workflow.Method(DETACH_MIRROR_METHOD_NAME, vplexURI, vplexVolumeURI, mirrorVolumeURI, cgURI);
+    private Workflow.Method createDetachMirrorMethod(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI, URI cgURI, Boolean isHaSnap) {
+        return new Workflow.Method(DETACH_MIRROR_METHOD_NAME, vplexURI, vplexVolumeURI, mirrorVolumeURI, cgURI, isHaSnap);
     }
 
     /**
@@ -8950,7 +8951,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            The workflow step identifier.
      */
     public void detachMirror(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI,
-            URI cgURI, String stepId) {
+            URI cgURI, Boolean isHaSnap, String stepId) {
 
         _log.info("Executing detach mirror {} of VPLEX volume {} on VPLEX {}",
                 new Object[] { mirrorVolumeURI, vplexVolumeURI, vplexURI });
@@ -8989,11 +8990,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
-            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
+            String clusterName = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
+            
+            // If HA snap, we will need to update the detach rules for the distributed device
+            // of the volume before detaching.
+            if (isHaSnap) {
+                String clusterId  = ConnectivityUtil.getVplexClusterForVarray(mirrorVolume.getVirtualArray(), vplexSystem.getId(), _dbClient);
+                String ruleSetName = VPlexApiConstants.CLUSTER_1_DETACHES;
+                String reattachRuleSetName = VPlexApiConstants.CLUSTER_2_DETACHES;
+                if (clusterId.equals(ConnectivityUtil.CLUSTER2)) {
+                    ruleSetName = VPlexApiConstants.CLUSTER_2_DETACHES;
+                    reattachRuleSetName = VPlexApiConstants.CLUSTER_1_DETACHES;
+                } 
+                client.updateRuleSetNameForDistributedVolume(vplexVolume.getDeviceLabel(), vplexVolume.getNativeId(), ruleSetName);
+                stepData.put(REATTACH_RULE_SET, reattachRuleSetName);
+            }
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(
-                    vplexVolumeName, clusterId);
+                    vplexVolumeName, clusterName);
             stepData.put(DETACHED_DEVICE, detachedDeviceName);
             stepData.put(REATTACH_MIRROR, Boolean.TRUE.toString());
             _workflowService.storeStepData(stepId, stepData);
@@ -9126,6 +9141,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // If the reattach fails, rollback will just end up trying again.
             detachStepData.put(REATTACH_MIRROR, Boolean.FALSE.toString());
             _workflowService.storeStepData(detachStepId, detachStepData);
+            
+            // Reset the rule set name if necessary.
+            String reattachRuleSetName = detachStepData.get(REATTACH_RULE_SET);
+            if (reattachRuleSetName != null) {
+                client.updateRuleSetNameForDistributedVolume(vplexVolumeName, vplexVolume.getNativeId(), reattachRuleSetName);
+                detachStepData.remove(REATTACH_RULE_SET);
+                _workflowService.storeStepData(detachStepId, detachStepData);
+                
+            }
 
             // If the volume is in a CG, we can now add it back.
             if (cgURI != null) {
@@ -9646,15 +9670,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // versa. So, determine which side needs to be detached and create
                     // a workflow step to do so.
                     Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-                    boolean isSrcSideSnap = VPlexUtil.isSourceSideBackendVolume(vplexVolume, parentVolume, _dbClient);
-                    Volume volumeToDetach = VPlexUtil.getVPLEXBackendVolume(vplexVolume, !isSrcSideSnap, _dbClient);
+                    Boolean isHaSnap = !VPlexUtil.isSourceSideBackendVolume(vplexVolume, parentVolume, _dbClient);
+                    Volume volumeToDetach = VPlexUtil.getVPLEXBackendVolume(vplexVolume, isHaSnap, _dbClient);
                     URI volumeToDetachURI = volumeToDetach.getId();
                     String detachStepId = workflow.createStepId();
                     Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
                             vplexURI, vplexVolumeURI, volumeToDetachURI,
                             vplexVolume.getConsistencyGroup(), detachStepId);
                     waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
-                            vplexVolume, volumeToDetachURI, detachStepId, null,
+                            vplexVolume, volumeToDetachURI, isHaSnap, detachStepId, null,
                             restoreVolumeRollbackMethod);
 
                     // We now create a step to invalidate the cache for the
@@ -9801,7 +9825,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (rollbackData != null) {
                 boolean reattachMirror = Boolean.parseBoolean(rollbackData.get(REATTACH_MIRROR));
                 boolean addVolumeBackToCG = Boolean.parseBoolean(rollbackData.get(ADD_BACK_TO_CG));
-                if (reattachMirror || addVolumeBackToCG) {
+                String reattachRuleSetName = rollbackData.get(REATTACH_RULE_SET);
+                if (reattachMirror || addVolumeBackToCG || reattachRuleSetName != null) {
                     // Get the API client.
                     StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                     VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
@@ -9819,6 +9844,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         String mirrorDeviceName = rollbackData.get(DETACHED_DEVICE);
                         client.reattachMirrorToDistributedVolume(vplexVolumeName, mirrorDeviceName);
                         _log.info("Reattached the mirror");
+                    }
+                    
+                    // Now if the rollback data indicates we need to restore the rule set name
+                    // do that next.
+                    if (reattachRuleSetName != null) {
+                        client.updateRuleSetNameForDistributedVolume(vplexVolumeName, vplexVolume.getNativeId(), reattachRuleSetName);
+                        _log.info("Restored rule set name");
                     }
 
                     // If the rollback data indicates we need to try and
@@ -12991,12 +13023,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // For distributed volumes before we can do the
                 // operation, we need to detach the associated volume that
                 // will not be updated. Create a workflow step to detach it.
+                // TBD Need to review
                 String detachStepId = workflow.createStepId();
                 Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
                         entry.getKey(), distributedVolume.getId(), legToDetachURI,
                         distributedVolume.getConsistencyGroup(), detachStepId);
                 createWorkflowStepForDetachMirror(workflow, vplexSystem,
-                        distributedVolume, legToDetachURI, detachStepId, waitFor,
+                        distributedVolume, legToDetachURI, Boolean.FALSE, detachStepId, waitFor,
                         restoreVolumeRollbackMethod);
                 vplexVolumeIdToDetachStep.put(distributedVolume.getId(), detachStepId);
 

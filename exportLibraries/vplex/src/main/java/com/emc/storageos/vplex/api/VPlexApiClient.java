@@ -2001,4 +2001,14 @@ public class VPlexApiClient {
         vplexClusterIdToNameCache.clear();
         vplexClusterInfoLiteCache.clear();
     }
+    
+    public void updateRuleSetNameForDistributedVolume(String volumeName, String volumePath, String ruleSetName) {
+        VPlexVirtualVolumeInfo vvInfo = findVirtualVolume(volumeName, volumePath);
+        if (vvInfo != null) {
+            VPlexDistributedDeviceInfo ddInfo = _discoveryMgr.findDistributedDevice(vvInfo.getSupportingDevice());
+            if (ddInfo != null) {
+                _virtualVolumeMgr.updateRuleSetNameForDistributedDevice(ddInfo, ruleSetName);
+            }
+        }
+    }
 }

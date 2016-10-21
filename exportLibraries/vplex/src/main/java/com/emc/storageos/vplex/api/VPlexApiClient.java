@@ -2002,13 +2002,25 @@ public class VPlexApiClient {
         vplexClusterInfoLiteCache.clear();
     }
     
-    public void updateRuleSetNameForDistributedVolume(String volumeName, String volumePath, String ruleSetName) {
+    /**
+     * Updates the rule-set-name attribute for the distributed device used by
+     * the virtual volume with the passed path and name.
+     * 
+     * @param volumeName The name of the volume
+     * @param volumePath The full path to the volume
+     * @param ruleSetName The rule set name to set for the volume's device.
+     */
+    public void updateRuleSetForDistributedVolume(String volumeName, String volumePath, String ruleSetName) {
         VPlexVirtualVolumeInfo vvInfo = findVirtualVolume(volumeName, volumePath);
         if (vvInfo != null) {
             VPlexDistributedDeviceInfo ddInfo = _discoveryMgr.findDistributedDevice(vvInfo.getSupportingDevice());
             if (ddInfo != null) {
-                _virtualVolumeMgr.updateRuleSetNameForDistributedDevice(ddInfo, ruleSetName);
+                _virtualVolumeMgr.updateResourceAttribute(ddInfo, VPlexApiConstants.ATTRIBUTE_RULE_SET_NAME_JSON_KEY, ruleSetName);
+            } else {
+                throw VPlexApiException.exceptions.cantFindDistributedDeviceForVolume(volumeName);
             }
+        } else {
+            throw VPlexApiException.exceptions.cantFindRequestedVolume(volumeName);
         }
     }
 }

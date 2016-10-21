@@ -2601,34 +2601,43 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
-    void updateRuleSetNameForDistributedDevice(VPlexDistributedDeviceInfo ddInfo, String ruleSetName)    
-            throws VPlexApiException {
+
+    /**
+     * Updates the value of the passed attribute for the passed resource to the passed value.
+     * 
+     * @param resourceInfo The resource information
+     * @param attrName The attribute name
+     * @param attrValue The attribute value
+     * 
+     * @throws VPlexApiException When an error occurs setting the attribute
+     */
+    public <T extends VPlexResourceInfo> void updateResourceAttribute(T resourceInfo, String attrName,
+            String attrValue) throws VPlexApiException {
         StringBuilder pathBuilder = new StringBuilder();
         pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
-        pathBuilder.append(ddInfo.getPath());
+        pathBuilder.append(resourceInfo.getPath());
         pathBuilder.append("?");
-        pathBuilder.append(VPlexApiConstants.ATTRIBUTE_RULE_SET_NAME_JSON_KEY);
+        pathBuilder.append(attrName);
         pathBuilder.append("=");
-        pathBuilder.append(ruleSetName);
+        pathBuilder.append(attrValue);
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(pathBuilder.toString()));
-        s_logger.info("Update rule set name URI is {}", requestURI.toString());
+        s_logger.info("Update attribute URI is {}", requestURI.toString());
         
         // Try and update the rule set name. 
         ClientResponse response = _vplexApiClient.put(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Update rule set name response is {}", responseStr);
+        s_logger.info("Update attribute response is {}", responseStr);
         if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
             if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
-                s_logger.info("Update rule set name is completing asynchronously");
+                s_logger.info("Update attribute is completing asynchronously");
                 _vplexApiClient.waitForCompletion(response);
                 response.close();
             } else {
                 response.close();
                 String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
-                throw VPlexApiException.exceptions.updateRuleSetNameFailureStatus(
-                        ddInfo.getName(), String.valueOf(response.getStatus()), cause);
+                throw VPlexApiException.exceptions.updateAttributeFailureStatus(attrName, 
+                        resourceInfo.getName(), attrValue, String.valueOf(response.getStatus()), cause);
             }
         }
     }

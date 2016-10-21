@@ -3405,21 +3405,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
+        ArrayList<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
-            Volume snapshotSourceVolume = null;
             try {
-                snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+                // HA side snapshots
+                Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, true);
+                if (snapshotSourceVolume != null) {
+                    snapshots.addAll(super.getSnapshots(snapshotSourceVolume));
+                }
+                
+                // Source side snapshots
+                snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, false);
+                if (snapshotSourceVolume != null) {
+                    snapshots.addAll(super.getSnapshots(snapshotSourceVolume));
+                }
             } catch (Exception e) {
-                // Just log a warning and return the empty list.
-                s_logger.warn("Cound not find source side backend volume for VPLEX volume {}", vplexVolume.getId());
-                return new ArrayList<BlockSnapshot>();
-            }
-            if (snapshotSourceVolume != null) {
-                return super.getSnapshots(snapshotSourceVolume);
+                // Just log a warning and return what we found.
+                s_logger.warn("Unexpected error finding snapshots for VPLEX volume {}", vplexVolume.getId(), e);
+                return snapshots;
             }
         }
 
-        return new ArrayList<BlockSnapshot>();
+        return snapshots;
     }
 
     /**

@@ -64,10 +64,10 @@ public class StoragePortsAllocatorTest {
             }
         }
         VdcUtil.setDbClient(new DummyDbClient());
-        //PropertyConfigurator.configure("log4j.properties");
+        PropertyConfigurator.configure("log4j.properties");
         _log.info("Beginning logging");
         testFC();
-        //testIP();
+        testIP();
 
         System.out.println("Empty transport zone, should throw PlacementException");
         PortAllocationContext ctx = createEmptyTzone();
@@ -132,7 +132,7 @@ public class StoragePortsAllocatorTest {
 
         if (!vnxonly && !vplexonly) {
             ctx = createVMAX3engine4portFC();
-            /*allocator = new StoragePortsAllocator();
+            allocator = new StoragePortsAllocator();
             alloc(allocator, 1, ctx, true);
             alloc(allocator, 2, ctx, true);
             alloc(allocator, 4, ctx, true);
@@ -140,14 +140,13 @@ public class StoragePortsAllocatorTest {
             duplicateCpuExpected = true;
             alloc(allocator, 16, ctx, true);
             duplicateCpuExpected = true;
-            alloc(allocator, 32, ctx, true); */
+            alloc(allocator, 32, ctx, true); 
             alloc(allocator, 4, ctx, true);
             Map<String, Integer>switchMap = new HashMap<String, Integer>();
             switchMap.put("mds-a", 4);
             System.out.println("testing swich affinity");
             alloc(allocator, 4, ctx, true, switchMap);
 
-            /*
             ctx = createVMAXWithCpuDuplication();
             allocator = new StoragePortsAllocator();
             alloc(allocator, 1, ctx, true);
@@ -155,7 +154,7 @@ public class StoragePortsAllocatorTest {
             alloc(allocator, 3, ctx, true);
             _log.debug("Cpu duplication forced");
             duplicateCpuExpected = true;
-            alloc(allocator, 4, ctx, true); */
+            alloc(allocator, 4, ctx, true); 
         }
 
         if (!vnxonly && !vmaxonly) {

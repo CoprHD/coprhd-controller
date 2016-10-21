@@ -54,20 +54,17 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         Map<URI, List<Initiator>> net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
         List<Initiator> initB = getHostInitiators(4);
         Map<URI, List<Initiator>> net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
-        /*for (int k=1; k <= 2; k++) {  //initiators per port
+        for (int k=1; k <= 2; k++) {  //initiators per port
         for (int j = 1; j <= 2; j++) {  // paths per initiator
             for (int i = 1; i <= 8; i++) {  // max paths
                 System.out.println("*** Two hosts each 4 initiators across 2 networks: " 
                     + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
                 testVMAX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 0, j, k);
+                testVMAX2NetAllocAssignWithSwitchAffinity(net2InitiatorsMapA, net2InitiatorsMapB, i, 0, j, k);
             }
         }
-        }*/
+        }
         
-        //testVMAX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, 4, 1, 2, 1);
-        testVMAX2NetAllocAssignWithSwitchAffinity(net2InitiatorsMapA, net2InitiatorsMapB, 4, 1, 2, 1);
-        
-        /*
         System.out.println("Testing Hosts on non-overlapping networks!");
         initA = getHostInitiators(4);
         net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
@@ -113,7 +110,9 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         for (int j = 1; j <= 2; j++) {
             for (int i = 2; i <= 6; i++) {
                 System.out.println("*** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
-                testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1);
+                testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1, false);
+                System.out.println("*** Switch Affinity ** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
+                testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1, true);
             }
         }
         System.out.println("End of Testing VNX two hosts");
@@ -130,6 +129,7 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                System.out.println("*** 2 initiators across 2 networks, incremental 2 more initiators in new host: max_paths = " + i
                         + " paths_per_initiator = " + j);
                 testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+                testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(net2InitiatorsMap, net2InitiatorsMapB, i, j, i, j);
             }
         }
 
@@ -143,6 +143,7 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                 System.out.println("*** 2 initiators across 2 networks, incremental 2 more initiators in same host: max_paths = " + i
                         + " paths_per_initiator = " + j);
                 testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+                testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(net2InitiatorsMap, net2InitiatorsMapB, i, j, i, j);
             }
         }
 
@@ -195,7 +196,6 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                 testVNX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
             }
         }
-        */
 
         System.out.println("done!");
     }
@@ -329,6 +329,46 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         assignments = testAllocationAssignment(contexts, hostToNetToInitiatorsMap, finalMaxPaths, 0, finalPathsPerInitiator, 1,
                 "vmax", assignments);
     }
+    
+    public static void testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(
+            Map<URI, List<Initiator>> net2InitiatorsMapA,
+            Map<URI, List<Initiator>> net2InitiatorsMapB, int initialMaxPaths, int initialPathsPerInitiator,
+            int finalMaxPaths, int finalPathsPerInitiator)
+            throws Exception {
+        Map<URI, Map<URI, List<Initiator>>> hostToNetToInitiatorsMap = new HashMap<URI, Map<URI, List<Initiator>>>();
+        URI hostA = getHostURI(net2InitiatorsMapA);
+        hostToNetToInitiatorsMap = getHostInitiatorsMap(net2InitiatorsMapA);
+        
+        PortAllocationContext net1ctx = createVmaxNet11();
+        PortAllocationContext net2ctx = createVmaxNet22();
+        PortAllocationContext[] contexts = new PortAllocationContext[] { net1ctx, net2ctx };
+        // Allocate initial assignments
+        System.out.println("***** Initial assignments: *****");
+        Map<Initiator, List<StoragePort>> assignments =
+                testAllocationAssignment(contexts, hostToNetToInitiatorsMap, initialMaxPaths, 0, initialPathsPerInitiator, 1, 
+                        "vmax", null);
+
+        URI hostB = getHostURI(net2InitiatorsMapB);
+        if (hostA.equals(hostB)) {
+            Map<URI, List<Initiator>> mergedNet2Initiators = new HashMap<URI, List<Initiator>>();
+            for (URI netA : net2InitiatorsMapA.keySet()) {
+                mergedNet2Initiators.put(netA, new ArrayList<Initiator>(net2InitiatorsMapA.get(netA)));
+            }
+            for (URI netb : net2InitiatorsMapB.keySet()) {
+                if (mergedNet2Initiators.containsKey(netb)) {
+                    mergedNet2Initiators.get(netb).addAll(net2InitiatorsMapB.get(netb));
+                } else {
+                    mergedNet2Initiators.put(netb, new ArrayList<Initiator>(net2InitiatorsMapB.get(netb)));
+                }
+            }
+            hostToNetToInitiatorsMap = getHostInitiatorsMap(mergedNet2Initiators);
+        } else {
+            hostToNetToInitiatorsMap.put(hostB,  net2InitiatorsMapB);
+        }
+        System.out.println("***** Incremental assignments for switch affinity: *****" + " maxPaths " + finalMaxPaths + " ppi " + finalPathsPerInitiator);
+        assignments = testAllocationAssignmentWithSwitchAffinity(contexts, hostToNetToInitiatorsMap, finalMaxPaths, 0, finalPathsPerInitiator, 1,
+                "vmax", assignments);
+    }
 
     public static void testVNX2NetAllocIncrementalAssign(
             Map<URI, List<Initiator>> net2InitiatorsMapA,
@@ -388,7 +428,8 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
             Map<URI, List<Initiator>> net2InitiatorsMapB,
             Map<URI, List<Initiator>> net2InitiatorsMapC,
             Map<URI, List<Initiator>> net2InitiatorsMapD,
-                    int maxPaths, int minPaths, int pathsPerInitiator, int initiatorsPerPort) throws Exception {
+                    int maxPaths, int minPaths, int pathsPerInitiator, int initiatorsPerPort,
+                    boolean isSwitchAffinity) throws Exception {
         Map<URI, Map<URI, List<Initiator>>> hostToNetToInitiatorsMap = new HashMap<URI, Map<URI, List<Initiator>>>();
         URI hostA = getHostURI(net2InitiatorsMapA);
         hostToNetToInitiatorsMap.put(hostA, net2InitiatorsMapA);
@@ -407,8 +448,13 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         PortAllocationContext net1ctx = createVNXNet1();
         PortAllocationContext net2ctx = createVNXNet2();
         PortAllocationContext[] contexts = new PortAllocationContext[] { net1ctx, net2ctx };
-        testAllocationAssignment(contexts, hostToNetToInitiatorsMap, 
-                maxPaths, minPaths, pathsPerInitiator, initiatorsPerPort, "vnxblock", null);
+        if (!isSwitchAffinity) {
+            testAllocationAssignment(contexts, hostToNetToInitiatorsMap, 
+                    maxPaths, minPaths, pathsPerInitiator, initiatorsPerPort, "vnxblock", null);
+        } else {
+            testAllocationAssignmentWithSwitchAffinity(contexts, hostToNetToInitiatorsMap, 
+                    maxPaths, minPaths, pathsPerInitiator, initiatorsPerPort, "vnxblock", null);
+        }
     }
 
     /**

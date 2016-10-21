@@ -10,15 +10,11 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.api.service.authorization.PermissionsHelper;
-import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 

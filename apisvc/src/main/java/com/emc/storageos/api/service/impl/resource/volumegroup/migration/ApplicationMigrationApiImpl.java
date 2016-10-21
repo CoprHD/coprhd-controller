@@ -13,10 +13,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -28,10 +25,7 @@ import com.emc.storageos.migrationcontroller.MigrationController;
 import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
-import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
-import com.google.common.base.Joiner;
 
 public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl {
 

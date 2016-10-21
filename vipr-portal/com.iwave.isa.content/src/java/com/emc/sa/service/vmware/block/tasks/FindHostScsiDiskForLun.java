@@ -52,7 +52,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
      * 
      * @param host the host system
      * @param volume the volume to find
-     * @param availableDiskOnly if true, only find available disk for vmfs. if false, find disk even if it's not available for vmfs
+     * @param availableDiskOnly if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
      */
     public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDiskOnly) {
         this(host, volume);

@@ -31,9 +31,14 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private String lunDiskName;
     private HostStorageAPI storageAPI;
     private BlockObjectRestRep volume;
+    private boolean availableDiskOnly = false;
 
-    private boolean availableDisk = false;
-
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host the host system
+     * @param volume the volume to find
+     */
     public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume) {
         this.host = host;
         this.volume = volume;
@@ -42,9 +47,16 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         provideDetailArgs(host.getName(), lunDiskName);
     }
 
-    public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDisk) {
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host the host system
+     * @param volume the volume to find
+     * @param availableDiskOnly if true, only find available disk for vmfs. if false, find disk even if it's not available for vmfs
+     */
+    public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDiskOnly) {
         this(host, volume);
-        this.availableDisk = availableDisk;
+        this.availableDiskOnly = availableDiskOnly;
     }
 
     @Override
@@ -78,8 +90,8 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private HostScsiDisk getLunDisk() {
 
         List<HostScsiDisk> scsiDisks = null;
-        if (availableDisk) {
-            scsiDisks = Lists.newArrayList(storageAPI.queryAvailableDisksForVmfs());
+        if (availableDiskOnly) {
+            scsiDisks = Lists.newArrayList(storageAPI.queryAvailableDisksForVmfs(null));
         } else {
             scsiDisks = storageAPI.listScsiDisks();
         }

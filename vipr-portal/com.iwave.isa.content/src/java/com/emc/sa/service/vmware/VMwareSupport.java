@@ -581,14 +581,24 @@ public class VMwareSupport {
         return findScsiDisk(host, cluster, volume, false);
     }
 
-    public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume, boolean availableDisk) {
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host the host system
+     * @param cluster if specified, find disk on all hosts in the cluster
+     * @param volume the volume to find
+     * @param availableDiskOnly if true, only find available disk for vmfs. if false, find disk even if it's not available for vmfs
+     * @return the disk for the volume
+     */
+    public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume,
+            boolean availableDiskOnly) {
         // Ensure that the volume has a WWN set or we won't be able to find the disk
         if (StringUtils.isBlank(volume.getWwn())) {
             String volumeId = ResourceUtils.stringId(volume);
             String volumeName = ResourceUtils.name(volume);
             ExecutionUtils.fail("failTask.VMwareSupport.findLun", new Object[] { volumeId }, new Object[] { volumeName });
         }
-        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume, availableDisk));
+        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume, availableDiskOnly));
 
         // Find the volume on all other hosts in the cluster
         if (cluster != null) {
@@ -602,7 +612,7 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDisk));
+                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly));
                 disks.put(otherHost, otherDisk);
             }
         }

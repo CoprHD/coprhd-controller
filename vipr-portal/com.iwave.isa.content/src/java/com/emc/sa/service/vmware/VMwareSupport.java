@@ -602,7 +602,7 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume));
+                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDisk));
                 disks.put(otherHost, otherDisk);
             }
         }

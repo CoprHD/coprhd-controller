@@ -80,7 +80,7 @@ public class PrimitiveTest {
 
         PrimitiveHelper.persist(restPrimitive, dbClient);
 
-        final Primitive primitive = PrimitiveHelper.query(restPrimitive.id(),
+        final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class,
                 dbClient);
         
         Assert.assertEquals(primitive.name(), name);

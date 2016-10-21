@@ -73,6 +73,7 @@ public final class WorkflowHelper {
             oeWorkflow.setDocument(GSON.toJson(definition));
             
             dbClient.createObject(oeWorkflow);
+            return;
             
         } else {
             
@@ -81,6 +82,7 @@ public final class WorkflowHelper {
             oeWorkflow.setDocument(GSON.toJson(definition));
             
             dbClient.updateObject(oeWorkflow);
+            return;
         }
     }
 

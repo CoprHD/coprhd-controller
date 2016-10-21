@@ -42,9 +42,11 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OEPrimitive;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer.DataPoint;
@@ -391,11 +393,23 @@ public class DummyDbClient implements DbClient {
         final Object fieldValue = constraint.toConstraintDescriptor().getArguments().get(0);
             
         ArrayList<NamedElement> list = new ArrayList<NamedElement>();
+        
         for(final Entry<URI, DataObject> entry : _idToObjectMap.entrySet() ) {
             if(entry.getValue().getClass().isAssignableFrom(doType)) {
-                for(final Method method : doType.getDeclaredMethods()) {
+                
+                Method [] methods = doType.getDeclaredMethods();
+                if( OEPrimitive.class.isAssignableFrom(doType)) {
+                    Method[] parentMethods = OEPrimitive.class.getDeclaredMethods();
+                    Method[] resultArray = new Method[methods.length+parentMethods.length];
+                    System.arraycopy(methods, 0, resultArray, 0, methods.length);
+                    System.arraycopy(parentMethods, 0, resultArray, methods.length, parentMethods.length);
+                    methods = resultArray;
+                }
+                
+                for(final Method method : methods) {
+                    final AlternateId alternateId = method.getDeclaredAnnotation(AlternateId.class);
                     final Name cfName = method.getDeclaredAnnotation(Name.class);
-                    if(null != cfName ){
+                    if(null != alternateId && null != cfName && cfName.value().equals(fieldName)) {
                         try {
                             if(method.invoke(entry.getValue()).equals(fieldValue)) {
                                 NamedElement element = new NamedElement();

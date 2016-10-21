@@ -151,7 +151,7 @@ public class BlockObjectSystemTypeMigrationTest extends DbSimpleMigrationTestBas
 
     @Override
     protected void verifyResults() throws Exception {
-        log.info("Verifying results of volume system type migration test.");
+        log.info("Verifying results of volume system type migration test now.");
 
         Map<URI, String> storageSystemTypeMap = new HashMap<URI, String>();
 

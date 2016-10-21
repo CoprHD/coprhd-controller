@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.StorageDriverMetaData;
 import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -353,5 +354,10 @@ public class DriverManager {
             log.info("Driver info changed. Try to pull latest info and update local driver if necessary ...");
             checkAndUpdate();
         }
+    }
+
+    // TODO
+    public static List<StorageSystemType> convert (StorageDriverMetaData driver) {
+        return null;
     }
 }

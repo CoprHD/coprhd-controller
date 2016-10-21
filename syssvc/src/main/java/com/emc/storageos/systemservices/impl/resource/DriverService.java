@@ -39,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.StorageDriverMetaData;
 import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
@@ -203,6 +204,17 @@ public class DriverService {
         info.getInstalledDrivers().add(params.getDriverName());
         coordinator.setTargetInfo(info);
         return Response.ok().build();
+    }
+
+    // TODO 
+    private List<StorageSystemType> parseStorageTypes(String driverFilePath) {
+        StorageDriverMetaData driver = parseDriverMetaData(driverFilePath);
+        return DriverManager.convert(driver);
+    }
+
+    // TODO
+    private StorageDriverMetaData parseDriverMetaData(String driverFilePath) {
+        return null;
     }
 
     private StorageSystemTypeAddParam parseDriver(String path) throws Exception {

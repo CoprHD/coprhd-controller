@@ -8,7 +8,7 @@
 ##################################################
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHDDevKit
-VERSION := 3.5.0.0
+VERSION := 3.6.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
@@ -79,11 +79,11 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.1-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default
 endif
 	$(call targetLog,-)
 

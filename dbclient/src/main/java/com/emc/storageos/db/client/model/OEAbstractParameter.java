@@ -30,8 +30,8 @@ public abstract class OEAbstractParameter extends DataObject {
     private URI _primitive;
     private String _name;
     private String _friendlyName;
-    private boolean _locked;
-    private boolean _required;
+    private Boolean _locked;
+    private Boolean _required;
 
     @Name("primitive")
     public URI getPrimitive() {
@@ -54,7 +54,7 @@ public abstract class OEAbstractParameter extends DataObject {
     }
 
     @Name("locked")
-    public boolean getLocked() {
+    public Boolean getLocked() {
         return _locked;
     }
 
@@ -64,7 +64,7 @@ public abstract class OEAbstractParameter extends DataObject {
     }
 
     @Name("required")
-    public boolean getRequired() {
+    public Boolean getRequired() {
         return _required;
     }
 

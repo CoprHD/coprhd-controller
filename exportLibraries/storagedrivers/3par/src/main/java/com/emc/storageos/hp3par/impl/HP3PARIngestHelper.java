@@ -134,7 +134,7 @@ public class HP3PARIngestHelper {
 					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();							
 					DeduplicationCapabilityDefinition dedupCapabilityDefinition = new DeduplicationCapabilityDefinition();
 					Map<String, List<String>> props = new HashMap<>();
-                    props.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(), Arrays.asList(dedupEnabled.toString()));
+                    props.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(), Arrays.asList(Boolean.TRUE.toString()));
                     CapabilityInstance capabilityInstance = new CapabilityInstance(dedupCapabilityDefinition.getId(), dedupCapabilityDefinition.getId(), props);
                     capabilityList.add(capabilityInstance);
                     //--------

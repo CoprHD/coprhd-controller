@@ -58,7 +58,7 @@ public class BlockSnapshots extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(blockSnapshots, params));
     }
 
-    public static void snapshotDetails(String snapshotId) {
+    public static void snapshotDetails(String snapshotId, String sessionId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
         AffectedResources.BlockSnapshotDetails blockSnapshot = new AffectedResources.BlockSnapshotDetails(uri(snapshotId));
@@ -67,6 +67,10 @@ public class BlockSnapshots extends ResourceController {
             snapshots(null);
         }
 
+        AffectedResources.BlockSnapshotSessionDetails sessionDetails = null;
+        if(sessionId!=null) {
+            sessionDetails = new AffectedResources.BlockSnapshotSessionDetails(uri(sessionId));
+        }
         AffectedResources.VolumeDetails volume = new AffectedResources.VolumeDetails(blockSnapshot.volume.getId());
 
         List<Task<BlockSnapshotRestRep>> tasks = null;
@@ -75,7 +79,7 @@ public class BlockSnapshots extends ResourceController {
             tasks = tasksResponse.getTasks();
         }
 
-        render(blockSnapshot, volume, tasks);
+        render(blockSnapshot, volume, tasks, sessionDetails);
     }
 
     public static void snapshotExports(String snapshotId) {
@@ -113,7 +117,7 @@ public class BlockSnapshots extends ResourceController {
             Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(uri(snapshotId), VolumeDeleteTypeEnum.FULL);
             flash.put("info", MessagesUtils.get("resources.snapshot.deactivate", snapshotId));
         }
-        snapshotDetails(snapshotId);
+        snapshotDetails(snapshotId, null);
     }
 
     @FlashException(value = "snapshots")

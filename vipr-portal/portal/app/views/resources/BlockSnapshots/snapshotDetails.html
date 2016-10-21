@@ -2,8 +2,16 @@
 #{set navSelected: ['nav.storage', 'nav.block.snapshots'] /}
 
 #{breadcrumb.container}
-  #{breadcrumb.item @snapshots()}&{'resources.snapshots'}#{/breadcrumb.item}
-  #{breadcrumb.item active:true}${blockSnapshot?.blockSnapshot?.name}#{/breadcrumb.item}
+  #{if sessionDetails}
+  	#{breadcrumb.item @resources.BlockSnapshotSessions.snapshotSessions()}&{'resources.volume.snapshot.sessions'}#{/breadcrumb.item}
+  	#{breadcrumb.item @resources.BlockSnapshotSessions.snapshotSessionDetails(sessionDetails?.blockSnapshotSession?.id)}${sessionDetails?.blockSnapshotSession?.name}#{/breadcrumb.item}
+  	#{breadcrumb.item @snapshots()}&{'resources.snapshots'}#{/breadcrumb.item}
+  	#{breadcrumb.item active:true}${blockSnapshot?.blockSnapshot?.name}#{/breadcrumb.item}
+  #{/if}
+  #{else}
+  	#{breadcrumb.item @snapshots()}&{'resources.snapshots'}#{/breadcrumb.item}
+  	#{breadcrumb.item active:true}${blockSnapshot?.blockSnapshot?.name}#{/breadcrumb.item}
+  #{/else}
 #{/breadcrumb.container}
 
 <div class="clear"></div>

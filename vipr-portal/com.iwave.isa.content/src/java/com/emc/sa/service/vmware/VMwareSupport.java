@@ -292,7 +292,7 @@ public class VMwareSupport {
      */
     public void expandVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, Datastore datastore) {
-        HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
+        HostScsiDisk disk = findScsiDisk(host, cluster, volume);
         execute(new ExpandVmfsDatastore(host, disk, datastore));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastore.getName());

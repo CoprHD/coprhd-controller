@@ -107,6 +107,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
             return;
         }
     	
+    	long beginTime = System.currentTimeMillis();
     	log.info("Begin to GC...");
     	
         try {
@@ -135,7 +136,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         		postGC();
         	} finally {
         		releaseLockForGC(lock);
-        		log.info("GC is finished.");
+        		log.info("GC is finished, consume time: {} seconds", (System.currentTimeMillis() - beginTime) / 1000);
         	}
         }
     }

@@ -50,6 +50,7 @@ public class VolumeGroup extends DataObject {
 
     public static enum MigrationStatus {
         NONE,
+        MIGRATIONREADY,
         CREATED,
         MIGRATEINPROGESS,
         MIGRATIONFAILED,

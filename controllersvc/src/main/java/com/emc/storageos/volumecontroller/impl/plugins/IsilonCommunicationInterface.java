@@ -1980,7 +1980,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
             discoverdQuotaDirectory.addAll(qdMap.values());
             
-            discoveredFileDetails.put(UMFS_DETAILS, isilonFSList.getList());
+            discoveredFileDetails.put(UMFS_DETAILS, isilonFSList);
             discoveredFileDetails.put(UMFSQD_DETAILS,discoverdQuotaDirectory);
             
 //            return isilonFSList;

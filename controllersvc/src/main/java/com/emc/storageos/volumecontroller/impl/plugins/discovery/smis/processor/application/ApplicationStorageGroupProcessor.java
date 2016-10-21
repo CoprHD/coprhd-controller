@@ -36,7 +36,7 @@ public class ApplicationStorageGroupProcessor extends Processor {
     String _migrationType = VolumeGroup.MigrationType.VMAX.toString();
     String _migrationGroupBy = VolumeGroup.MigrationGroupBy.STORAGEGROUP.toString();
     String _description = "VMAX Application Storage Group";
-    StringSet _roles = new StringSet(Arrays.asList(VolumeGroup.VolumeGroupRole.APPLICATION.toString()));
+    StringSet _roles = new StringSet(Arrays.asList(VolumeGroup.VolumeGroupRole.MOBILITY.toString()));
 
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -66,9 +66,8 @@ public class ApplicationStorageGroupProcessor extends Processor {
                         volumeGroup.setMigrationType(_migrationType);
                         volumeGroup.setMigrationGroupBy(_migrationGroupBy);
                         volumeGroup.setDescription(_description);
+                        volumeGroup.setMigrationStatus(VolumeGroup.MigrationStatus.NONE.toString());
                         _dbClient.createObject(volumeGroup);
-                    } else {
-                        volumeGroup.setInactive(false); // Keep it active if the Storage Group is recreated
                     }
                 }
             }
@@ -123,13 +122,16 @@ public class ApplicationStorageGroupProcessor extends Processor {
                 volumeGroupResults);
         while (volumeGroupResults.iterator().hasNext()) {
             VolumeGroup volumeGroupInDB = dbClient.queryObject(VolumeGroup.class, volumeGroupResults.iterator().next());
-            if (null == volumeGroupInDB || volumeGroupInDB.getInactive()) {
+            if (null == volumeGroupInDB) {
                 continue;
             }
             if (!volumeGroupIds.contains(volumeGroupInDB.getLabel())) {
-                _logger.info("Volume Group set to inactive", volumeGroupInDB);
-                volumeGroupInDB.setInactive(true);
-                dbClient.updateObject(volumeGroupInDB);
+                // Only remove if MigrationStatus is NONE
+                _logger.info("Volume Group not found", volumeGroupInDB);
+                if (VolumeGroup.MigrationStatus.NONE.toString() == volumeGroupInDB.getMigrationStatus()) {
+                    _logger.info("Removing the VolumeGroup as its migrationStatus is NONE", volumeGroupInDB);
+                    dbClient.removeObject(volumeGroupInDB);
+                }
             }
         }
 

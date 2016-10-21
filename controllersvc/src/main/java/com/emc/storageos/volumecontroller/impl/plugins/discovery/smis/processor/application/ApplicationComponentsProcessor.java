@@ -55,6 +55,7 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                         volumeGroup.setDescription("VMAX Application Storage Group");
                         _dbClient.createObject(volumeGroup);
                     }
+                    volumeGroup.setMigrationStatus(VolumeGroup.MigrationStatus.MIGRATIONREADY.toString());
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SE_TARGET_MASKING_GROUP)) {
                     // We need to add the volume device ids here
                     targetMaskingGroupInstanceID = associatedInstancePath

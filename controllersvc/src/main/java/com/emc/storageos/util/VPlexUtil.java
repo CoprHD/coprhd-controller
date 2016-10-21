@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
-import com.emc.storageos.model.TaskList;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -66,7 +65,6 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import com.sun.xml.internal.bind.v2.runtime.RuntimeUtil.ToStringAdapter;
 
 public class VPlexUtil {
     private static Logger _log = LoggerFactory.getLogger(VPlexUtil.class);

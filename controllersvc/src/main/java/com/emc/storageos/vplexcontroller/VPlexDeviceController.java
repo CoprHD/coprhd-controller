@@ -9639,34 +9639,36 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         null);
             } else {
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
-                    // For distributed volumes we take snapshots of and restore the
-                    // source backend volume. Before we can do the restore, we need
-                    // to detach the HA mirror of the distributed volume. So,
-                    // determine the HA backend volume and create a workflow step
-                    // to detach it from the source.
+                    // For distributed volumes the snapshot could be taken on the source
+                    // or HA side of the volume. Before we can do the restore, we need
+                    // to detach the side of the distributed volume that was not snapped.
+                    // That is if the source side was snapped, detach the HA side and vice
+                    // versa. So, determine which side needs to be detached and create
+                    // a workflow step to do so.
                     Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
-                    URI haVolumeURI = haVolume.getId();
+                    boolean isSrcSideSnap = VPlexUtil.isSourceSideBackendVolume(vplexVolume, parentVolume, _dbClient);
+                    Volume volumeToDetach = VPlexUtil.getVPLEXBackendVolume(vplexVolume, !isSrcSideSnap, _dbClient);
+                    URI volumeToDetachURI = volumeToDetach.getId();
                     String detachStepId = workflow.createStepId();
                     Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
-                            vplexURI, vplexVolumeURI, haVolumeURI,
+                            vplexURI, vplexVolumeURI, volumeToDetachURI,
                             vplexVolume.getConsistencyGroup(), detachStepId);
                     waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
-                            vplexVolume, haVolumeURI, detachStepId, null,
+                            vplexVolume, volumeToDetachURI, detachStepId, null,
                             restoreVolumeRollbackMethod);
 
                     // We now create a step to invalidate the cache for the
                     // VPLEX volume. Note that if this step fails we need to
-                    // rollback and reattach the HA mirror.
+                    // rollback and reattach the detached mirror.
                     createWorkflowStepForInvalidateCache(workflow, vplexSystem,
                             vplexVolumeURI, waitFor, rollbackMethodNullMethod());
 
                     // Now create a workflow step to reattach the mirror to initiate
-                    // a rebuild of the HA mirror for the distributed volume. Note that
+                    // a rebuild of the mirror for the distributed volume. Note that
                     // these steps will not run until after the native restore, which
                     // only gets executed once, not for every VPLEX volume.
                     createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
-                            haVolumeURI, detachStepId, RESTORE_VOLUME_STEP,
+                            volumeToDetachURI, detachStepId, RESTORE_VOLUME_STEP,
                             rollbackMethodNullMethod());
                 }
 

@@ -66,6 +66,7 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.sun.xml.internal.bind.v2.runtime.RuntimeUtil.ToStringAdapter;
 
 public class VPlexUtil {
     private static Logger _log = LoggerFactory.getLogger(VPlexUtil.class);
@@ -1755,6 +1756,25 @@ public class VPlexUtil {
             }
         }
         return vplexVols;
+    }
+    
+    /**
+     * Determine if the passed backend volume of the passed VPLEX volume is the
+     * source side backend volume.
+     * 
+     * @param vplexVolume A reference to a VPLEX volume
+     * @param vplexBackendVolume A reference to a backend volume for the VPLEX volume
+     * @param dbClient A reference to a database client
+     * 
+     * @return true if the passed backend volume is the source side backend volume for 
+     *         the passed VPLEX volume, else false
+     */
+    public static boolean isSourceSideBackendVolume(Volume vplexVolume, Volume vplexBackendVolume, DbClient dbClient) {
+        Volume srcSideVplexBackendVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
+        if (vplexBackendVolume.getId().toString().equals(srcSideVplexBackendVolume.getId().toString())) {
+            return true;
+        }
+        return false;
     }
 }
 

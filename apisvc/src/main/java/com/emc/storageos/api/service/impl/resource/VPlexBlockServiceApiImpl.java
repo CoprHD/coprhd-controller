@@ -3748,11 +3748,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
             String snapshotType, String snapshotName, Boolean isHaSnap, BlockFullCopyManager fcManager) {
         // TBD Change. We should pass the backend volumes that would be snapped.
-        List<Volume> backendVolumesToSnap = new ArrayList<Volume>();
-        for (Volume vplexVolumeToSnap : volumesToSnap) {
-            backendVolumesToSnap.add(getVPLEXSnapshotSourceVolume(vplexVolumeToSnap, isHaSnap));
-        }
-        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap), backendVolumesToSnap, snapshotType,
+        //List<Volume> backendVolumesToSnap = new ArrayList<Volume>();
+        //for (Volume vplexVolumeToSnap : volumesToSnap) {
+            //backendVolumesToSnap.add(getVPLEXSnapshotSourceVolume(vplexVolumeToSnap, isHaSnap));
+        //}
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume, isHaSnap), volumesToSnap, snapshotType,
                 snapshotName, isHaSnap, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,

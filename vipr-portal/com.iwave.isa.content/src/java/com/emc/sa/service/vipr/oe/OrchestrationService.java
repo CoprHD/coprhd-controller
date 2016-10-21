@@ -19,6 +19,7 @@ package com.emc.sa.service.vipr.oe;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
 import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Input;
 import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Step;
@@ -39,6 +40,7 @@ import java.util.Set;
 
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.tasks.RunREST;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import org.apache.commons.lang.StringUtils;
@@ -65,6 +67,19 @@ public class OrchestrationService extends ViPRService {
 
     private int code;
 
+    public String getEval() {
+        return eval;
+    }
+
+    public List<String> getEvaluateVal() {
+        return evaluateVal;
+    }
+
+    public void setCode(int code)
+    {
+        this.code = code;
+    }
+
     @Override
     public void precheck() throws Exception {
 
@@ -76,6 +91,13 @@ public class OrchestrationService extends ViPRService {
         // add a proxy token that OE can use to login to ViPR API
         params.put("ProxyToken", ExecutionUtils.currentContext().
                 getExecutionState().getProxyToken());
+        //Remove after integration with order form
+        params.put("Size", "1");
+        params.put("volumeName", "Vol-1");
+        params.put("numOfVolume", "1");
+        params.put("vArray", "Varray-1");
+        params.put("vPool", "Vpool-1");
+        params.put("project", "Project-1");
 
     }
 
@@ -136,6 +158,7 @@ public class OrchestrationService extends ViPRService {
             switch (type) {
                 case VIPR_REST: {
                     ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName());
+                    result = ViPRExecutionUtils.execute(new RunREST(step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
 
                     break;
                 }

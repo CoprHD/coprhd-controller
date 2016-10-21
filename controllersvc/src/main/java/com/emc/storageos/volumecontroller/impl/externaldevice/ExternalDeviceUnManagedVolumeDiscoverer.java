@@ -48,6 +48,10 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -359,8 +363,34 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         if (null != driveTypes) {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(), driveTypes);
         }
+        
+        boolean IsDeDupEnabled = false;
+        
+        // get deduplicationCapability
+        CommonStorageCapabilities commonCapabilities= driverVolume.getCommonCapabilities();
+		if (commonCapabilities != null) {
+			List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
+			if (dataService != null) {
+				for (DataStorageServiceOption dataServiceOption : dataService) {
+					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();
+					if (capabilityList != null) {
+						for (CapabilityInstance ci : capabilityList) {
+							String provTypeValue = ci
+									.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+							if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
+								IsDeDupEnabled = true;
+							}
+						}
+					}
+
+				}
+			}
+		}
+        
+        
         StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, storagePool.getId(),
-                unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()), 
+                IsDeDupEnabled);
         log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
         if (matchedVPools.isEmpty()) {
             // clear all existing supported vpools.

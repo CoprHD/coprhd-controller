@@ -6,6 +6,8 @@
 package com.emc.storageos.hp3par.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,11 @@ import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition.CapabilityUid;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 
 /**
  * 
@@ -115,7 +122,54 @@ public class HP3PARIngestHelper {
 
 				if (objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue()) {
 					driverVolume.setThinlyProvisioned(true);
-				} else {
+				}else if (objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TDVV.getValue()) {
+					driverVolume.setThinlyProvisioned(true);
+					
+			        CommonStorageCapabilities commonCapabilities= new CommonStorageCapabilities();					
+					List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
+											
+					DataStorageServiceOption dataServiceOption = new DataStorageServiceOption();
+					dataService.add(dataServiceOption);
+					
+					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();							
+					DeduplicationCapabilityDefinition dedupCapabilityDefinition = new DeduplicationCapabilityDefinition();
+					Map<String, List<String>> props = new HashMap<>();
+                    props.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(), Arrays.asList(dedupEnabled.toString()));
+                    CapabilityInstance capabilityInstance = new CapabilityInstance(dedupCapabilityDefinition.getId(), dedupCapabilityDefinition.getId(), props);
+                    capabilityList.add(capabilityInstance);
+                    //--------
+                    /*DeduplicationCapabilityDefinition capabilityDefinition = new DeduplicationCapabilityDefinition();
+                    Map<String, List<String>> capabilityProperties = new HashMap<>();
+                    capabilityProperties.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                            Collections.singletonList(Boolean.TRUE.toString()));
+                    CapabilityInstance dedupCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                            capabilityDefinition.getId(), capabilityProperties);
+
+                    driverVolume.setCommonCapabilities(commonCapabilities);
+                    // Get the common capabilities for the passed storage capabilities.
+                    // If null, create and set it.
+                    CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+                    if (commonCapabilities == null) {
+                        commonCapabilities = new CommonStorageCapabilities();
+                        storageCapabilities.setCommonCapabilitis(commonCapabilities);
+                    }
+
+                    // Get the data storage service options for the common capabilities.
+                    // If null, create it and set it.
+                    List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
+                    if (dataStorageSvcOptions == null) {
+                        dataStorageSvcOptions = new ArrayList<>();
+                        commonCapabilities.setDataStorage(dataStorageSvcOptions);
+                    }
+
+                    // Create a new data storage service option for the auto tiering policy capability
+                    // and add it to the list.
+                    DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Collections.singletonList(dedupCapability));
+                    dataStorageSvcOptions.add(dataStorageSvcOption);*/
+				
+					driverVolume.setCommonCapabilities(commonCapabilities);
+				}  
+				else {
 					driverVolume.setThinlyProvisioned(false);
 				}
 

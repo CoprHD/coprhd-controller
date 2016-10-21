@@ -65,7 +65,7 @@ public class HP3PARConstants {
         TPVV("TPVV", 2),
         SNP("SNP", 3),
     	PEER("PEER", 4),
-    	TDVV("TDVV", 5);
+    	TDVV("TDVV", 6);
     	
         public String type= "";
         public int value = 0;

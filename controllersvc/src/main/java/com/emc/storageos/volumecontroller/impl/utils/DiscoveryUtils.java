@@ -164,6 +164,45 @@ public class DiscoveryUtils {
         return vpoolUriSet;
     }
 
+    
+    /**
+     * Get Matched Virtual Pools For Pool.
+     * This is called to calculate supported vpools during unmanaged objects discovery
+     * 
+     * @param dbClient
+     * @param poolUri
+     * @param isThinlyProvisionedUnManagedObject
+     * @return
+     */
+    public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
+            String isThinlyProvisionedUnManagedObject, boolean isDedupUnManagedObject) {
+        StringSet vpoolUriSet = new StringSet();
+        // We should match all virtual pools as below:
+        // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
+        // 2) Virtual pools which have the storage pool in their assigned pools
+        List<VirtualPool> vPoolsMatchedPools = getMatchedVPoolsOfAPool(poolUri, dbClient);
+        String provisioningTypeUnManagedObject = UnManagedVolume.SupportedProvisioningType
+                .getProvisioningType(isThinlyProvisionedUnManagedObject);
+        StoragePool storagePool = dbClient.queryObject(StoragePool.class, poolUri);
+        for (VirtualPool vPool : vPoolsMatchedPools) {
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(vPool)) {
+                List<StoragePool> validPools = VirtualPool.getValidStoragePools(vPool, dbClient, true);
+                for (StoragePool sPool : validPools) {
+                	if( isDedupUnManagedObject && !sPool.getDedupCapable() )
+                		continue;
+                    if (sPool.getId().equals(storagePool.getId()) &&
+                            provisioningTypeUnManagedObject.equalsIgnoreCase(vPool.getSupportedProvisioningType())) {                    	
+                        vpoolUriSet.add(vPool.getId().toString());
+                        break;
+                    }
+                }
+            }
+        }
+
+        return vpoolUriSet;
+    }
+    
+    
     // Getting all the vpools
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri) {
         StringSet vpoolUriSet = new StringSet();

@@ -541,23 +541,28 @@ public class UcsComputeDevice implements ComputeDevice {
                             }
                         }
                     }
+                    LOGGER.info("adding host " + host.getHostName() + "to ExportGroup: " + exportGroup.getId());
 
                     blockExportController.exportGroupUpdate(exportGroup.getId(), 
                             noUpdatesVolumeMap, noUpdatesVolumeMap, 
                             updatedClusters, updatedHosts, updatedInitiators, task);
+                    boolean taskCompleted = false;
 
-                    while (true) {
+                    while (!taskCompleted) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
 
                         switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
                             case ready:
-                                WorkflowStepCompleter.stepSucceded(stepId);
-                                return;
+                                taskCompleted = true;
+                                LOGGER.info("Successfully added host " + host.getHostName() + "to ExportGroup: " + exportGroup.getId());
+                                break;
                             case error:
+                                taskCompleted = true;
+                                LOGGER.error("Failed to add host " + host.getHostName() + "to ExportGroup: " + exportGroup.getId());
                                 WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
                                         .getServiceError());
-                                return;
+                                break;
                             case pending:
                                 break;
 

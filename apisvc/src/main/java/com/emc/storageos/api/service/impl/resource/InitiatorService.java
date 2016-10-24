@@ -163,7 +163,7 @@ public class InitiatorService extends TaskResourceService {
     }
 
     /**
-     * associate a Host initiator to another.
+     * Associate a Host initiator to another.
      * 
      * @param id the URN of a ViPR initiator
      * @param associatedId the URN of a ViPR paired initiator
@@ -195,7 +195,9 @@ public class InitiatorService extends TaskResourceService {
                 APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
             }
 
-            // if host in use. do not associate its initiator.
+            // If host has already exported volume .
+            // Adding initiator one by one update export mask one by one and same storage port can not be guaranteed
+            // for initiator pair .Do not associate such initiator,
             if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
 
                 APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();

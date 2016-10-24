@@ -1135,7 +1135,7 @@ public class NetworkDeviceController implements NetworkController {
                 addZoneWhileAddingVolume, addZoneOnDeviceOperation);
         if (addZoneWhileAddingVolume != null) {
             addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
-            _log.info("Boolean converted of : {} : returned by Config handler as : {} ",
+            _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
                     addZoneWhileAddingVolume, addZoneOnDeviceOperation);
         } else {
             _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
@@ -2114,7 +2114,7 @@ public class NetworkDeviceController implements NetworkController {
     public ZoneInfoMap getInitiatorsZoneInfoMap(List<Initiator> initiators, List<StoragePort> storagePorts) {
         ZoneInfoMap zoningMap = new ZoneInfoMap();
         Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
-        updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
+        addAssociatedInitiatorToMap(initiatorsByNetworkMap, initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!Transport.FC.toString().equals(entry.getKey().getTransportType())) {
                 continue;
@@ -2138,7 +2138,7 @@ public class NetworkDeviceController implements NetworkController {
     public Map<String, List<Zone>> getInitiatorsZones(Collection<Initiator> initiators) {
         Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
         Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
-        updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
+        addAssociatedInitiatorToMap(initiatorsByNetworkMap, initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 zonesMap.putAll(getInitiatorsInNetworkZones(entry.getKey(), entry.getValue()));
@@ -2154,7 +2154,7 @@ public class NetworkDeviceController implements NetworkController {
      * @param initiators list for initiators
      * @param dbClient dbClient
      */
-    private void updateNetworkToInitiatorsMap(Map<NetworkLite, List<Initiator>> map, Collection<Initiator> initiators,
+    private void addAssociatedInitiatorToMap(Map<NetworkLite, List<Initiator>> map, Collection<Initiator> initiators,
             DbClient dbClient) {
 
         NetworkLite network = null;
@@ -2240,7 +2240,7 @@ public class NetworkDeviceController implements NetworkController {
                 List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
                 List<Initiator> initiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
                 Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
-                updateNetworkToInitiatorsMap(initiatorsByNetworkMap, initiators, _dbClient);
+                addAssociatedInitiatorToMap(initiatorsByNetworkMap, initiators, _dbClient);
                 StringSetMap zoningMap = new StringSetMap();
                 for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
                     if (!Transport.FC.toString().equals(network.getTransportType())) {

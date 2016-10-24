@@ -330,17 +330,14 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     private class NetworkInitiatorCount implements Comparable<NetworkInitiatorCount> {
         private URI net;
         private int count;
-
         NetworkInitiatorCount(URI net, int count) {
             this.net = net;
             this.count = count;
         }
-
         @Override
         public int hashCode() {
             return net.hashCode();
         }
-
         @Override
         public boolean equals(Object obj) {
             if (this == obj)
@@ -357,7 +354,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 return false;
             return true;
         }
-
         @Override
         public int compareTo(NetworkInitiatorCount arg0) {
             return this.count - arg0.count;
@@ -449,6 +445,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         Map<URI, List<Initiator>> existingInitiatorsMap = makeHostInitiatorsMap(existingAssignments.keySet());
         List<Initiator> hostExistingInitiators = nonNullInitiatorList(existingInitiatorsMap.get(hostURI));
 
+
         // Calculate port use counts from the existing assignments
         for (Initiator hostExistingInitiator : hostExistingInitiators) {
             List<StoragePort> portsAssigned = existingAssignments.get(hostExistingInitiator);
@@ -521,7 +518,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator() - alreadyAssigned, 0);
 
                     if (availPorts != null) {
-
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
                         // Remove this initiator from further provisioning consideration
                         entry.getValue().remove(0);
@@ -571,7 +567,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     /**
      * Adds a use count to a port, which indicates one initiator is using the port
      * This is public static because the StoragePortsAssignerTest uses it.
-     * 
      * @param portUseCounts -- Map of StoragePort to use counts
      * @param port -- Port being used
      */
@@ -586,7 +581,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Returns true if the port is being used
-     * 
      * @param portUseCounts -- Map of Storage Port to use counts
      * @param port -- Port we are inquiring about
      * @return
@@ -597,7 +591,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Gets available ports with the lowest use count (must be <= maxUseCount).
-     * 
      * @param initiator -- the Initiator the ports are for
      * @param allocatedPorts -- List of allocated ports from which we can choose
      * @param portUseCounts -- Map of StoragePort to use counts
@@ -643,7 +636,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Assigns the ports, updates the port use counts
-     * 
      * @param assignments Map of Initiator to List<StoragePort> for new assignments
      * @param netURI - Network these ports are in
      * @param initiator -- The initiators ports are being assigned for
@@ -660,14 +652,11 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     initiator.getInitiatorPort(), initiator.getHostName()));
             addPortUse(portUseCounts, port);
         }
-
         if (assignments.get(initiator) != null) {
             assignments.get(initiator).addAll(assignedPorts);
-
         } else {
             assignments.put(initiator, assignedPorts);
         }
-
         _log.info("Initiator - Storageport assignments: {}", assignments);
     }
 
@@ -714,7 +703,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     /**
      * Will generate an empty Map<Initiator, List<StoragePort> if the passed assignmentMap is null.
      * Otherwise returns the original map. Used to reduce cyclomatic complexity.
-     * 
      * @param assignmentMap -- Map(Initiator, List<StoragePort>> or null
      * @return non null Map, possibly empty
      */

@@ -487,7 +487,6 @@ public class ComputeSystemHelper {
         return validInitiators;
     }
 
-
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
      * 

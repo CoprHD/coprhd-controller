@@ -2082,16 +2082,15 @@ public class ExportGroupService extends TaskResourceService {
                     if (pairedInitiator != null) {
                         _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
                         hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
-                        if (!hasConnectivity) {  
-                            throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
-                                    storageSystem.getNativeGuid());
-                        }
+                    }
+                    if (!hasConnectivity) {
+                        throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
+                                storageSystem.getNativeGuid());
                     }
                 }
             }
         }
     }
-
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.

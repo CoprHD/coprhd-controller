@@ -1137,7 +1137,9 @@ public class BlockStorageScheduler {
                 if (associatedInitiatorEndpoint != null && !associatedInitiatorEndpoint.isEmpty()) {
                     netLite = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, dbClient);
                 }
-                return netLite;
+            }
+            if (netLite == null) {
+                return null;
             }
             if (!netLite.registered()) {
                 _log.info("Network lookup: the endpoint network is deregistered.");
@@ -1356,18 +1358,18 @@ public class BlockStorageScheduler {
         Map<String, Integer> hostInitiatorCounts = new HashMap<String, Integer>();
         // Calculate the path parameters.
         ExportPathParams param = new ExportPathParams(0, 0, 0);
-        Set<String> loopedInitiators = new HashSet<String>();
+        Set<String> processInitiators = new HashSet<String>();
         // If there is a zoningMap, use that.
         if (mask.getZoningMap() != null) {
             for (String initiatorId : mask.getZoningMap().keySet()) {
-                if (loopedInitiators.contains(initiatorId)) {
+                // do not want to add path twice for associated initiator
+                if (processInitiators.contains(initiatorId)) {
                     continue;
                 }
                 Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
                 if (initiator == null || initiator.getInactive()) {
                     continue;
                 }
-
                 String host = (initiator.getHost() != null) ? initiator.getHost().toString() : "<unknown>";
                 if (hostInitiatorCounts.get(host) == null) {
                     hostInitiatorCounts.put(host, 0);
@@ -1385,10 +1387,10 @@ public class BlockStorageScheduler {
                 if (ppi > param.getPathsPerInitiator()) {
                     param.setPathsPerInitiator(ppi);
                 }
-                loopedInitiators.add(initiatorId);
+                processInitiators.add(initiatorId);
                 URI associatedInitorURI = initiator.getAssociatedInitiator();
                 if (!NullColumnValueGetter.isNullURI(associatedInitorURI)) {
-                    loopedInitiators.add(associatedInitorURI.toString());
+                    processInitiators.add(associatedInitorURI.toString());
                 }
             }
             // Return the maximum of any host.
@@ -2008,7 +2010,7 @@ public class BlockStorageScheduler {
                 Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
                         _dbClient, storage.getId(), virtualArrayUri, pathParams);
                 Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
-                updateNetworkToInitiatorsMap(initiatorsByNetwork, initiators, _dbClient);
+                addAssociatedInitiatorToMap(initiatorsByNetwork, initiators, _dbClient);
                 Map<Initiator, NetworkLite> initiatorToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);
@@ -2075,7 +2077,7 @@ public class BlockStorageScheduler {
      * @param initiators list for initiators
      * @param dbClient dbClient
      */
-    private void updateNetworkToInitiatorsMap(Map<NetworkLite, List<Initiator>> map, Collection<Initiator> initiators,
+    private void addAssociatedInitiatorToMap(Map<NetworkLite, List<Initiator>> map, Collection<Initiator> initiators,
             DbClient dbClient) {
 
         NetworkLite network = null;
@@ -2198,7 +2200,6 @@ public class BlockStorageScheduler {
 
     /**
      * Inverts the sense of the initiatorsByNetwork map to get a map of InitiatorToNetworkLite
-     * 
      * @param initiatorsByNetwork Map of NetworkLite to a list of Initiators it contains
      * @return map of Initiator to Network Lite
      */
@@ -2269,9 +2270,9 @@ public class BlockStorageScheduler {
         return preZonedPortsByNetwork;
     }
 
+
     /**
      * Converts Map<NetworkLite, List<StoragePort> to Map<URI, List<StoragePort>
-     * 
      * @param allocatedPorts map from NetworkLite to allocated ports
      * @return map from network URI to allocated ports
      */

@@ -1948,44 +1948,32 @@ public class ExportUtils {
     }
     
     public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
-        URI associatedInitiatorURI = initiator.getAssociatedInitiator();
-        if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
-            Initiator associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
-            if (associatedInitiator != null && !associatedInitiator.getInactive()) {
-                return associatedInitiator;
+        Initiator associatedInitiator = null;
+        if (initiator != null) {
+            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
+                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
             }
         }
-        return null;
+        return associatedInitiator;
+
     }
 
     public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
         Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
-        if (initiator != null && !initiator.getInactive()) {
-            return getAssociatedInitiator(initiator, dbClient);
-        }
+        return getAssociatedInitiator(initiator, dbClient);
 
-        return null;
     }
 
-    public static Initiator getAssociatedInitiator(String endpoint, DbClient dbClient) {
-        Initiator associatedInitiator = null;
-        Initiator initiator = getInitiator(endpoint, dbClient);
-        if (initiator != null) {
-            associatedInitiator = getAssociatedInitiator(initiator, dbClient);
-        }
-        return associatedInitiator;
-    }
 
     public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
+        String associatedInitiatorPort = null;
         Initiator initiator = getInitiator(endpoint, dbClient);
-        if (initiator != null) {
-            Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
-            if (associatedInitiator != null) {
-                return associatedInitiator.getInitiatorPort();
-            }
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
+        if (associatedInitiator != null) {
+            associatedInitiatorPort = associatedInitiator.getInitiatorPort();
         }
-
-        return null;
+        return associatedInitiatorPort;
     }
 
 }

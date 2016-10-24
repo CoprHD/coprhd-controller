@@ -128,6 +128,7 @@ public class VNXeBlockRestoreSnapshotJob extends VNXeJob {
         createdSnap.setParent(new NamedURI(volume.getId(), label));
         createdSnap.setLabel(label);
         createdSnap.setStorageController(volume.getStorageController());
+        createdSnap.setSystemType(volume.getSystemType());
         createdSnap.setVirtualArray(volume.getVirtualArray());
         createdSnap.setProtocol(new StringSet());
         createdSnap.getProtocol().addAll(volume.getProtocol());

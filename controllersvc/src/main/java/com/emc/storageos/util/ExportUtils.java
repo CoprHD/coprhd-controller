@@ -1548,6 +1548,38 @@ public class ExportUtils {
     }
 
     /**
+     * Calculate free HLUs to use based on already assigned ones and the maximum number allowed.
+     *
+     * @param usedHlus the used hlus
+     * @param maxHLU the max hlu
+     * @return the free HLUs to use
+     */
+    public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
+        Set<Integer> freeHLUs = new HashSet<Integer>();
+        for (int i = 1; i <= maxHLU; i++) {
+            if (!usedHlus.contains(i)) {
+                freeHLUs.add(i);
+            }
+        }
+        return freeHLUs;
+    }
+
+    /**
+     * Update free HLUs in the volume map.
+     *
+     * @param volumeMap the volume map
+     * @param freeHLUs the free hlus
+     */
+    public static void updateFreeHLUsInVolumeMap(Map<URI, Integer> volumeMap, Set<Integer> freeHLUs) {
+        Iterator<Integer> freeHLUItr = freeHLUs.iterator();
+        for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
+            if (entry.getValue() == ExportGroup.LUN_UNASSIGNED) { // TODO can there be mix of Unassigned and Assigned? I don't think so
+                entry.setValue((Integer) freeHLUItr.next());
+            }
+        }
+    }
+
+    /**
      * Selects and returns the list targets (storage ports) that need to be removed from
      * an export mask when the initiators are removed from the storage group. If checks if
      * the targets are used by other initiators before they can be removed. It returns

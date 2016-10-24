@@ -735,10 +735,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
                 String name = CIMPropertyFactory.getPropertyValue(instance,
                         SmisConstants.CP_ELEMENT_NAME);
-                _log.info("Processing mask {}", name);
-                // Get volumes for the masking instance
-                Map<String, Integer> volumeWWNs =
-                        _helper.getVolumesFromLunMaskingInstance(client, instance);
+                _log.debug("Processing mask {}", name);
                 List<String> initiatorPorts =
                         _helper.getInitiatorsFromLunMaskingInstance(client, instance);
                 // Find out if the port is in this masking container
@@ -746,16 +743,20 @@ public class VnxExportOperations implements ExportMaskOperations {
                     String normalizedName = Initiator.normalizePort(port);
                     if (initiatorPorts.contains(normalizedName)) {
                         _log.info("Found Initiator {} in mask {}", normalizedName, name);
+                        // Get volumes for the masking instance
+                        Map<String, Integer> volumeWWNs =
+                                _helper.getVolumesFromLunMaskingInstance(client, instance);
                         // add HLUs to set
                         usedHLUs.addAll(volumeWWNs.values());
                         _log.info(String.format("%nXM:%s I:{%s} V:{%s} HLU:{%s}%n", name,
                                 Joiner.on(',').join(initiatorPorts),
                                 Joiner.on(',').join(volumeWWNs.keySet()), volumeWWNs.values()));
-                        // TODO get all initiators involved. need that info for logging
                         break;
                     }
                 }
             }
+            _log.info(String.format("HLUs found for Initiators { %s }: %s",
+                    Joiner.on(',').join(initiatorNames), usedHLUs));
         } catch (Exception e) {
             String errMsg = "Encountered an SMIS error when attempting to query used HLUs for initiators: " + e.getMessage();
             _log.error(errMsg, e);

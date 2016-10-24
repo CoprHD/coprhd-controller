@@ -21,18 +21,17 @@ import java.util.Set;
 import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
@@ -91,67 +90,94 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        if (exportGroup.forCluster() && volumeMap.values().contains("-1")) { // TODO -1 check correction
-            /**
-             * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
-             * All all hosts's HLUs to a Set.
-             * Get the maximum allowed HLU for the storage array.
-             * Calculate the free lowest available HLUs for the requested number of volumes.
-             * Update the new values in the VolumeHLU Map
-             */
 
-            // TODO what about co-existence / brownfield case?
-            // TODO check if cluster has 'n' masking views before proceeding?
+        if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)) {
+            _log.info("findAndUpdateFreeHLUsForClusterExport START..");
+            if (exportGroup.forCluster()) {
+                /**
+                 * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+                 * All all hosts's HLUs to a Set.
+                 * Get the maximum allowed HLU for the storage array.
+                 * Calculate the free lowest available HLUs for the requested number of volumes.
+                 * Update the new values in the VolumeHLU Map
+                 */
 
-            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
-                    exportGroup, initiatorURIs);
-            Set<Integer> usedHlus = new HashSet<Integer>();
-            List<URI> hostURIs = new ArrayList<URI>();
-            for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {
-                URI hostURI = URIUtil.uri(entry.getKey());
-                List<URI> hostInitiatorURIs = entry.getValue();
-                List<String> portNames = new ArrayList<String>();
-                Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
-                processInitiators(exportGroup, hostInitiatorURIs, portNames, portNameToInitiatorURI, hostURIs);
-                // TODO query Host's other Initiators And Add
+                // TODO what about co-existence / brownfield case?
+                // TODO check if cluster has 'n' masking views before proceeding?
 
-                Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, portNames, false);
-                usedHlus.addAll(hostUsedHlus);
+                Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
+
+                Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+
+                // int numberOfVolumes = volumeMap.size();
+                Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+                _log.info("freeHLUs: {}", freeHLUs);
+
+                ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+            } else if (exportGroup.forHost()) {
+                /**
+                 * If the host belongs to a cluster, then the exclusive export to this host
+                 * should be assigned with cluster's next free HLU number.
+                 */
+
+                /*
+                 * String hostStr = exportGroup.getHosts().iterator().next(); // TODO verify this
+                 * Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
+                 * if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                 * // TODO get cluster initiators
+                 * // get all the host initiators' for this cluster or get from cluster's export group?
+                 * List<URI> clusterInitiators = initiatorURIs; // TODO
+                 * 
+                 * Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+                 * 
+                 * Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+                 * 
+                 * // int numberOfVolumes = volumeMap.size();
+                 * Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+                 * 
+                 * ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+                 * }
+                 */
             }
-
-            Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
-
-            // TODO optimize the free HLU selection & assignment
-            int numberOfVolumes = volumeMap.size();
-            Set<Integer> freeHLUs = new HashSet<Integer>();
-            for (int i = 1; i <= maxHLU; i++) {
-                if (!usedHlus.contains(i)) {
-                    freeHLUs.add(i);
-                    if (freeHLUs.size() >= numberOfVolumes) {
-                        break;
-                    }
-                }
-            }
-
-            Iterator<Integer> freeHLUItr = freeHLUs.iterator();
-            for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
-                if (entry.getValue() == -1) { // TODO -1 check correction
-                    entry.setValue((Integer) freeHLUItr.next());
-                    freeHLUItr.remove();
-                }
-            }
-
-            // TODO see how to use this method for 'AddInitiator' case
-            /**
-             * Initiators passed in are new initiators, Get existing initiators from exportGroup.
-             * If override flag is enabled,
-             * -Get usedHLUs for new host
-             * -Get the volume-HLU from exportGroup
-             * -See what are the conflicting ones, Calculate the free lowest available HLUs and update the volume-HLU map.
-             * If override flag is not enabled, no changes required here.
-             */
-
+            _log.info("findAndUpdateFreeHLUsForClusterExport END.");
         }
+
+        // TODO see how to use this method for 'AddInitiator' case
+        // // (Update: this might not be needed as the host being added always needs to have consistent Lun)
+        /**
+         * Initiators passed in are new initiators, Get existing initiators from exportGroup.
+         * If override flag is enabled,
+         * -Get usedHLUs for new host
+         * -Get the volume-HLU from exportGroup
+         * -See what are the conflicting ones, Calculate the free lowest available HLUs and update the volume-HLU map.
+         * If override flag is not enabled, no changes required here.
+         */
+    }
+
+    /**
+     * Find HLUs for cluster hosts.
+     *
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @return the sets the
+     */
+    private Set<Integer> findHLUsForClusterHosts(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs) {
+        Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+        Set<Integer> usedHlus = new HashSet<Integer>();
+        for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {
+            List<URI> hostInitiatorURIs = entry.getValue();
+            List<String> initiatorNames = new ArrayList<String>();
+            Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
+            List<URI> hostURIs = new ArrayList<URI>();
+            processInitiators(exportGroup, hostInitiatorURIs, initiatorNames, portNameToInitiatorURI, hostURIs);
+            // TODO query Host's other Initiators and Add - required?
+            queryHostInitiatorsAndAddToList(initiatorNames, portNameToInitiatorURI, initiatorURIs, hostURIs);
+
+            Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);
+            usedHlus.addAll(hostUsedHlus);
+        }
+        return usedHlus;
     }
 
     /**

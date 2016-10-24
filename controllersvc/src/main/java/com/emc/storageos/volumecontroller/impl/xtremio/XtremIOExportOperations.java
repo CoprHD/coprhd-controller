@@ -456,8 +456,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     @Override
     public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO find out how to get it
+        return 1024;
     }
 
     @Override

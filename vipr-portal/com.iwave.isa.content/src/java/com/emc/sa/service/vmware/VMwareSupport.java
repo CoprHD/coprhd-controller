@@ -587,7 +587,7 @@ public class VMwareSupport {
      * @param host the host system
      * @param cluster if specified, find disk on all hosts in the cluster
      * @param volume the volume to find
-     * @param availableDiskOnly if true, only find available disk for vmfs. if false, find disk even if it's not available for vmfs
+     * @param availableDiskOnly if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
      * @return the disk for the volume
      */
     public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume,

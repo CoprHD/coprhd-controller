@@ -84,8 +84,6 @@ public class EndpointUtility {
             return WWNUtility.isValidWWN(element);
         } else if (Endpoint.EndpointType.IQN.equals(type)) {
             return iSCSIUtility.isValidIQNPortName(element);
-        } else if (Endpoint.EndpointType.RBD.equals(type)) {
-            return RBDUtility.isValidRBDPseudoPort(element);
         } else if (Endpoint.EndpointType.EUI.equals(type)) {
             return iSCSIUtility.isValidEUIPortName(element);
         } else if (Endpoint.EndpointType.ISCSI.equals(type)) {
@@ -95,8 +93,7 @@ public class EndpointUtility {
             return iSCSIUtility.isValidEUIPortName(element) ||
                     iSCSIUtility.isValidIQNPortName(element) ||
                     WWNUtility.isValidWWN(element) ||
-                    SDCUtility.isValidSDC(element) ||
-                    RBDUtility.isValidRBDPseudoPort(element);
+                    SDCUtility.isValidSDC(element);
         } else if (Endpoint.EndpointType.IP.equals(type)) {
             return isValidIpV4Address(element) ||
                     isValidIpV6Address(element);

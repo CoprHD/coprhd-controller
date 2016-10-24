@@ -1,0 +1,6 @@
+davenport:
+  image: 10.32.72.130:5000/niqi/davenport
+  # Update the following information according to your environment.
+  command: run.py -v 10.32.72.133 -u root -p ChangeMe1! -e
+  ports:
+    - "8000:8000"

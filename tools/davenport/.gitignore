@@ -1,0 +1,6 @@
+.idea/
+build/
+data/
+logs/
+**/*.pyc
+doc/davenport.png

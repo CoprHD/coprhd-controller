@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -61,6 +62,7 @@ import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -2596,5 +2598,33 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 null);
 
         return namespace;
+    }
+
+    @Override
+    public BiosCommandResult doApplyReplicationPolicy(StorageSystem storageObj, FileDeviceInputOutput args, FilePolicy filePolicy) {
+        FileShare fs = args.getFs();
+        IsilonApi isi = getIsilonDevice(storageObj);
+        IsilonSyncPolicy policy = null;
+        try {
+            policy = isi.getReplicationPolicy(filePolicy.getFilePolicyName());
+            if (policy != null) {
+                // policy already there, return the success
+                return BiosCommandResult.createSuccessfulResult();
+            }
+        } catch (IsilonException e) {
+            // Policy is not present so we have to apply the policy
+            policy = new IsilonSyncPolicy();
+            policy.setName(filePolicy.getFilePolicyName());
+            /*
+             * Create the source,target path based on the policy type(vpool,project,filesystem)
+             * policy.setEnabled(enabled);
+             * policy.setSourceRootPath(sourceRootPath);
+             * policy.setTargetHost(targetHost);
+             * policy.setTargetPath(targetPath);
+             */
+
+            isi.createReplicationPolicy(policy);
+        }
+        return BiosCommandResult.createSuccessfulResult();
     }
 }

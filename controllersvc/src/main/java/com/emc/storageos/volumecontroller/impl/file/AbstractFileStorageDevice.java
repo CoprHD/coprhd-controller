@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -262,6 +263,11 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target,
             TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult doApplyReplicationPolicy(StorageSystem storageObj, FileDeviceInputOutput args, FilePolicy filePolicy) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 }

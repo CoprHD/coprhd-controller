@@ -56,6 +56,8 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.FilePolicyProfile;
+import com.emc.storageos.db.client.model.FileReplicationPolicy;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ObjectNamespace;
@@ -73,7 +75,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -87,6 +88,8 @@ import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.auth.RoleAssignments;
+import com.emc.storageos.model.file.FilePolicyParam;
+import com.emc.storageos.model.file.FilePolicyProfileParam;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterCreateParam;
@@ -133,8 +136,7 @@ import com.google.common.collect.Lists;
  */
 
 @Path("/tenants")
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.TENANT_ADMIN })
 public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "tenant";
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
@@ -555,16 +557,13 @@ public class TenantsService extends TaggedResource {
             // given the number of tenants is not going to be that many
             Set<String> roles = new HashSet<String>();
             roles.add(Role.TENANT_ADMIN.toString());
-            Map<URI, Set<String>> allTenantPermissions =
-                    _permissionsHelper.getAllPermissionsForUser(user, tenant.getId(),
-                            roles, true);
+            Map<URI, Set<String>> allTenantPermissions = _permissionsHelper.getAllPermissionsForUser(user, tenant.getId(),
+                    roles, true);
             if (!allTenantPermissions.keySet().isEmpty()) {
-                List<TenantOrg> tenants =
-                        _dbClient.queryObjectField(TenantOrg.class, "label",
-                                new ArrayList<URI>(allTenantPermissions.keySet()));
-                List<NamedElementQueryResultList.NamedElement> elements =
-                        new ArrayList<NamedElementQueryResultList.NamedElement>(
-                                tenants.size());
+                List<TenantOrg> tenants = _dbClient.queryObjectField(TenantOrg.class, "label",
+                        new ArrayList<URI>(allTenantPermissions.keySet()));
+                List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                        tenants.size());
                 for (TenantOrg t : tenants) {
                     elements.add(NamedElementQueryResultList.NamedElement.createElement(
                             t.getId(), t.getLabel()));
@@ -649,8 +648,7 @@ public class TenantsService extends TaggedResource {
     @PUT
     @Path("/{id}/role-assignments")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN },
-            blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, blockProxies = true)
     public RoleAssignments updateRoleAssignments(@PathParam("id") URI id,
             RoleAssignmentChanges changes) {
         TenantOrg tenant = getTenantById(id, true);
@@ -748,16 +746,13 @@ public class TenantsService extends TaggedResource {
                 throw APIException.forbidden.insufficientPermissionsForUser(user
                         .getName());
             }
-            Map<URI, Set<String>> allMyProjects =
-                    _permissionsHelper.getAllPermissionsForUser(user, tenant.getId(),
-                            null, false);
+            Map<URI, Set<String>> allMyProjects = _permissionsHelper.getAllPermissionsForUser(user, tenant.getId(),
+                    null, false);
             if (!allMyProjects.keySet().isEmpty()) {
-                List<Project> project_list =
-                        _dbClient.queryObjectField(Project.class, "label",
-                                new ArrayList<URI>(allMyProjects.keySet()));
-                List<NamedElementQueryResultList.NamedElement> elements =
-                        new ArrayList<NamedElementQueryResultList.NamedElement>(
-                                project_list.size());
+                List<Project> project_list = _dbClient.queryObjectField(Project.class, "label",
+                        new ArrayList<URI>(allMyProjects.keySet()));
+                List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                        project_list.size());
                 for (Project p : project_list) {
                     elements.add(NamedElementQueryResultList.NamedElement.createElement(
                             p.getId(), p.getLabel()));
@@ -845,8 +840,7 @@ public class TenantsService extends TaggedResource {
     private void addUserMappings(TenantOrg tenant,
             List<UserMappingParam> userMappingParams, StorageOSUser user) {
         List<UserMapping> userMappings = UserMapping.fromParamList(userMappingParams);
-        Map<String, Map<URI, List<UserMapping>>> domainUserMappingMap =
-                new HashMap<String, Map<URI, List<UserMapping>>>();
+        Map<String, Map<URI, List<UserMapping>>> domainUserMappingMap = new HashMap<String, Map<URI, List<UserMapping>>>();
 
         for (UserMapping userMapping : userMappings) {
             if (null == userMapping.getDomain() || userMapping.getDomain().isEmpty()) {
@@ -871,12 +865,12 @@ public class TenantsService extends TaggedResource {
                             URI dupTenantURI = existingMappingEntry.getKey();
                             throw _permissionsHelper.userHasGivenRole(user, dupTenantURI,
                                     Role.TENANT_ADMIN) ? APIException.badRequests
-                                    .userMappingDuplicatedInAnotherTenantExtended(
-                                            userMapping.toString(),
-                                            dupTenantURI.toString())
-                                    : APIException.badRequests
-                                            .userMappingDuplicatedInAnotherTenant(userMapping
-                                                    .toString());
+                                            .userMappingDuplicatedInAnotherTenantExtended(
+                                                    userMapping.toString(),
+                                                    dupTenantURI.toString())
+                                            : APIException.badRequests
+                                                    .userMappingDuplicatedInAnotherTenant(userMapping
+                                                            .toString());
                         }
                     }
                 }
@@ -1242,20 +1236,17 @@ public class TenantsService extends TaggedResource {
 
         tenant.setQuotaEnabled(param.getEnable());
         if (param.getEnable()) {
-            long quota_gb =
-                    (param.getQuotaInGb() != null) ? param.getQuotaInGb() : tenant
-                            .getQuota();
+            long quota_gb = (param.getQuotaInGb() != null) ? param.getQuotaInGb() : tenant
+                    .getQuota();
             ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb", "GB");
 
             // Verify that the quota of this "sub-tenant" does exceed the new quota for
             // its parent;
             if (!TenantOrg.isRootTenant(tenant)) {
-                TenantOrg parent =
-                        _dbClient.queryObject(TenantOrg.class, tenant.getParentTenant()
-                                .getURI());
+                TenantOrg parent = _dbClient.queryObject(TenantOrg.class, tenant.getParentTenant()
+                        .getURI());
                 if (parent.getQuotaEnabled()) {
-                    long totalSubtenants =
-                            CapacityUtils.totalSubtenantQuota(_dbClient, parent.getId());
+                    long totalSubtenants = CapacityUtils.totalSubtenantQuota(_dbClient, parent.getId());
                     totalSubtenants = totalSubtenants - tenant.getQuota() + quota_gb;
                     if (totalSubtenants > parent.getQuota()) {
                         throw APIException.badRequests
@@ -1424,16 +1415,13 @@ public class TenantsService extends TaggedResource {
                 throw APIException.forbidden.insufficientPermissionsForUser(user
                         .getName());
             }
-            Map<URI, Set<String>> allMySchedulePolicies =
-                    _permissionsHelper.getAllPermissionsForUser(user, tenant.getId(),
-                            null, false);
+            Map<URI, Set<String>> allMySchedulePolicies = _permissionsHelper.getAllPermissionsForUser(user, tenant.getId(),
+                    null, false);
             if (!allMySchedulePolicies.keySet().isEmpty()) {
-                List<SchedulePolicy> policyList =
-                        _dbClient.queryObjectField(SchedulePolicy.class, "label",
-                                new ArrayList<URI>(allMySchedulePolicies.keySet()));
-                List<NamedElementQueryResultList.NamedElement> elements =
-                        new ArrayList<NamedElementQueryResultList.NamedElement>(
-                                policyList.size());
+                List<SchedulePolicy> policyList = _dbClient.queryObjectField(SchedulePolicy.class, "label",
+                        new ArrayList<URI>(allMySchedulePolicies.keySet()));
+                List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                        policyList.size());
                 for (SchedulePolicy policy : policyList) {
                     elements.add(NamedElementQueryResultList.NamedElement.createElement(
                             policy.getId(), policy.getLabel()));
@@ -1455,8 +1443,7 @@ public class TenantsService extends TaggedResource {
 
     private QuotaInfo getQuota(TenantOrg tenant) {
         QuotaInfo quotaInfo = new QuotaInfo();
-        double capacity =
-                CapacityUtils.getTenantCapacity(_dbClient, tenant.getId());
+        double capacity = CapacityUtils.getTenantCapacity(_dbClient, tenant.getId());
         quotaInfo.setQuotaInGb(tenant.getQuota());
         quotaInfo.setEnabled(tenant.getQuotaEnabled());
         quotaInfo.setCurrentCapacityInGb((long) Math.ceil(capacity / CapacityUtils.GB));
@@ -1505,8 +1492,7 @@ public class TenantsService extends TaggedResource {
     @Override
     public TenantOrgBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<TenantOrg> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<TenantOrg> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new TenantOrgBulkRep(BulkList.wrapping(_dbIterator,
                 MapTenant.getInstance()));
     }
@@ -1514,10 +1500,8 @@ public class TenantsService extends TaggedResource {
     @Override
     protected TenantOrgBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
 
-        Iterator<TenantOrg> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        BulkList.ResourceFilter filter =
-                new BulkList.TenantFilter(getUserFromContext(), _permissionsHelper);
+        Iterator<TenantOrg> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new BulkList.TenantFilter(getUserFromContext(), _permissionsHelper);
         return new TenantOrgBulkRep(BulkList.wrapping(_dbIterator,
                 MapTenant.getInstance(), filter));
     }
@@ -1749,4 +1733,46 @@ public class TenantsService extends TaggedResource {
 
         }
     }
+
+    /**
+     * 
+     * @param id
+     * @param param
+     * @return
+     */
+    @POST
+    @Path("/file-policy-profile")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public FilePolicyProfileParam createFilePolicyProfile(FilePolicyProfileParam param) {
+        // Some validations..
+        _log.info("file policy profile creation started -- ");
+        List<FilePolicyParam> associatedPolicies = param.getFilePolicies();
+        FilePolicyProfile policyProfile = new FilePolicyProfile();
+        policyProfile.setId(URIUtil.createId(FilePolicyProfile.class));
+        policyProfile.setProfileName(param.getProfileName());
+        StringSet profilePoliciesURIs = new StringSet();
+        for (FilePolicyParam associatedPolicy : associatedPolicies) {
+            if (associatedPolicy.getPolicyType().equals(FilePolicyParam.PolicyType.file_replication.name())) {
+                FileReplicationPolicy replicationPolicy = new FileReplicationPolicy();
+                replicationPolicy.setId(URIUtil.createId(FileReplicationPolicy.class));
+                replicationPolicy.setApplyAt(associatedPolicy.getApplyAt());
+                replicationPolicy.setFilePolicyName(associatedPolicy.getPolicyName());
+                replicationPolicy.setFrRpoType(associatedPolicy.getReplicationSettingParam().getRpoType());
+                replicationPolicy.setFrRpoValue(associatedPolicy.getReplicationSettingParam().getRpoValue());
+                _dbClient.createObject(replicationPolicy);
+                profilePoliciesURIs.add(replicationPolicy.getId().toString());
+            } else if (associatedPolicy.getPolicyType().equals(FilePolicyParam.PolicyType.file_snapshot.name())) {
+
+            } else if (associatedPolicy.getPolicyType().equals(FilePolicyParam.PolicyType.file_quota.name())) {
+
+            }
+        }
+
+        _dbClient.createObject(policyProfile);
+        _log.info("Policy Profile {} created successfully", policyProfile);
+        return param;
+    }
+
 }

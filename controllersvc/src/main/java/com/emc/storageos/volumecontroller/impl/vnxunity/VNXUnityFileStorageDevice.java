@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -224,7 +225,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1601,6 +1602,12 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doApplyReplicationPolicy(StorageSystem storageObj, FileDeviceInputOutput args, FilePolicy filePolicy) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
     }
 
 }

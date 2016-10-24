@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
@@ -4345,6 +4346,28 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (!lockAcquired) {
                 throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), "Timeout in Acquiring Lock");
             }
+        }
+    }
+
+    /**
+     * 
+     * @param sourceFileSystem
+     * @param targetFileSystem
+     * @param filePolicy
+     * @param taskId
+     */
+    public void applyReplicationPolicy(URI sourceFileSystem, URI targetFileSystem, FilePolicy filePolicy, String taskId) {
+        try {
+            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, sourceFileSystem);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            args.setOpId(taskId);
+            args.addFSFileObject(sourceFileShare);
+            WorkflowStepCompleter.stepExecuting(taskId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyReplicationPolicy(storageObj, args, filePolicy);
+
+        } catch (Exception e) {
+
         }
     }
 }

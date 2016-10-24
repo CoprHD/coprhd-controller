@@ -22,7 +22,7 @@ public class FCZoneFabricIdMigrationTest extends DbSimpleMigrationTestBase{
     @BeforeClass
     public static void setup() throws IOException {
 
-        customMigrationCallbacks.put("3.5", new ArrayList<BaseCustomMigrationCallback>() {
+        customMigrationCallbacks.put("3.6", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 1L;
             {
                 // Add your implementation of migration callback below.

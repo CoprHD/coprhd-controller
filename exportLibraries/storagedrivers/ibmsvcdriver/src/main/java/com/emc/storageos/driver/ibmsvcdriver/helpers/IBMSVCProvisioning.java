@@ -185,11 +185,43 @@ public class IBMSVCProvisioning {
                         storageVolume.getNativeId(), newVolumeCapacity);
 
                 if (result.isSuccess()) {
+
                     _log.info(String.format("Expanded storage volume Id (%s) size %s.\n", result.getId(),
                             result.getRequestedNewSize()));
-                    task.setMessage(String.format("Expanded storage volume Id (%s) size %s.", result.getId(),
-                            result.getRequestedNewSize()));
-                    task.setStatus(DriverTask.TaskStatus.READY);
+
+                    _log.info(String.format("Refreshing storage volume %s.\n",
+                            storageVolume.getNativeId()));
+
+                    IBMSVCGetVolumeResult resultGetVolume = IBMSVCCLI.queryStorageVolume(connection, storageVolume.getNativeId());
+
+                    if (resultGetVolume.isSuccess()) {
+
+                        storageVolume.setWwn(resultGetVolume.getProperty("VolumeWWN"));
+                        storageVolume.setDeviceLabel(resultGetVolume.getProperty("VolumeName"));
+                        storageVolume.setDisplayName(resultGetVolume.getProperty("VolumeName"));
+                        Long capacity = IBMSVCDriverUtils
+                                .convertGBtoBytes(resultGetVolume.getProperty("VolumeCapacity"));
+                        storageVolume.setProvisionedCapacity(capacity);
+                        storageVolume.setAllocatedCapacity(capacity);
+
+                        _log.info(String.format("Processed storage volume %s \n",
+                                resultGetVolume.getProperty("VolumeId")));
+
+                        task.setMessage(String.format("Expanded storage volume Id (%s) size %s.", result.getId(),
+                                result.getRequestedNewSize()));
+                        task.setStatus(DriverTask.TaskStatus.READY);
+
+                    } else {
+                        _log.warn(String.format("Processing storage volume failed %s\n",
+                                resultGetVolume.getErrorString()), resultGetVolume.isSuccess());
+
+                        task.setMessage(
+                                String.format("Expanding completed but refreshing storage volume information (%s) failed : ", storageVolume.getNativeId())
+                                        + result.getErrorString());
+                        task.setStatus(DriverTask.TaskStatus.FAILED);
+                    }
+
+
                 } else {
                     _log.error(String.format("Expanding storage volume Id (%s) failed %s\n",
                             storageVolume.getNativeId(), result.getErrorString()), result.isSuccess());
@@ -642,12 +674,21 @@ public class IBMSVCProvisioning {
         // Get storage port list for host using custom algorithm
         List<StoragePort> storagePorts = identifyStoragePortListForHost(connection, hostName);
 
-        for (StoragePort availablePort : availablePorts){
-            for(StoragePort storagePort : storagePorts){
+        for(StoragePort storagePort : storagePorts){
+            boolean portSelected = false;
+            for (StoragePort availablePort : availablePorts){
                 if(availablePort.getNativeId().equalsIgnoreCase(storagePort.getNativeId())){
                     selectedPorts.add(availablePort);
+                    portSelected = true;
+                    break;
                 }
             }
+
+            if(!portSelected){
+                _log.error(String.format("Selected port %s not available in list of available ports", storagePort.getNativeId()));
+                throw new IBMSVCDriverException(String.format("Selected port %s not available in list of available ports", storagePort.getNativeId()));
+            }
+
         }
 
         //Get Assigned HLU ID
@@ -708,13 +749,13 @@ public class IBMSVCProvisioning {
                 }
 
                 if((lastCharacterDigit % 2) == 0){
-                    storagePorts.add(getStoragePortById(nodeStoragePortList,'1'));
-                    storagePorts.add(getStoragePortById(nodeStoragePortList,'4'));
-                    _log.info("identifyStoragePortListForHost() for host {} - Storage Ports - {},{}", hostName, getStoragePortById(nodeStoragePortList, '1'), getStoragePortById(nodeStoragePortList, '4'));
-                }else{
                     storagePorts.add(getStoragePortById(nodeStoragePortList,'2'));
-                    storagePorts.add(getStoragePortById(nodeStoragePortList, '3'));
-                    _log.info("identifyStoragePortListForHost() for host {} - Storage Ports - {},{}", hostName, getStoragePortById(nodeStoragePortList, '2'), getStoragePortById(nodeStoragePortList,'3'));
+                    storagePorts.add(getStoragePortById(nodeStoragePortList,'3'));
+                    _log.info("identifyStoragePortListForHost() for host {} - Storage Ports - {},{}", hostName, getStoragePortById(nodeStoragePortList, '2'), getStoragePortById(nodeStoragePortList, '3'));
+                }else{
+                    storagePorts.add(getStoragePortById(nodeStoragePortList,'1'));
+                    storagePorts.add(getStoragePortById(nodeStoragePortList, '4'));
+                    _log.info("identifyStoragePortListForHost() for host {} - Storage Ports - {},{}", hostName, getStoragePortById(nodeStoragePortList, '1'), getStoragePortById(nodeStoragePortList,'4'));
                 }
 
             }
@@ -729,8 +770,8 @@ public class IBMSVCProvisioning {
 
     /**
      * Get Storage Port by ID - Customer Specific port selection logic
-     * Note: Each IBM SVC Node has 4 Ports(WWNs). The 13th character of the WWN is marked as 1,2,3,4
-     * WWNs containing 1 and 2 are on one fabric, 3 & 4 on the other.
+     * Note: Each IBM SVC Node has 4 Ports(WWNs). The 10th character of the WWN is marked as 1,2,3,4
+     * WWNs containing 1 and 4 are on one fabric, 2 & 3 on the other.
      * @param nodeStoragePortList - List of storage ports of a Node
      * @param id - ID to check - can be 1,2,3,4
      * @return StoragePOrt

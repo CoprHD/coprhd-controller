@@ -10246,6 +10246,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setVirtualPool(vplexMirror.getVirtualPool());
             promoteVolume.setVirtualArray(vplexMirror.getVirtualArray());
             promoteVolume.setStorageController(vplexMirror.getStorageController());
+            promoteVolume.setSystemType(DiscoveredDataObject.Type.vplex.name());
             promoteVolume.setPool(NullColumnValueGetter.getNullURI());
             promoteVolume.setAssociatedVolumes(new StringSet(assocVolumes));
             promoteVolume.setThinlyProvisioned(vplexMirror.getThinlyProvisioned());
@@ -12887,6 +12888,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         volume.setProtocol(source.getProtocol());
         volume.setStorageController(source.getStorageController());
+        volume.setSystemType(source.getSystemType());
         if (isInternal) {
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
         }

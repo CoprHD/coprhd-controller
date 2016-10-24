@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
@@ -678,11 +679,12 @@ public class StorageScheduler implements Scheduler {
 
         // compute and set storage pools' and arrays' average port usage metrics before sorting
         _log.info("ArrayAffinity - compute port metrics");
-        _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
+        Map<URI, Double> arrayToAvgPortMetricsMap = _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
 
         // sort the arrays, first by host/cluster's preference, then by array's average port metrics
         // then by free capacity and capacity utilization
-        Collections.sort(candidateSystems, new StorageSystemArrayAffinityComparator(arrayToHostWeightMap, candidatePoolMap));
+        Collections.sort(candidateSystems,
+                new StorageSystemArrayAffinityComparator(arrayToHostWeightMap, candidatePoolMap, arrayToAvgPortMetricsMap));
         _log.info("ArrayAffinity - sorted candidate systems {}",
                 Joiner.on(',').join(Collections2.transform(candidateSystems, CommonTransformerFunctions.fctnDataObjectToID())));
 
@@ -1255,10 +1257,13 @@ public class StorageScheduler implements Scheduler {
     private class StorageSystemArrayAffinityComparator implements Comparator<StorageSystem> {
         private Map<URI, Double> arrayToHostWeight;
         private Map<URI, List<StoragePool>> candidatePoolMap;
+        private Map<URI, Double> arrayToAvgPortMetricsMap;
 
-        public StorageSystemArrayAffinityComparator(Map<URI, Double> arrayToHostWeight, Map<URI, List<StoragePool>> candidatePoolMap) {
+        public StorageSystemArrayAffinityComparator(Map<URI, Double> arrayToHostWeight, Map<URI, List<StoragePool>> candidatePoolMap,
+                Map<URI, Double> arrayToAvgPortMetricsMap) {
             this.arrayToHostWeight = arrayToHostWeight;
             this.candidatePoolMap = candidatePoolMap;
+            this.arrayToAvgPortMetricsMap = arrayToAvgPortMetricsMap;
         }
 
         @Override
@@ -1271,8 +1276,8 @@ public class StorageScheduler implements Scheduler {
             }
 
             if (result == 0) {
-                Double sys1Metric = _portMetricsProcessor.computeStorageSystemAvgPortMetrics(sys1.getId());
-                Double sys2Metric = _portMetricsProcessor.computeStorageSystemAvgPortMetrics(sys2.getId());
+                Double sys1Metric = arrayToAvgPortMetricsMap.get(sys1.getId());
+                Double sys2Metric = arrayToAvgPortMetricsMap.get(sys2.getId());
                 result = Double.compare(sys1Metric, sys2Metric);
             }
 
@@ -1677,7 +1682,12 @@ public class StorageScheduler implements Scheduler {
                         VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-        volume.setStorageController(placement.getCandidateSystems().get(0));
+        URI storageControllerUri = placement.getCandidateSystems().get(0);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageControllerUri);
+        String systemType = storageSystem.checkIfVmax3() ? 
+                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+        volume.setSystemType(systemType);
+        volume.setStorageController(storageControllerUri);
         volume.setPool(poolId);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
@@ -1778,6 +1788,7 @@ public class StorageScheduler implements Scheduler {
         }
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
+        createdMirror.setSystemType(volume.getSystemType());
         createdMirror.setVirtualArray(volume.getVirtualArray());
         // Setting the source Volume autoTieringPolicy in Mirror.
         // @TODO we must accept the policy as an input for mirrors and requires API changes.

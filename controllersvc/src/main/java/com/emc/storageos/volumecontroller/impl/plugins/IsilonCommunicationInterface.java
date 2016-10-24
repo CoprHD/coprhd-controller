@@ -2106,8 +2106,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         int isFile = 0;
         int pathLength = fsNativeId.split("/").length;
 
-            setConfigPathLength();
-
         if (pathLength == (_discPathsLength + 1)) {
             return PATH_IS_FILE;
         } else if (pathLength == (_discPathsLength + 2)) {

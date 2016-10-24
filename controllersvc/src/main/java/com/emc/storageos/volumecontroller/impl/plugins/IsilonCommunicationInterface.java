@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsServerMap;
+import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -151,10 +152,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private List<String> _discPathsForUnManaged;
     private int _discPathsLength;
+    private static String _discCustomPath;
     @Autowired
     private CustomConfigHandler customConfigHandler;
     @Autowired
     private DataSourceFactory dataSourceFactory;
+    
 
     /**
      * Get Unmanaged File System Container paths
@@ -1282,7 +1285,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         List<String> pathList = Arrays.asList(paths.split(","));
 
         setDiscPathsForUnManaged(pathList);
-
+        
+        _discCustomPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
+                dataSource);
     }
 
     /**
@@ -2092,9 +2097,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     private void setConfigPathLength() {
         if (_discPathsLength == 0) {
-            for (String discPath : _discPathsForUnManaged) {
-                _discPathsLength = discPath.split("/").length;
-            }
+            computeCustomConfigPathLengths();
         }
     }
     
@@ -3492,6 +3495,43 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         return physicalNas;
+    }
+    
+    
+    private String getCustomConfigPath(){
+        URIQueryResultList results = new URIQueryResultList();
+        
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType("IsilonPathCustomization"), results);
+        
+        Iterator<URI> iter = results.iterator();
+        
+        CustomConfig tempConfig = null;
+        
+        while(iter.hasNext()){
+            tempConfig = _dbClient.queryObject(CustomConfig.class, iter.next());
+            if(tempConfig != null && !tempConfig.getInactive()){
+                _log.info("Getting custom Config {}  ",tempConfig.getLabel());
+                break;
+            }
+        }
+        return tempConfig.getValue();
+    }
+    
+    /**
+     * Compute the path length for discovering a file system
+     * its 
+     *  CustomConfigPath + 2 
+     *  where path would be like 
+     *  /ifs/<access-zone>/<vpool_name>/<tenant_name>/<project_name>
+     */
+    private void computeCustomConfigPathLengths(){
+        String tempCustomConfigPathLength = getCustomConfigPath();
+        if(StringUtils.isNotEmpty(tempCustomConfigPathLength)){
+        _discPathsLength = tempCustomConfigPathLength.split("/").length + 2;
+        }else{
+            _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
+            _discPathsLength = 2;
+        }
     }
 
     /**

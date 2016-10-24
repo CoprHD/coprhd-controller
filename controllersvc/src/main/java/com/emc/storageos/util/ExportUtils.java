@@ -1987,7 +1987,25 @@ public class ExportUtils {
             }
         }
     }
+    
+    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
+        Initiator associatedInitiator = null;
+        if (initiator != null) {
+            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
+                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
+            }
+        }
+        return associatedInitiator;
 
+    }
+    
+      public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
+        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+        return getAssociatedInitiator(initiator, dbClient);
+
+
+}
     /**
      * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.
      * 
@@ -1997,7 +2015,7 @@ public class ExportUtils {
      */
     public static void handleExportMaskVolumeRemoval(DbClient dbClient, Map<URI, List<URI>> exportMaskToRemovedVolumeMap, URI exportGroupUri) {
         if (null != exportMaskToRemovedVolumeMap) {
-
+  
             Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
 
             for (Entry<URI, List<URI>> entry : exportMaskToRemovedVolumeMap.entrySet()) {
@@ -2055,6 +2073,15 @@ public class ExportUtils {
                 }
             }
         }
+    }
+    public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
+        String associatedInitiatorPort = null;
+        Initiator initiator = getInitiator(endpoint, dbClient);
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
+        if (associatedInitiator != null) {
+            associatedInitiatorPort = associatedInitiator.getInitiatorPort();
+        }
+        return associatedInitiatorPort;
     }
 
     

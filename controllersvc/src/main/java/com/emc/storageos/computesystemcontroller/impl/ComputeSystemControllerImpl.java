@@ -379,7 +379,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<URI> uris = Lists.newArrayList(initId);
         Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initId, _dbClient);
         if (associatedInitiator != null) {
-        uris.add(associatedInitiator.getId());
+            uris.add(associatedInitiator.getId());
         }
         addInitiatorsToExport(hostId, uris, taskId);
     }

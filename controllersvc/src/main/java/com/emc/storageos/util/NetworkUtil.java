@@ -74,9 +74,6 @@ public class NetworkUtil {
         return getEndpointNetworkLite(endpoint, dbClient, null);
     }
 
-
-
-
     /**
      * Get the network that has the endpoint
      * 
@@ -135,7 +132,6 @@ public class NetworkUtil {
         }
         return networks;
     }
-
 
     /**
      * Returns an instance of NetworkLite for every network that is routed to the request network.
@@ -536,7 +532,6 @@ public class NetworkUtil {
         }
         return map;
     }
-
 
     /**
      * Returns the ports in the given network in a port-wwn-to-port map.

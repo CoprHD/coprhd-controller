@@ -1912,13 +1912,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonSmartQuota quota : quotas.getList()) {
 
                 String fsNativeId = quota.getPath();
-                int fsPathType = isQuotaOrFile(fsNativeId);
+                if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
+                    int fsPathType = isQuotaOrFile(fsNativeId);
 
-                if (fsPathType == PATH_IS_FILE) {
-                    fsQuotaMap.put(fsNativeId, quota);
-                }
-                if (fsPathType == PATH_IS_QUOTA) {
-                    quotaDirMap.put(fsNativeId, quota);
+                    if (fsPathType == PATH_IS_FILE) {
+                        fsQuotaMap.put(fsNativeId, quota);
+                    }
+                    if (fsPathType == PATH_IS_QUOTA) {
+                        quotaDirMap.put(fsNativeId, quota);
+                    }
                 }
             }
             
@@ -2095,20 +2097,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return qualified;
     }
     
-    private void setConfigPathLength() {
+    private int isQuotaOrFile(String fsNativeId) {
+        
         if (_discPathsLength == 0) {
             computeCustomConfigPathLengths();
         }
-    }
-    
-    private int isQuotaOrFile(String fsNativeId) {
 
         int isFile = 0;
         int pathLength = fsNativeId.split("/").length;
 
-        if (_discPathsLength == 0) {
             setConfigPathLength();
-        }
 
         if (pathLength == (_discPathsLength + 1)) {
             return PATH_IS_FILE;
@@ -3527,7 +3525,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void computeCustomConfigPathLengths(){
         String tempCustomConfigPathLength = getCustomConfigPath();
         if(StringUtils.isNotEmpty(tempCustomConfigPathLength)){
-        _discPathsLength = tempCustomConfigPathLength.split("/").length + 2;
+        _discPathsLength = tempCustomConfigPathLength.split("/").length + 1;
         }else{
             _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
             _discPathsLength = 2;

@@ -4,16 +4,15 @@
  */
 package models.datatable;
 
-import models.TransportProtocols;
-
 import org.apache.commons.lang.StringUtils;
-
-import util.datatable.DataTable;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+
+import models.TransportProtocols;
+import util.datatable.DataTable;
 
 public class StoragePortDataTable extends DataTable {
 
@@ -63,15 +62,15 @@ public class StoragePortDataTable extends DataTable {
             if (TransportProtocols.isIp(storagePort.getTransportType())) {
                 // for IP networks, we want to use the IP address as the network identifier, if we can find it
                 String networkID = storagePort.getPortNetworkId();
-                this.networkIdentifier = storagePort.getIpAddress();
+                if (StringUtils.isEmpty(networkID)) {
+                    this.networkIdentifier = storagePort.getIpAddress();
+                }
                 if (StringUtils.isEmpty(this.networkIdentifier) && !StringUtils.startsWithIgnoreCase(networkID, "IQN.")) {
                     this.networkIdentifier = networkID;
-                }
-                else if (StringUtils.startsWithIgnoreCase(networkID, "IQN.")) {
+                } else if (StringUtils.startsWithIgnoreCase(networkID, "IQN.")) {
                     this.iqn = networkID;
                 }
-            }
-            else {
+            } else {
                 this.networkIdentifier = storagePort.getPortNetworkId();
             }
             this.alias = storagePort.getPortAlias();

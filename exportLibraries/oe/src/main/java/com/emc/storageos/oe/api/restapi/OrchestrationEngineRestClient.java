@@ -48,9 +48,11 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
         _base = baseURI;
     }
 
+    public void setAuthToken(String token) { _authToken = token; }
+
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        return resource.getRequestBuilder();
+        return resource.getRequestBuilder().header("X-SDS-AUTH-TOKEN", _authToken);
     }
 
     @Override

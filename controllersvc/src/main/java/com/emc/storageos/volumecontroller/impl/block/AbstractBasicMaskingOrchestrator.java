@@ -90,6 +90,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
+        // TODO see how to ignore this method's execution for arrays that we are currently not going to support
 
         if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)) {
             _log.info("findAndUpdateFreeHLUsForClusterExport START..");
@@ -101,8 +102,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                  * Calculate the free lowest available HLUs for the requested number of volumes.
                  * Update the new values in the VolumeHLU Map
                  */
-
-                // TODO what about co-existence / brownfield case?
                 // TODO check if cluster has 'n' masking views before proceeding?
 
                 Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
@@ -111,7 +110,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                 // int numberOfVolumes = volumeMap.size();
                 Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
-                _log.info("freeHLUs: {}", freeHLUs);
 
                 ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
             } else if (exportGroup.forHost()) {
@@ -119,39 +117,23 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                  * If the host belongs to a cluster, then the exclusive export to this host
                  * should be assigned with cluster's next free HLU number.
                  */
+                String hostStr = exportGroup.getHosts().iterator().next();
+                Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    // get all the hosts' initiators for this cluster TODO verify this
+                    List<URI> clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
 
-                /*
-                 * String hostStr = exportGroup.getHosts().iterator().next(); // TODO verify this
-                 * Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
-                 * if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                 * // TODO get cluster initiators
-                 * // get all the host initiators' for this cluster or get from cluster's export group?
-                 * List<URI> clusterInitiators = initiatorURIs; // TODO
-                 * 
-                 * Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
-                 * 
-                 * Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
-                 * 
-                 * // int numberOfVolumes = volumeMap.size();
-                 * Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
-                 * 
-                 * ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
-                 * }
-                 */
+                    Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+
+                    Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+
+                    Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+
+                    ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+                }
             }
             _log.info("findAndUpdateFreeHLUsForClusterExport END.");
         }
-
-        // TODO see how to use this method for 'AddInitiator' case
-        // // (Update: this might not be needed as the host being added always needs to have consistent Lun)
-        /**
-         * Initiators passed in are new initiators, Get existing initiators from exportGroup.
-         * If override flag is enabled,
-         * -Get usedHLUs for new host
-         * -Get the volume-HLU from exportGroup
-         * -See what are the conflicting ones, Calculate the free lowest available HLUs and update the volume-HLU map.
-         * If override flag is not enabled, no changes required here.
-         */
     }
 
     /**

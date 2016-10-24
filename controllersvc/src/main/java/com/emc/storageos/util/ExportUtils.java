@@ -1561,6 +1561,7 @@ public class ExportUtils {
                 freeHLUs.add(i);
             }
         }
+        _log.debug("free HLUs: {}", freeHLUs);
         return freeHLUs;
     }
 
@@ -1577,6 +1578,29 @@ public class ExportUtils {
                 entry.setValue((Integer) freeHLUItr.next());
             }
         }
+        _log.info("updated volume-HLU map: {}", volumeMap);
+    }
+
+    /**
+     * Gets all hosts initiators for the given cluster.
+     *
+     * @param clusterURI the cluster uri
+     * @return the cluster initiators
+     */
+    public static List<URI> getAllInitiatorsForCluster(URI clusterURI, DbClient dbClient) {
+        List<URI> clusterInitaitors = new ArrayList<URI>();
+        List<Host> hosts =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
+        for (Host host : hosts) {
+            List<Initiator> initiators =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
+                            ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
+            for (Initiator initiator : initiators) {
+                clusterInitaitors.add(initiator.getId());
+            }
+        }
+        return clusterInitaitors;
     }
 
     /**

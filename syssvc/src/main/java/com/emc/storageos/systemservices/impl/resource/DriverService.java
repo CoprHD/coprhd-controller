@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -49,11 +51,13 @@ import com.emc.storageos.model.storagedriver.StorageDriverListParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.driver.DriverManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 //import com.emc.storageos.systemservices.impl.util.DriverUtil;
 import com.google.common.io.Files;
+import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
 
 /**
@@ -62,20 +66,22 @@ import com.sun.jersey.multipart.FormDataParam;
 @Path("/storagedriver")
 public class DriverService {
     private static final Logger log = LoggerFactory.getLogger(DriverService.class);
-    private static final String UPLOAD_DEVICE_DRIVER = "/tmp/";
+    private static final String TMP_DIR = "/tmp/";
 
     // meta data fields related constants
     private static final String META_DEF_FILE_NAME = "metadata.properties";
+    private static final String DRIVER_NAME = "driver_name";
+    private static final String DRIVER_VERSION = "driver_version";
+    private static final String DRIVER_VERSION_PATTERN = "^\\d+\\.\\d+\\.\\d+\\.\\d+$";
     private static final String STORAGE_NAME = "storage_name";
-    private static final String PROVIDER_NAME = "provider_name";
     private static final String STORAGE_DISPLAY_NAME = "storage_display_name";
+    private static final String PROVIDER_NAME = "provider_name";
     private static final String PROVIDER_DISPLAY_NAME = "provider_display_name";
     private static final String STORAGE_META_TYPE = "meta_type";
     private static final String ENABLE_SSL = "enable_ssl";
     private static final String NON_SSL_PORT = "non_ssl_port";
     private static final String SSL_PORT = "ssl_port";
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
-    private static final String DRIVER_NAME = "driver_name";
     private static final Set<String> VALID_META_TYPES = new HashSet<String>(Arrays.asList(new String[] {"block", "file", "block_and_file", "object"}));
 
     private CoordinatorClient coordinator;
@@ -103,50 +109,50 @@ public class DriverService {
         this.service = service;
     }
 
-    @POST
-    @Path("/uninstall")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response uninstall(StorageDriverListParam driverList) {
-        // check all storage system types supported by this driver, mark as uninstalling
-        LocalRepository localRepo = LocalRepository.getInstance();
-        StorageDriversInfo targetInfo = coordinator.getTargetInfo(StorageDriversInfo.class);
-        StorageDriversInfo localInfo = new StorageDriversInfo();
-        localInfo.setInstalledDrivers(localRepo.getLocalDrivers());
-        for (String driverName : driverList.getDrivers()) {
-            // mark as uninstalling
-            markDriverStatus(driverName, DriverManager.UNINSTALLING);
-            // remove locally
-            localRepo.removeStorageDriver(driverName);
-            // remove from target info
-            if (targetInfo.getInstalledDrivers().contains(driverName)) {
-                targetInfo.getInstalledDrivers().remove(driverName);
-            }
-            // remove from local info
-            if (localInfo.getInstalledDrivers().contains(driverName)) {
-                localInfo.getInstalledDrivers().remove(driverName);
-            }
-        }
-        // restart controller service
-        localRepo.restart(DriverManager.CONTROLLER_SERVICE);
-        // update local list
-        coordinatorExt.setNodeSessionScopeInfo(localInfo);
-        // update local list
-        coordinator.setTargetInfo(targetInfo);
-        return Response.ok().build();
-    }
-
-    private void markDriverStatus(String driverName, String status) {
-        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
-        Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-        while (it.hasNext()) {
-            StorageSystemType type = it.next();
-            if (StringUtils.equals(type.getDriverFileName(), driverName)) {
-                type.setInstallStatus(status);
-                dbClient.updateObject(type);
-            }
-        }
-    }
+//    @POST
+//    @Path("/uninstall")
+//    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+//    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+//    public Response uninstall(StorageDriverListParam driverList) {
+//        // check all storage system types supported by this driver, mark as uninstalling
+//        LocalRepository localRepo = LocalRepository.getInstance();
+//        StorageDriversInfo targetInfo = coordinator.getTargetInfo(StorageDriversInfo.class);
+//        StorageDriversInfo localInfo = new StorageDriversInfo();
+//        localInfo.setInstalledDrivers(localRepo.getLocalDrivers());
+//        for (String driverName : driverList.getDrivers()) {
+//            // mark as uninstalling
+//            markDriverStatus(driverName, DriverManager.UNINSTALLING);
+//            // remove locally
+//            localRepo.removeStorageDriver(driverName);
+//            // remove from target info
+//            if (targetInfo.getInstalledDrivers().contains(driverName)) {
+//                targetInfo.getInstalledDrivers().remove(driverName);
+//            }
+//            // remove from local info
+//            if (localInfo.getInstalledDrivers().contains(driverName)) {
+//                localInfo.getInstalledDrivers().remove(driverName);
+//            }
+//        }
+//        // restart controller service
+//        localRepo.restart(DriverManager.CONTROLLER_SERVICE);
+//        // update local list
+//        coordinatorExt.setNodeSessionScopeInfo(localInfo);
+//        // update local list
+//        coordinator.setTargetInfo(targetInfo);
+//        return Response.ok().build();
+//    }
+//
+//    private void markDriverStatus(String driverName, String status) {
+//        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+//        Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+//        while (it.hasNext()) {
+//            StorageSystemType type = it.next();
+//            if (StringUtils.equals(type.getDriverFileName(), driverName)) {
+//                type.setStatus(status);
+//                dbClient.updateObject(type);
+//            }
+//        }
+//    }
 
     @GET
     @Path("/internal/download")
@@ -156,161 +162,181 @@ public class DriverService {
         InputStream in = new FileInputStream(DriverManager.DRIVER_DIR  + name);
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
+
     @POST
     @Path("/install")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response install(@FormDataParam("driver") InputStream uploadedInputStream) throws Exception {
-        File f = new File(UPLOAD_DEVICE_DRIVER + UUID.randomUUID());
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
-        int bytesRead = 0;
-        while (true) {
-            byte[] buffer = new byte[0x10000];
-            bytesRead = uploadedInputStream.read(buffer);
-            if (bytesRead == -1) {
-                break;
+    public Response install(@FormDataParam("driver") InputStream uploadedInputStream,
+            @FormDataParam("file") FormDataContentDisposition details) {
+        String fileName = details.getFileName();
+        log.info("Received driver jar file: {}", fileName);
+        File driverFile = new File(TMP_DIR + fileName);
+        try {
+            OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
+            int bytesRead = 0;
+            while (true) {
+                byte[] buffer = new byte[0x10000];
+                bytesRead = uploadedInputStream.read(buffer);
+                if (bytesRead == -1) {
+                    break;
+                }
+                os.write(buffer, 0, bytesRead);
             }
-            os.write(buffer, 0, bytesRead);
+            uploadedInputStream.close();
+            os.close();
+        } catch (Exception e) {
+            log.error("Error happened when uploading driver file", e);
+            throw APIException.internalServerErrors.installDriverUploadFailed(e.getMessage());
         }
-        uploadedInputStream.close();
-        os.close();
-        // May need to check file integrity in real product code
 
-        StorageSystemTypeAddParam params = parseDriver(f.getAbsolutePath());
+        log.info("Finished uploading driver file");
+
+        StorageDriverMetaData metaData = parseDriverMetaData(driverFile.getAbsolutePath());
+        metaData.setDriverFileName(driverFile.getName());
 
         // move to /data/drivers
-        Files.move(f, new File(DriverManager.DRIVER_DIR + params.getDriverName()));
-
+        try {
+            Files.move(driverFile, new File(DriverManager.DRIVER_DIR + driverFile.getName()));
+        } catch (IOException e) {
+            log.error("Error happened when moving driver file", e);
+            throw APIException.internalServerErrors.installDriverUploadFailed(e.getMessage());
+        }
         // insert meta data into db
-        StorageSystemType type = map(params);
-        type.setInstallStatus("installing");
-        type.setDriverFileName(params.getDriverName());
-        dbClient.createObject(type);
+        List<StorageSystemType> types = DriverManager.convert(metaData);
+        for (StorageSystemType type : types) {
+            type.setStatus(StorageSystemType.STATUS.INSTALLING.toString());
+            type.setIsNative(false);
+            dbClient.createObject(type);
+        }
 
-        LocalRepository localRepo = LocalRepository.getInstance();
-        // restart controller service
-        localRepo.restart(DriverManager.CONTROLLER_SERVICE);
-        // update local driver list
-        Set<String> localDrivers = localRepo.getLocalDrivers();
         StorageDriversInfo info = new StorageDriversInfo();
-        info.setInstalledDrivers(localDrivers);
-        coordinatorExt.setNodeSessionScopeInfo(info);
-
         // update target list
         info = coordinator.getTargetInfo(StorageDriversInfo.class);
         if (info == null) {
             info = new StorageDriversInfo();
         }
-        info.getInstalledDrivers().add(params.getDriverName());
+        info.getInstalledDrivers().add(metaData.getDriverFileName());
         coordinator.setTargetInfo(info);
         return Response.ok().build();
     }
 
-    // TODO 
-    private List<StorageSystemType> parseStorageTypes(String driverFilePath) {
-        StorageDriverMetaData driver = parseDriverMetaData(driverFilePath);
-        return DriverManager.convert(driver);
-    }
-
-    // TODO
     private StorageDriverMetaData parseDriverMetaData(String driverFilePath) {
-        return null;
-    }
-
-    private StorageSystemTypeAddParam parseDriver(String path) throws Exception {
-        ZipFile zipFile = new ZipFile(path);
-        Enumeration<? extends ZipEntry> entries = zipFile.entries();
-        Properties metaData = new Properties();
-        while(entries.hasMoreElements()){
-            ZipEntry entry = entries.nextElement();
-            if (!META_DEF_FILE_NAME.equals(entry.getName())) {
-                continue;
+        Properties props = new Properties();
+        try {
+            ZipFile zipFile = new ZipFile(driverFilePath);
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            
+            while(entries.hasMoreElements()){
+                ZipEntry entry = entries.nextElement();
+                if (!META_DEF_FILE_NAME.equals(entry.getName())) {
+                    continue;
+                }
+                props.load(zipFile.getInputStream(entry));
             }
-            metaData.load(zipFile.getInputStream(entry));
+            zipFile.close();
+        } catch (Exception e) {
+            log.error("Error happened when parsing meta data from JAR file", e);
+            // use precheck error for now
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(e.getMessage());
         }
-        zipFile.close();
-
-        // till now, meta data has been read into properties file
-
-        StorageSystemTypeAddParam addParam = new StorageSystemTypeAddParam();
-
-        // set storage name
-        String storageName = metaData.getProperty(STORAGE_NAME);
-        if (StringUtils.isEmpty(storageName)) {
-            throw new RuntimeException("Storage name can't be null or empty");
-        }
-        addParam.setStorageTypeName(storageName);
-
-        // set storage display name
-        String storageDispName = metaData.getProperty(STORAGE_DISPLAY_NAME);
-        if (StringUtils.isEmpty(storageDispName)) {
-            throw new RuntimeException("Storage display name can't be null or empty");
-        }
-        addParam.setStorageTypeDispName(storageDispName);
-
-        // set driver name
-        String driverName = metaData.getProperty(DRIVER_NAME);
+        log.info("Have successfully load meta data properties from JAR file");
+        
+        StorageDriverMetaData metaData = new StorageDriverMetaData();
+        // check driver name
+        String driverName = props.getProperty(DRIVER_NAME);
         if (StringUtils.isEmpty(driverName)) {
-            throw new RuntimeException ("Driver name can't be null or empty");
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed("driver_name field value is not provided");
         }
-        addParam.setDriverName(driverName);
-
-       // set storage driver class name
-        String driverClassName = metaData.getProperty(DRIVER_CLASS_NAME);
-        if (StringUtils.isEmpty(driverClassName)) {
-            throw new RuntimeException("Storage display name can't be null or empty");
+        metaData.setDriverName(driverName);
+        // check driver version and format
+        String driverVersion = props.getProperty(DRIVER_VERSION);
+        if (StringUtils.isEmpty(driverVersion)) {
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed("driver_version field value is not provided");
         }
-        addParam.setDriverClassName(driverClassName);
-
-        // set provider name and isSmiProvider field
-        String providerName = metaData.getProperty(PROVIDER_NAME);
-        String providerDispName = metaData.getProperty(PROVIDER_DISPLAY_NAME);
-        if (StringUtils.isEmpty(providerName) && StringUtils.isEmpty(providerDispName)) {
-            // not a provider
-            addParam.setIsSmiProvider(false);
-        } else if (StringUtils.isEmpty(providerName) || StringUtils.isEmpty(providerDispName)) {
-            // required fields for provider is not filled completely
-            throw new RuntimeException("Please fill both provider name and display name if it's a provider, otherwise, leave both fields blank");
+        if (!Pattern.compile(DRIVER_VERSION_PATTERN).matcher(driverVersion).find()) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    "driver_version field value should be four numbers concatenated by dot");
+        }
+        metaData.setDriverVersion(driverVersion);
+        // check storage name
+        String storageName = props.getProperty(STORAGE_NAME);
+        if (StringUtils.isEmpty(storageName)) {
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed("storage_name field value is not provided");
+        }
+        metaData.setStorageName(storageName);
+        // check storage display name
+        String storageDisplayName = props.getProperty(STORAGE_DISPLAY_NAME);
+        if (StringUtils.isEmpty(storageDisplayName)) {
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed("storage_display_name field value is not provided");
+        }
+        metaData.setStorageDisplayName(storageDisplayName);
+        // check provider name and provider display name
+        String providerName = props.getProperty(PROVIDER_NAME);
+        String providerDisplayName = props.getProperty(PROVIDER_DISPLAY_NAME);
+        if (StringUtils.isNotEmpty(providerName) && StringUtils.isNotEmpty(providerDisplayName)) {
+            metaData.setProviderName(providerName);
+            metaData.setProviderDisplayName(providerDisplayName);
+        } else if (StringUtils.isEmpty(providerName) && StringUtils.isEmpty(providerDisplayName)) {
+            // This driver doesn't support provider, which is allowed, so do nothing
         } else {
-            // a provider
-            addParam.setIsSmiProvider(true);
-            addParam.setProviderName(providerName);
-            addParam.setProviderDispName(providerDispName);
+            // This is ambiguous input, which should cause exception
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    "provider_name and provider_display_name fields values should be both providerd or not");
         }
-
-        // set meta type
-        String metaType = metaData.getProperty(STORAGE_META_TYPE);
+        // check meta type
+        String metaType = props.getProperty(STORAGE_META_TYPE);
         if (!isValidMetaType(metaType)) {
-            throw new RuntimeException("Storage meta type can't be null, and could only be among block/file/block_and_file/object");
+            throw APIException.internalServerErrors.installDriverPrecheckFailed("meta_type field value is not valid");
         }
-        addParam.setMetaType(metaType);
-
-        // set driver file path
-        addParam.setDriverFilePath(path);
-
-        // set enable_ssl_port and ssl port
-        String enableSSL = metaData.getProperty(ENABLE_SSL);
-        if (Boolean.toString(true).equals(enableSSL)) {
-            addParam.setIsDefaultSsl(true);
-            String sslPort = metaData.getProperty(SSL_PORT);
-            if (sslPort == null) {
-                throw new RuntimeException("SSL is enabled but SSL port is not specified");
+        metaData.setMetaType(metaType);
+        // check enable_ssl
+        String enableSslStr = props.getProperty(ENABLE_SSL);
+        if (StringUtils.isNotEmpty(enableSslStr)) {
+            boolean enableSsl = Boolean.valueOf(enableSslStr);
+            metaData.setEnableSsl(enableSsl);
+        } else {
+            // default to false
+            metaData.setEnableSsl(false);
+        }
+        // check ssl port
+        try {
+            String sslPortStr = props.getProperty(SSL_PORT);
+            if (StringUtils.isNotEmpty(sslPortStr)) {
+                long sslPort = 0L;
+                sslPort = Long.valueOf(sslPortStr);
+                metaData.setSslPort(sslPort);
             }
-            // won't set ssl port if ssl is not enabled
-            addParam.setSslPort(sslPort);
+        } catch (NumberFormatException e) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed("SSL port format is not valid");
         }
-
-        // set non ssl port
-        String nonSslPort = metaData.getProperty(NON_SSL_PORT);
-        if (nonSslPort != null) {
-            addParam.setNonSslPort(nonSslPort);
+        // check non ssl port
+        try {
+            String nonSslPortStr = props.getProperty(SSL_PORT);
+            if (StringUtils.isNotEmpty(nonSslPortStr)) {
+                long nonSslPort = 0L;
+                nonSslPort = Long.valueOf(nonSslPortStr);
+                metaData.setNonSslPort(nonSslPort);
+            }
+        } catch (NumberFormatException e) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed("SSL port format is not valid");
         }
-
-        return addParam;
+        // check driver class name
+        String driverClassName = props.getProperty(DRIVER_CLASS_NAME);
+        if (StringUtils.isEmpty(driverClassName)) {
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed("driver_class_name field value is not provided");
+        }
+        metaData.setDriverClassName(driverClassName);
+        return metaData;
     }
 
     private boolean isValidMetaType(String metaType) {
-        if (metaType == null) {
+        if (StringUtils.isEmpty(metaType)) {
             return false;
         }
         return VALID_META_TYPES.contains(metaType);

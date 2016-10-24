@@ -36,6 +36,7 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
@@ -119,12 +120,12 @@ public class DriverManager {
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            String status = type.getInstallStatus();
+            String status = type.getStatus();
             if (!StringUtils.equals(status, INSTALLING) && !StringUtils.equals(status, UNINSTALLING)) {
                 continue;
             }
             if (toDownload.contains(type.getDriverFileName())) {
-                type.setInstallStatus("active");
+                type.setStatus("active");
                 dbClient.updateObject(type);
                 log.info("update: {} done", type.getDriverFileName());
             } else if (toRemove.contains(type.getDriverFileName())) {
@@ -356,8 +357,43 @@ public class DriverManager {
         }
     }
 
-    // TODO
     public static List<StorageSystemType> convert (StorageDriverMetaData driver) {
-        return null;
+        List<StorageSystemType> types = new ArrayList<StorageSystemType>();
+        StorageSystemType type = new StorageSystemType();
+        type.setStorageTypeName(driver.getStorageName());
+        type.setStorageTypeDispName(driver.getStorageDisplayName());
+        type.setDriverName(driver.getDriverName());
+        type.setDriverVersion(driver.getDriverVersion());
+        type.setDriverFileName(driver.getDriverFileName());
+        type.setMetaType(driver.getMetaType());
+        URI uri = URIUtil.createId(StorageSystemType.class);
+        type.setId(uri);
+        type.setStorageTypeId(uri.toString());
+        type.setIsDefaultSsl(driver.isEnableSsl());
+        type.setSslPort(Long.toString(driver.getSslPort()));
+        type.setNonSslPort(Long.toString(driver.getNonSslPort()));
+        type.setDriverClassName(driver.getDriverClassName());
+        types.add(type);
+
+        if (StringUtils.isNotEmpty(driver.getProviderName())
+                && StringUtils.isNotEmpty(driver.getProviderDisplayName())) {
+            StorageSystemType provider = new StorageSystemType();
+            provider.setStorageTypeName(driver.getProviderName());
+            provider.setStorageTypeDispName(driver.getProviderDisplayName());
+            provider.setIsSmiProvider(true);
+            provider.setDriverName(driver.getDriverName());
+            provider.setDriverVersion(driver.getDriverVersion());
+            provider.setDriverFileName(driver.getDriverFileName());
+            provider.setMetaType(driver.getMetaType());
+            uri = URIUtil.createId(StorageSystemType.class);
+            provider.setId(uri);
+            provider.setStorageTypeId(uri.toString());
+            provider.setIsDefaultSsl(driver.isEnableSsl());
+            provider.setSslPort(Long.toString(driver.getSslPort()));
+            provider.setNonSslPort(Long.toString(driver.getNonSslPort()));
+            provider.setDriverClassName(driver.getDriverClassName());
+            types.add(provider);
+        }
+        return types;
     }
 }

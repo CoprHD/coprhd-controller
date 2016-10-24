@@ -37,6 +37,9 @@ public class StorageDriverMetaData {
         }
     }
 
+    public StorageDriverMetaData() {
+    }
+
     // fields, getters, setters
     private String driverName;
     private String driverVersion;

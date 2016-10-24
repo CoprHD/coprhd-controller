@@ -17,9 +17,12 @@ public class StorageSystemType extends DataObject {
     // Display Name of Storage Type, like VMAX, VNX, Isilion
     private String storageTypeDispName;
 
+    // for these 5 fields, we need add migration callback methods TODO
+    private String driverName;
+    private String driverVersion;
     private String driverFileName;
-
-    private String installStatus;
+    private String status;
+    private Boolean isNative = true;
 
     // Storage type like Block, File or Object
     private String metaType;
@@ -40,9 +43,6 @@ public class StorageSystemType extends DataObject {
 
     private Boolean isSecretKey = false;
 
-    // This is to indicate if the driver file is successfully uploaded on all nodes
-    private Boolean isUsable = false;
-
     private String sslPort;
     private String nonSslPort;
     private String driverClassName;
@@ -57,25 +57,44 @@ public class StorageSystemType extends DataObject {
         }
     }
 
-
-    @Name("installStatus")
-    public String getInstallStatus() {
-        return installStatus;
+    public static enum STATUS {
+        ACTIVE, INSTALLING, UNISNTALLING, UPGRADING
     }
 
-    public void setInstallStatus(String installStatus) {
-        this.installStatus = installStatus;
-        setChanged("installStatus");
+    @Name("status")
+    public String getStatus() {
+        return status;
     }
 
-    @Name("storageTypeName")
-    public String getStorageTypeName() {
-        return storageTypeName;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    public void setStorageTypeName(String name) {
-        this.storageTypeName = name;
-        setChanged("storageTypeName");
+    @Name("isNative")
+    public Boolean getIsNative() {
+        return isNative;
+    }
+
+    public void setIsNative(Boolean isNative) {
+        this.isNative = isNative;
+    }
+
+    @Name("driverName")
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
+    @Name("driverVersion")
+    public String getDriverVersion() {
+        return driverVersion;
+    }
+
+    public void setDriverVersion(String driverVersion) {
+        this.driverVersion = driverVersion;
     }
 
     @Name("driverFileName")
@@ -86,6 +105,16 @@ public class StorageSystemType extends DataObject {
     public void setDriverFileName(String name) {
         this.driverFileName = name;
         setChanged("driverFileName");
+    }
+
+    @Name("storageTypeName")
+    public String getStorageTypeName() {
+        return storageTypeName;
+    }
+
+    public void setStorageTypeName(String name) {
+        this.storageTypeName = name;
+        setChanged("storageTypeName");
     }
 
     @Name("storageTypeDispName")
@@ -176,16 +205,6 @@ public class StorageSystemType extends DataObject {
     public void setIsSecretKey(Boolean isSecretKey) {
         this.isSecretKey = isSecretKey;
         setChanged("isSecretKey");
-    }
-
-    @Name("isUsable")
-    public Boolean getIsUsable() {
-        return isUsable;
-    }
-
-    public void setIsUsable(Boolean isUsable) {
-        this.isUsable = isUsable;
-        setChanged("isUsable");
     }
 
     @Name("sslPort")

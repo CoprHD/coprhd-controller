@@ -103,7 +103,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
                 return;
             }
         } catch (Exception e) {
-            log.info("Failed to acquire ZK lock for GC", e);
+            log.warn("Failed to acquire ZK lock for GC", e);
             return;
         }
     	
@@ -167,14 +167,14 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
             log.info("try to get ZK GC lock {}", lockName);
 
             lock = coordinator.getLock(lockName);
-            if (lock.acquire(0, TimeUnit.SECONDS) == false) {// try to get the lock timeout=0
+            if (!lock.acquire(0, TimeUnit.SECONDS)) {// try to get the lock timeout=0
                 log.info("Can't get ZK lock for GC");
                 return null; // failed to get the lock
             }
 
             log.info("Get GC lock {}", lockName);
         } catch (Exception e) {
-            log.info("Failed to acquire lock for GC {} Exception e=", lockName, e);
+            log.warn("Failed to acquire lock for GC {} Exception e=", lockName, e);
             lock = null;
         }
 

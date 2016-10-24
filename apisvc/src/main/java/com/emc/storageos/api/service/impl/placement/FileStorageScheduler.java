@@ -557,6 +557,8 @@ public class FileStorageScheduler implements Scheduler {
                             }
                             Map<String, Object> destinationConfiguration = new HashMap<String, Object>();
                             destinationConfiguration.put("SOURCE_NAS_SERVER", vNAS.getId());
+                            destinationConfiguration.put("FILE_REPLICATION_TARGET", true);
+
                             selectedDestination = selectDestinationNasServer(targetCopy, storage, capabilities, destinationConfiguration,
                                     project);
                             if (FileOperationUtils.getVNASList(vNAS.getDestinationVirtualNasIds()) != null
@@ -611,6 +613,7 @@ public class FileStorageScheduler implements Scheduler {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
                 VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
+
         _log.info("Source file system placement: Checking which nas server the target file share would be placed on");
         List<FileRecommendation> targetFileRecommendations = this.placeFileShare(targetArray, targetPool, capabilities, project,
                 attributeMap, replicationConfiguration);

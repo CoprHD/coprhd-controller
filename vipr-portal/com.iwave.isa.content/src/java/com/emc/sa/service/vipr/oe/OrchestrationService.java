@@ -96,6 +96,26 @@ public class OrchestrationService extends ViPRService {
         params.put("ProxyToken", ExecutionUtils.currentContext().
                 getExecutionState().getProxyToken());
         //Remove after integration with order form
+        params.put("size", "1");
+        params.put("name", "Vol-1");
+        params.put("count", "1");
+        params.put("varray", "Varray-1");
+        params.put("vpool", "Vpool-1");
+        params.put("project", "Project-1");
+	params.put("consistency_group", "");
+
+	ExecutionUtils.currentContext().logInfo("In PreCheck");
+    }
+    private void initparam()
+    {
+        params = ExecutionUtils.currentContext().getParameters();
+
+        // validate input params to insure service will run
+
+        // add a proxy token that OE can use to login to ViPR API
+        params.put("ProxyToken", ExecutionUtils.currentContext().
+                getExecutionState().getProxyToken());
+        //Remove after integration with order form
         params.put("Size", "1");
         params.put("volumeName", "Vol-1");
         params.put("numOfVolume", "1");
@@ -109,6 +129,7 @@ public class OrchestrationService extends ViPRService {
     public void execute() throws Exception {
         ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
         try {
+	    initparam();
             wfExecutor();
 
             ExecutionUtils.currentContext().logInfo("Orchestration Engine Successfully executed Workflow:"
@@ -161,7 +182,7 @@ public class OrchestrationService extends ViPRService {
             StepType type = StepType.fromString(step.getType());
             switch (type) {
                 case VIPR_REST: {
-                    ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName());
+                    ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName() + inputPerStep.get(step.getStepId()));
                     result = ViPRExecutionUtils.execute(new RunREST(step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
 
                     break;
@@ -232,7 +253,7 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             Input value = input.get(key);
-
+	    logger.info("key is:{} and value is:{}", key, value);
             if (value == null) {
                 logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getStepId());
 
@@ -246,7 +267,9 @@ public class OrchestrationService extends ViPRService {
                     //TODO handle multiple , separated values
                     final String paramVal = (params.get(key) == null) ? (params.get(key).toString()) : (value.getDefault());
 
+		    logger.info("paramVal is:{} and key:{}", paramVal, key);
                     if (paramVal == null) {
+			logger.info("paramval is null: for key:{}", key);
                         if (value.getRequired().equals("true")) {
                             logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
 

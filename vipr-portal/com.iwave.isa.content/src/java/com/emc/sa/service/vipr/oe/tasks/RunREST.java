@@ -49,6 +49,7 @@ public class RunREST extends ViPRExecutionTask<String> {
         this.input = input;
         this.token = token;
 
+	logger.info("input is :{}", this.input);
         initRestClient();
     }
 
@@ -81,7 +82,7 @@ public class RunREST extends ViPRExecutionTask<String> {
     public String executeTask() throws Exception
     {
 
-        final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class, null); //dbClient);
+        //final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class, null); //dbClient);
 
         String result = null;
         String postBody = null;
@@ -124,7 +125,7 @@ public class RunREST extends ViPRExecutionTask<String> {
         ExecutionUtils.currentContext().logInfo("Started Executing REST API with uri:" +
                 uri+ " and POST Body: " + postBody);
 
-        result = makeRestCall(uri, postBody, primitive.method());
+        result = makeRestCall(uri, postBody, method);
 
         ExecutionUtils.currentContext().logInfo("Done Executing REST Step. REST result:" + result);
 
@@ -195,12 +196,12 @@ public class RunREST extends ViPRExecutionTask<String> {
         Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
 
         while (m.find()) {
-            System.out.println("in loop");
+            logger.info("in loop");
             String pat = m.group(1);
-            System.out.println(pat);
-            System.out.println("value from map" + input.get(pat));
+            logger.info(pat);
+            logger.info("value from map" + input.get(pat));
             String newpat = "$" + pat;
-            System.out.println("New pat" + newpat);
+            logger.info("New pat" + newpat);
             body = body.replace(newpat, input.get(pat).get(0));
         }
 

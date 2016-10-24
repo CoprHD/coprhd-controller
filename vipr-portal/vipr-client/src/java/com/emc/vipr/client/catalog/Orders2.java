@@ -140,11 +140,24 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Lists the currents user's orders
      * <p>
      * API Call: <tt>GET /catalog/orders</tt>
-     * 
+     *
+     * @param startTime
+     * @param endTime
+     * @param maxCount The max number this API returns
      * @return list of user orders
      */
-    public List<NamedRelatedResourceRep> listUserOrders() {
-        OrderList response = client.get(OrderList.class, PathConstants.ORDER2_URL);
+    public List<NamedRelatedResourceRep> listUserOrders(String startTime, String endTime, String maxCount) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_URL);
+        if (startTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
+        }
+        if (endTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
+        }
+        if (maxCount != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_MAX_COUNT, maxCount);
+        }
+        OrderList response = client.getURI(OrderList.class, uriBuilder.build());
         return response.getOrders();
     }
 
@@ -152,11 +165,14 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Return list of the current user's orders
      * <p>
      * API Call: <tt>GET /catalog/orders</tt>
-     * 
+     *
+     * @param startTime
+     * @param endTime
+     * @param maxCount The max number this API returns
      * @return list of user orders
      */
-    public List<OrderRestRep> getUserOrders() {
-        return getByRefs(listUserOrders());
+    public List<OrderRestRep> getUserOrders(String startTime, String endTime, String maxCount) {
+        return getByRefs(listUserOrders(startTime, endTime, maxCount));
     }
 
     /**

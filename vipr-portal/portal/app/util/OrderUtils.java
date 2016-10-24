@@ -51,9 +51,17 @@ public class OrderUtils {
         return catalog.orders().getByTenant(tenantId);
     }
 
-    public static List<OrderRestRep> getUserOrders(String username) {
+    public static List<OrderRestRep> getUserOrders(Date startDate, Date endDate, String maxCount) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        return catalog.orders().getUserOrders();
+        String startTime = null;
+        if (startDate != null) {
+            startTime = Long.toString(startDate.getTime());
+        }
+        String endTime = null;
+        if (endDate != null) {
+            endTime = Long.toString(endDate.getTime());
+        }
+        return catalog.orders().getUserOrders(startTime, endTime, maxCount);
     }
 
     public static List<OrderRestRep> getScheduledOrders() {

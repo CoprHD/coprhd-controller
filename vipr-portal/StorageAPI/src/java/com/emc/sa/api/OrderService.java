@@ -532,8 +532,11 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the list of orders for current user
-     * 
+     *
      * @brief List Orders
+     * @param startTime
+     * @param endTime
+     * @param maxCount The max number this API returns
      * @return a list of orders
      * @throws DatabaseException when a DB error occurs
      */
@@ -542,7 +545,7 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderList getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
                                    @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
-                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String maxCount)
+                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
             throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();

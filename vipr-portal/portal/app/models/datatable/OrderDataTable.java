@@ -6,6 +6,9 @@ package models.datatable;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import models.security.UserInfo;
@@ -20,6 +23,7 @@ import controllers.catalog.Orders;
 public class OrderDataTable extends DataTable {
     protected UserInfo userInfo;
     protected String tenantId;
+    private static final String ORDER_MAX_COUNT = "6000";
 
     public OrderDataTable(String tenantId) {
         this.tenantId = tenantId;
@@ -43,9 +47,17 @@ public class OrderDataTable extends DataTable {
     public List<OrderInfo> fetchAll() {
         List<OrderRestRep> orderRestReps = null;
         if (userInfo != null) {
-            orderRestReps = OrderUtils.getUserOrders(userInfo.getCommonName());
-        }
-        else {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date startDate = null;
+            //just for test
+            try {
+                startDate = sdf.parse("2016-08-08");
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            Date endDate = new Date();
+            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT);
+        } else {
             orderRestReps = OrderUtils.getOrders(uri(this.tenantId));
         }
 

@@ -1307,7 +1307,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     private void validateFabric(NetworkSystem networkSystem, String fabricWwn, String fabricId) throws NetworkDeviceControllerException {
         try {
             Map<String, String> map = getFabricIdsMap(networkSystem);
-            if (!map.containsKey(fabricWwn) && !map.containsValue(fabricId)) {
+            if (!map.containsKey(fabricWwn)) {
                 throw NetworkDeviceControllerException.exceptions.fabricNotFoundInNetwork(fabricId, networkSystem.getLabel());
             }
         } catch (Exception ex) {

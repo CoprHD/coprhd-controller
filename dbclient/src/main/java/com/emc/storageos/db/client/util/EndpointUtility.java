@@ -6,9 +6,14 @@ package com.emc.storageos.db.client.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.model.valid.Endpoint;
 
 /**
@@ -20,8 +25,8 @@ import com.emc.storageos.model.valid.Endpoint;
 public class EndpointUtility {
 
     // Regular Expression to match a host name.
-    private static final String HOST_NAME_PATTERN =
-            "^(?![0-9]+$)(?:([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
+    private static final String HOST_NAME_PATTERN = "^(?![0-9]+$)(?:([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
+    private static final String IPADDRESS_PATTERN = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
 
     /**
      * Creates a new list of endpoints modified to upper or lower case based on
@@ -112,5 +117,22 @@ public class EndpointUtility {
                     isValidEndpoint(element, Endpoint.EndpointType.SAN);
         }
         return false;
+    }
+
+    public static boolean isValidEndpoint(StoragePort port, Endpoint.EndpointType type, StorageSystem system) {
+        if (system.getSystemType() != null || system.getSystemType().equalsIgnoreCase(SystemType.unity.name())) {
+            return isValidEndpoint(port.getIpAddress(), type);
+        }
+        return isValidEndpoint(port.getPortNetworkId(), type);
+    }
+
+    public static String extractIPFromString(String ipString) {
+        Pattern pattern = Pattern.compile(IPADDRESS_PATTERN);
+        Matcher matcher = pattern.matcher(ipString);
+        if (matcher.find()) {
+            return matcher.group();
+        } else {
+            return ipString;
+        }
     }
 }

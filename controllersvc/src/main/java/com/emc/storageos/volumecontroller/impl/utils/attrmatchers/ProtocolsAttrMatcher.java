@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +26,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.File;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -129,8 +127,10 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
      * Returns if the storage pool's protocol matches requested protocols when
      * the storagePool's protocol is set to NFS_OR_CIFS
      * 
-     * @param pool storagePool
-     * @param protocolsRequested requested protocols
+     * @param pool
+     *            storagePool
+     * @param protocolsRequested
+     *            requested protocols
      * @return if storagePool's protocol matches the requested protocols
      */
     private boolean isFilePoolMatchedRequestedProtocols(StoragePool pool,
@@ -144,7 +144,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
             String protocol = it.next();
             if (protocol.equalsIgnoreCase(StorageProtocol.File.NFS.name())
                     || protocol.equalsIgnoreCase(StorageProtocol.File.CIFS.name())
-                    || protocol.equalsIgnoreCase(StorageProtocol.File.NFSv4.name()) ) {
+                    || protocol.equalsIgnoreCase(StorageProtocol.File.NFSv4.name())) {
                 isMatched = true;
             }
         }
@@ -154,7 +154,8 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
     /**
      * Get supported protocols by the storage pools and storage ports in the varray
      * 
-     * @param arrayProtocolsMap supported pool protocols per array
+     * @param arrayProtocolsMap
+     *            supported pool protocols per array
      * @param varrayId
      * @return the set of protocols supported
      */
@@ -184,9 +185,9 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
                 Set<String> varrays = new HashSet<String>();
                 varrays.add(varrayId.toString());
 
-				if (!isPortUsable(storagePort, varrays)) {
-					continue;
-				}
+                if (!isPortUsable(storagePort, varrays)) {
+                    continue;
+                }
                 portProtocols.addAll(transport2Protocol(storagePort.getTransportType()));
                 if (portProtocols.containsAll(poolProtocols)) {
                     break;
@@ -260,7 +261,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
             }
             String systemType = storageSystem.getSystemType();
             if (systemType != null && (systemType.equalsIgnoreCase(SystemType.vnxe.name())
-                    ||systemType.equalsIgnoreCase(SystemType.unity.name()))) {
+                    || systemType.equalsIgnoreCase(SystemType.unity.name()))) {
                 // only check on VNXe and VNXUnity pools
                 Set<StoragePool> arrayPools = arrayPoolMap.get(arrayId);
                 if (arrayPools != null) {
@@ -311,7 +312,8 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
                 } else if (protocolRequested.contains(File.CIFS.name()) ||
                         protocolRequested.contains(File.NFS.name())) {
                     if (tranportType.equalsIgnoreCase(Transport.IP.name()) &&
-                            EndpointUtility.isValidEndpoint(endpoint, Endpoint.EndpointType.IP)) {
+                            EndpointUtility.isValidEndpoint(storagePort, Endpoint.EndpointType.IP,
+                                    _objectCache.queryObject(StorageSystem.class, storagePort.getStorageDevice()))) {
                         isMatching = true;
                         break;
                     }
@@ -337,27 +339,27 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
     private boolean isPortUsable(StoragePort storagePort, Set<String> varrays) {
         boolean isUsable = true;
 
-		if (storagePort == null
-				|| storagePort.getInactive()
-				|| storagePort.getTaggedVirtualArrays() == null
-				|| NullColumnValueGetter.isNullURI(storagePort.getNetwork())
-				|| !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-						storagePort.getRegistrationStatus())
-				|| (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
-						.equals(StoragePort.OperationalStatus.NOT_OK)
-				|| !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-						.equals(storagePort.getCompatibilityStatus())
-				|| !DiscoveryStatus.VISIBLE.name().equals(
-						storagePort.getDiscoveryStatus())) {
-			isUsable = false;
-		} else {
-			StringSet portVarrays = storagePort.getTaggedVirtualArrays();
-			portVarrays.retainAll(varrays);
-			if (portVarrays.isEmpty()) {
-				// the storage port does not belongs to any varrays
-				isUsable = false;
-			}
-		}
-		return isUsable;
+        if (storagePort == null
+                || storagePort.getInactive()
+                || storagePort.getTaggedVirtualArrays() == null
+                || NullColumnValueGetter.isNullURI(storagePort.getNetwork())
+                || !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+                        storagePort.getRegistrationStatus())
+                || (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
+                        .equals(StoragePort.OperationalStatus.NOT_OK)
+                || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                        .equals(storagePort.getCompatibilityStatus())
+                || !DiscoveryStatus.VISIBLE.name().equals(
+                        storagePort.getDiscoveryStatus())) {
+            isUsable = false;
+        } else {
+            StringSet portVarrays = storagePort.getTaggedVirtualArrays();
+            portVarrays.retainAll(varrays);
+            if (portVarrays.isEmpty()) {
+                // the storage port does not belongs to any varrays
+                isUsable = false;
+            }
+        }
+        return isUsable;
     }
 }

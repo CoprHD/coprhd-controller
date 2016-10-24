@@ -544,6 +544,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             StringSet supportedReplica = new StringSet();
             supportedReplica.add(StorageSystem.SupportedReplicationTypes.LOCAL.name());
+            supportedReplica.add(StorageSystem.SupportedFileReplicationTypes.REMOTE.name());
             viprStorageSystem.setSupportedReplicationTypes(supportedReplica);
 
             viprStorageSystem.setSupportSoftLimit(true);
@@ -1100,7 +1101,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             }
 
             // Check if storage port was already discovered
-            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, intf.getIpAddress(), NativeGUIDGenerator.PORT);
+            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, intf.getNasServer().getId() + "+" + intf.getIpAddress(),
+                    NativeGUIDGenerator.PORT);
 
             URIQueryResultList results = new URIQueryResultList();
 
@@ -1133,7 +1135,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 port.setStorageDevice(system.getId());
                 port.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
                 port.setPortName(intf.getName());
-                port.setPortNetworkId(intf.getIpAddress());
                 port.setPortGroup(nasServerId);
                 port.setStorageHADomain(haDomainUri);
                 _logger.info("Creating new storage port using NativeGuid : {}, IP : {}", portNativeGuid,
@@ -1142,6 +1143,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             } else {
                 existingStoragePorts.add(port);
             }
+            port.setPortNetworkId(
+                    system.getLabel() + ":" + client.getNasServer(intf.getNasServer().getId()).getName() + ":" + intf.getIpAddress());
+            port.setIpAddress(intf.getIpAddress());
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
 

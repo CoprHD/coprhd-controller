@@ -21,31 +21,40 @@
 #{script 'jquery-ui.js'/}
 #{script 'jsPlumb-2.1.7.js'/}
 #{script 'workflowdesigner.js'/}
-<div>
-    <div id="theSidebar" class="sidebar">
-        <div class="row" style="margin-top: 55px;text-align:center;">
-            <div class="item draggable-step">
-                <span class="itemText">I am a very simple card.</span>
+#{script 'jstree.min.js'/}
+<div class="row">
+        <div id="theSidebar" class="sidebar" style="width: inherit !important;" >
+            <div>
+                <input class="search-input form-control" placeholder="search..."></input>
             </div>
-        </div>
-        <div class="buttonbar">
-            <input id="Export" type="button" value="Export" onclick="saveJSON();" />
-            <input id="Import" type="button" value="Import" onclick="loadJSON();" />
-            <input id="Import2" type="button" value="Import No Position" onclick="loadJSONNoPosition();" />
-            <input id="reset" type="button" value="reset" onclick="reset();" />
+            <div id="jstree_demo" >
         </div>
     </div>
-    <div id="sb-site" class="exampleEditor">
+    <div class="builder-column">
 
-        <div class="row">
-            <div class="col s12" style="padding: 0 !important;">
-                <div class="parent">
-                    <div id="diagramContainer">
+            <ul id="wftabs" class="nav nav-tabs" role="tablist">
+                <li class="active"><a href="#tab20" role="tab" data-toggle="tab">Home</a></li>
+            </ul>
 
-
+            <div class="tab-content">
+                <div class="buttonbar">
+                    <input id="Export" type="button" value="Export" onclick="saveJSON();" />
+                    <input id="Import" type="button" value="Import" onclick="loadJSON();" />
+                    <input id="Import2" type="button" value="Import No Position" onclick="loadJSONNoPosition();" />
+                    <input id="reset" type="button" value="reset" onclick="reset();" />
+                </div>
+                <div class="tab-pane fade in active" id="tab20">
+                    <div id="sb-site" class="exampleEditor">
+                        <div class="row">
+                            <div class="col s12" style="padding: 0 !important;">
+                                <div class="parent">
+                                    <div id="diagramContainer"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
     </div>
+
 </div>

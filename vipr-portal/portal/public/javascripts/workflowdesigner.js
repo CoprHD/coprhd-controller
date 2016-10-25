@@ -52,25 +52,19 @@ $(function() {
         ConnectionOverlays: [
             ["Arrow", {
                 location: 1,
-                visible: true,
-                id: "ARROW",
+                visible:true,
+                id:"ARROW",
                 width: 25,
                 length: 25
 
-            }]
-        ]
+            } ]]
     });
     jsPlumb.setContainer($('#diagramContainer'));
     jsPlumb.setZoom(1);
 
-    //initialize draggable menu items
-
-    $(".draggable-step").draggable({ helper: "clone", scroll: false });
-    $("#sb-site").droppable({ drop: dragEndFunc });
-
-
-    //var workflowName = prompt("Please enter workflow name");
-    //workflow.WorkflowName = workflowName;
+  $('.example-item-card-wrapper').each(function () {
+      jsPlumb.draggable(this);
+  });
 
 });
 
@@ -892,12 +886,12 @@ function changeName(e) {
 }
 
 function dragEndFunc(e) {
-
+    //console.log(e);
     //create element html
     var randomIdHash = Math.random().toString(36).substring(7);
-    var stepName = prompt("Please enter step name", "Step Name");
+    var stepName = $(e.toElement).text();
     var $itemWrapper = '<div id="' + randomIdHash + '" class="example-item-card-wrapper" ondblclick="changeName(event);"></div>';
-    var $item = '<div class="item card example-item">';
+    var $item = '<div class="item">';
     var $itemText = '<div class="itemText">' + stepName + '</div>';
     $($itemText).appendTo('#diagramContainer').wrap($itemWrapper).wrap($item);
     var theNewItem = $('#' + randomIdHash);
@@ -930,7 +924,7 @@ function dragEndFunc(e) {
         cssClass: "passEndpoint"
     }, common_source);
     jsPlumb.draggable(randomIdHash);
-
+  
 }
 
 jsPlumb.bind("connection", function(connection) {
@@ -967,20 +961,6 @@ jsPlumb.bind("connectionDetached", function(connection) {
     source.data("Next",sourceNext);
 });
 
-/*
-jsPlumb.bind("anchorChanged", function(e) {
-  newVar=e;
-  endpoints = jsPlumb.getEndpoints(newVar.endpoint.element);
-    anchorsArr = [];
-  $.each(endpoints, function( index, value ) {
-      if (newVar.anchor.id != value.anchor.id) {
-        if (newVar.anchor.getCurrentLocation() != value.anchor.getCurrentLocation()) {
-        anchorsArr.push(value.anchor.type);
-        }
-      }
-    });
-});
-*/
 
 function saveJSON() {
     var blocks = []
@@ -1009,7 +989,7 @@ function loadStep(step) {
     var stepName = step.FriendlyName;
     //create element html
     var $itemWrapper = '<div id="' + stepId + '" class="example-item-card-wrapper" ondblclick="changeName(event);"></div>';
-    var $item = '<div class="item card example-item">';
+    var $item = '<div class="item">';
     var $itemText = '<div class="itemText">' + stepName + '</div>';
     $($itemText).appendTo('#diagramContainer').wrap($itemWrapper).wrap($item);
     var theNewItem = $('#' + stepId);
@@ -1145,7 +1125,7 @@ function loadStep2(step,x,y) {
     var stepName = step.FriendlyName;
     //create element html
     var $itemWrapper = '<div id="' + stepId + '" class="example-item-card-wrapper" ondblclick="changeName(event);"></div>';
-    var $item = '<div class="item card example-item">';
+    var $item = '<div class="item">';
     var $itemText = '<div class="itemText">' + stepName + '</div>';
     $($itemText).appendTo('#diagramContainer').wrap($itemWrapper).wrap($item);
     var theNewItem = $('#' + stepId);
@@ -1206,4 +1186,208 @@ function reset() {
         $elem.remove();
     });
     workflow = {};
+    }
+
+$( function() {
+
+    $(".search-input").keyup(function() {
+        var searchString = $(this).val();
+        console.log(searchString);
+        $('#jstree_demo').jstree('search', searchString);
+    });
+
+    $('#jstree_demo').jstree({
+        "core": {
+            "animation": 0,
+            "check_callback": true,
+            "themes": {"stripes": false},
+            'data' : rootjson
+        },
+        "types": {
+            "#": {
+                "max_children": 1,
+                "max_depth": 4,
+                "valid_children": ["root"]
+            },
+            "root": {
+                "valid_children": ["default"]
+            },
+            "default": {
+                "valid_children": ["default", "file"]
+            },
+            "file": {
+                "icon": "glyphicon glyphicon-file",
+                "valid_children": [],
+                "li_attr": {"class": "draggable-card"}
+            }
+        },
+        "plugins": [
+            "contextmenu", "search",
+            "state", "types", "wholerow"
+        ],
+        "search" : {
+              'case_sensitive' : false,
+              'show_only_matches' : true
+         },
+         "contextmenu" : {
+                     "items": function($node) {
+                         var tree = $("#jstree_demo").jstree(true);
+                         return {
+                             "Create": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Create",
+                                 "submenu": {
+                                     "create_file" : {
+                                         "seperator_before" : false,
+                                         "seperator_after" : false,
+                                         "label" : "File",
+                                         action : function (obj) {
+                                             $node = tree.create_node($node,{"type":"file"});
+                                             tree.edit($node);
+                                         }
+                                     },
+                                     "create_folder" : {
+                                         "seperator_before" : false,
+                                         "seperator_after" : false,
+                                         "label" : "Folder",
+                                         action : function (obj) {
+                                             $node = tree.create_node($node);
+                                             tree.edit($node);
+                                         }
+                                     }
+                                 }
+                             },
+                             "Rename": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Rename",
+                                 "action": function (obj) {
+                                     tree.edit($node);
+                                 }
+                             },
+                             "Remove": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Remove",
+                                 "action": function (obj) {
+                                     tree.delete_node($node);
+                                 }
+                             },
+                             "Preview": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Preview",
+                                 "action": function (obj) {
+                                     previewNode($node);
+                                 }
+                             }
+                         };
+                     }
+                 }
+
+
+
+
+    }).on('ready.jstree', function(e, data) {
+        console.log('hi', data);
+        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
+        $( "#sb-site" ).droppable({drop: dragEndFunc});
+    })
+      .bind("rename_node.jstree", function(e, data) {
+        console.log(data);
+        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
+       })
+
+    $('#wftabs').on('click','.close',function(){
+         console.log('close  ');
+         var tabID = $(this).parents('a').attr('href');
+         $(this).parents('li').remove();
+         $(tabID).remove();
+
+         //display first tab
+         //var tabFirst = $('#wftabs a:first');
+         //tabFirst.tab('show');
+     });
+
+  } );
+
+
+// JSTREE functions
+
+rootjson=[
+  {
+    "id": 1,
+    "text": "My Lib",
+    "children": [
+      {
+        "id": 2,
+        "text": "Primitives"
+      },
+      {
+        "id": 3,
+        "text": "Workflows"
+      }
+    ],
+    "type": "root"
+  },
+  {
+    "id": 4,
+    "text": "ViPR Lib",
+    "children": [
+      {
+        "id": 5,
+        "text": "Primitives",
+        "children": [
+          {
+            "text": "Block",
+            "children": [
+              {
+                "id": 10,
+                "text": "Create Volume",
+                "type": "file",
+                "li_attr": {"class": "draggable-card"}
+              },
+              {
+                "id": 8,
+                "text": "Export Volume",
+                "type": "file",
+                "li_attr": {"class": "draggable-card"}
+              }
+            ]
+          },
+            {
+                "text": "File",
+                "children": [
+                    {
+                        "id": 7,
+                        "text": "Create filesystem",
+                        "type": "file",
+                        "li_attr": {"class": "draggable-card"}
+                    }
+                ]
+            }
+        ]
+      },
+      {
+        "id": 6,
+        "text": "Workflows",
+          "children": [
+                    {
+                        "id": 9,
+                        "text": "Create and Export Volume",
+                        "type": "file",
+                        "li_attr": {"class": "draggable-card"}
+                    }
+                ]
+      }
+    ],
+    "type": "root"
+  }
+]
+
+function previewNode(node) {
+    tabID = node.id;
+    $("#wftabs").append('<li><a href="#tab'+tabID+'" role="tab" data-toggle="tab">'+node.text+'&nbsp;<button class="close" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>')
+    $('.tab-content').append($('<div class="tab-pane fade" id="tab' + tabID + '">Tab '+ node.text +' content</div>'));
 }

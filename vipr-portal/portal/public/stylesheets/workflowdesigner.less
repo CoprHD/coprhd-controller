@@ -10,6 +10,9 @@ body{
     overflow: hidden;
 }
 
+.jsPlumb_dragged {
+    z-index: 999;
+}
 #diagramContainer {
     width:10000px;
     height:10000px;
@@ -30,21 +33,26 @@ body{
     background-color: #428bca;
     border-color: #357ebd;
     border-radius: 3px;
+    pointer-events:none;
 }
+
 #sb-site {
     background-color: #eee !important;
 
 }
 
 .sidebar {
-    background-color: #333 !important;
+    background-color: #555555 !important;
     z-index:999 !important;
-    width: 240px;
+    width: 100%;
     height: 100vh;
-    float: right;
+    float: left;
 }
 .buttonbar {
+    z-index: 100;
+    right: 40px;
     margin: 40px;
+    position: absolute;
 }
 
 .passEndpoint svg circle {
@@ -57,16 +65,8 @@ body{
     border-color: #d43f3a;
 }
 
-.inputEndpoint svg circle {
-    fill: grey;
-}
-
 .jsplumb-endpoint.jsplumb-endpoint-connected {
     opacity: 1;
-}
-
-.jsplumb-endpoint.inputEndpoint.jsplumb-endpoint-connected {
-    opacity: 0;
 }
 
 .jsplumb-connector {
@@ -87,14 +87,19 @@ body{
     pointer-events:none;
 }
 
-.draggable-step {
+.draggable-card {
     display: inline-block;
+    z-index: 100;
 }
 
-.draggable-step .itemText {
+.draggable-card .itemText {
     font-size: 16px;
 }
 
+.builder-column {
+    width: auto;
+    overflow: hidden;
+}
 
 
 

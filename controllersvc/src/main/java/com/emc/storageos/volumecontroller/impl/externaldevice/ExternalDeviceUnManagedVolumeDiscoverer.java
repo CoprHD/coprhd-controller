@@ -387,10 +387,11 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 			}
 		}
         
-        
+        log.info("The volume at hand is {}",unManagedVolume.getLabel() );
         StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, storagePool.getId(),
                 unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()), 
                 IsDeDupEnabled);
+        log.info("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
         log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
         if (matchedVPools.isEmpty()) {
             // clear all existing supported vpools.

@@ -119,6 +119,10 @@ public class HP3PARIngestHelper {
 				} else {
 					driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
 				}
+				
+				_log.info("objVolMember.getName() is {}",objVolMember.getName());
+				_log.info("objVolMember.getProvisioningType() is {}",objVolMember.getProvisioningType());
+				
 
 				if (objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue()) {
 					driverVolume.setThinlyProvisioned(true);

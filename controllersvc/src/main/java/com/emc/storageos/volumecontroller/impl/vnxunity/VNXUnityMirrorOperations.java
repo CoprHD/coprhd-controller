@@ -197,13 +197,13 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             throws DeviceControllerException {
         if (target.getParentFileShare() != null) {
             FileShare sourceFileShare = dbClient.queryObject(FileShare.class, target.getParentFileShare());
-            StorageSystem sourceStorageSystem = dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-            VNXeApiClient apiClient = getVnxUnityClient(sourceStorageSystem);
+            StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
+            VNXeApiClient apiClient = getVnxUnityClient(targetStorageSystem);
             try {
                 ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
                         getResIdByFileShareURI(target.getId()));
                 VNXeCommandJob job = apiClient.failbackReplicationSession(session.getId(), false);
-                VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "failbackMirrorFileShareLink");
+                VNXeJob replicationJob = new VNXeJob(job.getId(), targetStorageSystem.getId(), completer, "failbackMirrorFileShareLink");
                 ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
             } catch (VNXeException ex) {
                 completer.error(dbClient, ex);

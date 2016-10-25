@@ -2981,7 +2981,8 @@ public class VNXeApiClient {
         createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
         createParam.setAutoInitiate(false);
         if (remoteSystem != null) {
-            createParam.setRemoteSystem(remoteSystem);
+
+            createParam.setRemoteSystem(new VNXeBase(remoteSystem.getId()));
         }
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.createReplicationSession(createParam);

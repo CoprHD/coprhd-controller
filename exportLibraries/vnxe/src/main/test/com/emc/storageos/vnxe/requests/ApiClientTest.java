@@ -393,7 +393,7 @@ public class ApiClientTest {
 
     @Test
     public void createRepSession() {
-        apiClient.createReplicationSession("nas_8", "nas_9", -1, null, "test");
+        apiClient.createReplicationSession("res_16", "res_1", -1, apiClient.getRemoteSystem("RS_6"), "test");
     }
 
     // @Test

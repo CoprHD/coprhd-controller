@@ -1,6 +1,11 @@
+body{
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
 .exampleEditor {
     background: #2a3239;
-    max-height: 90vh;
+    max-height: 100vh;
     max-width: 100vw;
     overflow: hidden;
 }
@@ -35,7 +40,7 @@
     background-color: #333 !important;
     z-index:999 !important;
     width: 240px;
-    height: 90vh;
+    height: 100vh;
     float: right;
 }
 .buttonbar {
@@ -43,11 +48,13 @@
 }
 
 .passEndpoint svg circle {
-    fill: green;
+    fill: #5cb85c;
+    border-color: #4cae4c;
 }
 
 .failEndpoint svg circle {
-    fill: red;
+    fill: #d9534f;
+    border-color: #d43f3a;
 }
 
 .inputEndpoint svg circle {

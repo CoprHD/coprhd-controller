@@ -1,4 +1,4 @@
-#{extends 'main.html' /}
+#{extends 'layout.html' /}
 #{set navSelected: ['nav.orders', 'nav.catalog', 'nav.workflowDesigner'] /}
 #{set 'moreScripts'}
 #{set 'customDocLink'}
@@ -30,6 +30,9 @@
         </div>
         <div class="buttonbar">
             <input id="Export" type="button" value="Export" onclick="saveJSON();" />
+            <input id="Import" type="button" value="Import" onclick="loadJSON();" />
+            <input id="Import2" type="button" value="Import No Position" onclick="loadJSONNoPosition();" />
+            <input id="reset" type="button" value="reset" onclick="reset();" />
         </div>
     </div>
     <div id="sb-site" class="exampleEditor">

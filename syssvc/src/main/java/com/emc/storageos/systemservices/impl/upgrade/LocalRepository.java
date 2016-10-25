@@ -459,6 +459,21 @@ public class LocalRepository {
     }
 
     /**
+     * Restart a service remotely
+     * 
+     * @param nodeId
+     * @param serviceName
+     */
+    public void removeRestartService(String nodeId, String serviceName) {
+        final String prefix = String.format("remote restart(): serviceName=%s on %s",serviceName, nodeId);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RESTART, serviceName};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
+    /**
      * Restart a service
      * 
      * @param serviceName service name

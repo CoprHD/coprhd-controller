@@ -58,7 +58,32 @@ public class StorageSystemType extends DataObject {
     }
 
     public static enum STATUS {
-        ACTIVE, INSTALLING, UNISNTALLING, UPGRADING
+        ACTIVE {
+            @Override
+            public boolean hasOngoingOperation() {
+                return false;
+            }
+        },
+        INSTALLING {
+            @Override
+            public boolean hasOngoingOperation() {
+                return true;
+            }
+        },
+        UNISNTALLING {
+            @Override
+            public boolean hasOngoingOperation() {
+                return true;
+            }
+        },
+        UPGRADING {
+            @Override
+            public boolean hasOngoingOperation() {
+                return true;
+            }
+        };
+
+        public abstract boolean hasOngoingOperation();
     }
 
     @Name("status")

@@ -1,5 +1,7 @@
 package com.emc.storageos.systemservices.impl.driver;
 
+import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,24 +32,23 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.services.util.NamedThreadPoolExecutor;
+import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.StorageSystemType;
-import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import static com.emc.storageos.coordinator.client.model.Constants.*;
+import com.google.common.io.Files;
 
 public class DriverManager {
 
     public static final String DRIVER_DIR = "/data/drivers/";
+    public static final String TMP_DIR = "/tmp/";
     public static final String CONTROLLER_SERVICE = "controllersvc";
-    public static final String INSTALLING = "installing";
-    public static final String UNINSTALLING = "uninstalling";
-    public static final String ACTIVE = "active";
 
     private static final String LISTEN_PATH = String.format("/config/%s/%s", StorageDriversInfo.KIND,
             StorageDriversInfo.ID);
@@ -57,13 +58,13 @@ public class DriverManager {
 
     private Set<String> localDrivers;
     private Set<String> targetDrivers;
-    private LocalRepository localRepository;
     private CoordinatorClientExt coordinator;
     private CoordinatorClient coordinatorClient;
     private DrUtil drUtil;
     private DbClient dbClient;
     private Service service;
-    private URI initNode; // Node that has been synced with latest driver list
+    private Waiter waiter = new Waiter();
+//    private URI initNode; // Node that has been synced with latest driver list
     private LocalRepository localRepo = LocalRepository.getInstance();
 
     private Set<String> toRemove;
@@ -73,10 +74,6 @@ public class DriverManager {
         this.coordinator = coordinator;
         this.coordinatorClient = coordinator.getCoordinatorClient();
         this.drUtil = new DrUtil(coordinatorClient);
-    }
-
-    public void setLocalRepository(final LocalRepository localRepository) {
-        this.localRepository = localRepository;
     }
 
     public DbClient getDbClient() {
@@ -91,62 +88,164 @@ public class DriverManager {
         this.service = service;
     }
 
-    private void restartControllerService() {
-        try {
-            localRepository.restart(CONTROLLER_SERVICE);
-            log.info("Local controller service has been restarted");
-        } catch (Exception e) {
-            log.error("Failed to restart controller service", e);
+    private void restartControllerServices() {
+        for (String node : coordinator.getAllNodeIds()) {
+            localRepo.removeRestartService(node, CONTROLLER_SERVICE);
         }
     }
 
     private boolean areAllNodesUpdated() throws Exception {
-        
         for (Site site : drUtil.listSites()) {
             Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, site.getUuid());
             for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
                 if (!targetDrivers.equals(info.getValue().getInstalledDrivers())) {
                     log.info("Drivers on node {} have not been updated", info.getKey().getName());
+                    log.info("Target drivers: {}", Arrays.toString(targetDrivers.toArray()));
+                    log.info("Local drivers on node {}: {}", info.getKey().getName(),
+                            Arrays.toString(info.getValue().getInstalledDrivers().toArray()));
                     return false;
                 }
+            }
+        }
+        log.info("All nodes's drivers are synced with target list");
+        return true;
+    }
+
+    private List<StorageSystemType> queryDriversByStatus(StorageSystemType.STATUS status) {
+        List<StorageSystemType> types = new ArrayList<StorageSystemType>();
+        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (StringUtils.equals(type.getStatus(), status.toString())) {
+                types.add(type);
+            }
+        }
+        return types;
+    }
+
+    private void updateMetaData() {
+        Site activeSite = drUtil.getActiveSite();
+        List<StorageDriversInfo>  infos = getDriversInfo(activeSite.getUuid());
+        if (activeSite.getNodeCount() != infos.size()) {
+            log.error("There's node down in active site");
+            return;
+        }
+        for (Site site : drUtil.listStandbySites()) {
+            List<StorageDriversInfo> standbyInfos = getDriversInfo(site.getUuid());
+            if (site.getNodeCount() != standbyInfos.size()) {
+                log.error("There's node down in standby site {}", site.getName());
+                return;
+            }
+            infos.addAll(standbyInfos);
+        }
+        
+        boolean needRestart = false;
+        // If driver to install has been on every node, set to active
+        List<StorageSystemType> installingTypes = queryDriversByStatus(StorageSystemType.STATUS.INSTALLING);
+        for (StorageSystemType type : installingTypes) {
+            boolean finished = true;
+            for (StorageDriversInfo info :infos) {
+                if (!info.getInstalledDrivers().contains(type.getDriverFileName())) {
+                    finished = false;
+                    break;
+                }
+            }
+            if (finished) {
+                type.setStatus(StorageSystemType.STATUS.ACTIVE.toString());
+                dbClient.updateObject(type);
+                log.info("update status from installing to active for {}", type.getStorageTypeName());
+                needRestart = true;
+            }
+        }
+        // if driver to uninstall has been deleted on every node, dete it in db
+        List<StorageSystemType> uninstallingTypes =  queryDriversByStatus(StorageSystemType.STATUS.UNISNTALLING);
+        for (StorageSystemType type : uninstallingTypes) {
+            boolean finished = true;
+            for (StorageDriversInfo info :infos) {
+                if (info.getInstalledDrivers().contains(type.getDriverFileName())) {
+                    finished = false;
+                    break;
+                }
+            }
+            if (finished) {
+                dbClient.removeObject(type);
+                log.info("Remove {}", type.getStorageTypeName());
+                needRestart = true;
+            }
+        }
+        // handle upgrading ones
+        List<StorageSystemType> upgradingTypes =  queryDriversByStatus(StorageSystemType.STATUS.UPGRADING);
+        for (StorageSystemType type : upgradingTypes) {
+            // TODO if found new meta data in ZK, insert it to db and delete it from zk
+            // TODO if not found new meta data in ZK, set status to ACTIVE
+            // TODO remember to set needRestart flag, to restart controller services
+        }
+        if  (needRestart) {
+            restartControllerServices();
+        }
+    }
+
+    private List<StorageDriversInfo> getDriversInfo(String siteId) {
+        List<StorageDriversInfo> infos = new ArrayList<StorageDriversInfo>();
+        try {
+            Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
+                    CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+            for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
+                infos.add(info.getValue());
+            }
+        } catch (Exception e) {
+            log.error("Error happened when geting drivers info for site {}", siteId);
+        }
+        return infos;
+    }
+
+    private boolean hasActiveSiteFinishDownload(String driverFileName) {
+        Site activeSite = drUtil.getActiveSite();
+        String activeSiteId = activeSite.getUuid();
+        List<StorageDriversInfo> infos = getDriversInfo(activeSiteId);
+        if (activeSite.getNodeCount() != infos.size()) {
+            // there're offline node in active site
+            return false;
+        }
+        for (StorageDriversInfo info : infos) {
+            if (!info.getInstalledDrivers().contains(driverFileName)) {
+                return false;
             }
         }
         return true;
     }
 
-    private void updateMetaData() {
-        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
-        Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-        while (it.hasNext()) {
-            StorageSystemType type = it.next();
-            String status = type.getStatus();
-            if (!StringUtils.equals(status, INSTALLING) && !StringUtils.equals(status, UNINSTALLING)) {
-                continue;
-            }
-            if (toDownload.contains(type.getDriverFileName())) {
-                type.setStatus("active");
-                dbClient.updateObject(type);
-                log.info("update: {} done", type.getDriverFileName());
-            } else if (toRemove.contains(type.getDriverFileName())) {
-                dbClient.removeObject(type);
-                log.info("remove: {} done", type.getDriverFileName());
-            }
-        }
-    }
-
     private void removeDrivers(Set<String> drivers) {
         for (String driver : drivers) {
+            log.info("removing driver file: {}", driver);
             LocalRepository.getInstance().removeStorageDriver(driver);
         }
     }
 
     private void downloadDrivers(Set<String> drivers) {
         for (String driver : drivers) {
-            File driverFile = new File(DRIVER_DIR + driver);
+            File driverFile = new File(TMP_DIR + driver);
             try {
+                URI endPoint = getSyncedNode(driver);
+                if (endPoint == null) {
+                    // should not happen
+                    log.error("Can't find node that hold driver file: {}", driver);
+                    continue;
+                }
+                if (drUtil.isStandby()) { // need to wait active site all finished, and substitute endPoint to active vip
+                    while (!hasActiveSiteFinishDownload(driver)) {
+                        log.info("Sleep 5 seconds to wait active site finish downloading driver {}", driver);
+                        waiter.sleep(5000); // sleep 5 seconds to retry
+                    }
+                    // modify endpoint
+                    Site activeSite = drUtil.getActiveSite();
+                    endPoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
+                            activeSite.getVipEndPoint(), service.getEndpoint().getPort()));
+                }
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
-                InputStream in = SysClientFactory.getSysClient(initNode).get(new URI(uri),
+                InputStream in = SysClientFactory.getSysClient(endPoint).get(new URI(uri),
                         InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
                 OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
@@ -161,8 +260,8 @@ public class DriverManager {
                 }
                 in.close();
                 os.close();
-
-                log.info("Driver {} has been downloaded from {}", driver, initNode);
+                Files.move(driverFile, new File(DRIVER_DIR + driverFile.getName()));
+                log.info("Driver {} has been downloaded from {}", driver, endPoint);
             } catch (Exception e) {
                 log.error("Failed to download driver {} with exception", driver, e);
             }
@@ -224,15 +323,19 @@ public class DriverManager {
         coordinator.setNodeSessionScopeInfo(info);
     }
 
-    private URI getSyncedNode() {
+    /**
+     * 
+     * @param driverFileName
+     * @return node who holds driver file from active site
+     */
+    private URI getSyncedNode(String driverFileName) {
         try {
-            DrUtil drUtil = new DrUtil(coordinatorClient);
             String activeSiteId = drUtil.getActiveSite().getUuid();
             Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, activeSiteId);
             List<String> candidates = new ArrayList<>();
             for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
-                if (targetDrivers.equals(info.getValue().getInstalledDrivers())) {
+                if (info.getValue().getInstalledDrivers().contains(driverFileName)) {
                     candidates.add(info.getKey().getId());
                     log.info("Add node {} to synced nodes list", info.getKey().getId());
                 }
@@ -243,7 +346,7 @@ public class DriverManager {
                 return coordinator.getNodeEndpointForSvcId(syssvcId);
             } else {
                 // This should not happen
-                log.error("There's no synced node now");
+                log.error("There's no synced node for {} now", driverFileName);
             }
         } catch (Exception e) {
             log.error("Can't find node in sync with target drivers list");
@@ -265,7 +368,7 @@ public class DriverManager {
                 toRemove = minus(localDrivers, targetDrivers);
                 toDownload = minus(targetDrivers, localDrivers);
                 if (toRemove.isEmpty() && toDownload.isEmpty()) {
-                    log.info("Local installed drivers list is synced with target,return");
+                    log.info("Local installed drivers list is synced with target, return");
                     return;
                 }
 
@@ -274,34 +377,29 @@ public class DriverManager {
                 }
 
                 if (!toDownload.isEmpty()) {
-                    initNode = getSyncedNode();
-                    if (initNode == null) {
-                        log.error("Can't find a synced node to download driver jar files");
-                        return;
-                    }
                     downloadDrivers(toDownload);
                 }
+
+                // update progress to ZK
                 updateLocalDriversList();
 
-                // restart controller service
-                restartControllerService();
-
-                log.info("Update finished smoothly, congratulations");
-
-                InterProcessLock lock = null;
-                try {
-                    lock = getLock(DRIVERS_UPDATE_LOCK);
-                    if (areAllNodesUpdated()) {
-                        updateMetaData();
-                    }
-                } catch (Exception e) {
-                    log.error("error happend when updating driver info", e);
-                } finally {
-                    if (lock != null) {
-                        try {
-                            lock.release();
-                        } catch (Exception ignore) {
-                            log.warn("lock release failed");
+                // Active site need to update medata and restart all controller services
+                if (drUtil.isActiveSite()) {
+                    InterProcessLock lock = null;
+                    try {
+                        lock = getLock(DRIVERS_UPDATE_LOCK);
+                        if (areAllNodesUpdated()) {
+                            updateMetaData(); // only for install and uninstall
+                        }
+                    } catch (Exception e) {
+                        log.error("error happend when updating driver info", e);
+                    } finally {
+                        if (lock != null) {
+                            try {
+                                lock.release();
+                            } catch (Exception ignore) {
+                                log.warn("lock release failed");
+                            }
                         }
                     }
                 }

@@ -28,7 +28,7 @@ public class StorageDriverMetaData {
     private static final String KEY_DRIVER_FILE_NAME = "driverFileName";
 
     // kind
-    private static final String KIND = "toUpgradeDriver";
+    public static final String KIND = "toUpgradeDriver";
 
     // constructor
     public StorageDriverMetaData(Configuration cfg) {
@@ -218,5 +218,23 @@ public class StorageDriverMetaData {
         } catch (Exception e) {
             throw new IllegalArgumentException("Unrecognized configuration data for StorageDriverMetaData", e);
         }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("StorageDriverMetaData [driverName=").append(driverName)
+               .append(", driverVersion=").append(driverVersion)
+               .append(", storageName=").append(storageName)
+               .append(", storaeDisplayName=").append(storageDisplayName)
+               .append(", providerName=").append(providerName)
+               .append(", providerDisplayName=").append(providerDisplayName)
+               .append(", metaType=").append(metaType)
+               .append(", enableSsl=").append(enableSsl)
+               .append(", sslPort=").append(sslPort)
+               .append(", nonSslPort=").append(nonSslPort)
+               .append(", driverClassName=").append(driverClassName)
+               .append(", driverFileName=").append(driverFileName);
+        return builder.toString();
     }
 }

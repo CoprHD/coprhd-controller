@@ -112,13 +112,13 @@ function changeName(e) {
   }
 }
 
-function dragEndFunc2(e) {
+function dragEndFunc2(e,ui) {
         console.log(e);
         x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft; 
         y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
         var dropPosition = {top:y, left:x};
         var randomIdHash = Math.random().toString(36).substring(7);
-        var stepName = prompt("Please enter step name", "Step Name");
+        var stepName = prompt("Please enter step name", ui.draggable.text());
         var $newExampleItemWrapper = '<div id="' + randomIdHash + '-wrapper" class="example-item-card-wrapper" data-name="'+stepName+'" ondblclick="changeName(event);"></div>';
         var $newExampleItem = '<div class="item card example-item">';
         var $newExampleItemText = '<div class="itemText">' + stepName + '</div>';
@@ -151,8 +151,122 @@ function dragEndFunc2(e) {
 }
 
   $( function() {
-    $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
-    $( "#sb-site" ).droppable({drop: dragEndFunc2});
+
+    $(".search-input").keyup(function() {
+        var searchString = $(this).val();
+        console.log(searchString);
+        $('#jstree_demo').jstree('search', searchString);
+    });
+
+    $('#jstree_demo').jstree({
+        "core": {
+            "animation": 0,
+            "check_callback": true,
+            "themes": {"stripes": false},
+            'data' : rootjson
+        },
+        "types": {
+            "#": {
+                "max_children": 1,
+                "max_depth": 4,
+                "valid_children": ["root"]
+            },
+            "root": {
+                "valid_children": ["default"]
+            },
+            "default": {
+                "valid_children": ["default", "file"]
+            },
+            "file": {
+                "icon": "glyphicon glyphicon-file",
+                "valid_children": []
+            }
+        },
+        "plugins": [
+            "contextmenu", "search",
+            "state", "types", "wholerow"
+        ],
+        "search" : {
+              'case_sensitive' : false,
+              'show_only_matches' : true
+         },
+         "contextmenu" : {
+                     "items": function($node) {
+                         var tree = $("#jstree_demo").jstree(true);
+                         return {
+                             "Create": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Create",
+                                 "submenu": {
+                                     "create_file" : {
+                                         "seperator_before" : false,
+                                         "seperator_after" : false,
+                                         "label" : "File",
+                                         action : function (obj) {
+                                             $node = tree.create_node($node,{"type":"file"});
+                                             tree.edit($node);
+                                         }
+                                     },
+                                     "create_folder" : {
+                                         "seperator_before" : false,
+                                         "seperator_after" : false,
+                                         "label" : "Folder",
+                                         action : function (obj) {
+                                             $node = tree.create_node($node);
+                                             tree.edit($node);
+                                         }
+                                     }
+                                 }
+                             },
+                             "Rename": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Rename",
+                                 "action": function (obj) {
+                                     tree.edit($node);
+                                 }
+                             },
+                             "Remove": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Remove",
+                                 "action": function (obj) {
+                                     tree.delete_node($node);
+                                 }
+                             },
+                             "Preview": {
+                                 "separator_before": false,
+                                 "separator_after": false,
+                                 "label": "Preview",
+                                 "action": function (obj) {
+                                     previewNode($node);
+                                 }
+                             }
+                         };
+                     }
+                 }
+
+
+
+
+    }).on('ready.jstree', function(e, data) {
+        console.log('hi', data);
+        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
+        $( "#sb-site" ).droppable({drop: dragEndFunc2});
+    });
+
+    $('#wftabs').on('click','.close',function(){
+         console.log('close  ');
+         var tabID = $(this).parents('a').attr('href');
+         $(this).parents('li').remove();
+         $(tabID).remove();
+
+         //display first tab
+         //var tabFirst = $('#wftabs a:first');
+         //tabFirst.tab('show');
+     });
+
   } );
 
 function saveJSON() {
@@ -179,4 +293,83 @@ function saveJSON() {
   console.log(serializedData);
   var serializedData = JSON.stringify(connections);
   console.log(serializedData);
+}
+
+// JSTREE functions
+
+rootjson=[
+  {
+    "id": 1,
+    "text": "My Lib",
+    "children": [
+      {
+        "id": 2,
+        "text": "Primitives"
+      },
+      {
+        "id": 3,
+        "text": "Workflows"
+      }
+    ],
+    "type": "root"
+  },
+  {
+    "id": 4,
+    "text": "ViPR Lib",
+    "children": [
+      {
+        "id": 5,
+        "text": "Primitives",
+        "children": [
+          {
+            "text": "Block",
+            "children": [
+              {
+                "id": 10,
+                "text": "Create Volume",
+                "type": "file",
+                "li_attr": {"class": "draggable-card"}
+              },
+              {
+                "id": 8,
+                "text": "Export Volume",
+                "type": "file",
+                "li_attr": {"class": "draggable-card"}
+              }
+            ]
+          },
+            {
+                "text": "File",
+                "children": [
+                    {
+                        "id": 7,
+                        "text": "Create filesystem",
+                        "type": "file",
+                        "li_attr": {"class": "draggable-card"}
+                    }
+                ]
+            }
+        ]
+      },
+      {
+        "id": 6,
+        "text": "Workflows",
+          "children": [
+                    {
+                        "id": 9,
+                        "text": "Create and Export Volume",
+                        "type": "file",
+                        "li_attr": {"class": "draggable-card"}
+                    }
+                ]
+      }
+    ],
+    "type": "root"
+  }
+]
+
+function previewNode(node) {
+    tabID = node.id;
+    $("#wftabs").append('<li><a href="#tab'+tabID+'" role="tab" data-toggle="tab">'+node.text+'&nbsp;<button class="close" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>')
+    $('.tab-content').append($('<div class="tab-pane fade" id="tab' + tabID + '">Tab '+ node.text +' content</div>'));
 }

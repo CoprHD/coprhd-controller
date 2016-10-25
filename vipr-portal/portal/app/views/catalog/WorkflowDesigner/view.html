@@ -27,20 +27,49 @@
 #{script 'jquery-ui.js'/}
 #{script 'jsPlumb-2.1.7.js'/}
 #{script 'workflowdesigner.js'/}
-<div>
-    <div id="theSidebar" class="sidebar">
-        <div class="row" style="margin-top: 55px;text-align:center;">
+#{script 'jstree.min.js'/}
+<div class="row">
+    <div id="theSidebar" class="col-md-4" style="width: inherit !important; ">
+        <div class="sidebar">
+            <div>
+                <input class="search-input form-control" placeholder="search..."></input>
+            </div>
+            <div id="jstree_demo" >
+            </div>
+        </div>
+        <!--<div class="row" style="margin-top: 55px;text-align:center;">
             <div class="item draggable-card">
                 <span class="itemText">I am a very simple card.</span>
             </div>
         </div>
         <div class="buttonbar">
             <input id="Export" type="button" value="Export" onclick="saveJSON();" />
-        </div>
+        </div>-->
     </div>
-    <div id="sb-site" class="exampleEditor">
+    <div class="col-md-8">
+            <ul id="wftabs" class="nav nav-tabs" role="tablist">
+                <li class="active"><a href="#tab20" role="tab" data-toggle="tab">Home</a></li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade in active" id="tab20">
+                    <div id="sb-site" class="exampleEditor">
+                        <div class="row">
+                            <div class="col s12" style="padding: 0 !important;">
+                                <div class="parent">
+                                    <div id="diagramContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    </div>
+    <!--<div id="sb-site" class="exampleEditor">
 
         <div class="row">
+
             <div class="col s12" style="padding: 0 !important;">
                 <div class="parent">
                     <div id="diagramContainer">
@@ -50,5 +79,6 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
+
 </div>

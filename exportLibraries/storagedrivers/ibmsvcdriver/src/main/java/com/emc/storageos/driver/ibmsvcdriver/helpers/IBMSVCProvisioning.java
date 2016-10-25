@@ -181,8 +181,10 @@ public class IBMSVCProvisioning {
 
             if (newCapacity > storageVolume.getProvisionedCapacity()) {
 
+                String increaseByCapacity = String.valueOf(newCapacity - storageVolume.getProvisionedCapacity());
+
                 IBMSVCExpandVolumeResult result = IBMSVCCLI.expandStorageVolumes(connection,
-                        storageVolume.getNativeId(), newVolumeCapacity);
+                        storageVolume.getNativeId(), increaseByCapacity);
 
                 if (result.isSuccess()) {
 

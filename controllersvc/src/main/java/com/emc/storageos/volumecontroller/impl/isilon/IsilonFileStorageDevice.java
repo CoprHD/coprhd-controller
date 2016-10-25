@@ -759,16 +759,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         newIsilonExport.setSecurityFlavors(secFlavors);
         newIsilonExport.setMapRoot(root_user);
+        newIsilonExport.resetReadOnly();
 
         if (roHosts > 0 && rwHosts == 0 && rootHosts == 0) {
             // RO Export
             newIsilonExport.setReadOnly();
-        } else if (roHosts == 0 && rwHosts > 0 && rootHosts == 0) {
-            // RW Export
-            newIsilonExport.resetReadOnly();
-        } else if (roHosts == 0 && rootHosts > 0) {
-            // ROOT export
-            newIsilonExport.resetReadOnly();
         }
 
         _log.info("setIsilonExport completed with creating {}", newIsilonExport.toString());
@@ -1406,7 +1401,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 

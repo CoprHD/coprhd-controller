@@ -13,7 +13,6 @@ import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.service.vipr.file.FileConstants.DEFAULT_ROOT_USER;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -94,6 +93,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
             export.setExportHosts(exportHosts);
             export.setPermission(mount.getPermission());
             export.setSecurity(mount.getSecurity());
+            export.setRootUserMapping(mount.getRootUserMapping());
             exportList.add(export);
         }
 
@@ -105,7 +105,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
         // create nfs export
         if (exportList != null) {
             FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
-                    exportList.get(0).getPermission(), DEFAULT_ROOT_USER, exportList.get(0).getExportHosts(), null);
+                    exportList.get(0).getPermission(), exportList.get(0).getRootUserMapping(), exportList.get(0).getExportHosts(), null);
             if (!exportList.isEmpty()) {
                 FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));
             }

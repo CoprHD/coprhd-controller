@@ -44,7 +44,6 @@
           lockable: true
         },
         
-        
         permission:{
           type:"assetType.vipr.fileNFSPermission",
           initialValue:"ro",

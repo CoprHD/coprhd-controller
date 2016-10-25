@@ -55,6 +55,11 @@
                     initialValue: "sys",
                     lockable: true
                 },
+                rootUserMapping:{
+          			type:"text",
+          			initialValue:"root",
+          			lockable: true
+        		},
                 permission: {
                     type: "assetType.vipr.fileNFSPermission",
                     initialValue: "rw",

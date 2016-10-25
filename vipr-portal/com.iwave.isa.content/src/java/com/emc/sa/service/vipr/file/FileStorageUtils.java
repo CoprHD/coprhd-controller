@@ -716,6 +716,9 @@ public class FileStorageUtils {
         @Param
         private String fsType;
 
+        @Param
+        protected String rootUserMapping;
+
         public URI getHost() {
             return host;
         }
@@ -754,6 +757,14 @@ public class FileStorageUtils {
 
         public void setFsType(String fsType) {
             this.fsType = fsType;
+        }
+
+        public String getRootUserMapping() {
+            return rootUserMapping;
+        }
+
+        public void setRootUserMapping(String rootUserMapping) {
+            this.rootUserMapping = rootUserMapping;
         }
     }
 }

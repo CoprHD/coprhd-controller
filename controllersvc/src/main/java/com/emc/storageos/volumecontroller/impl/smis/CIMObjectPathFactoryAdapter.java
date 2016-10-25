@@ -107,6 +107,11 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     }
 
     @Override
+    public CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice) {
+        return proxy.getStorageRelocationSvcPath(storageDevice);
+    }
+
+    @Override
     public CIMObjectPath getTierPolicySvcPath(StorageSystem storageDevice) {
         return proxy.getTierPolicySvcPath(storageDevice);
     }

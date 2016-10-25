@@ -7690,7 +7690,85 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Get the SMI-S input arguments for Checking, Creating and Deleting the Data Migration enviroment..
+     * 
+     * @param storageSystem - srcStorageSystem
+     * @param storageSystem - destStorageSystem
+     * @param operation - an integer value where zero represent to not supply the operation parameter
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getDataMigrationEnviromentArgs(StorageSystem srcStorageSystem, StorageSystem destStorageSystem, int operation)
+            throws Exception {
+        if (operation != 0) {
+            return new CIMArgument[] {
+                    _cimArgument.reference(CP_COMPUTER_SYSTEM, _cimPath.getStorageSystem(srcStorageSystem)),
+                    _cimArgument.reference(CP_DESTINATION_SYSTEM, _cimPath.getStorageSystem(destStorageSystem)),
+                    _cimArgument.uint16(CP_OPERATION, operation),
+            };
+        } else {
+            return new CIMArgument[] {
+                    _cimArgument.reference(CP_COMPUTER_SYSTEM, _cimPath.getStorageSystem(srcStorageSystem)),
+                    _cimArgument.reference(CP_DESTINATION_SYSTEM, _cimPath.getStorageSystem(destStorageSystem))
+            };
+        }
+    }
+
+    /**
+     * Check the Data Migration environment to be used for Non disruptive Migration
+     * @param storageSystem - srcStorageSystem
+     * @param storageSystem - destStorageSystem
+     */
+    public boolean checkDataMigrationEnvironment(
+            StorageSystem srcStorageSystem, StorageSystem destStorageSystem)
+                    throws Exception {
+        boolean result = false;
+        CIMArgument[] inArgs = getDataMigrationEnviromentArgs(srcStorageSystem, destStorageSystem, 0);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCCheckSystemIsRelocatableToSystem ", inArgs, outArgs);
+        Object value = _cimPath.getFromOutputArgs(outArgs, "IsMigratable");
+        if (value != null) {
+            result = Boolean.parseBoolean(value.toString());
+        }
+        return result;
+    }
+
+    /**
+     * Create the Data Migration environment to be used for Non disruptive Migration
+     * @param storageSystem - srcStorageSystem
+     * @param storageSystem - destStorageSystem
+     */
+    public void createDataMigrationEnvironment(
+            StorageSystem srcStorageSystem, StorageSystem destStorageSystem)
+                    throws Exception {
+        if (!checkDataMigrationEnvironment(srcStorageSystem, destStorageSystem)) {
+            CIMArgument[] inArgs = getDataMigrationEnviromentArgs(srcStorageSystem, destStorageSystem, DM_SETUP_VALUE);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethodSynchronously(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                    "EMCManageRelocationEnvironment", inArgs, outArgs, null);
+        }
+    }
+
+    /**
+     * Delete the Data Migration environment to be used for Non disruptive Migration
+     * 
+     * @param storageSystem - srcStorageSystem
+     * @param storageSystem - destStorageSystem
+     */
+    public void deleteDataMigrationEnvironment(
+            StorageSystem srcStorageSystem, StorageSystem destStorageSystem)
+                    throws Exception {
+        if (checkDataMigrationEnvironment(srcStorageSystem, destStorageSystem)) {
+            CIMArgument[] inArgs = getDataMigrationEnviromentArgs(srcStorageSystem, destStorageSystem, DM_REMOVE_VALUE);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethodSynchronously(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                    "EMCManageRelocationEnvironment", inArgs, outArgs, null);
+        }
+    }
+
+    /**
      * Get the SMI-S input arguments for setting the Initiator Alias.
+     * 
      * @param shidPath A reference to the HardwareID.
      * @param initiatorAlias The alias that needs to be set
      * @return An array of CIMArgument

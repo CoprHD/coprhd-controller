@@ -115,6 +115,7 @@ public interface SmisConstants {
     static final String ROOT_EMC_NAMESPACE = "root/emc";
     static final String STORAGE_CONFIGURATION_SERVICE = "_StorageConfigurationService";
     static final String CONTROLLER_CONFIGURATION_SERVICE = "_ControllerConfigurationService";
+    static final String STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
     static final String TIER_POLICY_SERVICE = "_TierPolicyService";
     static final String TIER_POLICY_RULE = "_TierPolicyRule";
     static final String STORAGE_POOL_SETTING = "_StoragePoolSetting";
@@ -186,6 +187,7 @@ public interface SmisConstants {
     static final String EMC_REPLICATION_SERVICE = "EMCReplicationService";
     static final String EMC_PROTECTION_SERVICE = "StorageProtectionService";
     static final String EMC_CONTROLLER_CONFIGURATION_SERVICE = "EMCControllerConfigurationService";
+    static final String EMC_STORAGE_RELOCATION_SERVICE = "EMC_StorageRelocationService";
     static final String EMC_STORAGE_CONFIGURATION_SERVICE = "EMCStorageConfigurationService";
     static final String EMC_TIER_POLICY_SERVICE = "EMC_TierPolicyService";
     static final String EMC_REFRESH_SYSTEM = "EMCRefreshSystem";
@@ -432,6 +434,12 @@ public interface SmisConstants {
     static final String CP_EMC_COMPRESSION = "EMCCompression";
     static final String CP_EMC_COMPRESSION_RATIO = "EMCCompressionRatio";
     static final String[] PS_EMC_COMPRESSION = new String[] { CP_EMC_COMPRESSION };
+
+    // Data Migration
+    static final int DM_SETUP_VALUE = 2;
+    static final int DM_REMOVE_VALUE = 3;
+    static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
+    static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
 
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {

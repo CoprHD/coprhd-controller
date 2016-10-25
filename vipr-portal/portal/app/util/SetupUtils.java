@@ -68,6 +68,6 @@ public class SetupUtils {
      */
 
     public static boolean isAppliance() {
-        return true;
+        return PlatformUtils.isAppliance();
     }
 }

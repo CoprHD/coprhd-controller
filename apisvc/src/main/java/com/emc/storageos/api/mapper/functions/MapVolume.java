@@ -19,6 +19,8 @@ public class MapVolume implements Function<Volume, VolumeRestRep> {
     public static MapVolume instance;
     private DbClient dbClient;
     private Map<URI, StorageSystem> storageSystemCache;
+    // A map of project URI to a boolean indicating whether project is SRDF capable
+    private Map<URI, Boolean> projectSrdfCapableCache;
     
     public static MapVolume getInstance() {
         if (instance == null) {
@@ -41,11 +43,12 @@ public class MapVolume implements Function<Volume, VolumeRestRep> {
     private MapVolume(DbClient dbClient) {
         this.dbClient = dbClient;
         this.storageSystemCache = new HashMap<URI, StorageSystem>();
+        this.projectSrdfCapableCache = new HashMap<URI, Boolean>();
     }
 
     @Override
     public VolumeRestRep apply(Volume volume) {
         // Via this mechanism, the volume rest rep will not contain target varrays or other "deep dive" objects within the volume
-        return BlockMapper.map(dbClient, volume, storageSystemCache);
+        return BlockMapper.map(dbClient, volume, storageSystemCache, projectSrdfCapableCache);
     }
 }

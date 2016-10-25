@@ -130,14 +130,20 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
+        Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
+        renderArgs.put("startDate", params.get("startDate"));
+        renderArgs.put("endDate", params.get("endDate"));
         render(dataTable);
     }
 
     public static void listJson() {
+        Logger.info("hlj, start to call listJson()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
+        dataTable.setStartDate(params.get("startDate"));
+        dataTable.setEndDate(params.get("endDate"));
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchAll(), params));
     }
 

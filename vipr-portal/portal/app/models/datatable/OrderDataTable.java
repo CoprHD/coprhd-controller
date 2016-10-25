@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import play.Logger;
 import models.security.UserInfo;
 import util.OrderUtils;
 import util.datatable.DataTable;
@@ -23,6 +24,9 @@ import controllers.catalog.Orders;
 public class OrderDataTable extends DataTable {
     protected UserInfo userInfo;
     protected String tenantId;
+    
+    protected String startDate;
+    protected String endDate;
     private static final String ORDER_MAX_COUNT = "6000";
 
     public OrderDataTable(String tenantId) {
@@ -44,19 +48,29 @@ public class OrderDataTable extends DataTable {
         this.userInfo = userInfo;
     }
 
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
+    }
+
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
+    }
+
     public List<OrderInfo> fetchAll() {
         List<OrderRestRep> orderRestReps = null;
         if (userInfo != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            Date startDate = null;
+            Date start = null;
+            Date end = null;
             //just for test
             try {
-                startDate = sdf.parse("2016-08-08");
+                start = sdf.parse(startDate);
+                end = sdf.parse(endDate);
             } catch (ParseException e) {
                 e.printStackTrace();
             }
-            Date endDate = new Date();
-            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT);
+            Logger.info("hlj, start to call fetchAll()");
+            orderRestReps = OrderUtils.getUserOrders(start, end, ORDER_MAX_COUNT);
         } else {
             orderRestReps = OrderUtils.getOrders(uri(this.tenantId));
         }

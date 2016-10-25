@@ -13,7 +13,7 @@ public class ReplicationSessionParam extends ParamBase {
     private String dstResourceId;
     private Integer maxTimeOutOfSync = null;
     private Boolean autoInitiate = null;
-    private RemoteSystem remoteSystem;
+    private VNXeBase remoteSystem;
     private Boolean sync = null;
     private Boolean forceFullCopy = null;
 
@@ -33,11 +33,11 @@ public class ReplicationSessionParam extends ParamBase {
         this.dstResourceId = dstResourceId;
     }
 
-    public RemoteSystem getRemoteSystem() {
+    public VNXeBase getRemoteSystem() {
         return remoteSystem;
     }
 
-    public void setRemoteSystem(RemoteSystem remoteSystem) {
+    public void setRemoteSystem(VNXeBase remoteSystem) {
         this.remoteSystem = remoteSystem;
     }
 

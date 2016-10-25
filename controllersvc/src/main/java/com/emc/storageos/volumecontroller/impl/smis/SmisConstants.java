@@ -436,10 +436,20 @@ public interface SmisConstants {
     static final String[] PS_EMC_COMPRESSION = new String[] { CP_EMC_COMPRESSION };
 
     // Data Migration
-    static final int DM_SETUP_VALUE = 2;
-    static final int DM_REMOVE_VALUE = 3;
+    static final int DM_ENV_CHECK_VALUE = 0;
+    static final int DM_ENV_SETUP_VALUE = 2;
+    static final int DM_ENV_REMOVE_VALUE = 3;
+    static final int DM_OP_CREATE_VALUE = 2;
+    static final int DM_OP_CUTOVER_VALUE = 3;
+    static final int DM_OP_CANCEL_VALUE = 4;
+    static final int DM_OP_COMMIT_VALUE = 5;
+    static final int DM_OP_SYNCSTART_VALUE = 6;
+    static final int DM_OP_SYNCSTOP_VALUE = 7;
+    static final int DM_OP_RECOVER_VALUE = 8;
     static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
     static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
+    static final String CP_COLLECTION = "Collection";
+    static final String CP_ENABLE_COMPRESSION = "EnableCompression";
 
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {

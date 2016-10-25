@@ -103,6 +103,9 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
                 dbClient.createObject(exportPathParam);
             }
 
+            // TODO addedBlockObjectsMap - export host's exclusive volume to cluster (shared). send volume with HLU same as that of host's.
+            // otherwise findAndUpdateFreeHLU() updates with next free HLU which results in consistent Lun Violation for hosts in cluster
+
             // push it to storage devices
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");

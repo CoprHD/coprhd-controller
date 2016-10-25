@@ -91,24 +91,22 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         // TODO see how to ignore this method's execution for arrays that we are currently not going to support
+        // TODO query used HLU failure handling
 
         if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)) {
             _log.info("findAndUpdateFreeHLUsForClusterExport START..");
             if (exportGroup.forCluster()) {
                 /**
                  * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
-                 * All all hosts's HLUs to a Set.
+                 * Add all hosts's HLUs to a Set.
                  * Get the maximum allowed HLU for the storage array.
-                 * Calculate the free lowest available HLUs for the requested number of volumes.
+                 * Calculate the free lowest available HLUs.
                  * Update the new values in the VolumeHLU Map
                  */
-                // TODO check if cluster has 'n' masking views before proceeding?
-
                 Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
 
                 Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
 
-                // int numberOfVolumes = volumeMap.size();
                 Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
                 ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
@@ -120,7 +118,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 String hostStr = exportGroup.getHosts().iterator().next();
                 Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
                 if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                    // get all the hosts' initiators for this cluster TODO verify this
+                    _log.info("Host {} is part of Cluster", host.getHostName());
+                    // get all the hosts' initiators for this cluster
                     List<URI> clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
 
                     Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);

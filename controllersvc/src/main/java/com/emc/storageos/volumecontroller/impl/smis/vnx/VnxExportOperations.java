@@ -718,43 +718,52 @@ public class VnxExportOperations implements ExportMaskOperations {
         Set<Integer> usedHLUs = new HashSet<Integer>();
         CloseableIterator<CIMInstance> lunMaskingIter = null;
         try {
+            // Get a mapping of the initiator port names to their CIMObjectPaths on the provider
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            lunMaskingIter = _helper.getClarLunMaskingProtocolControllers(storage);
-            while (lunMaskingIter.hasNext()) {
-                CIMInstance instance = lunMaskingIter.next();
-                String systemName = CIMPropertyFactory.getPropertyValue(instance,
-                        SmisConstants.CP_SYSTEM_NAME);
+            HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
+            List<String> maskNames = new ArrayList<String>();
 
-                if (!systemName.contains(storage.getSerialNumber())) {
-                    // We're interested in the specific StorageSystem's masks.
-                    // The above getClarLunMaskingProtocolControllers call will get
-                    // a listing of for all the protocol controllers seen by the
-                    // SMISProvider pointed to by 'storage' system.
-                    continue;
-                }
+            // Iterate through each initiator port name ...
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
 
-                String name = CIMPropertyFactory.getPropertyValue(instance,
-                        SmisConstants.CP_ELEMENT_NAME);
-                _log.debug("Processing mask {}", name);
-                List<String> initiatorPorts =
-                        _helper.getInitiatorsFromLunMaskingInstance(client, instance);
-                // Find out if the port is in this masking container
-                for (String port : initiatorNames) {
-                    String normalizedName = Initiator.normalizePort(port);
-                    if (initiatorPorts.contains(normalizedName)) {
-                        _log.info("Found Initiator {} in mask {}", normalizedName, name);
-                        // Get volumes for the masking instance
-                        Map<String, Integer> volumeWWNs =
-                                _helper.getVolumesFromLunMaskingInstance(client, instance);
+                // Find out if there is a Lun Masking Instance associated with the initiator...
+                lunMaskingIter = _helper.getAssociatorInstances(storage, initiatorPath, null,
+                        SmisConstants.CLAR_LUN_MASKING_SCSI_PROTOCOL_CONTROLLER, null,
+                        null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                while (lunMaskingIter.hasNext()) {
+                    // Found a Lun Masking Instance...
+                    CIMInstance instance = lunMaskingIter.next();
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYSTEM_NAME);
+
+                    if (!systemName.contains(storage.getSerialNumber())) {
+                        // We're interested in the specific StorageSystem's masks.
+                        // The above getClarLunMaskingProtocolControllers call will get
+                        // a listing of for all the protocol controllers seen by the
+                        // SMISProvider pointed to by 'storage' system.
+                        continue;
+                    }
+
+                    String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                    if (!maskNames.contains(name)) {
+                        _log.info("Found matching mask {}", name);
+                        maskNames.add(name);
+
+                        // Find all the initiators associated with the Masking instance
+                        List<String> initiatorPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+
+                        // Get volumes for the Masking instance
+                        Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
+
                         // add HLUs to set
                         usedHLUs.addAll(volumeWWNs.values());
                         _log.info(String.format("%nXM:%s I:{%s} V:{%s} HLU:{%s}%n", name,
                                 Joiner.on(',').join(initiatorPorts),
                                 Joiner.on(',').join(volumeWWNs.keySet()), volumeWWNs.values()));
-                        break;
                     }
                 }
             }
+
             _log.info(String.format("HLUs found for Initiators { %s }: %s",
                     Joiner.on(',').join(initiatorNames), usedHLUs));
         } catch (Exception e) {

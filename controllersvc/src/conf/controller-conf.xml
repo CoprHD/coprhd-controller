@@ -551,7 +551,11 @@
         <property name="creatorFactory" ref="vnxCIMObjectPathFactory"></property>
         <property name="queryFactory" ref="vnxCIMObjectPathQueryFactory"></property>
         <property name="defaultFactory" value="creator"></property> <!-- or "query" -->
-        <!-- No query methods for VNX -->
+        <property name="queryMethods"> <!-- or "creatorMethods" -->
+            <set>
+                <value>getInitiatorToInitiatorPath</value>
+            </set>
+        </property>
     </bean>
 
     <!--

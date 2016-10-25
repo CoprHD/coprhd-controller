@@ -1574,8 +1574,11 @@ public class ExportUtils {
     public static void updateFreeHLUsInVolumeMap(Map<URI, Integer> volumeMap, Set<Integer> freeHLUs) {
         Iterator<Integer> freeHLUItr = freeHLUs.iterator();
         for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
-            if (entry.getValue() == ExportGroup.LUN_UNASSIGNED) { // TODO can there be mix of Unassigned and Assigned? I don't think so
-                entry.setValue((Integer) freeHLUItr.next());
+            if (freeHLUItr.hasNext()) {
+                entry.setValue(freeHLUItr.next());
+            } else {
+                _log.warn("No more free HLU available on array to assign."); // TODO error out?
+                break;
             }
         }
         _log.info("updated volume-HLU map: {}", volumeMap);

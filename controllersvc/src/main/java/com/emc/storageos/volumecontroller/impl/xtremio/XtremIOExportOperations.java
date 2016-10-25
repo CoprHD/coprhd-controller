@@ -58,6 +58,8 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
@@ -450,8 +452,44 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
-        // TODO Auto-generated method stub
-        return null;
+        Set<Integer> usedHLUs = new HashSet<Integer>();
+        try {
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
+            Set<String> igNames = new HashSet<>();
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            for (String initiatorName : initiatorNames) {
+                initiatorName = Initiator.toPortNetworkId(initiatorName);
+                URIQueryResultList initiatorResult = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiatorName),
+                        initiatorResult);
+                if (initiatorResult.iterator().hasNext()) {
+                    Initiator initiator = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
+                    String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
+                    if (igName != null && !igName.isEmpty()) {
+                        igNames.add(igName);
+                    }
+                }
+            }
+
+            // get the lun maps for IGs
+            for (String igName : igNames) {
+                List<XtremIOObjectInfo> lunMapLinks = XtremIOProvUtils.getInitiatorGroupLunMaps(igName, xioClusterName, client);
+                List<XtremIOLunMap> lunMaps = client.getXtremIOLunMapsForLinks(lunMapLinks, xioClusterName);
+                for (XtremIOLunMap lunMap : lunMaps) {
+                    _log.info("Looking at lun map {}; IG name: {}, Volume: {}, HLU: {}",
+                            lunMap.getMappingInfo().get(2), lunMap.getIgName(), lunMap.getVolumeName(), lunMap.getLun());
+                    usedHLUs.add(Integer.valueOf(lunMap.getLun()));
+                }
+            }
+
+            _log.info(String.format("HLUs found for Initiators { %s }: %s",
+                    Joiner.on(',').join(initiatorNames), usedHLUs));
+        } catch (Exception e) {
+            String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
+            _log.error(errMsg, e);
+            // throw e; // TODO
+        }
+        return usedHLUs;
     }
 
     @Override

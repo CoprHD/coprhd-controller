@@ -19,7 +19,7 @@ public class TimeUtils {
     public static long DAYS = 24 * HOURS;
 
     // Constant defines the date/time format for a request parameter.
-    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
+    public static final String DATE_TIME_FORMAT = "yyyyMMdd_HHmmss";
     
     public static final String DATE_TIME_PATTERN = "{datetime}";
     

@@ -138,6 +138,7 @@
         </entry>
         <entry key="3.5">
             <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration"/>
             </list>
         </entry>

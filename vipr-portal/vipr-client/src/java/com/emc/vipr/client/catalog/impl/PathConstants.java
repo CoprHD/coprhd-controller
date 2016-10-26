@@ -42,6 +42,7 @@ public class PathConstants {
     public static final String APPROVALS2_URL = "/catalog/approvals";
     public static final String EXECUTION_WINDOWS2_URL = "/catalog/execution-windows";
     public static final String ORDER2_URL = "/catalog/orders";
+    public static final String ORDER2_MY_URL = ORDER2_URL+"/myorders";
     public static final String ORDER2_ALL_URL = ORDER2_URL + "/all";
     public static final String ORDER2_LOGS_URL = ORDER2_URL + "/{id}/logs";
     public static final String ORDER2_CANCEL_URL = ORDER2_URL + "/{id}/cancel";

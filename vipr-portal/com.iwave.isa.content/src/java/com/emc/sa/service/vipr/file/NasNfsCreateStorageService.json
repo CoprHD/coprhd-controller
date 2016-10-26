@@ -61,7 +61,7 @@
           initialValue:"root",
           lockable: true,
           validation: {
-              regEx: "[^\\]([\S]+[\\])?[\S]+"
+              regEx: "[^\\\\]([\\S]+[\\\\])?[\\S]+"
           }
         },
         

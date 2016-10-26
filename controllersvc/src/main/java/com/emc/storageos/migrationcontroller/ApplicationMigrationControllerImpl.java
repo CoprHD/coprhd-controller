@@ -1,23 +1,42 @@
-/*
- * Copyright (c) 2016 EMC Corporation
- * All Rights Reserved
- */
 package com.emc.storageos.migrationcontroller;
+
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ApplicationMigrationController implements MigrationController {
-    protected final static String CONTROLLER_SVC = "controllersvc";
-    protected final static String CONTROLLER_SVC_VER = "1";
+import com.emc.storageos.db.client.DbClient;
 
-    static final Logger log = LoggerFactory.getLogger(ApplicationMigrationController.class);
+public class ApplicationMigrationControllerImpl implements MigrationController {
 
+     static final Logger log = LoggerFactory.getLogger(ApplicationMigrationControllerImpl.class);
+
+	
+	 private Set<ApplicationMigrationController> migrationControllerImpl;
+	 private DbClient dbClient;	 
+
+	public DbClient getDbClient() {
+		return dbClient;
+	}
+
+	public void setDbClient(DbClient dbClient) {
+		this.dbClient = dbClient;
+	}
+	
+	public ApplicationMigrationController getMigrationController() {
+		return migrationControllerImpl.iterator().next();
+	}
+
+	public void setMigrationControllerImpl(Set<ApplicationMigrationController> migrationControllerImpl) {
+		this.migrationControllerImpl = migrationControllerImpl;
+	}	
+
+	    
 	@Override
 	public void migrationCreate() {
-		log.info("ApplicationMigrationController : Create Migration");
 		// TODO Auto-generated method stub
-		
+		log.info("ApplicationMigrationControllerImpl : Start Migration Create");
+		getMigrationController().migrationCreate();		
 	}
 
 	@Override
@@ -67,4 +86,6 @@ public class ApplicationMigrationController implements MigrationController {
 		// TODO Auto-generated method stub
 		
 	}
+
+	
 }

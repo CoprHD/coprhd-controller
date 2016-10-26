@@ -26,6 +26,8 @@
                 <entry key="ObjectController"  value="rmi://${node_id}:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://${node_id}:10099/ComputeSystemOrchestrationController"/>
+                <entry key="MigrationController" value="rmi://${node_id}:10099/MigrationController"/>
+                
             </map>
         </property>
         <property name="version" value="1"/>
@@ -53,6 +55,7 @@
                 <value>vplex</value>
                 <value>export</value>
                 <value>block-orchestration</value>
+                <value>migration</value>                
                 <value>file-orchestration</value>
                 <value>ucs</value>
                 <value>host</value>

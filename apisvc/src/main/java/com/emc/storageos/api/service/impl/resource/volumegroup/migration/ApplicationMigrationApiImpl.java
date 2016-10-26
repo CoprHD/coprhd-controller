@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.migrationcontroller.ApplicationMigrationController;
 import com.emc.storageos.migrationcontroller.MigrationController;
 import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.util.NetworkLite;
@@ -93,7 +94,7 @@ public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl
         
         // TODO: what sort of validation checks do we need here.
         		
-		getController(MigrationController.class, "application").migrationCreate();
+		getController(MigrationController.class, ApplicationMigrationController.MIGRATION_ORCHESTRATION_DEVICE).migrationCreate();
 	}
 
 	@Override

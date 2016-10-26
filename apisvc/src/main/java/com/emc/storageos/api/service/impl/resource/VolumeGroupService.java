@@ -4166,7 +4166,7 @@ public class VolumeGroupService extends TaskResourceService {
         	//TODO: throw an exception here or handle differently
         }
                 
-        MigrationServiceApi migrationApiImpl = getMigrationServiceApiImpl(application.getMigrationType());
+        MigrationServiceApi migrationApiImpl = getMigrationServiceApiImpl(application.getMigrationType().toUpperCase());
         migrationApiImpl.migrationCreate(id, param);
         
         Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,

@@ -302,7 +302,7 @@
         </property>
         <property name="migrationServiceApis">
         	<map>
-            	<entry key="vmax" value-ref="applicationMigrationApiImpl" />               
+            	<entry key="VMAX" value-ref="applicationMigrationApiImpl" />               
             </map>
         </property>
     </bean>

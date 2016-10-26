@@ -785,6 +785,19 @@
         </property>
     </bean>
     
+     <bean id="appMigrationController" class="com.emc.storageos.migrationcontroller.ApplicationMigrationController">     
+    </bean>
+    
+    <bean id="migrationController" class="com.emc.storageos.migrationcontroller.ApplicationMigrationControllerImpl">     
+        <property name="dbClient" ref="dbclient"/>
+        <property name="migrationControllerImpl">
+            <set>
+                <ref bean="appMigrationController"/>
+            </set>
+        </property>
+    </bean>
+    
+    
     <bean id="vplexDeviceController" class="com.emc.storageos.vplexcontroller.VPlexDeviceController">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
@@ -1744,6 +1757,14 @@
         </property>
     </bean>
     
+     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="MigrationController"/>
+        <property name="service" ref="migrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.migrationcontroller.MigrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+        
 	<bean id="xivRestOperationsHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRestOperationsHelper">
         <property name="dbClient" ref="dbclient"/>
         <property name="xivRestClientFactory" ref="xivRestClientFactory"/>

@@ -26,6 +26,7 @@
                 <entry key="ObjectController" value="rmi://localhost:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://localhost:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://localhost:10099/ComputeSystemOrchestrationController"/>
+                <entry key="MigrationController" value="rmi://localhost:10099/MigrationController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -47,6 +48,7 @@
                 <value>rp</value>
                 <value>export</value>
                 <value>block-orchestration</value>
+                <value>migration</value>
                 <value>file-orchestration</value>
                 <value>host</value>
                 <value>vcenter</value>

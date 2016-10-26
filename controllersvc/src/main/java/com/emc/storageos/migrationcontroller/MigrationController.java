@@ -8,6 +8,8 @@ import com.emc.storageos.Controller;
 
 public interface MigrationController extends Controller {
 	
+    public final static String MIGRATION_ORCHESTRATION_DEVICE = "migration";
+	
 	public void migrationCreate();
 	
 	public void migrationMigrate();

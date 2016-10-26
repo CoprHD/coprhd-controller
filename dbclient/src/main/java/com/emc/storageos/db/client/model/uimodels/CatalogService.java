@@ -165,6 +165,7 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     
     public void setWorkflowName(final String workflowName) {
         this.workflowName = workflowName;
+        setChanged(WORKFLOW_NAME);
     }
     
     @Name(RECURRING_ALLOWED)

@@ -111,12 +111,11 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#createExportMask(com.emc.storageos.db.client.
      * model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[], java.util.List,
      * java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-     *
      */
     @Override
     public void createExportMask(StorageSystem storage,
@@ -182,12 +181,12 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#deleteExportMask(com.emc.storageos.db.client.
      * model.StorageSystem, java.net.URI, java.util.List, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
-     *
+     * 
      * IDs
      * Note: No need to verify storage ports.
      */
@@ -291,7 +290,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addVolume(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[],
@@ -362,11 +361,10 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeVolume(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-     *
      */
     @Override
     public void removeVolumes(StorageSystem storage,
@@ -436,11 +434,10 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addInitiator(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-     *
      */
     @Override
     public void addInitiators(StorageSystem storage,
@@ -475,12 +472,11 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeInitiator(com.emc.storageos.db.client.
      * model.StorageSystem, java.net.URI, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
-     *
      */
     @Override
     public void removeInitiators(StorageSystem storage,
@@ -660,7 +656,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    if (volume != null) {
+                                    // Make sure an object with the same WWN does not already exist in the user created volumes map
+                                    if (volume != null && !exportMask.hasUserCreatedVolume(wwn)) {
                                         Integer hlu = volumeWWNs.get(wwn);
                                         if (hlu == null) {
                                             _log.warn(String.format(
@@ -835,7 +832,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    if (null != volume) {
+                                    if (null != volume && !mask.hasUserCreatedVolume(wwn)) {
                                         mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
                                     }
                                 }
@@ -848,7 +845,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
                 _networkDeviceController.refreshZoningMap(mask,
-                        initiatorsToRemove, Collections.<String>emptyList(),
+                        initiatorsToRemove, Collections.<String> emptyList(),
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }
@@ -1387,7 +1384,7 @@ public class VnxExportOperations implements ExportMaskOperations {
      */
     private void manuallyRegisterHostInitiators(StorageSystem storage,
             Multimap<URI, Initiator> targetPortsToInitiators)
-                    throws Exception {
+            throws Exception {
         _log.info("manuallyRegisterHostInitiators Start : {}", targetPortsToInitiators);
         for (Map.Entry<URI, Collection<Initiator>> t2is : targetPortsToInitiators.asMap().entrySet()) {
             URI storagePortURI = t2is.getKey();

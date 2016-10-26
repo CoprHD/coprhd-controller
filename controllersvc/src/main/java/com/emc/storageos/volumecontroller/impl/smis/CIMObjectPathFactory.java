@@ -46,6 +46,8 @@ public interface CIMObjectPathFactory extends SmisConstants {
 
     CIMObjectPath getControllerConfigSvcPath(StorageSystem storageDevice);
 
+    CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice);
+
     CIMObjectPath getTierPolicySvcPath(StorageSystem storageDevice);
 
     CIMObjectPath getTierPolicyRulePath(StorageSystem storageDevice, String policyName);

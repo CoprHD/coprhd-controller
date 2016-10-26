@@ -72,6 +72,7 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -7690,7 +7691,175 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Get the SMI-S input arguments for Checking, Creating and Deleting the Data Migration environment..
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param destStorageSystem - StorageSystem
+     * @param operation - an integer value where zero represent to not supply the operation parameter
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getDataMigrationEnviromentArgs(StorageSystem srcStorageSystem, StorageSystem destStorageSystem, int operation)
+            throws Exception {
+        if (operation != DM_ENV_CHECK_VALUE) {
+            return new CIMArgument[] {
+                    _cimArgument.reference(CP_COMPUTER_SYSTEM, _cimPath.getStorageSystem(srcStorageSystem)),
+                    _cimArgument.reference(CP_DESTINATION_SYSTEM, _cimPath.getStorageSystem(destStorageSystem)),
+                    _cimArgument.uint16(CP_OPERATION, operation),
+            };
+        } else {
+            return new CIMArgument[] {
+                    _cimArgument.reference(CP_COMPUTER_SYSTEM, _cimPath.getStorageSystem(srcStorageSystem)),
+                    _cimArgument.reference(CP_DESTINATION_SYSTEM, _cimPath.getStorageSystem(destStorageSystem))
+            };
+        }
+    }
+
+    /**
+     * Check the Data Migration environment to be used for Non disruptive Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param destStorageSystem - StorageSystem
+     */
+    public boolean checkDataMigrationEnvironment(
+            StorageSystem srcStorageSystem, StorageSystem destStorageSystem)
+                    throws Exception {
+        boolean result = false;
+        CIMArgument[] inArgs = getDataMigrationEnviromentArgs(srcStorageSystem, destStorageSystem, DM_ENV_CHECK_VALUE);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCCheckSystemIsRelocatableToSystem ", inArgs, outArgs);
+        Object value = _cimPath.getFromOutputArgs(outArgs, "IsMigratable");
+        if (value != null) {
+            result = Boolean.parseBoolean(value.toString());
+        }
+        return result;
+    }
+
+    /**
+     * Create the Data Migration environment to be used for Non disruptive Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param destStorageSystem - StorageSystem
+     */
+    public void createDataMigrationEnvironment(
+            StorageSystem srcStorageSystem, StorageSystem destStorageSystem)
+                    throws Exception {
+        if (!checkDataMigrationEnvironment(srcStorageSystem, destStorageSystem)) {
+            CIMArgument[] inArgs = getDataMigrationEnviromentArgs(srcStorageSystem, destStorageSystem, DM_ENV_SETUP_VALUE);
+            CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+            invokeMethodSynchronously(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                    "EMCManageRelocationEnvironment", inArgs, outArgs, null);
+        }
+    }
+
+    /**
+     * Delete the Data Migration environment to be used for Non disruptive Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param destStorageSystem - StorageSystem
+     */
+    public void deleteDataMigrationEnvironment(
+            StorageSystem srcStorageSystem, StorageSystem destStorageSystem)
+                    throws Exception {
+        if (checkDataMigrationEnvironment(srcStorageSystem, destStorageSystem)) {
+            CIMArgument[] inArgs = getDataMigrationEnviromentArgs(srcStorageSystem, destStorageSystem, DM_ENV_REMOVE_VALUE);
+            CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+            invokeMethodSynchronously(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                    "EMCManageRelocationEnvironment", inArgs, outArgs, null);
+        }
+    }
+
+    /**
+     * Get the SMI-S input arguments for performing Data Migration operations..
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param destStorageSystem - StorageSystem
+     * @param operation - an integer value where zero represent to not supply the operation parameter
+     * @param operation - an integer value that determines the operation associated with the data migration (Create, Cutover, Commit...)
+     * @param storagePool - The name of the Storage Pool on the destination System where the Group has to be migrated (Only for CREATE
+     *            operation)
+     * @param boolean - A boolean parameter determining if Compression has to be enabled on the Storage Group (Only for CREATE operation)
+     *            * @return An array of CIMArgument
+     */
+    public CIMArgument[] getDataMigrationOperationArgs(StorageSystem srcStorageSystem, StorageSystem destStorageSystem, int operation,
+            String storageGroup, StoragePool destStoragePool, boolean enableCompression)
+            throws Exception {
+        final CIMArgument[] basicArgs = new CIMArgument[] {
+                _cimArgument.reference(CP_COMPUTER_SYSTEM, _cimPath.getStorageSystem(srcStorageSystem)),
+                _cimArgument.reference(CP_COLLECTION, _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem)),
+                _cimArgument.uint16(CP_OPERATION, operation) };
+        final List<CIMArgument> args = new ArrayList<CIMArgument>(asList(basicArgs));
+        if (operation == DM_OP_CREATE_VALUE) {
+            if (destStoragePool != null) {
+                args.add(_cimArgument.reference(CP_TARGET_POOL, getPoolPath(destStorageSystem, destStoragePool)));
+            }
+            if (enableCompression) {
+                args.add(_cimArgument.bool(CP_ENABLE_COMPRESSION, Boolean.TRUE));
+            } else { // HY: NOT SURE WHICH one is default.
+                args.add(_cimArgument.bool(CP_ENABLE_COMPRESSION, Boolean.FALSE));
+            }
+        }
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
+    /**
+     * Perform the Data Migration operation to be used for Non disruptive Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param destStorageSystem - StorageSystem
+     * @param storageGroup - The name of the Storage Group to be or being migrated
+     * @param operation - an integer value that determines the operation associated with the data migration (Create, Cutover, Commit...)
+     * @param storagePool - The name of the Storage Pool on the destination System where the Group has to be migrated (Only for CREATE
+     *            operation)
+     * @param boolean - A boolean parameter determining if Compression has to be enabled on the Storage Group (Only for CREATE operation)
+     */
+    public void performDataMigrationOperation(StorageSystem srcStorageSystem, StorageSystem destStorageSystem, int operation,
+            String storageGroup, StoragePool destStoragePool, boolean enableCompression, SmisJob job)
+                    throws Exception {
+        CIMArgument[] inArgs = getDataMigrationOperationArgs(srcStorageSystem, destStorageSystem, operation, storageGroup, destStoragePool,
+                enableCompression);
+        CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+            invokeMethodSynchronously(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCRelocateDataToComputerSystem", inArgs, outArgs, null);// HY Do we need to pass in Job?
+    }
+
+    /**
+     * Get the Data Migration Status associated with the Storage Group
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param storageGroup - The name of the Storage Group to be or being migrated
+     */
+    public String checkDatamigrationStatus(StorageSystem srcStorageSystem,
+            String storageGroup)
+                    throws Exception {
+        CIMArgument[] inArgs = new CIMArgument[] {
+                _cimArgument.reference(CP_COMPUTER_SYSTEM, _cimPath.getStorageSystem(srcStorageSystem)),
+                _cimArgument.referenceArray(CP_COLLECTION,
+                        new CIMObjectPath[] { _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem) })
+        };
+        CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+        invokeMethodSynchronously(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCGetRelocationStatus", inArgs, outArgs, null);
+        Object value = _cimPath.getFromOutputArgs(outArgs, "RelocationState");
+        if (value != null) {
+            int relocationStatus = ((UnsignedInteger16[]) value)[0].intValue();
+            // HY TO DO.
+            // [OUT, Description ( "Status of relocation." )]
+            // ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            // "10", "11", "12", "13", "14", "15", "16", "17", "18",
+            // "..", "32768..65535" },
+            // Values { "None", "CreateInProgress", "CreateFailed", "Created", "Relocating", "RelocationFailed", "CutoverReady",
+            // "CutoverInProgress", "CutoverFailed", "CutoverNoSync", "CutoverSynching", "CutoverSync", "RevertInProgress",
+            // "RevertFailed", "CommitInProgress", "CommitFailed", "CancelInProgress", "CancelFailed", "Partitioned", "DMTF Reserved",
+            // "Vendor Specific" }]
+            // uint16 RelocationState[]);
+        }
+        return VolumeGroup.MigrationStatus.NONE.toString();
+    }
+
+    /**
      * Get the SMI-S input arguments for setting the Initiator Alias.
+     * 
      * @param shidPath A reference to the HardwareID.
      * @param initiatorAlias The alias that needs to be set
      * @return An array of CIMArgument

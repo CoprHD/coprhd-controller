@@ -531,6 +531,56 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
+     * Gets the list of orders within a time range for current user
+     *
+     * @brief List Orders
+     * @param startTime
+     * @param endTime
+     * @param maxCount The max number this API returns
+     * @return a list of orders
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("/myorders")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public OrderBulkRep getUserOrders2(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
+                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
+                                   @DefaultValue("6000") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
+            throws DatabaseException {
+
+        StorageOSUser user = getUserFromContext();
+
+        log.info("lby0:starTime={} endTime={} maxCount={} user={}",
+                new Object[] {startTime, endTime, maxCount, user.getName()});
+
+        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
+        long endTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(endTime);
+        int max = Integer.parseInt(maxCount);
+
+        List<Order> orders = orderManager.getUserOrders(user,startTimeInMacros, endTimeInMacros, max);
+        log.info("lby0 done0");
+
+        List<OrderRestRep> list = toOrders(orders, user);
+
+        OrderBulkRep resp = new OrderBulkRep(list);
+        log.info("lby0 done1");
+
+        return resp;
+    }
+
+    private List<OrderRestRep> toOrders(List<Order> orders, StorageOSUser user) {
+
+        List<OrderRestRep> orderList = new ArrayList();
+
+        for (Order order : orders) {
+            List<OrderParameter> orderParameters = orderManager.getOrderParameters(order.getId());
+            orderList.add(map(order, orderParameters));
+        }
+
+        return orderList;
+    }
+
+    /**
      * Gets the list of orders for current user
      *
      * @brief List Orders
@@ -543,30 +593,14 @@ public class OrderService extends CatalogTaggedResourceService {
     @GET
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderList getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
-                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
-                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
-            throws DatabaseException {
+    public OrderList getUserOrders() throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();
 
-        log.info("starTime={} endTime={} maxCount={} user={}", new Object[] {startTime, endTime, maxCount, user});
+        List<Order> orders = orderManager.getUserOrders(user, 0 , 0 , -1);
+        OrderList list = toOrderList(orders);
 
-        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
-        long endTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
-        int max = maxCount.isEmpty()? 0 : Integer.parseInt(maxCount);
-
-        // for debug only
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, -1);
-        startTimeInMacros = cal.getTime().getTime();
-        endTimeInMacros = new Date().getTime();
-
-        log.info("startTime={} endTime={}", startTimeInMacros, endTimeInMacros);
-
-        List<Order> orders = orderManager.getUserOrders(user,startTimeInMacros, endTimeInMacros, max);
-
-        return toOrderList(orders);
+        return list;
     }
 
     private Order getOrderById(URI id, boolean checkInactive) {

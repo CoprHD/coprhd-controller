@@ -36,6 +36,8 @@ public abstract class ConstraintImpl implements Constraint {
     protected String startId;
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
+    private int maxCount = -1;
+    protected int matchedCount = 0;
 
     public ConstraintImpl(Object... arguments) {
         ColumnField field = null;
@@ -86,7 +88,7 @@ public abstract class ConstraintImpl implements Constraint {
             this.startId = startId.toString();
         }
 
-        this.returnOnePage = true;
+        // this.returnOnePage = true;
     }
 
     public void setPageCount(int pageCount) {
@@ -95,8 +97,13 @@ public abstract class ConstraintImpl implements Constraint {
         }
     }
 
+    public void setMaxCount(int maxCount) {
+        this.maxCount = maxCount;
+    }
+
     @Override
     public <T> void execute(final Constraint.QueryResult<T> result) {
+        /*
         try {
             if (returnOnePage) {
                 queryOnePage(result);
@@ -106,6 +113,7 @@ public abstract class ConstraintImpl implements Constraint {
             log.info("Query failed e=", e);
             throw DatabaseException.retryables.connectionFailed(e);
         }
+        */
 
         queryWithAutoPaginate(genQuery(), result);
     }
@@ -132,6 +140,11 @@ public abstract class ConstraintImpl implements Constraint {
         };
 
         return it;
+    }
+
+    protected boolean reachMaxCount() {
+        //log.info("lbymm30 matchedCount={} maxCount={}", matchedCount, maxCount);
+        return (maxCount >0) && (matchedCount >= maxCount);
     }
 
     protected abstract URI getURI(Column<IndexColumnName> col);
@@ -181,12 +194,18 @@ public abstract class ConstraintImpl implements Constraint {
         columns = query.execute().getResult();
 
         for (Column<IndexColumnName> col : columns) {
+            if (reachMaxCount()) {
+                break;
+            }
+
             T obj = createQueryHit(result, col);
             if (obj != null && !ids.contains(obj)) {
                 ids.add(createQueryHit(result, col));
+                matchedCount++;
             }
         }
 
+        //log.info("lbymm3: matched={}", matchedCount);
         result.setResult(ids.iterator());
     }
 
@@ -211,7 +230,7 @@ public abstract class ConstraintImpl implements Constraint {
 
         ColumnList<IndexColumnName> columns;
 
-        while (count < pageCount) {
+        while ((count < pageCount) && !reachMaxCount()) {
             columns = query.execute().getResult();
 
             if (columns.isEmpty())
@@ -231,11 +250,17 @@ public abstract class ConstraintImpl implements Constraint {
                     T obj = createQueryHit(result, col);
                     if (obj != null && !ids.contains(obj)) {
                         ids.add(obj);
+                        matchedCount++;
+                        if (reachMaxCount()) {
+                            break;
+                        }
                     }
                     count++;
                 }
             }
         }
+
+        // log.info("lbymm31 matchedCount={}", matchedCount);
         result.setResult(ids.iterator());
     }
 }

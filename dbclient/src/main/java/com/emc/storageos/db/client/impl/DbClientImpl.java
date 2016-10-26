@@ -984,15 +984,28 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount) {
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
+
     	if (!constraintImpl.isValid()) {
     		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
     	}
+
+    	_log.info("lby startId={} pageCount={}", startId, maxCount);
         constraintImpl.setStartId(startId);
         constraintImpl.setPageCount(maxCount);
+        constraintImpl.setMaxCount(maxCount);
 
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);
     }
+
+    /*
+    @Override
+    public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, int maxCount) {
+        ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
+        constraintImpl.setMaxCount(maxCount);
+        queryByConstraint(constraint, result, null, maxCount);
+    }
+    */
 
     // This is used to count the number of volumes or fileshares in a storagepool,
     // and the number of volumes or fileshares in a storage system

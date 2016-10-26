@@ -9,12 +9,16 @@ import java.util.NoSuchElementException;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * QueryHitIterator with a filter based on column name
  */
 public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
+    private static final Logger log = LoggerFactory.getLogger(FilteredQueryHitIterator.class);
     private Column<IndexColumnName> _current;
+    protected boolean stop = false;
 
     public FilteredQueryHitIterator(RowQuery<String, IndexColumnName> query) {
         super(query);
@@ -45,18 +49,20 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      */
     private void moveNext() {
         _current = null;
-        while (_currentIt != null) {
+        while ((stop == false) &&(_currentIt != null)) {
             skipToNext();
-            if (_current != null) {
+
+            if (stop || _current != null) {
                 return;
             }
+
             super.runQuery();
         }
     }
 
     @Override
     public boolean hasNext() {
-        return (_current != null);
+        return (stop == false) && (_current != null);
     }
 
     @Override

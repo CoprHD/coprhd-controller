@@ -59,7 +59,10 @@
         rootUserMapping:{
           type:"text",
           initialValue:"root",
-          lockable: true
+          lockable: true,
+          validation: {
+              regEx: "[^\\]([\S]+[\\])?[\S]+"
+          }
         },
         
         permission:{

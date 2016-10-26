@@ -55,6 +55,10 @@
                     initialValue: "sys",
                     lockable: true
                 },
+                domain:{
+          			type:"text",
+          			lockable: true
+        		},
                 rootUserMapping:{
           			type:"text",
           			initialValue:"root",

@@ -56,13 +56,15 @@
           lockable: true
         },
         
+        domain:{
+          type:"text",
+          lockable: true
+        },
+        
         rootUserMapping:{
           type:"text",
           initialValue:"root",
-          lockable: true,
-          validation: {
-              regEx: "[^\\\\]([\\S]+[\\\\])?[\\S]+"
-          }
+          lockable: true
         },
         
         permission:{

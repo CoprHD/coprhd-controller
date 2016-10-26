@@ -247,7 +247,12 @@ public class FileStorageUtils {
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, exportRule.rootUserMapping,
+        String rootUserMapping = exportRule.rootUserMapping.trim();
+        String domain = exportRule.domain;
+        if(StringUtils.isNotBlank(domain)) {
+            rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+        }
+        return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, rootUserMapping,
                 exportRule.exportHosts, subDirectory);
     }
 
@@ -482,7 +487,12 @@ public class FileStorageUtils {
             ExportRule exportRule = new ExportRule();
             exportRule.setFsID(fileSystemId);
             exportRule.setSecFlavor(rule.security);
-            exportRule.setAnon(rule.rootUserMapping);
+            String rootUserMapping = rule.rootUserMapping;
+            String domain = rule.domain;
+            if(StringUtils.isNotBlank(domain)) {
+                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+            }
+            exportRule.setAnon(rootUserMapping);
             Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
             switch (rule.getPermission()) {
                 case "ro":
@@ -536,7 +546,12 @@ public class FileStorageUtils {
             ExportRule exportRule = new ExportRule();
             exportRule.setFsID(fileSnapshotId);
             exportRule.setSecFlavor(rule.security);
-            exportRule.setAnon(rule.rootUserMapping);
+            String rootUserMapping = rule.rootUserMapping;
+            String domain = rule.domain;
+            if(StringUtils.isNotBlank(domain)) {
+                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+            }
+            exportRule.setAnon(rootUserMapping);
             Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
             switch (rule.getPermission()) {
                 case "ro":
@@ -663,6 +678,9 @@ public class FileStorageUtils {
         @Param
         protected String permission;
 
+        @Param(required = false)
+        protected String domain;
+
         @Param
         protected String rootUserMapping;
 
@@ -698,6 +716,14 @@ public class FileStorageUtils {
             this.rootUserMapping = rootUserMapping;
         }
 
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
+        }
+
     }
 
     public static class Mount {
@@ -715,6 +741,9 @@ public class FileStorageUtils {
 
         @Param
         private String fsType;
+
+        @Param(required = false)
+        protected String domain;
 
         @Param
         protected String rootUserMapping;
@@ -766,5 +795,14 @@ public class FileStorageUtils {
         public void setRootUserMapping(String rootUserMapping) {
             this.rootUserMapping = rootUserMapping;
         }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
+        }
+
     }
 }

@@ -18,6 +18,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -93,6 +95,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
             export.setExportHosts(exportHosts);
             export.setPermission(mount.getPermission());
             export.setSecurity(mount.getSecurity());
+            export.setDomain(mount.getDomain());
             export.setRootUserMapping(mount.getRootUserMapping());
             exportList.add(export);
         }
@@ -104,8 +107,13 @@ public class CreateNFSExportAndMountService extends ViPRService {
 
         // create nfs export
         if (exportList != null) {
+            String rootUserMapping = exportList.get(0).getRootUserMapping().trim();
+            String domain = exportList.get(0).getDomain();
+            if(StringUtils.isNotBlank(domain)) {
+                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+            }
             FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
-                    exportList.get(0).getPermission(), exportList.get(0).getRootUserMapping(), exportList.get(0).getExportHosts(), null);
+                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null);
             if (!exportList.isEmpty()) {
                 FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));
             }

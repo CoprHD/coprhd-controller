@@ -122,6 +122,7 @@ public class StorageSystems extends ViprResourceController {
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String GUIDE_COMPLETED_STEP = "completedSteps";
+    private static final String SMIS_VMAX = "StorageSystemType.STORAGE_PROVIDER.vmax";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
@@ -257,8 +258,11 @@ public class StorageSystems extends ViprResourceController {
             }
             if (storageArray.type.equals(VMAX)) {
                 @SuppressWarnings("unchecked")
-                List<StringOption> options = (List<StringOption>)renderArgs.get("storageArrayTypeList");
-                options.add(new StringOption(VMAX, "Storage Provider for EMC VMAX, VNX Block"));
+                List<StringOption> options = (List<StringOption>) renderArgs.get("storageArrayTypeList");
+                options.add(new StringOption(VMAX, MessagesUtils.get(SMIS_VMAX)));
+                @SuppressWarnings("unchecked")
+                List<StringOption> smisOptions = (List<StringOption>) renderArgs.get("smisStorageSystemTypeList");
+                smisOptions.add(new StringOption(VMAX, MessagesUtils.get(SMIS_VMAX)));
             }
             render(storageArray);
         } else {

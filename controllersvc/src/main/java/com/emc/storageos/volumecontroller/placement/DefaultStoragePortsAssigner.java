@@ -503,7 +503,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                         continue;
                     }
                 } else {
-                    // initiator is not present in assignments .
+                    // initiator is not present in assignments.
                     // give a try to assigning port form its associated initiator from assignments
                     // not considering for path as it associate is already considered.
                     boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
@@ -556,7 +556,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             pathParams.getMaxInitiatorsPerPort() - 1);
                     if (availPorts != null) {
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
-                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
+                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments);
                     } else {
                         _log.info(String.format("No available ports for initiator %s",
                                 initiator.getInitiatorPort()));
@@ -722,10 +722,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      *            is present in the map of assignments.
      * @param assignedPorts the storage ports to be assigned
      * @param assignments the map of initiator - storage ports
-     * @param initiatorList the list of initiators
      */
     private void assignPortsToAssociatedInitiator(Initiator initiator, List<StoragePort> assignedPorts,
-            Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
+            Map<Initiator, List<StoragePort>> assignments) {
 
         Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
         if (associatedInitiator != null) {

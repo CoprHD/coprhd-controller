@@ -6,7 +6,6 @@ package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -249,7 +248,8 @@ public class OrderExecution extends Controller {
         OrderCreateParam order = new OrderCreateParam();
         order.setTenantId(uri(Models.currentAdminTenant()));
         order.setCatalogService(service.getId());
-
+        order.setWorkflowDocument(service.getWorkflowDocument());
+        
         List<Parameter> orderParameters = Lists.newArrayList();
         List<ServiceFieldRestRep> fields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());
         for (ServiceFieldRestRep field : fields) {

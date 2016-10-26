@@ -12,11 +12,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.vipr.model.catalog.CatalogServiceCommonParam;
@@ -40,7 +40,7 @@ public class CatalogServiceMapper {
     }
 
     public static CatalogServiceRestRep map(CatalogService from, ServiceDescriptor descriptor,
-            List<CatalogServiceField> catalogServiceFields) {
+            List<CatalogServiceField> catalogServiceFields, String workflowDocument) {
         if (from == null) {
             return null;
         }
@@ -60,13 +60,17 @@ public class CatalogServiceMapper {
         if (from.getExecutionWindowRequired() != null) {
             to.setExecutionWindowRequired(from.getExecutionWindowRequired());
         }
+        if(null != workflowDocument && !workflowDocument.isEmpty()) {
+            to.setWorkflowDocument(workflowDocument);
+        }
+        
         to.setBaseService(from.getBaseService());
         to.setDescription(from.getDescription());
         to.setImage(from.getImage());
         to.setMaxSize(from.getMaxSize());
         to.setTitle(from.getTitle());
         to.setSortedIndex(from.getSortedIndex());
-
+        
         if (descriptor != null) {
             to.setServiceDescriptor(ServiceDescriptorMapper.map(descriptor));
         }

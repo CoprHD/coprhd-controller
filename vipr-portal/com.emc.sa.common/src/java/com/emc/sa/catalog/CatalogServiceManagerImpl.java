@@ -22,17 +22,19 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.model.util.CreationTimeComparator;
+import com.emc.sa.model.util.SortedIndexUtils;
+import com.emc.sa.util.ServiceIdPredicate;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OEWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceAndFields;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.RecentService;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.model.util.CreationTimeComparator;
-import com.emc.sa.model.util.SortedIndexUtils;
-import com.emc.sa.util.ServiceIdPredicate;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -351,6 +353,22 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
         else {
             return null;
         }
+    }
+
+    @Override 
+    public String getWorkflowDocument(String workflowName) {
+        if( null == workflowName || workflowName.isEmpty()) return null;
+        
+        List<NamedElement> results = client.findByAlternateId(OEWorkflow.class, "name", workflowName);
+        if(results.isEmpty()) {
+            return null;
+        }
+        if(results.size() > 1) {
+            throw new IllegalStateException("Multiple workflows with the name " + workflowName);
+        }
+        
+        OEWorkflow workflow = client.findById(OEWorkflow.class, results.get(0).getId());
+        return results == null ? null : workflow.getDocument();
     }
 
 }

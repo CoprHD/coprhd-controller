@@ -60,4 +60,6 @@ public interface CatalogServiceManager {
 
     public String getLockedValue(CatalogServiceField field);
 
+    public String getWorkflowDocument(String workflowName);
+
 }

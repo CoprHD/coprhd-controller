@@ -4,7 +4,11 @@
  */
 package com.emc.vipr.model.catalog;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URI;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -20,6 +24,8 @@ public class OrderCreateParam extends OrderCommonParam {
     private String scheduledTime;
 
     private URI executionWindow;
+    
+    private String workflowDocument;
 
     // order specific schedule info - for snapshot/fullcopy orders, it indicates "max number of retained copies"
     private String additionalScheduleInfo;
@@ -68,6 +74,15 @@ public class OrderCreateParam extends OrderCommonParam {
 
     public void setAdditionalScheduleInfo(String additionalScheduleInfo) {
         this.additionalScheduleInfo = additionalScheduleInfo;
+    }
+    
+    @XmlElement(name = "workflowDocument")
+    public String getWorkflowDocument() {
+        return workflowDocument;
+    }
+    
+    public void setWorkflowDocument(final String workflowDocument) {
+        this.workflowDocument = workflowDocument;
     }
 
     public byte[] serialize() throws IOException {

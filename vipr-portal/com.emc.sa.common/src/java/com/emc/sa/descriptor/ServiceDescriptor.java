@@ -32,6 +32,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
 
     /** The service description. */
     private String description;
+    
+    /** The ID of the workflow */
+    private String workflowId;
 
     /** The items in the service. */
     private Map<String, ServiceItem> items = new LinkedHashMap<>();
@@ -77,6 +80,14 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         this.description = description;
     }
 
+    public String getWorkflowId() {
+        return workflowId;
+    }
+    
+    public void setWorkflowId(final String workflowId) {
+        this.workflowId = workflowId;
+    }
+    
     @Override
     public Map<String, ServiceItem> getItems() {
         return items;

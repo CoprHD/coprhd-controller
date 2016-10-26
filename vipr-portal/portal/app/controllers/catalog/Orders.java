@@ -18,10 +18,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import models.BreadCrumb;
+import models.datatable.OrderDataTable;
+import models.datatable.OrderDataTable.OrderInfo;
+import models.datatable.RecentOrdersDataTable;
+
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.ISODateTimeFormat;
+
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Http;
+import play.mvc.Util;
+import play.mvc.With;
+import util.BourneUtil;
+import util.CatalogServiceUtils;
+import util.MessagesUtils;
+import util.ModelExtensions;
+import util.OrderUtils;
+import util.StringOption;
+import util.TagUtils;
+import util.api.ApiMapperUtils;
+import util.datatable.DataTableParams;
+import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -38,7 +59,6 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
-import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
@@ -59,29 +79,6 @@ import controllers.security.Security;
 import controllers.tenant.TenantSelector;
 import controllers.util.FlashException;
 import controllers.util.Models;
-import models.BreadCrumb;
-import models.datatable.OrderDataTable;
-import models.datatable.OrderDataTable.OrderInfo;
-import models.datatable.RecentOrdersDataTable;
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Http;
-import play.mvc.Util;
-import play.mvc.With;
-import util.BourneUtil;
-import util.CatalogServiceUtils;
-import util.MessagesUtils;
-import util.ModelExtensions;
-import util.OrderUtils;
-import util.StringOption;
-import util.TagUtils;
-import util.TimeUtils;
-import util.api.ApiMapperUtils;
-import util.datatable.DataTableParams;
-import util.datatable.DataTablesSupport;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -275,7 +272,7 @@ public class Orders extends OrderExecution {
     public static OrderCreateParam createAndValidateOrder(String serviceId) {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
-
+        
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {

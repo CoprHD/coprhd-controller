@@ -26,6 +26,7 @@ public class CatalogServiceCommonParam {
     private URI catalogCategory;
     private List<CatalogServiceFieldParam> catalogServiceFields;
     private Boolean recurringAllowed;
+    private String workflowName;
     
     @XmlElement(name = "catalog_category")
     public URI getCatalogCategory() {
@@ -140,5 +141,14 @@ public class CatalogServiceCommonParam {
 
     public void setRecurringAllowed(Boolean recurringAllowed) {
         this.recurringAllowed = recurringAllowed;
+    }
+    
+    @XmlElement(name = "workflow_name")
+    public String getWorkflowName() {
+        return workflowName;
+    }
+    
+    public void setWorkflowName(final String workflowName) {
+        this.workflowName = workflowName;
     }
 }

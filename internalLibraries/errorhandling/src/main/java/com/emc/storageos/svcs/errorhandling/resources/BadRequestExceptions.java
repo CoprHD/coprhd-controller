@@ -1521,6 +1521,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException baseServiceNotFound(final String baseServiceId);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException workflowNotFound(String workflowName);
 
     @DeclareServiceCode(ServiceCode.API_PLACEMENT_ERROR)
     public BadRequestException vplexPlacementError(final URI uri);

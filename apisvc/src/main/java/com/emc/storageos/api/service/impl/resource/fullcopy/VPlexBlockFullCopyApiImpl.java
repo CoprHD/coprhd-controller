@@ -225,6 +225,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
             // Platform specific checks.
             // all the volumes in vplex cg should be having association with back end cg/Volume Group.
+            // TBD check for full copy of ha side backend volume. Should not get here for full copy of VPLEX snapshot is CG.
+            // Should be disallowed by super.
             if (VPlexUtil.isBackendVolumesNotHavingBackendCG(fcSourceObjList, false, _dbClient)) {
                 throw APIException.badRequests.fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
             }

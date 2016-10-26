@@ -463,6 +463,7 @@ public class BlockSnapshotService extends TaskResourceService {
 
         // Get the block service API implementation for the snapshot parent volume.
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+        
         // Get the storage system for the volume
         StorageSystem storage = _permissionsHelper.getObjectById(volume.getStorageController(), StorageSystem.class);
         if (storage.checkIfVmax3()) {
@@ -926,6 +927,13 @@ public class BlockSnapshotService extends TaskResourceService {
         // implies this VPLEX volume would have the same path constraints. The
         // alternative is to create a generic internal virtual pool.
         VirtualPool sourceVolumeVpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
+        
+        // Verify the source volume virtual pool specifies VPLEX high availability. 
+        // This may not be the case if the snapshot is on the HA side of a distributed
+        // volume as the HA virtual pool need not specify any VPLEX high availability.
+        if (!VirtualPool.vPoolSpecifiesHighAvailability(sourceVolumeVpool)) {
+            throw APIException.badRequests.cantExposeSnapshotNoVPLEXHighAvailability(snapshot.getLabel());
+        }
 
         // Create a new INTERNAL Volume instance using the volume info
         // in the block snapshot. VPLEX volumes are created from Volume

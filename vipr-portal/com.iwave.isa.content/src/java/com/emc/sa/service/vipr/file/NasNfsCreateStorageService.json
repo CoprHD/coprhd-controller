@@ -58,6 +58,7 @@
         
         domain:{
           type:"text",
+          required: false,
           lockable: true
         },
         

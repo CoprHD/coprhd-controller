@@ -25,9 +25,6 @@ public interface SmisExceptions {
     SmisException queryExistingMasksFailure(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
-    SmisException queryUsedHLUsFailure(final String message, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
     SmisException refreshExistingMaskFailure(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)

@@ -17,8 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -36,11 +34,9 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
-import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
-import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -496,58 +492,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
-        Set<Integer> usedHLUs = new HashSet<Integer>();
-        try {
-            String vnxeHostId = null;
-            VNXeApiClient apiClient = getVnxeClient(storage);
-            for (String initiatorName : initiatorNames) {
-                initiatorName = Initiator.toPortNetworkId(initiatorName);
-                URIQueryResultList initiatorResult = new URIQueryResultList();
-                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiatorName),
-                        initiatorResult);
-                if (initiatorResult.iterator().hasNext()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
-                    String initiatorId = initiator.getInitiatorPort();
-                    if (Protocol.FC.name().equals(initiator.getProtocol())) {
-                        initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
-
-                        // query VNX Unity initiator
-                        VNXeHostInitiator vnxeInitiator = apiClient.getInitiatorByWWN(initiatorId);
-                        if (vnxeInitiator != null) {
-                            VNXeBase parentHost = vnxeInitiator.getParentHost();
-                            if (parentHost != null) {
-                                vnxeHostId = parentHost.getId();
-                                break; // TODO verify - all initiators part of same vnxeHost?
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (vnxeHostId == null) {
-                _logger.info("No Host found on array for initiators {}", Joiner.on(',').join(initiatorNames));
-            } else {
-                _logger.info("Found matching host {} on array", vnxeHostId);
-                // Get vnxeHost from vnxeHostId
-                VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
-                List<VNXeBase> hostLunIds = vnxeHost.getHostLUNs();
-                if (hostLunIds != null && !hostLunIds.isEmpty()) {
-                    for (VNXeBase hostLunId : hostLunIds) {
-                        HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
-                        _logger.info("Looking at Host Lun {}; Lun: {}, HLU: {}", hostLun.getLun(), hostLun.getHlu());
-                        usedHLUs.add(hostLun.getHlu());
-                    }
-                }
-            }
-
-            _logger.info(String.format("HLUs found for Initiators { %s }: %s",
-                    Joiner.on(',').join(initiatorNames), usedHLUs));
-        } catch (Exception e) {
-            String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
-            _logger.error(errMsg, e);
-            // throw // TODO
-        }
-        return usedHLUs;
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override

@@ -56,6 +56,7 @@ import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
@@ -68,6 +69,10 @@ import com.google.common.collect.Sets;
 
 public class XtremIOExportOperations extends XtremIOOperations implements ExportMaskOperations {
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
+
+    // Max HLU number allowed on array. TODO Find it out
+    private static final int MAX_HLU = 512;
+
     private ValidatorFactory validator;
 
     public void setValidator(ValidatorFactory validator) {
@@ -487,7 +492,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         } catch (Exception e) {
             String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
             _log.error(errMsg, e);
-            // throw e; // TODO
+            throw XtremIOApiException.exceptions.hluRetrievalFailed(errMsg, e);
         }
         return usedHLUs;
     }
@@ -495,7 +500,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public Integer getMaximumAllowedHLU(StorageSystem storage) {
         // TODO find out how to get it
-        return 1024;
+        return MAX_HLU;
     }
 
     @Override

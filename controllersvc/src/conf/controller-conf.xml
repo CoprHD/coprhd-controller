@@ -616,7 +616,7 @@
     <bean id="vnxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperations">
         <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactoryAdapter"/>
         <property name="validator" ref="validatorFactory"/>
     </bean>
     

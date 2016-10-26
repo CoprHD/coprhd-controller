@@ -85,6 +85,10 @@ import com.google.common.collect.TreeMultimap;
 public class VnxExportOperations implements ExportMaskOperations {
 
     private static Logger _log = LoggerFactory.getLogger(VnxExportOperations.class);
+
+    // Max HLU number allowed on array. TODO Find it out
+    private static final int MAX_HLU = 512;
+
     private SmisCommandHelper _helper;
     private DbClient _dbClient;
     private CIMObjectPathFactory _cimPath;
@@ -769,7 +773,7 @@ public class VnxExportOperations implements ExportMaskOperations {
         } catch (Exception e) {
             String errMsg = "Encountered an SMIS error when attempting to query used HLUs for initiators: " + e.getMessage();
             _log.error(errMsg, e);
-            throw SmisException.exceptions.queryUsedHLUsFailure(errMsg, e);
+            throw SmisException.exceptions.hluRetrievalFailed(errMsg, e);
         } finally {
             if (lunMaskingIter != null) {
                 lunMaskingIter.close();
@@ -783,7 +787,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     @Override
     public Integer getMaximumAllowedHLU(StorageSystem storage) {
         // TODO find out how to get it
-        return 1024;
+        return MAX_HLU;
     }
 
     @Override

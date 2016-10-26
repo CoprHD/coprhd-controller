@@ -795,8 +795,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
     @Override
     public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO find out how to get it
-        return 1024;
+        return exportMaskOperationsHelper.getMaximumAllowedHLU(storage);
     }
 
     @Override

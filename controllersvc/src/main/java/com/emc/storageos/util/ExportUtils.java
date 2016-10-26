@@ -1556,7 +1556,7 @@ public class ExportUtils {
      */
     public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
         Set<Integer> freeHLUs = new HashSet<Integer>();
-        for (int i = 1; i <= maxHLU; i++) {
+        for (int i = 0; i < maxHLU; i++) {
             if (!usedHlus.contains(i)) {
                 freeHLUs.add(i);
             }
@@ -1577,8 +1577,10 @@ public class ExportUtils {
             if (freeHLUItr.hasNext()) {
                 entry.setValue(freeHLUItr.next());
             } else {
-                _log.warn("No more free HLU available on array to assign."); // TODO error out?
-                break;
+                String detailMsg = String.format("Requested volumes: {%s}, free HLUs available: {%s}",
+                        Joiner.on(',').join(volumeMap.keySet()), freeHLUs);
+                _log.warn("No more free HLU available on array to assign. {}", detailMsg);
+                throw DeviceControllerException.exceptions.volumeExportReachedMaximumHlu(detailMsg);
             }
         }
         _log.info("updated volume-HLU map: {}", volumeMap);

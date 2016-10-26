@@ -91,7 +91,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         // TODO see how to ignore this method's execution for arrays that we are currently not going to support
-        // TODO query used HLU failure handling
+        // TODO check exception handling
 
         if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)) {
             _log.info("findAndUpdateFreeHLUsForClusterExport START..");
@@ -152,7 +152,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
             List<URI> hostURIs = new ArrayList<URI>();
             processInitiators(exportGroup, hostInitiatorURIs, initiatorNames, portNameToInitiatorURI, hostURIs);
-            // TODO query Host's other Initiators and Add - required?
             queryHostInitiatorsAndAddToList(initiatorNames, portNameToInitiatorURI, initiatorURIs, hostURIs);
 
             Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);

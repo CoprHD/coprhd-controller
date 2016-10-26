@@ -8,33 +8,35 @@
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
  */
+
 package com.emc.storageos.driver.ibmsvcdriver.api;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class IBMSVCQueryHostIOGrpResult {
-    List<IBMSVCIOgrp> hostIOGrpList;
+public class IBMSVCQueryFabricResult {
+
+    List<IBMSVCFabricConnectivity> fabricConnectivityList;
 
     private boolean isSuccess;
 
     private String errorString;
 
-    public IBMSVCQueryHostIOGrpResult() {
+    public IBMSVCQueryFabricResult() {
         super();
-        hostIOGrpList = new ArrayList<IBMSVCIOgrp>();
+        this.fabricConnectivityList = new ArrayList<IBMSVCFabricConnectivity>();
     }
 
-    public List getHostIOGrpList() {
-        return hostIOGrpList;
+    public List<IBMSVCFabricConnectivity> getFabricConnectivityList() {
+        return fabricConnectivityList;
     }
 
-    public void setHostIOGrpList(List<IBMSVCIOgrp> hostIOGrpList) {
-        this.hostIOGrpList = hostIOGrpList;
+    public void setFabricConnectivityList(List<IBMSVCFabricConnectivity> fabricConnectivityList) {
+        this.fabricConnectivityList = fabricConnectivityList;
     }
 
-    public void addHostIOGrpList(IBMSVCIOgrp iogrp) {
-        this.hostIOGrpList.add(iogrp);
+    public void addFabricConnectivityList(IBMSVCFabricConnectivity fabricConnectivity) {
+        this.fabricConnectivityList.add(fabricConnectivity);
     }
 
     public boolean isSuccess() {
@@ -53,16 +55,6 @@ public class IBMSVCQueryHostIOGrpResult {
         this.errorString = errorString;
     }
 
-    public List<String> getIOGroupIDList (){
-        List<String> ioGroupIDList = new ArrayList<>();
 
-        for(IBMSVCIOgrp hostIOGrp : hostIOGrpList){
-            if(!ioGroupIDList.contains(hostIOGrp.getIogrpId())){
-                ioGroupIDList.add(hostIOGrp.getIogrpId());
-            }
-        }
-
-        return ioGroupIDList;
-    }
 
 }

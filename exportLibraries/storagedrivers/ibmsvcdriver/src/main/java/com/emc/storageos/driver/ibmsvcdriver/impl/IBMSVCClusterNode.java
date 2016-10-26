@@ -18,6 +18,8 @@ public class IBMSVCClusterNode {
 
     private String nodeWWNN;
 
+    private String ioGrpId;
+
     public String getNodeId() {
         return nodeId;
     }
@@ -40,5 +42,13 @@ public class IBMSVCClusterNode {
 
     public void setNodeWWNN(String nodeWWNN) {
         this.nodeWWNN = nodeWWNN;
+    }
+
+    public String getIoGrpId() {
+        return ioGrpId;
+    }
+
+    public void setIoGrpId(String ioGrpId) {
+        this.ioGrpId = ioGrpId;
     }
 }

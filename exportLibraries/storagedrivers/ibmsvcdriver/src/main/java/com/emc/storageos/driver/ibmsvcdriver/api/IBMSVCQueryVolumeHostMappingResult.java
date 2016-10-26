@@ -1,4 +1,4 @@
-/*
+package com.emc.storageos.driver.ibmsvcdriver.api;/*
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  *
@@ -8,33 +8,33 @@
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
  */
-package com.emc.storageos.driver.ibmsvcdriver.api;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class IBMSVCQueryHostIOGrpResult {
-    List<IBMSVCIOgrp> hostIOGrpList;
+public class IBMSVCQueryVolumeHostMappingResult {
+
+    private List<IBMSVCHost> hostList;
 
     private boolean isSuccess;
 
     private String errorString;
 
-    public IBMSVCQueryHostIOGrpResult() {
+    public IBMSVCQueryVolumeHostMappingResult() {
         super();
-        hostIOGrpList = new ArrayList<IBMSVCIOgrp>();
+        hostList = new ArrayList<>();
     }
 
-    public List getHostIOGrpList() {
-        return hostIOGrpList;
+    public List<IBMSVCHost> getHostList() {
+        return hostList;
     }
 
-    public void setHostIOGrpList(List<IBMSVCIOgrp> hostIOGrpList) {
-        this.hostIOGrpList = hostIOGrpList;
+    public void setHostList(List<IBMSVCHost> hostList) {
+        this.hostList = hostList;
     }
 
-    public void addHostIOGrpList(IBMSVCIOgrp iogrp) {
-        this.hostIOGrpList.add(iogrp);
+    public void addHostList(IBMSVCHost ibmsvcHost) {
+        this.hostList.add(ibmsvcHost);
     }
 
     public boolean isSuccess() {
@@ -53,16 +53,7 @@ public class IBMSVCQueryHostIOGrpResult {
         this.errorString = errorString;
     }
 
-    public List<String> getIOGroupIDList (){
-        List<String> ioGroupIDList = new ArrayList<>();
 
-        for(IBMSVCIOgrp hostIOGrp : hostIOGrpList){
-            if(!ioGroupIDList.contains(hostIOGrp.getIogrpId())){
-                ioGroupIDList.add(hostIOGrp.getIogrpId());
-            }
-        }
 
-        return ioGroupIDList;
-    }
 
 }

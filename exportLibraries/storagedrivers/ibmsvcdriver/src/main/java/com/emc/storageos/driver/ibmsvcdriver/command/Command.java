@@ -443,6 +443,11 @@ public class Command {
         if (errorMessage == null) {
             errorMessage = StringUtils.trimToNull(output.getStdout());
         }
+
+        if (errorMessage == null) {
+            errorMessage = "Exit Code - " + output.getExitValue();
+        }
+
         return errorMessage;
     }
 

@@ -23,9 +23,14 @@ public class IBMSVCExportVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
             new ParsePattern("Virtual Disk to Host map, id \\[(\\d+)\\], successfully created", EXPORT_VOLUME_SUCCESS)
     };
 
-    public IBMSVCExportVolumeCommand(String volumeId, String volumeName, String hostName) {
+    public IBMSVCExportVolumeCommand(String volumeId, String volumeName, String hostName, Integer hlu) {
         addArgument("svctask mkvdiskhostmap -force");
         addArgument(String.format("-host %s", hostName));
+
+        if(hlu >= 0){
+            addArgument(String.format("-scsi %s", hlu));
+        }
+
         addArgument(String.format("%s", volumeId));
         results = new IBMSVCExportVolumeResult();
         results.setId(volumeId);

@@ -1549,7 +1549,7 @@ public class DbIndexTest extends DbsvcTestBase {
         String dirPath = String.format("%s/data/Test/%s/snapshots/%s", _dataDir.getAbsolutePath(), cf, label);
         File dir = new File(dirPath);
         if (!dir.exists()) {
-            this.probe.takeSnapshot(label, cf, new String[] { "Test" });
+            //this.probe.takeSnapshot(label, cf, new String[] { "Test" });
         }
 
         if (new File(String.format("%s/data.json", dirPath)).exists()) {
@@ -1569,7 +1569,7 @@ public class DbIndexTest extends DbsvcTestBase {
         for (int i = 0; i < dataFiles.length; i++) {
             String fileName = dataFiles[i];
             Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
-            SSTableExport.export(desc, outs, null, null);
+            //SSTableExport.export(desc, outs, null, null);
             if (i + 1 < dataFiles.length) {
                 outs.println(",");
             }

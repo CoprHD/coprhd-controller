@@ -62,18 +62,7 @@ public class OrchestrationService extends ViPRService {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
-    //Variables for Evaluation of SuccessCriteria and Output
-    private String eval;
-    private final List<String> evaluateVal = new ArrayList<String>();
     private int code;
-
-    public String getEval() {
-        return eval;
-    }
-
-    public List<String> getEvaluateVal() {
-        return evaluateVal;
-    }
 
     @Override
     public void precheck() throws Exception {
@@ -399,8 +388,8 @@ public class OrchestrationService extends ViPRService {
      * This evaluates the status of a step from the SuccessCriteria mentioned in workflow definition JSON
      * e.g: Supported Expression Language for SuccessCriteria
      * Supported condition type code == x [x can be any number]
-     * "code == 404"
-     * "code == 0"
+     * "returnCode == 404"
+     * "returnCode == 0"
      * "task_state == 'pending' and description == 'create export1' and returnCode == 400"
      * "state == 'ready'";
      * Note: and, or cannot be part of lvalue or rvalue
@@ -418,8 +407,9 @@ public class OrchestrationService extends ViPRService {
             if (successCriteria != null && result == null)
                 return false;
 
+            SuccessCriteria sc = new SuccessCriteria();
             ExpressionParser parser = new SpelExpressionParser();
-            EvaluationContext con2 = new StandardEvaluationContext(this);
+            EvaluationContext con2 = new StandardEvaluationContext(sc);
             String[] statements = successCriteria.split("\\bor\\b|\\band\\b");
 
             if (statements.length == 0)
@@ -445,7 +435,7 @@ public class OrchestrationService extends ViPRService {
                 if (!lvalue.contains(OrchestrationServiceConstants.TASK)) {
 
                     List<String> evaluatedValues = evaluateValue(result, lvalue);
-                    evaluateVal.add(p, evaluatedValues.get(0));
+                    sc.setEvaluateVal(evaluatedValues.get(0), p);
                     successCriteria = successCriteria.replace(lvalue, " evaluateVal[" + p + "]");
                     p++;
 
@@ -464,7 +454,7 @@ public class OrchestrationService extends ViPRService {
 
                 String exp1 = statement.replace(lvalue, "eval");
                 for (String evaluatedValue : evaluatedValues) {
-                    eval = evaluatedValue;
+                    sc.setEval(evaluatedValue);
                     Expression e = parser.parseExpression(exp1);
                     val2 = val2 && e.getValue(con2, Boolean.class);
                 }

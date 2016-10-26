@@ -4258,19 +4258,19 @@ recoverpoint_auto_snapshot_cleanup_test()
         fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
 
         secho 'Creating RP bookmark'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap}2 --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray} | grep inactive | grep false       
 
         # do a restore before swap to show that the lock is removed after restore
         secho 'Performing restore of RP bookmark'
-        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
         sleep 10
 
         secho 'Performing swap operation to verify auto snapshot cleanup'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
         secho 'Verifying that RP bookmark was removed after swap'
-        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
 
         secho 'Performing swap back'
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp

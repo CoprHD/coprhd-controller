@@ -42,8 +42,6 @@ public class WorkflowTest {
     @Test
     public void createWorkflow() {
         final String wfJson = "{ \"WorkflowName\": \"sample\"}";
-        
-        
         final WorkflowDefinition wfDefinition = GSON.fromJson(wfJson, WorkflowDefinition.class);
         
         WorkflowHelper.persist(wfDefinition, dbClient);

@@ -420,7 +420,7 @@ public class DummyDbClient implements DbClient {
                         } catch (IllegalAccessException
                                 | IllegalArgumentException
                                 | InvocationTargetException e) {
-                            e.printStackTrace();
+                            _logger.error("Caught exception during query by constraint", e);
                         }
                     }
                 }

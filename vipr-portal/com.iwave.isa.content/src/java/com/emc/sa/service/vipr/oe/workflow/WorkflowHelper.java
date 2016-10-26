@@ -59,7 +59,7 @@ public final class WorkflowHelper {
     /**
      * Create or update a workflow definition
      */
-    public static void persist(final WorkflowDefinition definition, final DbClient dbClient) {
+    public static synchronized void persist(final WorkflowDefinition definition, final DbClient dbClient) {
         
         final String name = definition.getWorkflowName();
         final URI id = getWorkflowId(name, dbClient);

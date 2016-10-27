@@ -14,6 +14,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -93,10 +94,27 @@ public class BlockMapper {
     }
 
     public static VolumeRestRep map(Volume from) {
-        return map(null, from);
+        return map(null, from, null);
     }
 
     public static VolumeRestRep map(DbClient dbClient, Volume from) {
+        return map(dbClient, from, null);
+    }
+    
+    private static StorageSystem getStorageSystemFromCache(URI uri, DbClient dbClient, Map<URI, StorageSystem> storageSystemCache) {
+        if (storageSystemCache != null) {
+            if (storageSystemCache.containsKey(uri)){
+                return storageSystemCache.get(uri);
+            } else {
+                StorageSystem system = dbClient.queryObject(StorageSystem.class, uri);
+                storageSystemCache.put(uri, system);
+                return system;
+            }
+        }
+        return dbClient.queryObject(StorageSystem.class, uri);
+    }
+
+    public static VolumeRestRep map(DbClient dbClient, Volume from, Map<URI, StorageSystem> storageSystemCache) {
         if (from == null) {
             return null;
         }
@@ -111,11 +129,11 @@ public class BlockMapper {
         }
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
-        if (dbClient != null && VPlexUtil.isVplexVolume(from, dbClient)) {
+        to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        if (DiscoveredDataObject.Type.vplex.name().equalsIgnoreCase(from.getSystemType())) {
             to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
-        } else {
-            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
         }
+        
         to.setCapacity(CapacityUtils.convertBytesToGBInStr(from.getCapacity()));
         if (from.getThinlyProvisioned()) {
             to.setPreAllocationSize(CapacityUtils.convertBytesToGBInStr(from.getThinVolumePreAllocationSize()));
@@ -132,35 +150,33 @@ public class BlockMapper {
         // set compression ratio
         to.setCompressionRatio(from.getCompressionRatio());
 
-        if (dbClient != null) {
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null){
-                if(system.checkIfVmax3()) { 
-                    to.setSupportsSnapshotSessions(Boolean.TRUE);  
-                    to.setSystemType("vmax3");  
-                } else {
-                    to.setSystemType(system.getSystemType());
-                }
-            }
+        if (DiscoveredDataObject.Type.vmax3.name().equalsIgnoreCase(from.getSystemType())) { 
+            to.setSupportsSnapshotSessions(Boolean.TRUE);  
         }
+        to.setSystemType(from.getSystemType());
+
         // Extra checks for VPLEX volumes
         Volume srdfVolume = from;
+        Volume sourceSideBackingVolume = null;
         if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
             // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
             // volume.
-            Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+            sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
             // Check for null in case the VPlex vol was ingested w/o the backend volumes
-            if (sourceSideBackingVolume != null) {
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
-                if (null != system && system.checkIfVmax3()) {
-                    to.setSupportsSnapshotSessions(Boolean.TRUE);
-                }
+            if ((sourceSideBackingVolume != null) 
+                    && DiscoveredDataObject.Type.vmax3.name().equalsIgnoreCase(sourceSideBackingVolume.getSystemType())) {
+                to.setSupportsSnapshotSessions(Boolean.TRUE);
             }
             // Set xio3xvolume in virtual volume only if its backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
-                Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                Volume backendVol = null;
+                if (sourceSideBackingVolume != null && backendVolumeuri.equals(sourceSideBackingVolume.getId().toString())) {
+                    backendVol = sourceSideBackingVolume;
+                } else {
+                    backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                }
                 if (null != backendVol) {
-                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
+                    StorageSystem system = getStorageSystemFromCache(backendVol.getStorageController(), dbClient, storageSystemCache);
                     if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
                             && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
                         to.setHasXIO3XVolumes(Boolean.TRUE);
@@ -283,7 +299,6 @@ public class BlockMapper {
             }
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
-                Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
                 if (sourceSideBackingVolume != null
                         && NullColumnValueGetter.isNotNullValue((sourceSideBackingVolume.getReplicationGroupInstance()))) {
                     to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());

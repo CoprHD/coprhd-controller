@@ -37,14 +37,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.RunREST;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
@@ -66,23 +65,7 @@ public class OrchestrationService extends ViPRService {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
-    //Variables for Evaluation of SuccessCriteria and Output
-    private String eval;
-    private final List<String> evaluateVal = new ArrayList<String>();
     private int code;
-
-    public String getEval() {
-        return eval;
-    }
-
-    public List<String> getEvaluateVal() {
-        return evaluateVal;
-    }
-
-    public void setCode(int code)
-    {
-        this.code = code;
-    }
 
     @Override
     public void precheck() throws Exception {
@@ -203,13 +186,7 @@ public class OrchestrationService extends ViPRService {
             }
 
             updateOutputPerStep(step, result);
-
-
-            if ((step.getSuccessCritera() == null && evaluateDefaultValue(step, code)) || (step.getSuccessCritera() != null && findStatus(step.getSuccessCritera(), result))) {
-                next = updateResult(true, result, step);
-            } else {
-                next = updateResult(false, result, step);
-            }
+	    next = updateResult(isSuccess(step, result), result, step);
 
             if (next == null) {
                 ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrieve next step " +
@@ -218,6 +195,14 @@ public class OrchestrationService extends ViPRService {
                 throw new IllegalStateException(result);
             }
         }
+    }
+
+    private boolean isSuccess(Step step, String result)
+    {
+        if (step.getSuccessCritera() == null)
+            return evaluateDefaultValue(step, code);
+        else
+            return findStatus(step.getSuccessCritera(), result);
     }
 
     private String updateResult(final boolean status, final String result, final Step step) {
@@ -349,7 +334,7 @@ public class OrchestrationService extends ViPRService {
      * @param step
      * @param result
      */
-    private void updateOutputPerStep(final Step step, final String result) {
+    private void updateOutputPerStep(final Step step, final String result) throws Exception {
         final Map<String, String> output = step.getOutput();
         if (output == null)
             return;
@@ -399,7 +384,7 @@ public class OrchestrationService extends ViPRService {
      * @param value
      * @return
      */
-    private List<String> evaluateValue(final String result, String value) {
+    private List<String> evaluateValue(final String result, String value) throws Exception {
 
         final Gson gson = new Gson();
         ViprOperation res = gson.fromJson(result, ViprOperation.class);
@@ -415,21 +400,27 @@ public class OrchestrationService extends ViPRService {
 
             valueList.add(val);
 
-            return valueList;
+        } else {
+
+            String[] values = value.split("task.", 2);
+            if (values.length != 2) {
+                logger.error("Cannot evaluate values with statement:{}", value);
+
+                throw new IllegalStateException();
+            }
+            value = values[1];
+            Expression expr = parser.parseExpression(value);
+
+            ViprTask[] tasks = res.getTask();
+            for (ViprTask task : tasks) {
+                EvaluationContext context = new StandardEvaluationContext(task);
+                String v = (String) expr.getValue(context);
+                valueList.add(v);
+            }
+
+            logger.info("valueList is:{}", valueList);
         }
-
-        value = value.split("task.", 2)[1];
-        Expression expr = parser.parseExpression(value);
-
-        ViprTask[] tasks = res.getTask();
-        for (ViprTask task : tasks) {
-            EvaluationContext context = new StandardEvaluationContext(task);
-            String v = (String) expr.getValue(context);
-            valueList.add(v);
-        }
-
-        logger.info("valueList is:{}", valueList);
-
+        
         return valueList;
     }
 
@@ -437,81 +428,91 @@ public class OrchestrationService extends ViPRService {
      * This evaluates the status of a step from the SuccessCriteria mentioned in workflow definition JSON
      * e.g: Supported Expression Language for SuccessCriteria
      * Supported condition type code == x [x can be any number]
-     * code == 404
-     * code == 0
-     * "#task_state == 'pending' and #description == 'create export1'";
-     * "#state == 'ready'";
+     * "returnCode == 404"
+     * "returnCode == 0"
+     * "task_state == 'pending' and description == 'create export1' and returnCode == 400"
+     * "state == 'ready'";
+     * Note: and, or cannot be part of lvalue or rvalue
      *
      * @param successCriteria
      * @param result
      * @return
      */
     private boolean findStatus(String successCriteria, final String result) {
+        try {
 
-        if (successCriteria == null || result == null) {
-            logger.info("Nothing to evaluate");
-            return true;
-        }
-        logger.info("Find status for:{}", successCriteria);
-        ExpressionParser parser = new SpelExpressionParser();
-        Expression e2 = parser.parseExpression(successCriteria);
-        EvaluationContext con2 = new StandardEvaluationContext(this);
+            if (successCriteria == null)
+                return true;
 
-        if (successCriteria.contains(OrchestrationServiceConstants.RETURN_CODE)) {
-            boolean val = e2.getValue(con2, Boolean.class);
-            logger.info("Evaluated value for errorCode or returnCode is:{}", val);
+            if (successCriteria != null && result == null)
+                return false;
 
-            return val;
-        }
+            SuccessCriteria sc = new SuccessCriteria();
+            ExpressionParser parser = new SpelExpressionParser();
+            EvaluationContext con2 = new StandardEvaluationContext(sc);
+            String[] statements = successCriteria.split("\\bor\\b|\\band\\b");
 
-        String[] statemets = successCriteria.split("or|and");
-        Matcher matcher = Pattern.compile("#(\\w+)").matcher(successCriteria);
+            if (statements.length == 0)
+                return false;
 
-        int k = 0;
-        int p = 0;
-        while (matcher.find()) {
-            String condition = matcher.group(1);
-            logger.info("Find value of:{}", matcher.group(1));
+            int p = 0;
+            for (String statement : statements) {
 
-            if (condition.contains(OrchestrationServiceConstants.TASK)) {
+                if (statement.startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
+                    Expression e2 = parser.parseExpression(statement);
 
-                //TODO accepted format is task_state but spel expects task.state. Couldnot find a regex for that
-                String condition1 = condition.replace("_", ".");
-                List<String> evaluatedValues = evaluateValue(result, condition1);
+                    boolean val = e2.getValue(con2, Boolean.class);
+                    logger.info("Evaluated value for errorCode or returnCode is:{}", val);
+
+                    successCriteria = successCriteria.replace(statement, " " + val + " ");
+
+                    continue;
+                }
+
+                String arr[] = StringUtils.split(statement);
+                String lvalue = arr[0];
+
+                if (!lvalue.contains(OrchestrationServiceConstants.TASK)) {
+
+                    List<String> evaluatedValues = evaluateValue(result, lvalue);
+                    sc.setEvaluateVal(evaluatedValues.get(0), p);
+                    successCriteria = successCriteria.replace(lvalue, " evaluateVal[" + p + "]");
+                    p++;
+
+                    continue;
+                }
+
+                //TODO accepted format is task_state but spel expects task.state. Could not find a regex for that
+                String lvalue1 = lvalue.replace("_", ".");
+
+                List<String> evaluatedValues = evaluateValue(result, lvalue1);
+
                 boolean val2 = true;
-                if (statemets.length == 0)
-                    return false;
-                String exp = statemets[k];
 
                 if (evaluatedValues.isEmpty())
                     return false;
 
+                String exp1 = statement.replace(lvalue, "eval");
                 for (String evaluatedValue : evaluatedValues) {
-                    eval = evaluatedValue;
-                    String exp1 = exp.replace("#" + condition, "eval");
+                    sc.setEval(evaluatedValue);
                     Expression e = parser.parseExpression(exp1);
                     val2 = val2 && e.getValue(con2, Boolean.class);
                 }
 
-                successCriteria = successCriteria.replace(exp, val2 + " ");
+                successCriteria = successCriteria.replace(statement, " " + val2 + " ");
+            }   
 
-            } else {
-                List<String> evaluatedValues = evaluateValue(result, condition);
-                evaluateVal.add(p, evaluatedValues.get(0));
-                successCriteria = successCriteria.replace("#" + condition, "evaluateVal[" + p + "]");
-                p++;
-            }
-            k++;
+            logger.info("Success Criteria to evaluate:{}", successCriteria);
+            Expression e1 = parser.parseExpression(successCriteria);
+            boolean val1 = e1.getValue(con2, Boolean.class);
+
+            logger.info("Evaluated Value is:{}" + val1);
+
+            return val1;
+        } catch (final Exception e) {
+            logger.error("Cannot evaluate success Criteria:{} Exception:{}", successCriteria, e);
+
+            return false;
         }
-
-        Expression e1 = parser.parseExpression(successCriteria);
-        boolean val1 = e1.getValue(con2, Boolean.class);
-
-        logger.info("Value is:{}", val1);
-
-        return val1;
     }
 }
-
-
-

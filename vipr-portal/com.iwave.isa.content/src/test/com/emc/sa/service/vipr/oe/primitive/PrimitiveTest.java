@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.testng.Assert;
 
+import com.emc.sa.service.DummyDbClient;
 import com.emc.sa.service.vipr.oe.primitive.Parameter.Type;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -79,7 +80,7 @@ public class PrimitiveTest {
 
         PrimitiveHelper.persist(restPrimitive, dbClient);
 
-        final Primitive primitive = PrimitiveHelper.query(restPrimitive.id(),
+        final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class,
                 dbClient);
         
         Assert.assertEquals(primitive.name(), name);

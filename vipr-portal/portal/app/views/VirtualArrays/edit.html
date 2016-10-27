@@ -57,14 +57,25 @@
       #{/if}
     #{/field}
     
-    #{field 'virtualArray.name'}
-        %{ 
-          field.cssClass = 'initialFocus'
-          field.required = true 
-        }%
-        #{Form.inputTextControlGroup field:field /}
-    #{/field}
-
+    #{if guideVisible }
+    	#{field 'virtualArray.name'}
+        	%{ 
+          	field.cssClass = 'initialFocus'
+          	field.required = true
+          	field.disabled = true
+        	}%
+        	#{Form.inputTextControlGroup field:field /}
+    	#{/field}
+    #{/if}	
+    #{else}
+        #{field 'virtualArray.name'}
+        	%{ 
+          	field.cssClass = 'initialFocus'
+          	field.required = true
+        	}%
+        	#{Form.inputTextControlGroup field:field /}
+    	#{/field}
+	#{/else}
     #{license.ifController}
       #{field 'virtualArray.autoSanZoning'}
         %{

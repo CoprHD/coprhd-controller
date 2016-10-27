@@ -66,6 +66,9 @@ public abstract class BlockObject extends DataObject {
     // Name reference of replication group that the object belong to.
     private String _replicationGroupInstance;
 
+    // The storage system type this BlockObject belongs to
+    private String _systemType;
+
     @AlternateId("AltIdIndex")
     @Name("wwn")
     public String getWWN() {
@@ -231,6 +234,16 @@ public abstract class BlockObject extends DataObject {
     public void setReplicationGroupInstance(String replicaGroupInstance) {
         _replicationGroupInstance = replicaGroupInstance;
         setChanged("replicationGroupInstance");
+    }
+
+    @Name("systemType")
+    public String getSystemType() {
+        return _systemType;
+    }
+
+    public void setSystemType(String systemType) {
+        _systemType = systemType;
+        setChanged("systemType");
     }
 
     /**

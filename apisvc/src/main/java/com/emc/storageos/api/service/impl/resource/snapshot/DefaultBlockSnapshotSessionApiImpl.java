@@ -354,6 +354,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         snapshot.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
         snapshot.setLabel(label);
         snapshot.setStorageController(sourceObj.getStorageController());
+        snapshot.setSystemType(sourceObj.getSystemType());
         snapshot.setVirtualArray(sourceObj.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(sourceObj.getProtocol());
@@ -537,7 +538,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession TgtSnapSession,
+    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
             List<URI> snapshotURIs, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }

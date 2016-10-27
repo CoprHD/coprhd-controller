@@ -1305,6 +1305,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
         snapshot.setLabel(label);
         snapshot.setStorageController(volume.getStorageController());
+        snapshot.setSystemType(volume.getSystemType());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());

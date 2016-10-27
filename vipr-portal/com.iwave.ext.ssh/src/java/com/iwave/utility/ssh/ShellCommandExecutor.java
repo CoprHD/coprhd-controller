@@ -37,6 +37,7 @@ public class ShellCommandExecutor implements CommandExecutor {
     private static final int TIMEOUT = 30;
     private static final String ENTER = "\r";
     private static final String EXIT = "exit";
+    private static final int CONNECTION_TIMEOUT = 60 * 60 * 1000;
 
     /** The connection information. */
     private SSHConnection connection;
@@ -182,7 +183,8 @@ public class ShellCommandExecutor implements CommandExecutor {
                 session = new JSch().getSession(connection.getUsername(), connection.getHost(),
                         connection.getPort());
                 session.setUserInfo(new SSHUserInfo(connection.getPassword()));
-                session.connect();
+                session.setTimeout(CONNECTION_TIMEOUT);
+                session.connect(CONNECTION_TIMEOUT);
 
                 debug("Opening shell channel, encoding: %s", encoding);
 

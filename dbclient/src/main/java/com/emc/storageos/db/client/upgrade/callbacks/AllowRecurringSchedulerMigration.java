@@ -19,16 +19,20 @@ import com.google.common.collect.Lists;
 public class AllowRecurringSchedulerMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(AllowRecurringSchedulerMigration.class);
 
-    public static final List RECURRING_ALLOWED_CATALOG_SERVICES = Lists.newArrayList("CreateBlockSnapshot", 
-            "CreateFileSnapshot", "CreateFullCopy", "CreateSnapshotOfApplication", "CreateCloneOfApplication");
+    public static List RECURRING_ALLOWED_CATALOG_SERVICES = Lists.newArrayList("CreateBlockSnapshot", 
+            "CreateFileSnapshot", "CreateFullCopy");
     @Override
     public void process() {
+        enableScheduler(RECURRING_ALLOWED_CATALOG_SERVICES);
+    }
+    
+    protected void enableScheduler(List<String> allowedCatalogServices) {
         List<URI> catalogServiceIds = dbClient.queryByType(CatalogService.class, true);
         int cnt = 0;
         for(URI catalogServiceId : catalogServiceIds) {
             CatalogService catalogService = dbClient.queryObject(CatalogService.class, catalogServiceId);
             String baseService = catalogService.getBaseService();
-            if (RECURRING_ALLOWED_CATALOG_SERVICES.contains(baseService)) {
+            if (allowedCatalogServices.contains(baseService)) {
                 log.info("Allow recurring for catalog service {}", catalogService.getTitle());
                 catalogService.setRecurringAllowed(true);
                 dbClient.updateObject(catalogService);
@@ -36,5 +40,6 @@ public class AllowRecurringSchedulerMigration extends BaseCustomMigrationCallbac
             }
         }
         log.info("Completed updating recurringAllowed flag for catalog services - {}", cnt);
+
     }
 }

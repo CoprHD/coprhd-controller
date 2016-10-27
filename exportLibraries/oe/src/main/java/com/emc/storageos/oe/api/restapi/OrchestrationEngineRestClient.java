@@ -35,7 +35,7 @@ import com.sun.jersey.api.client.WebResource.Builder;
 public class OrchestrationEngineRestClient extends StandardRestClient {
 
     private static Logger log = LoggerFactory.getLogger(OrchestrationEngineRestClient.class);
-
+    private String _extraHeader;
     /**
      * Constructor
      * 
@@ -48,11 +48,14 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
         _base = baseURI;
     }
 
-    public void setAuthToken(String token) { _authToken = token; }
+    public void setAuthToken(String token, String extraHeader) { 
+	_authToken = token;
+	_extraHeader = extraHeader;
+    }
 
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        return resource.getRequestBuilder().header("X-SDS-AUTH-TOKEN", _authToken);
+        return resource.getRequestBuilder().header(_extraHeader, _authToken);
     }
 
     @Override

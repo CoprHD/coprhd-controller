@@ -41,6 +41,7 @@ import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
@@ -300,7 +301,7 @@ public class OrchestrationService extends ViPRService {
      * @param step
      * @param result
      */
-    private void updateOutputPerStep(final Step step, final String result) {
+    private void updateOutputPerStep(final Step step, final String result) throws Exception {
         final Map<String, String> output = step.getOutput();
         if (output == null)
             return;
@@ -350,7 +351,7 @@ public class OrchestrationService extends ViPRService {
      * @param value
      * @return
      */
-    private List<String> evaluateValue(final String result, String value) {
+    private List<String> evaluateValue(final String result, String value) throws Exception {
 
         final Gson gson = new Gson();
         ViprOperation res = gson.fromJson(result, ViprOperation.class);
@@ -366,21 +367,27 @@ public class OrchestrationService extends ViPRService {
 
             valueList.add(val);
 
-            return valueList;
+        } else {
+
+            String[] values = value.split("task.", 2);
+            if (values.length != 2) {
+                logger.error("Cannot evaluate values with statement:{}", value);
+
+                throw new IllegalStateException();
+            }
+            value = values[1];
+            Expression expr = parser.parseExpression(value);
+
+            ViprTask[] tasks = res.getTask();
+            for (ViprTask task : tasks) {
+                EvaluationContext context = new StandardEvaluationContext(task);
+                String v = (String) expr.getValue(context);
+                valueList.add(v);
+            }
+
+            logger.info("valueList is:{}", valueList);
         }
-
-        value = value.split("task.", 2)[1];
-        Expression expr = parser.parseExpression(value);
-
-        ViprTask[] tasks = res.getTask();
-        for (ViprTask task : tasks) {
-            EvaluationContext context = new StandardEvaluationContext(task);
-            String v = (String) expr.getValue(context);
-            valueList.add(v);
-        }
-
-        logger.info("valueList is:{}", valueList);
-
+        
         return valueList;
     }
 

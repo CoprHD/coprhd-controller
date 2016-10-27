@@ -362,9 +362,9 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     private AuthnProvider buildOIDCParameters(AuthnProvider provider) {
-        provider.setJwksUrl( String.format("http://%s/oidc/jwks.json", provider.getOidcProviderAddress() ) );
-        provider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", provider.getOidcProviderAddress() ) );
-        provider.setOidcTokenUrl( String.format("http://%s/oidc/token", provider.getOidcProviderAddress() ) );
+        provider.setJwksUrl( String.format("%s/jwks.json", provider.getOidcProviderAddress() ) );
+        provider.setOidcAuthorizeUrl( String.format("%s/authorize", provider.getOidcProviderAddress() ) );
+        provider.setOidcTokenUrl( String.format("%s/token", provider.getOidcProviderAddress() ) );
 
         String cbURL = buildCallbackURL();
         provider.setOidcCallBackUrl(cbURL);
@@ -375,7 +375,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private String buildCallbackURL() {
         PropertyInfo props = _coordinator.getPropertyInfo();
-        return String.format("https://%s:4443/oidccb", props.getProperty("network_vip"));
+        return String.format("https://%s:4443", props.getProperty("network_vip"));
     }
 
     /**

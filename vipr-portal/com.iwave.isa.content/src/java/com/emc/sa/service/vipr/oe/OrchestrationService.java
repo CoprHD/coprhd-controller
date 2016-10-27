@@ -54,7 +54,7 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
-    private Map<String, Object> params;
+    private Map<String, Object> params = new HashMap<String, Object>();
     private String oeOrderJson;
 
     //<StepId, {"key" : "values...", "key" : "values ..."} ...>
@@ -84,7 +84,7 @@ public class OrchestrationService extends ViPRService {
     public void precheck() throws Exception {
 
         // get input params from order form
-        params = ExecutionUtils.currentContext().getParameters();
+        //params = ExecutionUtils.currentContext().getParameters();
 
         // validate input params to insure service will run
 
@@ -92,7 +92,7 @@ public class OrchestrationService extends ViPRService {
         params.put("ProxyToken", ExecutionUtils.currentContext().
                 getExecutionState().getProxyToken());
         //Remove after integration with order form
-        params.put("size", "1");
+        params.put("size", "1GB");
         params.put("name", "Vol-1");
         params.put("count", "1");
         params.put("varray", "Varray-1");
@@ -112,12 +112,12 @@ public class OrchestrationService extends ViPRService {
         params.put("ProxyToken", ExecutionUtils.currentContext().
                 getExecutionState().getProxyToken());
         //Remove after integration with order form
-        params.put("Size", "1");
-        params.put("volumeName", "Vol-1");
-        params.put("numOfVolume", "1");
-        params.put("vArray", "Varray-1");
-        params.put("vPool", "Vpool-1");
-        params.put("project", "Project-1");
+        params.put("size", "1GB");
+        params.put("name", "Vol-1");
+        params.put("count", "1");
+        params.put("varray", "urn:storageos:VirtualArray:1fa6c1c5-b082-4d24-a971-def0042c0571:vdc1");
+        params.put("vpool", "urn:storageos:VirtualPool:f5a6b654-d22d-4f84-941f-19dff8c97997:vdc1");
+        params.put("project", "urn:storageos:Project:47e7d81e-2f9e-490b-a7e6-0321cca8784e:global");
 
     }
 
@@ -263,7 +263,7 @@ public class OrchestrationService extends ViPRService {
                 case OTHERS:
                 case ASSET_OPTION: {
                     //TODO handle multiple , separated values
-                    final String paramVal = (params.get(key) == null) ? (params.get(key).toString()) : (value.getDefault());
+                    final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefault());
 
 		    logger.info("paramVal is:{} and key:{}", paramVal, key);
                     if (paramVal == null) {
@@ -300,31 +300,41 @@ public class OrchestrationService extends ViPRService {
                     final String[] paramVal = value.getOtherStepValue().split("\\.");
                     final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
                     final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
+
+			logger.info("attr:{}",attribute);
+			logger.info("output per step:{}", outputPerStep.get(stepId));
                     Map<String, List<String>> stepInput;
                     if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
                         stepInput = inputPerStep.get(stepId);
                     else
                         stepInput = outputPerStep.get(stepId);
 
-                    if (stepInput == null || (stepInput != null && stepInput.get(attribute) == null)) {
+		    if (stepInput == null) {
+			logger.info("stepInput == null {}", attribute);
+		    } else {
+			logger.info("stepInput is not null");
+			logger.info("value is:{}", stepInput.get(attribute));
+                        inputs.put(key, stepInput.get(attribute));
 
+			break;
+		    }
                         if (value.getDefault() != null) {
                             inputs.put(key, Arrays.asList(value.getDefault()));
+			    logger.info("value default is:{}", Arrays.asList(value.getDefault()));
                             break;
                         }
 
-                        if (value.getRequired().equals("false"))
+                        if (value.getRequired().equals("false")) //TODO null pointer exception
                             break;
+
+
 
                         //TODO if data is still not present waitfortask ... Do some more validation
 
                         logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
 
                         throw new IllegalStateException();
-                    }
 
-                    inputs.put(key, stepInput.get(attribute));
-                    break;
                 }
                 default:
                     logger.error("Input Type:{} is Invalid", value.getType());
@@ -349,8 +359,10 @@ public class OrchestrationService extends ViPRService {
      */
     private void updateOutputPerStep(final Step step, final String result) throws Exception {
         final Map<String, String> output = step.getOutput();
-        if (output == null)
+        if (output == null) {
+		logger.info("output is null");
             return;
+	}
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
@@ -359,6 +371,7 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             String value = output.get(key);
+		logger.info("key:{} value:{}", key, value);
             out.put(key, evaluateValue(result, value));
         }
 
@@ -500,6 +513,15 @@ public class OrchestrationService extends ViPRService {
 
                 List<String> evaluatedValues = evaluateValue(result, lvalue1);
 
+                //TODO accepted format is task_state but spel expects task.state. Couldnot find a regex for that
+                String condition1 = condition.replace("_", ".");
+		List<String> evaluatedValues;
+		try {
+                	evaluatedValues = evaluateValue(result, condition1);
+		} catch (Exception e) {
+			logger.error("Failed to find status");
+			return false;
+		}
                 boolean val2 = true;
 
                 if (evaluatedValues.isEmpty())
@@ -518,6 +540,20 @@ public class OrchestrationService extends ViPRService {
             logger.info("Success Criteria to evaluate:{}", successCriteria);
             Expression e1 = parser.parseExpression(successCriteria);
             boolean val1 = e1.getValue(con2, Boolean.class);
+            } else {
+		List<String> evaluatedValues;
+		try {
+                	evaluatedValues = evaluateValue(result, condition);
+                } catch (Exception e) {
+                        logger.error("Failed to find status");
+                        return false;
+                }
+                evaluateVal.add(p, evaluatedValues.get(0));
+                successCriteria = successCriteria.replace("#" + condition, "evaluateVal[" + p + "]");
+                p++;
+            }
+            k++;
+        }
 
             logger.info("Evaluated Value is:{}" + val1);
 

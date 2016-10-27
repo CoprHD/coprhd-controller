@@ -692,7 +692,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         //Suspend All the pairs in RDF Group only if its change Virtual Pool operation, the reason being the format flag introduced in Trinity
         //would wipe data on the source volumes. Data in source volumes is only possible during chaneg Virtual Pool operations, hence going ahead with
         //suspending all the pairs.
-        if (Mode.ACTIVE.equals(SRDFMode) && null != vpoolChangeUri) {
+        if (Mode.ACTIVE.equals(SRDFMode) && !NullColumnValueGetter.isNullURI(vpoolChangeUri)) {
             /*
              * Invoke Suspend on the SRDF group as more ACTIVE pairs cannot be added until all other
              * existing pairs are in NOT-READY state
@@ -739,7 +739,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 null);
 
         //Resume All the pairs in RDF Group only if its change Virtual Pool operation.
-        if (Mode.ACTIVE.equals(SRDFMode) && null != vpoolChangeUri) { 
+        if (Mode.ACTIVE.equals(SRDFMode) && !NullColumnValueGetter.isNullURI(vpoolChangeUri)) {
             /*
              * Invoke Resume on the SRDF group to get all pairs back in the READY state.
              */
@@ -1628,7 +1628,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         //would wipe data on the source volumes. Data in source volumes is only possible during change Virtual Pool operations, hence going ahead with
         //suspending all the pairs.
         String suspendGroupStep = waitFor;
-        if (Mode.ACTIVE.equals(SRDFMode) && null != vpoolChangeUri) {
+        if (Mode.ACTIVE.equals(SRDFMode) && !NullColumnValueGetter.isNullURI(vpoolChangeUri)) {
             Method suspendGroupMethod = suspendSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
             Method resumeRollbackMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
 
@@ -1653,7 +1653,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke Resume on the SRDF group to get all pairs back in the READY state.
          */
-        if (Mode.ACTIVE.equals(SRDFMode) && null != vpoolChangeUri) {
+        if (Mode.ACTIVE.equals(SRDFMode) && !NullColumnValueGetter.isNullURI(vpoolChangeUri)) {
             Method resumeGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
             resumeGroupStep = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                     RESUME_SRDF_MIRRORS_STEP_DESC, createListReplicaStep, system.getId(), system.getSystemType(),

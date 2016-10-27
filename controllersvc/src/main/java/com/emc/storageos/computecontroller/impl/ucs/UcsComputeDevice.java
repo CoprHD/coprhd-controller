@@ -545,22 +545,28 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
+                    LOGGER.info("adding host " + host.getHostName() + " to ExportGroup: " + exportGroup.getId());
+
                     blockExportController.exportGroupUpdate(exportGroup.getId(),
                             noUpdatesVolumeMap, noUpdatesVolumeMap,
                             updatedClusters, updatedHosts, updatedInitiators, task);
+                    boolean taskCompleted = false;
 
-                    while (true) {
+                    while (!taskCompleted) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
 
                         switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
                             case ready:
-                                WorkflowStepCompleter.stepSucceded(stepId);
-                                return;
+                                taskCompleted = true;
+                                LOGGER.info("Successfully added host " + host.getHostName() + " to ExportGroup: " + exportGroup.getId());
+                                break;
                             case error:
+                                taskCompleted = true;
+                                LOGGER.error("Failed to add host " + host.getHostName() + " to ExportGroup: " + exportGroup.getId());
                                 WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
                                         .getServiceError());
-                                return;
+                                break;
                             case pending:
                                 break;
 
@@ -1118,37 +1124,37 @@ public class UcsComputeDevice implements ComputeDevice {
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
 
         try {
-            if (host != null && host.getComputeElement() != null && host.getUuid() != null) {
+             if (host != null && host.getComputeElement() != null ) {
+                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                if (host.getUuid() != null || computeElement.getUuid() != null) {
+                    String uuid = host.getUuid() != null ? host.getUuid(): computeElement.getUuid();
 
-                LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                        cs.getUsername(), cs.getPassword(), host.getUuid());
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), uuid);
 
-                if (sp != null) {
+                    if (sp != null) {
 
-                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                        LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
+                                cs.getUsername(), cs.getPassword(), sp.getDn());
 
-                    LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), sp.getDn());
+                        LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
 
-                    LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getLabel(), ComputeBlade.class);
 
-                    ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getLabel(), ComputeBlade.class);
+                        // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                        if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                            computeElement.setAvailable(true);
+                            _dbClient.persistObject(computeElement);
+                        }
 
-                    // Release the computeElement back into the pool as soon as we have unbound it from the service
-                    // profile
-                    if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
-                        computeElement.setAvailable(true);
-                        _dbClient.persistObject(computeElement);
+                        ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                unboundServiceProfile.getDn());
                     }
 
-                    ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            unboundServiceProfile.getDn());
+                    // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+                    removeHostInitiatorsFromNetworks(host);
                 }
-
-                // On successful deletion of the service profile - get rid of the objects that represent objects from
-                // the service profile
-                removeHostInitiatorsFromNetworks(host);
             }
 
         } catch (ClientGeneralException e) {

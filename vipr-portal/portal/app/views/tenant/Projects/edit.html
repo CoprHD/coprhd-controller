@@ -5,6 +5,11 @@
 #{set navSelected: ['nav.tenantsettings', 'nav.projects'] /}
 #{set 'title'}&{titleKey}#{/set}
 
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'projects.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
 <div class="container">
 #{Form.header titleKey:titleKey /}
 

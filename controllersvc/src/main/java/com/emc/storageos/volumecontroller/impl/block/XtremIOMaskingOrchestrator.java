@@ -149,6 +149,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI, initiatorURIs,
                 hostURIs);
 
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+
         // Export Mask cannot be grouped to an individual construct in XtremIO.
         // Group of LunMaps contribute to a Export Mask, hence there is really no need to determine
         // create mask steps based on existing Masking information on Array.
@@ -175,6 +177,14 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+
+            List<URI> initiatorURIs = null;
+            if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
+                Collection<URI> initiators = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                initiatorURIs = new ArrayList<URI>(initiators);
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+            }
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
@@ -210,17 +220,10 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         storage.getLabel());
                 workflow.executePlan(taskCompleter, successMessage);
             } else {
-                if (exportGroup.getInitiators() != null
-                        && !exportGroup.getInitiators().isEmpty()) {
+                if (initiatorURIs != null) {
                     log.info("export_volume_add: adding volume, creating a new export");
                     // we still need to get the updated initiators info.
                     refreshExportMask(storage, getDevice(), null);
-                    List<URI> initiatorURIs = new ArrayList<URI>();
-                    for (String initiatorId : exportGroup.getInitiators()) {
-                        Initiator initiator = _dbClient.queryObject(Initiator.class,
-                                URI.create(initiatorId));
-                        initiatorURIs.add(initiator.getId());
-                    }
 
                     // Group Initiators by compute and invoke create Mask
                     Workflow workflow = _workflowService.getNewWorkflow(

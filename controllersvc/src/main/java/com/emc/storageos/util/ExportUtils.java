@@ -1609,6 +1609,19 @@ public class ExportUtils {
     }
 
     /**
+     * Returns true if the storage system implementation supports finding free HLU for cluster export.
+     *
+     * @param storage the storage system
+     * @return true, if the storage system supports finding free HLU
+     */
+    public static boolean isFindFreeHLUSupportedForStorage(StorageSystem storage) {
+        String systemType = storage.getSystemType();
+        return (DiscoveredDataObject.Type.vmax.name().equals(systemType) || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
+                || DiscoveredDataObject.Type.xtremio.name().equals(systemType) || DiscoveredDataObject.Type.unity.name().equals(systemType)
+                || DiscoveredDataObject.Type.vplex.name().equals(systemType));
+    }
+
+    /**
      * Selects and returns the list targets (storage ports) that need to be removed from
      * an export mask when the initiators are removed from the storage group. If checks if
      * the targets are used by other initiators before they can be removed. It returns

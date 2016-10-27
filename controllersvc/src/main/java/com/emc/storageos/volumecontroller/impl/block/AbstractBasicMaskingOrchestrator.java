@@ -90,11 +90,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        // TODO see how to ignore this method's execution for arrays that we are currently not going to support
-        // TODO check exception handling
-
-        if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)) {
-            _log.info("findAndUpdateFreeHLUsForClusterExport START..");
+        if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.isFindFreeHLUSupportedForStorage(storage)) {
+            _log.info("Find and update free HLUs for Cluster Export START..");
             if (exportGroup.forCluster()) {
                 /**
                  * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
@@ -131,7 +129,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
                 }
             }
-            _log.info("findAndUpdateFreeHLUsForClusterExport END.");
+            _log.info("Find and update free HLUs for Cluster Export END.");
         }
     }
 
@@ -297,8 +295,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         boolean anyOperationsToDo = false;
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
-
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         if (matchingExportMaskURIs != null && !matchingExportMaskURIs.isEmpty()) {
             // There were some exports out there that already have some or all of the

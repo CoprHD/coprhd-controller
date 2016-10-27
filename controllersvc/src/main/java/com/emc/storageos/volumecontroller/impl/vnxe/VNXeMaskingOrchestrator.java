@@ -426,6 +426,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<URI> volumeURIs = new ArrayList<URI>();
                 volumeURIs.addAll(volumeMap.keySet());
 
+                Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
+
                 String zoningStep = generateZoningAddVolumesWorkflow(workflow, null,
                         exportGroup, exportMasks, volumeURIs);
                 String exportStep = null;
@@ -598,6 +602,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // existing exports for a given host.
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.

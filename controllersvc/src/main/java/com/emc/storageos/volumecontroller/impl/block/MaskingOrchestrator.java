@@ -101,7 +101,10 @@ public interface MaskingOrchestrator {
             String token) throws Exception;
 
     /**
-     * Find and update free HLUs for cluster export.
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     * If it is a host export where the host belongs to a cluster, then the exclusive export
+     * to this host should be assigned with cluster's next free HLU number.
      *
      * @param exportGroup the export group
      * @param initiatorNames the initiator names

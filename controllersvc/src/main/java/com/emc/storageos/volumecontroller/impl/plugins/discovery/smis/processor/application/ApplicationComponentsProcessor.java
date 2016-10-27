@@ -38,7 +38,6 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
             VolumeGroup volumeGroup = null;
             List<String> initiatorList = new ArrayList<>();
             List<String> volumeList = new ArrayList<>();
-
             String targetMaskingGroupInstanceID = null;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
@@ -56,8 +55,8 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                         _dbClient.createObject(volumeGroup);
                     }
                     volumeGroup.setMigrationStatus(VolumeGroup.MigrationStatus.MIGRATIONREADY.toString());
+                    _dbClient.updateObject(volumeGroup);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SE_TARGET_MASKING_GROUP)) {
-                    // We need to add the volume device ids here
                     targetMaskingGroupInstanceID = associatedInstancePath
                             .getKey(Constants.INSTANCEID).getValue().toString()
                             .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
@@ -66,7 +65,6 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                             .getKey(Constants.INSTANCEID).getValue().toString()
                             .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS));
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SYMM_STORAGEVOLUME)) {
-                    // We need to add the volume device ids here
                     volumeList.add(associatedInstancePath.getKey(Constants.DEVICEID).getValue().toString());
                 }
 

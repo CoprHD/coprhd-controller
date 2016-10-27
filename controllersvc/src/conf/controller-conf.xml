@@ -785,7 +785,10 @@
         </property>
     </bean>
     
-     <bean id="appMigrationController" class="com.emc.storageos.migrationcontroller.ApplicationMigrationController">     
+    <bean id="appMigrationController" class="com.emc.storageos.migrationcontroller.ApplicationMigrationController">     
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
     </bean>
     
     <bean id="migrationController" class="com.emc.storageos.migrationcontroller.ApplicationMigrationControllerImpl">     

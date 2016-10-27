@@ -159,7 +159,10 @@ public class DbConsistencyCheckerHelper {
                     
                     ColumnField indexedField = indexedFields.get(column.getOne());
                     String indexKey = getIndexKey(indexedField, column);
-                    if (indexKey == null) {
+                    if (indexKey == null || indexKey.isEmpty()) {
+                        if (indexKey != null) {
+                            logMessage("indexKey is EMPTY for field:"+indexedField.getName() +" row key:"+ key, true, false);
+                        }
                         continue;
                     }
                     

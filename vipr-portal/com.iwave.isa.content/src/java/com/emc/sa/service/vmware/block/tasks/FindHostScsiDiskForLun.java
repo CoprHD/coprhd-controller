@@ -89,9 +89,12 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
 
-        List<HostScsiDisk> scsiDisks = null;
+        List<HostScsiDisk> scsiDisks = Lists.newArrayList();
         if (availableDiskOnly) {
-            scsiDisks = Lists.newArrayList(storageAPI.queryAvailableDisksForVmfs(null));
+            HostScsiDisk[] vmfsDisks = storageAPI.queryAvailableDisksForVmfs(null);
+            if (vmfsDisks != null) {
+                scsiDisks = Lists.newArrayList(vmfsDisks);
+            }
         } else {
             scsiDisks = storageAPI.listScsiDisks();
         }

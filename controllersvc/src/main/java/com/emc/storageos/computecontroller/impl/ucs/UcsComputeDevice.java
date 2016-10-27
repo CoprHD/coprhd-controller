@@ -1124,37 +1124,39 @@ public class UcsComputeDevice implements ComputeDevice {
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
 
         try {
-            if (host != null && host.getComputeElement() != null && host.getUuid() != null) {
-
-                LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                        cs.getUsername(), cs.getPassword(), host.getUuid());
-
-                if (sp != null) {
-
-                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-
-                    LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), sp.getDn());
-
-                    LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
-
-                    ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getLabel(), ComputeBlade.class);
-
-                    // Release the computeElement back into the pool as soon as we have unbound it from the service profile
-                    if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
-                        computeElement.setAvailable(true);
-                        _dbClient.persistObject(computeElement);
+            if (host != null && host.getComputeElement() != null ) {
+                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                if (host.getUuid() != null || computeElement.getUuid() != null) {
+                    String uuid = host.getUuid() != null ? host.getUuid(): computeElement.getUuid();
+                       
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), uuid);
+   
+                    if (sp != null) {
+     
+                        LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
+                                cs.getUsername(), cs.getPassword(), sp.getDn());
+    
+                        LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+    
+                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getLabel(), ComputeBlade.class);
+    
+                        // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                        if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                            computeElement.setAvailable(true);
+                            _dbClient.persistObject(computeElement);
+                        }
+    
+                        ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                unboundServiceProfile.getDn());
                     }
 
-                    ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            unboundServiceProfile.getDn());
+                    // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+                    removeHostInitiatorsFromNetworks(host);
                 }
-
-                // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
-                removeHostInitiatorsFromNetworks(host);
-            }
-
+            } 
+    
         } catch (ClientGeneralException e) {
             LOGGER.warn("Unable to deactivate host : ", e);
             throw e;

@@ -30,6 +30,7 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
 import com.emc.storageos.services.util.SecurityUtils;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExceptions;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -1262,31 +1263,9 @@ public class AuthenticationResource {
 
             return Response.temporaryRedirect(oidcAuthEndpoint).build();
         } catch (Exception e) {
-            _log.error("", e);
-            throw new RuntimeException("Fail to generate auth req", e);
+            _log.error("Fail to generate authentication request", e);
+            throw APIException.internalServerErrors.failToGenAuthRequest(e.getMessage());
         }
-    }
-
-    private AuthnProvider getAuthnProvider() {
-        if (authnProvider == null) {
-            authnProvider = new AuthnProvider();
-            authnProvider.setJwksUrl( String.format("http://%s/oidc/jwks.json", oidcProviderAddr) );
-            authnProvider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", oidcProviderAddr) );
-            authnProvider.setOidcClientId("vipr1");
-            authnProvider.setOidcTokenUrl( String.format("http://%s/oidc/token", oidcProviderAddr) );
-
-            authnProvider.setOidcCallBackUrl( String.format("https://%s:4443/oidccb", getVIP()) );
-
-            String[] domains = new String[] {"secqe.com"};
-            StringSet domainSet = new StringSet(Arrays.asList(domains));
-            authnProvider.setDomains(domainSet);
-        }
-        return authnProvider;
-    }
-
-    private String getVIP() {
-        PropertyInfo props = coordinator.getPropertyInfo();
-        return props.getProperty("network_vip");
     }
 
     @GET    @Path("/oidccb")
@@ -1305,8 +1284,8 @@ public class AuthenticationResource {
             // suppose relaystate is service
             return buildLoginResponse(relaystate, null, true, true, loginStatus, request);
         } catch (Exception e) {
-            _log.error("", e);
-            throw new RuntimeException("", e);
+            _log.error("Fail to request id token", e);
+            throw APIException.internalServerErrors.failToRequestIdToken(e.getMessage());
         }
     }
 }

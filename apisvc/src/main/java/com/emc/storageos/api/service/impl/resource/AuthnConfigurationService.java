@@ -303,7 +303,7 @@ public class AuthnConfigurationService extends TaggedResource {
         List<AuthnProvider> providers = getProvidersFromDb();
         for (AuthnProvider provider : providers) {
             if (provider.getMode().equals(ProvidersType.oidc.name())) {
-                throw new RuntimeException("IDP Authentication Provider already existed.");
+                throw APIException.badRequests.oidcProviderAlreadyPresent();
             }
         }
     }
@@ -320,7 +320,7 @@ public class AuthnConfigurationService extends TaggedResource {
     private void ensureNoAuthnProvider() {
         List<AuthnProvider> providers = getProvidersFromDb();
         if ( !providers.isEmpty() ) {
-            throw new RuntimeException("Authentication Provider already existed. ");
+            throw APIException.badRequests.NonOidcProviderAlreadyPresent();
         }
     }
 

@@ -30,15 +30,15 @@ import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
-import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
+import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import java.net.URI;
@@ -144,34 +144,35 @@ public class OIDCAuthenticationManager {
         StringSet groupSet = new StringSet();
 
         for (Object grpDN: groups) {
-            groupSet.add(upn((String) grpDN));
+            try {
+                groupSet.add(upn((String) grpDN));
+            } catch (InvalidNameException e) { // Ingore invalid dn returned
+                log.warn("Invalid group dn {}", grpDN, e);
+            }
         }
         return groupSet;
     }
 
-    private String upn(String grpDN) {
+    private String upn(String grpDN) throws InvalidNameException {
         String baseName = null;
         String domainName = null;
         List<String> dcs = new ArrayList<String>();
-        try {
-            int cnCursor = 0; // only need first cn
-            LdapName dn = new LdapName(grpDN);
-            for (Rdn rdn : dn.getRdns()) {
-                if (rdn.getType().equalsIgnoreCase("CN") && cnCursor <= 0) {
-                    baseName = (String) rdn.getValue();
-                } else if (rdn.getType().equalsIgnoreCase("DC")) {
-                    dcs.add(rdn.getValue().toString());
-                }
-            }
+        int cnCursor = 0; // only need first cn
 
-            if (dcs.size() > 0) {
-                domainName = StringUtils.join(dcs, ",");
+        LdapName dn = new LdapName(grpDN);
+        for (Rdn rdn : dn.getRdns()) {
+            if (rdn.getType().equalsIgnoreCase("CN") && cnCursor <= 0) {
+                baseName = (String) rdn.getValue();
+            } else if (rdn.getType().equalsIgnoreCase("DC")) {
+                dcs.add(rdn.getValue().toString());
             }
-
-            return (domainName == null) ? baseName : String.format("%s@%s", baseName, domainName);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
+
+        if (dcs.size() > 0) {
+            domainName = StringUtils.join(dcs, ",");
+        }
+
+        return (domainName == null) ? baseName : String.format("%s@%s", baseName, domainName);
     }
 
     private List<String> tenantName(Set<URI> uris) {
@@ -208,10 +209,10 @@ public class OIDCAuthenticationManager {
 
         if (tokenResponse instanceof TokenErrorResponse) {
             ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();
-            throw new RuntimeException(error.getDescription());
+            throw APIException.internalServerErrors.failToRequestIdToken(error.getDescription());
         }
 
-        return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
+        return ( (OIDCTokenResponse) tokenResponse).getOIDCTokens().toString();
     }
 
     public AuthnProvider getOidcAuthProvider() {

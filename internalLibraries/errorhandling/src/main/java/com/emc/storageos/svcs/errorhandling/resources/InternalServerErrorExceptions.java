@@ -372,4 +372,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedHostOperationError(String cause);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException failToGenAuthRequest(String message);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException failToRequestIdToken(String message);
 }

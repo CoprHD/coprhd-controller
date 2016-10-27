@@ -3110,4 +3110,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException oidcProviderAlreadyPresent();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException NonOidcProviderAlreadyPresent();
 }

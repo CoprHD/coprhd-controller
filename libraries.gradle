@@ -460,8 +460,8 @@ ext {
     nimbusoidc = [
         "net.minidev:json-smart:1.1.1",
         "com.nimbusds:lang-tag:1.4",
-        "com.nimbusds:oauth2-oidc-sdk:3.4.1",
-        "com.nimbusds:nimbus-jose-jwt:4.23"
+        "com.nimbusds:oauth2-oidc-sdk:5.17.1",
+        "com.nimbusds:nimbus-jose-jwt:4.26.1"
     ]
 
     json_simple = [

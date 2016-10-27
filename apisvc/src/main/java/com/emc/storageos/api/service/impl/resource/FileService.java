@@ -90,6 +90,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
@@ -262,21 +263,15 @@ public class FileService extends TaskResourceService {
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
-        START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
-        STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
-        PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
-        RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
-        UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION),
-        UPDATE_RPO("update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -490,9 +485,9 @@ public class FileService extends TaskResourceService {
     }
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
-        //validate the vpool for protection and throw error if any other field invalid
-    	
-    	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+        // validate the vpool for protection and throw error if any other field invalid
+
+        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
             if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
@@ -3097,6 +3092,9 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem Failover");
 
         boolean replicateConfiguration = param.isReplicateConfiguration();
+        if (_dbClient.queryObject(StorageSystem.class, fs.getStorageDevice()).getSystemType().equalsIgnoreCase(SystemType.unity.name())) {
+            replicateConfiguration = false; // unity does not need to replicate configuration.
+        }
         if (replicateConfiguration) {
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(fs.getMirrorfsTargets());
@@ -4260,7 +4258,7 @@ public class FileService extends TaskResourceService {
     }
 
     private boolean isSubDirValid(FileShare fs, String subDir) {
-        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir,_dbClient);
+        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir, _dbClient);
         if (!exportFileRulesTemp.isEmpty()) {
             return true;
         }

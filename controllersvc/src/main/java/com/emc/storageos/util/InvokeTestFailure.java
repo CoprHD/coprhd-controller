@@ -18,6 +18,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_001 = "failure_001_early_in_add_volume_to_mask";
     public static final String ARTIFICIAL_FAILURE_002 = "failure_002_late_in_add_volume_to_mask";
     public static final String ARTIFICIAL_FAILURE_003 = "failure_003_late_in_add_initiator_to_mask";
+    public static final String ARTIFICIAL_FAILURE_004 = "failure_004_final_step_in_workflow_complete";
 
     private static volatile String _beanName;
 

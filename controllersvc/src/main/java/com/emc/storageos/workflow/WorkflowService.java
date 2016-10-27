@@ -52,6 +52,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -592,9 +593,8 @@ public class WorkflowService implements WorkflowController {
                 } 
 
                 // If an error is reported, and we're supposed to suspend on error, suspend
-                // Do not suspend rollback steps.
                 Step step = workflow.getStepMap().get(stepId);
-                if (StepState.ERROR == state && workflow.isSuspendOnError() && !workflow.isRollbackState()) {
+                if (StepState.ERROR == state && workflow.isSuspendOnError()) {
                     state = StepState.SUSPENDED_ERROR;
                     step.suspendStep = false;
                 }
@@ -618,6 +618,26 @@ public class WorkflowService implements WorkflowController {
                 status.updateState(state, code, message);
                 // Persist the updated step state
                 persistWorkflowStep(workflow, step);
+
+                // Test mechanism to invoke a failure. No-op on production systems.
+                try {
+                    if (workflow.allStatesTerminal()) {
+                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_004);
+                    }
+                } catch (NullPointerException npe) {
+                    // Overwrite the status of the final state
+                    _log.error("Overwriting the state of the final step of a workflow due to artificial failure request");
+                    StepStatus ss = workflow.getStepStatus(stepId);
+                    ss.state = StepState.ERROR;
+                    ss.description = "Artificially thrown exception";
+                    workflow.getStepStatusMap().put(stepId, ss);
+                    _log.info(String.format("Updating workflow step: %s state %s : %s", stepId, state, message));
+                    status.updateState(ss.state, code, message);
+                    step.status = ss;
+                    // Persist the updated step state
+                    persistWorkflowStep(workflow, step);
+                }
+
                 if (status.isTerminalState()) {
                     // release any step level locks held.
                     boolean releasedLocks = _ownerLocker.releaseLocks(stepId);

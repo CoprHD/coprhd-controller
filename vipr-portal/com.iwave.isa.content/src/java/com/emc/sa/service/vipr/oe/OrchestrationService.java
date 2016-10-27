@@ -41,10 +41,12 @@ import java.util.Set;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.RunREST;
+import com.emc.storageos.db.client.DbClient;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -57,6 +59,8 @@ public class OrchestrationService extends ViPRService {
     private Map<String, Object> params = new HashMap<String, Object>();
     private String oeOrderJson;
 
+    @Autowired
+    private DbClient dbClient;
     //<StepId, {"key" : "values...", "key" : "values ..."} ...>
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
@@ -95,9 +99,9 @@ public class OrchestrationService extends ViPRService {
         params.put("size", "1GB");
         params.put("name", "Vol-1");
         params.put("count", "1");
-        params.put("varray", "Varray-1");
-        params.put("vpool", "Vpool-1");
-        params.put("project", "Project-1");
+        params.put("varray", "urn:storageos:VirtualArray:1fa6c1c5-b082-4d24-a971-def0042c0571:vdc1");
+        params.put("vpool", "urn:storageos:VirtualPool:f5a6b654-d22d-4f84-941f-19dff8c97997:vdc1");
+        params.put("project", "urn:storageos:Project:47e7d81e-2f9e-490b-a7e6-0321cca8784e:global");
 	params.put("consistency_group", "");
 
 	ExecutionUtils.currentContext().logInfo("In PreCheck");
@@ -179,7 +183,7 @@ public class OrchestrationService extends ViPRService {
             switch (type) {
                 case VIPR_REST: {
                     ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName() + inputPerStep.get(step.getStepId()));
-                    result = ViPRExecutionUtils.execute(new RunREST(step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
+                    result = ViPRExecutionUtils.execute(new RunREST(dbClient, step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
 
                     break;
                 }
@@ -513,15 +517,6 @@ public class OrchestrationService extends ViPRService {
 
                 List<String> evaluatedValues = evaluateValue(result, lvalue1);
 
-                //TODO accepted format is task_state but spel expects task.state. Couldnot find a regex for that
-                String condition1 = condition.replace("_", ".");
-		List<String> evaluatedValues;
-		try {
-                	evaluatedValues = evaluateValue(result, condition1);
-		} catch (Exception e) {
-			logger.error("Failed to find status");
-			return false;
-		}
                 boolean val2 = true;
 
                 if (evaluatedValues.isEmpty())
@@ -535,25 +530,11 @@ public class OrchestrationService extends ViPRService {
                 }
 
                 successCriteria = successCriteria.replace(statement, " " + val2 + " ");
-            }   
+            }
 
             logger.info("Success Criteria to evaluate:{}", successCriteria);
             Expression e1 = parser.parseExpression(successCriteria);
             boolean val1 = e1.getValue(con2, Boolean.class);
-            } else {
-		List<String> evaluatedValues;
-		try {
-                	evaluatedValues = evaluateValue(result, condition);
-                } catch (Exception e) {
-                        logger.error("Failed to find status");
-                        return false;
-                }
-                evaluateVal.add(p, evaluatedValues.get(0));
-                successCriteria = successCriteria.replace("#" + condition, "evaluateVal[" + p + "]");
-                p++;
-            }
-            k++;
-        }
 
             logger.info("Evaluated Value is:{}" + val1);
 

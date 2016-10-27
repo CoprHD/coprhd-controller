@@ -656,8 +656,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    // Make sure an object with the same WWN does not already exist in the user created volumes map
-                                    if (volume != null && !exportMask.hasUserCreatedVolume(wwn)) {
+                                    if (volume != null) {
                                         Integer hlu = volumeWWNs.get(wwn);
                                         if (hlu == null) {
                                             _log.warn(String.format(
@@ -665,7 +664,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                                     wwn));
                                             hlu = -1;
                                         }
-                                        exportMask.addVolume(volume.getId(), hlu);
+                                        exportMask.addVolume(volume, hlu);
                                     }
                                 }
                             }
@@ -832,8 +831,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    if (null != volume && !mask.hasUserCreatedVolume(wwn)) {
-                                        mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
+                                    if (null != volume) {
+                                        mask.addVolume(volume, volumesToAdd.get(wwn));
                                     }
                                 }
                             }

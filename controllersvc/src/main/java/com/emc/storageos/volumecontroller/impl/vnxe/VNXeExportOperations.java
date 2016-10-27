@@ -50,15 +50,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
     private static final String OTHER = "other";
     private WorkflowService workflowService;
-    
+
     public void setWorkflowService(WorkflowService workflowService) {
         this.workflowService = workflowService;
     }
-    
+
     public void getWorkflowService(WorkflowService workflowService) {
         this.workflowService = workflowService;
     }
-    
+
     @Override
     public void createExportMask(StorageSystem storage, URI exportMask,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
@@ -94,7 +94,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, initiators, newhlu);
-                    mask.addVolume(volUri, result.getHlu());
+                    mask.addVolume(blockObject, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
                     if (BlockObject.checkForRP(_dbClient, volUri)) {
                         _logger.info(String.format(
@@ -105,7 +105,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         result = apiClient.exportSnap(nativeId, initiators, null);
                         setSnapWWN(apiClient, blockObject, nativeId);
                     }
-                    mask.addVolume(volUri, result.getHlu());
+                    mask.addVolume(blockObject, result.getHlu());
                 }
             }
             _dbClient.updateObject(mask);
@@ -281,12 +281,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
                 // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
                 // with the same nativeGUID, then export the snapshot.
-                BlockObject snapshot = findSnapshotByInternalVolume(blockObject); 
+                BlockObject snapshot = findSnapshotByInternalVolume(blockObject);
                 boolean isVplexVolumeFromSnap = false;
                 URI vplexBackendVol = null;
                 if (snapshot != null) {
                     blockObject = snapshot;
-                    exportMask.addVolume(volUri, newhlu);
+                    exportMask.addVolume(blockObject, newhlu);
                     isVplexVolumeFromSnap = true;
                     vplexBackendVol = volUri;
                     volUri = blockObject.getId();
@@ -299,15 +299,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 String nativeId = blockObject.getNativeId();
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
-                    exportMask.addVolume(volUri, result.getHlu());
+                    exportMask.addVolume(blockObject, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
                     result = apiClient.exportSnap(nativeId, vnxeInitiators, newhlu);
-                    exportMask.addVolume(volUri, result.getHlu());
+                    exportMask.addVolume(blockObject, result.getHlu());
                     String snapWWN = setSnapWWN(apiClient, blockObject, nativeId);
                     if (isVplexVolumeFromSnap) {
                         Volume backendVol = _dbClient.queryObject(Volume.class, vplexBackendVol);
                         backendVol.setWWN(snapWWN);
-                        _dbClient.updateObject(backendVol);                        
+                        _dbClient.updateObject(backendVol);
                     }
                 }
 
@@ -532,10 +532,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         _dbClient.updateObject(blockObj);
         return wwn;
     }
-    
+
     /**
      * Find the corresponding blocksnapshot with the same nativeGUID as the internal volume
-     * 
+     *
      * @param volume The block objct of the internal volume
      * @return The snapshot blockObject. return null if there is no corresponding snapshot.
      */
@@ -543,10 +543,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         BlockObject snap = null;
         String nativeGuid = volume.getNativeGuid();
         if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
-                URIUtil.isType(volume.getId(), Volume.class) ) {
+                URIUtil.isType(volume.getId(), Volume.class)) {
             List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
             if (snapshots != null && !snapshots.isEmpty()) {
-                snap = (BlockObject)snapshots.get(0);
+                snap = snapshots.get(0);
             }
         }
         return snap;

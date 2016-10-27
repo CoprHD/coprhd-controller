@@ -5,13 +5,13 @@
 
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.ANTECEDENT;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CIM_PROTOCOL_CONTROLLER_FOR_UNIT;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_DEPENDENT;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_DEVICE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_DEVICE_NUMBER;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PS_DEVICE_NUMBER;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.ANTECEDENT;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.LUNMASKING;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PS_DEVICE_NUMBER;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -72,7 +71,7 @@ public class ExportMaskOperationsHelper {
      * underlying array generates them. This helper function displays those array generated
      * HLUs during a GET/volume/exports operation. If the user has supplied the HLUs, this
      * function does nothing.
-     * 
+     *
      * @throws DeviceControllerException
      **/
     public static void setHLUFromProtocolControllers(DbClient dbClient,
@@ -118,7 +117,8 @@ public class ExportMaskOperationsHelper {
                             String deviceNumber = CIMPropertyFactory.getPropertyValue(pcu, CP_DEVICE_NUMBER);
                             _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(),
                                     deviceNumber));
-                            mask.addVolume(volumeURI, (int) Long.parseLong(deviceNumber, 16));
+                            BlockObject blockObject = BlockObject.fetch(dbClient, volumeURI);
+                            mask.addVolume(blockObject, (int) Long.parseLong(deviceNumber, 16));
                             requiresUpdate = true;
                         }
                     }
@@ -144,7 +144,7 @@ public class ExportMaskOperationsHelper {
     /**
      * This method is invoked specifically on AddVolumeToMaskingView jobs, which in turn
      * gets HLU's for processed volumes alone.
-     * 
+     *
      * @param dbClient
      * @param cimConnection
      * @param exportMaskURI
@@ -193,7 +193,8 @@ public class ExportMaskOperationsHelper {
                                     CP_DEVICE_NUMBER);
                             _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(),
                                     deviceNumber));
-                            mask.addVolume(volumeURI, (int) Long.parseLong(deviceNumber, 16));
+                            BlockObject blockObject = BlockObject.fetch(dbClient, volumeURI);
+                            mask.addVolume(blockObject, (int) Long.parseLong(deviceNumber, 16));
                             requiresUpdate = true;
                         }
                     }

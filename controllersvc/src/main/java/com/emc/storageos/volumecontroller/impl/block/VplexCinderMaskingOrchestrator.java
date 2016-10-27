@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -52,12 +53,12 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
  * This implementation is used for export operations that are only intended to be
  * used for VPlex multiple masking. These interfaces pass lower level operations
  * reading the Export Masks to the VPlexBackendManager.
- * 
+ *
  * There are also operations to generate the port groups, initiator groups, etc.
  * automatically for multiple mask support.
- * 
+ *
  * @author hallup
- * 
+ *
  */
 public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         implements VplexBackEndMaskingOrchestrator,
@@ -106,7 +107,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         /*
          * Returning Empty.Map as Cinder does not have capability return masks
          * on the storage system.
-         * 
+         *
          * This will cause the VPlexBackendManager to generate an ExportMask
          * for the first volume and then reuse it by finding it from the database
          * for subsequent volumes.
@@ -181,7 +182,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
 
     /**
      * Method to re-validate the Export Mask
-     * 
+     *
      * @param varrayURI
      * @param initiatorPortMap
      * @param mask
@@ -207,12 +208,12 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
 
     /**
      * Re-validate the ExportMask
-     * 
+     *
      * This is required to be done as the ExportMask
      * gets updated by reading the cinder export volume
      * response.
      *
-     * 
+     *
      * @param varrayURI
      * @param initiatorPortMap
      * @param mask
@@ -264,14 +265,14 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
 
     /**
      * Update the zoning map entries from the updated target list in the mask
-     * 
+     *
      * 1. Clean existing zoning map entries
      * 2. From the target storage ports in the mask, generate a map of networkURI string vs list of target storage ports
      * 3. From the initiator ports in the mask, generate a map of its URI vs InitiatorWWN
      * 4. From the initiatorPortMap, generate map of its WWN vs networkURI string
      * 5. Based on the networkURI matching, generate zoning map entries adhering to vplex best practices
      * 6. Persist the updated mask.
-     * 
+     *
      * @param initiatorPortMap
      * @param exportMask
      */
@@ -360,7 +361,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     /**
      * Doing the best possible assignment. Matched target ports should
      * be assigned at least to one initiator.
-     * 
+     *
      * @param matchingTargetPorts
      * @param portUsage
      * @return
@@ -467,7 +468,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
 
                 if (volumeMap != null) {
                     for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
+                        BlockObject blockObject = BlockObject.fetch(_dbClient, volume);
+                        exportMask.addVolume(blockObject, volumeMap.get(volume));
                     }
                 }
 
@@ -561,7 +563,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
-                
+
                 // Remove any volumes from the volume list that are no longer
                 // in the export mask. When a failure occurs removing a backend
                 // volume from a mask, the rollback method will try and remove it
@@ -572,11 +574,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 // actually in the mask, which now causes a failure when you remove
                 // it a second time. So, we check here and remove any volumes that
                 // are not in the mask to handle this condition.
-                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))) {
                     passedVolumesInMask.remove(volume);
                 }
             }
-            
+
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
@@ -608,7 +610,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     }
 
     /**
-     * 
+     *
      * @param allocator
      * @param candidatePorts
      * @param portsRequested

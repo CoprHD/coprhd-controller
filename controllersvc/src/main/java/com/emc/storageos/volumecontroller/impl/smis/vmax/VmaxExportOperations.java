@@ -1820,8 +1820,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                     Iterator<URI> resultsIter = results.iterator();
                                     if (resultsIter.hasNext()) {
                                         Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                        // Make sure an object with the same WWN does not already exist in the user created volumes map
-                                        if (volume != null && !exportMask.hasUserCreatedVolume(wwn)) {
+                                        if (volume != null) {
                                             Integer hlu = volumeWWNs.get(wwn);
                                             if (hlu == null) {
                                                 _log.warn(String
@@ -1830,7 +1829,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                                                 wwn));
                                                 hlu = -1;
                                             }
-                                            exportMask.addVolume(volume.getId(), hlu);
+                                            exportMask.addVolume(volume, hlu);
                                             exportMask.removeFromExistingVolumes(volume);
                                         }
                                     }

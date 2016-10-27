@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -553,7 +554,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 }
                 if (volumeMap != null) {
                     for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
+                        BlockObject blockObject = BlockObject.fetch(_dbClient, volume);
+                        exportMask.addVolume(blockObject, volumeMap.get(volume));
                     }
                 }
                 _dbClient.persistObject(exportMask);
@@ -628,7 +630,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
-                
+
                 // Remove any volumes from the volume list that are no longer
                 // in the export mask. When a failure occurs removing a backend
                 // volume from a mask, the rollback method will try and remove it
@@ -639,11 +641,11 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 // actually in the mask, which now causes a failure when you remove
                 // it a second time. So, we check here and remove any volumes that
                 // are not in the mask to handle this condition.
-                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))) {
                     passedVolumesInMask.remove(volume);
                 }
             }
-            
+
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());

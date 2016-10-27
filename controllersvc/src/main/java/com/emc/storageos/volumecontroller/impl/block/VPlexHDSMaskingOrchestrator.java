@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -46,10 +47,10 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
  * This implementation is used for export operations that are only intended to be
  * used for VPlex multiple masking. These interfaces pass lower level operations
  * reading the Export Masks to the VPlexBackendManager.
- * 
+ *
  * There are also operations here for the generation of Masking Views. These are:
  * getPortGroups(), getInitiatorGroups(), and configureZoning().
- * 
+ *
  */
 public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
         implements VplexBackEndMaskingOrchestrator, Controller {
@@ -219,7 +220,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
 
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
-     * 
+     *
      * @param candidatePorts
      *            -- List of ports from which to choose
      * @param portsRequested
@@ -316,7 +317,8 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 // Set the volumes to added to the exportMask.
                 if (volumeMap != null) {
                     for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
+                        BlockObject blockObject = BlockObject.fetch(_dbClient, volume);
+                        exportMask.addVolume(blockObject, volumeMap.get(volume));
                     }
                 }
                 device.doExportCreate(array, exportMask, volumeMap,
@@ -380,7 +382,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
-                
+
                 // Remove any volumes from the volume list that are no longer
                 // in the export mask. When a failure occurs removing a backend
                 // volume from a mask, the rollback method will try and remove it
@@ -391,21 +393,21 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 // actually in the mask, which now causes a failure when you remove
                 // it a second time. So, we check here and remove any volumes that
                 // are not in the mask to handle this condition.
-                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))) {
                     passedVolumesInMask.remove(volume);
                 }
             }
-            
+
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
-            
+
             // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && !exportMask.hasAnyExistingVolumes()){
+                    && !exportMask.hasAnyExistingVolumes()) {
                 device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;

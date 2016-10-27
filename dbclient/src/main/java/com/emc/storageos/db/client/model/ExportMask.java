@@ -185,7 +185,7 @@ public class ExportMask extends DataObject {
     /**
      * Returns a StringSet from the deviceDataMap entries corresponding to the supplied key.
      * If the key is not present, an empty StringSet is returned.
-     * 
+     *
      * @param key -- String Key
      * @return -- StringSet (will be empty if no entries for key)
      */
@@ -245,16 +245,25 @@ public class ExportMask extends DataObject {
 
     /**
      * Add a mapping of the specified block object to an HLU value.
-     * 
-     * @param blockObjectURI - URI of a BlockObject instance
+     *
+     * @param blockObject - BlockObject instance
      * @param lun - Integer HLU value
-     * 
+     *
      */
-    public void addVolume(URI blockObjectURI, Integer lun) {
-        if (getVolumes() == null) {
-            setVolumes(new StringMap());
+    public void addVolume(BlockObject blockObject, Integer lun) {
+        if (blockObject != null && blockObject.getId() != null) {
+            if (getVolumes() == null) {
+                setVolumes(new StringMap());
+            }
+
+            String normalizedWWN = BlockObject.normalizeWWN(blockObject.getWWN());
+            // Do not add the volume if the WWN already exists in the Map of user
+            // added volumes.
+            if (_userAddedVolumes == null ||
+                    !_userAddedVolumes.containsKey(normalizedWWN)) {
+                getVolumes().put(blockObject.getId().toString(), lun.toString());
+            }
         }
-        getVolumes().put(blockObjectURI.toString(), lun.toString());
     }
 
     public void addVolumes(Map<URI, Integer> volumeMap) {
@@ -294,7 +303,7 @@ public class ExportMask extends DataObject {
     }
 
     /**
-     * 
+     *
      * @param initiator
      * @return true if newly added, else false
      */
@@ -359,7 +368,7 @@ public class ExportMask extends DataObject {
     }
 
     /**
-     * 
+     *
      * @param target
      * @return true if newly added, else false
      */
@@ -569,7 +578,7 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing initiators list only if the port doesn't
      * already exist in either the existing or user-created initiator list.
-     * 
+     *
      * @param port [in] - Port name to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(String port) {
@@ -587,7 +596,7 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing initiators list only if the port doesn't
      * already exist in either the existing or user-created initiator list.
-     * 
+     *
      * @param ports [in] - List of port names to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(List<String> ports) {
@@ -634,7 +643,7 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing volumes list only if the WWN doesn't
      * already exist in either the existing or user-created volume list.
-     * 
+     *
      * @param volumeWWN [in] - World Wide Name of volume that will have to be added
      *            to the existing volumes list for this mask.
      */
@@ -653,7 +662,7 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing volumes list only those members that don't
      * already exist in either the existing or user-created volume list.
-     * 
+     *
      * @param volumeWWNs [in] - World Wide Names of volumes that will have to be added
      *            to the existing volumes list for this mask.
      */
@@ -695,7 +704,7 @@ public class ExportMask extends DataObject {
     }
 
     /**
-     * 
+     *
      * @param String initiatorId
      * @return true if the initiator is in the mask, else false
      */
@@ -832,7 +841,7 @@ public class ExportMask extends DataObject {
 
     /**
      * Add an entry to create a zone between an initiator and port.
-     * 
+     *
      * @param initiator URI as String
      * @param storagePort URI as String
      */
@@ -876,7 +885,7 @@ public class ExportMask extends DataObject {
 
     /**
      * Convenience method to check if HLU for a volume is already in use.
-     * 
+     *
      * @param hluValue HLU value
      * @return true if any volume has mentioned hluValue else false
      */

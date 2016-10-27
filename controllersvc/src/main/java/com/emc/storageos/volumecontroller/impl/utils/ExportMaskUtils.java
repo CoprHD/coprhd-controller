@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -65,8 +67,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
-import sun.net.util.IPAddressUtil;
-
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
 
@@ -93,7 +93,7 @@ public class ExportMaskUtils {
         // At this point, exportGroup.exportMasks should be non-null and non-empty,
         // so try to find the ExportMask that has the same StorageSystem URI
         ExportMask foundExportMask = null;
-        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {          
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
             if (exportMask != null && exportMask.getStorageDevice().equals(sdUri)) {
                 foundExportMask = exportMask;
                 break;
@@ -115,10 +115,10 @@ public class ExportMaskUtils {
         if (exportGroup == null || exportGroup.getExportMasks() == null) {
             return returnMasks;
         }
-               
-        for (String maskUriStr : exportGroup.getExportMasks()) {   
-        	 URI maskUri = URI.create(maskUriStr);
-        	 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+
+        for (String maskUriStr : exportGroup.getExportMasks()) {
+            URI maskUri = URI.create(maskUriStr);
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
 
             if (exportMask == null) {
                 continue;
@@ -127,7 +127,7 @@ public class ExportMaskUtils {
                 returnMasks.add(exportMask);
             }
         }
-        
+
         return returnMasks;
     }
 
@@ -153,8 +153,8 @@ public class ExportMaskUtils {
 
         // NOTE for release 3.5:
         // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
-        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
-        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
+        // method, but that method doesn't work at run time due to a missing index on the storageDevice field
+        // in the ExportMask column family. It was too late to introduce a schema change into ViPR 3.5.
         // -beachn
 
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
@@ -377,7 +377,7 @@ public class ExportMaskUtils {
             URI storageURI) {
         List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
         if (!masks.isEmpty()) {
-            for (ExportMask mask : masks) {              
+            for (ExportMask mask : masks) {
                 URI maskStorageURI = mask.getStorageDevice();
                 if (maskStorageURI.equals(storageURI)) {
                     return true;
@@ -386,21 +386,22 @@ public class ExportMaskUtils {
         }
         return false;
     }
-    
+
     /**
      * For a given export group and storage system, this will check wheather there are any export mask exists
      * in storage system which matches export group and storage ports in VArray
-     * 
+     *
      * @param dbClient
      * @param exportGroup
      * @param storageURI
-     * @return 
+     * @return
      */
     public static boolean hasExportMaskForStorageAndVArray(DbClient dbClient,
             ExportGroup exportGroup,
             URI storageURI) {
-        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
-                storageURI, exportGroup.getVirtualArray(), dbClient);
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils
+                .getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                        storageURI, exportGroup.getVirtualArray(), dbClient);
         StringSet maskUriSet = exportGroup.getExportMasks();
         if (maskUriSet != null) {
             for (String maskUriString : maskUriSet) {
@@ -409,7 +410,7 @@ public class ExportMaskUtils {
                 URI maskStorageURI = mask.getStorageDevice();
                 if (maskStorageURI.equals(storageURI)) {
                     for (String storagePort : mask.getStoragePorts()) {
-                        if(storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort))
+                        if (storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort))
                             return true;
                     }
                 }
@@ -421,6 +422,7 @@ public class ExportMaskUtils {
     /**
      * For a given storage system and varray this will fetch the set of storage ports which are part of both
      * the storage system and varray.
+     *
      * @param storageURI
      * @param varray
      * @param dbClient
@@ -430,22 +432,21 @@ public class ExportMaskUtils {
         URIQueryResultList storagePortsAssociatedWithVarray = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varray.toString()),
                 storagePortsAssociatedWithVarray);
-        //Get all the storage ports that are in the varray belonging to the storage array
+        // Get all the storage ports that are in the varray belonging to the storage array
         Set<URI> storagePortsSetAssociatedWithVarray = new HashSet<>();
         storagePortsSetAssociatedWithVarray.addAll(storagePortsAssociatedWithVarray);
-        
+
         URIQueryResultList storagePortsAssociatedWithStorageSystem = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortsForStorageSystemConstraint(storageURI.toString()),
                 storagePortsAssociatedWithStorageSystem);
-        
+
         Set<URI> storagePortsSetAssociatedWithStorageSystem = new HashSet<>();
         storagePortsSetAssociatedWithStorageSystem.addAll(storagePortsAssociatedWithStorageSystem);
-        
+
         return Sets.intersection(storagePortsSetAssociatedWithVarray, storagePortsSetAssociatedWithStorageSystem)
                 .stream().map(storagePortUri -> storagePortUri.toString()).collect(Collectors.toSet());
     }
 
-    
     /**
      * Generate a name for the export mask based on the initiators sent in.
      * If there are no initiators, just use the generated export group name.
@@ -615,7 +616,7 @@ public class ExportMaskUtils {
         // Get the first host name
         if (!hosts.isEmpty()) {
             host = hosts.iterator().next();
-        } 
+        }
 
         // In the case of RP, we want the naming defaults to use the cluster name as the hostname.
         // This assumes:
@@ -650,7 +651,7 @@ public class ExportMaskUtils {
             StorageSystem storage, ExportGroup exportGroup,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
             List<URI> targets, Map<URI, List<URI>> zoneAssignments, String maskName, DbClient dbClient)
-                    throws Exception {
+            throws Exception {
         if (maskName == null) {
             maskName = ExportMaskUtils.getMaskName(dbClient, initiators, exportGroup, storage);
         }
@@ -671,7 +672,7 @@ public class ExportMaskUtils {
         }
 
         exportMask.setCreatedBySystem(true);
-        exportMaskUpdate(exportMask, volumeMap, initiators, targets);
+        exportMaskUpdate(exportMask, volumeMap, initiators, targets, dbClient);
         if (!exportGroup.getZoneAllInitiators() && null != zoneAssignments) {
             StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments);
             if (!zoneMap.isEmpty()) {
@@ -690,7 +691,7 @@ public class ExportMaskUtils {
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
             Map<String, Integer> wwnToHluMap)
-                    throws Exception {
+            throws Exception {
 
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
@@ -713,7 +714,7 @@ public class ExportMaskUtils {
 
         exportMask.setLabel(maskLabel);
         exportMask.setCreatedBySystem(true);
-        exportMaskUpdate(exportMask, null, initiators, targets);
+        exportMaskUpdate(exportMask, null, initiators, targets, dbClient);
 
         StringSetMap zoneMap = getZoneMapFromZoneInfoMap(zoneInfoMap, initiators);
         if (!zoneMap.isEmpty()) {
@@ -738,7 +739,7 @@ public class ExportMaskUtils {
         }
 
         Integer hlu = wwnToHluMap.get(volume.getWWN()) != null ? wwnToHluMap.get(volume.getWWN()) : ExportGroup.LUN_UNASSIGNED;
-        exportMask.addVolume(volume.getId(), hlu);
+        exportMask.addVolume(volume, hlu);
         exportMask.setNativeId(nativeId);
 
         // need to sync up all remaining existing volumes
@@ -837,10 +838,11 @@ public class ExportMaskUtils {
      */
     static void exportMaskUpdate(ExportMask exportMask, Map<URI, Integer> volumeMap,
             List<Initiator> initiators,
-            List<URI> targets) {
+            List<URI> targets, DbClient dbClient) {
         if (volumeMap != null) {
             for (URI volume : volumeMap.keySet()) {
-                exportMask.addVolume(volume, volumeMap.get(volume));
+                BlockObject blockObject = BlockObject.fetch(dbClient, volume);
+                exportMask.addVolume(blockObject, volumeMap.get(volume));
             }
         }
         if (initiators != null) {
@@ -946,8 +948,8 @@ public class ExportMaskUtils {
     }
 
     static public Map<String, URI> mapHostToExportMask(DbClient dbClient, ExportGroup exportGroup, URI storage) {
-        Map<String, URI> hostToExportMaskURI = new HashMap<String, URI>();        
-        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {           
+        Map<String, URI> hostToExportMaskURI = new HashMap<String, URI>();
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
             if (exportMask == null || (exportMask.getStorageDevice() != null && !exportMask.getStorageDevice().equals(storage))) {
                 continue;
             }
@@ -962,7 +964,7 @@ public class ExportMaskUtils {
                 }
 
             }
-        }        
+        }
         return hostToExportMaskURI;
     }
 
@@ -1240,7 +1242,7 @@ public class ExportMaskUtils {
 
     /**
      * Is this export mask a backend mask for VPLEX or RP?
-     * 
+     *
      * @param dbClient
      *            db client
      * @param exportMask
@@ -1422,10 +1424,10 @@ public class ExportMaskUtils {
     /**
      * Set the resource on an ExportMask, if it hasn't already been set.
      *
-     * @param dbClient      Database client
-     * @param exportGroup   ExportGroup
-     * @param exportMask    ExportMask
-     * @return              true if the resource field was set, false otherwise.
+     * @param dbClient Database client
+     * @param exportGroup ExportGroup
+     * @param exportMask ExportMask
+     * @return true if the resource field was set, false otherwise.
      */
     public static boolean setExportMaskResource(DbClient dbClient, ExportGroup exportGroup, ExportMask exportMask) {
         if (NullColumnValueGetter.isNotNullValue(exportMask.getResource())) {
@@ -1443,7 +1445,7 @@ public class ExportMaskUtils {
             }
         }
 
-        if (Strings.isNullOrEmpty(resourceRef)){
+        if (Strings.isNullOrEmpty(resourceRef)) {
             // This resource is used when we add initiators to existing masks on VMAX, which should not be
             // case with VPLEX and RP, which do not associate their initiators with hosts or clusters.
             resourceRef = NullColumnValueGetter.getNullURI().toString();
@@ -1455,7 +1457,7 @@ public class ExportMaskUtils {
 
     /**
      * Check to see if the export mask contains exactly the ports sent in.
-     * 
+     *
      * @param mask
      *            export mask
      * @param ports
@@ -1494,7 +1496,7 @@ public class ExportMaskUtils {
 
     /**
      * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
-     * 
+     *
      * @param mask
      *            export mask
      * @param ports

@@ -64,7 +64,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
     protected <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume, T blockObject,
             List<UnManagedExportMask> unManagedMasks, MutableInt masksIngestedCount)
-                    throws IngestionException {
+            throws IngestionException {
         try {
             _logger.info("Ingesting unmanaged masks {} for unmanaged volume {}",
                     Joiner.on(",").join(unManagedVolume.getUnmanagedExportMasks()), unManagedVolume.getNativeGuid());
@@ -156,12 +156,15 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     continue;
                 }
                 if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
-                    boolean crossConnectedDistributedVolume = 
-                            VolumeIngestionUtil.isVplexDistributedVolume(unManagedVolume) && 
-                            requestContext.getVpool(unManagedVolume).getAutoCrossConnectExport();
-                    if (!crossConnectedDistributedVolume &&
-                        !VolumeIngestionUtil.isRpExportMask(unManagedExportMask, _dbClient) &&
-                        !VolumeIngestionUtil.validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
+                    boolean crossConnectedDistributedVolume =
+                            VolumeIngestionUtil.isVplexDistributedVolume(unManagedVolume) &&
+                                    requestContext.getVpool(unManagedVolume).getAutoCrossConnectExport();
+                    if (!crossConnectedDistributedVolume
+                            &&
+                            !VolumeIngestionUtil.isRpExportMask(unManagedExportMask, _dbClient)
+                            &&
+                            !VolumeIngestionUtil
+                                    .validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
                         // logs already inside the above method.
                         itr.remove();
                         continue;
@@ -180,7 +183,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                 } else {
                     // check if mask has already been created
-                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext(), _dbClient);
+                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext(),
+                            _dbClient);
 
                     if (exportMask == null) {
                         _logger.info("\tno mask found");
@@ -230,7 +234,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 if (wwnToHluMap.containsKey(blockObject.getWWN())) {
                     hlu = wwnToHluMap.get(blockObject.getWWN());
                 }
-                exportMask.addVolume(blockObject.getId(), hlu);
+                exportMask.addVolume(blockObject, hlu);
 
                 // adding volume we need to add FCZoneReferences
                 StringSetMap zoneMap = ExportMaskUtils.getZoneMapFromZoneInfoMap(unManagedExportMask.getZoningMap(), initiators);
@@ -284,7 +288,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     for (URI hostUri : hostUris) {
                         Set<String> initsOfHost = getInitiatorsOfHost(hostUri);
                         if (isVplexDistributedVolume) {
-                            // this is a distributed vplex volume, may have split fabrics 
+                            // this is a distributed vplex volume, may have split fabrics
                             // with different connectivity per host, see COP-22384
                             Iterator<String> initsOfHostIt = initsOfHost.iterator();
                             while (initsOfHostIt.hasNext()) {
@@ -328,7 +332,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                                 cluster.forDisplay());
                         // 1 MV per Cluster Node
                         for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                            ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
+                            ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume,
+                                    exportGroup,
                                     blockObject, _dbClient, hosts, cluster, cluster.getLabel());
                             exportMasksToCreate.add(exportMaskToCreate);
                             uemsToPersist.add(eligibleMask);
@@ -448,7 +453,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      * @param dbClient a reference to the database client
      * @return
      */
-    protected abstract ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient);
+    protected abstract ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext,
+            DbClient dbClient);
 
     /**
      * Get initiators of Host from ViPR DB

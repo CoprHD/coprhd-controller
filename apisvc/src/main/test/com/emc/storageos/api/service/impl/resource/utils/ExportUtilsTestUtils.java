@@ -63,8 +63,8 @@ public class ExportUtilsTestUtils {
         network.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
         network.setTransportType("FC");
         StringMap feMap = new StringMap();
-        for (int i = 0; i < endpoints.length; i++) {
-            feMap.put(endpoints[i], "true");
+        for (String endpoint : endpoints) {
+            feMap.put(endpoint, "true");
         }
         network.setEndpointsMap(feMap);
         network.setConnectedVirtualArrays(connectedVArrays);
@@ -287,7 +287,7 @@ public class ExportUtilsTestUtils {
 
         }
         for (Volume volume : volumes) {
-            em.addVolume(volume.getId(), i);
+            em.addVolume(volume, i);
         }
 
         _dbClient.createObject(em);

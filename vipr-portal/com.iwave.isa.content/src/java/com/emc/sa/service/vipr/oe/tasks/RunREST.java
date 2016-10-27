@@ -79,8 +79,7 @@ public class RunREST extends ViPRExecutionTask<String> {
     }
 
     @Override
-    public String executeTask() throws Exception
-    {
+    public String executeTask() throws Exception {
 
         //final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class, null); //dbClient);
 
@@ -91,7 +90,7 @@ public class RunREST extends ViPRExecutionTask<String> {
         String body_db = null;
         String method = null;
         if (name.equals("createVolumes")) {
-            uri_db = "/block/volumes";
+            uri_db = "/block/volumes.json";
             body_db = "{\n" +
                     "  \"consistency_group\": \"$consistency_group\",\n" +
                     "  \"count\": \"$count\",\n" +
@@ -104,16 +103,13 @@ public class RunREST extends ViPRExecutionTask<String> {
             method = "POST";
         }
         else if (name.equals("deleteVolumes")) {
-            uri_db = "/block/volumes/{id}/deactivate";
+            uri_db = "/block/volumes/{id}/deactivate.json";
             body_db = "";
             method = "POST";
         }
-        String uri;
+
+	logger.info("Params for rest uri_db:{} method:{} body:{}", uri_db, method, body_db);
         //String uri = makeUri(primitive.uri());
-        if (uri_db.contains("{"))
-            uri = makeUri(uri_db);
-        else
-            uri = uri_db;
         /*if (primitive.method().equals("POST"))
             postBody = makePostBody(primitive.body());
         */
@@ -121,6 +117,10 @@ public class RunREST extends ViPRExecutionTask<String> {
         {
             postBody = makePostBody(body_db);
         }
+
+	logger.info("Make URI uri_db:{}", uri_db);
+        String uri = makeUri(uri_db);
+	logger.info("uri is:{}", uri);
 
         ExecutionUtils.currentContext().logInfo("Started Executing REST API with uri:" +
                 uri+ " and POST Body: " + postBody);
@@ -174,9 +174,9 @@ public class RunREST extends ViPRExecutionTask<String> {
             logger.info("new path is:{}", s);
         }
 
-        ExecutionUtils.currentContext().logInfo("URI string is:" + protocol + "://" + endPoint + ":" + "4443" + "/" + s);
+        ExecutionUtils.currentContext().logInfo("URI string is:" + protocol + "://" + endPoint + ":" + "4443" + s);
 
-        return protocol + "://" + endPoint + ":" + "4443" + "/" + s;
+        return protocol + "://" + endPoint + ":" + "4443" + s;
     }
 
 

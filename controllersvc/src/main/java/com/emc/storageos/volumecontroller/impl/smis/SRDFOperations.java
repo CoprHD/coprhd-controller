@@ -16,6 +16,7 @@ import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static javax.cim.CIMDataType.BOOLEAN_T;
 import static javax.cim.CIMDataType.UINT16_T;
 
 import java.net.URI;
@@ -35,12 +36,7 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
-
-import static javax.cim.CIMDataType.BOOLEAN_T;
-
 import javax.wbem.WBEMException;
-
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompleter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +49,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
@@ -67,13 +62,12 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFAddPairToGroupCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
@@ -81,7 +75,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSRDFCreateMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation;
@@ -641,9 +634,8 @@ public class SRDFOperations implements SmisConstants {
                 return;
             }
             
-            boolean formatVolumeFlagNeeded = ((SRDFAddPairToGroupCompleter)completer).getVirtualPoolChangeURI() == null;
             Mode mode = Mode.valueOf(targets.get(0).getSrdfCopyMode());
-            CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode(), true, formatVolumeFlagNeeded);
+            CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode(), true, false);
 
             @SuppressWarnings("rawtypes")
             CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, settingInstance,
@@ -771,7 +763,9 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
             boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null;
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue, true, formatVolumeFlagNeeded);
+            boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue, !emptyRDFGroup,
+                    formatVolumeFlagNeeded);
 
             List<CIMObjectPath> sourcePaths = new ArrayList<>();
             List<CIMObjectPath> targetPaths = new ArrayList<>();

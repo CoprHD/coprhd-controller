@@ -43,11 +43,12 @@ public class RunREST extends ViPRExecutionTask<String> {
     private URI id;
     private DbClient dbClient;
 
-    public RunREST(final String name, final String token, final Map<String, List<String>> input)
+    public RunREST(final DbClient dbClient, final String name, final String token, final Map<String, List<String>> input)
     {
         this.name = name;
         this.input = input;
         this.token = token;
+	this.dbClient = dbClient;
 
 	logger.info("input is :{}", this.input);
         initRestClient();
@@ -70,18 +71,13 @@ public class RunREST extends ViPRExecutionTask<String> {
 
         restClient.setAuthToken(token);
 
-        //id = URIUtil.createId(OERestCall.class);
-
-       // dbClient = new DummyDBClient();
-        //dbClient.start();
-        //queryObject(id, clazz);
         ExecutionUtils.currentContext().logInfo("Setting up REST Client to execute" + name + "REST Primitive");
     }
 
     @Override
     public String executeTask() throws Exception {
 
-        //final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class, null); //dbClient);
+        //final RestPrimitive primitive = PrimitiveHelper.query(name, RestPrimitive.class, dbClient);
 
         String result = null;
         String postBody = null;
@@ -144,8 +140,9 @@ public class RunREST extends ViPRExecutionTask<String> {
             response = restClient.post(uri(uriString), postBody);
 
 
-        OrchestrationService o = new OrchestrationService();
-        o.setCode(response.getStatus());
+        //SuccessCriteria o = new SuccessCriteria();
+        //o.setCode(response.getStatus());
+	logger.info("Status:{}", response.getStatus());
 
         String responseString = null;
         try {

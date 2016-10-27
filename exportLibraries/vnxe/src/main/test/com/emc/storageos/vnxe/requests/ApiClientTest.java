@@ -24,6 +24,7 @@ import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
+import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
@@ -375,7 +376,7 @@ public class ApiClientTest {
 
     }
 
-    @Test
+    // @Test
     public void getAllRepSessions() {
         List<ReplicationSession> sessions = apiClient.getAllReplicationSessions();
         System.out.println("List start");
@@ -391,7 +392,7 @@ public class ApiClientTest {
         System.out.println("List end");
     }
 
-    @Test
+    // @Test
     public void createRepSession() {
         apiClient.createReplicationSession("res_16", "res_1", -1, apiClient.getRemoteSystem("RS_6"), "test");
     }
@@ -465,5 +466,21 @@ public class ApiClientTest {
             System.out.println(remSys.getManagementAddress());
             System.out.println(remSys.getConnectionType());
         }
+    }
+
+    @Test
+    public void getAllCifsServer() {
+        List<VNXeCifsServer> cifsServers = apiClient.getCifsServers();
+        System.out.println("List start");
+        for (VNXeCifsServer cifsServer : cifsServers) {
+            // System.out.println(cifsServer.getName());
+            System.out.println(cifsServer.getId());
+            // System.out.println(cifsServer.getDomain());
+            System.out.println(cifsServer.getFileInterfaces());
+            System.out.println(cifsServer.getWorkgroup());
+            System.out.println(apiClient.getNasServer(cifsServer.getNasServer().getId()).getName());
+            System.out.println();
+        }
+        System.out.println("List end");
     }
 }

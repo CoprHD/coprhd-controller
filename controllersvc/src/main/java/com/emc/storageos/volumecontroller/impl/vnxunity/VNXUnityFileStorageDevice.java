@@ -1652,7 +1652,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        BiosCommandResult.createErrorResult(DeviceControllerErrors.vnxe.operationNotSupported("stop mirror link", "Unity"));
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
     }
 
     @Override

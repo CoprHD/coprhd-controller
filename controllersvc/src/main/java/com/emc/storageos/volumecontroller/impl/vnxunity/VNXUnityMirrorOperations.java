@@ -196,7 +196,6 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     public void failbackMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName)
             throws DeviceControllerException {
         if (target.getParentFileShare() != null) {
-            FileShare sourceFileShare = dbClient.queryObject(FileShare.class, target.getParentFileShare());
             StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
             VNXeApiClient apiClient = getVnxUnityClient(targetStorageSystem);
             try {
@@ -309,24 +308,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
 
     @Override
     public void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
-        if (target.getParentFileShare() != null) {
-            VNXeApiClient apiClient = getVnxUnityClient(system);
-            try {
-                ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
-                        getResIdByFileShareURI(target.getId()));
-                VNXeCommandJob job = apiClient.pauseReplicationSession(session.getId());
-                VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "pauseMirrorFileShareLink");
-                ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
-            } catch (VNXeException ex) {
-                completer.error(dbClient, ex);
-            } catch (Exception ex) {
-                _log.error("pauseMirrorFileShareLink got an exception", ex);
-                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("pauseMirrorFileShareLink", ex.getMessage());
-                if (completer != null) {
-                    completer.error(dbClient, error);
-                }
-            }
-        }
+        completer.error(dbClient, DeviceControllerErrors.vnxe.operationNotSupported("stop mirror link", "Unity"));
     }
 
     // Util Methods

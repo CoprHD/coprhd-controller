@@ -93,7 +93,7 @@ public class OIDCAuthenticationManager {
     }
 
     private URI buildAuthLocation(AuthenticationRequest req) throws Exception {
-        return URI.create(String.format("%s?%s", getOidcAuthProvider().getOidcAuthorizeUrl(), req.toQueryString()));
+        return new URI(String.format("%s?%s", getOidcAuthProvider().getOidcAuthorizeUrl(), req.toQueryString()));
     }
 
     private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {

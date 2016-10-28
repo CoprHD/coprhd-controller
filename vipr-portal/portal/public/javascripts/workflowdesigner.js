@@ -1241,7 +1241,7 @@ $( function() {
                                      "create_file" : {
                                          "seperator_before" : false,
                                          "seperator_after" : false,
-                                         "label" : "File",
+                                         "label" : "Workflow",
                                          action : function (obj) {
                                              $node = tree.create_node($node,{"type":"file"});
                                              tree.edit($node);
@@ -1290,14 +1290,11 @@ $( function() {
 
 
     }).on('ready.jstree', function(e, data) {
-        console.log('hi', data);
         $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
         $( "#sb-site" ).droppable({drop: dragEndFunc});
-    })
-      .bind("rename_node.jstree", function(e, data) {
-        console.log(data);
+    }).bind("rename_node.jstree clear_search.jstree search.jstree", function(e, data) {
         $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
-       })
+    })
 
     $('#wftabs').on('click','.close',function(){
          console.log('close  ');
@@ -1305,16 +1302,12 @@ $( function() {
          $(this).parents('li').remove();
          $(tabID).remove();
 
-         //display first tab
-         //var tabFirst = $('#wftabs a:first');
-         //tabFirst.tab('show');
      });
 
   } );
 
 
-// JSTREE functions
-
+// TODO: Remove this hardcoded JSON and build it using APIs (when available)
 rootjson=[
   {
     "id": 1,

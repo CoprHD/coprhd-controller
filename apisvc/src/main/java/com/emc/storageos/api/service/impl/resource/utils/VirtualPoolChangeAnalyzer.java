@@ -1816,8 +1816,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             currentStandbyJournalVarrayId = (haVarrayURI != null ? haVarrayURI.toString() : NullColumnValueGetter.getNullStr());
         }
         
-        if (currentStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-            currentStandbyJournalVpoolId = currentVpool.getId().toString();
+        if (currentStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {            
+            VirtualPool currentHaVpool = VirtualPool.getHAVPool(currentVpool, dbClient);
+            currentStandbyJournalVpoolId = (currentHaVpool != null ? 
+                    currentHaVpool.getId().toString() : currentVpool.getId().toString());                 
         }
         
         VirtualPool currentStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentStandbyJournalVpoolId));
@@ -1828,7 +1830,9 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         }
         
         if (newStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-            newStandbyJournalVpoolId = newVpool.getId().toString();
+            VirtualPool newHaVpool = VirtualPool.getHAVPool(newVpool, dbClient);
+            newStandbyJournalVpoolId = (newHaVpool != null ? 
+                    newHaVpool.getId().toString() : newVpool.getId().toString());
         }
                 
         VirtualPool newStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newStandbyJournalVpoolId));                

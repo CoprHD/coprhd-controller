@@ -78,6 +78,7 @@ import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
+import com.emc.storageos.isilon.restapi.IsilonSmartQuota.Thresholds;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
@@ -132,6 +133,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String NFSv4 = "NFSv4";
     private static final String UMFS_DETAILS="FS_DETAILS";
     private static final String UMFSQD_DETAILS="UMFSQD_DETAILS";
+    private static final String INITIAL_PATH="/ifs/accesszone/";
 
     private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
     private static final Long MAX_CIFS_SHARES = 40000L;
@@ -1950,6 +1952,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 
                 _log.debug("quota id {} with capacity {}", fsNativeId + ":QUOTA:" + fileFsQuota.getId(),
                         fs.getCapacity() + " used capacity " + fs.getUsedCapacity());
+                fsWithQuotaMap.put(fsNativeId, fs);
                 
                 for(String quotaNativeId : fileQuotas.get(fsNativeId)){
                     IsilonSmartQuota qdQuota = quotaDirMap.get(quotaNativeId);
@@ -2012,6 +2015,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         _log.debug("extractFileShare for {} and quota {} ", fsNativeId, quota.toString());
         FileShare fs = new FileShare();
+        long softLimit = 0;
+        int softGrace = 0;
+        long notificationLimit = 0;
 
         String[] splits = fsNativeId.split("/");
         if (splits.length > 0) {
@@ -2037,10 +2043,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (!quota.getId().equalsIgnoreCase("null")) {
             fs.getExtensions().put(QUOTA, quota.getId());
         }
-        
-        long softLimit = quota.getThresholds().getSoft() * 100 / capacity;
-        int softGrace = new Long(quota.getThresholds().getSoftGrace() / ( 24 * 60 * 60)).intValue();
-        long notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
+
+		if (null != quota.getThresholds().getSoft()) {
+			softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+		}
+		if (null != quota.getThresholds().getSoftGrace()) {
+			softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
+		}
+		if (null != quota.getThresholds().getAdvisory()) {
+			notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
+		}
 
         fs.setSoftLimit(softLimit);
         fs.setSoftGracePeriod(softGrace);
@@ -2057,6 +2069,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String qdNativeId = quota.getPath();
         _log.debug("Converting IsilonSmartQuota {} for fileSystem {}", quota.getPath(), fsNativeGuid);
         
+        int softLimit=0;
+        int softGrace=0;
+        int notificationLimit=0;
         
         UnManagedFileQuotaDirectory umfsQd = new UnManagedFileQuotaDirectory();
         
@@ -2074,9 +2089,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         umfsQd.setSize(capacity);
-        int softLimit = new Long(quota.getThresholds().getSoft() * 100 / capacity).intValue();
-        int softGrace = new Long(quota.getThresholds().getSoftGrace() / ( 24 * 60 * 60)).intValue();
-        int notificationLimit = new Long(quota.getThresholds().getAdvisory() * 100 / capacity).intValue();
+        if(null!=quota.getThresholds().getSoft()){
+        softLimit = new Long(quota.getThresholds().getSoft() * 100 / capacity).intValue();
+        }
+        if(null!=quota.getThresholds().getSoftGrace()){
+        softGrace = new Long(quota.getThresholds().getSoftGrace() / ( 24 * 60 * 60)).intValue();
+        }
+        if(null!=quota.getThresholds().getAdvisory()){
+        notificationLimit = new Long(quota.getThresholds().getAdvisory() * 100 / capacity).intValue();
+        }
 
         umfsQd.setSoftLimit(softLimit);
         umfsQd.setSoftGrace(softGrace);
@@ -3523,10 +3544,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void computeCustomConfigPathLengths(){
         String tempCustomConfigPathLength = getCustomConfigPath();
         if(StringUtils.isNotEmpty(tempCustomConfigPathLength)){
-        _discPathsLength = tempCustomConfigPathLength.split("/").length + 1;
+        _discPathsLength =(INITIAL_PATH+tempCustomConfigPathLength).split("/").length;
         }else{
             _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
-            _discPathsLength = 2;
+            _discPathsLength = (INITIAL_PATH).split("/").length;
         }
     }
 

@@ -1707,8 +1707,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         
                         boolean umfsQdExists = (unManagedFileQd == null) ? false : true ;
                         if(umfsQdExists){
+                        	umfsQd.setId(unManagedFileQd.getId());
                             existingUnManagedFileQuotaDir.add(umfsQd);
-                        }else{
+                        }else if(null != umfsQd){
+                        	umfsQd.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                             unManagedFileQuotaDir.add(umfsQd);
                         }
                     }
@@ -1954,11 +1956,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         fs.getCapacity() + " used capacity " + fs.getUsedCapacity());
                 fsWithQuotaMap.put(fsNativeId, fs);
                 
-                for(String quotaNativeId : fileQuotas.get(fsNativeId)){
-                    IsilonSmartQuota qdQuota = quotaDirMap.get(quotaNativeId);
-                    UnManagedFileQuotaDirectory qd = getUnManagedFileQuotaDirectory(fs.getNativeGuid(), qdQuota, storageSystem);
-                    qdMap.put(quotaNativeId, qd);
-                }
+				Set<String> fsQuotaIds = fileQuotas.get(fsNativeId);
+				if (null != fsQuotaIds) {
+					for (String quotaNativeId : fsQuotaIds) {
+						IsilonSmartQuota qdQuota = tempQuotaMap.get(quotaNativeId);
+						if (null != qdQuota) {
+							UnManagedFileQuotaDirectory qd = getUnManagedFileQuotaDirectory(fs.getNativeGuid(), qdQuota,
+									storageSystem);
+							qdMap.put(quotaNativeId, qd);
+						}
+					}
+				}
             }
                 
             /*
@@ -2073,9 +2081,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         int softGrace=0;
         int notificationLimit=0;
         
+        
+        
         UnManagedFileQuotaDirectory umfsQd = new UnManagedFileQuotaDirectory();
         
+        
+        String[] tempDirNames = qdNativeId.split("/");
         umfsQd.setParentFSNativeGuid(fsNativeGuid);
+        
+        umfsQd.setLabel(tempDirNames[tempDirNames.length -1]);
 
         String nativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 storageSystem.getSystemType(),

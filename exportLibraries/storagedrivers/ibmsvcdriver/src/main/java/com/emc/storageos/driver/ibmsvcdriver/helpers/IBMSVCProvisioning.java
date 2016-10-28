@@ -707,7 +707,8 @@ public class IBMSVCProvisioning {
      * identifyStoragePortListForHost
      * Customer specific port selection algorithm
      * Algorithm:
-     *  If hostname ends with a zero use node ports 0 and 1
+     *  If hostname ends with an odd number use node ports containing 1 and 4
+     *  If hostname ends with an even number use node ports containing 2 and 3
      * Assumptions:
      *  1. Node has 4 Ports
      *  3. First two Node ports (WWNs with ) are on one fabric and second two Node ports are on the other
@@ -772,8 +773,8 @@ public class IBMSVCProvisioning {
 
     /**
      * Get Storage Port by ID - Customer Specific port selection logic
-     * Note: Each IBM SVC Node has 4 Ports(WWNs). The 10th character of the WWN is marked as 1,2,3,4
-     * WWNs containing 1 and 4 are on one fabric, 2 & 3 on the other.
+     * Note: Each IBM SVC Node has 4 Ports(WWNs). For IBM SVC v7000 the 12th character of the WWN indicates port number as 1,2,3,4
+     * Assumption: WWNs containing 1 and 4 are on one fabric, 2 & 3 on the other.
      * @param nodeStoragePortList - List of storage ports of a Node
      * @param id - ID to check - can be 1,2,3,4
      * @return StoragePOrt
@@ -781,7 +782,7 @@ public class IBMSVCProvisioning {
     private StoragePort getStoragePortById(List<StoragePort> nodeStoragePortList, Character id) throws IBMSVCDriverException{
         try{
             for (StoragePort nodeStoragePort : nodeStoragePortList){
-                if(nodeStoragePort.getNativeId() != null && nodeStoragePort.getNativeId().charAt(10) == id){
+                if(nodeStoragePort.getNativeId() != null && nodeStoragePort.getNativeId().charAt(11) == id){
                     return nodeStoragePort;
                 }
             }

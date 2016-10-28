@@ -357,28 +357,33 @@ public class BlockMapper {
     		// No cache is maintained - have to assume could be SRDF capable
     		return true;
     	}
-    	if (projectSrdfCapableCache.containsKey(projectId)) {
-    		// Return cached value
-    		return projectSrdfCapableCache.get(projectId);
-    	}
     	boolean srdfCapable = false;
-    	// Lookup project, the project name determines possible RDF Group names
-    	Project project = dbClient.queryObject(Project.class, projectId);
-    	if (project != null && !project.getInactive()) {
-    		// There are potentially several RDF group names based on the project
-    		StringSet rdfGroupNames = SRDFUtils.getQualifyingRDFGroupNames(project);
-    		// Look for a remote director group matching one of the names.
-    		for (String rdfGroupName : rdfGroupNames) {
-    			URIQueryResultList uris = new URIQueryResultList();
-    			dbClient.queryByConstraint(
-    					PrefixConstraint.Factory.getLabelPrefixConstraint(RemoteDirectorGroup.class,
-    							rdfGroupName), uris);
-    			Iterator<URI> uriIterator = uris.iterator();
-    			if (uriIterator.hasNext()) {
-    				srdfCapable = true;
-    				break;
+    	try {
+    		if (projectSrdfCapableCache.containsKey(projectId)) {
+    			// Return cached value
+    			return projectSrdfCapableCache.get(projectId);
+    		}
+
+    		// Lookup project, the project name determines possible RDF Group names
+    		Project project = dbClient.queryObject(Project.class, projectId);
+    		if (project != null && !project.getInactive()) {
+    			// There are potentially several RDF group names based on the project
+    			StringSet rdfGroupNames = SRDFUtils.getQualifyingRDFGroupNames(project);
+    			// Look for a remote director group matching one of the names.
+    			for (String rdfGroupName : rdfGroupNames) {
+    				URIQueryResultList uris = new URIQueryResultList();
+    				dbClient.queryByConstraint(
+    						PrefixConstraint.Factory.getLabelPrefixConstraint(RemoteDirectorGroup.class,
+    								rdfGroupName), uris);
+    				Iterator<URI> uriIterator = uris.iterator();
+    				if (uriIterator.hasNext()) {
+    					srdfCapable = true;
+    					break;
+    				}
     			}
     		}
+    	} catch (Exception ex) {
+    		logger.info("Exception: " + ex.getMessage(), ex);
     	}
     	projectSrdfCapableCache.put(projectId, srdfCapable);
     	return srdfCapable;

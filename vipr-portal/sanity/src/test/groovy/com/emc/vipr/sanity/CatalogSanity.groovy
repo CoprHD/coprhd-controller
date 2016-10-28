@@ -1,12 +1,10 @@
 package com.emc.vipr.sanity
 
-import com.emc.vipr.sanity.catalog.BlockServicesHelper;
-
-import com.emc.vipr.sanity.setup.Sanity
-
-import org.junit.Test
 import org.junit.BeforeClass
+import org.junit.Test
 
+import com.emc.vipr.sanity.catalog.BlockServicesHelper
+import com.emc.vipr.sanity.setup.Sanity
 import com.emc.vipr.sanity.setup.VNXSetup
 
 
@@ -20,5 +18,9 @@ public class CatalogSanity {
 
     @Test void createBlockVolumeTest() {
         BlockServicesHelper.createAndRemoveBlockVolumeTest()
+    }
+
+    @Test void createBlockSnapshotTest() {
+        BlockServicesHelper.createSnapshotAndRemoveBlockVolumeTest()
     }
 }

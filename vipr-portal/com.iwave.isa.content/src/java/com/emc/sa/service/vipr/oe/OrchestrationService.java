@@ -241,7 +241,7 @@ public class OrchestrationService extends ViPRService {
                     final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefault());
 
                     if (paramVal == null) {
-                        if (value.getRequired()!=null && value.getRequired().equals("true")) {
+                        if (value.getRequired().equals("true")) {
                             logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
 
                             throw new IllegalStateException();
@@ -337,10 +337,8 @@ public class OrchestrationService extends ViPRService {
      */
     private void updateOutputPerStep(final Step step, final String result) throws Exception {
         final Map<String, String> output = step.getOutput();
-        if (output == null) {
-		logger.info("output is null");
+        if (output == null) 
             return;
-	}
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
@@ -349,7 +347,6 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             String value = output.get(key);
-		logger.info("key:{} value:{}", key, value);
             out.put(key, evaluateValue(result, value));
         }
 
@@ -520,4 +517,3 @@ public class OrchestrationService extends ViPRService {
         }
     }
 }
-

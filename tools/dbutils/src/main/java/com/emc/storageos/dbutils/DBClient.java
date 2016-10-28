@@ -445,11 +445,15 @@ public class DBClient {
             return;
         }
 
-        List<URI> straightUriList = new ArrayList<URI>(uris);
-
-        // Sort the URIs in alphabetical order for consistent output across executions
         // The list returned by getColumnUris() is not compatible with sort, so normalize
         // to a type that does.
+        List<URI> straightUriList = new ArrayList<URI>();
+        Iterator<URI> urisIter = uris.iterator();
+        while (urisIter.hasNext()) {
+            straightUriList.add(urisIter.next());
+        }
+
+        // Sort the URIs in alphabetical order for consistent output across executions
         Comparator<URI> cmp = new Comparator<URI>() {
             public int compare(URI u1, URI u2) {
                 if (u1 == null) {

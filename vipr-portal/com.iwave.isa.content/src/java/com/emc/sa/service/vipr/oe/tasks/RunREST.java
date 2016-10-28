@@ -22,9 +22,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Created by sonalisahu on 10/20/16.
- */
 public class RunREST extends ViPRExecutionTask<String> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
@@ -34,6 +31,7 @@ public class RunREST extends ViPRExecutionTask<String> {
     private String token;
     private OrchestrationEngineRestClient restClient;
 
+    //TODO use Proxy user
     private String endPoint = "localhost";
     private String userId = "root";
     private String password = "ChangeMe1!";
@@ -130,7 +128,6 @@ public class RunREST extends ViPRExecutionTask<String> {
         } catch (IOException e) {
             error("Error getting response from Orchestration Engine for: " + uriString +
                     " :: " + e.getMessage());
-            e.printStackTrace();
         }
 
         return responseString;
@@ -180,12 +177,9 @@ public class RunREST extends ViPRExecutionTask<String> {
         Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
 
         while (m.find()) {
-            logger.info("in loop");
             String pat = m.group(1);
             logger.info(pat);
-            logger.info("value from map" + input.get(pat));
             String newpat = "$" + pat;
-            logger.info("New pat" + newpat);
             body = body.replace(newpat, input.get(pat).get(0));
         }
 

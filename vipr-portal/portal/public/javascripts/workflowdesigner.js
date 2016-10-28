@@ -1,72 +1,15 @@
-var currentX = 0;
-var currentY = 0;
-var currentScale = 1;
+/*
+Dummy data for testing functionality
+    dummyWorkflowData - represents newly created workflow
+    dummyStepData - represents data assosciated with a specific step
+    dummyWF - represents workflow data saved by wfbuilder
+TODO: replace dummy data with API data
+*/
 
-//will need to move somewhere instantiable
-var workflow =
-    {
+var dummyWorkflowData = {
        "WorkflowName":"",
        "Description":"Create Volumes if fails delete the created volumes. Send Email about the Workflow status"
    };
-
-$(function() {
-
-    //initialize oanzoom
-    var widthHalf = (window.innerWidth / 2) - 75;
-    var heightHalf = (window.innerHeight / 2) - 75;
-
-    var $panzoom = $("#diagramContainer").panzoom({
-        cursor: "default",
-        minScale: 0.5,
-        maxScale: 2,
-        increment: 0.1,
-        duration: 100
-    });
-    $panzoom.parent().on('mousewheel.focal', function(e) {
-        e.preventDefault();
-        var delta = e.delta || e.originalEvent.wheelDeltaY;
-        if (delta != 0) {
-            var zoomOut = delta < 0;
-            $panzoom.panzoom('zoom', zoomOut, {
-                animate: false,
-                increment: 0.1,
-                focal: e
-            });
-        }
-    });
-    $panzoom.panzoom("pan", -5000 + widthHalf, -5250 + heightHalf, {
-        relative: false
-    });
-    $panzoom.on('panzoomzoom', function(e, panzoom, scale) {
-        jsPlumb.setZoom(scale);
-        currentScale = scale;
-    });
-
-
-    //initialize jsPlumb, will need to make instantiable
-
-    jsPlumb.importDefaults({
-        DragOptions: {
-            cursor: "none"
-        },
-        ConnectionOverlays: [
-            ["Arrow", {
-                location: 1,
-                visible:true,
-                id:"ARROW",
-                width: 25,
-                length: 25
-
-            } ]]
-    });
-    jsPlumb.setContainer($('#diagramContainer'));
-    jsPlumb.setZoom(1);
-
-  $('.example-item-card-wrapper').each(function () {
-      jsPlumb.draggable(this);
-  });
-
-});
 
 var dummyStepData = {
      "OpName":"createVolume",
@@ -854,27 +797,112 @@ var dummyWF = {
             ]
           };
 
-var common_source = {
+
+/*
+Initialization of builder, configures panzoom and jsplumb defaults
+TODO: make instantiable for use with tabs
+*/
+
+var currentScale = 1;
+
+$(function() {
+
+    //initialize oanzoom
+    var widthHalf = (window.innerWidth / 2) - 75;
+    var heightHalf = (window.innerHeight / 2) - 75;
+
+    var $panzoom = $("#diagramContainer").panzoom({
+        cursor: "default",
+        minScale: 0.5,
+        maxScale: 2,
+        increment: 0.1,
+        duration: 100
+    });
+    $panzoom.parent().on('mousewheel.focal', function(e) {
+        e.preventDefault();
+        var delta = e.delta || e.originalEvent.wheelDeltaY;
+        if (delta != 0) {
+            var zoomOut = delta < 0;
+            $panzoom.panzoom('zoom', zoomOut, {
+                animate: false,
+                increment: 0.1,
+                focal: e
+            });
+        }
+    });
+    $panzoom.panzoom("pan", -5000 + widthHalf, -5250 + heightHalf, {
+        relative: false
+    });
+    $panzoom.on('panzoomzoom', function(e, panzoom, scale) {
+        jsPlumb.setZoom(scale);
+        currentScale = scale;
+    });
+
+
+    //initialize jsPlumb, will need to make instantiable
+
+    jsPlumb.importDefaults({
+        DragOptions: {
+            cursor: "none"
+        },
+        ConnectionOverlays: [
+            ["Arrow", {
+                location: 1,
+                visible:true,
+                id:"ARROW",
+                width: 25,
+                length: 25
+
+            } ]]
+    });
+    jsPlumb.setContainer($('#diagramContainer'));
+    jsPlumb.setZoom(1);
+
+  $('.example-item-card-wrapper').each(function () {
+      jsPlumb.draggable(this);
+  });
+
+});
+
+
+/*
+Shared Endpoint params for each step
+*/
+var passEndpoint = {
     endpoint: ["Dot", {
         radius: 10
     }],
     isSource: true,
     connector: ["Flowchart", {
         cornerRadius: 5
-    }]
+    }],
+    anchors: [1, 0.5, 1, 0,10,0],
+    cssClass: "passEndpoint"
 };
-var common_target = {
+
+var failEndpoint = {
     endpoint: ["Dot", {
         radius: 10
     }],
-    maxConnections: -1,
-    isTarget: true,
+    isSource: true,
     connector: ["Flowchart", {
         cornerRadius: 5
-    }]
+    }],
+    anchors: [0.5, 1, 0, 1,0,10],
+    cssClass: "failEndpoint"
 };
 
-function changeName(e) {
+var targetParams = {
+    anchors: ["Top","Left"],
+    endpoint: "Blank"
+};
+
+
+/*
+Dummy function to test editing step data
+    dummyEditDataFunc - changes step name so that it can be observed on export
+*/
+function dummyEditDataFunc(e) {
     var target = $(e.currentTarget);
     if (target.is(".example-item-card-wrapper")) {
         text = target.text();
@@ -885,45 +913,34 @@ function changeName(e) {
     }
 }
 
+
+/*
+Functions for managing step data on jsplumb instance
+*/
 function dragEndFunc(e) {
-    //console.log(e);
-    //create element html
+
+    //set ID and text within the step element
+    //TODO: retrieve stepname from step data when API is available
     var randomIdHash = Math.random().toString(36).substring(7);
     var stepName = $(e.toElement).text();
-    var $itemWrapper = '<div id="' + randomIdHash + '" class="example-item-card-wrapper" ondblclick="changeName(event);"></div>';
-    var $item = '<div class="item">';
-    var $itemText = '<div class="itemText">' + stepName + '</div>';
-    $($itemText).appendTo('#diagramContainer').wrap($itemWrapper).wrap($item);
-    var theNewItem = $('#' + randomIdHash);
-
-    //add data
-    theNewItem.data("StepId",randomIdHash);
-    theNewItem.data("FriendlyName",stepName);
-    theNewItem.data(dummyStepData);
 
     //compensate x,y for zoom
-    x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-    y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+    var y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
     var scaleMultiplier = 1 / currentScale;
-    $(theNewItem).css({
-        'top': (y - $('#diagramContainer').offset().top) * scaleMultiplier,
-        'left': (x - $('#diagramContainer').offset().left) * scaleMultiplier
-    });
+    var positionY = (y - $('#diagramContainer').offset().top) * scaleMultiplier;
+    var positionX = (x - $('#diagramContainer').offset().left) * scaleMultiplier;
 
-    //add jsPlumb options
-    jsPlumb.addEndpoint(randomIdHash, {
-        anchors: [0.5, 1, 0, 1,0,10],
-        cssClass: "failEndpoint"
-    }, common_source);
-    jsPlumb.makeTarget(randomIdHash, {
-        anchors: ["Top","Left"],
-        endpoint: "Blank"
-    });
-    jsPlumb.addEndpoint(randomIdHash, {
-        anchors: [1, 0.5, 1, 0,10,0],
-        cssClass: "passEndpoint"
-    }, common_source);
-    jsPlumb.draggable(randomIdHash);
+
+    //add data
+    //TODO:remove FriendlyName, it will be included in step data already
+    var stepData = jQuery.extend(true, {}, dummyStepData);
+    stepData.StepId = randomIdHash;
+    stepData.FriendlyName = stepName;
+    stepData.positionY = positionY;
+    stepData.positionX = positionX;
+
+    loadStep(stepData);
   
 }
 
@@ -961,8 +978,11 @@ jsPlumb.bind("connectionDetached", function(connection) {
     source.data("Next",sourceNext);
 });
 
-
-function saveJSON() {
+/*
+Functions for creating JSON from jsplumb diagram and for creating diagram form JSON
+    These functions will be used within export/import/save/load
+*/
+function buildJSON() {
     var blocks = []
     $("#diagramContainer .example-item-card-wrapper").each(function(idx, elem) {
         var $elem = $(elem);
@@ -972,12 +992,14 @@ function saveJSON() {
             positionY: parseInt($elem.css("top"), 10)
         } ));
     });
-    workflow.Steps = blocks;
 
-    //for development purposes. This will be used to export to file or post to backend
-    copyData = JSON.stringify(workflow);
-    console.log(workflow);
-    dummyWF = jQuery.extend(true, {}, workflow);
+    //dummyWorkflowData, copyData and log are for development purposes. This will be used to export to file or post to backend
+    //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
+    dummyWorkflowData.Steps = blocks;
+
+    copyData = JSON.stringify(dummyWorkflowData);
+    console.log(dummyWorkflowData);
+    dummyWF = jQuery.extend(true, {}, dummyWorkflowData);
 }
 
 function loadStep(step) {
@@ -987,7 +1009,9 @@ function loadStep(step) {
 
     var stepId = step.StepId;
     var stepName = step.FriendlyName;
+
     //create element html
+    //TODO: move html to separate location instead of building in JS when design available
     var $itemWrapper = '<div id="' + stepId + '" class="example-item-card-wrapper" ondblclick="changeName(event);"></div>';
     var $item = '<div class="item">';
     var $itemText = '<div class="itemText">' + stepName + '</div>';
@@ -997,28 +1021,16 @@ function loadStep(step) {
     //add data
     theNewItem.data(step);
 
-    //compensate x,y for zoom
+    //set position of element
     $(theNewItem).css({
         'top': step.positionY,
         'left': step.positionX
     });
 
     //add jsPlumb options
-    jsPlumb.addEndpoint(stepId, {
-        uuid:stepId+"-fail",
-        anchors: [ "Bottom"],
-        cssClass: "failEndpoint"
-    }, common_source);
-    jsPlumb.makeTarget(stepId, {
-        uuid:stepId+"-target",
-        anchors: ["Top","Left"],
-        endpoint: "Blank"
-    });
-    jsPlumb.addEndpoint(stepId, {
-        uuid:stepId+"-pass",
-        anchors: [ "Right"],
-        cssClass: "passEndpoint"
-    }, common_source);
+    jsPlumb.addEndpoint(stepId, {uuid:stepId+"-pass"}, passEndpoint);
+    jsPlumb.makeTarget(stepId, targetParams);
+    jsPlumb.addEndpoint(stepId, {uuid:stepId+"-fail"}, failEndpoint);
     jsPlumb.draggable(stepId);
 
 }
@@ -1037,9 +1049,44 @@ function loadConnections(step) {
     };
 }
 
-function method1(steps) {
-    steps.forEach(function(step) {
+function loadJSON() {
+
+    //TODO: replace dummyWF with json from API or import
+    //TODO: replace dummyWorkflowData with instance of workflow data variable
+    var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
+    dummyWorkflowData.WorkflowName = loadedWorkflow.WorkflowName;
+    dummyWorkflowData.Description = loadedWorkflow.Description;
+
+    //load steps with position data
+    loadedWorkflow.Steps.forEach(function(step) {
         loadStep(step);
+    });
+
+    //load connections
+    loadedWorkflow.Steps.forEach(function(step) {
+        loadConnections(step);
+    });
+}
+
+
+/*
+The following code is for testing import without position data and resetting the instance
+This is for testing only and not ready for review.
+The methods are:
+    loadJSONNoPosition
+    importStepsNoPosition
+    traverse
+    reset
+TODO: remove these methods when we have determined the future of import w/o position
+*/
+function loadJSONNoPosition() {
+    var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
+    dummyWorkflowData.WorkflowName = loadedWorkflow.WorkflowName;
+    dummyWorkflowData.Description = loadedWorkflow.Description;
+    //method1(loadedWorkflow.Steps);
+    importStepsNoPosition(loadedWorkflow.Steps);
+    loadedWorkflow.Steps.forEach(function(step) {
+        loadConnections(step);
     });
 }
 
@@ -1059,7 +1106,9 @@ function traverse(step,x,y){
     if (document.getElementById(step.StepId)){
         return;
     }
-    loadStep2(step,x,y);
+    step.positionY = y;
+    step.positionX = x;
+    loadStep(step);
     if (step.Next){
         var ready = false;
         if (step.Next.Default) {
@@ -1120,73 +1169,17 @@ function traverse(step,x,y){
     }
 }
 
-function loadStep2(step,x,y) {
-    var stepId = step.StepId;
-    var stepName = step.FriendlyName;
-    //create element html
-    var $itemWrapper = '<div id="' + stepId + '" class="example-item-card-wrapper" ondblclick="changeName(event);"></div>';
-    var $item = '<div class="item">';
-    var $itemText = '<div class="itemText">' + stepName + '</div>';
-    $($itemText).appendTo('#diagramContainer').wrap($itemWrapper).wrap($item);
-    var theNewItem = $('#' + stepId);
-
-    $(theNewItem).css({
-        'top': y,
-        'left': x
-    });
-
-    //add data
-    theNewItem.data(step);
-
-    //add jsPlumb options
-    jsPlumb.addEndpoint(stepId, {
-        uuid:stepId+"-fail",
-        anchors: [ "Bottom"],
-        cssClass: "failEndpoint"
-    }, common_source);
-    jsPlumb.makeTarget(stepId, {
-        uuid:stepId+"-target",
-        anchors: ["Top","Left"],
-        endpoint: "Blank"
-    });
-    jsPlumb.addEndpoint(stepId, {
-        uuid:stepId+"-pass",
-        anchors: [ "Right"],
-        cssClass: "passEndpoint"
-    }, common_source);
-    jsPlumb.draggable(stepId);
-
-}
-
-function loadJSON() {
-    var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
-    workflow.WorkflowName = loadedWorkflow.WorkflowName;
-    workflow.Description = loadedWorkflow.Description;
-    //method1(loadedWorkflow.Steps);
-    method1(loadedWorkflow.Steps);
-    loadedWorkflow.Steps.forEach(function(step) {
-        loadConnections(step);
-    });
-}
-function loadJSONNoPosition() {
-    var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
-    workflow.WorkflowName = loadedWorkflow.WorkflowName;
-    workflow.Description = loadedWorkflow.Description;
-    //method1(loadedWorkflow.Steps);
-    importStepsNoPosition(loadedWorkflow.Steps);
-    loadedWorkflow.Steps.forEach(function(step) {
-        loadConnections(step);
-    });
-}
-
 function reset() {
     jsPlumb.deleteEveryEndpoint();
     $('.example-item-card-wrapper').each( function(idx,elem) {
         var $elem = $(elem);
         $elem.remove();
     });
-    workflow = {};
+    dummyWorkflowData = {};
     }
+
+
+// JSTREE functions
 
 $( function() {
 
@@ -1311,9 +1304,6 @@ $( function() {
      });
 
   } );
-
-
-// JSTREE functions
 
 rootjson=[
   {

@@ -20,6 +20,10 @@ public class CatalogSanity {
         BlockServicesHelper.createAndRemoveBlockVolumeTest()
     }
 
+    @Test void createBlockVolumeForHostTest() {
+        BlockServicesHelper.createAndRemoveBlockVolumeForHostTest()
+    }
+
     @Test void createBlockSnapshotTest() {
         BlockServicesHelper.createSnapshotAndRemoveBlockVolumeTest()
     }

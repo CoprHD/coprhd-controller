@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +48,7 @@ public class SRDFLinkPauseCompleter extends SRDFTaskCompleter {
 
     @Override
     protected Volume.VolumeAccessState getVolumeAccessStateForSuccess(Volume v) {
-    	if (null != v.getSrdfCopyMode() && Mode.ACTIVE.equals(Mode.valueOf(v.getSrdfCopyMode())) && v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+    	if (!NullColumnValueGetter.isNullValue(v.getSrdfCopyMode()) && Mode.ACTIVE.equals(Mode.valueOf(v.getSrdfCopyMode())) && v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
     		// For Active mode target access state is always updated from the provider
     		// after each operation so just use that.
     		return Volume.VolumeAccessState.getVolumeAccessState(v.getAccessState());

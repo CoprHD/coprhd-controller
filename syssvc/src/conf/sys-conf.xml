@@ -296,6 +296,7 @@
             <list>
                 <ref bean="passwordExpireRuleHandler" />
                 <ref bean="uniqueNodeNameHandler" />
+                <ref bean="loginBannerHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
                 <ref bean="authLoginAttemptsHandler" />
                 <ref bean="authLockoutTimeHandler" />
@@ -325,6 +326,8 @@
     <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
         <property name="coordinator" ref="coordinatorclientext"/>
     </bean>
+
+    <bean id="loginBannerHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.LoginBannerHandler"/>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
         <property name="coordinator" ref="coordinator"/>

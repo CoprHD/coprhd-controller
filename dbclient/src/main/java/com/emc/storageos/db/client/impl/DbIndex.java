@@ -14,15 +14,16 @@ import com.emc.storageos.db.client.model.DataObject;
 import java.util.Map;
 import java.util.List;
 
-public abstract class DbIndex {
+public abstract class DbIndex <T extends CompositeIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(DbIndex.class);
 
     protected String fieldName;
-    protected ColumnFamily<String, IndexColumnName> indexCF;
+    protected ColumnFamily<String, T> indexCF;
 
     protected boolean indexByKey = false;
 
-    DbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    //DbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    DbIndex(ColumnFamily<String, T> indexCF) {
         this.indexCF = indexCF;
     }
 
@@ -34,11 +35,13 @@ public abstract class DbIndex {
         this.indexByKey = indexByKey;
     }
 
-    ColumnFamily<String, IndexColumnName> getIndexCF() {
+    //ColumnFamily<String, IndexColumnName> getIndexCF() {
+    ColumnFamily<String, T> getIndexCF() {
         return indexCF;
     }
 
-    public void setIndexCF(ColumnFamily<String, IndexColumnName> cf) {
+    //public void setIndexCF(ColumnFamily<String, IndexColumnName> cf) {
+    public void setIndexCF(ColumnFamily<String, T> cf) {
         indexCF = cf;
     }
 

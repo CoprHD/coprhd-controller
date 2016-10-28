@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.AlternateId2;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 /**
  * Column / data object field type metadata
  */
-public class ColumnField {
+public class ColumnField <T extends CompositeIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(ColumnField.class);
 
     // types of columns object mapper supports
@@ -172,7 +173,8 @@ public class ColumnField {
      * 
      * @return
      */
-    public ColumnFamily<String, IndexColumnName> getIndexCF() {
+    //public ColumnFamily<String, IndexColumnName> getIndexCF() {
+    public ColumnFamily<String, T> getIndexCF() {
         return _index.getIndexCF();
     }
 
@@ -695,6 +697,7 @@ public class ColumnField {
         Annotation[] annotations = readMethod.getAnnotations();
 
         ColumnFamily<String, IndexColumnName> indexCF = null;
+        ColumnFamily<String, IndexColumnName2> indexCF2 = null;
         int minPrefixChars;
 
         boolean isLazyLoadable = false;
@@ -750,6 +753,10 @@ public class ColumnField {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((AlternateId) a).value(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
                 _index = new AltIdDbIndex(indexCF);
+            } else if (a instanceof AlternateId2) {
+                indexCF2 = new ColumnFamily<String, IndexColumnName2>(((AlternateId2) a).value(), StringSerializer.get(),
+                        IndexColumnNameSerializer2.get());
+                _index = new AltIdDbIndex2(indexCF2);
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());

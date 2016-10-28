@@ -6,6 +6,8 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +25,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 /**
  * Default prefix constraint implementation
  */
-public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstraint {
+public class PrefixConstraintImpl extends ConstraintImpl<IndexColumnName> implements PrefixConstraint {
     private static final Logger log = LoggerFactory.getLogger(PrefixConstraintImpl.class);
 
     private ScopedLabel _label;
@@ -32,6 +34,7 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
 
     public PrefixConstraintImpl(String label, ColumnField field) {
         super(label, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _label = new ScopedLabel(null, label.toLowerCase());
         _field = field;
@@ -39,6 +42,7 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
 
     public PrefixConstraintImpl(URI scope, String label, ColumnField field) {
         super(scope, label, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         if (scope == null) {
             _label = new ScopedLabel(null, label.toLowerCase());

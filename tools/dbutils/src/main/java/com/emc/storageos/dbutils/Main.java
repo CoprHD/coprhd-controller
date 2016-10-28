@@ -5,6 +5,7 @@
 package com.emc.storageos.dbutils;
 
 import java.io.File;
+import java.net.URI;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -13,8 +14,17 @@ import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,7 +184,150 @@ public class Main {
         }
     }
 
+    private static void migrateMyOrderIndexes(){
+        NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
+        long start = System.currentTimeMillis();
+        try {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(Order.SUBMITTED_BY_USER_ID), "root",
+                    0, 0);
+            _client._dbClient.queryByConstraint(constraint, queryResults);
+        } catch (DatabaseException e) {
+            throw e;
+        }
+
+        long i = 0;
+        URI id = null;
+        long end1 = 0; //read 500000
+        long end2 = 0; // read 100000
+        long end = 0;
+        for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
+            id = namedElement.getId();
+            i++;
+            // log.info("i={} id={}",i, id);
+            if (i == 500000) {
+                end1 = System.currentTimeMillis();
+                System.out.println("Read 500000: "+ (end1 - start));
+                System.out.println("i= "+ i);
+            }else if (i == 100000) {
+                end2 = System.currentTimeMillis();
+                System.out.println("Read 100000: "+ (end2 - start));
+                System.out.println("i= "+ i);
+            }
+        }
+
+        end = System.currentTimeMillis();
+        System.out.println("Read 1000000: "+ (end - start));
+        System.out.println("i= "+ i);
+        System.out.println("last id= "+ id);
+        System.exit(1);
+    }
+
+    private static void queryMyOrderIndexes(){
+        System.out.println("start...");
+        long start = System.currentTimeMillis();
+        NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
+        long end1 = 0; //read 500000
+        long end2 = 0; // read 100000
+        long end = 0;
+
+        long i = 0;
+        URI id = null;
+
+        /*
+
+        try {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+
+            AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(Order.SUBMITTED_BY_USER_ID), "root",
+                0, 0);
+            _client._dbClient.queryByConstraint(constraint, queryResults);
+        } catch (DatabaseException e) {
+            throw e;
+        }
+
+        for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
+            id = namedElement.getId();
+            i++;
+            // log.info("i={} id={}",i, id);
+            if (i == 500000) {
+                end1 = System.currentTimeMillis();
+                System.out.println("Read 500000: "+ (end1 - start));
+                System.out.println("i= "+ i);
+            }else if (i == 100000) {
+                end2 = System.currentTimeMillis();
+                System.out.println("Read 100000: "+ (end2 - start));
+                System.out.println("i= "+ i);
+            }
+        }
+
+        end = System.currentTimeMillis();
+        System.out.println("Read 1000000: "+ (end - start));
+        System.out.println("i= "+ i);
+        System.out.println("last id= "+ id);
+        */
+
+        URI startId= null;
+        int maxCount = 10000;
+        // int maxCount = 10;
+        i= 0;
+        try {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+
+            long endTime = new Date().getTime();
+            boolean eof = false;
+            while (!eof) {
+                eof = true;
+
+                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(Order.SUBMITTED_BY_USER_ID), "root",
+                        1, endTime);
+
+                // log.info("lbyd2 startId={}", startId);
+                _client._dbClient.queryByConstraint(constraint, queryResults, startId, maxCount);
+
+                for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
+                    eof = false;
+                    startId = namedElement.getId();
+                    i++;
+                    // log.info("i={} id={}", i, startId);
+                    if (i == 100000) {
+                    // if (i == 10) {
+                        end1 = System.currentTimeMillis();
+                        System.out.println("Read2 100000: "+ (end1 - start));
+                        System.out.println("i= "+ i);
+                        System.out.println("id="+startId);
+                        // log.info("lbyd0: id3={}", startId);
+                    }else if (i == 500000) {
+                    //   }else if (i == 20) {
+                        end2 = System.currentTimeMillis();
+                        System.out.println("Read2 500000: "+ (end2 - start));
+                        System.out.println("i2= "+ i);
+                        System.out.println("id2="+startId);
+                        // log.info("lbyd1: id={}", startId);
+                     //   System.exit(1);
+                    }
+
+                    if ( (i > 500000) && (i % 100000 == 0)) {
+                        System.out.println("i="+i);
+                        System.out.println("id2="+startId);
+                    }
+                }
+            }
+        } catch (DatabaseException e) {
+            throw e;
+        }
+
+        end = System.currentTimeMillis();
+        System.out.println("Read2 1000000: "+ (end - start));
+        System.out.println("i2= "+ i);
+        System.out.println("last id= "+ startId);
+        System.exit(1);
+    }
+
     public static void main(String[] args) throws Exception {
+
+        System.out.println("Start to collect performance info");
+        /*
         deleteDbutilsPidFile();
         changeLogFileOwner();
         if (args.length == 0) {
@@ -205,12 +358,18 @@ public class Main {
             }
             System.exit(CommandHandler.repairDb(args));
         }
+        */
 
         try {
             // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
             // This is a CLI application and main method will not be called by multiple threads
-            _client = new DBClient(skipMigrationCheck); // NOSONAR ("squid:S2444")
+            //_client = new DBClient(skipMigrationCheck); // NOSONAR ("squid:S2444")
+            _client = new DBClient(true); // NOSONAR ("squid:S2444")
 
+            _client.init();
+            queryMyOrderIndexes();
+
+            /*
             CommandHandler handler = null;
             boolean result = false;
 
@@ -279,6 +438,7 @@ public class Main {
                     throw new IllegalArgumentException("Invalid command ");
             }
             handler.process(_client);
+            */
         } catch (Exception e) {
             System.err.println("Exception e=" + e);
             log.error("Exception e=", e);

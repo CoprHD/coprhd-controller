@@ -232,11 +232,23 @@ public interface DbClient {
      * @param constraint one of available constraints from constraint package
      * @param result out parameter where query results will be added to
      * @param startId where the query starts
-     * @param maxCount the max number of resources returned by this query
+     * @param pageCount the max number of resources returned by one query
      * 
      * @throws DatabaseException TODO
      */
-    <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount);
+    <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int pageCount);
+
+    /**
+     * Queries for objects with given constraint start from some resource. See constraint package for
+     * availabile options.
+     *
+     * @param constraint one of available constraints from constraint package
+     * @param result out parameter where query results will be added to
+     * @param maxCount the max number of resources returned by the query
+     *
+     * @throws DatabaseException TODO
+     */
+    // <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, int maxCount);
 
     /**
      * Returns the count of objects with the given type which have the given URI in the specified

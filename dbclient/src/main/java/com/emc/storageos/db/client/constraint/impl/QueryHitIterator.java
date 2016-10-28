@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.constraint.impl;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -18,11 +19,15 @@ import com.netflix.astyanax.query.RowQuery;
 /**
  * QueryHit iterator
  */
-public abstract class QueryHitIterator<T> implements Iterator<T> {
-    protected RowQuery<String, IndexColumnName> _query;
-    protected Iterator<Column<IndexColumnName>> _currentIt;
+public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
+        implements Iterator<T1> {
+    //protected RowQuery<String, IndexColumnName> _query;
+    protected RowQuery<String, T2> _query;
+    //protected Iterator<Column<IndexColumnName>> _currentIt;
+    protected Iterator<Column<T2>> _currentIt;
 
-    public QueryHitIterator(RowQuery<String, IndexColumnName> query) {
+    //public QueryHitIterator(RowQuery<String, IndexColumnName> query) {
+    public QueryHitIterator(RowQuery<String, T2> query) {
         _query = query;
     }
 
@@ -32,7 +37,8 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
 
     protected void runQuery() {
         _currentIt = null;
-        ColumnList<IndexColumnName> result;
+        //ColumnList<IndexColumnName> result;
+        ColumnList<T2> result;
         try {
             result = _query.execute().getResult();
         } catch (final ConnectionException e) {
@@ -56,7 +62,7 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
     }
 
     @Override
-    public T next() {
+    public T1 next() {
         if (_currentIt == null) {
             throw new NoSuchElementException();
         }
@@ -68,5 +74,6 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
         throw new UnsupportedOperationException();
     }
 
-    protected abstract T createQueryHit(Column<IndexColumnName> column);
+    //protected abstract T createQueryHit(Column<IndexColumnName> column);
+    protected abstract T1 createQueryHit(Column<T2> column);
 }

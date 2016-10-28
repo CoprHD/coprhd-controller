@@ -5,6 +5,8 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +23,7 @@ import com.emc.storageos.db.client.model.DataObject;
 /**
  * default implementation for full name matcher
  */
-public class ContainmentLabelConstraintImpl extends ConstraintImpl implements ContainmentPrefixConstraint {
+public class ContainmentLabelConstraintImpl extends ConstraintImpl<IndexColumnName> implements ContainmentPrefixConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentLabelConstraintImpl.class);
 
     private URI _indexKey;
@@ -31,6 +33,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
 
     public ContainmentLabelConstraintImpl(URI indexKey, String prefix, ColumnField field) {
         super(indexKey, prefix, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _indexKey = indexKey;
         _prefix = prefix;

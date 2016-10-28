@@ -1,14 +1,8 @@
-/*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- */
 package com.emc.storageos.db.client.impl;
 
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
-import java.net.URI;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,21 +12,29 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class RelationDbIndex extends DbIndex<IndexColumnName> {
-    private static final Logger _log = LoggerFactory.getLogger(RelationIndex.class);
+public class AltIdDbIndex2 extends DbIndex<IndexColumnName2> {
+    private static final Logger _log = LoggerFactory.getLogger(AltIdDbIndex2.class);
 
-    RelationDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    AltIdDbIndex2(ColumnFamily<String, IndexColumnName2> indexCF) {
         super(indexCF);
     }
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+                      String className, RowMutator mutator, Integer ttl, DataObject obj) {
+        if (value.toString().isEmpty()) {
+            // empty string in alternate id field, ignore and continue
+            _log.warn("Empty string in altenate id field: {}", fieldName);
+            return false;
+        }
+
         String rowKey = getRowKey(column, value);
 
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
+        ColumnListMutation<IndexColumnName2> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
+        _log.info("lbytt0: add order {} key={}", className, recordKey);
+
+        IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -41,14 +43,13 @@ public class RelationDbIndex extends DbIndex<IndexColumnName> {
 
     @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
+                         String className, RowMutator mutator,
+                         Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
+        UUID uuid = column.getName().getTimeUUID();
+
         String rowKey = getRowKey(column);
 
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, rowKey);
-
-        UUID uuid = column.getName().getTimeUUID();
+        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
         indexColList.deleteColumn(new IndexColumnName(className, recordKey, uuid));
 
@@ -60,7 +61,7 @@ public class RelationDbIndex extends DbIndex<IndexColumnName> {
             return column.getTwo();
         }
 
-        return ((URI) value).toString();
+        return value.toString();
     }
 
     String getRowKey(Column<CompositeColumnName> column) {
@@ -73,12 +74,11 @@ public class RelationDbIndex extends DbIndex<IndexColumnName> {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("RelationDbIndex class");
+        StringBuilder builder = new StringBuilder("AltIdDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");
 
         return builder.toString();
     }
-
 }

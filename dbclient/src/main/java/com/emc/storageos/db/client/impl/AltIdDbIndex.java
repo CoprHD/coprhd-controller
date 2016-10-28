@@ -16,7 +16,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class AltIdDbIndex extends DbIndex {
+public class AltIdDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(AltIdDbIndex.class);
 
     AltIdDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
@@ -36,6 +36,7 @@ public class AltIdDbIndex extends DbIndex {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
+        _log.info("lbyf: class={} rowKey={}, ttl={}", className, recordKey, ttl);
         IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer2;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -605,6 +606,8 @@ public class SchemaUtil {
                     comparator = CompositeColumnNameSerializer.getComparatorName();
                 } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer) {
                     comparator = IndexColumnNameSerializer.getComparatorName();
+                } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer2) {
+                    comparator = IndexColumnNameSerializer2.getComparatorName();
                 } else {
                     throw new IllegalArgumentException();
                 }
@@ -1029,8 +1032,8 @@ public class SchemaUtil {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        String cfname = def.getName();
-        _log.info("Adding CF: {}", cfname);
+        final String cfname = def.getName();
+        _log.info("lbye0: Admding CF: {} stack=", cfname, new Throwable());
         try {
             return pool.executeWithFailover(
                     new AbstractOperationImpl<String>(

@@ -5,6 +5,8 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.netflix.astyanax.Keyspace;
@@ -21,7 +23,7 @@ import com.emc.storageos.db.client.model.DataObject;
  * - find all permissions on a tenant
  * - find all tenants a user has permissions on
  */
-public class ContainmentPermissionsConstraintImpl extends ConstraintImpl implements ContainmentPermissionsConstraint {
+public class ContainmentPermissionsConstraintImpl extends ConstraintImpl<IndexColumnName> implements ContainmentPermissionsConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentPermissionsConstraintImpl.class);
 
     private String _indexKey;
@@ -32,6 +34,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
     public ContainmentPermissionsConstraintImpl(String indexKey, ColumnField field,
             Class<? extends DataObject> clazz) {
         super(indexKey, field, clazz);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _indexKey = indexKey;
         _prefix = clazz.getSimpleName();

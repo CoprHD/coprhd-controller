@@ -1,42 +1,31 @@
-/*
- * Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- */
-
 package com.emc.storageos.db.client.constraint.impl;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.util.Date;
-
-import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.IndexColumnName2;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
-import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-import com.netflix.astyanax.util.TimeUUIDUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer2;
+import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.util.TimeUUIDUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
-import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.model.DataObject;
+import java.net.URI;
+import java.util.UUID;
 
 /**
  * Alternate ID constraint implementation
  */
-public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> implements AlternateIdConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
+public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2> implements AlternateIdConstraint {
+    private static final Logger log = LoggerFactory.getLogger(AlternateId2ConstraintImpl.class);
 
-    private final ColumnFamily<String, IndexColumnName> _altIdCf;
+    private final ColumnFamily<String, IndexColumnName2> _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
     private long startTimeMicros;
@@ -46,13 +35,13 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
 
     static int n = 0;
 
-    public AlternateIdConstraintImpl(ColumnField field, String altId) {
+    public AlternateId2ConstraintImpl(ColumnField field, String altId) {
         this(field, altId, 0, 0);
     }
 
-    public AlternateIdConstraintImpl(ColumnField field, String altId, long sTimeInMicros, long eTimeInMicros) {
+    public AlternateId2ConstraintImpl(ColumnField field, String altId, long sTimeInMicros, long eTimeInMicros) {
         super(field, altId);
-        indexSerializer = IndexColumnNameSerializer.get();
+        indexSerializer = IndexColumnNameSerializer2.get();
 
         _altIdCf = field.getIndexCF();
         _altId = altId;
@@ -60,7 +49,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
         startTimeMicros = sTimeInMicros*1000L;
         endTimeMicros = eTimeInMicros* 1000L;
 
-        log.info("lbymm: startTime={} endTime={}", startTimeMicros, endTimeMicros);
+        log.info("lbyn: startTime={} endTime={}", startTimeMicros, endTimeMicros);
     }
 
     @Override
@@ -75,61 +64,40 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        /*
-        AnnotatedCompositeSerializer<CompositeColumnName> range = CompositeColumnNameSerializer.get();
-        CompositeRangeBuilder builder = range.buildRange();
-        builder.withPrefix(_entryType.getSimpleName())
-               //.lessThanEquals(_entryType.getSimpleName())
-                .limit(pageCount);
+    protected RowQuery<String, IndexColumnName2> genQuery() {
+        RowQuery<String, IndexColumnName2> query;
+        UUID start, end;
 
-        try {
-            Method m = builder.getClass().getDeclaredMethod("nextComponent", null);
-            m.setAccessible(true);
-            m.invoke(builder);
-            builder.greaterThan("a");
-            builder.lessThan("x");
-        }catch(NoSuchMethodException |IllegalAccessException | InvocationTargetException e) {
-            log.error("lbyxx e=",e);
-        }
-        */
-
-        /*
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                .withColumnRange(builder);
-                */
-        RowQuery<String, IndexColumnName> query;
         if (startId == null) {
-            query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                            .greaterThanEquals(_entryType.getSimpleName())
-                            .lessThanEquals(_entryType.getSimpleName())
-                            // .greaterThan("a") // match all column2
-                            // .lessThan("x") // match all column2
-                            .limit(pageCount));
+            start = TimeUUIDUtils.getMicrosTimeUUID(0);
+            long nowInMacros = System.nanoTime() / 1000;
+            end = TimeUUIDUtils.getMicrosTimeUUID(nowInMacros);
         }else {
-            query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                            .withPrefix(_entryType.getSimpleName())
-                            .greaterThan(startId) // match all column2
-                            .lessThan("x") // match all column2
-                            .limit(pageCount));
-
+            start = TimeUUIDUtils.getMicrosTimeUUID(startTimeMicros);
+            end = TimeUUIDUtils.getMicrosTimeUUID(endTimeMicros);
         }
-        return query;
+
+        return _keyspace.prepareQuery(_altIdCf).getKey(_altId)
+                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
+                            .greaterThan(start)
+                            .lessThan(end)
+                            .limit(pageCount));
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected URI getURI(Column<IndexColumnName2> col) {
+        return URI.create(col.getName().getThree());
     }
 
     @Override
-    protected <T> QueryHitIterator<T, IndexColumnName> getQueryHitIterator(RowQuery<String, IndexColumnName> query,
-                                                          final QueryResult<T> result) {
-        FilteredQueryHitIterator<T, IndexColumnName> it = new FilteredQueryHitIterator<T, IndexColumnName>(query) {
+    protected <T> QueryHitIterator<T, IndexColumnName2>
+       //getQueryHitIterator(RowQuery<String, IndexColumnName> query,
+       getQueryHitIterator(RowQuery<String, IndexColumnName2> query,
+                                         final QueryResult<T> result) {
+        FilteredQueryHitIterator<T, IndexColumnName2> it =
+                new FilteredQueryHitIterator<T, IndexColumnName2>(query) {
             @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
+            protected T createQueryHit(Column<IndexColumnName2> column) {
                 matchedCount++;
                 // log.info("lbymm32 matchedCount={} stack=", matchedCount, new Throwable());
 
@@ -142,7 +110,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
             }
 
             @Override
-            public boolean filter(Column<IndexColumnName> column) {
+            public boolean filter(Column<IndexColumnName2> column) {
                 long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
 
                 log.info("lby1 starTime={}", startTimeMicros);
@@ -167,7 +135,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName2> column) {
         //log.info("lbymm1 starTime={} endTime={} stack=", startTimeMicros, endTimeMicros, new Throwable());
         if (startTimeMicros != 0 && endTimeMicros != 0) {
             long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
@@ -191,12 +159,9 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
         return _entryType;
     }
 
-	@Override
-	public boolean isValid() {
+    @Override
+    public boolean isValid() {
         return this._altId!=null && !this._altId.isEmpty();
-	}
-
-    public void migrate(String cfName) {
-
     }
 }
+

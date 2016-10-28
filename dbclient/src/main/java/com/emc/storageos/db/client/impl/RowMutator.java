@@ -28,11 +28,12 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 /**
  * Encapsulates batch queries for record and index updates
  */
-public class RowMutator {
+public class RowMutator<T extends CompositeIndexColumnName> {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
-    private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
+    //private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
+    private Map<String, Map<String, ColumnListMutation<T>>> _cfIndexMap;
     private UUID _timeUUID;
     private long _timeStamp;
     private MutationBatch _recordMutator;
@@ -57,8 +58,9 @@ public class RowMutator {
         _indexMutator.setTimestamp(_timeStamp);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
-        _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
-        
+        //_cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
+        _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<T>>>();
+
         this.retryFailedWriteWithLocalQuorum = retryWithLocalQuorum;
     }
 
@@ -99,14 +101,19 @@ public class RowMutator {
      * @param key
      * @return
      */
-    public ColumnListMutation<IndexColumnName> getIndexColumnList(
-            ColumnFamily<String, IndexColumnName> cf, String key) {
-        Map<String, ColumnListMutation<IndexColumnName>> rowMap = _cfIndexMap.get(cf.getName());
+    //public ColumnListMutation<IndexColumnName> getIndexColumnList(
+    public ColumnListMutation<T> getIndexColumnList(
+            //ColumnFamily<String, IndexColumnName> cf, String key) {
+            ColumnFamily<String, T> cf, String key) {
+        //Map<String, ColumnListMutation<IndexColumnName>> rowMap = _cfIndexMap.get(cf.getName());
+        Map<String, ColumnListMutation<T>> rowMap = _cfIndexMap.get(cf.getName());
         if (rowMap == null) {
-            rowMap = new HashMap<String, ColumnListMutation<IndexColumnName>>();
+            //rowMap = new HashMap<String, ColumnListMutation<IndexColumnName>>();
+            rowMap = new HashMap<String, ColumnListMutation<T>>();
             _cfIndexMap.put(cf.getName(), rowMap);
         }
-        ColumnListMutation<IndexColumnName> row = rowMap.get(key);
+        //ColumnListMutation<IndexColumnName> row = rowMap.get(key);
+        ColumnListMutation<T> row = rowMap.get(key);
         if (row == null) {
             row = _indexMutator.withRow(cf, key);
             rowMap.put(key, row);

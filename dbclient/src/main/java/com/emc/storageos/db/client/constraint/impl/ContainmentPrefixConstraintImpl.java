@@ -6,6 +6,8 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.netflix.astyanax.Keyspace;
@@ -20,7 +22,7 @@ import com.emc.storageos.db.client.model.DataObject;
 /**
  * ContainmentPrefixConstrat default implementation
  */
-public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements ContainmentPrefixConstraint {
+public class ContainmentPrefixConstraintImpl extends ConstraintImpl<IndexColumnName> implements ContainmentPrefixConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentPrefixConstraintImpl.class);
 
     private URI _indexKey;
@@ -30,6 +32,7 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
 
     public ContainmentPrefixConstraintImpl(URI indexKey, String prefix, ColumnField field) {
         super(indexKey, prefix, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _indexKey = indexKey;
         _prefix = prefix;

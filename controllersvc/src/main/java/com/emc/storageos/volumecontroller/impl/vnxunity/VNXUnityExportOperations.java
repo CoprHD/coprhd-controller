@@ -64,7 +64,7 @@ public class VNXUnityExportOperations extends VNXeExportOperations {
                             VNXeBase parentHost = vnxeInitiator.getParentHost();
                             if (parentHost != null) {
                                 vnxeHostId = parentHost.getId();
-                                break; // TODO verify - all initiators part of same vnxeHost?
+                                break;
                             }
                         }
                     }
@@ -81,7 +81,7 @@ public class VNXUnityExportOperations extends VNXeExportOperations {
                 if (hostLunIds != null && !hostLunIds.isEmpty()) {
                     for (VNXeBase hostLunId : hostLunIds) {
                         HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
-                        log.info("Looking at Host Lun {}; Lun: {}, HLU: {}", hostLun.getLun(), hostLun.getHlu());
+                        log.info("Looking at Host Lun {}; Lun: {}, HLU: {}", hostLunId.getId(), hostLun.getLun(), hostLun.getHlu());
                         usedHLUs.add(hostLun.getHlu());
                     }
                 }

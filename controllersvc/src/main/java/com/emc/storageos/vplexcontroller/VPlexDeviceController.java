@@ -5263,10 +5263,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     @Override
-    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storageSystem, ExportGroup exportGroup,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
-
-        // TODO Might need to duplicate code from AbstractBasicMaskingOrchestrator
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        // ExportUtils.findAndUpdateFreeHLUsForClusterExport(getInstance(), getDevice(), storage, exportGroup, initiatorURIs, volumeMap,
+        // _dbClient);
     }
 
     public void setWorkflowService(WorkflowService _workflowService) {

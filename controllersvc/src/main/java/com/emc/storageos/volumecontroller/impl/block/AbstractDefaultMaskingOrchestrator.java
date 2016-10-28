@@ -1362,7 +1362,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *            [in] - List of Host URIs applicable to the
      *            initiatorsToExport list
      */
-    protected void queryHostInitiatorsAndAddToList(List<String> portNames,
+    public void queryHostInitiatorsAndAddToList(List<String> portNames,
             Map<String, URI> portNamesToInitiatorURI,
             Collection<URI> initiatorsToExport,
             List<URI> hostURIs) {
@@ -1426,7 +1426,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *            [in] - Initiator URIs
      * @return Map of String:computeResourceName to List of Initiator URIs
      */
-    protected Map<String, List<URI>> mapInitiatorsToComputeResource(
+    public Map<String, List<URI>> mapInitiatorsToComputeResource(
             ExportGroup exportGroup, Collection<URI> initiatorURIs) {
         Map<String, List<URI>> hostInitiatorMap = new ConcurrentHashMap<String, List<URI>>();
         // Bogus URI for those initiators without a host object, helps maintain a good map.
@@ -1727,7 +1727,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *            [out] - List of URIs of the hosts that list of
      *            initiators point to.
      */
-    protected void processInitiators(ExportGroup exportGroup,
+    public void processInitiators(ExportGroup exportGroup,
             Collection<URI> initiatorURIs,
             Collection<String> portNames,
             Map<String, URI> portNameToInitiatorURI,

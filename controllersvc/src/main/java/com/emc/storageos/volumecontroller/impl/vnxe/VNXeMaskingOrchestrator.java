@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -561,6 +562,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 throw DeviceControllerException.exceptions.exportRemoveVolumes(e);
             }
         }
+    }
+
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        ExportUtils.findAndUpdateFreeHLUsForClusterExport(this, getDevice(), storage, exportGroup, initiatorURIs, volumeMap, _dbClient);
     }
 
     /**

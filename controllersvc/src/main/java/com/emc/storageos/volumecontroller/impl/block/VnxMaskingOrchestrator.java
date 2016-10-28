@@ -454,6 +454,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return CustomConfigConstants.VNX_HOST_STORAGE_GROUP_MASK_NAME;
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        ExportUtils.findAndUpdateFreeHLUsForClusterExport(this, getDevice(), storage, exportGroup, initiatorURIs, volumeMap, _dbClient);
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      *

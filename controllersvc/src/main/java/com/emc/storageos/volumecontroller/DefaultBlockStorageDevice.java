@@ -337,14 +337,12 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
-        // TODO each device driver to implement this when they want consistent HLU for Cluster export
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
 
     @Override
     public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO each device driver to implement this when they want consistent HLU for Cluster export
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }

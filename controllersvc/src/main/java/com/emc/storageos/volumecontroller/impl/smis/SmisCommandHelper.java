@@ -6274,28 +6274,9 @@ public class SmisCommandHelper implements SmisConstants {
             while (volumePathItr.hasNext()) {
                 CIMObjectPath volumePath = volumePathItr.next();
                 for (BlockObject bo : bos) {
-                    String nativeGuid = bo.getNativeGuid();
+                    String nativeGuid = getNativeGuid(bo);
 
-                    // If this is an RP BlockSnapshot, the native GUID will reference the RecoverPoint protection system. Obtain the
-                    // BlockSnapshot's associated volume to get the correct native GUID. The associated volume is referenced using
-                    // the BlockSnapshot's sourceNativeId field.
-                    if (URIUtil.isType(bo.getId(), BlockSnapshot.class) && BlockObject.checkForRP(_dbClient, bo.getId())) {
-                        URIQueryResultList result = new URIQueryResultList();
-                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                                .getVolumeNativeGuidConstraint(bo.getNativeId()), result);
-                        Iterator<URI> volumeIterator = result.iterator();
-                        while (volumeIterator.hasNext()) {
-                            Volume vol = _dbClient.queryObject(Volume.class, volumeIterator.next());
-                            // Make sure the storage system of the volume matches that of the RP BlockSnapshot
-                            // to confirm a match.
-                            if (vol.getStorageController().equals(bo.getStorageController())) {
-                                nativeGuid = vol.getNativeGuid();
-                                break;
-                            }
-                        }
-                    }
-
-                    if (nativeGuid.equalsIgnoreCase(getVolumeNativeGuid(volumePath))) {
+                    if (nativeGuid != null && nativeGuid.equalsIgnoreCase(getVolumeNativeGuid(volumePath))) {
                         _log.info("Found object " + bo.getLabel() + " is in storage group " + storageGroupName);
                         returnVolumes.add(bo.getId());
                     }
@@ -6308,6 +6289,41 @@ public class SmisCommandHelper implements SmisConstants {
         } finally {
             closeCIMIterator(volumePathItr);
         }
+    }
+
+    /**
+     * Gets the native GUID corresponding to the block object. If the BlockObject is a RP BlockSnapshot, the native GUID will reference the
+     * RecoverPoint protection system. Obtain the BlockSnapshot's associated volume to get the correct native GUID. The associated volume is
+     * referenced using the BlockSnapshot's sourceNativeId field.
+     *
+     * @param bo the BlockObject
+     * @return the native GUID
+     */
+    private String getNativeGuid(BlockObject bo) {
+        String nativeGuid = "";
+
+        if (bo != null) {
+            // If this is an RP BlockSnapshot, the native GUID will reference the RecoverPoint protection system. Obtain the
+            // BlockSnapshot's associated volume to get the correct native GUID. The associated volume is referenced using
+            // the BlockSnapshot's sourceNativeId field.
+            if (URIUtil.isType(bo.getId(), BlockSnapshot.class) && BlockObject.checkForRP(_dbClient, bo.getId())) {
+                URIQueryResultList result = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeNativeGuidConstraint(bo.getNativeId()), result);
+                Iterator<URI> volumeIterator = result.iterator();
+                while (volumeIterator.hasNext()) {
+                    Volume vol = _dbClient.queryObject(Volume.class, volumeIterator.next());
+                    // Make sure the storage system of the volume matches that of the RP BlockSnapshot
+                    // to confirm a match.
+                    if (vol.getStorageController().equals(bo.getStorageController())) {
+                        nativeGuid = vol.getNativeGuid();
+                        break;
+                    }
+                }
+            }
+        }
+
+        return nativeGuid;
     }
 
     /**
@@ -7333,13 +7349,13 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get ReplicationSettingData instance.
-     * 
+     *
      * @param storageSystem A reference to the storage system
-     * 
+     *
      * @param elementName An optional name for the instance
-     * 
+     *
      * @param desiredValue DesiredCopyMethodology value
-     * 
+     *
      * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")

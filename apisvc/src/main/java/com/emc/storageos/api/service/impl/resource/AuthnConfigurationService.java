@@ -366,16 +366,20 @@ public class AuthnConfigurationService extends TaggedResource {
         provider.setOidcAuthorizeUrl( String.format("%s/authorize", provider.getOidcProviderAddress() ) );
         provider.setOidcTokenUrl( String.format("%s/token", provider.getOidcProviderAddress() ) );
 
-        String cbURL = buildCallbackURL();
-        provider.setOidcCallBackUrl(cbURL);
-        provider.setOidcClientId(cbURL);
+        provider.setOidcCallBackUrl(buildCallbackURL());
+        provider.setOidcClientId(buildClientId());
 
         return provider;
     }
 
-    private String buildCallbackURL() {
+    private String buildClientId() {
         PropertyInfo props = _coordinator.getPropertyInfo();
         return String.format("https://%s:4443", props.getProperty("network_vip"));
+    }
+
+    private String buildCallbackURL() {
+        PropertyInfo props = _coordinator.getPropertyInfo();
+        return String.format("https://%s:4443/oidccb", props.getProperty("network_vip"));
     }
 
     /**

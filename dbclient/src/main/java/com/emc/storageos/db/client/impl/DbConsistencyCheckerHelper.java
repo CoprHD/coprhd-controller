@@ -160,7 +160,7 @@ public class DbConsistencyCheckerHelper {
                     ColumnField indexedField = indexedFields.get(column.getOne());
                     String indexKey = getIndexKey(indexedField, column);
                     if (indexKey == null || indexKey.isEmpty()) {
-                        logMessage(String.format("indexKey is null or empty for field: %s  row key:", indexedField.getName(), key), true, false);
+                        logMessage(String.format("indexKey is null or empty for field: %s  row key: %s", indexedField.getName(), key), true, false);
                         continue;
                     }
                     

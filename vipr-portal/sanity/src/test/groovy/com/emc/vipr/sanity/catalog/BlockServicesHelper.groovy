@@ -90,13 +90,21 @@ class BlockServicesHelper {
         return CatalogServiceHelper.placeOrder(CREATE_BLOCK_SNAPSHOT_SERVICE, overrideParameters)
     }
 
+    static def getVolume(affectedResources) {
+        for ( resource in affectedResources ) {
+            if(resource.contains("Volume")) {
+                return resource;
+            }
+        }
+    }
+
     static def removeBlockVolumeForHost(creationOrder) {
         def overrideParameters = [:]
         def executionInfo = CatalogServiceHelper.getExecutionInfo(creationOrder)
         assertNotNull(executionInfo)
         assertNotNull(executionInfo.affectedResources)
         assertEquals(3, executionInfo.affectedResources.size())
-        def createdVolumeId = executionInfo.affectedResources[2]
+        def createdVolumeId = getVolume(executionInfo.affectedResources)
         overrideParameters.volumes = createdVolumeId
         return CatalogServiceHelper.placeOrder(UNEXPORT_AND_REMOVE_BLOCK_VOLUMES, overrideParameters)
     }

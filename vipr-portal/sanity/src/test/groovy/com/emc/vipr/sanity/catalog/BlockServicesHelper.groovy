@@ -30,10 +30,6 @@ class BlockServicesHelper {
     static void createSnapshotAndRemoveBlockVolumeTest() {
         println "  ## Create Block Snapshot Volume Test ## "
 
-        println "Browsing categories"
-        browseCategories()
-        println ""
-
         // place the order to create a block volume
         def creationOrder = createBlockVolume()
 
@@ -48,27 +44,11 @@ class BlockServicesHelper {
     static void createAndRemoveBlockVolumeTest() {
         println "  ## Create Block Volume Test ## "
 
-        println "Browsing categories"
-        browseCategories()
-        println ""
-
         // place the order to create a block volume
         def creationOrder = createBlockVolume()
 
         // place the order to remove the block volume from the creation order
         removeBlockVolume(creationOrder)
-    }
-
-    static def browseCategories() {
-        println "Browsing root category:"
-        def rootCategory = catalog.categories().getRootCatalogCategory(catalog.getUserTenantId())
-        println rootCategory.title
-        println ""
-
-        println "Browsing block services category:"
-        def blockCategory = catalog.browse().path("BlockStorageServices").category()
-        println blockCategory.title
-        println ""
     }
 
     static def createBlockVolume() {

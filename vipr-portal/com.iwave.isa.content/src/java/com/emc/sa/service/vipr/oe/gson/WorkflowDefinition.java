@@ -51,6 +51,10 @@ public class WorkflowDefinition {
 
     public  static class Input {
 
+        public Input() {
+            required = "true";
+        }
+
         @SerializedName("Type")
         private String type;
 

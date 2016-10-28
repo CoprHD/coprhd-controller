@@ -805,9 +805,7 @@ TODO: make instantiable for use with tabs
 
 var currentScale = 1;
 
-$(function() {
-
-    //initialize oanzoom
+function initializePanZoom(){
     var widthHalf = (window.innerWidth / 2) - 75;
     var heightHalf = (window.innerHeight / 2) - 75;
 
@@ -821,7 +819,7 @@ $(function() {
     $panzoom.parent().on('mousewheel.focal', function(e) {
         e.preventDefault();
         var delta = e.delta || e.originalEvent.wheelDeltaY;
-        if (delta != 0) {
+        if (delta !== 0) {
             var zoomOut = delta < 0;
             $panzoom.panzoom('zoom', zoomOut, {
                 animate: false,
@@ -837,8 +835,9 @@ $(function() {
         jsPlumb.setZoom(scale);
         currentScale = scale;
     });
+}
 
-
+function initializeJsPlumb(){
     //initialize jsPlumb, will need to make instantiable
 
     jsPlumb.importDefaults({
@@ -861,11 +860,11 @@ $(function() {
     $('.example-item-card-wrapper').each(function () {
       jsPlumb.draggable(this);
     });
+}
 
-    // JSTREE initialization
+function initializeJsTree(){
     $(".search-input").keyup(function() {
         var searchString = $(this).val();
-        console.log(searchString);
         $('#jstree_demo').jstree('search', searchString);
     });
 
@@ -917,7 +916,7 @@ $(function() {
                                  "seperator_before" : false,
                                  "seperator_after" : false,
                                  "label" : "Workflow",
-                                 action : function (obj) {
+                                 action : function () {
                                      $node = tree.create_node($node,{"type":"file"});
                                      tree.edit($node);
                                  }
@@ -926,7 +925,7 @@ $(function() {
                                  "seperator_before" : false,
                                  "seperator_after" : false,
                                  "label" : "Folder",
-                                 action : function (obj) {
+                                 action : function () {
                                      $node = tree.create_node($node);
                                      tree.edit($node);
                                  }
@@ -937,7 +936,7 @@ $(function() {
                          "separator_before": false,
                          "separator_after": false,
                          "label": "Rename",
-                         "action": function (obj) {
+                         "action": function () {
                              tree.edit($node);
                          }
                      },
@@ -945,7 +944,7 @@ $(function() {
                          "separator_before": false,
                          "separator_after": false,
                          "label": "Remove",
-                         "action": function (obj) {
+                         "action": function () {
                              tree.delete_node($node);
                          }
                      },
@@ -953,22 +952,28 @@ $(function() {
                          "separator_before": false,
                          "separator_after": false,
                          "label": "Preview",
-                         "action": function (obj) {
+                         "action": function () {
                              previewNode($node);
                          }
                      }
                  };
              }
         }
-    }).on('ready.jstree', function(e, data) {
+    }).on('ready.jstree', function() {
         $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
         $( "#sb-site" ).droppable({drop: dragEndFunc});
-    }).bind("rename_node.jstree clear_search.jstree search.jstree", function(e, data) {
+    }).bind("rename_node.jstree clear_search.jstree search.jstree", function() {
         $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
     })
+}
+
+$(function() {
+
+    initializePanZoom();
+    initializeJsPlumb();
+    initializeJsTree();
 
     $('#wftabs').on('click','.close',function(){
-         console.log('close  ');
          var tabID = $(this).parents('a').attr('href');
          $(this).parents('li').remove();
          $(tabID).remove();
@@ -1018,7 +1023,7 @@ Dummy function to test editing step data
 function dummyEditDataFunc(e) {
     var target = $(e.currentTarget);
     if (target.is(".example-item-card-wrapper")) {
-        text = target.text();
+        var text = target.text();
         var stepName = prompt("Please enter step name", text);
         target.find(".itemText").text(stepName);
         target.data('FriendlyName', stepName);
@@ -1110,8 +1115,7 @@ function buildJSON() {
     //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
     dummyWorkflowData.Steps = blocks;
 
-    copyData = JSON.stringify(dummyWorkflowData);
-    console.log(dummyWorkflowData);
+    //copyData = JSON.stringify(dummyWorkflowData);
     dummyWF = jQuery.extend(true, {}, dummyWorkflowData);
 }
 
@@ -1180,107 +1184,6 @@ function loadJSON() {
     });
 }
 
-
-/*
-The following code is for testing import without position data and resetting the instance
-This is for testing only and not ready for review.
-The methods are:
-    loadJSONNoPosition
-    importStepsNoPosition
-    traverse
-    reset
-TODO: remove these methods when we have determined the future of import w/o position
-*/
-function loadJSONNoPosition() {
-    var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
-    dummyWorkflowData.WorkflowName = loadedWorkflow.WorkflowName;
-    dummyWorkflowData.Description = loadedWorkflow.Description;
-    //method1(loadedWorkflow.Steps);
-    importStepsNoPosition(loadedWorkflow.Steps);
-    loadedWorkflow.Steps.forEach(function(step) {
-        loadConnections(step);
-    });
-}
-
-function importStepsNoPosition(stepsObject) {
-    var initStep = stepsObject[0];
-    //create key value
-    steps = {};
-    stepsObject.forEach(function(step) {
-        steps[step.StepId] = step;
-    });
-    stepsObject.forEach(function(step) {
-        traverse(step,5000,5000);
-    });
-}
-
-function traverse(step,x,y){
-    if (document.getElementById(step.StepId)){
-        return;
-    }
-    step.positionY = y;
-    step.positionX = x;
-    loadStep(step);
-    if (step.Next){
-        var ready = false;
-        if (step.Next.Default) {
-            var newY =y;
-            var newX = x+400;
-            var nextId = step.Next.Default;
-            while (!ready) {
-                var ready2 = true;
-                $('.example-item-card-wrapper').each(function(idx,elem){
-                    var $elem = $(elem);
-                    if (parseInt($elem.css("left"), 10) == newX && parseInt($elem.css("top"), 10) == newY){
-                        newY=newY+400;
-                        if (((newY - 5000) / 400) % 2 > 0){
-                            newX = newX+200;
-                        } else {
-                            newX = newX - 200;
-                        }
-                        ready2 = false;
-                    }
-                });
-                if (ready2){
-                    ready = true;
-                }
-            }
-        traverse(steps[nextId],newX,newY);
-        }
-        if (step.Next.Failure) {
-            var newY =y+400;
-            var newX = x;
-            var nextId = step.Next.Failure;
-            if (((newY - 5000) / 400) % 2 > 0){
-                newX = newX+200;
-            } else {
-                newX = newX - 200;
-            }
-            while (!ready) {
-                var ready2 = true;
-                $('.example-item-card-wrapper').each(function(idx,elem){
-                    var $elem = $(elem);
-                    if (parseInt($elem.css("left"), 10) == newX && parseInt($elem.css("top"), 10) == newY){
-                        newY=newY+400;
-                        if (((newY - 5000) / 400) % 2 > 0){
-                            newX = newX+200;
-                        } else {
-                            newX = newX - 200;
-                        }
-                        ready2 = false;
-                    }
-                });
-                if (ready2){
-                    ready = true;
-                }
-            }
-
-            traverse(steps[nextId],newX,newY);
-        }
-
-    }
-}
-
 function reset() {
     jsPlumb.deleteEveryEndpoint();
     $('.example-item-card-wrapper').each( function(idx,elem) {
@@ -1293,7 +1196,7 @@ function reset() {
 // JSTREE functions
 
 // TODO: Remove this hardcoded JSON and build it using APIs (when available)
-rootjson=[
+var rootjson=[
   {
     "id": 1,
     "text": "My Lib",
@@ -1366,7 +1269,7 @@ rootjson=[
 
 // This method will create tab view for workflows
 function previewNode(node) {
-    tabID = node.id;
+    var tabID = node.id;
     $("#wftabs").append('<li><a href="#tab'+tabID+'" role="tab" data-toggle="tab">'+node.text+'&nbsp;<button class="close" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>')
     $('.tab-content').append($('<div class="tab-pane fade" id="tab' + tabID + '">Tab '+ node.text +' content</div>'));
 }

@@ -1,5 +1,6 @@
 package com.emc.storageos.migrationcontroller;
 
+import java.net.URI;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -33,10 +34,10 @@ public class ApplicationMigrationControllerImpl implements MigrationController {
 
 	    
 	@Override
-	public void migrationCreate() {
+    public void migrationCreate(URI volumeGroupURI) throws Exception {
 		// TODO Auto-generated method stub
 		log.info("ApplicationMigrationControllerImpl : Start Migration Create");
-		getMigrationController().migrationCreate();		
+        getMigrationController().migrationCreate(volumeGroupURI);
 	}
 
 	@Override

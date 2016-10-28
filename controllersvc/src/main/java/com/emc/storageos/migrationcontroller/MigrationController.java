@@ -4,13 +4,16 @@
  */
 package com.emc.storageos.migrationcontroller;
 
+import java.net.URI;
+
 import com.emc.storageos.Controller;
+import com.emc.storageos.db.client.model.VolumeGroup;
 
 public interface MigrationController extends Controller {
 	
     public final static String MIGRATION_ORCHESTRATION_DEVICE = "migration";
 	
-	public void migrationCreate();
+    public void migrationCreate(URI volumeGroupURI) throws Exception;
 	
 	public void migrationMigrate();
 	

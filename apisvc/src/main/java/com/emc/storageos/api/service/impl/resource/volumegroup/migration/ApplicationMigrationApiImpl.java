@@ -93,8 +93,14 @@ public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl
         }
         
         // TODO: what sort of validation checks do we need here.
-        		
-		getController(MigrationController.class, ApplicationMigrationController.MIGRATION_ORCHESTRATION_DEVICE).migrationCreate();
+
+        try {
+            getController(MigrationController.class, ApplicationMigrationController.MIGRATION_ORCHESTRATION_DEVICE)
+                    .migrationCreate(applicationId);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 	}
 
 	@Override

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.migrationcontroller;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,14 +50,11 @@ public class ApplicationMigrationController implements MigrationController {
     }
 
 	@Override
-	public void migrationCreate() {
-		log.info("ApplicationMigrationController : Create Migration");
-		// TODO Auto-generated method stub
-		
-	}
-
-    public void migrationCreate1(VolumeGroup volumeGroup, VirtualPool vPool, VirtualArray vArray) throws Exception {
+    public void migrationCreate(URI volumeGroupURI) throws Exception {
+        log.info("ApplicationMigrationController : Create Migration");
         // Harsha Get the Basic information such as Source Storage System and Storage Group Name
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupURI);
+
         String[] volumeGroupLabelSplitArray = volumeGroup.getLabel().split(Constants.SMIS_PLUS_REGEX);
         StorageSystem srcStorageSystem = null;
         String nativeGuid = NativeGUIDGenerator.generateNativeGuid(volumeGroupLabelSplitArray[0], volumeGroupLabelSplitArray[1]);

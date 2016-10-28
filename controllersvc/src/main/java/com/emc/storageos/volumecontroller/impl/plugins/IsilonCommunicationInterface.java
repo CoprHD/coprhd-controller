@@ -1969,22 +1969,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 				}
             }
                 
-            /*
-            boolean qualified = false;
-            for (IsilonSmartQuota quota : quotas.getList()) {
-                String fsNativeId = quota.getPath();
-
-                qualified = isUnderUnmanagedDiscoveryPath(fsNativeId);
-                if (qualified) {
-                    FileShare fs = extractFileShare(fsNativeId, quota, storageSystem);
-                    _log.debug("quota id {} with capacity {}", fsNativeId + ":QUOTA:" + quota.getId(),
-                            fs.getCapacity() + " used capacity " + fs.getUsedCapacity());
-                    fsWithQuotaMap.put(fsNativeId, fs);
-                } else {
-                    _log.debug("quota id {} no FileSystem or directory", fsNativeId);
-                }
-            }
-            */
             // get all other pages of quota data, process and set quota page by page
             _log.info("NativeGUIDGenerator for storage system {} - complete", storageSystemId);
 
@@ -1992,7 +1976,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoveredFS = new ArrayList<FileShare>(fsWithQuotaMap.values());
             IsilonApi.IsilonList<FileShare> isilonFSList = new IsilonApi.IsilonList<FileShare>();
             isilonFSList.addList(discoveredFS);
-            // isilonFSList.setToken(isilonFileSystems.getToken());
             
             HashMap<String, Object> discoveredFileDetails= new HashMap<String, Object>();
             
@@ -2001,7 +1984,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoveredFileDetails.put(UMFS_DETAILS, isilonFSList);
             discoveredFileDetails.put(UMFSQD_DETAILS,discoverdQuotaDirectory);
             
-//            return isilonFSList;
             return discoveredFileDetails;
 
         } catch (IsilonException ie) {

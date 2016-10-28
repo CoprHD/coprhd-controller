@@ -87,9 +87,11 @@ $(function() {
               "valid_children": ["root"]
           },
           "root": {
+              "icon": "glyphicon glyphicon-folder-close",
               "valid_children": ["default"]
           },
           "default": {
+              "icon": "glyphicon glyphicon-folder-close",
               "valid_children": ["default", "file"]
           },
           "file": {

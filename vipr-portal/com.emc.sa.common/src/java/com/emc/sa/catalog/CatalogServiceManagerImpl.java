@@ -360,7 +360,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
         List<NamedElement> results = client.findByAlternateId(OEWorkflow.class, "name", workflowName);
-        if(results.isEmpty()) {
+        if(null == results || results.isEmpty()) {
             return null;
         }
         if(results.size() > 1) {
@@ -368,7 +368,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
         }
         
         OEWorkflow workflow = client.findById(OEWorkflow.class, results.get(0).getId());
-        return results == null ? null : workflow.getDocument();
+        return workflow == null ? null : workflow.getDocument();
     }
 
 }

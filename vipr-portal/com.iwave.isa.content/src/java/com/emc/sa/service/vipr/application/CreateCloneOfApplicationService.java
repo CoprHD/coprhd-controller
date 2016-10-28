@@ -14,7 +14,9 @@ import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateCloneOfApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
+import com.emc.sa.service.vipr.application.tasks.RemoveApplicationFullCopy;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
@@ -57,15 +59,19 @@ public class CreateCloneOfApplicationService extends ViPRService {
         if (!isRetentionRequired()) {
             return;
         }
-        List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
-        for (RetainedReplica replica : replicas) {
-            List<URI> cloneIds = new ArrayList<URI>();
-            for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
-                info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
-                cloneIds.add(uri(obsoleteCloneId));
+        try {
+            List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
+            for (RetainedReplica replica : replicas) {
+                for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
+                    info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
+                    URI uri = new URI(obsoleteCloneId);
+                    String name = getModelClient().findById(Volume.class, uri).getLabel();
+                    execute(new RemoveApplicationFullCopy(applicationId, uri, name));
+                }
+                getModelClient().delete(replica);
             }
-            execute(new DeleteSnapshotForApplication(applicationId, cloneIds));
-            getModelClient().delete(replica);
+        } catch (Exception e) {
+            error("Failed to check and purge obsolete clone:%s",e.getMessage());
         }
     }
 }

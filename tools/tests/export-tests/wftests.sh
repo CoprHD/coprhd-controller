@@ -1312,7 +1312,8 @@ vplex_setup() {
                              --max_mirrors 0                                        \
                              --expandable true
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
+	    # having issues predicting the storage that gets used, so commenting this out for now.
+            #run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
 
 	    # Migration vpool test
@@ -1331,7 +1332,7 @@ vplex_setup() {
                              --expandable true
 
             run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VNX1_NATIVEGUID
-            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VMAX_NATIVEGUID
+            #run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VMAX_NATIVEGUID
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (target)"
@@ -1542,49 +1543,99 @@ test_0() {
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
-# WF Test 1
+snap_db() {
+    slot=$1
+    shift
+    column_families=$*
+    
+    secho "snapping column families: ${column_families}"
+
+    for cf in ${column_families}
+    do
+      # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g'  > results/${item}/${cf}-${slot}.txt
+    done
+}      
+
+validate_db() {
+    slot_1=${1}
+    shift
+    slot_2=${1}
+    shift
+    column_families=$*
+
+    for cf in ${column_families}
+    do
+      runcmd diff results/${item}/${cf}-${slot_1}.txt results/${item}/${cf}-${slot_2}.txt
+    done
+}
+
+# Test 1
 #
-# Test creating a volume and verify the DB is in an expected state after it fails.
+# Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume create operation that will fail at the end and roll back
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
 test_1() {
     echot "Test 1 Begins"
-    volname=${VOLNAME}-${RANDOM}
-    
-    # Turn on fail at the end of the workflow and suspend (so we can check the state of the db)
-    set_artificial_failure failure_004_final_step_in_workflow_complete
-    set_suspend_on_error true
 
-    # Check the state of the volume that doesn't exist
-    /opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
+    common_failure_injections="failure_004_final_step_in_workflow_complete failure_005_BlockDeviceController.createVolumes_before_device_create failure_006_BlockDeviceController.createVolumes_after_device_create"
 
-    # Create the volume
-    echo === volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    resultcmd=`volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1`
-
-    if [ $? -ne 0 ]; then
-	echo "volume create command failed outright"
-	cleanup
-	finish 3
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation failure_004_final_step_in_workflow_complete"
     fi
 
-    # Show the result of the volume create command for now (show the task and WF IDs)
-    echo $resultcmd
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_011_VNXVMAX_Post_Placement_outside_trycatch failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
 
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
-    # Perform any DB validation in here
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
 
-    # Resume the workflow
-    runcmd workflow resume $workflow
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
 
-    # Follow the task.  It should fail because of artificial failure
-    echo "*** Following the volume create task to verify it FAILS because of the artificial failure"
-    fail task follow $task
-    
-    # Perform final DB validation in here
+      # Create the volume
+      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+
+      # Remove the volume
+      runcmd volume delete ${PROJECT}/${volname} --wait
+      
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+    done
 }
 
 # Suspend/Resume base test 2

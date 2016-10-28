@@ -28,7 +28,6 @@ import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
 import com.emc.sa.service.vipr.ViPRService;
 
-import java.net.URI;
 import java.io.FileReader;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -56,11 +55,12 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
-    private Map<String, Object> params = new HashMap<String, Object>();
+    private Map<String, Object> params;
     private String oeOrderJson;
 
     @Autowired
     private DbClient dbClient;
+    
     //<StepId, {"key" : "values...", "key" : "values ..."} ...>
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
@@ -88,26 +88,6 @@ public class OrchestrationService extends ViPRService {
     public void precheck() throws Exception {
 
         // get input params from order form
-        //params = ExecutionUtils.currentContext().getParameters();
-
-        // validate input params to insure service will run
-
-        // add a proxy token that OE can use to login to ViPR API
-        params.put("ProxyToken", ExecutionUtils.currentContext().
-                getExecutionState().getProxyToken());
-        //Remove after integration with order form
-        params.put("size", "1GB");
-        params.put("name", "Vol-1");
-        params.put("count", "1");
-        params.put("varray", "urn:storageos:VirtualArray:1fa6c1c5-b082-4d24-a971-def0042c0571:vdc1");
-        params.put("vpool", "urn:storageos:VirtualPool:f5a6b654-d22d-4f84-941f-19dff8c97997:vdc1");
-        params.put("project", "urn:storageos:Project:47e7d81e-2f9e-490b-a7e6-0321cca8784e:global");
-	params.put("consistency_group", "");
-
-	ExecutionUtils.currentContext().logInfo("In PreCheck");
-    }
-    private void initparam()
-    {
         params = ExecutionUtils.currentContext().getParameters();
 
         // validate input params to insure service will run
@@ -115,21 +95,12 @@ public class OrchestrationService extends ViPRService {
         // add a proxy token that OE can use to login to ViPR API
         params.put("ProxyToken", ExecutionUtils.currentContext().
                 getExecutionState().getProxyToken());
-        //Remove after integration with order form
-        params.put("size", "1GB");
-        params.put("name", "Vol-1");
-        params.put("count", "1");
-        params.put("varray", "urn:storageos:VirtualArray:1fa6c1c5-b082-4d24-a971-def0042c0571:vdc1");
-        params.put("vpool", "urn:storageos:VirtualPool:f5a6b654-d22d-4f84-941f-19dff8c97997:vdc1");
-        params.put("project", "urn:storageos:Project:47e7d81e-2f9e-490b-a7e6-0321cca8784e:global");
-
     }
 
     @Override
     public void execute() throws Exception {
         ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
         try {
-	    initparam();
             wfExecutor();
 
             ExecutionUtils.currentContext().logInfo("Orchestration Engine Successfully executed Workflow:"
@@ -255,7 +226,7 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             Input value = input.get(key);
-	    logger.info("key is:{} and value is:{}", key, value);
+            
             if (value == null) {
                 logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getStepId());
 
@@ -269,10 +240,8 @@ public class OrchestrationService extends ViPRService {
                     //TODO handle multiple , separated values
                     final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefault());
 
-		    logger.info("paramVal is:{} and key:{}", paramVal, key);
                     if (paramVal == null) {
-			logger.info("paramval is null: for key:{}", key);
-                        if (value.getRequired().equals("true")) {
+                        if (value.getRequired()!=null && value.getRequired().equals("true")) {
                             logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
 
                             throw new IllegalStateException();
@@ -286,58 +255,52 @@ public class OrchestrationService extends ViPRService {
                 }
                 case FROM_STEP_INPUT:
                 case FROM_STEP_OUTPUT: {
-                    if (value.getOtherStepValue() == null && value.getDefault() == null && value.getRequired().equals("true")) {
+                    
+                    if(!isValidinput(value))
+                    {
                         logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
-
+                        
                         throw new IllegalStateException();
                     }
 
-                    if (value.getOtherStepValue() == null) {
-                        if (value.getDefault() != null) {
-                            inputs.put(key, Arrays.asList(value.getDefault()));
+                    if (value.getOtherStepValue() != null) {
+                        final String[] paramVal = value.getOtherStepValue().split("\\.");
+                        final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
+                        final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
+
+                        Map<String, List<String>> stepInput;
+                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                            stepInput = inputPerStep.get(stepId);
+                        else
+                            stepInput = outputPerStep.get(stepId);
+
+                        if (stepInput == null) {
+                            logger.info("stepInput is null {}", attribute);
+                            //TODO waitfortask
+                            
                             break;
-                        }
-                        logger.info("Could not get input value for:{}", value.getOtherStepValue());
+                            
+                        } else {
+                            logger.info("value is:{}", stepInput.get(attribute));
+                            if (stepInput.get(attribute) != null) {
+                                inputs.put(key, stepInput.get(attribute));
+
+                                break;
+                            }
+                        }   
+                    }
+                    if (value.getDefault() != null) {
+                        inputs.put(key, Arrays.asList(value.getDefault()));
+                        logger.info("value default is:{}", Arrays.asList(value.getDefault()));
                         break;
                     }
 
-                    final String[] paramVal = value.getOtherStepValue().split("\\.");
-                    final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
-                    final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
+                    if (value.getRequired().equals("false")) 
+                        break;
 
-			logger.info("attr:{}",attribute);
-			logger.info("output per step:{}", outputPerStep.get(stepId));
-                    Map<String, List<String>> stepInput;
-                    if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
-                        stepInput = inputPerStep.get(stepId);
-                    else
-                        stepInput = outputPerStep.get(stepId);
+                    logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
 
-		    if (stepInput == null) {
-			logger.info("stepInput == null {}", attribute);
-		    } else {
-			logger.info("stepInput is not null");
-			logger.info("value is:{}", stepInput.get(attribute));
-                        inputs.put(key, stepInput.get(attribute));
-
-			break;
-		    }
-                        if (value.getDefault() != null) {
-                            inputs.put(key, Arrays.asList(value.getDefault()));
-			    logger.info("value default is:{}", Arrays.asList(value.getDefault()));
-                            break;
-                        }
-
-                        if (value.getRequired().equals("false")) //TODO null pointer exception
-                            break;
-
-
-
-                        //TODO if data is still not present waitfortask ... Do some more validation
-
-                        logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
-
-                        throw new IllegalStateException();
+                    throw new IllegalStateException();
 
                 }
                 default:
@@ -349,6 +312,17 @@ public class OrchestrationService extends ViPRService {
 
         inputPerStep.put(step.getStepId(), inputs);
     }
+    
+    private boolean isValidinput(Input value)
+    {
+        if (value.getOtherStepValue() == null && value.getDefault() == null && value.getRequired().equals("true")) {
+            return false;
+        }
+        
+        return true;
+
+    }
+    
 
     /**
      * Parse REST Response and get output values as specified by the user in the workflow definition
@@ -546,3 +520,4 @@ public class OrchestrationService extends ViPRService {
         }
     }
 }
+

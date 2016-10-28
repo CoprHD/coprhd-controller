@@ -392,7 +392,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
         if(service.getWorkflowName() != null ) {
             final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getWorkflowName());
-            if( null == workflowDocument ) throw APIException.badRequests.workflowNotFound(service.getWorkflowName());
+            if( null == workflowDocument ) {
+                throw APIException.badRequests.workflowNotFound(service.getWorkflowName());
+            }
             createParam.setWorkflowDocument(workflowDocument);
         }
         

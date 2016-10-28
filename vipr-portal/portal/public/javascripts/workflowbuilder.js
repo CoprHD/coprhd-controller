@@ -1149,17 +1149,16 @@ function loadStep(step) {
 }
 
 function loadConnections(step) {
-    for(key in step.Next){
-        var value = step.Next[key];
-        if(key==="Default"){
+    if(step.Next){
+        if(step.Next.Default){
             var source = jsPlumb.getEndpoint(step.StepId+"-pass");
-            jsPlumb.connect({source:source, target:value});
+            jsPlumb.connect({source:source, target:step.Next.Default});
         }
-        if(key==="Failure"){
+        if(step.Next.Failure){
             var source = jsPlumb.getEndpoint(step.StepId+"-fail");
-            jsPlumb.connect({source:source, target:value});
+            jsPlumb.connect({source:source, target:step.Next.Failure});
         }
-    };
+    }
 }
 
 function loadJSON() {

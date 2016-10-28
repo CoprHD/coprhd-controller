@@ -18,9 +18,18 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import javassist.CtNewMethod;
+import javassist.NotFoundException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +39,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
-
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import javassist.CtNewMethod;
-import javassist.NotFoundException;
 
 /**
  * Encapsulates data object type information
@@ -233,13 +235,15 @@ public class DataObjectType {
             Class<? extends DataObject> type = (_instrumentedClazz == null) ? clazz : _instrumentedClazz;
             DataObject obj = DataObject.createInstance(type, URI.create(key));
             Iterator<CompositeColumnName> it = rows.iterator();
+            Map<CompositeColumnName, UUID> columnsNameMap = new HashMap<CompositeColumnName, UUID>();
             while (it.hasNext()) {
                 CompositeColumnName compositeColumnName = it.next();
-                cleanupList.add(key, compositeColumnName);
                 
                 ColumnField columnField = _columnFieldMap.get(compositeColumnName.getOne());
-                if (columnField != null) {
+                if (columnField != null && !(columnsNameMap.containsKey(compositeColumnName) && columnsNameMap.get(compositeColumnName) == null)) {
                     columnField.deserialize(compositeColumnName, obj);
+                    columnsNameMap.put(compositeColumnName, compositeColumnName.getTimeUUID());
+                    cleanupList.add(key, compositeColumnName);
                 } else {
                     _log.debug("an unexpected column in db, it might because geo system has multiple vdc but in different version");
                 }

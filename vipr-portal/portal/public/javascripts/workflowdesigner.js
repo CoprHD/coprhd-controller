@@ -799,7 +799,7 @@ var dummyWF = {
 
 
 /*
-Initialization of builder, configures panzoom and jsplumb defaults
+Initialization of builder, configures panzoom and jsplumb defaults JSTree
 TODO: make instantiable for use with tabs
 */
 
@@ -858,9 +858,122 @@ $(function() {
     jsPlumb.setContainer($('#diagramContainer'));
     jsPlumb.setZoom(1);
 
-  $('.example-item-card-wrapper').each(function () {
+    $('.example-item-card-wrapper').each(function () {
       jsPlumb.draggable(this);
-  });
+    });
+
+    // JSTREE initialization
+    $(".search-input").keyup(function() {
+        var searchString = $(this).val();
+        console.log(searchString);
+        $('#jstree_demo').jstree('search', searchString);
+    });
+
+    $('#jstree_demo').jstree({
+        "core": {
+            "animation": 0,
+            "check_callback": true,
+            "themes": {"stripes": false},
+            'data' : rootjson
+        },
+        "types": {
+            "#": {
+                "max_children": 1,
+                "max_depth": 4,
+                "valid_children": ["root"]
+            },
+            "root": {
+                "icon": "glyphicon glyphicon-folder-close",
+                "valid_children": ["default"]
+            },
+            "default": {
+                "icon": "glyphicon glyphicon-folder-close",
+                "valid_children": ["default", "file"]
+            },
+            "file": {
+                "icon": "glyphicon glyphicon-file",
+                "valid_children": [],
+                "li_attr": {"class": "draggable-card"}
+            }
+        },
+        "plugins": [
+            "contextmenu", "search",
+            "state", "types", "wholerow"
+        ],
+        "search" : {
+              'case_sensitive' : false,
+              'show_only_matches' : true
+        },
+        "contextmenu" : {
+             "items": function($node) {
+                 var tree = $("#jstree_demo").jstree(true);
+                 return {
+                     "Create": {
+                         "separator_before": false,
+                         "separator_after": false,
+                         "label": "Create",
+                         "submenu": {
+                             "create_file" : {
+                                 "seperator_before" : false,
+                                 "seperator_after" : false,
+                                 "label" : "Workflow",
+                                 action : function (obj) {
+                                     $node = tree.create_node($node,{"type":"file"});
+                                     tree.edit($node);
+                                 }
+                             },
+                             "create_folder" : {
+                                 "seperator_before" : false,
+                                 "seperator_after" : false,
+                                 "label" : "Folder",
+                                 action : function (obj) {
+                                     $node = tree.create_node($node);
+                                     tree.edit($node);
+                                 }
+                             }
+                         }
+                     },
+                     "Rename": {
+                         "separator_before": false,
+                         "separator_after": false,
+                         "label": "Rename",
+                         "action": function (obj) {
+                             tree.edit($node);
+                         }
+                     },
+                     "Remove": {
+                         "separator_before": false,
+                         "separator_after": false,
+                         "label": "Remove",
+                         "action": function (obj) {
+                             tree.delete_node($node);
+                         }
+                     },
+                     "Preview": {
+                         "separator_before": false,
+                         "separator_after": false,
+                         "label": "Preview",
+                         "action": function (obj) {
+                             previewNode($node);
+                         }
+                     }
+                 };
+             }
+        }
+    }).on('ready.jstree', function(e, data) {
+        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
+        $( "#sb-site" ).droppable({drop: dragEndFunc});
+    }).bind("rename_node.jstree clear_search.jstree search.jstree", function(e, data) {
+        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
+    })
+
+    $('#wftabs').on('click','.close',function(){
+         console.log('close  ');
+         var tabID = $(this).parents('a').attr('href');
+         $(this).parents('li').remove();
+         $(tabID).remove();
+
+    });
 
 });
 
@@ -1178,133 +1291,9 @@ function reset() {
     dummyWorkflowData = {};
     }
 
-
 // JSTREE functions
 
-$( function() {
-
-    $(".search-input").keyup(function() {
-        var searchString = $(this).val();
-        console.log(searchString);
-        $('#jstree_demo').jstree('search', searchString);
-    });
-
-    $('#jstree_demo').jstree({
-        "core": {
-            "animation": 0,
-            "check_callback": true,
-            "themes": {"stripes": false},
-            'data' : rootjson
-        },
-        "types": {
-            "#": {
-                "max_children": 1,
-                "max_depth": 4,
-                "valid_children": ["root"]
-            },
-            "root": {
-                "valid_children": ["default"]
-            },
-            "default": {
-                "valid_children": ["default", "file"]
-            },
-            "file": {
-                "icon": "glyphicon glyphicon-file",
-                "valid_children": [],
-                "li_attr": {"class": "draggable-card"}
-            }
-        },
-        "plugins": [
-            "contextmenu", "search",
-            "state", "types", "wholerow"
-        ],
-        "search" : {
-              'case_sensitive' : false,
-              'show_only_matches' : true
-         },
-         "contextmenu" : {
-                     "items": function($node) {
-                         var tree = $("#jstree_demo").jstree(true);
-                         return {
-                             "Create": {
-                                 "separator_before": false,
-                                 "separator_after": false,
-                                 "label": "Create",
-                                 "submenu": {
-                                     "create_file" : {
-                                         "seperator_before" : false,
-                                         "seperator_after" : false,
-                                         "label" : "File",
-                                         action : function (obj) {
-                                             $node = tree.create_node($node,{"type":"file"});
-                                             tree.edit($node);
-                                         }
-                                     },
-                                     "create_folder" : {
-                                         "seperator_before" : false,
-                                         "seperator_after" : false,
-                                         "label" : "Folder",
-                                         action : function (obj) {
-                                             $node = tree.create_node($node);
-                                             tree.edit($node);
-                                         }
-                                     }
-                                 }
-                             },
-                             "Rename": {
-                                 "separator_before": false,
-                                 "separator_after": false,
-                                 "label": "Rename",
-                                 "action": function (obj) {
-                                     tree.edit($node);
-                                 }
-                             },
-                             "Remove": {
-                                 "separator_before": false,
-                                 "separator_after": false,
-                                 "label": "Remove",
-                                 "action": function (obj) {
-                                     tree.delete_node($node);
-                                 }
-                             },
-                             "Preview": {
-                                 "separator_before": false,
-                                 "separator_after": false,
-                                 "label": "Preview",
-                                 "action": function (obj) {
-                                     previewNode($node);
-                                 }
-                             }
-                         };
-                     }
-                 }
-
-
-
-
-    }).on('ready.jstree', function(e, data) {
-        console.log('hi', data);
-        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
-        $( "#sb-site" ).droppable({drop: dragEndFunc});
-    })
-      .bind("rename_node.jstree", function(e, data) {
-        console.log(data);
-        $( ".draggable-card" ).draggable({helper: "clone",scroll: false});
-       })
-
-    $('#wftabs').on('click','.close',function(){
-         console.log('close  ');
-         var tabID = $(this).parents('a').attr('href');
-         $(this).parents('li').remove();
-         $(tabID).remove();
-
-         //display first tab
-         //var tabFirst = $('#wftabs a:first');
-         //tabFirst.tab('show');
-     });
-
-  } );
-
+// TODO: Remove this hardcoded JSON and build it using APIs (when available)
 rootjson=[
   {
     "id": 1,
@@ -1376,6 +1365,7 @@ rootjson=[
   }
 ]
 
+// This method will create tab view for workflows
 function previewNode(node) {
     tabID = node.id;
     $("#wftabs").append('<li><a href="#tab'+tabID+'" role="tab" data-toggle="tab">'+node.text+'&nbsp;<button class="close" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>')

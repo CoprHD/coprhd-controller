@@ -23,4 +23,8 @@ public class CatalogSanity {
     @Test void createBlockSnapshotTest() {
         BlockServicesHelper.createSnapshotAndRemoveBlockVolumeTest()
     }
+
+    @Test void createBlockFullCopyTest() {
+        BlockServicesHelper.createFullCopyAndRemoveBlockVolumeTest()
+    }
 }

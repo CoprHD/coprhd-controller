@@ -445,7 +445,11 @@ public class DBClient {
             return;
         }
 
+        List<URI> straightUriList = new ArrayList<URI>(uris);
+
         // Sort the URIs in alphabetical order for consistent output across executions
+        // The list returned by getColumnUris() is not compatible with sort, so normalize
+        // to a type that does.
         Comparator<URI> cmp = new Comparator<URI>() {
             public int compare(URI u1, URI u2) {
                 if (u1 == null) {
@@ -454,8 +458,10 @@ public class DBClient {
                 return u1.toString().compareTo(u2.toString());
             }
         };
-        Collections.sort(uris, cmp);
+        Collections.sort(straightUriList, cmp);
         
+        uris.clear();
+        uris.addAll(straightUriList);
         int count = queryAndPrintRecords(uris, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }

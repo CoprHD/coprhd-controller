@@ -1536,7 +1536,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // both source and target FS have some ACL
                 for (String sourceFSACLPath : sourceFSACLMap.keySet()) {
 
-
                     List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
                     List<NfsACE> aclToDelete = new ArrayList<NfsACE>();
                     List<NfsACE> aclToModify = new ArrayList<NfsACE>();
@@ -1544,6 +1543,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     // Segregate source and target NFS ACL
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(sourceFSACLPath, sourceFileShare);
                     List<NfsACE> sourceNFSACL = sourceFSACLMap.get(sourceFSACLPath);
+                    if (sourceNFSACL == null) {
+                        sourceNFSACL = new ArrayList<NfsACE>();
+                    }
                     String subDir = params.getSubDir();
                     String targetFSACLPath = targetFileShare.getPath();
                     if (subDir != null) {
@@ -1551,7 +1553,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
                     List<NfsACE> targetNFSACL = targetFSACLMap.get(targetFSACLPath);
 
-                    if(targetNFSACL == null) {
+                    if (targetNFSACL == null) {
                         targetNFSACL = new ArrayList<NfsACE>();
                     }
 
@@ -1586,14 +1588,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
                         if (targetUserToNFSACLMap.get(sourceACEUser) != null
                                 && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
-                                .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
+                                        .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
 
                             NfsACE ace = targetUserToNFSACLMap.get(sourceACEUser);
                             ace.setPermissions(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions());
                             aclToModify.add(ace);
                         }
                     }
-
 
                     if (!aclToAdd.isEmpty()) {
                         params.setAcesToAdd(aclToAdd);

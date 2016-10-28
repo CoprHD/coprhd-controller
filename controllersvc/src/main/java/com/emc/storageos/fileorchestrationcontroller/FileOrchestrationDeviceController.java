@@ -4,12 +4,14 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,9 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -34,7 +39,9 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -42,8 +49,10 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
+import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
@@ -80,6 +89,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String DELETE_FILESYSTEM_SNAPSHOT_WF_NAME = "DELETE_FILESYSTEM_SNAPSHOT_WORKFLOW";
     static final String RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME = "RESTORE_FILESYSTEM_SNAPSHOT_WORFLOW";
     static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
+    static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -95,12 +105,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
     private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
     private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
+    private static final String DELETE_FILESYSTEM_QUOTA_DIR_METHOD = "deleteQuotaDirectory";
+    private static final String UPDATE_FILESYSTEM_QUOTA_DIR_METHOD = "updateQuotaDirectory";
+    private static final String CREATE_FILESYSTEM_QUOTA_DIR_METHOD = "createQuotaDirectory";
     private static final String FAILOVER_FILE_SYSTEM_METHOD = "failoverFileSystem";
     private static final String FAILBACK_FILE_SYSTEM_METHOD = "doFailBackMirrorSessionWF";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD = "addStepsToReplicateCIFSShares";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD = "addStepsToReplicateNFSExportRules";
+    private static final String REPLICATE_FILESYSTEM_QUOTA_DIR_SETTINGS_METHOD = "addStepsToReplicateQuotaDirSettings";
+
     private static final String RESTORE_FILESYSTEM_SNAPSHOT_METHOD = "restoreFS";
     private static final String DELETE_FILESYSTEM_SNAPSHOT_METHOD = "delete";
     private static final String DELETE_FILESYSTEM_SHARE_ACLS_METHOD = "deleteShareACLs";
@@ -517,7 +532,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
             stepDescription = String.format("Updating file system snapshot : %s share : %s  ACLs: %s", uri, shareName, param.toString());
-            successMessage = String.format("Updating file system snapshot : %s share : %s  ACLs: %s finished successfully.", uri, shareName,
+            successMessage = String.format("Updating file system snapshot : %s share : %s  ACLs: %s finished successfully.", uri,
+                    shareName,
                     param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL.getName();
         }
@@ -1432,5 +1448,191 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
         _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
                 stepDescription, systemTarget, args);
+    }
+
+    private static void updateQuotaDirOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
+            FileShareQuotaDirectory param) {
+
+        String stepDescription = String.format(
+                "Updating quota directory of file system: %s", targetFileShare.getName(), param.toString());
+        String updateQuotaDirStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, param, targetFileShare.getId() };
+        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_QUOTA_DIR_METHOD, updateQuotaDirStep,
+                stepDescription, systemTarget, args);
+    }
+
+    private static void createQuotaDirOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
+            FileShareQuotaDirectory param) {
+
+        QuotaDirectory quotaDirectory = new QuotaDirectory();
+        URI id = URIUtil.createId(QuotaDirectory.class);
+        quotaDirectory.setId(id);
+        quotaDirectory.setParent(new NamedURI(targetFileShare.getId(), param.getName()));
+        quotaDirectory.setLabel(param.getName());
+        quotaDirectory.setOpStatus(new OpStatusMap());
+        quotaDirectory.setProject(new NamedURI(targetFileShare.getProject().getURI(), param.getName()));
+        quotaDirectory.setTenant(new NamedURI(targetFileShare.getTenant().getURI(), param.getName()));
+        quotaDirectory.setSoftLimit(param.getSoftLimit());
+        quotaDirectory.setSoftGrace(param.getSoftGrace());
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit());
+        quotaDirectory.setName(param.getName());
+        quotaDirectory.setOpLock(param.getOpLock());
+        quotaDirectory.setSecurityStyle(param.getSecurityStyle());
+        quotaDirectory.setSize(param.getSize());
+        String fsName = targetFileShare.getName();
+        try {
+            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(s_dbClient, quotaDirectory, fsName));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            s_logger.error("IOException occureed while creating native guid for quota directory");
+        }
+        s_dbClient.createObject(quotaDirectory);
+
+        String stepDescription = String.format(
+                "Creatting quota directory of file system: %s", targetFileShare.getName(), param.toString());
+        String createQuotaDirStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, param, targetFileShare.getId() };
+        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_QUOTA_DIR_METHOD, createQuotaDirStep,
+                stepDescription, systemTarget, args);
+    }
+
+    /**
+     * Child workflow for replicating source file system quota directory settings to target system.
+     * 
+     * @param systemTarget
+     *            - URI of target StorageSystem where source quota directory settings have to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param taskId
+     */
+    public void addStepsToReplicateQuotaDirSettings(URI systemTarget, URI fsURI, String taskId) {
+        s_logger.info("Generating steps for Replicating NFS ACLs to Target Cluster");
+        FileNfsACLUpdateParams params = null;
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileShare targetFileShare = null;
+        Workflow workflow = null;
+        try {
+
+            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                List<String> targetfileUris = new ArrayList<String>();
+                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            } else {
+                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+            }
+
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME, false, taskId, completer);
+
+            Map<String, FileShareQuotaDirectory> sourceFSQuotaDirMap = FileOrchestrationUtils.getQuotaDirNameToSettingMap(sourceFileShare,
+                    s_dbClient);
+            Map<String, FileShareQuotaDirectory> targetFSQuotaDirMap = FileOrchestrationUtils.getQuotaDirNameToSettingMap(targetFileShare,
+                    s_dbClient);
+
+            if (!sourceFSQuotaDirMap.isEmpty() && targetFSQuotaDirMap.isEmpty()) {
+                // target share doesn't have quota dir settings but corresponding share on source have ACL quota dir settings
+                s_logger.info("Target FS doesn't have quota dir settings but corresponding FS on source have quota dir settings.");
+                for (String sourceFSQuotaDirName : sourceFSQuotaDirMap.keySet()) {
+                    FileShareQuotaDirectory quotaDir = sourceFSQuotaDirMap.get(sourceFSQuotaDirName);
+                    s_logger.info("Invoking updateQuotaDirectory on FS: {}, with {}", targetFileShare.getName(), quotaDir);
+                    createQuotaDirOnTarget(workflow, systemTarget, targetFileShare, quotaDir);
+                }
+            } else if (!targetFSQuotaDirMap.isEmpty() && sourceFSQuotaDirMap.isEmpty()) {
+                s_logger.info("Target FS have quota dir settings but corresponding FS on source do not have quota dir settings.");
+                for (String targetFSQuotaDirName : targetFSQuotaDirMap.keySet()) {
+                    FileShareQuotaDirectory quotaDir = targetFSQuotaDirMap.get(targetFSQuotaDirName);
+                    s_logger.info("Invoking updateQuotaDirectory on FS: {}, with {}", targetFileShare.getName(), quotaDir);
+                    createQuotaDirOnTarget(workflow, systemTarget, targetFileShare, quotaDir);
+                }
+            } else if (!sourceFSQuotaDirMap.isEmpty() && !targetFSQuotaDirMap.isEmpty()) {
+                // both source and target FS have some ACL
+                for (String sourceFSACLPath : sourceFSQuotaDirMap.keySet()) {
+
+                    List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
+                    List<NfsACE> aclToDelete = new ArrayList<NfsACE>();
+                    List<NfsACE> aclToModify = new ArrayList<NfsACE>();
+
+                    // Segregate source and target NFS ACL
+                    params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(sourceFSACLPath, sourceFileShare);
+                    List<NfsACE> sourceNFSACL = sourceFSACLMap.get(sourceFSACLPath);
+                    String subDir = params.getSubDir();
+                    String targetFSACLPath = targetFileShare.getPath();
+                    if (subDir != null) {
+                        targetFSACLPath += "/" + subDir;
+                    }
+                    List<NfsACE> targetNFSACL = targetFSACLMap.get(targetFSACLPath);
+
+                    if (targetNFSACL == null) {
+                        targetNFSACL = new ArrayList<NfsACE>();
+                    }
+
+                    HashMap<String, NfsACE> sourceUserToNFSACLMap = FileOrchestrationUtils
+                            .getUserToNFSACEMap(sourceNFSACL);
+
+                    HashMap<String, NfsACE> targetUserToNFSACLMap = FileOrchestrationUtils
+                            .getUserToNFSACEMap(targetNFSACL);
+
+                    // ACL To Add
+                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
+                        if (targetUserToNFSACLMap.get(sourceACEUser) == null) {
+                            NfsACE nfsACE = sourceUserToNFSACLMap.get(sourceACEUser);
+                            aclToAdd.add(nfsACE);
+                        }
+                    }
+
+                    // ACL To Delete
+                    for (String targetACEUser : targetUserToNFSACLMap.keySet()) {
+                        if (sourceUserToNFSACLMap.get(targetACEUser) == null) {
+                            aclToDelete.add(targetUserToNFSACLMap.get(targetACEUser));
+                        }
+                    }
+
+                    // ACL to Modify
+                    targetNFSACL.removeAll(aclToDelete);
+                    sourceNFSACL.removeAll(aclToAdd);
+
+                    sourceUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(sourceNFSACL);
+                    targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
+
+                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
+                        if (targetUserToNFSACLMap.get(sourceACEUser) != null
+                                && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
+                                .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
+
+                            NfsACE ace = targetUserToNFSACLMap.get(sourceACEUser);
+                            ace.setPermissions(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions());
+                            aclToModify.add(ace);
+                        }
+                    }
+
+                    if (!aclToAdd.isEmpty()) {
+                        params.setAcesToAdd(aclToAdd);
+                    }
+                    if (!aclToDelete.isEmpty()) {
+                        params.setAcesToDelete(aclToDelete);
+                    }
+                    if (!aclToModify.isEmpty()) {
+                        params.setAcesToModify(aclToModify);
+                    }
+
+                    if (!params.retrieveAllACL().isEmpty()) {
+                        s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
+                        updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                    }
+                }
+            }
+
+            String successMessage = String.format(
+                    "Replicating source file system : %s, NFS ACL to target file system finished successfully",
+                    sourceFileShare.getLabel());
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not replicate source filesystem NFS ACL : " + fsURI, ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareNFSACLFailed(
+                    fsURI.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
     }
 }

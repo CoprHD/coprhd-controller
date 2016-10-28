@@ -286,8 +286,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                description,
-                descparams);
+                        description,
+                        descparams);
     }
 
     @Override
@@ -1807,18 +1807,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
             BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDirObj);
-            if (result.getCommandPending()) {
+            if (result.isCommandSuccess()) {
+                _log.info("FileDeviceController::updateQtree: QuotaDirectory update command was successful.");
+                WorkflowStepCompleter.stepSucceded(task);
+            } else if (result.getCommandPending()) {
                 return;
+            } else if (!result.isCommandSuccess()) {
+                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command was not successful.");
+                WorkflowStepCompleter.stepFailed(task, result.getServiceCoded());
             }
+
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
 
             String fsName = fsObj.getName();
             quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
 
-            if (!result.isCommandSuccess()) {
-                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
-            }
             // save the task status into db
             _dbClient.updateObject(quotaDirObj);
             _dbClient.updateObject(fsObj);
@@ -1831,6 +1835,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, result.isCommandSuccess(),
                     eventMsg, "", quotaDirObj, fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(task, serviceError);
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::updateQtree: Unable to update file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
@@ -3050,8 +3056,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (snapList != null) {
             _log.info(" No of Snapshots on FS {} ", snapList.size());
             for (Snapshot snapshot : snapList) {
-                if (!snapshot.getInactive())
+                if (!snapshot.getInactive()) {
                     return true;
+                }
             }
         }
 
@@ -3073,8 +3080,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         if (qdList != null) {
             for (QuotaDirectory qd : qdList) {
-                if (!qd.getInactive())
+                if (!qd.getInactive()) {
                     return true;
+                }
             }
         }
 
@@ -3707,7 +3715,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
                                         .getURI())),
-                                null);
+                                        null);
                     }
                 }
             }
@@ -3762,7 +3770,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                     this.getClass(),
                                     deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
                                             filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                    null, null);
+                                            null, null);
                         }
                     }
                 }
@@ -3775,7 +3783,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             this.getClass(),
                             deleteFileSharesMethod(deviceURI, fileshareURIs,
                                     filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                            null, null);
+                                    null, null);
                 }
 
             }

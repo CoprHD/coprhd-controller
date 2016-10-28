@@ -99,4 +99,45 @@ public class FileShareQuotaDirectory implements Serializable {
         this.softGrace = softGrace;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("FileShareQuotaDirectory [");
+        if (_id != null) {
+            builder.append("id=");
+            builder.append(_id);
+            builder.append(", ");
+        }
+        if (_name != null) {
+            builder.append("name=");
+            builder.append(_name);
+            builder.append(", ");
+        }
+        if (_securityStyle != null) {
+            builder.append("securityStyle=");
+            builder.append(_securityStyle);
+            builder.append(", ");
+        }
+        if (_oplock != null) {
+            builder.append("oplock=");
+            builder.append(_oplock);
+            builder.append(", ");
+        }
+        if (_size != null) {
+            builder.append("size=");
+            builder.append(_size);
+            builder.append(", ");
+        }
+        builder.append("softLimit=");
+        builder.append(softLimit);
+        builder.append(", notificationLimit=");
+        builder.append(notificationLimit);
+        builder.append(", softGrace=");
+        builder.append(softGrace);
+        builder.append("]");
+        return builder.toString();
+    }
+
+
+
 }

@@ -1,27 +1,16 @@
-#{extends 'layout.html' /}
-#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.workflowDesigner'] /}
-#{set 'moreScripts'}
-#{set 'customDocLink'}
-<a id="docLink" href="#">
-    #{icon 'question-sign'/} &{'nav.help'}
-</a>
-#{/set}
-#{/set}
-
-#{tenantSelector /}
-
-#{alerts disappear:true /}
-#{if error}
-<p id="alerts_error" class="alert alert-danger">
-    ${error}
-</p>
-#{/if}
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.workflowBuilder'] /}
 
 #{script 'jquery.panzoom.js'/}
 #{script 'jquery-ui.js'/}
 #{script 'jsPlumb-2.1.7.js'/}
-#{script 'workflowdesigner.js'/}
+#{script 'workflowbuilder.js'/}
 #{script 'jstree.min.js'/}
+
+<div class="page-header">
+    <h3>{{'system.healthdashboard.title' | t}}</h3>
+</div>
+
 <div class="row">
         <div id="theSidebar" class="sidebar" style="width: inherit !important;" >
             <div>

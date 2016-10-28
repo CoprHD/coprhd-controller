@@ -12,7 +12,7 @@ import play.mvc.With;
  * @author Chris Dail
  */
 @With(Common.class)
-public class WorkflowDesigner extends Controller {
+public class WorkflowBuilder extends Controller {
 
     public static void view() {
         render();

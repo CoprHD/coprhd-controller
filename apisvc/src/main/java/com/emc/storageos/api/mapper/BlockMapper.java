@@ -130,11 +130,8 @@ public class BlockMapper {
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
         to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
-        if (dbClient != null) {
-            StorageSystem system = getStorageSystemFromCache(from.getStorageController(), dbClient, storageSystemCache);
-            if (DiscoveredDataObject.Type.vplex.name().equalsIgnoreCase(system.getSystemType())) {
-                to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
-            }
+        if (DiscoveredDataObject.Type.vplex.name().equalsIgnoreCase(from.getSystemType())) {
+            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         }
         
         to.setCapacity(CapacityUtils.convertBytesToGBInStr(from.getCapacity()));
@@ -153,17 +150,11 @@ public class BlockMapper {
         // set compression ratio
         to.setCompressionRatio(from.getCompressionRatio());
 
-        if (dbClient != null) {
-            StorageSystem system = getStorageSystemFromCache(from.getStorageController(), dbClient, storageSystemCache);
-            if (system != null){
-                if(system.checkIfVmax3()) { 
-                    to.setSupportsSnapshotSessions(Boolean.TRUE);  
-                    to.setSystemType("vmax3");  
-                } else {
-                    to.setSystemType(system.getSystemType());
-                }
-            }
+        if (DiscoveredDataObject.Type.vmax3.name().equalsIgnoreCase(from.getSystemType())) { 
+            to.setSupportsSnapshotSessions(Boolean.TRUE);  
         }
+        to.setSystemType(from.getSystemType());
+
         // Extra checks for VPLEX volumes
         Volume srdfVolume = from;
         Volume sourceSideBackingVolume = null;
@@ -172,11 +163,9 @@ public class BlockMapper {
             // volume.
             sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
             // Check for null in case the VPlex vol was ingested w/o the backend volumes
-            if (sourceSideBackingVolume != null) {
-                StorageSystem system = getStorageSystemFromCache(sourceSideBackingVolume.getStorageController(), dbClient, storageSystemCache);
-                if (null != system && system.checkIfVmax3()) {
-                    to.setSupportsSnapshotSessions(Boolean.TRUE);
-                }
+            if ((sourceSideBackingVolume != null) 
+                    && DiscoveredDataObject.Type.vmax3.name().equalsIgnoreCase(sourceSideBackingVolume.getSystemType())) {
+                to.setSupportsSnapshotSessions(Boolean.TRUE);
             }
             // Set xio3xvolume in virtual volume only if its backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {

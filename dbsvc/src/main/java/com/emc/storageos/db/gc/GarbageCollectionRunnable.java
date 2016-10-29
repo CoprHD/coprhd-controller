@@ -6,13 +6,12 @@ package com.emc.storageos.db.gc;
 
 import java.net.URI;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 import com.datastax.driver.core.utils.UUIDs;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -73,27 +72,10 @@ abstract class GarbageCollectionRunnable implements Runnable {
 
     @Override
     public void run() {
-        URIQueryResultList list;
-        InterProcessLock lock = null;
-
-        log.debug("Starting GC loop: type: {}", type.getSimpleName());
-
+    	log.info("Starting GC loop: type: {}", type.getSimpleName());
+    	
         try {
-            log.debug("try to get ZK lock {}", type.getName());
-
-            lock = getLockForGC();
-
-            if (lock == null) {
-                return;
-            }
-        } catch (Exception e) {
-            log.info("Failed to acquire ZK lock for {} Exception e=", type, e);
-            return;
-        }
-
-        log.info("Lock the class {}", type.getName());
-        try {
-            list = getDecommissionedObjectsOfType(type);
+        	URIQueryResultList list = getDecommissionedObjectsOfType(type);
 
             int found = 0, deleted = 0;
             for (Iterator<URI> iterator = list.iterator(); iterator.hasNext();) {
@@ -123,38 +105,6 @@ abstract class GarbageCollectionRunnable implements Runnable {
             }
         } catch (Exception e) {
             log.error("Exception e=", e);
-        } finally {
-            releaseLockForGC(lock);
-        }
-    }
-
-    private InterProcessLock getLockForGC() {
-        InterProcessLock lock = null;
-        try {
-            String lockName = GC_LOCK_PREFIX + type.getName();
-            log.debug("try to get ZK lock {}", lockName);
-
-            lock = coordinator.getLock(lockName);
-            if (lock.acquire(0, TimeUnit.SECONDS) == false) {// try to get the lock timeout=0
-                log.info("Failed to get ZK lock for {}", type.getName());
-                return null; // failed to get the lock
-            }
-
-            log.debug("Lock the class {}", type.getName());
-        } catch (Exception e) {
-            log.info("Failed to acquire GC lock for Geo class {} Exception e=", type, e);
-            lock = null;
-        }
-
-        return lock;
-    }
-
-    private void releaseLockForGC(InterProcessLock lock) {
-        try {
-            lock.release();
-            log.debug("Release the ZK lock of {}", type.getName());
-        } catch (Exception e) {
-            log.error("Failed to release the lock for class {} e=", type, e);
         }
     }
 }

@@ -2271,8 +2271,6 @@ public class BlockStorageScheduler {
                 } else {
                     result.put(switchName, numberOfPath);
                 }
-                _log.info(String.format("Initiator: %s switch : %s count: %d", initiator.getInitiatorPort(), 
-                        switchName, count));
             }
         }
         return result;

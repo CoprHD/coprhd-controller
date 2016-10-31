@@ -1496,6 +1496,8 @@
         <property name="illegalCharsRegexMap">
             <map>
                 <entry key="default" value="[^A-Za-z0-9_]"/>
+                <entry key="mds" value="[^A-Za-z0-9_-]"/>
+                <entry key="brocade" value="[^A-Za-z0-9_]"/>
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers and _"/>

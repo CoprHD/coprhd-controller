@@ -403,11 +403,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 return;
             }
             
-            // If it is last volume and there are no existing initiators
-            // or existing volumes, delete the ExportMask.
+            // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && !exportMask.hasAnyExistingVolumes()
-                    && !exportMask.hasAnyExistingInitiators()){
+                    && !exportMask.hasAnyExistingVolumes()){
                 device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;

@@ -698,37 +698,6 @@ public class ExportUtils {
     }
 
     /**
-     * This method checks to see if there are storagePorts in exportMask storagePorts
-     * which do not exist in the zoningMap so as to remove those ports from the storage
-     * view. This is called from exportGroupRemoveVolumes.
-     * 
-     * @param exportMask reference to exportMask
-     * @return list of storagePort URIs that don't exist in zoningMap.
-     */
-    public static List<URI> checkIfStoragePortsNeedsToBeRemoved(ExportMask exportMask) {
-        List<URI> storagePortURIs = new ArrayList<URI>();
-        StringSetMap zoningMap = exportMask.getZoningMap();
-        StringSet existingStoragePorts = exportMask.getStoragePorts();
-        StringSet zoningMapStoragePorts = new StringSet();
-        if (zoningMap != null) {
-            for (String initiatorId : zoningMap.keySet()) {
-                StringSet ports = zoningMap.get(initiatorId);
-                if (ports != null && !ports.isEmpty()) {
-                    zoningMapStoragePorts.addAll(ports);
-                }
-            }
-        }
-        existingStoragePorts.removeAll(zoningMapStoragePorts);
-        if (!existingStoragePorts.isEmpty()) {
-            storagePortURIs = StringSetUtil.stringSetToUriList(existingStoragePorts);
-            _log.info("Storage ports needs to be removed are:" + storagePortURIs);
-            ;
-        }
-
-        return storagePortURIs;
-    }
-
-    /**
      * This method updates zoning map to add new assignments.
      * 
      * @param dbClient an instance of {@link DbClient}

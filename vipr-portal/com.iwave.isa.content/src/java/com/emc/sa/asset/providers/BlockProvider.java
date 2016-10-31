@@ -1988,7 +1988,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSnapshotBlockVolumes(AssetOptionsContext context, URI project, String storageType) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(storageType)) {
-            List<VolumeRestRep> volumes = listVolumesNonBulk(client, project);
+            List<VolumeRestRep> volumes = listVolumes(client, project);
             List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
             Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
@@ -1999,12 +1999,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
                 boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
-                boolean isXio3XVolume = hasXIO3XVolumes(detail.volume);
 
-                debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",
-                        localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isXio3XVolume);
+                debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s]",
+                        localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
 
-                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume || isXio3XVolume))) {
+                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume ))) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }
@@ -2025,7 +2024,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSnapshotSessionBlockVolumes(AssetOptionsContext context, URI project, String storageType) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(storageType)) {
-            List<VolumeRestRep> volumes = listVolumesNonBulk(client, project);
+            List<VolumeRestRep> volumes = listVolumes(client, project);
             List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
             Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
@@ -2816,25 +2815,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected static List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
-    }
-
-    /**
-     * @deprecated
-     *             This should not be used, as it calls the bulk api and then individually loads the
-     *             full VolumeRestRep in order to gain access to special fields on the object( HasXIO3XVolumes ).
-     *             This should be viewed as a temporary patch to a problem with the bulk block volume api service.
-     * 
-     * @param client
-     * @param project
-     * @return
-     */
-    @Deprecated
-    protected static List<VolumeRestRep> listVolumesNonBulk(ViPRCoreClient client, URI project) {
-        List<VolumeRestRep> volumes = new ArrayList<VolumeRestRep>();
-        for (VolumeRestRep volume : listVolumes(client, project)) {
-            volumes.add(client.blockVolumes().get(volume.getId()));
-        }
-        return volumes;
     }
 
     protected List<VolumeRestRep> listVolumesWithoutConsistencyGroup(ViPRCoreClient client, URI project) {

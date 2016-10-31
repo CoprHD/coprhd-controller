@@ -26,8 +26,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.datastax.driver.core.ConsistencyLevel;
-
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
@@ -37,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -1946,10 +1945,10 @@ public class DbClientImpl implements DbClient {
     }
     
     private List<String> uriList2StringList(Collection<URI> ids) {
-        List<String> result = new ArrayList<String>();
+        Set<String> result = new HashSet<String>();
         for (URI uri : ids) {
             result.add(uri.toString());
         }
-        return result;
+        return new ArrayList<String>(result);
     }
 }

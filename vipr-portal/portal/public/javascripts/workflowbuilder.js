@@ -797,6 +797,77 @@ var dummyWF = {
             ]
           };
 
+// TODO: Remove this hardcoded JSON and build it using APIs (when available)
+var rootjson=[
+  {
+    "id": 1,
+    "text": "My Lib",
+    "children": [
+      {
+        "id": 2,
+        "text": "Primitives"
+      },
+      {
+        "id": 3,
+        "text": "Workflows"
+      }
+    ],
+    "type": "root"
+  },
+  {
+    "id": 4,
+    "text": "ViPR Lib",
+    "children": [
+      {
+        "id": 5,
+        "text": "Primitives",
+        "children": [
+          {
+            "text": "Block",
+            "children": [
+              {
+                "id": 10,
+                "text": "Create Volume",
+                "type": "file",
+                "li_attr": {"class": "draggable-card"}
+              },
+              {
+                "id": 8,
+                "text": "Export Volume",
+                "type": "file",
+                "li_attr": {"class": "draggable-card"}
+              }
+            ]
+          },
+            {
+                "text": "File",
+                "children": [
+                    {
+                        "id": 7,
+                        "text": "Create filesystem",
+                        "type": "file",
+                        "li_attr": {"class": "draggable-card"}
+                    }
+                ]
+            }
+        ]
+      },
+      {
+        "id": 6,
+        "text": "Workflows",
+          "children": [
+                    {
+                        "id": 9,
+                        "text": "Create and Export Volume",
+                        "type": "file",
+                        "li_attr": {"class": "draggable-card"}
+                    }
+                ]
+      }
+    ],
+    "type": "root"
+  }
+]
 
 /*
 Initialization of builder, configures panzoom and jsplumb defaults JSTree
@@ -1155,12 +1226,12 @@ function loadStep(step) {
 function loadConnections(step) {
     if(step.Next){
         if(step.Next.Default){
-            var source = jsPlumb.getEndpoint(step.StepId+"-pass");
-            jsPlumb.connect({source:source, target:step.Next.Default});
+            var passEndpoint = jsPlumb.getEndpoint(step.StepId+"-pass");
+            jsPlumb.connect({source:passEndpoint, target:step.Next.Default});
         }
         if(step.Next.Failure){
-            var source = jsPlumb.getEndpoint(step.StepId+"-fail");
-            jsPlumb.connect({source:source, target:step.Next.Failure});
+            var failEndpoint = jsPlumb.getEndpoint(step.StepId+"-fail");
+            jsPlumb.connect({source:failEndpoint, target:step.Next.Failure});
         }
     }
 }
@@ -1195,77 +1266,6 @@ function reset() {
 
 // JSTREE functions
 
-// TODO: Remove this hardcoded JSON and build it using APIs (when available)
-var rootjson=[
-  {
-    "id": 1,
-    "text": "My Lib",
-    "children": [
-      {
-        "id": 2,
-        "text": "Primitives"
-      },
-      {
-        "id": 3,
-        "text": "Workflows"
-      }
-    ],
-    "type": "root"
-  },
-  {
-    "id": 4,
-    "text": "ViPR Lib",
-    "children": [
-      {
-        "id": 5,
-        "text": "Primitives",
-        "children": [
-          {
-            "text": "Block",
-            "children": [
-              {
-                "id": 10,
-                "text": "Create Volume",
-                "type": "file",
-                "li_attr": {"class": "draggable-card"}
-              },
-              {
-                "id": 8,
-                "text": "Export Volume",
-                "type": "file",
-                "li_attr": {"class": "draggable-card"}
-              }
-            ]
-          },
-            {
-                "text": "File",
-                "children": [
-                    {
-                        "id": 7,
-                        "text": "Create filesystem",
-                        "type": "file",
-                        "li_attr": {"class": "draggable-card"}
-                    }
-                ]
-            }
-        ]
-      },
-      {
-        "id": 6,
-        "text": "Workflows",
-          "children": [
-                    {
-                        "id": 9,
-                        "text": "Create and Export Volume",
-                        "type": "file",
-                        "li_attr": {"class": "draggable-card"}
-                    }
-                ]
-      }
-    ],
-    "type": "root"
-  }
-]
 
 // This method will create tab view for workflows
 function previewNode(node) {

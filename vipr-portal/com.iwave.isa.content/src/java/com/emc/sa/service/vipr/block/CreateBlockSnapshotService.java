@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -155,13 +156,16 @@ public class CreateBlockSnapshotService extends ViPRService {
         List<RetainedReplica> replicas = findObsoleteReplica(volumeOrCgId);
         for (RetainedReplica replica : replicas) {
             for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
-                BlockObjectRestRep obsoleteCopy = BlockStorageUtils.getVolume(uri(obsoleteSnapshotId));
-                info("Deactivating snapshot %s (%s) since it exceeds max number of snapshots allowed", obsoleteSnapshotId, obsoleteCopy.getName());
+                info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
                 
                 if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                     if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+                        BlockSnapshotSessionRestRep obsoloteCopy =  getClient().blockSnapshotSessions().get(uri(obsoleteSnapshotId));
+                        info("Deactivating snapshot session %s", obsoloteCopy.getName());
                         execute(new DeactivateBlockSnapshotSession(uri(obsoleteSnapshotId)));
                     } else {
+                        BlockObjectRestRep obsoleteCopy = BlockStorageUtils.getVolume(uri(obsoleteSnapshotId));
+                        info("Deactivating snapshot %s", obsoleteCopy.getName());
                         execute(new DeactivateBlockSnapshot(uri(obsoleteSnapshotId), VolumeDeleteTypeEnum.FULL));
                     }
                 } else {

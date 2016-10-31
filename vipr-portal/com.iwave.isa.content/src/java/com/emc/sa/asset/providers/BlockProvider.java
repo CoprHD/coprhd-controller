@@ -6,12 +6,13 @@ package com.emc.sa.asset.providers;
 
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isRPConsistencyGroup;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -120,7 +121,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     public static final String LINKED_SNAPSHOT_COPYMODE_VALUE = "copy";
     public static final String LINKED_SNAPSHOT_NOCOPYMODE_VALUE = "nocopy";
-    
+
     public static final String YES_VALUE = "yes";
     public static final String NO_VALUE = "no";
 
@@ -314,7 +315,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /**
      * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
      * a filter that only retrieves Volumes with Host Exports
-     * 
+     *
      * @param ctx
      * @param project
      * @param deletionType
@@ -374,7 +375,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             }
         }
-        
+
         return volumeIds;
     }
 
@@ -421,16 +422,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
         return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
     }
-    
+
     @Asset("virtualPoolChangeVolumeWithSource")
     @AssetDependencies({ "project", "blockVirtualPool", "displayJournals" })
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, String displayJournals) {
         if (YES_VALUE.equals(displayJournals)) {
-            return createVolumeOptions(api(ctx), listJournalVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId))); 
-        } 
-        return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));        
+            return createVolumeOptions(api(ctx), listJournalVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
+        }
+        return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
     }
- 
+
     @Asset("virtualPoolChangeVolumeWithSourceFilter")
     @AssetDependencies({ "project", "blockVirtualPool", "sourceVolumeFilter" })
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, int volumePage) {
@@ -554,38 +555,38 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
             String vpoolChangeOperation) {
         // This is an intermediate asset that is evaluated while waiting for the "virtualPoolChangeVolumeWithSourceFilter"
-        // asset dependency to be filled in by the user. The desired behaviour is that the below "targetVirtualPool" 
+        // asset dependency to be filled in by the user. The desired behaviour is that the below "targetVirtualPool"
         // asset with the dependency on "virtualPoolChangeVolumeWithSourceFilter" will be fired instead.
         //
         // The "virtualPoolChangeVolumeWithSourceFilter" asset is a select-many component. When there
-        // are NO values selected, the asset is not sent down at all and this "targetVirtualPool" asset will 
-        // be evaluated instead and return an empty list. 
+        // are NO values selected, the asset is not sent down at all and this "targetVirtualPool" asset will
+        // be evaluated instead and return an empty list.
         //
-        // Once the user selects at least 1 volume in the "virtualPoolChangeVolumeWithSourceFilter" asset then the below 
+        // Once the user selects at least 1 volume in the "virtualPoolChangeVolumeWithSourceFilter" asset then the below
         // "targetVirtualPool" asset will be evaluated and the drop down will be populated.
         info("No filtered volumes selected, returning empty list.");
         return Collections.emptyList();
     }
-    
+
     @Asset("targetVirtualPool")
     @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation", "virtualPoolChangeVolumeWithSourceFilter" })
     public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
-            String vpoolChangeOperation, String filteredVolumes) {                
+            String vpoolChangeOperation, String filteredVolumes) {
         return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation, filteredVolumes, null);
     }
-    
+
     @Asset("targetVirtualPool")
-    @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation", 
-                            "virtualPoolChangeVolumeWithSourceFilter", "displayJournals" })
+    @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation",
+            "virtualPoolChangeVolumeWithSourceFilter", "displayJournals" })
     public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
-            String vpoolChangeOperation, String filteredVolumes, String displayJournals) {       
+            String vpoolChangeOperation, String filteredVolumes, String displayJournals) {
         List<URI> volumeIds = Lists.newArrayList();
         if (filteredVolumes != null && !filteredVolumes.isEmpty()) {
             // Best case we are passed in the volumes selected by the user
-            // as comma delimited string so we do not have to load them from 
+            // as comma delimited string so we do not have to load them from
             // the API.
             info("Filtered volumes selected by user: %s", filteredVolumes);
-            List<String> parsedVolumeIds = TextUtils.parseCSV(filteredVolumes);            
+            List<String> parsedVolumeIds = TextUtils.parseCSV(filteredVolumes);
             for (String id : parsedVolumeIds) {
                 volumeIds.add(uri(id));
             }
@@ -602,7 +603,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 volumeIds.add(volume.getId());
             }
         }
-        
+
         if (CollectionUtils.isNotEmpty(volumeIds)) {
             BulkIdParam input = new BulkIdParam();
             input.setIds(volumeIds);
@@ -625,7 +626,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         Set<NamedRelatedResourceRep> exports = getUniqueExportsForSnapshot(ctx, snapshotId);
         return createNamedResourceOptions(exports);
     }
-    
+
     @Asset("continuousCopyExport")
     @AssetDependencies("exportedBlockContinuousCopy")
     public List<AssetOption> getExportsForContinuousCopy(AssetOptionsContext ctx, URI copyId) {
@@ -650,7 +651,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of unique exports for a given volume.
-     * 
+     *
      * @param ctx
      *            the asset options context
      * @param volumeId
@@ -751,9 +752,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 new UnexportedBlockResourceFilter<BlockSnapshotRestRep>(exportedBlockResources);
         return getSnapshotOptionsForProject(ctx, projectId, unexportedSnapshotFilter);
     }
-    
+
     @Asset("unassignedBlockContinuousCopies")
-    @AssetDependencies({ "host", "project", "volumeWithContinuousCopies"})
+    @AssetDependencies({ "host", "project", "volumeWithContinuousCopies" })
     public List<AssetOption> getBlockContinuousCopy(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId, URI volume) {
         // get a list of all continuous copies that are in this project that are not exported to the given host/cluster
         Set<URI> exportedBlockResources = getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
@@ -766,7 +767,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 });
         return getContinuousCopyOptionsForProject(ctx, projectId, volume, unexportedCopyFilter);
     }
-    
+
     @Asset("exportedBlockContinuousCopy")
     @AssetDependencies({ "project", "volumeWithContinuousCopies" })
     public List<AssetOption> getExportedBlockContinuousCopyByVolume(AssetOptionsContext ctx, URI project, URI volume) {
@@ -884,7 +885,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Returns the virtual pools for a given virtualArray (initially added for the Create Volume service)
-     * 
+     *
      * @param ctx
      * @param virtualArray
      * @return
@@ -894,7 +895,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting virtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
         List<BlockVirtualPoolRestRep> virtualPools =
-                api(ctx).blockVpools().getByVirtualArrayAndTenant(virtualArray,ctx.getTenant());
+                api(ctx).blockVpools().getByVirtualArrayAndTenant(virtualArray, ctx.getTenant());
         return createVirtualPoolResourceOptions(virtualPools);
     }
 
@@ -1134,6 +1135,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * get single volume snapshot sessions for a project
+     *
      * @param ctx
      * @param project
      * @return
@@ -1253,24 +1255,24 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getApplicationSnapshotCopySets(AssetOptionsContext ctx, URI application) {
         return createOptions(api(ctx).application().getVolumeGroupSnapshotSets(application).getCopySets().toArray());
     }
-    
+
     private Set<String> getApplicationSnapshotCopySetsForRestore(AssetOptionsContext ctx, URI application) {
         Set<String> restoreCopySets = new HashSet<String>();
-        
+
         Set<String> copySetNames = api(ctx).application().getVolumeGroupSnapshotSets(application).getCopySets();
-        
+
         boolean isRP = false;
         NamedVolumesList volsInApp = api(ctx).application().getVolumeByApplication(application);
         if (volsInApp != null && volsInApp.getVolumes() != null && !volsInApp.getVolumes().isEmpty()) {
             VolumeRestRep firstVol = api(ctx).blockVolumes().get(volsInApp.getVolumes().get(0).getId());
             isRP = BlockStorageUtils.isRPVolume(firstVol);
         }
-        
+
         if (isRP) {
             for (String copySetName : copySetNames) {
                 VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
                 input.setCopySetName(copySetName);
-                
+
                 SnapshotList snapshots = api(ctx).application().getVolumeGroupSnapshotsForSet(application, input);
                 if (snapshots != null && snapshots.getSnapList() != null && !snapshots.getSnapList().isEmpty()) {
                     BlockSnapshotRestRep snapRep = api(ctx).blockSnapshots().get(snapshots.getSnapList().get(0));
@@ -1288,19 +1290,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return restoreCopySets;
     }
-    
+
     private Set<String> getApplicationSnapshotSessionCopySetsForRestore(AssetOptionsContext ctx, URI application) {
         Set<String> restoreCopySets = new HashSet<String>();
-        
+
         Set<String> copySetNames = api(ctx).application().getVolumeGroupSnapsetSessionSets(application).getCopySets();
-        
+
         boolean isRP = false;
         NamedVolumesList volsInApp = api(ctx).application().getVolumeByApplication(application);
         if (volsInApp != null && volsInApp.getVolumes() != null && !volsInApp.getVolumes().isEmpty()) {
             VolumeRestRep firstVol = api(ctx).blockVolumes().get(volsInApp.getVolumes().get(0).getId());
             isRP = BlockStorageUtils.isRPVolume(firstVol);
         }
-        
+
         if (isRP) {
             List<VolumeRestRep> applicationVolumes = api(ctx).blockVolumes().getByRefs(
                     api(ctx).application().getVolumeByApplication(application).getVolumes());
@@ -1313,11 +1315,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             for (String copySetName : copySetNames) {
                 VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
                 input.setCopySetName(copySetName);
-                
+
                 BlockSnapshotSessionList sessions = api(ctx).application().getVolumeGroupSnapshotSessionsByCopySet(application, input);
-                if (sessions != null && sessions.getSnapSessionRelatedResourceList() != null && !sessions.getSnapSessionRelatedResourceList().isEmpty()) {
-                    BlockSnapshotSessionRestRep sessionRep = api(ctx).blockSnapshotSessions().get(sessions.getSnapSessionRelatedResourceList().get(0));
-                    if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null && sourceRepGrpNames.contains(sessionRep.getReplicationGroupInstance())) {
+                if (sessions != null && sessions.getSnapSessionRelatedResourceList() != null
+                        && !sessions.getSnapSessionRelatedResourceList().isEmpty()) {
+                    BlockSnapshotSessionRestRep sessionRep = api(ctx).blockSnapshotSessions().get(
+                            sessions.getSnapSessionRelatedResourceList().get(0));
+                    if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null
+                            && sourceRepGrpNames.contains(sessionRep.getReplicationGroupInstance())) {
                         restoreCopySets.add(copySetName);
                     }
                 }
@@ -1505,6 +1510,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             if (isSnapshotSessionSupportedForCG(cg)) {
                 options.add(CG_SNAPSHOT_SESSION_TYPE_OPTION);
             }
+
+            if (isRPConsistencyGroup(cg)) {
+                options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+            }
         } else {
             debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolumeOrCG);
             ViPRCoreClient client = api(ctx);
@@ -1534,6 +1543,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (isConsistencyGroupType(storageType)) {
             options.add(CG_SNAPSHOT_TYPE_OPTION);
             options.add(CG_SNAPSHOT_SESSION_TYPE_OPTION);
+            options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
         } else {
             options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
             options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
@@ -1628,7 +1638,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         options.add(LINKED_SNAPSHOT_NOCOPYMODE_OPTION);
         return options;
     }
-    
+
     @Asset("displayJournals")
     public List<AssetOption> getDisplayJournals(AssetOptionsContext ctx) {
         // These are hard coded values for now. In the future, this may be available through an API
@@ -1642,7 +1652,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted));
     }
 
-    private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted, 
+    private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted,
             ResourceFilter<BlockObjectRestRep> filter) {
         List<? extends BlockObjectRestRep> resources = BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted);
         ResourceUtils.applyFilter((List<BlockObjectRestRep>) resources, filter);
@@ -2003,7 +2013,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s]",
                         localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
 
-                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume ))) {
+                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }
@@ -2374,11 +2384,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 @Override
                 public boolean accept(VolumeRestRep item) {
                     boolean accept = (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
-                                        && vplexFilter.accept(item);
+                            && vplexFilter.accept(item);
                     if (accept) {
-                        boolean rpProtection = (item.getProtection() != null 
-                                                       && item.getProtection().getRpRep() != null
-                                                       && item.getProtection().getRpRep().getPersonality() != null);
+                        boolean rpProtection = (item.getProtection() != null
+                                && item.getProtection().getRpRep() != null
+                                && item.getProtection().getRpRep().getPersonality() != null);
                         if (rpProtection) {
                             // If RP+VPLEX protection specified, only allow RP SOURCE volumes to be listed
                             // as candidates for mobility groups. Exclude TARGETs and JOURNALs.
@@ -2388,7 +2398,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                                 accept = false;
                             }
                         }
-                    }                    
+                    }
                     return accept;
                 }
 
@@ -2530,7 +2540,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 .getByRefs(client.application().getFullCopiesByApplication(applicationId).getVolumes());
         return createStringOptions(BlockStorageUtils.stripRPTargetFromReplicationGroup(
                 groupFullCopyByApplicationSubGroup(ctx,
-                filterByCopyName(allCopyVols, copyName)).keySet()));
+                        filterByCopyName(allCopyVols, copyName)).keySet()));
     }
 
     @Asset("copyReplicationGroup")
@@ -2591,7 +2601,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /**
      * returns the list of application full copies that can be restored from. For RP, we exclude target copies because the target is read
      * only
-     * 
+     *
      * @param ctx
      * @param applicationId
      * @return
@@ -2615,7 +2625,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * returns true if the passed in volume is a clone of an RP source volume
-     * 
+     *
      * @param vol
      * @return
      */
@@ -2624,7 +2634,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // get the source volume for the full copy
         if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
                 && vol.getProtection().getFullCopyRep().getAssociatedSourceVolume() != null) {
-            if (BlockStorageUtils.isRPTargetVolume(client.blockVolumes().get(vol.getProtection().getFullCopyRep().getAssociatedSourceVolume()))) {
+            if (BlockStorageUtils.isRPTargetVolume(client.blockVolumes().get(
+                    vol.getProtection().getFullCopyRep().getAssociatedSourceVolume()))) {
                 return true;
             }
         }
@@ -2801,7 +2812,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return client.blockVolumes().findByProject(project, filter);
     }
-    
+
     @SafeVarargs
     public static List<VolumeRestRep> listJournalVolumes(ViPRCoreClient client, URI project, ResourceFilter<VolumeRestRep>... filters) {
         // Filter all volumes except Journals
@@ -3027,10 +3038,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         for (BlockSnapshotRestRep snapshot : snapshots) {
             // Ignore RP Bookmarks for snapshot session options
-            boolean isRPSnapshot = (snapshot.getTechnologyType() != null 
-                                        && snapshot.getTechnologyType().equalsIgnoreCase(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE));
+            boolean isRPSnapshot = (snapshot.getTechnologyType() != null
+                    && snapshot.getTechnologyType().equalsIgnoreCase(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE));
             boolean validSnapshotOption = snapshot.getTechnologyType() == null || !isRPSnapshot;
-            if (validSnapshotOption) {            
+            if (validSnapshotOption) {
                 options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
             }
         }
@@ -3048,17 +3059,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
-    private List<AssetOption>
+
+    private
+            List<AssetOption>
             getContinuousCopyOptionsForProject(AssetOptionsContext ctx, URI project, URI volumeId, ResourceFilter<BlockMirrorRestRep> filter) {
         ViPRCoreClient client = api(ctx);
-        
+
         VolumeRestRep volume = client.blockVolumes().get(volumeId);
-        
+
         List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volume.getId(), filter);
         return constructCopiesOptions(client, project, copies);
     }
-    
+
     protected List<AssetOption> constructCopiesOptions(ViPRCoreClient client, URI project, List<BlockMirrorRestRep> copies) {
         List<AssetOption> options = Lists.newArrayList();
         Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
@@ -3071,7 +3083,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs associated with the given exports.
-     * 
+     *
      * @param exports
      *            the export groups.
      * @return the set of volume IDs.
@@ -3090,11 +3102,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs for volumes in the given project that are exported to the given host/cluster
-     * 
+     *
      * @param client An instance of the ViPRCoreClient
      * @param projectId The ViPR ID of the project
      * @param hostOrClusterId The ViPR ID of the host/cluster
-     * 
+     *
      * @return The set of Volume IDs
      */
     protected static Set<URI> getExportedVolumes(ViPRCoreClient client, URI projectId, URI hostOrClusterId, URI virtualArrayId) {
@@ -3117,7 +3129,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the value of the specified tag from the given volumes.
-     * 
+     *
      * @param tagName
      *            the tag name.
      * @param volumes
@@ -3154,7 +3166,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the volume details for a collection of volumes.
-     * 
+     *
      * @param client the bourne client.
      * @param volumes the collection of volumes.
      * @return the volume details.
@@ -3173,7 +3185,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the unique set of BlockVirtualPool IDs for the given volumes.
-     * 
+     *
      * @param volumes the volumes.
      * @return the block virtual pool IDs.
      */
@@ -3187,7 +3199,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     * 
+     *
      * @param client the ViPR client instance.
      * @param ids the IDs.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -3202,7 +3214,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     * 
+     *
      * @param client the ViPR client instance.
      * @param volumes the volumes for which we need the VPool information.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -3220,7 +3232,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all {@link VolumeRestRep}s that are either in the target VArray or use the target VArray for protection
-     * 
+     *
      * @param client the ViPR client instance.
      * @param targetVArrayId the target VArray ID.
      * @param volumes the volumes we are concerned with. (These should be VPlex volumes)
@@ -3252,7 +3264,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Class for holding all volume detail information, currently the volume and virtual pool.
-     * 
+     *
      * @author jonnymiller
      */
     public static class VolumeDetail {
@@ -3405,7 +3417,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Add the volume and its snapshots to the 'blockObjects' list.
-     * 
+     *
      * When the method completes the snapshots that have been added to the blockObjects list will be removed from the snapshots list.
      */
     protected static void addVolume(List<BlockObjectRestRep> blockObjects, VolumeRestRep volume, List<BlockSnapshotRestRep> snapshots) {

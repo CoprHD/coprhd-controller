@@ -132,6 +132,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -527,31 +528,46 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
 
-        // Validate CG information in the request
-        validateVolumesInReplicationGroups(consistencyGroup, param.getVolumes(), _dbClient);
-
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
         Table<URI, String, List<Volume>> storageRgToVolumes = null;
-        if (!param.getVolumes().isEmpty()) {
-            // Volume group snapshot
-            // group volumes by backend storage system and replication group
-            storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
-        } else {
-            // CG snapshot
-            storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
-                    blockServiceApiImpl.getActiveCGVolumes(consistencyGroup), _dbClient);
-        }
 
-        // Validation replication group volumes to ensure there aren't mixed meta and non-meta devices
-        validateReplicationGroupDevices(storageRgToVolumes);
+        if (param.getType() == null || param.getType().equalsIgnoreCase(TechnologyType.NATIVE.name())) {
+            // Validate CG information in the request
+            validateVolumesInReplicationGroups(consistencyGroup, param.getVolumes(), _dbClient);
+
+            if (!param.getVolumes().isEmpty()) {
+                // Volume group snapshot
+                // group volumes by backend storage system and replication group
+                storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(param.getVolumes(), consistencyGroupId, _dbClient,
+                        uriInfo);
+            } else {
+                // CG snapshot
+                storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
+                        blockServiceApiImpl.getActiveCGVolumes(consistencyGroup), _dbClient);
+            }
+
+            // Validation replication group volumes to ensure there aren't mixed meta and non-meta devices
+            validateReplicationGroupDevices(storageRgToVolumes);
+        } else if (TechnologyType.RP.name().equalsIgnoreCase(param.getType())) {
+            // Get all the active RP source volumes
+            List<Volume> sourceVolumes = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup, _dbClient,
+                    PersonalityTypes.SOURCE);
+
+            storageRgToVolumes = HashBasedTable.create();
+            storageRgToVolumes.put(null, null, sourceVolumes);
+        }
 
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             List<Volume> volumeList = cell.getValue();
             if (volumeList == null || volumeList.isEmpty()) {
-                _log.warn(String.format("No volume in replication group %s", cell.getColumnKey()));
+                if (TechnologyType.RP.name().equalsIgnoreCase(param.getType())) {
+                    _log.warn(String.format("No volumes in consistency group %s", consistencyGroup.getId()));
+                } else {
+                    _log.warn(String.format("No volume in replication group %s", cell.getColumnKey()));
+                }
                 continue;
             }
 
@@ -585,8 +601,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
                         consistencyGroup.getId().toString());
             } catch (Exception ex) {
-                _log.error("Unexpected Exception occurred when creating snapshot for replication group {}",
-                        cell.getColumnKey(), ex);
+                _log.error("Unexpected Exception occurred when creating snapshot for consistency group {}",
+                        consistencyGroup.getId(), ex);
             }
         }
 
@@ -700,9 +716,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 clazz);
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));
-        
+
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(consistencyGroupId, _dbClient);
-        
+
         // if any of the source volumes are in an application, replica management must be done via the application
         for (Volume srcVol : volumes) {
             if (srcVol.getApplication(_dbClient) != null) {
@@ -1337,14 +1353,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // For replicas, check replica count with volume count in CG
         StorageSystem cgStorageSystem = null;
 
-       
-        //Throw exception if the operation is attempted on volumes that are in RP CG.
+        // Throw exception if the operation is attempted on volumes that are in RP CG.
         if (consistencyGroup.isRPProtectedCG()) {
-        	throw APIException.badRequests.operationNotAllowedOnRPVolumes();    
+            throw APIException.badRequests.operationNotAllowedOnRPVolumes();
         }
-        
+
         // if consistency group is not created yet, then get the storage system from the block object to be added
-        // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)        
+        // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
         if ((!consistencyGroup.created() || NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController()))
                 && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
             BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));
@@ -2032,7 +2047,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // if any of the source volumes are in an application, replica management must be done via the application
         for (Volume srcVol : cgVolumes) {
             if (srcVol.getApplication(_dbClient) != null) {

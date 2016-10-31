@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
@@ -74,15 +75,15 @@ public class BlockProviderUtils {
         }
         return volumes;
     }
-    
+
     /**
      * Method to return all volumes associated with a specific datastore
-     * 
-     * @param viprClient 
-     * @param tenantId 
-     * @param hostOrClusterId 
+     *
+     * @param viprClient
+     * @param tenantId
+     * @param hostOrClusterId
      * @param datastore name
-     * 
+     *
      * @return list of volumes associated with specified datastore
      */
     public static List<VolumeRestRep> getBlockVolumesForDatastore(ViPRCoreClient viprClient, URI tenantId, URI hostOrClusterId,
@@ -237,16 +238,20 @@ public class BlockProviderUtils {
         return personality != null && PersonalityTypes.SOURCE.equals(personality);
     }
 
+    public static boolean isRPConsistencyGroup(BlockConsistencyGroupRestRep cg) {
+        return cg.getTypes() != null && cg.getTypes().contains(Types.RP.name());
+    }
+
     public static boolean isRPTargetVolume(VolumeRestRep volume) {
         PersonalityTypes personality = getVolumePersonality(volume);
         return personality != null && PersonalityTypes.TARGET.equals(personality);
     }
-    
-    public static boolean isSnapshotSessionSupportedForVolume(VolumeRestRep volume) {        
+
+    public static boolean isSnapshotSessionSupportedForVolume(VolumeRestRep volume) {
         return ((volume.getSupportsSnapshotSessions() != null) && volume.getSupportsSnapshotSessions());
     }
-        
-    public static boolean isSnapshotSessionSupportedForCG(BlockConsistencyGroupRestRep cg) {        
+
+    public static boolean isSnapshotSessionSupportedForCG(BlockConsistencyGroupRestRep cg) {
         return ((cg.getSupportsSnapshotSessions() != null) && cg.getSupportsSnapshotSessions());
     }
 
@@ -350,7 +355,7 @@ public class BlockProviderUtils {
 
     /**
      * returns the list of application sub groups for an application
-     * 
+     *
      * @param viprClient
      * @param applicationId
      * @return
@@ -369,7 +374,7 @@ public class BlockProviderUtils {
 
     /**
      * returns true if the replication group is a RP Target replication group
-     * 
+     *
      * @param group
      * @return
      */
@@ -385,7 +390,7 @@ public class BlockProviderUtils {
 
     /**
      * returns true if the volume is a RP source or target volume
-     * 
+     *
      * @param vol
      * @return
      */
@@ -398,7 +403,7 @@ public class BlockProviderUtils {
 
     /**
      * return true if the volume is a vplex volume
-     * 
+     *
      * @param vol
      * @return
      */

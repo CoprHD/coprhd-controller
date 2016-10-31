@@ -24,6 +24,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -31,10 +32,13 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
@@ -75,6 +79,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
@@ -94,11 +99,11 @@ public class BlockMapper {
     }
 
     public static VolumeRestRep map(Volume from) {
-        return map(null, from, null);
+        return map(null, from, null, null);
     }
 
     public static VolumeRestRep map(DbClient dbClient, Volume from) {
-        return map(dbClient, from, null);
+        return map(dbClient, from, null, null);
     }
     
     private static StorageSystem getStorageSystemFromCache(URI uri, DbClient dbClient, Map<URI, StorageSystem> storageSystemCache) {
@@ -114,7 +119,8 @@ public class BlockMapper {
         return dbClient.queryObject(StorageSystem.class, uri);
     }
 
-    public static VolumeRestRep map(DbClient dbClient, Volume from, Map<URI, StorageSystem> storageSystemCache) {
+    public static VolumeRestRep map(DbClient dbClient, Volume from, Map<URI, StorageSystem> storageSystemCache,
+    		Map<URI, Boolean> projectSrdfCapableCache) {
         if (from == null) {
             return null;
         }
@@ -197,8 +203,10 @@ public class BlockMapper {
             }
             // Get the SRDF underlying volume if present. That will be used to fill on the
             // SrdfRestRep below.
-            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
-            srdfVolume = (srdfVolume != null ? srdfVolume : from);
+            if (projectSrdfCapable(dbClient, from.getProject().getURI(), projectSrdfCapableCache)) {
+            	srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
+            	srdfVolume = (srdfVolume != null ? srdfVolume : from);
+            }
             to.setAccessState(srdfVolume.getAccessState());
             to.setLinkStatus(srdfVolume.getLinkStatus());
         }
@@ -276,8 +284,16 @@ public class BlockMapper {
         if ((srdfVolume.getSrdfTargets() != null) && (!srdfVolume.getSrdfTargets().isEmpty())) {
             toSRDF = new SRDFRestRep();
             List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
-            for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
-                targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+            if (srdfVolume != from) {
+            	// VPLEX; translate targets to corresponding VPLEX volume. if any
+            	for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
+            		targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+            	}
+            } else {
+            	// Non-VPLEX
+            	for (String target : from.getSrdfTargets()) {
+            		targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+            	}
             }
             toSRDF.setPersonality(srdfVolume.getPersonality());
             toSRDF.setSRDFTargetVolumes(targets);
@@ -327,6 +343,50 @@ public class BlockMapper {
 
 
         return to;
+    }
+    
+    /**
+     * Maintains a cache that maps projectId to whether the project is SRDF capable.
+     * @param dbClient
+     * @param projectId
+     * @param projectSrdfCapableCache -- can be null
+     * @return
+     */
+    private static boolean projectSrdfCapable(DbClient dbClient, URI projectId, Map<URI, Boolean> projectSrdfCapableCache) {
+    	if (projectSrdfCapableCache == null) {
+    		// No cache is maintained - have to assume could be SRDF capable
+    		return true;
+    	}
+    	boolean srdfCapable = false;
+    	try {
+    		if (projectSrdfCapableCache.containsKey(projectId)) {
+    			// Return cached value
+    			return projectSrdfCapableCache.get(projectId);
+    		}
+
+    		// Lookup project, the project name determines possible RDF Group names
+    		Project project = dbClient.queryObject(Project.class, projectId);
+    		if (project != null && !project.getInactive()) {
+    			// There are potentially several RDF group names based on the project
+    			StringSet rdfGroupNames = SRDFUtils.getQualifyingRDFGroupNames(project);
+    			// Look for a remote director group matching one of the names.
+    			for (String rdfGroupName : rdfGroupNames) {
+    				URIQueryResultList uris = new URIQueryResultList();
+    				dbClient.queryByConstraint(
+    						PrefixConstraint.Factory.getLabelPrefixConstraint(RemoteDirectorGroup.class,
+    								rdfGroupName), uris);
+    				Iterator<URI> uriIterator = uris.iterator();
+    				if (uriIterator.hasNext()) {
+    					srdfCapable = true;
+    					break;
+    				}
+    			}
+    		}
+    	} catch (Exception ex) {
+    		logger.info("Exception: " + ex.getMessage(), ex);
+    	}
+    	projectSrdfCapableCache.put(projectId, srdfCapable);
+    	return srdfCapable;
     }
 
     private static URI getVarray(DbClient dbClient, String target) {

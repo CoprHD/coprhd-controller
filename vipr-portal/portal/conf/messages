@@ -41,6 +41,7 @@ navigation.toggle=Toggle Navigation
 # Sample navigation labels
 nav.recent=Recently Used
 nav.orders=Orders
+nav.workflowBuilder=Workflow Builder
 nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders

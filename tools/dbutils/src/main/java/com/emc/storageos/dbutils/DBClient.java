@@ -464,9 +464,7 @@ public class DBClient {
         };
         Collections.sort(straightUriList, cmp);
         
-        uris.clear();
-        uris.addAll(straightUriList);
-        int count = queryAndPrintRecords(uris, clazz, criterias);
+        int count = queryAndPrintRecords(straightUriList, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }
 

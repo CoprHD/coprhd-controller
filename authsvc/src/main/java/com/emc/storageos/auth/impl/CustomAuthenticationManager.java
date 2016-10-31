@@ -18,8 +18,10 @@ import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.resource.UserInfoPage.UserDetails;
+import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
@@ -544,6 +546,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         synchronized (_oidcLock) {
             if (_oidcAuthMgr == null) {
                 _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
+                HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(_coordinator));
             }
         }
         return _oidcAuthMgr;

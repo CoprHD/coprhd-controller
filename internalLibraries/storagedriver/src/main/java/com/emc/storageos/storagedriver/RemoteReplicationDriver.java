@@ -6,12 +6,11 @@
 package com.emc.storageos.storagedriver;
 
 
+import java.util.List;
+
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationArgument;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-
-import java.util.List;
 
 /**
  * This class defines driver interface methods for remote replication.
@@ -129,7 +128,7 @@ public interface RemoteReplicationDriver {
     public DriverTask resume(List<RemoteReplicationPair> replicationPairs);
 
     /**
-     * Split remote replication link for remote replication argument.
+     * Split remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *

@@ -1090,6 +1090,30 @@ public class DbClientImpl implements DbClient {
         internalIterativePersistObject(objects, true);
     }
 
+    /**
+     * Print a stack trace to show the originator of the persist request.
+     * Used to detect anti-patterns. Calling this method is only for logging purposes.
+     * 
+     * @param obj
+     *            object to print stack
+     */
+    private <T> void printPersistedObject(T obj) {
+        if (obj instanceof DataObject) {
+            DataObject dobj = (DataObject)obj;
+
+            StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+            StringBuffer sb = new StringBuffer("Persisting obj: " + dobj.getId() + "\n");
+            sb.append("====================================================================================================\n");
+            for (int i = 0; i < elements.length; i++) {
+                if (elements[i].getClassName().contains("storageos")) {
+                    sb.append("\t\t" + elements[i] + "\n");
+                }
+            }
+            sb.append("====================================================================================================");
+            _log.info(sb.toString());
+        }
+    }
+
     private <T extends DataObject>
             void internalPersistObject(Collection<T> dataobjects,
                     boolean updateIndex) {
@@ -1104,6 +1128,10 @@ public class DbClientImpl implements DbClient {
                 typeObjMap.put((Class<? extends T>) obj.getClass(), objTypeList);
             }
             objTypeList.add(obj);
+
+            // Instrumentation for the benefit of finding anti-patterns. This can be removed or
+            // encapsulated around a system property
+            printPersistedObject(obj);
         }
 
         for (Entry<Class<? extends T>, List<T>> entry : typeObjMap.entrySet()) {

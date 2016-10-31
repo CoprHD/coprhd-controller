@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.db.client.util.StringSetUtil;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -1367,10 +1369,39 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     if (URIUtil.identical(mask.getStorageDevice(), storageSystem.getId())) {
                         // found managed export mask for storage system and host initiator
                         // the mask is already managed.
-                        isValid = false;
                         log.info("Found managed export mask for host {} and array {} --- {}." +
-                                " We will not process this host export data.", hostName, storageSystem.getNativeId(), mask.getId());
-                        break;
+                                " We will process this host export data to see if we can add volumes to this mask.", hostName, storageSystem.getNativeId(), mask.getId());
+
+                        // check that this managed mask has the same initiators and ports as in the hostExportInfo
+                        StringSet storagePortsUris = mask.getStoragePorts();
+                        StringSet initiatorsUris = mask.getInitiators();
+                        List<com.emc.storageos.db.client.model.StoragePort> ports = dbClient.queryObjectField(com.emc.storageos.db.client.model.StoragePort.class,
+                                "nativeId", StringSetUtil.stringSetToUriList(storagePortsUris));
+                        List<com.emc.storageos.db.client.model.Initiator> initiators = dbClient.queryObjectField(com.emc.storageos.db.client.model.Initiator.class,
+                                "port", StringSetUtil.stringSetToUriList(initiatorsUris));
+                        Set<String> storagePortsNativeIds = new HashSet<>();
+                        Set<String> initiatorsPorts = new HashSet<>();
+
+                        for (com.emc.storageos.db.client.model.StoragePort storagePort : ports) {
+                            storagePortsNativeIds.add(storagePort.getNativeId());
+                        }
+
+                        for (com.emc.storageos.db.client.model.Initiator initiator : initiators) {
+                            initiatorPorts.add(initiator.getInitiatorPort());
+                        }
+                        log.info("Managed ExportMask {} has the following storoge ports {}", mask.getId(), storagePortsNativeIds);
+                        log.info("Managed ExportMask {} has the following intiator ports {}", mask.getId(), initiatorPorts);
+
+                        // check that hostExportInfo has the same ports and initiators as in the export mask
+                        isValid = verifyHostExports(initiatorsPorts, storagePortsNativeIds, hostExportInfo);
+                        if (isValid ) {
+                            // we will create unmanaged mask for this hostExportInfo
+                            // we rely on ingestion to add new volumes to the managed mask.
+                            log.info("Managed export mask {} has the same initiators and ports as in hostExportInfo. We will create unmanaged mask for new volumes.", mask.getId());
+                            break;
+                        } else {
+                            log.info("Managed export mask {} has different initiators or ports as those in hostExportInfo.");
+                        }
                     }
                 }
             }

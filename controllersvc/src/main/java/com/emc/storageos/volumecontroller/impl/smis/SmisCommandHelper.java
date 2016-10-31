@@ -6303,6 +6303,9 @@ public class SmisCommandHelper implements SmisConstants {
         String nativeGuid = "";
 
         if (bo != null) {
+            // Set the native GUID to its default
+            nativeGuid = bo.getNativeGuid();
+
             // If this is an RP BlockSnapshot, the native GUID will reference the RecoverPoint protection system. Obtain the
             // BlockSnapshot's associated volume to get the correct native GUID. The associated volume is referenced using
             // the BlockSnapshot's sourceNativeId field.

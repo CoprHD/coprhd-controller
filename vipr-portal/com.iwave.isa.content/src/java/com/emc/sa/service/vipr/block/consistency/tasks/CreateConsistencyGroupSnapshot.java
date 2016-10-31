@@ -17,9 +17,11 @@ public class CreateConsistencyGroupSnapshot extends
     private final URI consistencyGroupId;
     private final String name;
     private final Boolean readOnly;
+    private final String type;
 
-    public CreateConsistencyGroupSnapshot(URI consistencyGroupId, String name, Boolean readOnly) {
+    public CreateConsistencyGroupSnapshot(URI consistencyGroupId, String type, String name, Boolean readOnly) {
         this.consistencyGroupId = consistencyGroupId;
+        this.type = type;
         this.name = name;
         this.readOnly = readOnly;
     }
@@ -29,6 +31,7 @@ public class CreateConsistencyGroupSnapshot extends
 
         BlockConsistencyGroupSnapshotCreate param = new BlockConsistencyGroupSnapshotCreate();
         param.setName(name);
+        param.setType(type);
 
         if (readOnly != null) {
             param.setReadOnly(readOnly);

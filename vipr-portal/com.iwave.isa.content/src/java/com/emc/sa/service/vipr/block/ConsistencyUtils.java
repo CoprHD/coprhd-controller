@@ -23,7 +23,6 @@ import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupSn
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupSnapshotSession;
 import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupSnapshot;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -82,8 +81,8 @@ final class ConsistencyUtils {
         return execute(new DeactivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName, Boolean readOnly) {
-        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName, readOnly));
+    static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String type, String snapshotName, Boolean readOnly) {
+        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, type, snapshotName, readOnly));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId, URI snapshotId) {
@@ -93,13 +92,15 @@ final class ConsistencyUtils {
     static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
         return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
     }
-    
+
     static Task<BlockConsistencyGroupRestRep> resynchronizeSnapshot(URI consistencyGroupId, URI snapshotId) {
         return execute(new ResynchronizeConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
     }
-    
-    static Tasks<BlockConsistencyGroupRestRep> createSnapshotSession(URI consistencyGroupId, String name, String linkedSnapshotName, Integer linkedSnapshotCount, String copyMode) {
-        return execute(new CreateConsistencyGroupSnapshotSession(consistencyGroupId, name, linkedSnapshotName, linkedSnapshotCount, copyMode));
+
+    static Tasks<BlockConsistencyGroupRestRep> createSnapshotSession(URI consistencyGroupId, String name, String linkedSnapshotName,
+            Integer linkedSnapshotCount, String copyMode) {
+        return execute(new CreateConsistencyGroupSnapshotSession(consistencyGroupId, name, linkedSnapshotName, linkedSnapshotCount,
+                copyMode));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> removeSnapshotSession(URI consistencyGroupId, URI snapshotSessionId) {

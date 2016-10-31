@@ -365,10 +365,10 @@ volname1target=${volname1}-target-${SITEr2}
 volname2=${volname1:-"vplexSrdfB$hostseed$seed2b"}
 volname2target=${volname2}-target-${SITEr2}
 
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 if [ $create_volume = "true" ];
 then
-    security login root 'ChangeMe1!'
+    security login root $SYSADMIN_PASSWORD
     # Create consistency group 
     CGlabel=${CGlabel:-"vpxrdf${seed2b}"}
     export CGlabel
@@ -399,7 +399,7 @@ fi
 
 if [ "$test_protection_ops" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 echoit "Testing Failover/cancel CG"
 run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
 run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
@@ -410,14 +410,14 @@ fi
 
 if [ "$test_expand" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 echoit "Testing volume expand"
 run volume expand $project/$volname1 ${BLK_SIZE2}
 fi
 
 if [ "$test_r1_snapvx_nocopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 # Create snapvx sessions with no linked targets
 SNAP_SESSION_NAME1=$CGlabel-snap1
 SNAP_SESSION_NAME2=$CGlabel-snap2
@@ -447,7 +447,7 @@ fi
 
 if [ "$test_r2_snapvx_nocopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 # Create snapvx sessions with no linked targets
 SNAP_SESSION_NAME1=$CGtarget-snap1
 SNAP_SESSION_NAME2=$CGtarget-snap2
@@ -481,7 +481,7 @@ fi
 
 if [ "$test_r1_fullcopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 r1copy1=${volname1}_r1_copy1
 echoit "Creating full copy $r1copy1"
 volume full_copy $r1copy1 $project/$volname1
@@ -502,7 +502,7 @@ fi
 
 if [ "$test_r2_fullcopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 r2copy1=${volname1}_r2_copy1
 echoit "Creating full copy $r2copy1"
 run volume full_copy $r2copy1 $project/$volname1target
@@ -535,7 +535,7 @@ echo volname1 $volname1
 
 if [ "$delete_volume" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 if [ "$VOLUME_COUNT" -eq 1 ]; then
 echoit "remove volume $volname1"
 run volume delete $project/$volname1 --wait
@@ -557,7 +557,7 @@ if [ "$create_delete_loop" = "true" ];
 then
     for i in a b c d e f g h i j ;
     do
-    security login root 'ChangeMe1!'
+    security login root $SYSADMIN_PASSWORD
     echoit "create volume $volname1"
     volume_create "$volname1$i" $SITEr1 $VPOOL1 $CGlabel
     if [ "$VOLUME_COUNT" -eq 1 ]; then

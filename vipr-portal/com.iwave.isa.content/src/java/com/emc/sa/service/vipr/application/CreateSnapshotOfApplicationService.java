@@ -5,10 +5,8 @@
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
@@ -16,12 +14,10 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
-import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateSnapshotOfApplication")
@@ -49,9 +45,10 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
         checkAndPurgeObsoleteSnapshots(applicationId);
-        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly));
+        String snapshotName = TimeUtils.formatDateForCurrent(name);
+        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, snapshotName, readOnly));
         addAffectedResources(tasks);
-        addRetainedReplicas(applicationId, tasks.getTasks());
+        addRetainedReplicas(applicationId, snapshotName);
     }
     
     /**
@@ -65,12 +62,12 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         }
         List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
         for (RetainedReplica replica : replicas) {
-            List<URI> snapshotIds = new ArrayList<URI>();
-            for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
-                info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
-                snapshotIds.add(uri(obsoleteSnapshotId));
+            for (String applicationCopySet : replica.getAssociatedReplicaIds()) {
+                info("Delete application snapshots %s since it exceeds max number of clones allowed", applicationCopySet);
+                List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
+                        subGroups);
+                execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
             }
-            execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
             getModelClient().delete(replica);
         }
     }

@@ -49,12 +49,12 @@ public class Parameter implements Serializable {
     }
 
     @XmlElement(name = "friendly_value", required = false)
-    @JsonProperty("friendlyValue")
+    @JsonProperty("friendly_value")
     public String getFriendlyValue() {
         return friendlyValue;
     }
 
-    @JsonProperty("friendlyValue")
+    @JsonProperty("friendly_value")
     public void setFriendlyValue(String friendlyValue) {
         this.friendlyValue = friendlyValue;
     }
@@ -81,24 +81,24 @@ public class Parameter implements Serializable {
         this.value = value;
     }
 
-    @JsonProperty("friendlyLabel")
+    @JsonProperty("friendly_label")
     @XmlElement(name = "friendly_label", required = false)
     public String getFriendlyLabel() {
         return friendlyLabel;
     }
 
-    @JsonProperty("friendlyLabel")
+    @JsonProperty("friendly_label")
     public void setFriendlyLabel(String friendlyLabel) {
         this.friendlyLabel = friendlyLabel;
     }
 
-    @JsonProperty("userInput")
+    @JsonProperty("user_input")
     @XmlElement(name = "user_input")
     public boolean isUserInput() {
         return userInput;
     }
 
-    @JsonProperty("userInput")
+    @JsonProperty("user_input")
     public void setUserInput(boolean userInput) {
         this.userInput = userInput;
     }

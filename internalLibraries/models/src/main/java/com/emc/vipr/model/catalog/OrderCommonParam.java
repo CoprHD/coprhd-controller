@@ -37,13 +37,13 @@ public class OrderCommonParam implements Serializable {
         this.parameters = parameters;
     }
 
-    @JsonProperty("catalogService")
+    @JsonProperty("catalog_service")
     @XmlElement(name = "catalog_service", required = true)
     public URI getCatalogService() {
         return catalogService;
     }
 
-    @JsonProperty("catalogService")
+    @JsonProperty("catalog_service")
     public void setCatalogService(URI catalogService) {
         this.catalogService = catalogService;
     }

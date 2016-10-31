@@ -1,17 +1,36 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.db.client.model.uimodels;
-
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.model.valid.EnumType;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
 
 import java.net.URI;
 import java.util.Calendar;
 import java.util.Date;
+
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
+
+import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.DecommissionedIndex;
+import com.emc.storageos.db.client.model.ModelObject;
+import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.model.valid.EnumType;
 
 @Cf("Order")
 public class Order extends ModelObject implements TenantDataObject {
@@ -28,6 +47,7 @@ public class Order extends ModelObject implements TenantDataObject {
     public static final String ORDER_NUMBER = "orderNumber";
     public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
     public static final String SCHEDULED_TIME = "scheduledTime";
+    public static final String WORKFLOW_DOCUMENT = "workflowDocument";
 
     /** User friendly Order number */
     private String orderNumber;
@@ -55,6 +75,8 @@ public class Order extends ModelObject implements TenantDataObject {
     private URI scheduledEventId;
 
     private Calendar scheduledTime;
+    
+    private String workflowDocument;
 
     /**
      * Field used for indexing updated time
@@ -66,7 +88,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return catalogServiceId;
     }
 
-    public void setCatalogServiceId(URI catalogServiceId) {
+    public void setCatalogServiceId(final URI catalogServiceId) {
         this.catalogServiceId = catalogServiceId;
         setChanged(CATALOG_SERVICE_ID);
     }
@@ -76,7 +98,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return orderNumber;
     }
 
-    public void setOrderNumber(String orderNumber) {
+    public void setOrderNumber(final String orderNumber) {
         this.orderNumber = orderNumber;
         setChanged(ORDER_NUMBER);
     }
@@ -86,7 +108,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return summary;
     }
 
-    public void setSummary(String summary) {
+    public void setSummary(final String summary) {
         this.summary = summary;
         setChanged(SUMMARY);
     }
@@ -96,7 +118,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
         setChanged(MESSAGE);
     }
@@ -106,7 +128,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return dateCompleted;
     }
 
-    public void setDateCompleted(Date dateCompleted) {
+    public void setDateCompleted(final Date dateCompleted) {
         this.dateCompleted = dateCompleted;
         setChanged(DATE_COMPLETED);
     }
@@ -118,7 +140,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return orderStatus;
     }
 
-    public void setOrderStatus(String status) {
+    public void setOrderStatus(final String status) {
         this.orderStatus = status;
         setChanged(ORDER_STATUS);
     }
@@ -129,7 +151,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return submittedByUserId;
     }
 
-    public void setSubmittedByUserId(String submittedBy) {
+    public void setSubmittedByUserId(final String submittedBy) {
         this.submittedByUserId = submittedBy;
         setChanged(SUBMITTED_BY_USER_ID);
     }
@@ -139,7 +161,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return executionStateId;
     }
 
-    public void setExecutionStateId(URI executionStateId) {
+    public void setExecutionStateId(final URI executionStateId) {
         this.executionStateId = executionStateId;
         setChanged(EXECUTION_STATE_ID);
     }
@@ -149,18 +171,18 @@ public class Order extends ModelObject implements TenantDataObject {
         return executionWindowId;
     }
 
-    public void setExecutionWindowId(NamedURI executionWindowId) {
+    public void setExecutionWindowId(final NamedURI executionWindowId) {
         this.executionWindowId = executionWindowId;
         setChanged(EXECUTION_WINDOW_ID);
     }
 
-    @AlternateId("TenantToOrder")
+    @Override @AlternateId("TenantToOrder")
     @Name(TENANT)
     public String getTenant() {
         return tenant;
     }
 
-    public void setTenant(String tenant) {
+    @Override public void setTenant(final String tenant) {
         this.tenant = tenant;
         setChanged(TENANT);
     }
@@ -171,7 +193,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return scheduledEventId;
     }
 
-    public void setScheduledEventId(URI scheduledEventId) {
+    public void setScheduledEventId(final URI scheduledEventId) {
         this.scheduledEventId = scheduledEventId;
         setChanged(SCHEDULED_EVENT_ID);
     }
@@ -181,11 +203,20 @@ public class Order extends ModelObject implements TenantDataObject {
         return scheduledTime;
     }
 
-    public void setScheduledTime(Calendar scheduledTime) {
+    public void setScheduledTime(final Calendar scheduledTime) {
         this.scheduledTime = scheduledTime;
         setChanged(SCHEDULED_TIME);
     }
 
+    @Name(WORKFLOW_DOCUMENT)
+    public String getWorkflowDocument() {
+        return workflowDocument;
+    }
+    
+    public void setWorkflowDocument (final String workflowDocument) {
+        this.workflowDocument = workflowDocument;
+        setChanged(WORKFLOW_DOCUMENT);
+    }
     @Override
     public void markUpdated() {
         super.markUpdated();
@@ -203,7 +234,7 @@ public class Order extends ModelObject implements TenantDataObject {
         return indexed;
     }
 
-    public void setIndexed(Boolean indexed) {
+    public void setIndexed(final Boolean indexed) {
         this.indexed = indexed;
         setChanged("indexed");
     }

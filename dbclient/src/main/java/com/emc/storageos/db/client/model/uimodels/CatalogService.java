@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.db.client.model.uimodels;
 
@@ -27,6 +39,7 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     public static final String CATALOG_CATEGORY_ID = "catalogCategoryId";
     public static final String SORTED_INDEX = "sortedIndex";
     public static final String RECURRING_ALLOWED = "recurringAllowed";
+    public static final String WORKFLOW_NAME = "workflowName";
 
     private String title;
 
@@ -49,6 +62,8 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     private Integer sortedIndex;
     
     private Boolean recurringAllowed = DEFAULT_SCHEDULER_ALLOWED;
+    
+    private String workflowName;
 
     @Name(TITLE)
     public String getTitle() {
@@ -153,6 +168,16 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     public void setSortedIndex(Integer sortedIndex) {
         this.sortedIndex = sortedIndex;
         setChanged(SORTED_INDEX);
+    }
+    
+    @Name(WORKFLOW_NAME)
+    public String getWorkflowName() {
+        return workflowName;
+    }
+    
+    public void setWorkflowName(final String workflowName) {
+        this.workflowName = workflowName;
+        setChanged(WORKFLOW_NAME);
     }
     
     @Name(RECURRING_ALLOWED)

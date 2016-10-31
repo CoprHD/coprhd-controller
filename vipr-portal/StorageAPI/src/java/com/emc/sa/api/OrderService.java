@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.sa.api;
 
@@ -9,19 +21,24 @@ import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
 import static com.emc.sa.api.mapper.OrderMapper.map;
 import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
 import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
-import static com.emc.storageos.db.client.URIUtil.uri;
-import static com.emc.storageos.db.client.URIUtil.asString;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.db.client.URIUtil.asString;
+import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.PostConstruct;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -33,17 +50,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.sa.engine.scheduler.SchedulerDataManager;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.model.util.ScheduleTimeHelper;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedDataManager;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.uimodels.*;
-import com.emc.storageos.db.client.util.ExecutionWindowHelper;
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.vipr.model.catalog.*;
-import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -61,12 +67,29 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
+import com.emc.sa.engine.scheduler.SchedulerDataManager;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderAndParams;
+import com.emc.storageos.db.client.model.uimodels.OrderParameter;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEventStatus;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEventType;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -80,9 +103,19 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.vipr.client.catalog.impl.SearchConstants;
+import com.emc.vipr.model.catalog.ExecutionLogList;
+import com.emc.vipr.model.catalog.ExecutionStateRestRep;
+import com.emc.vipr.model.catalog.OrderBulkRep;
+import com.emc.vipr.model.catalog.OrderCreateParam;
+import com.emc.vipr.model.catalog.OrderList;
+import com.emc.vipr.model.catalog.OrderLogList;
+import com.emc.vipr.model.catalog.OrderRestRep;
+import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.google.common.collect.Lists;
 
 @DefaultPermissions(
@@ -357,6 +390,14 @@ public class OrderService extends CatalogTaggedResourceService {
                     service.getBaseService());
         }
 
+        if(service.getWorkflowName() != null ) {
+            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getWorkflowName());
+            if( null == workflowDocument ) {
+                throw APIException.badRequests.workflowNotFound(service.getWorkflowName());
+            }
+            createParam.setWorkflowDocument(workflowDocument);
+        }
+        
         Order order = createNewObject(tenantId, createParam);
 
         addLockedFields(service.getId(), descriptor, createParam);

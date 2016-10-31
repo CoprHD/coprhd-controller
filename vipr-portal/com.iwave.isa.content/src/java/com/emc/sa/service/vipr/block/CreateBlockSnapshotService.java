@@ -170,8 +170,12 @@ public class CreateBlockSnapshotService extends ViPRService {
                     }
                 } else {
                     if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+                        BlockSnapshotSessionRestRep obsoloteCopy =  getClient().blockSnapshotSessions().get(uri(obsoleteSnapshotId));
+                        info("Deactivating snapshot session %s", obsoloteCopy.getName());
                         ConsistencyUtils.removeSnapshotSession(uri(volumeOrCgId), uri(obsoleteSnapshotId));
                     } else {
+                        BlockObjectRestRep obsoleteCopy = BlockStorageUtils.getVolume(uri(obsoleteSnapshotId));
+                        info("Deactivating snapshot %s", obsoleteCopy.getName());
                         ConsistencyUtils.removeSnapshot(uri(volumeOrCgId), uri(obsoleteSnapshotId));
                     }
                 }

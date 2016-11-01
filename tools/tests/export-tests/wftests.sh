@@ -35,6 +35,15 @@ Usage()
     exit 2
 }
 
+#
+# VMware Configuration (remove once sanity.conf is updated)
+#
+#
+VCENTER_SIMULATOR_IP=${HW_SIMULATOR_IP}
+VCENTER_SIMULATOR_PORT=7230
+VCENTER_SIMULATOR_USERNAME=administrator
+VCENTER_SIMULATOR_PASSWORD=password
+
 # Extra debug output
 DUTEST_DEBUG=${DUTEST_DEBUG:-0}
 
@@ -1022,11 +1031,12 @@ vmax2_setup() {
 vmax3_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=5988
+    VMAX_SMIS_PORT=7008
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=false
     VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
 vmax3_setup() {
@@ -1043,15 +1053,20 @@ vmax3_setup() {
     run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
+    # Remove all arrays that aren't VNXB_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    do
+	run storagedevice deregister SYMMETRIX+${id}
+	run storagedevice delete SYMMETRIX+${id}
+    done
+
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = 0 ]; then
-       run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
+    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
@@ -1391,7 +1406,7 @@ xio_setup() {
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
 }
 
-common_setup() {
+host_setup() {
     run project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
@@ -1423,6 +1438,32 @@ common_setup() {
         run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
         run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
     fi
+}
+
+vcenter_setup() {
+    secho "Setup virtual center..."
+    runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
+
+    # TODO need discovery to run
+    sleep 30
+
+    # Add initiators to network (grab these from your simulator's /data/simulators/vmware/add_ports.sh script)
+    for i in {40..90..2}
+    do 
+	FOO=`printf "199900000000%04x\n" $i | awk '{print toupper($0)}' | sed 's/../&:/g;s/:$//'`;
+	run transportzone add $NH/${FC_ZONE_A} $FOO
+    done
+    
+    for i in {41..90..2}
+    do 
+	FOO=`printf "199900000000%04x\n" $i |awk '{print toupper($0)}' | sed 's/../&:/g;s/:$//'`;
+	run transportzone add $NH/${FC_ZONE_A} $FOO
+    done
+}
+
+common_setup() {
+    host_setup;
+    vcenter_setup;
 }
 
 setup_varray() {
@@ -1548,7 +1589,7 @@ snap_db() {
     shift
     column_families=$*
     
-    secho "snapping column families: ${column_families}"
+    secho "snapping column families [set $slot]: ${column_families}"
 
     for cf in ${column_families}
     do
@@ -1575,7 +1616,7 @@ validate_db() {
 # Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
 #
 # 1. Save off state of DB (1)
-# 2. Perform volume create operation that will fail at the end and roll back
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
 # 3. Save off state of DB (2)
 # 4. Compare state (1) and (2)
 # 5. Retry operation without failure injection
@@ -1586,19 +1627,30 @@ validate_db() {
 test_1() {
     echot "Test 1 Begins"
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete failure_005_BlockDeviceController.createVolumes_before_device_create failure_006_BlockDeviceController.createVolumes_after_device_create"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation failure_004_final_step_in_workflow_complete"
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_011_VNXVMAX_Post_Placement_outside_trycatch failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+	storage_failure_injections="failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_006"
 
     for failure in ${failure_injections}
     do
@@ -1616,6 +1668,9 @@ test_1() {
 
       # Create the volume
       fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+
+      # Let the async jobs calm down
+      sleep 5
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}
@@ -1640,7 +1695,8 @@ test_1() {
 
 # Suspend/Resume base test 2
 #
-# This tests child workflow suspension.  This is more complicated to control.
+# Add a single host to an existing cluster that already has a shared export
+# (requires event manipulation)
 #
 test_2() {
     echot "Test 2 DU Check Begins"
@@ -3841,8 +3897,7 @@ cleanup() {
 	done
 	runcmd volume delete --project $PROJECT --wait
     fi
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    echo There were $VERIFY_EXPORT_FAIL_COUNT failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests

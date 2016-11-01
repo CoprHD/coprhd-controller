@@ -159,7 +159,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     return;
                 }
             } else {
-                volumesToBeUnmapped = volumeURIList;
+                if (volumeURIList != null) {
+                    volumesToBeUnmapped = volumeURIList;
+                }
             }
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
             if (exportMask == null || exportMask.getInactive()) {

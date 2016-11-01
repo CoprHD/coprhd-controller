@@ -151,7 +151,6 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(HITACHI, "2001");
         NON_SSL_PORT_MAP.put(UNITY, "443");
         NON_SSL_PORT_MAP.put(CEPH, "6789");
-        NON_SSL_PORT_MAP.put(DELLSCSYSTEM, "3033");
 
         STORAGE_PROVIDER_MAP = new HashMap<String, String>();
         STORAGE_PROVIDER_MAP.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");

@@ -204,7 +204,9 @@ public class OIDCAuthenticationManager {
                 new AuthorizationCodeGrant(new AuthorizationCode(code), URI.create( getOidcAuthProvider().getOidcCallBackUrl() ) ) );
 
         log.info("Requesting token for code {}", code);
-        HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
+        HTTPRequest httpRequest = tokenReq.toHTTPRequest();
+        log.info("Default SSLSocketFactory is {}, {}", httpRequest.getDefaultSSLSocketFactory(), httpRequest.getDefaultHostnameVerifier());
+        HTTPResponse tokenHTTPResp = httpRequest.send();
         log.info("Token response is {}", tokenHTTPResp.getContent());
         TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
 

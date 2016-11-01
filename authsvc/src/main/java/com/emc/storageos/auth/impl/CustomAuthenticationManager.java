@@ -547,6 +547,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             if (_oidcAuthMgr == null) {
                 _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
                 HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(_coordinator));
+                _log.info("Set default ssl socket factory to vipr's");
             }
         }
         return _oidcAuthMgr;

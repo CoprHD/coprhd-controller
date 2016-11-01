@@ -477,7 +477,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                         updateLastKnown(providers);
                         _ldapProviderMonitor.setAuthnProviders(_authNProviders);
                         synchronized (_oidcLock) {
-                            _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
+                            _oidcAuthMgr = new OIDCAuthenticationManager(_coordinator, _dbClient, _authNProviders);
                         }
                         _log.info("Done authn provider config reload. lastReloadTime {}", _lastReloadTime);
                     }
@@ -545,9 +545,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     public OIDCAuthenticationManager getOIDCAuthManager() {
         synchronized (_oidcLock) {
             if (_oidcAuthMgr == null) {
-                _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
-                HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(_coordinator));
-                _log.info("Set default ssl socket factory to vipr's");
+                _oidcAuthMgr = new OIDCAuthenticationManager(_coordinator, _dbClient, _authNProviders);
             }
         }
         return _oidcAuthMgr;

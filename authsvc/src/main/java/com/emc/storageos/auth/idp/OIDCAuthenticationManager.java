@@ -11,12 +11,14 @@ import com.emc.storageos.auth.impl.AuthenticationProvider;
 import com.emc.storageos.auth.impl.ImmutableAuthenticationProviders;
 import com.emc.storageos.auth.impl.TenantMapper;
 import com.emc.storageos.auth.service.impl.resource.AuthenticationResource;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.JWSVerifier;
@@ -58,14 +60,17 @@ public class OIDCAuthenticationManager {
     private static final Logger log = LoggerFactory.getLogger(AuthenticationResource.class);
 
     private DbClient dbClient;
+    private CoordinatorClient coordinator;
     private BasePermissionsHelper permissionsHelper;
 
     private ImmutableAuthenticationProviders authProviders;
 
-    public OIDCAuthenticationManager(DbClient dbClient, ImmutableAuthenticationProviders authProviders) {
+    public OIDCAuthenticationManager(CoordinatorClient coordinator, DbClient dbClient, ImmutableAuthenticationProviders authProviders) {
         this.dbClient = dbClient;
         this.permissionsHelper = new BasePermissionsHelper(dbClient);
         this.authProviders = authProviders;
+        HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(coordinator));
+        log.info("Set default ssl socket factory to vipr's");
     }
 
     public URI buildAuthenticationRequestInURI(String resourceURI) throws Exception {

@@ -15,10 +15,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -26,7 +29,10 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.network.SanZone;
 import com.emc.storageos.networkcontroller.NetworkController;
+import com.emc.storageos.networkcontroller.impl.mds.Zone;
+import com.emc.storageos.networkcontroller.impl.mds.ZoneMember;
 
 public class ApplicationMigrationController implements MigrationController {
     protected final static String CONTROLLER_SVC = "controllersvc";
@@ -57,7 +63,7 @@ public class ApplicationMigrationController implements MigrationController {
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupURI);
 
         //TODO : volumeGroup's label is SYMMETRIX+{}. Later on when we try to build the nativeGUID, it will build one with null+{} 
-        //since the key to the map keys off of vmax instead of SYMMETRIX. need to fix that. 
+        //since the key to the map keys off of "vmax" instead of SYMMETRIX. need to fix that. 
         String[] volumeGroupLabelSplitArray = volumeGroup.getLabel().split(Constants.SMIS_PLUS_REGEX);
         StorageSystem srcStorageSystem = null;
         String nativeGuid = NativeGUIDGenerator.generateNativeGuid(volumeGroupLabelSplitArray[0], volumeGroupLabelSplitArray[1]);
@@ -100,21 +106,41 @@ public class ApplicationMigrationController implements MigrationController {
         // Bharath Get the Storage Port information for Zoning Calls and perform zoning
         //TODO: for now, migrationOptions constants are being filled randomly, for ex. used ALLOCATED_PORTS string as key for allocated ports.
         //Need to refine that and make it into a class that contains all the other constants for migration options.
-        //TODO: Also, we are allocating ports in the API layer. evauluate if it makes sense to keep it that way or bring that code here.
+        //TODO: Also, we are allocating ports in the API layer. evaluate if it makes sense to keep it that way or bring that code here.
         logger.info("VolumeGroup MigrationOptions");
         logger.info(volumeGroup.getMigrationOptions().toString());
         
-        //TODO: zoning work
-        // Need to decide on how to find out the information about fabricId and fabricWWN. Should this be part of migrationOptions?
-        // Not really sure if migrationOptions is the right container for these information. VirtualArray and connected fabric based on 
-        //allocated ports is another option to consider. 
-        //Steps
+        //TODO: zoning work (probably break this method into modules/smaller chunks)
+        
+        // Steps
         //1. extract the list of initiators from the initiatorList
         //2. extract all the allocated ports from the migration options.
         //3. build SAN Zones with list of zones and its members.
-        //4. call 
-        //NetworkController controller = getNetworkController(device.getSystemType());
-        //controller.addSanZones(device.getId(), fabricId, fabricWwn, zones, false, task);
+        /* TODO:
+         *  List<Zone> zones = new ArrayList<Zone>();
+        	for (SanZone sz : sanZones.getZones()) {
+            Zone zone = new Zone(sz.getName());
+            validateZoneName(sz.getName(), device.getSystemType());
+            zones.add(zone);
+            for (String szm : sz.getMembers()) {
+                ZoneMember member = createZoneMember(szm);
+                zone.getMembers().add(member);
+            }
+
+            ArgValidator.checkFieldNotEmpty(zone.getMembers(), "zone members");
+
+            auditOp(OperationTypeEnum.ADD_SAN_ZONE, true, AuditLogManager.AUDITOP_BEGIN, zone.getName(),
+                    device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL(),
+                    device.getVersion(), device.getUptime());
+        }
+         */
+        //4. Zoning
+        // Need to decide on how to find out the information about fabricId and fabricWWN. Should this be part of migrationOptions?
+        // Not really sure if migrationOptions is the right container for these information. VirtualArray and connected fabric based on 
+        // allocated ports is another option to consider. 
+        // NetworkController controller = getNetworkController(device.getSystemType());
+        // controller.addSanZones(device.getId(), fabricId, fabricWwn, zones, false, task);
         
        
         // Harsha Perform the NDM Create

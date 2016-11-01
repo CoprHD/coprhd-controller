@@ -555,8 +555,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             List<Volume> sourceVolumes = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup, _dbClient,
                     PersonalityTypes.SOURCE);
 
+            // For RP snaps, we only care of the volumes list. Populating the protection controller and consistency group are
+            // just to avoid populating these values with null. Only the volumes list will be used for snapshot processing.
             storageRgToVolumes = HashBasedTable.create();
-            storageRgToVolumes.put(null, null, sourceVolumes);
+
+            if (sourceVolumes != null && !sourceVolumes.isEmpty()) {
+                storageRgToVolumes.put(sourceVolumes.get(0).getProtectionController(), consistencyGroup.getLabel(), sourceVolumes);
+            }
+        }
+
+        // Set snapshot type.
+        String snapshotType = param.getType();
+        if (snapshotType == null) {
+            // default to NATIVE snap type
+            snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         }
 
         TaskList taskList = new TaskList();
@@ -573,8 +585,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
             // Generate task id
             String taskId = UUID.randomUUID().toString();
-            // Set snapshot type.
-            String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
             // Validate the snapshot request.
             String snapshotName = TimeUtils.formatDateForCurrent(param.getName());
             blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());

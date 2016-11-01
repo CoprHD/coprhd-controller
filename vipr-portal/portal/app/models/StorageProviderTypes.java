@@ -35,6 +35,7 @@ public class StorageProviderTypes {
     public static final String IBMXIV = "ibmxiv";
     public static final String XTREMIO = "xtremio";
     public static final String CEPH = "ceph";
+    public static final String DELLPROVIDER = "dellscprovider";
 
     private static final Map<String, String> fromStorageArrayTypeMap = new HashMap<String, String>() {
         private static final long serialVersionUID = -8628274587467033626L;
@@ -52,6 +53,7 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.IBMXIV, IBMXIV);
             put(StorageSystemTypes.XTREMIO, XTREMIO);
             put(StorageSystemTypes.CEPH, CEPH);
+            put(StorageSystemTypes.DELLSCSYSTEM, DELLPROVIDER);
         }
     };
 

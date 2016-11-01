@@ -164,7 +164,7 @@ public class StorageSystemTypesInitUtils {
         STORAGE_PROVIDER_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
         STORAGE_PROVIDER_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
         STORAGE_PROVIDER_MAP.put(CEPH, "Block Storage powered by Ceph");
-        STORAGE_PROVIDER_MAP.put(DELLSCPROVIDER, "Storage Provider for Dell SC Storage");
+        STORAGE_PROVIDER_MAP.put(DELLSCSYSTEM, "Storage Provider for Dell SC Storage");
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {

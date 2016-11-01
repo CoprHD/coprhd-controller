@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.migrationcontroller.ApplicationMigrationController;
 import com.emc.storageos.migrationcontroller.MigrationController;
@@ -72,6 +73,9 @@ public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl
         	networkPortMapForVarray.put(network.getId(), portList);        	        
         }        
         
+        StringBuffer buf = new StringBuffer();
+        String allocatedPortParam = new String(); 
+        
         // port allocation using the usage map
         List<StoragePort> portsAllocated = new ArrayList<StoragePort>();        
         for (Map.Entry<URI, List<StoragePort>> entry : networkPortMapForVarray.entrySet() ) {            	
@@ -83,10 +87,21 @@ public class ApplicationMigrationApiImpl extends AbstractMigrationServiceApiImpl
 	                nwlite, tgtVarray.getId(), minPathsRequested, null, false);        
 		        if (!portsAllocated.isEmpty() && portsAllocated.size() >= minPathsRequested) {
 		        	//success
-		        	logger.info("Allocated Ports:");
+		        	buf.append("Allocated Ports:");
+		        	int count = 0;
 		        	for(StoragePort portAllocated : portsAllocated) {
-		        		logger.info(portAllocated.getNativeId() + "," );
+		        		buf.append(portAllocated.getPortName() + "-" + portAllocated.getPortNetworkId() + "," );
+		        		allocatedPortParam += portAllocated.getPortNetworkId();
+		        		if (count < portsAllocated.size()) {
+		        			allocatedPortParam += ",";
+		        		}
 		        	}
+		        	logger.info("Allocated port : " + buf.toString());
+		        	VolumeGroup application = dbClient.queryObject(VolumeGroup.class, applicationId);
+		        	if (application.getMigrationOptions() == null) {
+		        		application.setMigrationOptions(new StringMap());
+		        	}
+		        	application.getMigrationOptions().put("ALLOCATED_PORTS", allocatedPortParam);
 		        	break;
 		        }
 	        }

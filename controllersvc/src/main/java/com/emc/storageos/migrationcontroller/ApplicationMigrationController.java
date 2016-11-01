@@ -26,12 +26,13 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.networkcontroller.NetworkController;
 
 public class ApplicationMigrationController implements MigrationController {
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
 
-    static final Logger log = LoggerFactory.getLogger(ApplicationMigrationController.class);
+    static final Logger logger = LoggerFactory.getLogger(ApplicationMigrationController.class);
 
     private SmisCommandHelper _helper;
     private DbClient _dbClient;
@@ -51,10 +52,12 @@ public class ApplicationMigrationController implements MigrationController {
 
 	@Override
     public void migrationCreate(URI volumeGroupURI) throws Exception {
-        log.info("ApplicationMigrationController : Create Migration");
+        logger.info("ApplicationMigrationController : Create Migration");
         // Harsha Get the Basic information such as Source Storage System and Storage Group Name
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupURI);
 
+        //TODO : volumeGroup's label is SYMMETRIX+{}. Later on when we try to build the nativeGUID, it will build one with null+{} 
+        //since the key to the map keys off of vmax instead of SYMMETRIX. need to fix that. 
         String[] volumeGroupLabelSplitArray = volumeGroup.getLabel().split(Constants.SMIS_PLUS_REGEX);
         StorageSystem srcStorageSystem = null;
         String nativeGuid = NativeGUIDGenerator.generateNativeGuid(volumeGroupLabelSplitArray[0], volumeGroupLabelSplitArray[1]);
@@ -95,7 +98,25 @@ public class ApplicationMigrationController implements MigrationController {
 
         }
         // Bharath Get the Storage Port information for Zoning Calls and perform zoning
-
+        //TODO: for now, migrationOptions constants are being filled randomly, for ex. used ALLOCATED_PORTS string as key for allocated ports.
+        //Need to refine that and make it into a class that contains all the other constants for migration options.
+        //TODO: Also, we are allocating ports in the API layer. evauluate if it makes sense to keep it that way or bring that code here.
+        logger.info("VolumeGroup MigrationOptions");
+        logger.info(volumeGroup.getMigrationOptions().toString());
+        
+        //TODO: zoning work
+        // Need to decide on how to find out the information about fabricId and fabricWWN. Should this be part of migrationOptions?
+        // Not really sure if migrationOptions is the right container for these information. VirtualArray and connected fabric based on 
+        //allocated ports is another option to consider. 
+        //Steps
+        //1. extract the list of initiators from the initiatorList
+        //2. extract all the allocated ports from the migration options.
+        //3. build SAN Zones with list of zones and its members.
+        //4. call 
+        //NetworkController controller = getNetworkController(device.getSystemType());
+        //controller.addSanZones(device.getId(), fabricId, fabricWwn, zones, false, task);
+        
+       
         // Harsha Perform the NDM Create
 
         // TODO: Host Rescan.

@@ -1031,10 +1031,10 @@ vmax2_setup() {
 vmax3_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=7008
+    VMAX_SMIS_PORT=7009
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
-    VMAX_SMIS_SSL=false
+    VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
@@ -1050,7 +1050,7 @@ vmax3_setup() {
     echo "Setting up SMIS for VMAX3"
     storage_password=$SMIS_PASSWD
 
-    run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run smisprovider create $VMAX_PROVIDER_NAME $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VNXB_NATIVEGUID
@@ -1693,83 +1693,36 @@ test_1() {
     done
 }
 
-# Suspend/Resume base test 2
+# Basic export test for vcenter cluster
 #
-# Add a single host to an existing cluster that already has a shared export
-# (requires event manipulation)
+#
+#
 #
 test_2() {
-    echot "Test 2 DU Check Begins"
+    echot "Test 2 Export VCenter Cluster test"
     expname=${EXPORT_GROUP_NAME}t2
+    item=${RANDOM}
+    cfs="ExportGroup ExportMask"
+    mkdir -p results/${item}
 
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportCreateDeviceStep}
+    # Perform any DB validation in here
+    snap_db 1 ${cfs}
 
     # Run the export group command
-    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
-    if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-    fi
+    # Remove the shared export
+    runcmd export_group delete ${PROJECT}/${expname}1
 
-    echo $resultcmd
+    # Snap the DB again
+    snap_db 2 ${cfs}
 
-    echo $resultcmd | grep "suspended" > /dev/null
-    if [ $? -ne 0 ]; then
-	echo "export group command did not suspend";
-	cleanup
-	finish 2
-    fi
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-    
-    verify_export ${expname}1 ${HOST1} 2 1
-
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportDeleteDeviceStep}
-
-    # Run the export group command
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
-
-    if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-    fi
-
-    echo $resultcmd
-
-    echo $resultcmd | grep "suspended" > /dev/null
-    if [ $? -ne 0 ]; then
-	echo "export group command did not suspend";
-	cleanup
-	finish 2
-    fi
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
+    # Validate nothing was left behind
+    validate_db 1 2 ${cfs}
 
     verify_export ${expname}1 ${HOST1} gone
-    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 3

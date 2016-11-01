@@ -1153,7 +1153,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             // Call regular delete volumes
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_013);
             deleteVolumes(systemURI, volumeURIs, opId);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_014);
 
             logMsg = String.format(
                     "rollbackCreateVolume end - Array:%s, Volume:%s", systemURI.toString(), Joiner.on(',').join(volumeURIs));

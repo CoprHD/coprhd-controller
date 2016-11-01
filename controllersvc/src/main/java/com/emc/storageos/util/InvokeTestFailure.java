@@ -27,6 +27,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_010 = "failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation";
     public static final String ARTIFICIAL_FAILURE_011 = "failure_011_VNXVMAX_Post_Placement_outside_trycatch";
     public static final String ARTIFICIAL_FAILURE_012 = "failure_012_VNXVMAX_Post_Placement_inside_trycatch";
+    public static final String ARTIFICIAL_FAILURE_013 = "failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete";
+    public static final String ARTIFICIAL_FAILURE_014 = "failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete";
 
     private static volatile String _beanName;
 
@@ -53,7 +55,7 @@ public final class InvokeTestFailure {
     public static void internalOnlyInvokeTestFailure(String failureKey) {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
-        if (invokeArtificialFailure != null && invokeArtificialFailure.equalsIgnoreCase(failureKey)) {
+        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey)) {
             throw new NullPointerException("Artificially Thrown Exception");
         }
     }

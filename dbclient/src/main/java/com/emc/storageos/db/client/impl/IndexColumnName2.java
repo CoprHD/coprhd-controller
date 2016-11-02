@@ -1,6 +1,7 @@
 package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.annotations.Component;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 
 import java.util.UUID;
 
@@ -9,82 +10,81 @@ import java.util.UUID;
  */
 public class IndexColumnName2 implements CompositeIndexColumnName {
     private @Component(ordinal = 0)
-    UUID _timeUUID;
+    String one;
+
     private @Component(ordinal = 1)
-    String _one;
+    long timeInMS;
+
     private @Component(ordinal = 2)
-    String _two;
+    String two;
+
     private @Component(ordinal = 3)
-    String _three;
+    String three;
+
     private @Component(ordinal = 4)
-    String _four;
+    String four;
 
     public IndexColumnName2() {
     }
 
-    public IndexColumnName2(String one, UUID timeUUID) {
-        _one = one;
-        _timeUUID = timeUUID;
+    public IndexColumnName2(String one, String two, long timeInMS) {
+        this.one = one;
+        this.two = two;
+        this.timeInMS = timeInMS;
     }
 
-    public IndexColumnName2(String one, String two, UUID timeUUID) {
-        _one = one;
-        _two = two;
-        _timeUUID = timeUUID;
+    public IndexColumnName2(String one, String two, String three, long timestamp) {
+        this.one = one;
+        this.two = two;
+        this.three = three;
+        this.timeInMS = timestamp;
     }
 
-    public IndexColumnName2(String one, String two, String three, UUID timeUUID) {
-        _one = one;
-        _two = two;
-        _three = three;
-        _timeUUID = timeUUID;
-    }
-
-    public IndexColumnName2(String one, String two, String three, String four, UUID timeUUID) {
-        _one = one;
-        _two = two;
-        _three = three;
-        _four = four;
-        _timeUUID = timeUUID;
+    public IndexColumnName2(String one, String two, String three, String four, long time) {
+        this.one = one;
+        this.two = two;
+        this.three = three;
+        this.four = four;
+        this.timeInMS = time;
     }
 
     @Override
     public String getOne() {
-        return _one;
+        return one;
     }
 
     @Override
     public String getTwo() {
-        return _two;
+        return two;
     }
 
     @Override
     public String getThree() {
-        return _three;
+        return three;
     }
 
     @Override
     public String getFour() {
-        return _four;
+        return four;
     }
 
     @Override
     public UUID getTimeUUID() {
-        return _timeUUID;
+        return TimeUUIDUtils.getTimeUUID(timeInMS);
     }
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(_timeUUID.toString());
+        StringBuilder builder = new StringBuilder(Long.toString(timeInMS));
 
         builder.append(":")
-                .append(_one)
+                .append(one)
                 .append(":")
-                .append(_two)
+                .append(two)
                 .append(":")
-                .append(_three)
+                .append(three)
                 .append(":")
-                .append(_four);
+                .append(four);
 
         return builder.toString();
     }

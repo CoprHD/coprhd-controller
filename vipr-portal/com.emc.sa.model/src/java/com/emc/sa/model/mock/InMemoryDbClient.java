@@ -67,6 +67,21 @@ public class InMemoryDbClient implements DBClientWrapper {
     }
 
     @Override
+    public <T extends DataObject> List<NamedElement> findByAlternateId2(Class<T> clazz, String columnField, String value,
+                                                                       long startTime, long endTime, int maxCount)
+            throws DataAccessException {
+        List<NamedElement> results = Lists.newArrayList();
+        for (URI modelId : findAllIds(clazz)) {
+            T model = findById(clazz, modelId);
+            Object o = getColumnField(model, columnField);
+            if (ObjectUtils.equals(o, value)) {
+                results.add(createNamedElement(model));
+            }
+        }
+        return results;
+    }
+
+    @Override
     public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
             String labelPrefix) throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();

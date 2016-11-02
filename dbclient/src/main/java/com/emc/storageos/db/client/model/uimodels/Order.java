@@ -127,8 +127,8 @@ public class Order extends ModelObject implements TenantDataObject {
         setChanged(ORDER_STATUS);
     }
 
-    @AlternateId("UserToOrders")
-    // @AlternateId2("UserToOrders2")
+    // @AlternateId("UserToOrders")
+    @AlternateId2("UserToOrders3")
     @Name(SUBMITTED_BY_USER_ID)
     public String getSubmittedByUserId() {
         return submittedByUserId;

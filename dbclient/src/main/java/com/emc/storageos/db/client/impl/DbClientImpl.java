@@ -320,7 +320,7 @@ public class DbClientImpl implements DbClient {
      * 
      * @return
      */
-    protected Keyspace getLocalKeyspace() {
+    public Keyspace getLocalKeyspace() {
         return localContext.getKeyspace();
     }
 
@@ -335,7 +335,7 @@ public class DbClientImpl implements DbClient {
      * @param dataObj
      * @return
      */
-    protected Keyspace getKeyspace(DataObject dataObj) {
+    protected  Keyspace getKeyspace(DataObject dataObj) {
         Class<? extends DataObject> clazz = dataObj.getClass();
         return getKeyspace(clazz);
     }
@@ -993,7 +993,7 @@ public class DbClientImpl implements DbClient {
         constraintImpl.setStartId(startId);
 
         constraintImpl.setPageCount(maxCount);
-        constraintImpl.setMaxCount(maxCount);
+        // constraintImpl.setMaxCount(maxCount);
 
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);

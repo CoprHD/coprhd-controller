@@ -20,11 +20,20 @@ import java.util.List;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
+import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +43,7 @@ import com.emc.storageos.dbutils.CommandHandler.*;
  * Class provided simple cli for DB, to dump records in user readable format
  */
 public class Main {
+    private static long n = 0;
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     private enum Command {
@@ -184,42 +194,83 @@ public class Main {
         }
     }
 
-    private static void migrateMyOrderIndexes(){
-        NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
-        long start = System.currentTimeMillis();
-        try {
-            DataObjectType doType = TypeMap.getDoType(Order.class);
-            AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(Order.SUBMITTED_BY_USER_ID), "root",
-                    0, 0);
-            _client._dbClient.queryByConstraint(constraint, queryResults);
-        } catch (DatabaseException e) {
-            throw e;
+    static class MigrationQueryHitIterator extends QueryHitIterator<URI, IndexColumnName> {
+        Keyspace keyspace;
+        AlternateIdConstraintImpl constraint;
+        ColumnFamily<String, IndexColumnName2> cf;
+        MutationBatch m;
+        int pageCount;
+
+        MigrationQueryHitIterator(Keyspace ks, AlternateIdConstraintImpl c, RowQuery<String, IndexColumnName> query)  {
+            super(query);
+
+            keyspace = ks;
+            constraint = c;
+            cf = new ColumnFamily<String, IndexColumnName2>("UserToOrders3", StringSerializer.get(), IndexColumnNameSerializer2.get());
+            m = ks.prepareMutationBatch();
+            pageCount = constraint.getPageCount();
         }
 
-        long i = 0;
-        URI id = null;
-        long end1 = 0; //read 500000
-        long end2 = 0; // read 100000
-        long end = 0;
-        for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
-            id = namedElement.getId();
-            i++;
-            // log.info("i={} id={}",i, id);
-            if (i == 500000) {
-                end1 = System.currentTimeMillis();
-                System.out.println("Read 500000: "+ (end1 - start));
-                System.out.println("i= "+ i);
-            }else if (i == 100000) {
-                end2 = System.currentTimeMillis();
-                System.out.println("Read 100000: "+ (end2 - start));
-                System.out.println("i= "+ i);
+        @Override
+        protected URI createQueryHit(Column<IndexColumnName> column) {
+            try {
+                n++;
+                URI id = URI.create(column.getName().getTwo());
+                log.info("lby1 id={} key={}", id, constraint.getAltId());
+                long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+                //IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(), column.getName().getTimeUUID());
+                IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(), timeInMicros);
+                log.info("lby2 timeInMS={}", timeInMicros);
+                m.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
+                if ( n % pageCount == 0) {
+                    log.info("lby9: n={} stack=", n, new Throwable());
+                    m.execute(); // commit
+                    m = keyspace.prepareMutationBatch();
+                }
+
+                log.info("lby3");
+                return id;
+            }catch (Throwable e) {
+                log.info("lby3 e=",e);
             }
+            return null;
         }
+    }
 
-        end = System.currentTimeMillis();
-        System.out.println("Read 1000000: "+ (end - start));
-        System.out.println("i= "+ i);
-        System.out.println("last id= "+ id);
+    private static void migrateMyOrderIndexes() throws ConnectionException {
+        long start = System.currentTimeMillis();
+
+        try {
+            log.info("lby1");
+            final AlternateIdConstraintImpl constraint = new AlternateIdConstraintImpl("UserToOrders", "root", Order.class, 0, 0);
+            constraint.setPageCount(10000);
+            Keyspace ks = _client._dbClient.getLocalKeyspace();
+            constraint.setKeyspace(ks);
+
+            log.info("lby3");
+
+            RowQuery<String, IndexColumnName> query = constraint.genQuery();
+            query.autoPaginate(true);
+            log.info("lby4");
+
+        MigrationQueryHitIterator iterator = new MigrationQueryHitIterator(ks, constraint, query);
+
+        log.info("lby5");
+        iterator.prime();
+
+        log.info("lbyt1 hasNext={}", iterator.hasNext());
+        while (iterator.hasNext()) {
+            iterator.next();
+        }
+            log.info("lby6");
+
+        iterator.m.execute();
+
+        long end = System.currentTimeMillis();
+        System.out.println("lby Read "+n+" : "+ (end - start));
+        }catch (Throwable e) {
+            log.error("lby5 e=", e);
+        }
         System.exit(1);
     }
 
@@ -261,8 +312,6 @@ public class Main {
             }
         }
 
-        end = System.currentTimeMillis();
-        System.out.println("Read 1000000: "+ (end - start));
         System.out.println("i= "+ i);
         System.out.println("last id= "+ id);
         */
@@ -326,7 +375,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        System.out.println("Start to collect performance info");
+        System.out.println("lby Start to collect performance info");
         /*
         deleteDbutilsPidFile();
         changeLogFileOwner();
@@ -367,7 +416,9 @@ public class Main {
             _client = new DBClient(true); // NOSONAR ("squid:S2444")
 
             _client.init();
-            queryMyOrderIndexes();
+            log.info("lbycc");
+            //queryMyOrderIndexes();
+            migrateMyOrderIndexes();
 
             /*
             CommandHandler handler = null;

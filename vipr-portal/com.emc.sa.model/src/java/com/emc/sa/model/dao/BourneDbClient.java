@@ -10,15 +10,12 @@ import java.util.*;
 import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.db.client.constraint.impl.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.ContainmentPrefixConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.PrefixConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
@@ -128,7 +125,22 @@ public class BourneDbClient implements DBClientWrapper {
 
         DataObjectType doType = TypeMap.getDoType(clazz);
 
-        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value,
+        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value);
+                // startTime, endTime);
+
+        return queryNamedElementsByConstraint(constraint, maxCount);
+    }
+
+    public <T extends DataObject> List<NamedElement> findByAlternateId2(Class<T> clazz, String columnField, String value,
+                                                                       long startTime, long endTime, int maxCount)
+            throws DataAccessException {
+
+        LOG.info("lbyb1: findByAlternateId2(class={}, columnField={}, value={}, maxCount={})",
+                new Object[] { clazz, columnField, value, maxCount});
+
+        DataObjectType doType = TypeMap.getDoType(clazz);
+
+        AlternateIdConstraint constraint = new AlternateId2ConstraintImpl(doType.getColumnField(columnField), value,
                 startTime, endTime);
 
         return queryNamedElementsByConstraint(constraint, maxCount);

@@ -34,7 +34,8 @@ public class AltIdDbIndex2 extends DbIndex<IndexColumnName2> {
 
         _log.info("lbytt0: add order {} key={}", className, recordKey);
 
-        IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, mutator.getTimeUUID());
+        //IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, mutator.getTimeUUID());
+        IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, mutator.getTimeStamp());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

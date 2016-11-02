@@ -81,7 +81,7 @@ public class OrderFinder extends TenantModelFinder<Order> {
         }
 
 
-        List<NamedElement> orderIds = client.findByAlternateId(Order.class, Order.SUBMITTED_BY_USER_ID, userId,
+        List<NamedElement> orderIds = client.findByAlternateId2(Order.class, Order.SUBMITTED_BY_USER_ID, userId,
                 startTime, endTime, maxCount);
         return orderIds;
     }

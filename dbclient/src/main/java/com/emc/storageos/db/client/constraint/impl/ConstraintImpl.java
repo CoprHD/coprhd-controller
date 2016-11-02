@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
 
+import com.emc.storageos.db.exceptions.DatabaseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         }
 
         // TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
-        if (this instanceof TimeConstraintImpl) {
+        if (this instanceof TimeConstraintImpl || this instanceof  AlternateIdConstraintImpl ) {
             return;
         }
 
@@ -89,7 +90,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
             this.startId = startId.toString();
         }
 
-        // this.returnOnePage = true;
+        returnOnePage = true;
     }
 
     public void setPageCount(int pageCount) {
@@ -98,23 +99,27 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         }
     }
 
+    public int getPageCount() {
+        return pageCount;
+    }
+
+    /*
     public void setMaxCount(int maxCount) {
         this.maxCount = maxCount;
     }
+    */
 
     @Override
     public <T> void execute(final Constraint.QueryResult<T> result) {
-        /*
         try {
             if (returnOnePage) {
                 queryOnePage(result);
                 return;
             }
-        } catch (ConnectionException e) {
+        } catch (ConnectionException e)  {
             log.info("Query failed e=", e);
             throw DatabaseException.retryables.connectionFailed(e);
         }
-        */
 
         queryWithAutoPaginate(genQuery(), result);
     }
@@ -145,10 +150,12 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         return it;
     }
 
+    /*
     protected boolean reachMaxCount() {
         // log.info("lbymm30 matchedCount={} maxCount={}", matchedCount, maxCount);
         return (maxCount >0) && (matchedCount >= maxCount);
     }
+    */
 
     //protected abstract URI getURI(Column<IndexColumnName> col);
     protected abstract URI getURI(Column<T> col);
@@ -204,14 +211,16 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
 
         // for (Column<IndexColumnName> col : columns) {
         for (Column<T> col : columns) {
+            /*
             if (reachMaxCount()) {
                 break;
             }
+            */
 
             T1 obj = createQueryHit(result, col);
             if (obj != null && !ids.contains(obj)) {
                 ids.add(createQueryHit(result, col));
-                matchedCount++;
+                // matchedCount++;
             }
         }
 
@@ -244,7 +253,8 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         //ColumnList<IndexColumnName> columns;
         ColumnList<T> columns;
 
-        while ((count < pageCount) && !reachMaxCount()) {
+        //while ((count < pageCount) && !reachMaxCount()) {
+        while ((count < pageCount)) {
             columns = query.execute().getResult();
 
             if (columns.isEmpty())
@@ -265,10 +275,12 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
                     T1 obj = createQueryHit(result, col);
                     if (obj != null && !ids.contains(obj)) {
                         ids.add(obj);
+                        /*
                         matchedCount++;
                         if (reachMaxCount()) {
                             break;
                         }
+                        */
                     }
                     count++;
                 }

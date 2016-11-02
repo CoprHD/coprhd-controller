@@ -15,12 +15,16 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * QueryHit iterator
  */
 public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         implements Iterator<T1> {
+    private static final Logger log = LoggerFactory.getLogger(QueryHitIterator.class);
+
     //protected RowQuery<String, IndexColumnName> _query;
     protected RowQuery<String, T2> _query;
     //protected Iterator<Column<IndexColumnName>> _currentIt;
@@ -41,6 +45,7 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         ColumnList<T2> result;
         try {
             result = _query.execute().getResult();
+            log.info("lbytt0 result.isEmpty()={}", result.isEmpty());
         } catch (final ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }

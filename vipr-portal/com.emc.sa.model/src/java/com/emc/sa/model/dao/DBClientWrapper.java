@@ -43,6 +43,10 @@ public interface DBClientWrapper {
                                                                        long startTime, long endTime, int maxCount)
             throws DataAccessException;
 
+    public <T extends DataObject> List<NamedElement> findByAlternateId2(Class<T> clazz, String columnField, String value,
+                                                                       long startTime, long endTime, int maxCount)
+            throws DataAccessException;
+
     public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
             throws DataAccessException;
 

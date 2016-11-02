@@ -559,9 +559,10 @@ public class OrderService extends CatalogTaggedResourceService {
         int max = Integer.parseInt(maxCount);
 
         /* query first 6000 records sorted by timestamp
+        */
         startTimeInMacros = Long.parseLong("1477903108065");
         endTimeInMacros = Long.parseLong("1477903327078");
-        */
+        // */
         log.info("lby00 start={} end={} max={}", startTimeInMacros, endTimeInMacros, max);
         List<Order> orders = orderManager.getUserOrders(user,startTimeInMacros, endTimeInMacros, max);
         log.info("lby0 done0");

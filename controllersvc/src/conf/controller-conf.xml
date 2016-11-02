@@ -800,7 +800,7 @@
         <property name="networkScheduler" ref="networkScheduler"/>
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
-	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+	    <property name="blockScheduler" ref="blockscheduler"/>
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>

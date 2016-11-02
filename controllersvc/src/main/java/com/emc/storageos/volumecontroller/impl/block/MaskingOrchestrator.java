@@ -105,10 +105,15 @@ public interface MaskingOrchestrator {
      * used HLUs and updates the volumeHLU map with free HLUs.
      * If it is a host export where the host belongs to a cluster, then the exclusive export
      * to this host should be assigned with cluster's next free HLU number.
+     * 
+     * Each Masking Orchestrator should implement it and it is Orchestrator class' responsibility
+     * to call it during export operation (create export, add volume to export).
      *
+     * @param storage the storage
      * @param exportGroup the export group
-     * @param initiatorNames the initiator names
+     * @param initiatorURIs the initiator uris
      * @param volumeMap the volume URI to HLU map
+     * @throws Exception the exception
      */
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap) throws Exception;

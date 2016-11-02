@@ -567,7 +567,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        ExportUtils.findAndUpdateFreeHLUsForClusterExport(this, getDevice(), storage, exportGroup, initiatorURIs, volumeMap, _dbClient);
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     /**

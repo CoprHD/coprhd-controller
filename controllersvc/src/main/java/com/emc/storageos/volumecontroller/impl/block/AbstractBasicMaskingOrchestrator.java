@@ -25,10 +25,12 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -83,6 +85,89 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
         return false;
+    }
+
+    /**
+     * This method is different than findAndUpdateFreeHLUsForClusterExport(). It is
+     * a common method which each Orchestrator can call and make use of.
+     * 
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     * If it is a host export where the host belongs to a cluster, then the exclusive export
+     * to this host should be assigned with cluster's next free HLU number.
+     *
+     * @param storage the storage system
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @param volumeMap the volume HLU map
+     */
+    public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+        List<URI> clusterInitiators = null;
+        if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.isFindFreeHLUSupportedForStorage(storage)) {
+            _log.info("Find and update free HLUs for Cluster Export START..");
+            if (exportGroup.forCluster()) {
+                clusterInitiators = initiatorURIs;
+            } else if (exportGroup.forHost()) {
+                /**
+                 * If the host belongs to a cluster, then the exclusive export to this host
+                 * should be assigned with cluster's next free HLU number.
+                 */
+                String hostStr = exportGroup.getHosts().iterator().next();
+                Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    _log.info("Host {} is part of Cluster", host.getHostName());
+                    // get all the hosts' initiators for this cluster
+                    clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
+                }
+            }
+
+            if (clusterInitiators != null) {
+                /**
+                 * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+                 * Add all hosts's HLUs to a Set.
+                 * Get the maximum allowed HLU for the storage array.
+                 * Calculate the free lowest available HLUs.
+                 * Update the new values in the VolumeHLU Map.
+                 */
+                Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+
+                Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+
+                Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+
+                ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+            }
+            _log.info("Find and update free HLUs for Cluster Export END.");
+        } else {
+            _log.info("Find and update free HLUs for Cluster Export not required");
+        }
+    }
+
+    /**
+     * Find HLUs for cluster hosts.
+     *
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @return the used HLUs
+     */
+    private Set<Integer> findHLUsForClusterHosts(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs) {
+        Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+        Set<Integer> usedHlus = new HashSet<Integer>();
+        for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {
+            List<URI> hostInitiatorURIs = entry.getValue();
+            List<String> initiatorNames = new ArrayList<String>();
+            Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
+            List<URI> hostURIs = new ArrayList<URI>();
+            processInitiators(exportGroup, hostInitiatorURIs, initiatorNames, portNameToInitiatorURI, hostURIs);
+            queryHostInitiatorsAndAddToList(initiatorNames, portNameToInitiatorURI, initiatorURIs, hostURIs);
+
+            Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);
+            usedHlus.addAll(hostUsedHlus);
+        }
+        return usedHlus;
     }
 
     /**

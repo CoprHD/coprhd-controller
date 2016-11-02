@@ -116,11 +116,13 @@ import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
+import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.AbstractBasicMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
@@ -213,7 +215,8 @@ import com.google.common.collect.Collections2;
  * @author Watson
  *
  */
-public class VPlexDeviceController implements VPlexController, BlockOrchestrationInterface, MaskingOrchestrator {
+public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
+        implements VPlexController, BlockOrchestrationInterface {
 
     // Workflow names
     private static final String MIGRATE_VOLUMES_WF_NAME = "migrateVolumes";
@@ -372,15 +375,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static CoordinatorClient coordinator;
 
     private static final Logger _log = LoggerFactory.getLogger(VPlexDeviceController.class);
-    private WorkflowService _workflowService;
     private VPlexApiFactory _vplexApiFactory;
     private VPlexApiLockManager _vplexApiLockManager;
-    private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
     private RPDeviceController _rpDeviceController;
     private BlockOrchestrationDeviceController _blockOrchestrationController;
-    private NetworkDeviceController _networkDeviceController;
-    private BlockStorageScheduler _blockScheduler;
     private ValidatorFactory validator;
     private static volatile VPlexDeviceController _instance;
     private ExportWorkflowUtils _exportWfUtils;
@@ -457,6 +456,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         return consistencyGroupManager;
+    }
+
+    /**
+     * VPLEXDeviceController which was not inheriting from AbstractMaskingOrchestrator,
+     * is now moved to align with all other Orchestrators. So it has to implement getDevice() method.
+     */
+    @Override
+    public BlockStorageDevice getDevice() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /**
@@ -5269,14 +5278,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // _dbClient);
     }
 
-    public void setWorkflowService(WorkflowService _workflowService) {
-        this._workflowService = _workflowService;
-    }
-
-    public void setDbClient(DbClient _dbClient) {
-        this._dbClient = _dbClient;
-    }
-
     public void setVplexApiFactory(VPlexApiFactory _vplexApiFactory) {
         this._vplexApiFactory = _vplexApiFactory;
     }
@@ -5291,10 +5292,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     public void setBlockOrchestrationDeviceController(BlockOrchestrationDeviceController blockOrchestrationController) {
         _blockOrchestrationController = blockOrchestrationController;
-    }
-
-    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
-        this._blockScheduler = blockStorageScheduler;
     }
 
     /**
@@ -5522,10 +5519,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public URI getCommunicationEndpoint(StorageSystem vplex) throws URISyntaxException {
         URI endpoint = new URI("https", null, vplex.getIpAddress(), vplex.getPortNumber(), "/", null, null);
         return endpoint;
-    }
-
-    public void setNetworkDeviceController(NetworkDeviceController networkDeviceController) {
-        this._networkDeviceController = networkDeviceController;
     }
 
     public void setNetworkScheduler(NetworkScheduler networkScheduler) {
@@ -13366,4 +13359,5 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
     }
+
 }

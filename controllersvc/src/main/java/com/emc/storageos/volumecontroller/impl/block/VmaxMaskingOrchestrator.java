@@ -877,7 +877,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        ExportUtils.findAndUpdateFreeHLUsForClusterExport(this, getDevice(), storage, exportGroup, initiatorURIs, volumeMap, _dbClient);
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     /**
@@ -1947,7 +1947,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @return Map of String:computeResourceName to List of Initiator URIs
      */
     @Override
-    public Map<String, List<URI>> mapInitiatorsToComputeResource(
+    protected Map<String, List<URI>> mapInitiatorsToComputeResource(
             ExportGroup exportGroup, Collection<URI> initiatorURIs) {
         Map<String, List<URI>> result = new HashMap<String, List<URI>>();
         if (exportGroup.forCluster()) {

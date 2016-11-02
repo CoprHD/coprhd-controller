@@ -1990,6 +1990,7 @@ storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
 storageProvider.interfaceType.xtremio=Dell EMC XtremIO
 storageProvider.interfaceType.ceph=Ceph Block Device
+storageProvider.interfaceType.dellscprovider=Dell SC Storage Provider
 
 StorageSystems.list.title=Storage Systems
 StorageSystems.edit.title=Edit Storage System

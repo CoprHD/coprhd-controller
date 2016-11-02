@@ -40,6 +40,12 @@ public class StorageSystemType extends DataObject {
     private String nonSslPort;
     private String driverClassName;
 
+    private String driverName;
+    private String driverVersion;
+    private String driverFileName;
+    private String status;
+    private Boolean isNative;
+
     // Type of Storage System Types
     public static enum META_TYPE {
         BLOCK, FILE, OBJECT, BLOCK_AND_FILE, ALL,
@@ -48,6 +54,80 @@ public class StorageSystemType extends DataObject {
         public boolean isProvider() {
             return this == BLOCK_PROVIDER || this == FILE_PROVIDER;
         }
+    }
+
+    public static enum STATUS {
+        ACTIVE {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return false;
+            }
+        },
+        INSTALLING {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return true;
+            }
+        },
+        UNISNTALLING {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return true;
+            }
+        },
+        UPGRADING {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return true;
+            }
+        };
+
+        public abstract boolean isStorageOperationOngoing();
+    }
+
+    @Name("driverName")
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
+    @Name("driverVersion")
+    public String getDriverVersion() {
+        return driverVersion;
+    }
+
+    public void setDriverVersion(String driverVersion) {
+        this.driverVersion = driverVersion;
+    }
+
+    @Name("driverFileName")
+    public String getDriverFileName() {
+        return driverFileName;
+    }
+
+    public void setDriverFileName(String driverFileName) {
+        this.driverFileName = driverFileName;
+    }
+
+    @Name("status")
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    @Name("isActive")
+    public Boolean getIsNative() {
+        return isNative;
+    }
+
+    public void setIsNative(Boolean isNative) {
+        this.isNative = isNative;
     }
 
     @Name("storageTypeName")

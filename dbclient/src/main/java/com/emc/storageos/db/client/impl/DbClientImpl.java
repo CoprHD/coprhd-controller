@@ -991,6 +991,7 @@ public class DbClientImpl implements DbClient {
 
     	_log.info("lby startId={} pageCount={}", startId, maxCount);
         constraintImpl.setStartId(startId);
+
         constraintImpl.setPageCount(maxCount);
         constraintImpl.setMaxCount(maxCount);
 

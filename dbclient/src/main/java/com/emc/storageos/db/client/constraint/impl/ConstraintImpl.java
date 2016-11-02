@@ -146,7 +146,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
     }
 
     protected boolean reachMaxCount() {
-        //log.info("lbymm30 matchedCount={} maxCount={}", matchedCount, maxCount);
+        // log.info("lbymm30 matchedCount={} maxCount={}", matchedCount, maxCount);
         return (maxCount >0) && (matchedCount >= maxCount);
     }
 
@@ -215,7 +215,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
             }
         }
 
-        //log.info("lbymm3: matched={}", matchedCount);
+        // log.info("lbymm3: matched={}", matchedCount);
         result.setResult(ids.iterator());
     }
 

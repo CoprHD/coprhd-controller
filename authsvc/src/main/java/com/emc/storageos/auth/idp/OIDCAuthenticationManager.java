@@ -18,6 +18,8 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
+import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.nimbusds.jose.JWSObject;
@@ -44,6 +46,8 @@ import org.slf4j.LoggerFactory;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -66,10 +70,12 @@ public class OIDCAuthenticationManager {
     private ImmutableAuthenticationProviders authProviders;
 
     public OIDCAuthenticationManager(CoordinatorClient coordinator, DbClient dbClient, ImmutableAuthenticationProviders authProviders) {
+        this.coordinator = coordinator;
         this.dbClient = dbClient;
         this.permissionsHelper = new BasePermissionsHelper(dbClient);
         this.authProviders = authProviders;
         HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(coordinator));
+        HTTPRequest.setDefaultHostnameVerifier(new CustomHostnameVerifier());
         log.info("Set default ssl socket factory to vipr's");
     }
 
@@ -237,5 +243,17 @@ public class OIDCAuthenticationManager {
 
     public void verifyAuthModeForOIDC() {
         // TODO, throw exception if not oidc mode
+    }
+
+    public class CustomHostnameVerifier implements HostnameVerifier {
+
+        @Override
+        public boolean verify(String s, SSLSession sslSession) {
+            log.info("Entering CustomHostnameVerifier. Host name is {} and name from session is {}", s, sslSession.getPeerHost());
+            if (KeyStoreUtil.getAcceptAllCerts(new CoordinatorConfigStoringHelper(coordinator))) {
+                return true;
+            }
+            return false;
+        }
     }
 }

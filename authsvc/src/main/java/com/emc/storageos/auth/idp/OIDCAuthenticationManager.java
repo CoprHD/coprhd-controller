@@ -251,6 +251,7 @@ public class OIDCAuthenticationManager {
         public boolean verify(String s, SSLSession sslSession) {
             log.info("Entering CustomHostnameVerifier. Host name is {} and name from session is {}", s, sslSession.getPeerHost());
             if (KeyStoreUtil.getAcceptAllCerts(new CoordinatorConfigStoringHelper(coordinator))) {
+                log.info("The system is set to accept all. Ingore host name verifying");
                 return true;
             }
             return false;

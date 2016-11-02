@@ -130,10 +130,8 @@ public class KeyStoreUtil {
                 log.warn("failed to set " + ACCEPT_ALL_CERTIFICATES_KEY
                         + "to true.");
             }
-            log.info("333333333");
             return true;
         }
-        log.info("444444444444 {}", accepetAllCert);
         return accepetAllCert;
     }
 

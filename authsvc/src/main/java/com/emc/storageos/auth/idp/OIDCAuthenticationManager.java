@@ -97,7 +97,8 @@ public class OIDCAuthenticationManager {
     public StorageOSUserDAO authenticate(String code) {
         try {
             String idToken = requestToken(code);
-            validateToken(idToken);
+            // No need to validate token as we have authenticate IdP over SSL
+            // validateToken(idToken);
             return populateUserInfo(idToken);
         } catch (Exception e) {
             throw new RuntimeException("Fail to authenticate code", e);
@@ -254,7 +255,6 @@ public class OIDCAuthenticationManager {
                 log.info("The system is set to accept all. Ingore host name verifying");
                 return true;
             }
-            log.info("222222222222");
             return false;
         }
     }

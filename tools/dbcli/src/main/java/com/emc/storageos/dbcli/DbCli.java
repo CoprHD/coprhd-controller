@@ -17,6 +17,9 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.common.DataObjectScanner;
@@ -71,6 +74,7 @@ public class DbCli {
 
     Document doc = null;
     Element schemaNode = null;
+    DependencyTracker dependencyTracker = null;
 
     public enum DbCliOperation {
         LIST, DUMP, LOAD, CREATE
@@ -121,7 +125,14 @@ public class DbCli {
         _dbClient.setBypassMigrationLock(skipMigrationCheck);
         _dbClient.start();
     }
-
+    /**used to initiate one time mapping */
+    public void loadDependencyGraphFromDatabase()
+    {
+        if (_dependencyChecker == null) {
+            dependencyTracker = dataObjectscanner.getDependencyTracker();
+            _dependencyChecker = new DependencyChecker(_dbClient, dependencyTracker);
+        }
+    }
     /**
      * Print column families.
      */
@@ -187,6 +198,8 @@ public class DbCli {
             log.error("Caught Exception: ", e);
         }
     }
+    
+   
 
     /**
      * Load xml file and save model object into Cassandra.
@@ -989,6 +1002,84 @@ public class DbCli {
             return null;
         }
         return clazz;
+    }
+
+    /** 
+     * 
+     * @param string
+     */
+    public void generateDynamicDependencyGraph(String columnFamilyName, List<String> includedCFs, URI objectURI,
+            CFCommandObject cmdObject) {
+        Class clazz = getClassFromCFName(columnFamilyName);
+        log.info("Getting default dependency graph for given Column family {}", columnFamilyName);
+        List<DependencyTracker.Dependency> dependencies = dependencyTracker.getDependencies(clazz);
+
+        List<Class<? extends DataObject>> clazzList = new ArrayList<Class<? extends DataObject>>();
+        for (String includedCF : includedCFs) {
+            clazzList.add(getClassFromCFName(includedCF));
+        }
+
+        for (DependencyTracker.Dependency dependency : dependencies) {
+            // if (includedCFs != null) {
+            // if (clazzList.contains(dependency.getType())) {
+            log.info("Including dependency class {}", dependency.getType());
+            ContainmentConstraint constraint = new ContainmentConstraintImpl(objectURI, dependency.getType(),
+                    dependency.getColumnField());
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(constraint, list);
+            if (list.iterator().hasNext()) {
+                URI dependentURI = list.iterator().next();
+                log.info("Dependency found for {} : {}", objectURI, dependentURI);
+
+                if (cmdObject.getFirstChildCmdObject() == null) {
+                    CFCommandObject firstChildCmdObject = new CFCommandObject();
+                    firstChildCmdObject.setDbClient(_dbClient);
+                    firstChildCmdObject.setObjectURI(dependentURI);
+                    firstChildCmdObject.setParent(cmdObject);
+
+                    cmdObject.setFirstChildCmdObject(firstChildCmdObject);
+                    log.info("Setting  first child {} for parent {}", new Object[] {dependentURI,  cmdObject.getObjectURI(),
+                    });
+
+                    generateDynamicDependencyGraph(columnFamilyName, includedCFs, dependentURI, firstChildCmdObject);
+
+                } else {
+                    CFCommandObject siblingCmdObject = new CFCommandObject();
+                    siblingCmdObject.setDbClient(_dbClient);
+                    siblingCmdObject.setObjectURI(dependentURI);
+                    siblingCmdObject.setParent(cmdObject);
+
+                    cmdObject.getFirstChildCmdObject().getSiblingCmdObjectList().add(siblingCmdObject);
+
+                    log.info("Setting sibling {} for first child {}", new Object[] {dependentURI,  cmdObject.getFirstChildCmdObject().getObjectURI(),
+                            });
+                    generateDynamicDependencyGraph(columnFamilyName, includedCFs, dependentURI, siblingCmdObject);
+                }
+
+            }
+
+            // }//
+            // }//
+            // Query relational index to see if any dependents exist
+
+        }
+
+    }
+
+    public void generateAndExecuteDependencyChain(CFCommandObject rootCmdObject, LinkedList<CFCommandObject> chain) {
+        // Run Depth first Search starting from root Node
+        if (null == rootCmdObject) {
+            return;
+        }
+
+        generateAndExecuteDependencyChain(rootCmdObject.getFirstChildCmdObject(), chain);
+
+        for (CFCommandObject sibling : rootCmdObject.getFirstChildCmdObject().getSiblingCmdObjectList()) {
+            generateAndExecuteDependencyChain(sibling, chain);
+        }
+
+        chain.add(rootCmdObject);
+
     }
 
 }

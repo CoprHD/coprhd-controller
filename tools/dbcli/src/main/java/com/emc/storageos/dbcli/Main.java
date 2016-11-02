@@ -6,12 +6,18 @@
 package com.emc.storageos.dbcli;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+
+import com.google.common.base.Joiner;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -111,6 +117,17 @@ public class Main {
                 }
                 return 0;
             }
+        },
+        SHOW_DEPENDENCY_GRAPH{
+
+            @Override
+            int validArgs(String[] args) {
+                if (args.length < 1) {
+                    throw new IllegalArgumentException("Invalid command:need at least 1 arguments");
+                }
+                return 0;
+            }
+            
         };
 
         abstract int validArgs(String[] args);
@@ -272,6 +289,38 @@ public class Main {
                     } catch (Exception e) {
                         System.out.println(String.format("Exception %s%n in load file:%s into database.", e, fileName));
                         log.error("Exception in loading file{} into database.", fileName, e);
+                    }
+                    break;
+                case SHOW_DEPENDENCY_GRAPH:
+                    cmd.validArgs(args);
+                    
+                    // Arg 1- Clazz Type ;
+                    // Arg 2 - URI ;
+                    // Arg3 optional - comma separated Clazz types to include in dependency tree.
+                   
+                    cfName = args[0];
+                    String id = args[1];
+                    String[] includedColumnFamilyNames = args[2].split(",");
+                    CFCommandObject rootCmdObject = new CFCommandObject();
+                    rootCmdObject.setParent(null);
+                    rootCmdObject.setObjectURI(URI.create(id));
+                    
+                    dbCli.initDbClient();
+                    dbCli.loadDependencyGraphFromDatabase();
+                    
+                    LinkedList<CFCommandObject> chain = new LinkedList<CFCommandObject>();
+                    try {
+                        
+                        dbCli.generateDynamicDependencyGraph(cfName,
+                                Arrays.asList(includedColumnFamilyNames), URI.create(id), rootCmdObject);
+                        dbCli.generateAndExecuteDependencyChain(rootCmdObject, chain);
+                       System.out.println("Processed Chain : "+ Joiner.on("@@@").join(chain));
+                       while(chain.iterator().hasNext()) {
+                           CFCommandObject cmdObject = chain.iterator().next();
+                           cmdObject.execute(CFCommandObject.Operations.INVENTORY_DELETE);
+                       }
+                    } catch (Exception e) {
+                        System.out.println(String.format("Exception %s%n in generating dependency graph from database.", e));
                     }
                     break;
                 default:

@@ -30,6 +30,7 @@ public class SysClientFactory {
     private static final Logger _log = LoggerFactory.getLogger(SysClient.class);
     public static final URI URI_GET_IMAGE = URI.create("/upgrade/internal/image");
     public static final URI URI_WAKEUP_UPGRADE_MANAGER = URI.create("/upgrade/internal/wakeup?type=upgrade");
+    public static final URI URI_GET_DRIVER = URI.create("/storagedriver/internal/download");
     public static final URI URI_WAKEUP_SECRETS_MANAGER = URI.create("/upgrade/internal/wakeup?type=secrets");
     public static final URI URI_WAKEUP_PROPERTY_MANAGER = URI.create("/upgrade/internal/wakeup?type=property");
     public static final URI URI_WAKEUP_VDC_MANAGER = URI.create("/upgrade/internal/wakeup?type=vdc");

@@ -37,6 +37,7 @@ import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
+import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.Strings;
@@ -458,6 +459,45 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_STOP, serviceName };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
+    public Set<String> getLocalDrivers() {
+        File driverDir = new File(StorageDriverManager.DRIVER_DIR);
+        if (!driverDir.exists() || !driverDir.isDirectory()) {
+            driverDir.mkdir();
+            _log.info("Drivers directory: {} has been created", StorageDriverManager.DRIVER_DIR);
+            return new HashSet<String>();
+        }
+        File[] driverFiles = driverDir.listFiles();
+        Set<String> drivers = new HashSet<String>();
+        for (File driver : driverFiles) {
+            drivers.add(driver.getName());
+        }
+        return drivers;
+    }
+
+    public void removeStorageDriver(String driverName) {
+        File driverFile = new File(StorageDriverManager.DRIVER_DIR + driverName);
+        if (!driverFile.exists()) {
+            return;
+        }
+        if (!driverFile.delete()) {
+            _log.error("Failed to remove storage driver {}", driverName);
+        }
+    }
+
+    /**
+     * Restart a service remotely
+     * @param nodeId
+     * @param serviceName
+     */
+    public void remoteRestartService(String nodeId, String serviceName) {
+        final String prefix = String.format("remote restart(): serviceName=%s on %s",serviceName, nodeId);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RESTART, serviceName};
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }

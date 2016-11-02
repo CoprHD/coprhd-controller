@@ -152,6 +152,7 @@ public class StorageDriverManager {
         boolean needRestart = false;
         // If driver to install has been on every node, set to active
         List<StorageSystemType> installingTypes = queryDriversByStatus(StorageSystemType.STATUS.INSTALLING);
+        log.info("Installing storage system types: {}", concatStorageSystemTypeNames(installingTypes));
         for (StorageSystemType type : installingTypes) {
             boolean finished = true;
             for (StorageDriversInfo info : infos) {
@@ -169,6 +170,7 @@ public class StorageDriverManager {
         }
         // if driver to uninstall has been deleted on every node, dete it in db
         List<StorageSystemType> uninstallingTypes = queryDriversByStatus(StorageSystemType.STATUS.UNISNTALLING);
+        log.info("Uninstalling storage system types: {}", concatStorageSystemTypeNames(uninstallingTypes));
         for (StorageSystemType type : uninstallingTypes) {
             boolean finished = true;
             for (StorageDriversInfo info : infos) {
@@ -185,6 +187,7 @@ public class StorageDriverManager {
         }
         // handle upgrading ones
         List<StorageSystemType> upgradingTypes = queryDriversByStatus(StorageSystemType.STATUS.UPGRADING);
+        log.info("Upgrading storage system types: {}", concatStorageSystemTypeNames(upgradingTypes));
         for (StorageSystemType type : upgradingTypes) {
             // TODO if found new meta data in ZK, insert it to db and delete it
             // from zk
@@ -195,6 +198,19 @@ public class StorageDriverManager {
         if (needRestart) {
             restartControllerServices();
         }
+    }
+
+    private String concatStorageSystemTypeNames(List<StorageSystemType> types) {
+        if (types == null || types.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append('[');
+        for (StorageSystemType type : types) {
+            builder.append(type.getStorageTypeName()).append(',');
+        }
+        builder.setCharAt(builder.length() - 1, ']');
+        return builder.toString();
     }
 
     private List<StorageDriversInfo> getDriversInfo(String siteId) {
@@ -376,10 +392,6 @@ public class StorageDriverManager {
                 // remove drivers and restart controller service
                 toRemove = minus(localDriverFiles, targetDriverFiles);
                 toDownload = minus(targetDriverFiles, localDriverFiles);
-                if (toRemove.isEmpty() && toDownload.isEmpty()) {
-                    log.info("Local installed drivers list is synced with target, return");
-                    return;
-                }
 
                 if (!toRemove.isEmpty()) {
                     removeDrivers(toRemove);

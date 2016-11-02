@@ -240,7 +240,6 @@
 
     <bean id="driverManager" class="com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager">
         <property name="coordinator" ref="coordinatorclientext" />
-        <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo" />
     </bean>

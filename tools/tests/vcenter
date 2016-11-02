@@ -17,7 +17,6 @@ def vcenter_create(args):
     bourne.connect(args.ip)
     task = bourne.vcenter_create(args.label, args.tenant, args.ipaddress, 
                args.port, args.username, args.password, args.osversion, args.ssl)
-    print task
 
 def vcenter_delete(args):
     bourne.connect(args.ip)

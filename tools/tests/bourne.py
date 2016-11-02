@@ -141,6 +141,13 @@ URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
 
+URI_EVENT                   = URI_VDC    + "/events"
+URI_EVENT_GET               = URI_EVENT    + '/{0}'
+URI_EVENT_LIST              = URI_EVENT  + '?tenant={0}'
+URI_EVENT_DELETE            = URI_EVENT_GET + "/deactivate"
+URI_EVENT_APPROVE           = URI_EVENT_GET + "/approve"
+URI_EVENT_DECLINE           = URI_EVENT_GET + "/decline"
+
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
 URI_IPSEC_KEY               = '/ipsec/key'
@@ -8377,6 +8384,30 @@ class Bourne:
 	uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
 	return self.api('GET', uri_initiator_task.format(uri, task))
 
+    #
+    # Actionable Events
+    #
+    def event_show(self, uri):
+        return self.api('GET', URI_EVENT_GET.format(uri))
+
+    def event_delete(self, uri):
+        return self.api('POST', URI_EVENT_DELETE.format(uri))
+
+    def event_approve(self, uri):
+        return self.api('POST', URI_EVENT_APPROVE.format(uri))
+
+    def event_decline(self, uri):
+        return self.api('POST', URI_EVENT_DECLINE.format(uri))
+
+    def event_list(self, tenant):
+        uri = self.__tenant_id_from_label(tenant)
+        o = self.api('GET', URI_EVENT_LIST.format(uri))
+        if (not o):
+            return {}
+        return o['event']
+
+
+    
     #
     # Compute Resources - host initiator
     #

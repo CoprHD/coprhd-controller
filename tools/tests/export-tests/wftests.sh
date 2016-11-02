@@ -993,23 +993,39 @@ unity_setup()
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
+vmax3_sim_setup() {
+    VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
+    VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
+    VMAX_SMIS_PORT=5889
+    SMIS_USER=$SMIS_USER
+    SMIS_PASSWD=$SMIS_PASSWD
+    VMAX_SMIS_SSL=true
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
+}
+
 vmax2_setup() {
     SMISPASS=0
+
+    if [ "${SIM}" = "1" ]; then
+	vmax3_sim_setup
+    fi
+ 
     # do this only once
     echo "Setting up SMIS for VMAX2"
     storage_password=$SMIS_PASSWD
 
-    run smisprovider create VMAX2-PROVIDER $VMAX2_DUTEST_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
+    run smisprovider create $VMAX_PROVIDER_NAME $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THIN_ONLY
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
     if [ "${SIM}" = "1" ]; then
-       run storageport update $VMAX2_DUTEST_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+       run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
     fi
 
     common_setup
@@ -1025,11 +1041,11 @@ vmax2_setup() {
 	--expandable true                       \
 	--neighborhoods $NH                    
 
-    run cos update block $VPOOL_BASE --storage ${VMAX2_DUTEST_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
 }
 
 vmax3_sim_setup() {
-    VMAX_PROVIDER_NAME=VMAX-PROVIDER-SIM
+    VMAX_PROVIDER_NAME=VMAX3-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
     VMAX_SMIS_PORT=7009
     SMIS_USER=$SMIS_USER
@@ -1408,8 +1424,8 @@ xio_setup() {
 
 host_setup() {
     run project create $PROJECT --tenant $TENANT 
-    echo "Project $PROJECT created."
-    echo "Setup ACLs on neighborhood for $TENANT"
+    secho "Project $PROJECT created."
+    secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
 
     run transportzone add $NH/${FC_ZONE_A} $H1PI1
@@ -1532,6 +1548,7 @@ setup() {
 
     run cos allow $VPOOL_BASE block $TENANT
     sleep 30
+    reset_system_props
     run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
@@ -1650,7 +1667,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_006"
+    # failure_injections="failure_006:failure_013"
 
     for failure in ${failure_injections}
     do
@@ -3966,7 +3983,7 @@ then
     setup=1;
     shift 1;
 elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+    if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
 	echo "Setting up testing based on simulators"
 	SIM=1;
 	ZONE_CHECK=0;

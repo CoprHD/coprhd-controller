@@ -528,12 +528,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
 
+        // Set snapshot type.
+        String snapshotType = param.getType();
+        if (snapshotType == null) {
+            // default to NATIVE snap type
+            snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
+        }
+
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
         Table<URI, String, List<Volume>> storageRgToVolumes = null;
 
-        if (param.getType() == null || param.getType().equalsIgnoreCase(TechnologyType.NATIVE.name())) {
+        // If we are dealing with a native CG snapshot, we need to collect the replication group information
+        if (snapshotType.equalsIgnoreCase(TechnologyType.NATIVE.name())) {
             // Validate CG information in the request
             validateVolumesInReplicationGroups(consistencyGroup, param.getVolumes(), _dbClient);
 
@@ -551,7 +559,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // Validation replication group volumes to ensure there aren't mixed meta and non-meta devices
             validateReplicationGroupDevices(storageRgToVolumes);
         } else if (TechnologyType.RP.name().equalsIgnoreCase(param.getType())) {
-            // Get all the active RP source volumes
+            // This is an RP CG bookmark request so get all the active RP source volumes
             List<Volume> sourceVolumes = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup, _dbClient,
                     PersonalityTypes.SOURCE);
 
@@ -562,13 +570,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             if (sourceVolumes != null && !sourceVolumes.isEmpty()) {
                 storageRgToVolumes.put(sourceVolumes.get(0).getProtectionController(), consistencyGroup.getLabel(), sourceVolumes);
             }
-        }
-
-        // Set snapshot type.
-        String snapshotType = param.getType();
-        if (snapshotType == null) {
-            // default to NATIVE snap type
-            snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         }
 
         TaskList taskList = new TaskList();

@@ -113,7 +113,7 @@ public class OIDCAuthenticationManager {
 
         JSONObject jsonIdToken = JWSObject.parse(idToken).getPayload().toJSONObject();
         String sub = (String) jsonIdToken.get("sub");
-        JSONArray groups = (JSONArray) jsonIdToken.get("http://www.watch4net.com/openid/roles");
+        JSONArray groups = (JSONArray) jsonIdToken.get("http://www.watch4net.com/openid/groups");
         log.info("the user info: {}, {}", sub, groups.toString());
 
         StorageOSUserDAO userInfo = new StorageOSUserDAO();
@@ -227,7 +227,7 @@ public class OIDCAuthenticationManager {
             throw APIException.internalServerErrors.failToRequestIdToken(error.getDescription());
         }
 
-        return ( (OIDCTokenResponse) tokenResponse).getOIDCTokens().toString();
+        return ( (OIDCTokenResponse) tokenResponse).getOIDCTokens().getIDTokenString();
     }
 
     public AuthnProvider getOidcAuthProvider() {

@@ -2324,15 +2324,15 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     $scope.$watchCollection('[guideVisible, guideMode]', function(newValues) {
-         var guideVisible = newValues[0];
-         var guideMode = newValues[1];
-         var body = $(document.body);
-         if (guideVisible && guideMode === "full") {
-             body.addClass('noscroll');
-             window.scrollTo(0, 0);
-         } else {
-             body.removeClass('noscroll');
-         }
+        var guideVisible = newValues[0];
+        var guideMode = newValues[1];
+        var body = $(document.body);
+        if (guideVisible && guideMode === "full") {
+            body.addClass('noscroll');
+            window.scrollTo(0, 0);
+        } else {
+            body.removeClass('noscroll');
+        }
      });
 
     $scope.$watch('guideVisible', function(newValue, oldValue) {

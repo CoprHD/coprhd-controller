@@ -11445,6 +11445,7 @@ application_sim_vpool_setup()
         run cos update block $APP_VPOOL_VMAX2_VPLEX_DIST --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_VPLEX_DIST block $TENANT
 
+        # Create CoS for VMAX2 RP target
         run cos create block $APP_VPOOL_VMAX2_BLOCK_RPTGT               \
             --description 'Consistency-Group-Block-rp-tgt-VMAX2-CoS' false   \
                             --protocols FC        \
@@ -11456,6 +11457,7 @@ application_sim_vpool_setup()
         run cos update block $APP_VPOOL_VMAX2_BLOCK_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID2
         run cos allow $APP_VPOOL_VMAX2_BLOCK_RPTGT block $TENANT
 
+        # Create CoS for VMAX2 + RP block
         run cos create block $APP_VPOOL_VMAX2_BLOCK_RPSRC               \
             --description 'Consistency-Group-Block-rp-src-VMAX2-CoS' false   \
                             --protocols FC        \
@@ -11471,6 +11473,60 @@ application_sim_vpool_setup()
 
         run cos update block $APP_VPOOL_VMAX2_BLOCK_RPSRC --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_BLOCK_RPSRC block $TENANT
+
+        # Create CoS for VMAX2 + vplex local RP target
+        run cos create block $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT \
+            --description 'Consistency-Group-Block-VMAX2-VPLEX-local-rptgt-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY3        \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID3
+        run cos allow $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT block $TENANT
+
+        # Create CoS for VMAX2 + RP + vplex local
+        run cos create block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL \
+            --description 'Consistency-Group-Block-VMAX2-RP-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency	\
+                            --protectionCoS $APP_VARRAY3':'$APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+                            #--neighborhoods $APP_VARRAY2        \
+                            #--protectionCoS $APP_VARRAY1':'$APP_VPOOL_VMAX2_VPLEX_LOCAL':min' \
+        #run cos update block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID2
+        run cos update block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL block $TENANT
+
+        # Create CoS for VMAX2 + metropoint
+        run cos create block $APP_VPOOL_VMAX2_METROPOINT \
+            --description 'Consistency-Group-Block-VMAX2-Metropoint-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_distributed \
+                            --haNeighborhood $APP_VARRAY2 \
+                            --haCos $APP_VPOOL_VMAX2_HA \
+                            --multiVolumeConsistency	\
+                            --protectionCoS $APP_VARRAY3':'$APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+        run cos update block $APP_VPOOL_VMAX2_METROPOINT --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_METROPOINT block $TENANT
 
     fi
 
@@ -11552,6 +11608,7 @@ application_setup()
         APPLICATION_VNX1_NATIVEGUID=$APP_SIMULATOR_VNX_NATIVEGUID
         APPLICATION_VMAX2_NATIVEGUID1=$APP_SIMULATOR_VMAX2_NATIVEGUID1
         APPLICATION_VMAX2_NATIVEGUID2=$APP_SIMULATOR_VMAX2_NATIVEGUID2
+        APPLICATION_VMAX2_NATIVEGUID3=$APP_SIMULATOR_VMAX2_NATIVEGUID3
         APPLICATION_VMAX3_NATIVEGUID1=$APP_SIMULATOR_VMAX3_NATIVEGUID1
         APPLICATION_VMAX3_NATIVEGUID2=$APP_SIMULATOR_VMAX3_NATIVEGUID2
         recoverpoint_simulator_varsetup
@@ -12018,6 +12075,50 @@ application_tests()
             application_copy_tests
             application_deleteall
             secho "completed running block rp tests"
+            APP_RESTORE_SUPPORTED=1
+        fi
+        if [ $APPLICATION_TEST_RP_VPLEX_LOCAL -eq 1 ]; then
+            secho "running rp vplex local tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_RP_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            # issue is RP never sees the CG come back to active after adding rsets backafter retore
+            APP_RESTORE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running rp vplex local tests"
+            APP_RESTORE_SUPPORTED=1
+        fi
+        if [ $APPLICATION_TEST_RP_METROPOINT -eq 1 ]; then
+            secho "running metropoint vplex  tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_METROPOINT
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            # issue is RP never sees the CG come back to active after adding rsets backafter retore
+            APP_RESTORE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running metropoint tests"
             APP_RESTORE_SUPPORTED=1
         fi
     fi
@@ -13222,6 +13323,17 @@ arrayaffinity_tests()
     secho "Completed array affinity tests"
 }
 
+check_for_pending_tasks()
+{
+    tasks=`task list --state ready | awk 'NR>2 {print $0}'`
+    if [[ $tasks != "" ]]; then
+        echo "Pending Tasks Exist:"
+        echo "${tasks}"
+        return 0
+    fi
+    return 1
+}
+
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run
 DO_TESTS_ONLY=${DO_TESTS_ONLY:-0}
 if [ $DO_TESTS_ONLY -eq 0 ]; then
@@ -13235,4 +13347,10 @@ if [ $WS_SETUP_MODE -eq 1 ] ; then
     output_conf
 fi
 
-_success
+if check_for_pending_tasks; then
+    echo "sanity failure because pending tasks exist"
+    _failure
+else
+    _success
+fi
+

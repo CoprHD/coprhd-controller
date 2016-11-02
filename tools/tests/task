@@ -72,11 +72,16 @@ def task_show(args):
 def task_list(args):
     bourne.connect(args.ip)
     task_display_hdr()
-    res = bourne.task_list()
+    if (args.system):
+        res = bourne.task_list_system()
+    else:
+        res = bourne.task_list()
     tasks = res['task']
     for r in tasks:
         task = bourne.task_show(r['id'])
-        task_display(task)
+        state = task['state']
+        if (not args.state or state in args.state.split(',')):
+            task_display(task)
 
 def task_bulkget(args):
     bourne.connect(args.ip)
@@ -147,6 +152,8 @@ show.add_argument('id',	help = 'URI of task')
 
 # task list project
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('--system', action='store_true', help = 'List system tasks')
+list.add_argument('--state', help = 'List tasks matching a list of states')
 
 # task bulkget
 bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

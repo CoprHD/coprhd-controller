@@ -35,15 +35,6 @@ Usage()
     exit 2
 }
 
-#
-# VMware Configuration (remove once sanity.conf is updated)
-#
-#
-VCENTER_SIMULATOR_IP=${HW_SIMULATOR_IP}
-VCENTER_SIMULATOR_PORT=7230
-VCENTER_SIMULATOR_USERNAME=administrator
-VCENTER_SIMULATOR_PASSWORD=password
-
 # Extra debug output
 DUTEST_DEBUG=${DUTEST_DEBUG:-0}
 

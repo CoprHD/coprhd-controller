@@ -2323,7 +2323,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $window.location.reload(true);
     }
 
-     $scope.$watchCollection('[guideVisible, guideMode]', function(newValues) {
+    $scope.$watchCollection('[guideVisible, guideMode]', function(newValues) {
          var guideVisible = newValues[0];
          var guideMode = newValues[1];
          var body = $(document.body);
@@ -2334,7 +2334,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
              body.removeClass('noscroll');
          }
      });
-
 
     $scope.$watch('guideVisible', function(newValue, oldValue) {
         if (newValue != oldValue){

@@ -254,6 +254,7 @@ public class OIDCAuthenticationManager {
                 log.info("The system is set to accept all. Ingore host name verifying");
                 return true;
             }
+            log.info("222222222222");
             return false;
         }
     }

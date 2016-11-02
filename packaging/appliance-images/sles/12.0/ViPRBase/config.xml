@@ -11,7 +11,7 @@
     <profile name="base" description="ADG default"/>
   </profiles>
   <preferences>
-    <version>__VERSION__</version>
+    <version>0.0.0</version>
     <packagemanager>zypper</packagemanager>
     <bootsplash-theme>SLES</bootsplash-theme>
     <bootloader-theme>SLES</bootloader-theme>

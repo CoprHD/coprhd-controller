@@ -1009,6 +1009,13 @@ vmax2_setup() {
     run smisprovider create $VMAX_PROVIDER_NAME $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
+    # Remove all arrays that aren't VMAX_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    do
+	run storagedevice deregister SYMMETRIX+${id}
+	run storagedevice delete SYMMETRIX+${id}
+    done
+
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
@@ -1060,7 +1067,7 @@ vmax3_setup() {
     run smisprovider create $VMAX_PROVIDER_NAME $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
-    # Remove all arrays that aren't VNXB_NATIVEGUID
+    # Remove all arrays that aren't VMAX_NATIVEGUID
     for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     do
 	run storagedevice deregister SYMMETRIX+${id}
@@ -1516,19 +1523,21 @@ setup() {
 	    VMAX_SMIS_IP=${VMAX2_DUTEST_SMIS_IP}
 	fi
 
-        echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
-        echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
+	if [ "${SIM}" != "1" ]; then
+            echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
+            echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
 
-        echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
-        symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
-        echo $symapi_verify
-        result=`$symapi_verify`
-        if [ $? -ne 0 ]; then
-            echo "SYMAPI verification failed: $result"
-            echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
-            exit 1
-        fi
-        echo $result
+            echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
+            symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
+            echo $symapi_verify
+            result=`$symapi_verify`
+            if [ $? -ne 0 ]; then
+		echo "SYMAPI verification failed: $result"
+		echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
+		exit 1
+            fi
+            echo $result
+	fi
     fi
 
     if [ "${SIM}" != "1" ]; then
@@ -1651,14 +1660,15 @@ test_1() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_006:failure_013"
+    failure_injections="failure_015"
 
     for failure in ${failure_injections}
     do

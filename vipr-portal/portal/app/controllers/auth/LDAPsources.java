@@ -23,6 +23,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import java.net.URI;
 import java.util.*;
 
+import com.emc.storageos.api.service.impl.resource.AuthnConfigurationService;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
@@ -184,12 +185,7 @@ public class LDAPsources extends ViprResourceController {
     public static void create() {
         LDAPsourcesForm ldapSources = new LDAPsourcesForm();
         // put all "initial create only" defaults here rather than field initializers
-        edit(ldapSources);
-    }
-
-    private static void edit(LDAPsourcesForm ldapSources) {
-        addReferenceData();
-        render("@edit", ldapSources);
+        editLdapForm(ldapSources);
     }
 
     @FlashException("list")
@@ -201,7 +197,26 @@ public class LDAPsources extends ViprResourceController {
         }
 
         authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
-        edit(new LDAPsourcesForm(authnProvider));
+
+        edit(authnProvider);
+    }
+
+    private static void edit(AuthnProviderRestRep authnProvider) {
+        String mode = authnProvider.getMode();
+        if (mode.equals(AuthnConfigurationService.AuthModeType.oidc)) {
+            editOidcForm(new OIDCAuthnProviderForm());
+        } else {
+            editLdapForm(new LDAPsourcesForm(authnProvider));
+        }
+    }
+
+    private static void editOidcForm(OIDCAuthnProviderForm oidcAuthnProvider) {
+        render("@editOidc", oidcAuthnProvider);
+    }
+
+    private static void editLdapForm(LDAPsourcesForm ldapSources) {
+        addReferenceData();
+        render("@edit", ldapSources);
     }
 
     public static void addTenants(String ldadSourceId, @As(",") String[] ids) {
@@ -237,7 +252,7 @@ public class LDAPsources extends ViprResourceController {
 
         if (ldapSources.autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
             renderArgs.put("showDialog", "true");
-            edit(new LDAPsourcesForm(authnProvider));
+            editLdapForm(new LDAPsourcesForm(authnProvider));
         }
 
         list();
@@ -252,9 +267,10 @@ public class LDAPsources extends ViprResourceController {
         list();
     }
 
-    @SuppressWarnings("ClassVariableVisibilityCheck")
-    public static class LDAPsourcesForm {
-
+    /**
+     * Base class for different types of provider forms
+     */
+    public static abstract class AuthnProviderForm {
         public String id;
 
         @Required
@@ -268,6 +284,15 @@ public class LDAPsources extends ViprResourceController {
         public String description;
 
         public Boolean disable;
+
+        abstract AuthnProviderRestRep save();
+
+        abstract void validate(String fieldName);
+    }
+
+
+    @SuppressWarnings("ClassVariableVisibilityCheck")
+    public static class LDAPsourcesForm extends AuthnProviderForm {
 
         public Boolean autoRegCoprHDNImportOSProjects;
 
@@ -351,6 +376,7 @@ public class LDAPsources extends ViprResourceController {
             this.groupMemberAttributes = Lists.newArrayList(ldapSources.getGroupMemberAttributes());
         }
 
+        @Override
         public AuthnProviderRestRep save() {
             if (isNew()) {
                 return create();
@@ -596,6 +622,19 @@ public class LDAPsources extends ViprResourceController {
             return isBlankOrNull;
         }
 
+    }
+
+    public static class OIDCAuthnProviderForm extends AuthnProviderForm {
+
+        @Override
+        AuthnProviderRestRep save() {
+            return null;
+        }
+
+        @Override
+        void validate(String fieldName) {
+
+        }
     }
 
     public static class LDAPSourcesTenantsDataTable extends OpenStackTenantsDataTable {

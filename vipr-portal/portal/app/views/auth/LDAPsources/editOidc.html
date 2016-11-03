@@ -1,0 +1,96 @@
+%{
+  titleKey = 'LDAPsources.' + (oidcAuthnProvider?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'LDAPsources.description';
+  image = '/public/img/assets/AuthProvider.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.providers'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:oidcAuthnProvider?.id ? true : false/}
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <!--
+  ~ /*
+  ~  * Copyright (c) 2016 EMC Corporation
+  ~  * All Rights Reserved
+  ~  */
+  -->
+
+#{/set}
+
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @save(), id:'oidcProviderForm', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+    #{field 'oidcAuthnProvider.name'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'oidcAuthnProvider.mode'}
+     %{
+        field.options = authSourceTypeList
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup field:field /}
+    #{/field}
+    
+    #{field 'oidcAuthnProvider.description'}
+     %{
+        field.required = false
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    
+    #{field 'oidcAuthnProvider.domains'}
+     %{
+        field.required = true
+        field.value = domainString
+         
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    
+    #{field 'oidcAuthnProvider.serverUrls'}
+     %{
+        field.required = true
+        field.value = serverUrlsString
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    
+    #{field 'oidcAuthnProvider.disable'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+        }%
+      #{Form.booleanCheckBoxControlGroup field:field/}
+    #{/field} 
+
+    </fieldset>
+
+    #{Form.buttonBar}
+    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'submitForm();'/}
+    #{Form.button name:'button.cancel', icon:'trash', size:'large', href:@list()/}
+    #{/Form.buttonBar}
+#{/form}
+
+</div>

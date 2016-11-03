@@ -48,6 +48,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
@@ -58,6 +59,9 @@ import com.google.common.io.Files;
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
 
+@Path("/storagedriver")
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageDriverService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageDriverService.class);

@@ -2590,7 +2590,7 @@ license.type.trial=Limited Use
 licenseFeature.name=Feature
 licenseFeature.type=Type
 licenseFeature.status=Status
-licenseFeature.serial=ViPR Serial Number
+licenseFeature.serial=Software Serial Number
 licenseFeature.expiry=Expiry
 
 consistencyGroups.list.title=Consistency Groups

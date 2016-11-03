@@ -38,6 +38,7 @@ import models.datatable.OpenStackTenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
+import play.Logger;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -64,16 +65,12 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import util.datatable.DataTablesSupport;
 
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN") })
 public class LDAPsources extends ViprResourceController {
-
-    private static Logger log = LoggerFactory.getLogger(LDAPsources.class);
 
     private static String authProviderName = "";
     private static Boolean authProviderAutoReg = false;
@@ -203,9 +200,13 @@ public class LDAPsources extends ViprResourceController {
 
     private static void edit(AuthnProviderRestRep authnProvider) {
         String mode = authnProvider.getMode();
+        Logger.info("The provider's mode is %s", mode);
+
         if (mode.equals(AuthnConfigurationService.AuthModeType.oidc)) {
+            Logger.info("1111111");
             editOidcForm(new OIDCAuthnProviderForm());
         } else {
+            Logger.info("2222222");
             editLdapForm(new LDAPsourcesForm(authnProvider));
         }
     }

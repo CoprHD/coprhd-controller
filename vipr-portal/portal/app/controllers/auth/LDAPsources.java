@@ -625,7 +625,7 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static class OIDCAuthnProviderForm extends AuthnProviderForm {
-        private List<String> domains;
+        public List<String> domains;
 
         public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
             this.id = stringId(authnProvider);

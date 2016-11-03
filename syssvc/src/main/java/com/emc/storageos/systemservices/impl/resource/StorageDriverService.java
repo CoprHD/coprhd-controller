@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -134,6 +135,7 @@ public class StorageDriverService {
         precheckForEnv();
 
         File driverFile = new File(StorageDriverManager.TMP_DIR + fileName);
+        int accSize = 0;
         try {
             OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
             int bytesRead = 0;
@@ -143,11 +145,15 @@ public class StorageDriverService {
                 if (bytesRead == -1) {
                     break;
                 }
+                accSize += bytesRead;
+                if (accSize > MAX_DRIVER_SIZE) {
+                    throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
+                }
                 os.write(buffer, 0, bytesRead);
             }
             uploadedInputStream.close();
             os.close();
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.error("Error happened when uploading driver file", e);
             throw APIException.internalServerErrors.installDriverUploadFailed(e.getMessage());
         }

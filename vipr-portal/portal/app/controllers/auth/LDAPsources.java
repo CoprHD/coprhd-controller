@@ -112,8 +112,6 @@ public class LDAPsources extends ViprResourceController {
 
     /**
      * if it was not redirect from another page, clean flash
-     *
-     * @param redirect
      */
     public static void list() {
         renderArgs.put("dataTable", new LDAPsourcesDataTable());
@@ -200,7 +198,7 @@ public class LDAPsources extends ViprResourceController {
 
     private static void edit(AuthnProviderRestRep authnProvider) {
         String mode = authnProvider.getMode();
-        Logger.info("The provider's mode is %s", mode);
+        Logger.info("The provider's mode is %s, id is %s", mode, authnProvider.getId());
 
         if (mode.equals(AuthnConfigurationService.AuthModeType.oidc.name())) {
             Logger.info("1111111");

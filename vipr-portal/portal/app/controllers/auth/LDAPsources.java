@@ -625,6 +625,7 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static class OIDCAuthnProviderForm extends AuthnProviderForm {
+        private List<String> domains;
 
         public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
             this.id = stringId(authnProvider);
@@ -632,6 +633,8 @@ public class LDAPsources extends ViprResourceController {
             this.mode = authnProvider.getMode();
             this.description = authnProvider.getDescription();
             this.disable = authnProvider.getDisable();
+
+            this.domains = Lists.newArrayList(authnProvider.getDomains());
         }
 
         @Override

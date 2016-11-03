@@ -125,7 +125,7 @@ public class StorageDriverManager {
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            if (StringUtils.equals(type.getStatus(), status.toString())) {
+            if (StringUtils.equals(type.getDriverStatus(), status.toString())) {
                 types.add(type);
             }
         }
@@ -162,7 +162,7 @@ public class StorageDriverManager {
                 }
             }
             if (finished) {
-                type.setStatus(StorageSystemType.STATUS.ACTIVE.toString());
+                type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
                 dbClient.updateObject(type);
                 log.info("update status from installing to active for {}", type.getStorageTypeName());
                 needRestart = true;

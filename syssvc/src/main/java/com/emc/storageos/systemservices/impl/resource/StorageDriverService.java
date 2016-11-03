@@ -172,7 +172,7 @@ public class StorageDriverService {
             // insert meta data int db
             List<StorageSystemType> types = StorageDriverManager.convert(metaData);
             for (StorageSystemType type : types) {
-                type.setStatus(StorageSystemType.STATUS.INSTALLING.toString());
+                type.setDriverStatus(StorageSystemType.STATUS.INSTALLING.toString());
                 type.setIsNative(false);
                 dbClient.createObject(type);
                 log.info("Added storage system type {}, set status to INSTALLING", type.getStorageTypeName());
@@ -413,12 +413,12 @@ public class StorageDriverService {
         List<StorageSystemType> types = listStorageSystemTypes();
 
         for (StorageSystemType type : types) {
-            String statusStr = type.getStatus();
+            String statusStr = type.getDriverStatus();
             if (statusStr == null) {
                 log.info("Bypass type {} as it has no status field value", type.getStorageTypeName());
                 continue;
             }
-            StorageSystemType.STATUS status = Enum.valueOf(StorageSystemType.STATUS.class, type.getStatus());
+            StorageSystemType.STATUS status = Enum.valueOf(StorageSystemType.STATUS.class, type.getDriverStatus());
             if (status.isStorageOperationOngoing()) {
                 opOngoingStorageType = type;
                 break;
@@ -432,7 +432,7 @@ public class StorageDriverService {
                 log.error("Fail to release storage driver operation lock", e);
             }
             throw APIException.internalServerErrors.installDriverPrecheckFailed(String.format("Driver %s is in % state",
-                    opOngoingStorageType.getDriverName(), opOngoingStorageType.getStatus()));
+                    opOngoingStorageType.getDriverName(), opOngoingStorageType.getDriverStatus()));
         }
 
         return lock;

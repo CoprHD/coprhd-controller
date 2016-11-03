@@ -43,7 +43,7 @@ public class StorageSystemType extends DataObject {
     private String driverName;
     private String driverVersion;
     private String driverFileName;
-    private String status;
+    private String driverStatus;
     private Boolean isNative;
 
     // Type of Storage System Types
@@ -92,6 +92,7 @@ public class StorageSystemType extends DataObject {
 
     public void setDriverName(String driverName) {
         this.driverName = driverName;
+        setChanged("driverName");
     }
 
     @Name("driverVersion")
@@ -101,6 +102,7 @@ public class StorageSystemType extends DataObject {
 
     public void setDriverVersion(String driverVersion) {
         this.driverVersion = driverVersion;
+        setChanged("driverVersion");
     }
 
     @Name("driverFileName")
@@ -110,15 +112,17 @@ public class StorageSystemType extends DataObject {
 
     public void setDriverFileName(String driverFileName) {
         this.driverFileName = driverFileName;
+        setChanged("driverFileName");
     }
 
-    @Name("status")
-    public String getStatus() {
-        return status;
+    @Name("driverStatus")
+    public String getDriverStatus() {
+        return driverStatus;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setDriverStatus(String status) {
+        this.driverStatus = status;
+        setChanged("driverStatus");
     }
 
     @Name("isActive")
@@ -128,6 +132,7 @@ public class StorageSystemType extends DataObject {
 
     public void setIsNative(Boolean isNative) {
         this.isNative = isNative;
+        setChanged("isActive");
     }
 
     @Name("storageTypeName")

@@ -211,7 +211,7 @@ public class LDAPsources extends ViprResourceController {
 
     private static void editOidcForm(OIDCAuthnProviderForm oidcAuthnProvider) {
         renderArgs.put("authSourceTypeList", Arrays.asList(EnumOption.options(AuthSourceType.values())));
-        renderArgs.put("domainString", StringUtils.join(Lists.newArrayList(oidcAuthnProvider.domains), "\n"));
+        renderArgs.put("domainString", StringUtils.join(oidcAuthnProvider.domains, "\n"));
         render("@editOidc", oidcAuthnProvider);
     }
 

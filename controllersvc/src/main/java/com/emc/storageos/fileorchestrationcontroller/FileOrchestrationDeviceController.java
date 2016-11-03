@@ -41,7 +41,6 @@ import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.MountInfo;
-import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -1528,99 +1527,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     s_dbClient);
             Map<String, FileShareQuotaDirectory> targetFSQuotaDirMap = FileOrchestrationUtils.getQuotaDirNameToSettingMap(targetFileShare,
                     s_dbClient);
-
-            if (!sourceFSQuotaDirMap.isEmpty() && targetFSQuotaDirMap.isEmpty()) {
-                // target share doesn't have quota dir settings but corresponding share on source have ACL quota dir settings
-                s_logger.info("Target FS doesn't have quota dir settings but corresponding FS on source have quota dir settings.");
-                for (String sourceFSQuotaDirName : sourceFSQuotaDirMap.keySet()) {
-                    FileShareQuotaDirectory quotaDir = sourceFSQuotaDirMap.get(sourceFSQuotaDirName);
-                    s_logger.info("Invoking updateQuotaDirectory on FS: {}, with {}", targetFileShare.getName(), quotaDir);
-                    createQuotaDirOnTarget(workflow, systemTarget, targetFileShare, quotaDir);
-                }
-            } else if (!targetFSQuotaDirMap.isEmpty() && sourceFSQuotaDirMap.isEmpty()) {
-                s_logger.info("Target FS have quota dir settings but corresponding FS on source do not have quota dir settings.");
-                for (String targetFSQuotaDirName : targetFSQuotaDirMap.keySet()) {
-                    FileShareQuotaDirectory quotaDir = targetFSQuotaDirMap.get(targetFSQuotaDirName);
-                    s_logger.info("Invoking updateQuotaDirectory on FS: {}, with {}", targetFileShare.getName(), quotaDir);
-                    createQuotaDirOnTarget(workflow, systemTarget, targetFileShare, quotaDir);
-                }
-            } else if (!sourceFSQuotaDirMap.isEmpty() && !targetFSQuotaDirMap.isEmpty()) {
-                // both source and target FS have some ACL
-                for (String sourceFSACLPath : sourceFSQuotaDirMap.keySet()) {
-
-                    List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
-                    List<NfsACE> aclToDelete = new ArrayList<NfsACE>();
-                    List<NfsACE> aclToModify = new ArrayList<NfsACE>();
-
-                    // Segregate source and target NFS ACL
-                    params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(sourceFSACLPath, sourceFileShare);
-                    List<NfsACE> sourceNFSACL = sourceFSACLMap.get(sourceFSACLPath);
-                    String subDir = params.getSubDir();
-                    String targetFSACLPath = targetFileShare.getPath();
-                    if (subDir != null) {
-                        targetFSACLPath += "/" + subDir;
-                    }
-                    List<NfsACE> targetNFSACL = targetFSACLMap.get(targetFSACLPath);
-
-                    if (targetNFSACL == null) {
-                        targetNFSACL = new ArrayList<NfsACE>();
-                    }
-
-                    HashMap<String, NfsACE> sourceUserToNFSACLMap = FileOrchestrationUtils
-                            .getUserToNFSACEMap(sourceNFSACL);
-
-                    HashMap<String, NfsACE> targetUserToNFSACLMap = FileOrchestrationUtils
-                            .getUserToNFSACEMap(targetNFSACL);
-
-                    // ACL To Add
-                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
-                        if (targetUserToNFSACLMap.get(sourceACEUser) == null) {
-                            NfsACE nfsACE = sourceUserToNFSACLMap.get(sourceACEUser);
-                            aclToAdd.add(nfsACE);
-                        }
-                    }
-
-                    // ACL To Delete
-                    for (String targetACEUser : targetUserToNFSACLMap.keySet()) {
-                        if (sourceUserToNFSACLMap.get(targetACEUser) == null) {
-                            aclToDelete.add(targetUserToNFSACLMap.get(targetACEUser));
-                        }
-                    }
-
-                    // ACL to Modify
-                    targetNFSACL.removeAll(aclToDelete);
-                    sourceNFSACL.removeAll(aclToAdd);
-
-                    sourceUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(sourceNFSACL);
-                    targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
-
-                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
-                        if (targetUserToNFSACLMap.get(sourceACEUser) != null
-                                && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
-                                .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
-
-                            NfsACE ace = targetUserToNFSACLMap.get(sourceACEUser);
-                            ace.setPermissions(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions());
-                            aclToModify.add(ace);
-                        }
-                    }
-
-                    if (!aclToAdd.isEmpty()) {
-                        params.setAcesToAdd(aclToAdd);
-                    }
-                    if (!aclToDelete.isEmpty()) {
-                        params.setAcesToDelete(aclToDelete);
-                    }
-                    if (!aclToModify.isEmpty()) {
-                        params.setAcesToModify(aclToModify);
-                    }
-
-                    if (!params.retrieveAllACL().isEmpty()) {
-                        s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
-                        updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
-                    }
-                }
-            }
 
             String successMessage = String.format(
                     "Replicating source file system : %s, NFS ACL to target file system finished successfully",

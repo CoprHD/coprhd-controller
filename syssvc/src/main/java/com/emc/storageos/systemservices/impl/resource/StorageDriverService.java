@@ -407,6 +407,11 @@ public class StorageDriverService {
         List<StorageSystemType> types = listStorageSystemTypes();
 
         for (StorageSystemType type : types) {
+            String statusStr = type.getStatus();
+            if (statusStr == null) {
+                log.info("Bypass type {} as it has no status field value", type.getStorageTypeName());
+                continue;
+            }
             StorageSystemType.STATUS status = Enum.valueOf(StorageSystemType.STATUS.class, type.getStatus());
             if (status.isStorageOperationOngoing()) {
                 opOngoingStorageType = type;

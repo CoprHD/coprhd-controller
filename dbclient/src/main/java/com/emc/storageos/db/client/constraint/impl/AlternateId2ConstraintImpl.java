@@ -1,7 +1,6 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -26,20 +25,20 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     private final ColumnFamily<String, IndexColumnName2> _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
-    private long startTimeMacros;
-    private long endTimeMacros;
+    private long startTimeMicros;
+    private long endTimeMicros;
 
     private Keyspace _keyspace;
 
-    public AlternateId2ConstraintImpl(ColumnField field, String altId, long sTime, long eTime) {
+    public AlternateId2ConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS) {
         super(field, altId);
         indexSerializer = IndexColumnNameSerializer2.get();
 
         _altIdCf = field.getIndexCF();
         _altId = altId;
         _entryType = field.getDataObjectType();
-        startTimeMacros = sTime*1000L;
-        endTimeMacros = eTime * 1000L;
+        startTimeMicros = startTimeInMS*1000L;
+        endTimeMicros = endTimeInMS * 1000L;
     }
 
     @Override
@@ -55,20 +54,23 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     @Override
     protected RowQuery<String, IndexColumnName2> genQuery() {
         log.info("lbyx: cf={} key={}", _altIdCf.getName(), _altId);
-        log.info("prefix={} startime={} endtime={}", _entryType.getSimpleName(), startTimeMacros, endTimeMacros);
+        log.info("prefix={} startime={} endtime={}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
-        log.info("lbyuu");
+        /*
         try {
+            log.info("lbyuu");
             OperationResult<Integer> count = _keyspace.prepareQuery(_altIdCf).getKey(_altId).getCount().execute();
             log.info("lbyuu count={}", count.getResult());
         }catch (ConnectionException e) {
             log.info("lbyuu");
         }
+        */
+
         return _keyspace.prepareQuery(_altIdCf).getKey(_altId)
                 .withColumnRange(IndexColumnNameSerializer2.get().buildRange()
                         .withPrefix(_entryType.getSimpleName())
-                        .greaterThan(startTimeMacros)
-                        .lessThanEquals(endTimeMacros)
+                        .greaterThan(startTimeMicros)
+                        .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
     }
 

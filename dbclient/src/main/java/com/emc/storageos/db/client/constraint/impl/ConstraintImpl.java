@@ -126,10 +126,8 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
 
     protected abstract <T1> void queryOnePage(final QueryResult<T1> result) throws ConnectionException;
 
-    //protected abstract RowQuery<String, IndexColumnName> genQuery();
     protected abstract RowQuery<String, T> genQuery();
 
-    //protected <T1> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T1> result) {
     protected <T1> void queryWithAutoPaginate(RowQuery<String, T> query, final QueryResult<T1> result) {
         query.autoPaginate(true);
         QueryHitIterator<T1, T> it = getQueryHitIterator(query, result);
@@ -150,14 +148,6 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         return it;
     }
 
-    /*
-    protected boolean reachMaxCount() {
-        // log.info("lbymm30 matchedCount={} maxCount={}", matchedCount, maxCount);
-        return (maxCount >0) && (matchedCount >= maxCount);
-    }
-    */
-
-    //protected abstract URI getURI(Column<IndexColumnName> col);
     protected abstract URI getURI(Column<T> col);
 
     protected abstract <T1> T1 createQueryHit(final QueryResult<T1> result, Column<T> col);

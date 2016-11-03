@@ -25,12 +25,9 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         implements Iterator<T1> {
     private static final Logger log = LoggerFactory.getLogger(QueryHitIterator.class);
 
-    //protected RowQuery<String, IndexColumnName> _query;
     protected RowQuery<String, T2> _query;
-    //protected Iterator<Column<IndexColumnName>> _currentIt;
     protected Iterator<Column<T2>> _currentIt;
 
-    //public QueryHitIterator(RowQuery<String, IndexColumnName> query) {
     public QueryHitIterator(RowQuery<String, T2> query) {
         _query = query;
     }
@@ -41,11 +38,9 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
 
     protected void runQuery() {
         _currentIt = null;
-        //ColumnList<IndexColumnName> result;
         ColumnList<T2> result;
         try {
             result = _query.execute().getResult();
-            log.info("lbytt0 result.isEmpty()={}", result.isEmpty());
         } catch (final ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -79,6 +74,5 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         throw new UnsupportedOperationException();
     }
 
-    //protected abstract T createQueryHit(Column<IndexColumnName> column);
     protected abstract T1 createQueryHit(Column<T2> column);
 }

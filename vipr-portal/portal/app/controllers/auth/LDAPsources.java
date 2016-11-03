@@ -202,7 +202,7 @@ public class LDAPsources extends ViprResourceController {
 
         if (mode.equals(AuthnConfigurationService.AuthModeType.oidc.name())) {
             Logger.info("1111111");
-            editOidcForm(new OIDCAuthnProviderForm());
+            editOidcForm(new OIDCAuthnProviderForm(authnProvider));
         } else {
             Logger.info("2222222");
             editLdapForm(new LDAPsourcesForm(authnProvider));
@@ -624,6 +624,14 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static class OIDCAuthnProviderForm extends AuthnProviderForm {
+
+        public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
+            this.id = stringId(authnProvider);
+            this.name = authnProvider.getName();
+            this.mode = authnProvider.getMode();
+            this.description = authnProvider.getDescription();
+            this.disable = authnProvider.getDisable();
+        }
 
         @Override
         AuthnProviderRestRep save() {

@@ -63,7 +63,7 @@ public class VolumeGroup extends DataObject {
 
     // migration options is a name value pair
     public static final String MIGRATION_TARGET_STORAGE_SYSTEM = "target_storage_system";
-    private StringMap migrationOptions;
+    private StringMap applicationOptions = new StringMap();
 
     public void setMigrationGroupBy(String migrationGroupBy) {
         this.migrationGroupBy = migrationGroupBy;
@@ -148,17 +148,19 @@ public class VolumeGroup extends DataObject {
     }
 
     /**
-     * @return the migrationOptions
+     * @return the applicationOptions
      */
-    @Name("migrationOptions")
-    public StringMap getMigrationOptions() {
-        return migrationOptions;
+    @Name("applicationOptions")
+    public StringMap getApplicationOptions() {
+        return applicationOptions;
     }
 
     /**
      * @param migrationOptions the migrationOptions to set
      */
-    public void setMigrationOptions(StringMap migrationOptions) {
-        this.migrationOptions = migrationOptions;
+    public void setApplicationOptions(StringMap applicationOptions) {
+        this.applicationOptions = applicationOptions;
+        setChanged("applicationOptions");
     }
+
 }

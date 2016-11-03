@@ -1,8 +1,6 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.application;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import javax.cim.CIMObjectPath;
@@ -15,9 +13,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 public class ApplicationComponentsProcessor extends ApplicationStorageGroupProcessor {
     private Logger _logger = LoggerFactory
@@ -36,8 +33,7 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                     .getKey(Constants.DEVICEID).getValue().toString();
             _logger.info(String.format("Processing association information for Masking View: %s", maskingViewName));
             VolumeGroup volumeGroup = null;
-            List<String> initiatorList = new ArrayList<>();
-            List<String> volumeList = new ArrayList<>();
+            String initiatorList = null;
             String targetMaskingGroupInstanceID = null;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
@@ -51,27 +47,47 @@ public class ApplicationComponentsProcessor extends ApplicationStorageGroupProce
                         volumeGroup = new VolumeGroup();
                         volumeGroup.setId(URIUtil.createId(VolumeGroup.class));
                         volumeGroup.setLabel(instanceID);
-                        volumeGroup.setDescription("VMAX Application Storage Group");
+                        volumeGroup.addRoles(_roles);
+                        volumeGroup.setMigrationType(_migrationType);
+                        volumeGroup.setMigrationGroupBy(_migrationGroupBy);
+                        volumeGroup.setDescription(_description);
+                        volumeGroup.setMigrationStatus(VolumeGroup.MigrationStatus.NONE.toString());
                         _dbClient.createObject(volumeGroup);
                     }
                     volumeGroup.setMigrationStatus(VolumeGroup.MigrationStatus.MIGRATIONREADY.toString());
-                    _dbClient.updateObject(volumeGroup);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SE_TARGET_MASKING_GROUP)) {
                     targetMaskingGroupInstanceID = associatedInstancePath
                             .getKey(Constants.INSTANCEID).getValue().toString()
                             .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.SE_STORAGE_HARDWARE_ID)) {
-                    initiatorList.add(associatedInstancePath
-                            .getKey(Constants.INSTANCEID).getValue().toString()
-                            .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS));
-                } else if (associatedInstancePath.toString().contains(SmisConstants.SYMM_STORAGEVOLUME)) {
-                    volumeList.add(associatedInstancePath.getKey(Constants.DEVICEID).getValue().toString());
+                    if (initiatorList != null) {
+                        initiatorList = String.format("%s%s%s", initiatorList, Constants.ID_DELIMITER,
+                                associatedInstancePath
+                                        .getKey(Constants.INSTANCEID).getValue().toString()
+                                        .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS));
+                    } else {
+                        initiatorList = associatedInstancePath
+                                .getKey(Constants.INSTANCEID).getValue().toString()
+                                .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+                    }
                 }
-
             }
-            // Now process the needful information for the Volume Group here...
-            // We have the MaskViewName, portGroupInstanceId, Volume List and initiator List
-
+            String maskViewList = volumeGroup.getApplicationOptions().get("Associated Mask View List");
+            if (maskViewList == null) {
+                volumeGroup.getApplicationOptions().put("Associated Mask View List", maskingViewName);
+            } else {
+                volumeGroup.getApplicationOptions().put("Associated Mask View List",
+                        String.format("%s%s%s", maskViewList, Constants.ID_DELIMITER, maskingViewName));
+            }
+            if (initiatorList != null) {
+                volumeGroup.getApplicationOptions().put(String.format(" Masking View %s has the following initiators", maskingViewName),
+                        initiatorList);
+            }
+            if (targetMaskingGroupInstanceID != null) {
+                volumeGroup.getApplicationOptions().put(String.format("Masking View %s is associated to Port Group", maskingViewName),
+                        targetMaskingGroupInstanceID);
+            }
+            _dbClient.updateObject(volumeGroup);
         } catch (Exception e) {
             _logger.error("Processing association information for Masking Views failed : ", e);
         }

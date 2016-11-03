@@ -18,9 +18,9 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -29,7 +29,6 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 public class ApplicationStorageGroupProcessor extends Processor {
     private Logger _logger = LoggerFactory
             .getLogger(ApplicationStorageGroupProcessor.class);
-    private AccessProfile _profile = null;
     private DbClient _dbClient;
     protected List<Object> _args;
     URI _storageSystemURI = null;
@@ -44,7 +43,6 @@ public class ApplicationStorageGroupProcessor extends Processor {
         try {
             @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
-            _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             String serialID = (String) keyMap.get(Constants._serialID);
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             _logger.info(String.format("Discovering Storage Groups"));
@@ -67,7 +65,11 @@ public class ApplicationStorageGroupProcessor extends Processor {
                         volumeGroup.setMigrationGroupBy(_migrationGroupBy);
                         volumeGroup.setDescription(_description);
                         volumeGroup.setMigrationStatus(VolumeGroup.MigrationStatus.NONE.toString());
+                        volumeGroup.setApplicationOptions(new StringMap());
                         _dbClient.createObject(volumeGroup);
+                    } else {
+                        volumeGroup.getApplicationOptions().clear();
+                        _dbClient.updateObject(volumeGroup);
                     }
                 }
             }

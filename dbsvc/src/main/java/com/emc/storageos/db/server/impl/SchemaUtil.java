@@ -1029,7 +1029,7 @@ public class SchemaUtil {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        String cfname = def.getName();
+        final String cfname = def.getName();
         _log.info("Adding CF: {}", cfname);
         try {
             return pool.executeWithFailover(

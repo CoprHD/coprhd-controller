@@ -1,6 +1,7 @@
 
 dependencies {
     compile library(sblim_cim_client2),
+            library(slf4j),
             "commons-codec:commons-codec:1.7",
 	        project(":errorhandling"),
             project(":serviceutils")

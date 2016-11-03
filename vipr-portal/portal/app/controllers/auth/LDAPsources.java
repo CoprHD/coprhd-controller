@@ -635,6 +635,7 @@ public class LDAPsources extends ViprResourceController {
             this.disable = authnProvider.getDisable();
 
             this.domains = Lists.newArrayList(authnProvider.getDomains());
+            Logger.info("domains %s", this.domains);
         }
 
         @Override

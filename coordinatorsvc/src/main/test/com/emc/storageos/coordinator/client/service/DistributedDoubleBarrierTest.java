@@ -294,7 +294,7 @@ public class DistributedDoubleBarrierTest extends CoordinatorTestBase {
     {
         final Timing                    timing = new Timing();
         ZkConnection zkConnection = createConnection(10 * 1000);
-        CuratorFramework client = zkConnection.curator();
+        final CuratorFramework client = zkConnection.curator();
         
         ExecutorService                 service = Executors.newCachedThreadPool();
         ExecutorCompletionService<Void> completionService = new ExecutorCompletionService<Void>(service);
@@ -355,7 +355,7 @@ public class DistributedDoubleBarrierTest extends CoordinatorTestBase {
         final Timing              timing = new Timing();
         final List<Closeable>     closeables = Lists.newArrayList();
         ZkConnection zkConnection = createConnection(10 * 1000);
-        CuratorFramework client = zkConnection.curator();
+        final CuratorFramework client = zkConnection.curator();
         try
         {
             closeables.add(client);

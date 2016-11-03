@@ -202,7 +202,7 @@ public class LDAPsources extends ViprResourceController {
         String mode = authnProvider.getMode();
         Logger.info("The provider's mode is %s", mode);
 
-        if (mode.equals(AuthnConfigurationService.AuthModeType.oidc)) {
+        if (mode.equals(AuthnConfigurationService.AuthModeType.oidc.name())) {
             Logger.info("1111111");
             editOidcForm(new OIDCAuthnProviderForm());
         } else {

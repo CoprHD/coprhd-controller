@@ -1,0 +1,14 @@
+<div class="buttonbar">
+    <input id="Export" type="button" value="Export" onclick="buildJSON('${_id}');" />
+    <input id="Import" type="button" value="Import" onclick="loadJSON('${_id}');" />
+    <input id="reset" type="button" value="reset" onclick="reset('${_id}');" />
+</div>
+<div id="sb-site-${_id}" class="exampleEditor">
+    <div class="row">
+        <div class="col s12" style="padding: 0 !important;">
+            <div class="parent">
+                <div id="diagramContainer-${_id}" class="jsPlumb-container"></div>
+            </div>
+        </div>
+    </div>
+</div>

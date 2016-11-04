@@ -18,27 +18,32 @@
     <div class="builder-column">
 
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
-            <li class="active"><a href="#tab20" role="tab" data-toggle="tab">Home</a></li>
+            <li class="active"><a href="#tab1" role="tab" data-toggle="tab">Home</a></li>
         </ul>
 
         <div class="tab-content">
-            <div class="buttonbar">
-                <input id="Export" type="button" value="Export" onclick="buildJSON();" />
-                <input id="Import" type="button" value="Import" onclick="loadJSON();" />
-                <input id="reset" type="button" value="reset" onclick="reset();" />
-            </div>
-            <div class="tab-pane fade in active" id="tab20">
-                <div id="sb-site" class="exampleEditor">
-                    <div class="row">
-                        <div class="col s12" style="padding: 0 !important;">
-                            <div class="parent">
-                                <div id="diagramContainer"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="tab-pane fade in active" id="tab1">
+                #{workflowDesigner id:'tab1'/}
             </div>
         </div>
     </div>
 
 </div>
+<script type="text/javascript">
+    function toHTML(tabID){
+        return `<div class="buttonbar">
+    <input id="Export" type="button" value="Export" onclick="buildJSON('`+tabID+`');" />
+    <input id="Import" type="button" value="Import" onclick="loadJSON('`+tabID+`');" />
+    <input id="reset" type="button" value="reset" onclick="reset('`+tabID+`');" />
+</div>
+<div id="sb-site-`+tabID+`" class="exampleEditor">
+    <div class="row">
+        <div class="col s12" style="padding: 0 !important;">
+            <div class="parent">
+                <div id="diagramContainer-`+tabID+`" class="jsPlumb-container"></div>
+            </div>
+        </div>
+    </div>
+</div>`
+    }
+</script>

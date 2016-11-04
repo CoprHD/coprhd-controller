@@ -16,9 +16,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +50,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.model.storagedriver.StorageDriverList;
+import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -55,6 +59,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.systemservices.mapper.StorageDriverMapper;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.google.common.io.Files;
 import com.sun.jersey.core.header.FormDataContentDisposition;
@@ -114,6 +119,31 @@ public class StorageDriverService {
     }
 
     @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public StorageDriverList getStorageDrivers() {
+        Map<String, StorageDriverRestRep> driverMap = new HashMap<String, StorageDriverRestRep>();
+        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (type.getIsNative() == null || type.getIsNative() == true) {
+                // bypass native storage types
+                continue;
+            }
+            String driverName = type.getDriverName();
+            if (driverMap.containsKey(driverName)) {
+                driverMap.get(driverName).getSupportedTypes().add(type.getStorageTypeDispName());
+            } else {
+                driverMap.put(type.getDriverName(), StorageDriverMapper.map(type));
+            }
+        }
+        StorageDriverList driverList = new StorageDriverList();
+        driverList.getDrivers().addAll(driverMap.values());
+        return driverList;
+    }
+
+    @GET
     @Path("/internal/download")
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response getDriver(@QueryParam("name") String name) throws FileNotFoundException {
@@ -140,8 +170,9 @@ public class StorageDriverService {
 
         File driverFile = new File(StorageDriverManager.TMP_DIR + fileName);
         int accSize = 0;
+        OutputStream os = null;
         try {
-            OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
+            os = new BufferedOutputStream(new FileOutputStream(driverFile));
             int bytesRead = 0;
             while (true) {
                 byte[] buffer = new byte[0x10000];
@@ -156,10 +187,17 @@ public class StorageDriverService {
                 os.write(buffer, 0, bytesRead);
             }
             uploadedInputStream.close();
-            os.close();
         } catch (IOException e) {
             log.error("Error happened when uploading driver file", e);
             throw APIException.internalServerErrors.installDriverUploadFailed(e.getMessage());
+        } finally {
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    log.error("Error happened when closing output stream of driver file {}", fileName, e);
+                }
+            }
         }
 
         log.info("Finished uploading driver file");
@@ -174,7 +212,7 @@ public class StorageDriverService {
             Files.move(driverFile, new File(StorageDriverManager.DRIVER_DIR + driverFile.getName()));
 
             // insert meta data int db
-            List<StorageSystemType> types = StorageDriverManager.convert(metaData);
+            List<StorageSystemType> types = StorageDriverMapper.map(metaData);
             for (StorageSystemType type : types) {
                 type.setDriverStatus(StorageSystemType.STATUS.INSTALLING.toString());
                 type.setIsNative(false);

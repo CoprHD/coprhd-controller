@@ -125,14 +125,14 @@ public class StorageSystemType extends DataObject {
         setChanged("driverStatus");
     }
 
-    @Name("isActive")
+    @Name("isNative")
     public Boolean getIsNative() {
         return isNative;
     }
 
     public void setIsNative(Boolean isNative) {
         this.isNative = isNative;
-        setChanged("isActive");
+        setChanged("isNative");
     }
 
     @Name("storageTypeName")

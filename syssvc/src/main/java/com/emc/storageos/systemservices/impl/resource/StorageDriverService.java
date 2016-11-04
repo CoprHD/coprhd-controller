@@ -60,6 +60,10 @@ import com.google.common.io.Files;
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
 
+/**
+ * APIs implementation to storage driver lifecycle management such as install,
+ * uninstall and upgrade.
+ */
 @Path("/storagedriver")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, writeRoles = { Role.SYSTEM_ADMIN,
         Role.RESTRICTED_SYSTEM_ADMIN })

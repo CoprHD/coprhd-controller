@@ -47,6 +47,12 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.google.common.io.Files;
 
+/**
+ * This Manager contains logic including below:
+ *   - Monitor drivers' target list at /config/storagedrivers/global
+ *   - Download/remove local driver to keep aligned with target list
+ *   - Update status of storage system type after operations is done
+ */
 public class StorageDriverManager {
 
     public static final String DRIVER_DIR = "/data/drivers/";
@@ -139,15 +145,17 @@ public class StorageDriverManager {
             log.warn("No all nodes are online, skip updating meta data");
             return;
         }
-//        We don't care if standby sites have finished syncing
-//        for (Site site : drUtil.listStandbySites()) {
-//            List<StorageDriversInfo> standbyInfos = getDriversInfo(site.getUuid());
-//            if (site.getNodeCount() != standbyInfos.size()) {
-//                log.error("There's node down in standby site {}, skip updating meta data", site.getName());
-//                return;
-//            }
-//            infos.addAll(standbyInfos);
-//        }
+        // We don't care if standby sites have finished syncing
+        // for (Site site : drUtil.listStandbySites()) {
+        // List<StorageDriversInfo> standbyInfos =
+        // getDriversInfo(site.getUuid());
+        // if (site.getNodeCount() != standbyInfos.size()) {
+        // log.error("There's node down in standby site {}, skip updating meta
+        // data", site.getName());
+        // return;
+        // }
+        // infos.addAll(standbyInfos);
+        // }
 
         boolean needRestart = false;
         // If driver to install has been on every node, set to active

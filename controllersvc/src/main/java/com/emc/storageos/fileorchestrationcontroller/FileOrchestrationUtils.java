@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
@@ -18,11 +17,9 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ShareACL;
-import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 
 /**
  * File orchestration Utility Class
@@ -269,24 +266,4 @@ public class FileOrchestrationUtils {
         return shareACLMap;
     }
 
-    /**
-     * Query all the quota directories of a fileshare
-     * @param fs the parent fileshare
-     * @param dbClient
-     * @return map of quota directory name to settings map
-     */
-    public static Map<String, FileShareQuotaDirectory> getQuotaDirNameToSettingMap(FileShare fs, DbClient dbClient) {
-
-        Map<String, FileShareQuotaDirectory> quotaDirNameToSettingMap = new HashMap<String, FileShareQuotaDirectory>();
-        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fs.getId());
-        List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, QuotaDirectory.class,
-                containmentConstraint);
-
-        for (Iterator<QuotaDirectory> iterator = fsQuotaDirs.iterator(); iterator.hasNext();) {
-            QuotaDirectory quotaDirectory = iterator.next();
-            FileShareQuotaDirectory quotaDir = new FileShareQuotaDirectory(quotaDirectory);
-            quotaDirNameToSettingMap.put(quotaDirectory.getName(), quotaDir);
-        }
-        return quotaDirNameToSettingMap;
-    }
 }

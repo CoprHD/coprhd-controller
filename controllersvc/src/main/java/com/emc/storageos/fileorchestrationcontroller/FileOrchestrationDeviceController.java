@@ -1496,6 +1496,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
             targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
             targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
+            s_dbClient.updateObject(targetFileShare);
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME, false, taskId, completer);
             updateTargetFileSystem(workflow, systemTarget, targetFileShare);

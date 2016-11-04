@@ -209,26 +209,56 @@ public class ExportGroupState implements Serializable {
         this.removedClusters.add(id);
     }
 
+    /**
+     * Returns Removed Initiators
+     * 
+     * @return {@link Collection}{@link URI}
+     */
     public Collection<URI> getRemovedInitiators() {
         return removedInitiators;
     }
 
+    /**
+     * Returns Removed Hosts
+     * 
+     * @return {@link Collection}{@link URI}
+     */
     public Collection<URI> getRemovedHosts() {
         return removedHosts;
     }
 
+    /**
+     * Returns Removed Clusters
+     * 
+     * @return {@link Collection}{@link URI}
+     */
     public Collection<URI> getRemovedClusters() {
         return removedClusters;
     }
 
+    /**
+     * Returns Added Initiators
+     * 
+     * @return {@link Collection}{@link URI}
+     */
     public Collection<URI> getAddedInitiators() {
         return addedInitiators;
     }
 
+    /**
+     * Returns Added Hosts
+     * 
+     * @return {@link Collection}{@link URI}
+     */
     public Collection<URI> getAddedHosts() {
         return addedHosts;
     }
 
+    /**
+     * Returns Added Clusters
+     * 
+     * @return {@link Collection}{@link URI}
+     */
     public Collection<URI> getAddedClusters() {
         return addedClusters;
     }

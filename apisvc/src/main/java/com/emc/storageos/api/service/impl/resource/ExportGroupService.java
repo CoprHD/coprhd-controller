@@ -752,12 +752,12 @@ public class ExportGroupService extends TaskResourceService {
      * @param newClusters a list to be populated with the updated list of clusters
      * @param newHosts a list to be populated with the updated list of hosts
      * @param newInitiators a list to be populated with the updated list of initiators
-     * @param addedClusters TODO
-     * @param removedClusters TODO
-     * @param addedHosts TODO
-     * @param removedHosts TODO
-     * @param addedInitiators TODO
-     * @param removedInitiators TODO
+     * @param addedClusters new clusters to be added to the given Export Group
+     * @param removedClusters Clusters to be removed from the given Export Group
+     * @param addedHosts New hosts to be added to the give Export Group
+     * @param removedHosts Hosts to be removed from the give Export Group
+     * @param addedInitiators New initiators to be added to the given Export Group
+     * @param removedInitiators Initiators to be removed from the given Export Group
      */
     void validateClientsAndUpdate(ExportGroup exportGroup,
             Project project, Collection<URI> storageSystems,

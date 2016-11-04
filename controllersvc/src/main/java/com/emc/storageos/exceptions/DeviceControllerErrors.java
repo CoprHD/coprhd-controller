@@ -239,4 +239,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError removeVolumeFromMaskFailed(final String volumeURIs);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
 }

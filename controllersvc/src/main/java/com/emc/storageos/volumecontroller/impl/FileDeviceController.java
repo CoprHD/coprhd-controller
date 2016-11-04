@@ -1261,14 +1261,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addStoragePool(pool);
             args.setFileOperation(true);
             args.setOpId(opId);
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doModifyFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
                 return;
             }
             if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
                 _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: "
                         + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -1279,6 +1284,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     result.isCommandSuccess(), eventMsg, "", fs);
         } catch (Exception e) {
             _log.error("Unable to update file system: FS URI {}", fs.getId());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fs, e);
             if (fs != null) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM, false, e.getMessage(), "", fs);
@@ -3050,8 +3057,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (snapList != null) {
             _log.info(" No of Snapshots on FS {} ", snapList.size());
             for (Snapshot snapshot : snapList) {
-                if (!snapshot.getInactive())
+                if (!snapshot.getInactive()) {
                     return true;
+                }
             }
         }
 
@@ -3073,8 +3081,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         if (qdList != null) {
             for (QuotaDirectory qd : qdList) {
-                if (!qd.getInactive())
+                if (!qd.getInactive()) {
                     return true;
+                }
             }
         }
 

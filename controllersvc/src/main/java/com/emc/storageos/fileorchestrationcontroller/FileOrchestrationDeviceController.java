@@ -83,6 +83,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String DELETE_FILESYSTEM_SNAPSHOT_WF_NAME = "DELETE_FILESYSTEM_SNAPSHOT_WORKFLOW";
     static final String RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME = "RESTORE_FILESYSTEM_SNAPSHOT_WORFLOW";
     static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
+    static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -100,8 +101,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
     private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
     private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
+    private static final String MODIFY_FILESYSTEM_METHOD = "modifyFS";
     private static final String FAILOVER_FILE_SYSTEM_METHOD = "failoverFileSystem";
     private static final String FAILBACK_FILE_SYSTEM_METHOD = "doFailBackMirrorSessionWF";
+    private static final String REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD = "addStepsToReplicateDirectoryQuotaSettings";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD = "addStepsToReplicateCIFSShares";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
@@ -764,6 +767,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             if (replicateConfiguration) {
 
+                stepDescription = String.format(
+                        "Replicating directory quota settings from source file system : %s to file target system : %s",
+                        sourceFileShare.getId(), targetFileShare.getId());
+                Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                        systemSource.getId(), targetFileShare.getId());
+                String replicateDirQuotaSettingsStep = workflow.createStepId();
+                workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                        systemSource.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
                 Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
 
@@ -875,6 +887,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
             if (replicateConfiguration) {
+
+                stepDescription = String.format(
+                        "Replicating directory quota settings from source file system : %s to file target system : %s",
+                        sourceFileShare.getId(), targetFileShare.getId());
+                Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                        systemTarget.getId(), fsURI);
+                String replicateDirQuotaSettingsStep = workflow.createStepId();
+                workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                        systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
 
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
                 Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
@@ -1623,6 +1644,60 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareNFSACLFailed(
                     fsURI.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
+    private static void updateTargetFileSystem(Workflow workflow, URI systemTarget, FileShare targetFileShare) {
+
+        String stepDescription = String.format(
+                "Updating target file system: %s with new directory quota settings.", targetFileShare.getName());
+        String updateQuotaDirStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, targetFileShare.getPool(), targetFileShare.getId() };
+        _fileDeviceController.createMethod(workflow, null, MODIFY_FILESYSTEM_METHOD, updateQuotaDirStep,
+                stepDescription, systemTarget, args);
+    }
+
+    /**
+     * Child workflow for replicating source file system directory quota settings to target system.
+     * 
+     * @param systemTarget
+     *            - URI of target StorageSystem where source quota directory settings have to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param taskId
+     */
+    public void addStepsToReplicateDirectoryQuotaSettings(URI systemTarget, URI fsURI, String taskId) {
+        s_logger.info("Generating steps for replicating directory quota settings to target cluster.");
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileShare targetFileShare = null;
+        Workflow workflow = null;
+        try {
+
+            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                List<String> targetfileUris = new ArrayList<String>();
+                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            } else {
+                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+            }
+            targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
+            targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
+            targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
+            s_dbClient.updateObject(targetFileShare);
+
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME, false, taskId, completer);
+            updateTargetFileSystem(workflow, systemTarget, targetFileShare);
+            String successMessage = String.format(
+                    "Replicating source file system : %s, directory quota settings to target file system finished successfully.",
+                    sourceFileShare.getLabel());
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not replicate source filesystem directory quota settings: " + fsURI, ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.unableToUpdateFileSystem(opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }

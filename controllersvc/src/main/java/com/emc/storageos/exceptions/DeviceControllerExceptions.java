@@ -247,6 +247,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unableToDeleteFileSystem(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException unableToUpdateFileSystem(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToExportFileShare(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
@@ -266,7 +269,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
@@ -448,7 +451,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
 
@@ -478,7 +481,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotDeleteReplicationGroup(final String reason);
 
@@ -493,7 +496,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformAliasOperation(final String reason);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName);
 

@@ -4,14 +4,12 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,9 +22,6 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -39,7 +34,6 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
-import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
@@ -48,10 +42,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
-import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
@@ -104,16 +96,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
     private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
     private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
-    private static final String DELETE_FILESYSTEM_QUOTA_DIR_METHOD = "deleteQuotaDirectory";
-    private static final String UPDATE_FILESYSTEM_QUOTA_DIR_METHOD = "updateQuotaDirectory";
-    private static final String CREATE_FILESYSTEM_QUOTA_DIR_METHOD = "createQuotaDirectory";
+    private static final String MODIFY_FILESYSTEM_METHOD = "modifyFS";
     private static final String FAILOVER_FILE_SYSTEM_METHOD = "failoverFileSystem";
     private static final String FAILBACK_FILE_SYSTEM_METHOD = "doFailBackMirrorSessionWF";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD = "addStepsToReplicateCIFSShares";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD = "addStepsToReplicateNFSExportRules";
-    private static final String REPLICATE_FILESYSTEM_QUOTA_DIR_SETTINGS_METHOD = "addStepsToReplicateQuotaDirSettings";
+    private static final String REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD = "addStepsToReplicateDirectoryQuotaSettings";
 
     private static final String RESTORE_FILESYSTEM_SNAPSHOT_METHOD = "restoreFS";
     private static final String DELETE_FILESYSTEM_SNAPSHOT_METHOD = "delete";
@@ -771,6 +761,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
             if (replicateConfiguration) {
+
+                stepDescription = String.format(
+                        "Replicating directory quota settings from source file system : %s to file target system : %s",
+                        sourceFileShare.getId(), targetFileShare.getId());
+                Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                        systemSource.getId(), targetFileShare.getId());
+                String replicateDirQuotaSettingsStep = workflow.createStepId();
+                workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                        systemSource.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+
                 // Replicate NFS export and rules to Target Cluster.
                 FSExportMap targetnfsExportMap = targetFileShare.getFsExports();
                 FSExportMap sourcenfsExportMap = sourceFileShare.getFsExports();
@@ -868,6 +868,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
             if (replicateConfiguration) {
+
+                stepDescription = String.format(
+                        "Replicating directory quota settings from source file system : %s to file target system : %s",
+                        sourceFileShare.getId(), targetFileShare.getId());
+                Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                        systemTarget.getId(), fsURI);
+                String replicateDirQuotaSettingsStep = workflow.createStepId();
+                workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                        systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+
                 // Replicate CIFS shares and ACLs to Target Cluster.
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
                 SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
@@ -1449,54 +1459,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 stepDescription, systemTarget, args);
     }
 
-    private static void updateQuotaDirOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
-            FileShareQuotaDirectory param) {
+    private static void updateTargetFileSystem(Workflow workflow, URI systemTarget, FileShare targetFileShare) {
 
         String stepDescription = String.format(
-                "Updating quota directory of file system: %s", targetFileShare.getName(), param.toString());
+                "Updating target file system: %s with new directory quota settings.", targetFileShare.getName());
         String updateQuotaDirStep = workflow.createStepId();
-        Object[] args = new Object[] { systemTarget, param, targetFileShare.getId() };
-        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_QUOTA_DIR_METHOD, updateQuotaDirStep,
-                stepDescription, systemTarget, args);
-    }
-
-    private static void createQuotaDirOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
-            FileShareQuotaDirectory param) {
-
-        QuotaDirectory quotaDirectory = new QuotaDirectory();
-        URI id = URIUtil.createId(QuotaDirectory.class);
-        quotaDirectory.setId(id);
-        quotaDirectory.setParent(new NamedURI(targetFileShare.getId(), param.getName()));
-        quotaDirectory.setLabel(param.getName());
-        quotaDirectory.setOpStatus(new OpStatusMap());
-        quotaDirectory.setProject(new NamedURI(targetFileShare.getProject().getURI(), param.getName()));
-        quotaDirectory.setTenant(new NamedURI(targetFileShare.getTenant().getURI(), param.getName()));
-        quotaDirectory.setSoftLimit(param.getSoftLimit());
-        quotaDirectory.setSoftGrace(param.getSoftGrace());
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit());
-        quotaDirectory.setName(param.getName());
-        quotaDirectory.setOpLock(param.getOpLock());
-        quotaDirectory.setSecurityStyle(param.getSecurityStyle());
-        quotaDirectory.setSize(param.getSize());
-        String fsName = targetFileShare.getName();
-        try {
-            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(s_dbClient, quotaDirectory, fsName));
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            s_logger.error("IOException occureed while creating native guid for quota directory");
-        }
-        s_dbClient.createObject(quotaDirectory);
-
-        String stepDescription = String.format(
-                "Creatting quota directory of file system: %s", targetFileShare.getName(), param.toString());
-        String createQuotaDirStep = workflow.createStepId();
-        Object[] args = new Object[] { systemTarget, param, targetFileShare.getId() };
-        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_QUOTA_DIR_METHOD, createQuotaDirStep,
+        Object[] args = new Object[] { systemTarget, targetFileShare.getPool(), targetFileShare.getId() };
+        _fileDeviceController.createMethod(workflow, null, MODIFY_FILESYSTEM_METHOD, updateQuotaDirStep,
                 stepDescription, systemTarget, args);
     }
 
     /**
-     * Child workflow for replicating source file system quota directory settings to target system.
+     * Child workflow for replicating source file system directory quota settings to target system.
      * 
      * @param systemTarget
      *            - URI of target StorageSystem where source quota directory settings have to be replicated.
@@ -1504,9 +1478,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      *            -URI of the source FileSystem
      * @param taskId
      */
-    public void addStepsToReplicateQuotaDirSettings(URI systemTarget, URI fsURI, String taskId) {
-        s_logger.info("Generating steps for Replicating NFS ACLs to Target Cluster");
-        FileNfsACLUpdateParams params = null;
+    public void addStepsToReplicateDirectoryQuotaSettings(URI systemTarget, URI fsURI, String taskId) {
+        s_logger.info("Generating steps for replicating directory quota settings to target cluster.");
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
         Workflow workflow = null;
@@ -1520,24 +1493,21 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             } else {
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
+            targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
+            targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
+            targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME, false, taskId, completer);
-
-            Map<String, FileShareQuotaDirectory> sourceFSQuotaDirMap = FileOrchestrationUtils.getQuotaDirNameToSettingMap(sourceFileShare,
-                    s_dbClient);
-            Map<String, FileShareQuotaDirectory> targetFSQuotaDirMap = FileOrchestrationUtils.getQuotaDirNameToSettingMap(targetFileShare,
-                    s_dbClient);
-
+            updateTargetFileSystem(workflow, systemTarget, targetFileShare);
             String successMessage = String.format(
-                    "Replicating source file system : %s, NFS ACL to target file system finished successfully",
+                    "Replicating source file system : %s, directory quota settings to target file system finished successfully.",
                     sourceFileShare.getLabel());
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
-            s_logger.error("Could not replicate source filesystem NFS ACL : " + fsURI, ex);
+            s_logger.error("Could not replicate source filesystem directory quota settings: " + fsURI, ex);
             String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-            ServiceError serviceError = DeviceControllerException.errors.updateFileShareNFSACLFailed(
-                    fsURI.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.unableToUpdateFileSystem(opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }

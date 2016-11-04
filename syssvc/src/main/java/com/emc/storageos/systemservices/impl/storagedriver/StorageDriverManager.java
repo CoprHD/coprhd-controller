@@ -136,7 +136,7 @@ public class StorageDriverManager {
         Site activeSite = drUtil.getActiveSite();
         List<StorageDriversInfo> infos = getDriversInfo(activeSite.getUuid());
         if (activeSite.getNodeCount() != infos.size()) {
-            log.error("There's node down in active site, skip updating meta data");
+            log.warn("No all nodes are online, skip updating meta data");
             return;
         }
 //        We don't care if standby sites have finished syncing
@@ -219,6 +219,8 @@ public class StorageDriverManager {
             Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
+                log.info("Storage drivers info for {} of {}: {}", info.getKey().getName(), siteId,
+                        Arrays.toString(info.getValue().getInstalledDrivers().toArray()));
                 infos.add(info.getValue());
             }
         } catch (Exception e) {

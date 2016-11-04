@@ -7,7 +7,6 @@ package com.emc.storageos.util;
 import javax.wbem.WBEMException;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
  * A static class that invokes failures in a controlled manner, giving us the ability to test
@@ -32,7 +31,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_012 = "failure_012_VNXVMAX_Post_Placement_inside_trycatch";
     public static final String ARTIFICIAL_FAILURE_013 = "failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete";
     public static final String ARTIFICIAL_FAILURE_014 = "failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete";
-    public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_createVolume";
+    public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_some-method";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
@@ -75,14 +74,16 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
-        String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
-        if (failureKeyImportantPart.equalsIgnoreCase(ARTIFICIAL_FAILURE_015) ||
-                !(methodName.equals(SmisConstants.EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL)
-                        || methodName.equals(SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL))) {
+        // Decipher which method we are supposed to fail on:
+        if (!invokeArtificialFailure.contains("invokeMethod")) {
             return;
         }
-         
-        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)) {
+        
+        // Extract the method name from the system property
+        String failOnMethodName = invokeArtificialFailure.substring("failure_016_SmisCommandHelper.invokeMethod_".length());
+        String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
+        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
+                && methodName.equalsIgnoreCase(failOnMethodName)) {
             throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
         }
     }

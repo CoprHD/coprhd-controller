@@ -247,9 +247,6 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unableToDeleteFileSystem(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
-    public DeviceControllerException unableToUpdateFileSystem(final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToExportFileShare(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)

@@ -256,6 +256,7 @@ public class OrderService extends CatalogTaggedResourceService {
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
 
+        log.info("lbyc00");
         StorageOSUser user = getUserFromContext();
         String tenantId = user.getTenantId();
         if (parameters.containsKey(SearchConstants.TENANT_ID_PARAM)) {
@@ -296,7 +297,16 @@ public class OrderService extends CatalogTaggedResourceService {
                         SearchConstants.ORDER_STATUS_PARAM + " or " + SearchConstants.START_TIME_PARAM + " or "
                                 + SearchConstants.END_TIME_PARAM);
             }
-            orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime);
+            int maxCount = 6000;
+            List<String> c= parameters.get(SearchConstants.ORDER_MAX_COUNT);
+            if (c != null) {
+                String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
+                maxCount = Integer.parseInt(maxCountParam);
+            }
+
+            log.info("lbyc0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
+
+            orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime, maxCount);
         }
 
         ResRepFilter<SearchResultResourceRep> resRepFilter =
@@ -560,8 +570,8 @@ public class OrderService extends CatalogTaggedResourceService {
 
         /* query first 6000 records sorted by timestamp
         */
-        startTimeInMacros = Long.parseLong("1477903108065");
-        endTimeInMacros = Long.parseLong("1477903327078");
+        //startTimeInMacros = Long.parseLong("1477903108065");
+        // endTimeInMacros = Long.parseLong("1477903327078");
         // */
         log.info("lby00 start={} end={} max={}", startTimeInMacros, endTimeInMacros, max);
         List<Order> orders = orderManager.getUserOrders(user,startTimeInMacros, endTimeInMacros, max);
@@ -591,9 +601,6 @@ public class OrderService extends CatalogTaggedResourceService {
      * Gets the list of orders for current user
      *
      * @brief List Orders
-     * @param startTime
-     * @param endTime
-     * @param maxCount The max number this API returns
      * @return a list of orders
      * @throws DatabaseException when a DB error occurs
      */

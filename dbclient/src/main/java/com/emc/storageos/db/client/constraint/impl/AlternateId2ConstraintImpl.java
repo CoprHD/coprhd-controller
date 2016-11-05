@@ -1,9 +1,11 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,7 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     private final Class<? extends DataObject> _entryType;
     private long startTimeMicros;
     private long endTimeMicros;
+    private long lastMatchedTimeStamp = 0;
 
     private Keyspace _keyspace;
 
@@ -51,27 +54,35 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
         queryOnePageWithAutoPaginate(genQuery(),result);
     }
 
+    public long getLastMatchedTimeStamp() {
+        return lastMatchedTimeStamp;
+    }
+
     @Override
     protected RowQuery<String, IndexColumnName2> genQuery() {
-        log.info("lbyx: cf={} key={}", _altIdCf.getName(), _altId);
-        log.info("prefix={} startime={} endtime={}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
+        log.info("cf={} key={}", _altIdCf.getName(), _altId);
+        log.info("prefix={} startime= {} endtime= {}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
-        /*
-        try {
-            log.info("lbyuu");
-            OperationResult<Integer> count = _keyspace.prepareQuery(_altIdCf).getKey(_altId).getCount().execute();
-            log.info("lbyuu count={}", count.getResult());
-        }catch (ConnectionException e) {
-            log.info("lbyuu");
-        }
-        */
 
-        return _keyspace.prepareQuery(_altIdCf).getKey(_altId)
+        RowQuery<String, IndexColumnName2> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
                 .withColumnRange(IndexColumnNameSerializer2.get().buildRange()
                         .withPrefix(_entryType.getSimpleName())
                         .greaterThan(startTimeMicros)
                         .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
+
+        return query;
+    }
+
+    public int count() throws ConnectionException {
+        try {
+            OperationResult<Integer> countResult = _keyspace.prepareQuery(_altIdCf).getKey(_altId).getCount().execute();
+            int count = countResult.getResult();
+            return count;
+        }catch (ConnectionException e) {
+            log.error("Failed to get count e=", e);
+            throw e;
+        }
     }
 
     @Override
@@ -81,6 +92,7 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName2> column) {
+        lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }
 

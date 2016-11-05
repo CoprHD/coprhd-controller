@@ -86,19 +86,20 @@ public class OrderFinder extends TenantModelFinder<Order> {
         return orderIds;
     }
 
-    public List<NamedElement> findIdsByTimeRange(Date startTime, Date endTime) {
-        return client.findByTimeRange(Order.class, "indexed", startTime, endTime);
+    public List<NamedElement> findIdsByTimeRange(Date startTime, Date endTime, int maxCount) {
+        //return client.findAllOrdersByTimeRange(Order.class, "indexed", startTime, endTime, maxCount);
+        return client.findAllOrdersByTimeRange(Order.SUBMITTED_BY_USER_ID, startTime, endTime, maxCount);
     }
 
-    public List<Order> findByTimeRange(Date startTime, Date endTime) {
-        List<NamedElement> orderIds = findIdsByTimeRange(startTime, endTime);
+    public List<Order> findByTimeRange(Date startTime, Date endTime, int maxCount) {
+        List<NamedElement> orderIds = findIdsByTimeRange(startTime, endTime, maxCount);
         return findByIds(toURIs(orderIds));
     }
 
-    public List<Order> findByTimeRange(URI tenantId, Date startTime, Date endTime) {
+    public List<Order> findByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
         if (tenantId == null) {
             return Lists.newArrayList();
         }
-        return TenantUtils.filter(findByTimeRange(startTime, endTime), tenantId.toString());
+        return TenantUtils.filter(findByTimeRange(startTime, endTime, maxCount), tenantId.toString());
     }
 }

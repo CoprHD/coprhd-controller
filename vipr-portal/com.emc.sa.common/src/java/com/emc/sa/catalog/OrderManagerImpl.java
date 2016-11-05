@@ -428,8 +428,8 @@ public class OrderManagerImpl implements OrderManager {
         return client.orders().findByOrderStatus(tenantId.toString(), orderStatus);
     }
 
-    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime) {
-        return client.orders().findByTimeRange(tenantId, startTime, endTime);
+    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
+        return client.orders().findByTimeRange(tenantId, startTime, endTime, maxCount);
     }
 
     public List<ExecutionLog> getOrderExecutionLogs(Order order) {

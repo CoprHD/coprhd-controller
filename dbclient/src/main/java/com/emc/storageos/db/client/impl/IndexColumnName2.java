@@ -13,7 +13,7 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
     String one;
 
     private @Component(ordinal = 1)
-    long timeInMS;
+    long timeInMicros;
 
     private @Component(ordinal = 2)
     String two;
@@ -27,17 +27,17 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
     public IndexColumnName2() {
     }
 
-    public IndexColumnName2(String one, String two, long timeInMS) {
+    public IndexColumnName2(String one, String two, long timeInMicros) {
         this.one = one;
         this.two = two;
-        this.timeInMS = timeInMS;
+        this.timeInMicros = timeInMicros;
     }
 
     public IndexColumnName2(String one, String two, String three, long timestamp) {
         this.one = one;
         this.two = two;
         this.three = three;
-        this.timeInMS = timestamp;
+        this.timeInMicros = timestamp;
     }
 
     public IndexColumnName2(String one, String two, String three, String four, long time) {
@@ -45,7 +45,7 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
         this.two = two;
         this.three = three;
         this.four = four;
-        this.timeInMS = time;
+        this.timeInMicros = time;
     }
 
     @Override
@@ -70,12 +70,16 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
 
     @Override
     public UUID getTimeUUID() {
-        return TimeUUIDUtils.getTimeUUID(timeInMS);
+        return TimeUUIDUtils.getTimeUUID(timeInMicros);
+    }
+
+    public long getTimeInMicros() {
+        return timeInMicros;
     }
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(Long.toString(timeInMS));
+        StringBuilder builder = new StringBuilder(Long.toString(timeInMicros));
 
         builder.append(":")
                 .append(one)

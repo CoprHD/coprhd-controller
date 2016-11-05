@@ -36,8 +36,6 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
     protected String startId;
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
-    private int maxCount = -1;
-    protected int matchedCount = 0;
 
     protected AnnotatedCompositeSerializer<T> indexSerializer;
 
@@ -59,7 +57,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         }
 
         // TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
-        if (this instanceof TimeConstraintImpl || this instanceof  AlternateIdConstraintImpl ) {
+        if (this instanceof TimeConstraintImpl || this instanceof  AlternateId2ConstraintImpl ) {
             return;
         }
 
@@ -102,12 +100,6 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
     public int getPageCount() {
         return pageCount;
     }
-
-    /*
-    public void setMaxCount(int maxCount) {
-        this.maxCount = maxCount;
-    }
-    */
 
     @Override
     public <T> void execute(final Constraint.QueryResult<T> result) {
@@ -152,20 +144,17 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
 
     protected abstract <T1> T1 createQueryHit(final QueryResult<T1> result, Column<T> col);
 
-    //protected <T1> void queryOnePageWithoutAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
     protected <T1> void queryOnePageWithoutAutoPaginate(RowQuery<String, T> query, String prefix, final QueryResult<T1> result)
             throws ConnectionException {
 
-        //CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange()
         CompositeRangeBuilder builder = indexSerializer.buildRange()
                 .greaterThanEquals(prefix)
                 .lessThanEquals(prefix)
-                .reverse() // last column comes only
+                .reverse() // last column comes first
                 .limit(1);
 
         query.withColumnRange(builder);
 
-        //ColumnList<IndexColumnName> columns = query.execute().getResult();
         ColumnList<T> columns = query.execute().getResult();
 
         List<T1> ids = new ArrayList();
@@ -174,12 +163,10 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
             return; // not found
         }
 
-        //Column<IndexColumnName> lastColumn = columns.getColumnByIndex(0);
         Column<T> lastColumn = columns.getColumnByIndex(0);
 
         String endId = lastColumn.getName().getTwo();
 
-        //builder = IndexColumnNameSerializer.get().buildRange();
         builder = indexSerializer.buildRange();
 
         if (startId == null) {
@@ -199,29 +186,18 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
 
         columns = query.execute().getResult();
 
-        // for (Column<IndexColumnName> col : columns) {
         for (Column<T> col : columns) {
-            /*
-            if (reachMaxCount()) {
-                break;
-            }
-            */
-
             T1 obj = createQueryHit(result, col);
             if (obj != null && !ids.contains(obj)) {
                 ids.add(createQueryHit(result, col));
-                // matchedCount++;
             }
         }
 
-        // log.info("lbymm3: matched={}", matchedCount);
         result.setResult(ids.iterator());
     }
 
-    //protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
     protected <T1> void queryOnePageWithAutoPaginate(RowQuery<String, T> query, String prefix, final QueryResult<T1> result)
             throws ConnectionException {
-        //CompositeRangeBuilder range = IndexColumnNameSerializer.get().buildRange()
         CompositeRangeBuilder range = indexSerializer.buildRange()
                 .greaterThanEquals(prefix)
                 .lessThanEquals(prefix)
@@ -231,7 +207,6 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         queryOnePageWithAutoPaginate(query, result);
     }
 
-    //protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result)
     protected <T1> void queryOnePageWithAutoPaginate(RowQuery<String, T> query, final QueryResult<T1> result)
             throws ConnectionException {
         boolean start = false;
@@ -240,19 +215,15 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
 
         query.autoPaginate(true);
 
-        //ColumnList<IndexColumnName> columns;
         ColumnList<T> columns;
 
-        //while ((count < pageCount) && !reachMaxCount()) {
         while ((count < pageCount)) {
             columns = query.execute().getResult();
 
-            if (columns.isEmpty())
-            {
+            if (columns.isEmpty()) {
                 break; // reach the end
             }
 
-            //for (Column<IndexColumnName> col : columns) {
             for (Column<T> col : columns) {
                 if (startId == null) {
                     start = true;
@@ -265,19 +236,12 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
                     T1 obj = createQueryHit(result, col);
                     if (obj != null && !ids.contains(obj)) {
                         ids.add(obj);
-                        /*
-                        matchedCount++;
-                        if (reachMaxCount()) {
-                            break;
-                        }
-                        */
                     }
                     count++;
                 }
             }
         }
 
-        // log.info("lbymm31 matchedCount={}", matchedCount);
         result.setResult(ids.iterator());
     }
 }

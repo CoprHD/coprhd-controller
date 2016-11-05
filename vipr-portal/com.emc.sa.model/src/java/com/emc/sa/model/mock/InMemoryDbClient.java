@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.uimodels.Order;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -95,11 +96,11 @@ public class InMemoryDbClient implements DBClientWrapper {
         return results;
     }
 
-    public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
+    public List<NamedElement> findAllOrdersByTimeRange(String columnField, Date startTime, Date endTime, int maxCount)
             throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
-        for (URI modelId : findAllIds(clazz)) {
-            T model = findById(clazz, modelId);
+        for (URI modelId : findAllIds(Order.class)) {
+            Order model = findById(Order.class, modelId);
             Object o = getColumnField(model, columnField);
             results.add(createNamedElement(model));
         }

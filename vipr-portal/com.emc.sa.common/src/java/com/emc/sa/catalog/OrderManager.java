@@ -29,7 +29,7 @@ public interface OrderManager {
 
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus);
 
-    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime);
+    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount);
 
     public List<ExecutionLog> getOrderExecutionLogs(Order order);
 

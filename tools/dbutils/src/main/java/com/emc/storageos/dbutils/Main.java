@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
 import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
@@ -216,22 +217,18 @@ public class Main {
             try {
                 n++;
                 URI id = URI.create(column.getName().getTwo());
-                log.info("lby1 id={} key={}", id, constraint.getAltId());
                 long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
-                //IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(), column.getName().getTimeUUID());
+
                 IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(), timeInMicros);
-                log.info("lby2 timeInMS={}", timeInMicros);
                 m.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
                 if ( n % pageCount == 0) {
-                    log.info("lby9: n={} stack=", n, new Throwable());
                     m.execute(); // commit
                     m = keyspace.prepareMutationBatch();
                 }
 
-                log.info("lby3");
                 return id;
             }catch (Throwable e) {
-                log.info("lby3 e=",e);
+                log.info("e=",e);
             }
             return null;
         }
@@ -241,35 +238,28 @@ public class Main {
         long start = System.currentTimeMillis();
 
         try {
-            log.info("lby1");
             final AlternateIdConstraintImpl constraint = new AlternateIdConstraintImpl("UserToOrders", "root", Order.class, 0, 0);
             constraint.setPageCount(10000);
             Keyspace ks = _client._dbClient.getLocalKeyspace();
             constraint.setKeyspace(ks);
 
-            log.info("lby3");
-
             RowQuery<String, IndexColumnName> query = constraint.genQuery();
             query.autoPaginate(true);
-            log.info("lby4");
 
-        MigrationQueryHitIterator iterator = new MigrationQueryHitIterator(ks, constraint, query);
+            MigrationQueryHitIterator iterator = new MigrationQueryHitIterator(ks, constraint, query);
 
-        log.info("lby5");
-        iterator.prime();
+            iterator.prime();
 
-        log.info("lbyt1 hasNext={}", iterator.hasNext());
-        while (iterator.hasNext()) {
-            iterator.next();
-        }
-            log.info("lby6");
+            while (iterator.hasNext()) {
+                iterator.next();
+            }
 
-        iterator.m.execute();
+            iterator.m.execute();
 
-        long end = System.currentTimeMillis();
-        System.out.println("lby Read "+n+" : "+ (end - start));
+            long end = System.currentTimeMillis();
+            System.out.println("Read "+n+" : "+ (end - start));
         }catch (Throwable e) {
-            log.error("lby5 e=", e);
+            log.error("e=", e);
         }
         System.exit(1);
     }
@@ -328,10 +318,8 @@ public class Main {
             while (!eof) {
                 eof = true;
 
-                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(Order.SUBMITTED_BY_USER_ID), "root",
-                        1, endTime);
+                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(Order.SUBMITTED_BY_USER_ID), "root");
 
-                // log.info("lbyd2 startId={}", startId);
                 _client._dbClient.queryByConstraint(constraint, queryResults, startId, maxCount);
 
                 for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
@@ -345,15 +333,11 @@ public class Main {
                         System.out.println("Read2 100000: "+ (end1 - start));
                         System.out.println("i= "+ i);
                         System.out.println("id="+startId);
-                        // log.info("lbyd0: id3={}", startId);
                     }else if (i == 500000) {
-                    //   }else if (i == 20) {
                         end2 = System.currentTimeMillis();
                         System.out.println("Read2 500000: "+ (end2 - start));
                         System.out.println("i2= "+ i);
                         System.out.println("id2="+startId);
-                        // log.info("lbyd1: id={}", startId);
-                     //   System.exit(1);
                     }
 
                     if ( (i > 500000) && (i % 100000 == 0)) {
@@ -375,8 +359,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        System.out.println("lby Start to collect performance info");
-        /*
+        System.out.println("Start to collect performance info");
         deleteDbutilsPidFile();
         changeLogFileOwner();
         if (args.length == 0) {
@@ -407,7 +390,6 @@ public class Main {
             }
             System.exit(CommandHandler.repairDb(args));
         }
-        */
 
         try {
             // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
@@ -416,11 +398,9 @@ public class Main {
             _client = new DBClient(true); // NOSONAR ("squid:S2444")
 
             _client.init();
-            log.info("lbycc");
-            //queryMyOrderIndexes();
+
             migrateMyOrderIndexes();
 
-            /*
             CommandHandler handler = null;
             boolean result = false;
 
@@ -489,7 +469,6 @@ public class Main {
                     throw new IllegalArgumentException("Invalid command ");
             }
             handler.process(_client);
-            */
         } catch (Exception e) {
             System.err.println("Exception e=" + e);
             log.error("Exception e=", e);

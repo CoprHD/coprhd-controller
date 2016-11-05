@@ -47,7 +47,8 @@ public interface DBClientWrapper {
                                                                        long startTime, long endTime, int maxCount)
             throws DataAccessException;
 
-    public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
+    //public <T extends DataObject> List<NamedElement> findAllOrdersByTimeRange(Class<T> clazz, String columnField, Date startTime,
+    public List<NamedElement> findAllOrdersByTimeRange(String columnField, Date startTime, Date endTime, int maxCount)
             throws DataAccessException;
 
     public <T extends DataObjectWithACLs> Map<URI, Set<String>> findByPermission(Class<T> type, PermissionsKey key)

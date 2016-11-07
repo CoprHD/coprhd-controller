@@ -35,6 +35,7 @@ public final class OrchestrationServiceConstants {
     public static final String RETURN_CODE = "returnCode";
     public static final String TASK = "task";
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
+    public static final String VIPR_REST_URI = "{scheme}://{endPoint}:{port}{path}";
 
     public enum InputType {
         FROM_USER("InputFromUser"),

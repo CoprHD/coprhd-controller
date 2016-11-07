@@ -30,6 +30,7 @@ import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.util.UriTemplate;
 
 import java.io.IOException;
 import java.net.URI;
@@ -161,9 +162,19 @@ public class RunViprREST extends ViPRExecutionTask<String> {
             s = (s.replace(m.group(), input.get(val1).get(0)));
             
         }
-        ExecutionUtils.currentContext().logInfo("URI string is:%s://%s:%s%s", primitive.scheme(), endPoint, primitive.port(), s);
+        UriTemplate template = new UriTemplate(OrchestrationServiceConstants.VIPR_REST_URI);
+        
+        Map<String, String> uriVariables = new HashMap<String, String>();
+        uriVariables.put("scheme", primitive.scheme());
+        uriVariables.put("endPoint", endPoint);
+        uriVariables.put("port", primitive.port());
+        uriVariables.put("path", s);
+        
+        URI restUri = template.expand(uriVariables);
+        
+        ExecutionUtils.currentContext().logInfo("URI string is: %s", restUri);
 
-        return primitive.scheme() + "://" + endPoint + ":" + primitive.port() + s;
+        return restUri.toString();
     }
 
 

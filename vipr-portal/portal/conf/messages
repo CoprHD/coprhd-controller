@@ -1990,6 +1990,7 @@ storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
 storageProvider.interfaceType.xtremio=Dell EMC XtremIO
 storageProvider.interfaceType.ceph=Ceph Block Device
+storageProvider.interfaceType.dellscprovider=Dell SC Storage Provider
 
 StorageSystems.list.title=Storage Systems
 StorageSystems.edit.title=Edit Storage System
@@ -2589,6 +2590,7 @@ license.type.trial=Limited Use
 licenseFeature.name=Feature
 licenseFeature.type=Type
 licenseFeature.status=Status
+licenseFeature.serial=Software Serial Number
 licenseFeature.expiry=Expiry
 
 consistencyGroups.list.title=Consistency Groups
@@ -3683,7 +3685,7 @@ resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign t
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
 resources.filesystem.export.security=Security
-resources.filesystem.export.anon=Anon
+resources.filesystem.export.anon=Root User Mapping
 resources.filesystem.export.protocol=Protocol
 resources.filesystem.export.subdirectory=Sub Directory
 resources.filesystem.export.modify=Modify Endpoints
@@ -4656,7 +4658,7 @@ boolean.true=True
 boolean.false=False
 
 rule.security=Security
-rule.anon=Anon
+rule.anon=Root User Mapping
 rule.subDir=Sub Directory
 
 shareACL.permission=Permission

@@ -159,8 +159,6 @@
         <package name="unixODBC"/>
         <package name="vim"/>
         <package name="virtualbox"/>
-        <package name="virtualbox-guest-tools"/>
-        <package name="virtualbox-guest-kmp-default"/>
         <package name="virtualbox-host-kmp-default"/>
         <package name="wget"/>
         <package name="xbitmaps"/>
@@ -171,7 +169,6 @@
         <package name="xorg-x11-fonts"/>
         <package name="xorg-x11-server"/>
         <package name="xz-devel"/>
-        <package name="yum"/>
         <package name="zlib-devel"/>
         <package name="boost-license1_58_0"/>
         <package name="libboost_system1_58_0"/>

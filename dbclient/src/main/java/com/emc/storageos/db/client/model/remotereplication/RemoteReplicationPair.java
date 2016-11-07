@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.Volume;
 
@@ -40,10 +41,12 @@ public class RemoteReplicationPair extends DataObject {
     private RemoteReplicationSet.ReplicationState replicationState;
 
     // Replication pair source element.
-    private URI sourceElement;
+    // name: ElementType.VOLUME, Element.FILE_SYSTEM
+    private NamedURI sourceElement;
 
     // Replication pair target element.
-    private URI targetElement;
+    // name: ElementType.VOLUME, Element.FILE_SYSTEM
+    private NamedURI targetElement;
 
     @Name("nativeId")
     public String getNativeId() {
@@ -99,22 +102,22 @@ public class RemoteReplicationPair extends DataObject {
 
     @RelationIndex(cf = "SourceElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
     @Name("sourceElement")
-    public URI getSourceElement() {
+    public NamedURI getSourceElement() {
         return sourceElement;
     }
 
-    public void setSourceElement(URI sourceElement) {
+    public void setSourceElement(NamedURI sourceElement) {
         this.sourceElement = sourceElement;
         setChanged("sourceElement");
     }
 
     @RelationIndex(cf = "TargetElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
     @Name("targetElement")
-    public URI getTargetElement() {
+    public NamedURI getTargetElement() {
         return targetElement;
     }
 
-    public void setTargetElement(URI targetElement) {
+    public void setTargetElement(NamedURI targetElement) {
         this.targetElement = targetElement;
         setChanged("targetElement");
     }
@@ -127,5 +130,10 @@ public class RemoteReplicationPair extends DataObject {
     public void setElementType(ElementType elementType) {
         this.elementType = elementType;
         setChanged("elementType");
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Source volume id: %s, target volume id: %s", sourceElement, targetElement);
     }
 }

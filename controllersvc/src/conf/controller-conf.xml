@@ -896,6 +896,12 @@
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
 
+    <bean id="remoteReplicationDeviceController" class="com.emc.storageos.remoterreplicationcontroller.RemoteReplicationDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="remoteReplicationDevice" ref="externalBlockStorageDevice" />
+    </bean>
+
     <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
         <property name="devices">
             <map>
@@ -1605,7 +1611,9 @@
         <property name="vplexDeviceController" ref="vplexDeviceController" />
         <property name="rpDeviceController" ref="rpProtection" />
         <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="remoteReplicationDeviceController" ref="remoteReplicationDeviceController" />
         <property name="replicaDeviceController" ref="replicaDeviceController" />
+
         <property name="locker" ref="locker"/>
         <property name="validator" ref="validatorFactory"/>
     </bean>

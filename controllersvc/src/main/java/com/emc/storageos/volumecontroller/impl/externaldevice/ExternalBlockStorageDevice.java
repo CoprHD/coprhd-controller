@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.storagedriver.RemoteReplicationDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,6 +115,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     public void setExportMaskOperationsHelper(ExportMaskOperations exportMaskOperationsHelper) {
         this.exportMaskOperationsHelper = exportMaskOperationsHelper;
+    }
+
+    /**
+     * Get storage driver for remote replication pair.
+     *
+     * @param rrPair
+     * @return storage driver for remote replication pair
+     */
+    public RemoteReplicationDriver getDriver(RemoteReplicationPair rrPair) {
+           Volume sourceVolume = dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+           StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+           return (RemoteReplicationDriver)getDriver(system.getSystemType());
     }
 
     public synchronized BlockStorageDriver getDriver(String driverType) {
@@ -1710,10 +1723,31 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     @Override
     public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, TaskCompleter taskCompleter) {
 
+        _log.info("Create group replication pairs for remote replication pairs: {}", systemReplicationPairs);
+
         // prepare driver replication pairs and call driver
         List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
         prepareDriverRemoteReplicationPairs(systemReplicationPairs, driverRRPairs);
 
+        // call driver
+        RemoteReplicationDriver driver = getDriver(systemReplicationPairs.get(0));
+        DriverTask task = driver.createGroupReplicationPairs(Collections.unmodifiableList(driverRRPairs), null);
+        // todo: need to implement support for async case.
+        if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            // store system pairs in database
+            for (int i=0; i<driverRRPairs.size(); i++) {
+                systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
+            }
+            dbClient.createObject(systemReplicationPairs);
+            String msg = String.format("createGroupReplicationPairs -- Created group replication pairs: %s .", task.getMessage());
+            _log.info(msg);
+            taskCompleter.ready(dbClient);
+        } else {
+            String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs: %s .", task.getMessage());
+            _log.error(errorMsg);
+          //  ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed("createGroupReplicationPairs", errorMsg);
+          //  taskCompleter.error(dbClient, serviceError);
+        }
     }
 
     @Override

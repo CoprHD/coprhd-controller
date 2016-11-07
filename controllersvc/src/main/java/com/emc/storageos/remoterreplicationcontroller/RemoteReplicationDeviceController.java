@@ -9,6 +9,7 @@ import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterfac
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
@@ -251,10 +252,25 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     }
 
-    List<RRPair> getVolumePairs(List<URI> sourceVolumes, List<URI> targetVolumes) {
+    /**
+     * Builds light weight data for remote replication volume pairs for source and target volumes.
+     *
+     * @param sourceVolumeIds
+     * @param targetVolumeIds
+     * @return list of remote replication pairs
+     */
+    List<RRPair> getVolumePairs(List<URI> sourceVolumeIds, List<URI> targetVolumeIds) {
 
-        // todo: complete
-        return null;
+        List<RRPair> pairs = new ArrayList<>();
+        List<Volume> sourceVolumes = dbClient.queryObject(Volume.class, sourceVolumeIds);
+        List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeIds);
+        for (int i=0; i<sourceVolumeIds.size(); i++) {
+            Volume sourceVolume = sourceVolumes.get(i);
+            Volume targetVolume = targetVolumes.get(i);
+            RRPair pair = new RRPair(sourceVolume.getId(), sourceVolume.getLabel(), targetVolume.getId(), targetVolume.getLabel());
+            pairs.add(pair);
+        }
+        return pairs;
     }
 
     class RRPair {
@@ -273,8 +289,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         @Override
         public String toString() {
 
-            // Todo: complete
-            return null;
+            return String.format("Source volume id: %s, source volume label: %s ; target volume id: %s, target volume label: %s", sourceUri, sourceLabel, targetUri, targetLabel);
         }
     }
 
@@ -318,8 +333,8 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
                 rrPair.setReplicationState(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.ReplicationState.SPLIT);
             }
 
-            rrPair.setSourceElement(sourceDescriptor.getVolumeURI());
-            rrPair.setTargetElement(targetURI);
+            rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));
+            rrPair.setTargetElement(new NamedURI(targetURI, RemoteReplicationPair.ElementType.VOLUME.toString()));
         }
         return rrPairs;
     }

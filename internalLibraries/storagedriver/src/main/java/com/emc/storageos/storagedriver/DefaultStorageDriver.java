@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -33,7 +35,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
  * Default, not-supported, implementation of SDK driver methods.
  * Can be use as a base class for SDK storage drivers.
  */
-public class DefaultStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
+public class DefaultStorageDriver extends AbstractStorageDriver implements BlockStorageDriver, RemoteReplicationDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(DefaultStorageDriver.class);
 
@@ -578,5 +580,65 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "validateStorageProviderConnection");
         _log.warn(msg);
         throw new UnsupportedOperationException(msg);
+    }
+
+    @Override
+    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask resume(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask split(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask establish(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask failover(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask failback(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask swap(List<RemoteReplicationPair> replicationPairs) {
+        return null;
+    }
+
+    @Override
+    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup) {
+        return null;
     }
 }

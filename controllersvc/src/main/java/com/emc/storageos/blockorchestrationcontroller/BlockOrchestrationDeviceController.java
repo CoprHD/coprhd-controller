@@ -651,6 +651,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         BlockOrchestrationDeviceController._replicaDeviceController = replicaDeviceController;
     }
 
+    public static RemoteReplicationDeviceController getRemoteReplicationDeviceController() {
+        return BlockOrchestrationDeviceController._remoteReplicationDeviceController;
+    }
+
+    public static void setReplicaDeviceController(RemoteReplicationDeviceController remoteReplicationDeviceController) {
+        BlockOrchestrationDeviceController._remoteReplicationDeviceController = remoteReplicationDeviceController;
+    }
+
     private void releaseWorkflowLocks(Workflow workflow) {
         if (workflow == null) {
             return;

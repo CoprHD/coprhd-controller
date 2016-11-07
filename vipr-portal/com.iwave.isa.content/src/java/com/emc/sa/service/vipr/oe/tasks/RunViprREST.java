@@ -1,3 +1,20 @@
+/*
+ * Copyright 2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.emc.sa.service.vipr.oe.tasks;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -22,7 +39,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RunREST extends ViPRExecutionTask<String> {
+public class RunViprREST extends ViPRExecutionTask<String> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
@@ -39,13 +56,12 @@ public class RunREST extends ViPRExecutionTask<String> {
     private DbClient dbClient;
     private RestPrimitive primitive;
 
-    public RunREST(final DbClient dbClient, final String name, final String token, final Map<String, List<String>> input) {
+    public RunViprREST(final DbClient dbClient, final String name, final String token, final Map<String, List<String>> input) {
         this.name = name;
         this.input = input;
         this.token = token;
         this.dbClient = dbClient;
 
-        logger.info("input is :{}", this.input);
         initRestClient();
     }
     
@@ -67,41 +83,37 @@ public class RunREST extends ViPRExecutionTask<String> {
 
         primitive = PrimitiveHelper.query(name, RestPrimitive.class, dbClient);
 
+	restClient.setAuthToken(token);
         Set<String> extraHeaders = primitive.extraHeaders();
         Iterator it = extraHeaders.iterator();
         while(it.hasNext()) {
-            restClient.setAuthToken(token, it.next().toString());
+            restClient.setHeaders(it.next().toString());
         }
         
-        ExecutionUtils.currentContext().logInfo("Setting up REST Client to execute" + name + "REST Primitive");
+        ExecutionUtils.currentContext().logInfo("Setting up REST Client to execute %s REST Primitive", name);
     }
 
     @Override
     public String executeTask() throws Exception {
 
-        String result = null;
+        String result;
         String postBody = null;
 
         String uriDb = primitive.uri();
         String body = primitive.body();
         String method = primitive.method();
 
-        logger.info("Params for rest uri_db:{} method:{} body:{}", uriDb, method, body);
-
-        if (method.equals("POST") && !body.isEmpty()) {
+        if (method.equals("POST") || method.equals("PUT") && !body.isEmpty()) {
             postBody = makePostBody(body);
         }
 
-        logger.info("Make URI uri_db:{}", uriDb);
         String uri = makeUri(uriDb);
-        logger.info("uri is:{}", uri);
 
-        ExecutionUtils.currentContext().logInfo("Started Executing REST API with uri:" +
-                uri + " and POST Body: " + postBody);
+        ExecutionUtils.currentContext().logInfo("Started Executing REST API with uri:%s and POST Body:%s ", uri, postBody);
 
         result = makeRestCall(uri, postBody, method);
 
-        ExecutionUtils.currentContext().logInfo("Done Executing REST Step. REST result:" + result);
+        ExecutionUtils.currentContext().logInfo("Done Executing REST Step. REST result:%s", result);
 
         return result;
     }
@@ -110,7 +122,6 @@ public class RunREST extends ViPRExecutionTask<String> {
     private String makeRestCall(final String uriString, final String postBody, final String method) {
 
         ClientResponse response = null;
-        logger.info("Running RESTClient with uri:{} and postBody:{}", uriString, postBody);
 
         if (method.equals("GET"))
             response = restClient.get(uri(uriString));
@@ -141,8 +152,6 @@ public class RunREST extends ViPRExecutionTask<String> {
      */
     private String makeUri(String s) {
     
-        logger.info("Path is:{}", s);
-
         Pattern p = Pattern.compile("(\\{(.*?)\\})");
         Matcher m = p.matcher(s);
         while (m.find()) {
@@ -151,8 +160,7 @@ public class RunREST extends ViPRExecutionTask<String> {
             s = (s.replace(m.group(), input.get(val1).get(0)));
             
         }
-        logger.info("new path is:{}", s);
-        ExecutionUtils.currentContext().logInfo("URI string is:" + primitive.scheme() + "://" + endPoint + ":" + primitive.port() + s);
+        ExecutionUtils.currentContext().logInfo("URI string is:%s://%s:%s%s", primitive.scheme(), endPoint, primitive.port(), s);
 
         return primitive.scheme() + "://" + endPoint + ":" + primitive.port() + s;
     }
@@ -178,12 +186,9 @@ public class RunREST extends ViPRExecutionTask<String> {
 
         while (m.find()) {
             String pat = m.group(1);
-            logger.info(pat);
             String newpat = "$" + pat;
             body = body.replace(newpat, input.get(pat).get(0));
         }
-
-        logger.info("new body: {}", body);
 
         return body;
     }

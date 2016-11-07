@@ -39,7 +39,7 @@ import java.util.Set;
 
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
-import com.emc.sa.service.vipr.oe.tasks.RunREST;
+import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
 import com.emc.storageos.db.client.DbClient;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
@@ -140,8 +140,8 @@ public class OrchestrationService extends ViPRService {
             StepType type = StepType.fromString(step.getType());
             switch (type) {
                 case VIPR_REST: {
-                    ExecutionUtils.currentContext().logInfo("Running REST OpName:{}" + step.getOpName() + inputPerStep.get(step.getStepId()));
-                    result = ViPRExecutionUtils.execute(new RunREST(dbClient, step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
+                    ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName:{}" + step.getOpName() + inputPerStep.get(step.getStepId()));
+                    result = ViPRExecutionUtils.execute(new RunViprREST(dbClient, step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
 
                     break;
                 }

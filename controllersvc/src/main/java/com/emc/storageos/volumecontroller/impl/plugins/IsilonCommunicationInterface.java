@@ -2034,13 +2034,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             fs.getExtensions().put(QUOTA, quota.getId());
         }
 
-		if (null != quota.getThresholds().getSoft()) {
+		if (null != quota.getThresholds().getSoft() && capacity != 0) {
 			softLimit = quota.getThresholds().getSoft() * 100 / capacity;
 		}
-		if (null != quota.getThresholds().getSoftGrace()) {
+		if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
 			softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
 		}
-		if (null != quota.getThresholds().getAdvisory()) {
+		if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
 			notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
 		}
 
@@ -2085,13 +2085,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         umfsQd.setSize(capacity);
-        if(null!=quota.getThresholds().getSoft()){
+        if(null!=quota.getThresholds().getSoft() && capacity != 0){
         softLimit = new Long(quota.getThresholds().getSoft() * 100 / capacity).intValue();
         }
-        if(null!=quota.getThresholds().getSoftGrace()){
+        if(null!=quota.getThresholds().getSoftGrace() && capacity != 0){
         softGrace = new Long(quota.getThresholds().getSoftGrace() / ( 24 * 60 * 60)).intValue();
         }
-        if(null!=quota.getThresholds().getAdvisory()){
+        if(null!=quota.getThresholds().getAdvisory() && capacity != 0){
         notificationLimit = new Long(quota.getThresholds().getAdvisory() * 100 / capacity).intValue();
         }
 

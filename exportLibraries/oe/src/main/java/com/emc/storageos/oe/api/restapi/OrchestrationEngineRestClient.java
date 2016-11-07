@@ -48,10 +48,14 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
         _base = baseURI;
     }
 
-    public void setAuthToken(String token, String extraHeader) { 
+    public void setAuthToken(String token) { 
 	_authToken = token;
-	_extraHeader = extraHeader;
     }
+
+    public void setHeaders(String extraHeader) {
+        _extraHeader = extraHeader;
+    }
+
 
     @Override
     protected Builder setResourceHeaders(WebResource resource) {

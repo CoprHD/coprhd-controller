@@ -2346,10 +2346,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         var guideMode = newValues[1];
         var body = $(document.body);
         if (guideVisible && guideMode === "full") {
-            $('.rootNav , .navMenu a').on('click', function(event) {
-                $('.menuTree .active').popover('show');
-                return false;
-            });
             body.addClass('noscroll');
             window.scrollTo(0, 0);
         } else {
@@ -2371,6 +2367,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         if(newValue) {
             $('.rootNav , .navMenu a').on('click', function(event) {
                 $('.wizard-side-next').popover('show');
+                $('.menuTree .active').popover('show');
                 return false;
             });
             guideMonitor = window.setInterval(checkCookieChanged, 500);

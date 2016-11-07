@@ -16,6 +16,9 @@
  */
 package com.emc.sa.service.vipr.oe;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Orchestration Engine Constants
  */
@@ -31,6 +34,7 @@ public final class OrchestrationServiceConstants {
     public static final String ERROR_CODE = "errorCode";
     public static final String RETURN_CODE = "returnCode";
     public static final String TASK = "task";
+    public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
 
     public enum InputType {
         FROM_USER("InputFromUser"),

@@ -19,6 +19,7 @@ package com.emc.sa.service.vipr.oe.tasks;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationService;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.oe.SuccessCriteria;
 import com.emc.sa.service.vipr.oe.primitive.PrimitiveHelper;
 import com.emc.sa.service.vipr.oe.primitive.RestPrimitive;
@@ -103,7 +104,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
         String body = primitive.body();
         String method = primitive.method();
 
-        if (method.equals("POST") || method.equals("PUT") && !body.isEmpty()) {
+        if (OrchestrationServiceConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
             postBody = makePostBody(body);
         }
 

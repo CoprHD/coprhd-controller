@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.api.service.impl.resource;
+package com.emc.sa.api;
 
 import java.util.ArrayList;
 import java.util.Collections;

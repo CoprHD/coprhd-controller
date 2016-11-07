@@ -2272,6 +2272,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $(colWiz).on('shown.bs.popover', function(){
         $(colWiz).popover('toggle');
     });
+
     $(colWiz).popover({
         delay : {
             show : 0,
@@ -2282,6 +2283,23 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         trigger : 'manual',
         content : translate("gettingStarted.popover"),
         selector : 'colWiz'
+
+    });
+
+    $('.menuTree .active').on('shown.bs.popover', function(){
+        $('.menuTree .active').popover('toggle');
+    });
+
+    $('.menuTree .active').popover({
+        delay : {
+            show : 0,
+            hide : 4000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.navmenu.popover"),
+        selector : '.menuTree .active'
 
     });
 
@@ -2328,6 +2346,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         var guideMode = newValues[1];
         var body = $(document.body);
         if (guideVisible && guideMode === "full") {
+            $('.rootNav , .navMenu a').on('click', function(event) {
+                        $('.menuTree .active').popover('show');
+                        return false;
+                    });
             body.addClass('noscroll');
             window.scrollTo(0, 0);
         } else {

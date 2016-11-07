@@ -371,6 +371,7 @@ URI_IPINTERFACE_DEREGISTER      = URI_SERVICES_BASE   + '/compute/ip-interfaces/
 URI_IPINTERFACES_BULKGET        = URI_SERVICES_BASE   + '/compute/ip-interfaces/bulk'
 URI_VCENTERS                    = URI_SERVICES_BASE   + '/compute/vcenters'
 URI_VCENTER                     = URI_SERVICES_BASE   + '/compute/vcenters/{0}'
+URI_VCENTER_DISCOVER            = URI_VCENTER         + '/discover'
 URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
@@ -8218,6 +8219,10 @@ class Bourne:
     def vcenter_show(self, name):
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))
+
+    def vcenter_discover(self, name):
+        uri = self.vcenter_query(name)
+        return self.api('POST', URI_VCENTER_DISCOVER.format(uri))
 
     def vcenter_delete(self, name):
         uri = self.vcenter_query(name)

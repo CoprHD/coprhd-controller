@@ -49,6 +49,8 @@ import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagedriver.StorageDriverList;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
@@ -92,6 +94,8 @@ public class StorageDriverService {
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
     private static final Set<String> VALID_META_TYPES = new HashSet<String>(
             Arrays.asList(new String[] { "block", "file", "block_and_file", "object" }));
+    private static final String READY = "READY";
+    private static final String IN_USE = "IN_USE";
 
     // TODO we may need to make these 2 values configurable by overwrite it with
     // value from ZK
@@ -131,9 +135,19 @@ public class StorageDriverService {
                 // bypass native storage types
                 continue;
             }
+            Set<String> usedProviderTypes = getUsedStorageProviderTypes();
+            Set<String> usedSystemTypes = getUsedStorageSystemTypes();
+            if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
+                type.setDriverStatus(READY);
+                if (usedProviderTypes.contains(type.getStorageTypeName()) || usedSystemTypes.contains(type.getStorageTypeName())) {
+                    type.setDriverStatus(IN_USE);
+                }
+            }
             String driverName = type.getDriverName();
             if (driverMap.containsKey(driverName)) {
-                driverMap.get(driverName).getSupportedTypes().add(type.getStorageTypeDispName());
+                StorageDriverRestRep driverRestRep = driverMap.get(driverName);
+                driverRestRep.getSupportedTypes().add(type.getStorageTypeDispName());
+                driverRestRep.setDriverStatus(type.getDriverStatus());
             } else {
                 driverMap.put(type.getDriverName(), StorageDriverMapper.map(type));
             }
@@ -141,6 +155,28 @@ public class StorageDriverService {
         StorageDriverList driverList = new StorageDriverList();
         driverList.getDrivers().addAll(driverMap.values());
         return driverList;
+    }
+
+    private Set<String> getUsedStorageProviderTypes() {
+        List<URI> ids = dbClient.queryByType(StorageProvider.class, true);
+        Set<String> types = new HashSet<String>();
+        Iterator<StorageProvider> it = dbClient.queryIterativeObjects(StorageProvider.class, ids);
+        while (it.hasNext()) {
+            types.add(it.next().getInterfaceType());
+        }
+        log.info("These storage provider types are being refered: {}", Arrays.toString(types.toArray()));
+        return types;
+    }
+
+    private Set<String> getUsedStorageSystemTypes() {
+        List<URI> ids = dbClient.queryByType(StorageSystem.class, true);
+        Set<String> types = new HashSet<String>();
+        Iterator<StorageSystem> it = dbClient.queryIterativeObjects(StorageSystem.class, ids);
+        while (it.hasNext()) {
+            types.add(it.next().getSystemType());
+        }
+        log.info("These storage system types are being refered: {}", Arrays.toString(types.toArray()));
+        return types;
     }
 
     @GET

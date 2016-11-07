@@ -201,4 +201,6 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
+
+    public static final String STORAGE_DRIVER_URL = "/storagedriver";
 }

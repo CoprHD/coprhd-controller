@@ -2293,7 +2293,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $('.menuTree .active').popover({
         delay : {
             show : 0,
-            hide : 4000
+            hide : 5000
         },
         placement : 'bottom',
         html : true,

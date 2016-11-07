@@ -9432,39 +9432,41 @@ blockconsistencygroup_update_tests()
 
     cg2=$3
     cg2_vpool=$4
+    vnx_vol=vnx-vol${RANDOM}
+    vmax_vol=vmax-vol${RANDOM}
 
-    run volume create vnx-vol $PROJECT $NH cosvnxb 1GB
-    run volume create vmax-vol $PROJECT $NH cosvmaxb 1GB
+    run volume create ${vnx_vol} $PROJECT $NH cosvnxb 1GB
+    run volume create ${vmax_vol} $PROJECT $NH cosvmaxb 1GB
 
     blockconsistencygroup create $PROJECT $cg1
     blockconsistencygroup create $PROJECT $cg2
 
     secho "Trying to update CG that is not on array"
-    blockconsistencygroup update $cg1 --add $PROJECT/vnx-vol
-    blockconsistencygroup update $cg2 --add $PROJECT/vmax-vol
+    blockconsistencygroup update $cg1 --add $PROJECT/${vnx_vol}
+    blockconsistencygroup update $cg2 --add $PROJECT/${vmax_vol}
 
     secho "Creating volumes and adding them to the CG"
-    run volume create vnx-vol-cg $PROJECT $NH $cg1_vpool 1GB --count=2 --consistencyGroup=$cg1
-    run volume create vmax-vol-cg $PROJECT $NH $cg2_vpool 1GB --count=2 --consistencyGroup=$cg2
+    run volume create ${vnx_vol}-cg $PROJECT $NH $cg1_vpool 1GB --count=2 --consistencyGroup=$cg1
+    run volume create ${vmax_vol}-cg $PROJECT $NH $cg2_vpool 1GB --count=2 --consistencyGroup=$cg2
 
     blockconsistencygroup show $cg1
     blockconsistencygroup show $cg2
 
     secho "Creating volumes to update"
-    run volume create vnx-update $PROJECT $NH $cg1_vpool 1GB --count=3
-    run volume create vmax-update $PROJECT $NH $cg2_vpool 1GB --count=3
+    run volume create ${vnx_vol}-update $PROJECT $NH $cg1_vpool 1GB --count=3
+    run volume create ${vmax_vol}-update $PROJECT $NH $cg2_vpool 1GB --count=3
 
     secho "Adding volumes to CG"
-    run blockconsistencygroup update $cg1 --add $PROJECT/vnx-update-1,$PROJECT/vnx-update-2,$PROJECT/vnx-update-3
-    run blockconsistencygroup update $cg2 --add $PROJECT/vmax-update-1,$PROJECT/vmax-update-2,$PROJECT/vmax-update-3
+    run blockconsistencygroup update $cg1 --add $PROJECT/${vnx_vol}-update-1,$PROJECT/${vnx_vol}-update-2,$PROJECT/${vnx_vol}-update-3
+    run blockconsistencygroup update $cg2 --add $PROJECT/${vmax_vol}-update-1,$PROJECT/${vmax_vol}-update-2,$PROJECT/${vmax_vol}-update-3
 
     secho "Remove volumes from CG"
-    run blockconsistencygroup update $cg1 --remove $PROJECT/vnx-update-1
-    run blockconsistencygroup update $cg2 --remove $PROJECT/vmax-update-1
+    run blockconsistencygroup update $cg1 --remove $PROJECT/${vnx_vol}-update-1
+    run blockconsistencygroup update $cg2 --remove $PROJECT/${vmax_vol}-update-1
 
     secho "Add and Remove volumes from CG"
-    run blockconsistencygroup update $cg1 --remove $PROJECT/vnx-update-2 --add $PROJECT/vnx-update-3
-    run blockconsistencygroup update $cg2 --remove $PROJECT/vmax-update-2 --add $PROJECT/vmax-update-3
+    run blockconsistencygroup update $cg1 --remove $PROJECT/${vnx_vol}-update-2 --add $PROJECT/${vnx_vol}-update-3
+    run blockconsistencygroup update $cg2 --remove $PROJECT/${vmax_vol}-update-2 --add $PROJECT/${vmax_vol}-update-3
 
     secho "Cleaning up after CG update tests"
     volume delete $PROJECT --project --wait

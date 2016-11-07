@@ -45,7 +45,7 @@ public class VNXUnityExportOperations extends VNXeExportOperations {
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         Set<Integer> usedHLUs = new HashSet<Integer>();
         try {
-            String vnxeHostId = null;
+            Set<String> vnxeHostIds = new HashSet<String>();
             VNXeApiClient apiClient = getVnxeClient(storage);
             for (String initiatorName : initiatorNames) {
                 initiatorName = Initiator.toPortNetworkId(initiatorName);
@@ -63,26 +63,27 @@ public class VNXUnityExportOperations extends VNXeExportOperations {
                         if (vnxeInitiator != null) {
                             VNXeBase parentHost = vnxeInitiator.getParentHost();
                             if (parentHost != null) {
-                                vnxeHostId = parentHost.getId();
-                                break;
+                                vnxeHostIds.add(parentHost.getId());
                             }
                         }
                     }
                 }
             }
 
-            if (vnxeHostId == null) {
+            if (vnxeHostIds.isEmpty()) {
                 log.info("No Host found on array for initiators {}", Joiner.on(',').join(initiatorNames));
             } else {
-                log.info("Found matching host {} on array", vnxeHostId);
-                // Get vnxeHost from vnxeHostId
-                VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
-                List<VNXeBase> hostLunIds = vnxeHost.getHostLUNs();
-                if (hostLunIds != null && !hostLunIds.isEmpty()) {
-                    for (VNXeBase hostLunId : hostLunIds) {
-                        HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
-                        log.info("Looking at Host Lun {}; Lun: {}, HLU: {}", hostLunId.getId(), hostLun.getLun(), hostLun.getHlu());
-                        usedHLUs.add(hostLun.getHlu());
+                log.info("Found matching hosts {} on array", vnxeHostIds);
+                for (String vnxeHostId : vnxeHostIds) {
+                    // Get vnxeHost from vnxeHostId
+                    VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
+                    List<VNXeBase> hostLunIds = vnxeHost.getHostLUNs();
+                    if (hostLunIds != null && !hostLunIds.isEmpty()) {
+                        for (VNXeBase hostLunId : hostLunIds) {
+                            HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
+                            log.info("Looking at Host Lun {}; Lun: {}, HLU: {}", hostLunId.getId(), hostLun.getLun(), hostLun.getHlu());
+                            usedHLUs.add(hostLun.getHlu());
+                        }
                     }
                 }
             }

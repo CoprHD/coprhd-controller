@@ -89,7 +89,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
             _log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             _log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
-            _log.info("User assigned HLUs will be ignored as Cinder does not support it.");
 
             ExportOperationContext context = new XtremIOExportOperationContext();
             // Prime the context object

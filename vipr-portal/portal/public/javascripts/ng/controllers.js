@@ -2347,9 +2347,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         var body = $(document.body);
         if (guideVisible && guideMode === "full") {
             $('.rootNav , .navMenu a').on('click', function(event) {
-                        $('.menuTree .active').popover('show');
-                        return false;
-                    });
+                $('.menuTree .active').popover('show');
+                return false;
+            });
             body.addClass('noscroll');
             window.scrollTo(0, 0);
         } else {

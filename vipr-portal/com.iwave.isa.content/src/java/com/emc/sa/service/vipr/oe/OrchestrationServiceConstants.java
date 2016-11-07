@@ -37,6 +37,10 @@ public final class OrchestrationServiceConstants {
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
     public static final String VIPR_REST_URI = "{scheme}://{endPoint}:{port}{path}";
 
+    public enum restMethods {
+        GET, POST, PUT, DELETE;
+    }
+
     public enum InputType {
         FROM_USER("InputFromUser"),
         FROM_STEP_INPUT("FromOtherStepInput"),

@@ -109,7 +109,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
             postBody = makePostBody(body);
         }
 
-        String uri = makeUri(uriDb);
+        URI uri = makeUri(uriDb);
 
         ExecutionUtils.currentContext().logInfo("Started Executing REST API with uri:%s and POST Body:%s ", uri, postBody);
 
@@ -121,15 +121,26 @@ public class RunViprREST extends ViPRExecutionTask<String> {
     }
     
 
-    private String makeRestCall(final String uriString, final String postBody, final String method) {
+    private String makeRestCall(final URI uri, final String postBody, final String method) {
 
         ClientResponse response = null;
-
-        if (method.equals("GET"))
-            response = restClient.get(uri(uriString));
-        else
-            response = restClient.post(uri(uriString), postBody);
-
+        OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
+        switch(restmethod) {
+            case GET:
+                response = restClient.get(uri);
+                break;
+            case PUT:
+                response = restClient.put(uri, postBody);
+                break;
+            case POST:
+                response = restClient.post(uri, postBody);
+                break;
+            case DELETE:
+                response = restClient.delete(uri);
+                break;
+            default:
+                logger.error("Unknown REST method type");
+        }
 
         SuccessCriteria o = new SuccessCriteria();
         o.setReturnCode(response.getStatus());
@@ -152,7 +163,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
      * @param s
      * @return
      */
-    private String makeUri(String s) {
+    private URI makeUri(String s) {
     
         Pattern p = Pattern.compile("(\\{(.*?)\\})");
         Matcher m = p.matcher(s);
@@ -167,7 +178,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
         
         ExecutionUtils.currentContext().logInfo("URI string is: %s", restUri);
 
-        return restUri.toString();
+        return restUri;
     }
 
 

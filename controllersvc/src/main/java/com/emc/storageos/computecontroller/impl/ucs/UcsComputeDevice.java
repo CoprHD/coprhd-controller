@@ -1126,9 +1126,10 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
              if (host != null && host.getComputeElement() != null ) {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
                 if (host.getUuid() != null || computeElement.getUuid() != null) {
                     String uuid = host.getUuid() != null ? host.getUuid(): computeElement.getUuid();
-
+                    LOGGER.info("uuid: " + uuid);
                     LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
                             cs.getUsername(), cs.getPassword(), uuid);
 

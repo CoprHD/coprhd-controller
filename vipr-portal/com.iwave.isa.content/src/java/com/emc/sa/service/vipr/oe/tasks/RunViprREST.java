@@ -163,14 +163,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
             
         }
         UriTemplate template = new UriTemplate(OrchestrationServiceConstants.VIPR_REST_URI);
-        
-        Map<String, String> uriVariables = new HashMap<String, String>();
-        uriVariables.put("scheme", primitive.scheme());
-        uriVariables.put("endPoint", endPoint);
-        uriVariables.put("port", primitive.port());
-        uriVariables.put("path", s);
-        
-        URI restUri = template.expand(uriVariables);
+        URI restUri = template.expand(primitive.scheme(), endPoint, primitive.port(), s); 
         
         ExecutionUtils.currentContext().logInfo("URI string is: %s", restUri);
 

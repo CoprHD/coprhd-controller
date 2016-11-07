@@ -126,6 +126,9 @@ public class StorageDriverService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StorageDriverList getStorageDrivers() {
+        Set<String> usedProviderTypes = getUsedStorageProviderTypes();
+        Set<String> usedSystemTypes = getUsedStorageSystemTypes();
+
         Map<String, StorageDriverRestRep> driverMap = new HashMap<String, StorageDriverRestRep>();
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
@@ -135,8 +138,7 @@ public class StorageDriverService {
                 // bypass native storage types
                 continue;
             }
-            Set<String> usedProviderTypes = getUsedStorageProviderTypes();
-            Set<String> usedSystemTypes = getUsedStorageSystemTypes();
+
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
                 type.setDriverStatus(READY);
                 if (usedProviderTypes.contains(type.getStorageTypeName()) || usedSystemTypes.contains(type.getStorageTypeName())) {

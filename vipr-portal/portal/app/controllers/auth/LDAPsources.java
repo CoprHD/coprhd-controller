@@ -280,13 +280,11 @@ public class LDAPsources extends ViprResourceController {
         @MaxSize(128)
         @MinSize(2)
         public String name;
-
         @Required
         public String mode;
-
         public String description;
-
         public Boolean disable;
+        public String oidcBaseUrl;
 
         abstract AuthnProviderRestRep save();
 
@@ -629,7 +627,6 @@ public class LDAPsources extends ViprResourceController {
 
     public static class OIDCAuthnProviderForm extends AuthnProviderForm {
         public List<String> domains;
-        public String oidcBaseUrl;
         public String oidcAuthUrl;
         public String oidcTokenUrl;
 

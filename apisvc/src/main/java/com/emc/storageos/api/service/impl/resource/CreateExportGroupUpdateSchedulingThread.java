@@ -111,11 +111,14 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
                 dbClient.createObject(exportPathParam);
             }
 
+            boolean useForce = exportUpdateParam.getForceFlag();
+            _log.info("Use Force option is set to %s", Boolean.toString(useForce));
+
             // push it to storage devices
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
             exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
-                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
+                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, useForce, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

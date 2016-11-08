@@ -968,7 +968,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
-                removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
+                removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, false, stepId);
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));

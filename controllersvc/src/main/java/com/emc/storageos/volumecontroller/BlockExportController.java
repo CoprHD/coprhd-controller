@@ -46,13 +46,14 @@ public interface BlockExportController extends Controller {
      * @param removedHosts Removed Host URIs
      * @param addedInitiators Added Initiator URIs
      * @param removedInitiators Removed Initiator URIs
+     * @param useForce This will force the operation as USER is aware of the impact.
      * @param opId the taskId
      * @throws ControllerException
      */
     public void exportGroupUpdate(URI export, 
             Map<URI, Integer> addedBlockObjectMap, Map<URI, Integer> removedBlockObjectMap,
             Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> addedHosts,
-            Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, String opId) throws ControllerException;
+            Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, boolean useForce, String opId) throws ControllerException;
 
     /**
      * Delete the export.

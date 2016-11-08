@@ -60,45 +60,49 @@ public interface MaskingOrchestrator {
      * @param storageURI
      * @param exportGroupURI
      * @param initiators
+     * @param useForce
      * @param token @return
      */
     public void exportGroupAddInitiators(URI storageURI,
             URI exportGroupURI,
             List<URI> initiators,
-            String token) throws Exception;
+            boolean useForce, String token) throws Exception;
 
     /**
      * @param storageURI
      * @param exportGroupURI
      * @param initiators
+     * @param useForce
      * @param token @return
      */
     public void exportGroupRemoveInitiators(URI storageURI,
             URI exportGroupURI,
             List<URI> initiators,
-            String token) throws Exception;
+            boolean useForce, String token) throws Exception;
 
     /**
      * @param storageURI
      * @param exportGroupURI
      * @param volumeMap
+     * @param useForce
      * @param token @return
      */
     public void exportGroupAddVolumes(URI storageURI,
             URI exportGroupURI,
             Map<URI, Integer> volumeMap,
-            String token) throws Exception;
+            boolean useForce, String token) throws Exception;
 
     /**
      * @param storageURI
      * @param exportGroupURI
      * @param volumes
+     * @param useForce
      * @param token @return
      */
     public void exportGroupRemoveVolumes(URI storageURI,
             URI exportGroupURI,
             List<URI> volumes,
-            String token) throws Exception;
+            boolean useForce, String token) throws Exception;
 
     /**
      * Update the Path Parameters for the volume specified in any of the Export Mask(s)

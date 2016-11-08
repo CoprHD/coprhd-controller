@@ -105,7 +105,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI,
-            Map<URI, Integer> volumeMap, String token) throws Exception {
+            Map<URI, Integer> volumeMap, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
             BlockStorageDevice device = getDevice();
@@ -165,7 +165,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs, String token) throws Exception {
+            List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         BlockStorageDevice device = getDevice();
         String previousStep = null;
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -476,7 +476,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs, String token) throws Exception {
+            List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         BlockStorageDevice device = getDevice();
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);

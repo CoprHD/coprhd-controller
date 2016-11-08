@@ -634,7 +634,7 @@ public class ExportService extends VolumeService {
         List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
 
         exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                null, null, null, null, null, null, task);
+                null, null, null, null, null, null, false, task);
 
         return waitForTaskCompletion(exportGroup.getId(), task);
 
@@ -809,7 +809,7 @@ public class ExportService extends VolumeService {
 
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                    null, null, null, null, null, null, task);
+                    null, null, null, null, null, null, false, task);
         }
         else {
             // Create a new export group with the given list of initiators

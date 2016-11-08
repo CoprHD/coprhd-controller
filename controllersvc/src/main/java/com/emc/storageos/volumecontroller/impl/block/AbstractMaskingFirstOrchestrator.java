@@ -113,7 +113,7 @@ abstract public class AbstractMaskingFirstOrchestrator extends
 
     @Override
     public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI,
-            Map<URI, Integer> volumeMap, String token) throws Exception {
+            Map<URI, Integer> volumeMap, boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             _log.info(String

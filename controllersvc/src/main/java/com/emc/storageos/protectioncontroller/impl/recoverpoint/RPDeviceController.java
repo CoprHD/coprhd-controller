@@ -1329,7 +1329,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         _log.info(buffer.toString());
 
                         waitFor = _exportWfUtils.generateExportGroupAddVolumes(workflow, STEP_EXPORT_GROUP, waitFor, storageSystemURI,
-                                exportGroup.getId(), volumesToAdd);
+                                exportGroup.getId(), volumesToAdd, false);
 
                         _log.info("Added Export Group add volumes step in workflow");
                     } else {
@@ -2619,7 +2619,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             RPExport rpExport = rpExports.get(exportURI);
             if (!rpExport.getVolumes().isEmpty()) {
                 _exportWfUtils.generateExportGroupRemoveVolumes(workflow, STEP_DV_REMOVE_VOLUME_EXPORT, waitFor,
-                        rpExport.getStorageSystem(), exportURI, rpExport.getVolumes());
+                        rpExport.getStorageSystem(), exportURI, rpExport.getVolumes(), false);
                 returnStep = STEP_DV_REMOVE_VOLUME_EXPORT;
             }
         }
@@ -2959,7 +2959,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param token
      */
     @Override
-    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiators, String token) throws InternalException {
+    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiators, boolean useForce, String token) throws InternalException {
         WorkflowStepCompleter.stepFailed(token, DeviceControllerErrors.recoverpoint.rpNotSupportExportGroupInitiatorsAddOperation());
     }
 
@@ -2970,7 +2970,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param token
      */
     @Override
-    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiators, String token)
+    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiators, boolean useForce, String token)
             throws InternalException {
         WorkflowStepCompleter.stepFailed(token, DeviceControllerErrors.recoverpoint.rpNotSupportExportGroupInitiatorsRemoveOperation());
     }
@@ -3223,7 +3223,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
-    public void exportGroupAddVolumes(URI protectionDevice, URI exportGroupID, Map<URI, Integer> snapshots, String token)
+    public void exportGroupAddVolumes(URI protectionDevice, URI exportGroupID, Map<URI, Integer> snapshots, boolean useForce, String token)
             throws InternalException {
         TaskCompleter taskCompleter = null;
         try {
@@ -3300,7 +3300,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             "Adding workflow step to add RP bookmark and associated target volumes to export.  ExportGroup: %s, Storage System: %s, Volume Map: %s",
                             exportGroup.getId(), entry.getKey(), entry.getValue()));
             _exportWfUtils.generateExportGroupAddVolumes(workflow, null, STEP_ENABLE_IMAGE_ACCESS, entry.getKey(), exportGroupID,
-                    entry.getValue());
+                    entry.getValue(), false);
         }
 
         _log.info("Finished adding export group add volume steps in workflow: " + exportGroup.getId());
@@ -3316,18 +3316,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volume
      * - Disable the bookmarks associated with the snapshot.
-     *
+     * @param token
+     *            The task object
      * @param protectionDevice
      *            The RP System used to manage the protection
      * @param exportgroupID
      *            The export group
      * @param snapshotID
      *            snapshot ID to remove
-     * @param token
-     *            The task object
      */
     @Override
-    public void exportGroupRemoveVolumes(URI protectionDevice, URI exportGroupID, List<URI> snapshotIDs, String token)
+    public void exportGroupRemoveVolumes(URI protectionDevice, URI exportGroupID, List<URI> snapshotIDs, boolean useForce, String token)
             throws InternalException {
         TaskCompleter taskCompleter = null;
         try {
@@ -3414,7 +3413,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             "Adding workflow step to remove RP bookmarks and associated target volumes from export.  ExportGroup: %s, Storage System: %s, BlockObjects: %s",
                             exportGroup.getId(), deviceEntry.getKey(), deviceEntry.getValue()));
             _exportWfUtils.generateExportGroupRemoveVolumes(workflow, STEP_EXPORT_REMOVE_SNAPSHOT, STEP_EXPORT_GROUP_DISABLE,
-                    deviceEntry.getKey(), exportGroupID, deviceEntry.getValue());
+                    deviceEntry.getKey(), exportGroupID, deviceEntry.getValue(), false);
         }
 
         _log.info(String.format("Created export group remove snapshot steps in workflow: %s", exportGroup.getId()));

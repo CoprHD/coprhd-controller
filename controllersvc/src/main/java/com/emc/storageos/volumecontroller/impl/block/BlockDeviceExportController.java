@@ -355,7 +355,7 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, Integer> addedBlockObjectMap,
             Map<URI, Integer> removedBlockObjectMap,
             Set<URI> addedClusters, Set<URI> removedClusters,
-            Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, String opId)
+            Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, boolean useForce, String opId)
             throws ControllerException {
         Map<BlockObjectControllerKey, Map<URI, Integer>> addedStorageToBlockObjects =
                 new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
@@ -370,6 +370,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     removedStorageToBlockObjects, addedInitiators,
                     removedInitiators, addedHosts, removedHosts, addedClusters,
                     removedClusters);
+            _log.info("Use Force option is set to %s", Boolean.toString(useForce));
 
             // Generate a flat list of volume/snap objects that will be added
             // to the export update completer so the completer will know what
@@ -413,7 +414,8 @@ public class BlockDeviceExportController implements BlockExportController {
                                 controllerKey.getController(), export, getExportMask(export, controllerKey.getStorageControllerUri()),
                                 addedStorageToBlockObjects.get(controllerKey),
                                 removedStorageToBlockObjects.get(controllerKey),
-                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), controllerKey.getStorageControllerUri());
+                        new ArrayList(addedInitiators), new ArrayList(removedInitiators), controllerKey.getStorageControllerUri(),
+                        useForce);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());

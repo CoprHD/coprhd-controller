@@ -79,24 +79,23 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public static Workflow.Method exportAddVolumesMethod(URI storageURI, URI exportGroupURI,
-            Map<URI, Integer> volumeMap) {
-        return new Workflow.Method("exportAddVolumes", storageURI, exportGroupURI, volumeMap);
+            Map<URI, Integer> volumeMap, boolean useForce) {
+        return new Workflow.Method("exportAddVolumes", storageURI, exportGroupURI, volumeMap, useForce);
     }
 
     public static Workflow.Method exportRemoveVolumesMethod(URI storageURI, URI exportGroupURI,
-            List<URI> volumes) {
-        return new Workflow.Method("exportRemoveVolumes", storageURI, exportGroupURI, volumes);
+            List<URI> volumes, boolean useForce) {
+        return new Workflow.Method("exportRemoveVolumes", storageURI, exportGroupURI, volumes, useForce);
     }
 
     public static Workflow.Method exportAddInitiatorsMethod(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs) {
-        return new Workflow.Method("exportAddInitiators", storageURI, exportGroupURI, initiatorURIs);
+            List<URI> initiatorURIs, boolean useForce) {
+        return new Workflow.Method("exportAddInitiators", storageURI, exportGroupURI, initiatorURIs, useForce);
     }
 
     public static Workflow.Method exportRemoveInitiatorsMethod(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs) {
-        return new Workflow.Method("exportRemoveInitiators", storageURI, exportGroupURI,
-                initiatorURIs);
+            List<URI> initiatorURIs, boolean useForce) {
+        return new Workflow.Method("exportRemoveInitiators", storageURI, exportGroupURI, initiatorURIs, useForce);
     }
 
     public static Workflow.Method exportGroupChangePathParamsMethod(URI storageURI,
@@ -206,14 +205,14 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public void exportAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap,
-            String token) throws ControllerException {
+            boolean useForce, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
             final String workflowKey = "exportAddVolumes";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.exportGroupAddVolumes(storageURI, exportGroupURI, volumeMap, token);
+                orchestrator.exportGroupAddVolumes(storageURI, exportGroupURI, volumeMap, useForce, token);
 
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
@@ -227,14 +226,14 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public void exportRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumes,
-            String token) throws ControllerException {
+            boolean useForce, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
             final String workflowKey = "exportRemoveVolumes";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.exportGroupRemoveVolumes(storageURI, exportGroupURI, volumes, token);
+                orchestrator.exportGroupRemoveVolumes(storageURI, exportGroupURI, volumes, useForce, token);
 
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
@@ -248,14 +247,14 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public void exportAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs,
-            String token) throws ControllerException {
+            boolean useForce, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
             final String workflowKey = "exportAddInitiators";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.exportGroupAddInitiators(storageURI, exportGroupURI, initiatorURIs, token);
+                orchestrator.exportGroupAddInitiators(storageURI, exportGroupURI, initiatorURIs, useForce, token);
 
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
@@ -269,7 +268,7 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public void exportRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs,
-            String token) throws ControllerException {
+            boolean useForce, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
             final String workflowKey = "exportRemoveInitiators";
@@ -277,7 +276,7 @@ public class ExportWorkflowEntryPoints implements Controller {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
                 orchestrator.exportGroupRemoveInitiators(storageURI, exportGroupURI, initiatorURIs,
-                        token);
+                        useForce, token);
 
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);

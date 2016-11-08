@@ -100,7 +100,7 @@ public class BlockExportControllerImpl implements BlockExportController {
     public void exportGroupUpdate(URI export, 
             Map<URI, Integer> addedBlockObjectMap, Map<URI, Integer> removedObjectMap, 
             Set<URI> addedClusters, Set<URI> removedClusters,
-            Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, String opId)
+            Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, boolean useForce, String opId)
             throws ControllerException {
         blockRMI("exportGroupUpdate", export, addedBlockObjectMap, removedObjectMap,
                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators,

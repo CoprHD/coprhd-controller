@@ -114,6 +114,7 @@ public class ExportWorkflowUtils {
      * @param blockStorageControllerUri the block storage controller. This will always
      *            be used for adding/removing initiators as we
      *            do not want a protection controller doing this.
+     * @param useForce TODO
      * @return the id of the wrapper step that was added to main workflow
      * @throws IOException
      * @throws WorkflowException
@@ -125,7 +126,7 @@ public class ExportWorkflowUtils {
             ExportMask exportMask,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators, URI blockStorageControllerUri)
+            List<URI> addedInitiators, List<URI> removedInitiators, URI blockStorageControllerUri, boolean useForce)
             throws IOException, WorkflowException, WorkflowRestartedException {
 
         // Filter the addedInitiators for non VPLEX system by the Export Group varray.
@@ -157,11 +158,11 @@ public class ExportWorkflowUtils {
         // are getting replaced.
         if (addedInitiators != null && !addedInitiators.isEmpty()) {
             stepId = generateExportGroupAddInitiators(storageWorkflow, null,
-                    stepId, exportGroupUri, blockStorageControllerUri, addedInitiators);
+                    stepId, exportGroupUri, blockStorageControllerUri, addedInitiators, useForce);
         }
         if (removedInitiators != null && !removedInitiators.isEmpty()) {
             stepId = generateExportGroupRemoveInitiators(storageWorkflow, null,
-                    stepId, exportGroupUri, blockStorageControllerUri, removedInitiators);
+                    stepId, exportGroupUri, blockStorageControllerUri, removedInitiators, useForce);
         }
         // for volumes we must do remove first in case the same lun id
         // will be used by one of the added volumes. This may result in
@@ -170,11 +171,11 @@ public class ExportWorkflowUtils {
         if (removedBlockObjects != null && !removedBlockObjects.isEmpty()) {
             stepId = generateExportGroupRemoveVolumes(storageWorkflow,
                     null, stepId, storageUri, exportGroupUri,
-                    new ArrayList<URI>(removedBlockObjects.keySet()));
+                    new ArrayList<URI>(removedBlockObjects.keySet()), useForce);
         }
         if (addedBlockObjects != null && !addedBlockObjects.isEmpty()) {
             stepId = generateExportGroupAddVolumes(storageWorkflow, null,
-                    stepId, storageUri, exportGroupUri, addedBlockObjects);
+                    stepId, storageUri, exportGroupUri, addedBlockObjects, useForce);
         }
 
         if (exportMask == null) {
@@ -251,20 +252,20 @@ public class ExportWorkflowUtils {
 
     public String generateExportGroupAddVolumes(Workflow workflow, String wfGroupId,
             String waitFor, URI storage,
-            URI export, Map<URI, Integer> volumeMap)
+            URI export, Map<URI, Integer> volumeMap, boolean useForce)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method method =
                 ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export,
-                        volumeMap);
+                volumeMap, useForce);
 
         List<URI> volumeList = new ArrayList<URI>();
         volumeList.addAll(volumeMap.keySet());
 
         Workflow.Method rollback =
                 ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export,
-                        volumeList);
+                volumeList, useForce);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding volumes to export on storage array %s (%s)",
@@ -274,13 +275,13 @@ public class ExportWorkflowUtils {
 
     public String generateExportGroupRemoveVolumes(Workflow workflow, String wfGroupId,
             String waitFor, URI storage,
-            URI export, List<URI> volumes)
+            URI export, List<URI> volumes, boolean useForce)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method method =
                 ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export,
-                        volumes);
+                volumes, useForce);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Removing volumes from export on storage array %s (%s)",
@@ -291,13 +292,13 @@ public class ExportWorkflowUtils {
     public String generateExportGroupRemoveInitiators(Workflow workflow,
             String wfGroupId, String waitFor,
             URI export, URI storage,
-            List<URI> initiatorURIs)
+            List<URI> initiatorURIs, boolean useForce)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method method =
                 ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(storage, export,
-                        initiatorURIs);
+                initiatorURIs, useForce);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Removing initiators from export on storage array %s (%s)",
@@ -307,13 +308,13 @@ public class ExportWorkflowUtils {
 
     public String generateExportGroupAddInitiators(Workflow workflow, String wfGroupId,
             String waitFor, URI export, URI storage,
-            List<URI> initiatorURIs)
+            List<URI> initiatorURIs, boolean useForce)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method method =
                 ExportWorkflowEntryPoints.exportAddInitiatorsMethod(storage, export,
-                        initiatorURIs);
+                initiatorURIs, useForce);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding initiators from export on storage array %s (%s)",

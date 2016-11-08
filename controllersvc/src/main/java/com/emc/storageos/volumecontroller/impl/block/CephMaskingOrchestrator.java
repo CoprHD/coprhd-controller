@@ -170,7 +170,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     @Override
-    public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap, String token) throws Exception {
+    public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -234,7 +234,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     @Override
-    public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumeURIs, String token) throws Exception {
+    public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumeURIs, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -298,7 +298,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     @Override
-    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token) throws Exception {
+    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -369,7 +369,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     @Override
-    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token) throws Exception {
+    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);

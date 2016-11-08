@@ -236,7 +236,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI,
-            Map<URI, Integer> volumeMap, String token) throws Exception {
+            Map<URI, Integer> volumeMap, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
             BlockStorageDevice device = getDevice();

@@ -3107,7 +3107,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (removeVolumes) {
                         _log.info("removing volumes: " + volumeURIList);
                         Workflow.Method method = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(vplexSystem.getId(), export,
-                                volumeURIList);
+                                volumeURIList, false);
 
                         storageViewStepId = workflow.createStep("removeVolumes",
                                 String.format("Removing volumes from export on storage array %s (%s)",
@@ -3121,7 +3121,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (removeInitiators) {
                         _log.info("removing initiators: " + exportMask.getInitiators());
                         Workflow.Method removeInitiatorMethod = ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(vplexSystem.getId(),
-                                export, URIUtil.toURIList(exportMask.getInitiators()));
+                                export, URIUtil.toURIList(exportMask.getInitiators()), false);
 
                         storageViewStepId = workflow.createStep("storageViewRemoveInitiators",
                                 String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
@@ -3315,7 +3315,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void exportGroupAddVolumes(URI vplexURI, URI exportURI,
             Map<URI, Integer> volumeMap,
-            String opId) throws ControllerException {
+            boolean useForce, String opId) throws ControllerException {
         String volListStr = Joiner.on(',').join(volumeMap.keySet());
         ExportAddVolumeCompleter completer = new ExportAddVolumeCompleter(exportURI, volumeMap, opId);
 
@@ -3561,7 +3561,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void exportGroupRemoveVolumes(URI vplexURI, URI exportURI,
-            List<URI> volumeURIs, String opId)
+            List<URI> volumeURIs, boolean useForce, String opId)
             throws ControllerException {
         _log.info("entering export group remove volumes");
         String volListStr = Joiner.on(',').join(volumeURIs);
@@ -3899,7 +3899,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void exportGroupAddInitiators(URI vplexURI, URI exportURI,
-            List<URI> initiatorURIs, String opId)
+            List<URI> initiatorURIs, boolean useForce, String opId)
             throws ControllerException {
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -4607,7 +4607,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void exportGroupRemoveInitiators(URI vplexURI, URI exportURI,
             List<URI> initiatorURIs,
-            String opId) throws ControllerException {
+            boolean useForce, String opId) throws ControllerException {
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);

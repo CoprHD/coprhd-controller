@@ -162,7 +162,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
     @Override
     public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI,
-            Map<URI, Integer> volumeMap, String token) throws Exception {
+            Map<URI, Integer> volumeMap, boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             log.info(String.format(
@@ -273,7 +273,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
     @Override
     public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumes,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             log.info(String.format("exportRemoveVolume start - Array: %s ExportGroup: %s "
@@ -362,7 +362,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs, String token) throws Exception {
+            List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         TaskCompleter taskCompleter = null;
         try {
             log.info(String.format("exportAddInitiator start - Array: %s ExportGroup: "
@@ -516,7 +516,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     public void exportGroupRemoveInitiators(URI storageURI,
             URI exportGroupURI,
             List<URI> initiatorURIs,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
 

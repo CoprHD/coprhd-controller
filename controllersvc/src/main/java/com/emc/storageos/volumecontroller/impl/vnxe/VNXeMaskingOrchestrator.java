@@ -178,7 +178,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
             List<URI> initiatorURIs,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         TaskCompleter taskCompleter = null;
         try {
             _log.info(String.format("exportAddInitiator start - Array: %s ExportMask: " +
@@ -326,7 +326,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public void exportGroupRemoveInitiators(URI storageURI,
             URI exportGroupURI,
             List<URI> initiatorURIs,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
@@ -402,7 +402,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI,
             Map<URI, Integer> volumeMap,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             _log.info(
@@ -476,7 +476,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI,
             List<URI> volumes,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             _log.info(

@@ -114,7 +114,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token) throws Exception {
+    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         /*
          * foreach ExportGroup.volume
          * if ScaleIO volume
@@ -195,7 +195,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token) throws Exception {
+    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         /*
          * foreach ScaleOI volume in ExportGroup
          * foreach initiator in list
@@ -314,7 +314,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap, String token) throws Exception {
+    public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap, boolean useForce, String token) throws Exception {
         /*
          * foreach volume in list
          * foreach initiator in ExportGroup
@@ -382,7 +382,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumeURIs, String token) throws Exception {
+    public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumeURIs, boolean useForce, String token) throws Exception {
         /*
          * foreach volume in list
          * foreach initiator in ExportGroup

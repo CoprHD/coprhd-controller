@@ -27,6 +27,7 @@ public class ExportUpdateParam {
     private ClustersUpdateParam clusters;
     // Export path parameters can be specified for any included volumes.
     private ExportPathParameters exportPathParameters;
+    private boolean forceFlag = false;
 
     public ExportUpdateParam() {
     }
@@ -122,4 +123,14 @@ public class ExportUpdateParam {
     public void setExportPathParameters(ExportPathParameters exportPathParameters) {
                 this.exportPathParameters = exportPathParameters;
             }
+
+    @XmlElement(name = "force_flag", required = false)
+    public boolean getForceFlag() {
+        return forceFlag;
+    }
+
+    public void setForceFlag(boolean forceFlag) {
+        this.forceFlag = forceFlag;
+    }
+
 }

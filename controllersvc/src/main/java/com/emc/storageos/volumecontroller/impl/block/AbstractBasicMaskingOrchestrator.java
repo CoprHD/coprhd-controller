@@ -178,7 +178,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs, String token) throws Exception {
+            List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         BlockStorageDevice device = getDevice();
         String previousStep = null;
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -534,7 +534,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
     @Override
     public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
-            List<URI> initiatorURIs, String token) throws Exception {
+            List<URI> initiatorURIs, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
             BlockStorageDevice device = getDevice();
@@ -956,7 +956,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
     @Override
     public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumeURIs,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
             BlockStorageDevice device = getDevice();

@@ -26,7 +26,7 @@
 
 
     function submitForm(){
-        $('#oidcProviderForm').submit();
+        $('#authProviderForm').submit();
     }
 
 #{/set}
@@ -37,7 +37,7 @@
 	
 	#{alerts/}
 	
-#{form @save(), id:'oidcProviderForm', class:'form form-horizontal', autocomplete:"off"}
+#{form @save(), id:'authProviderForm', class:'form form-horizontal', autocomplete:"off"}
 
   <fieldset>
     #{field 'oidcAuthnProvider.name'}

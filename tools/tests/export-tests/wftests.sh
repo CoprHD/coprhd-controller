@@ -1616,7 +1616,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g'  > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap"  > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -1716,6 +1716,83 @@ test_1() {
     done
 }
 
+add_host_to_cluster() {
+    host=$1
+    cluster=$2
+    args="addHostTo $cluster $host"
+    echo "Adding host $host to $cluster"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"$args"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
+}
+
+remove_host_from_cluster() {
+    host=$1
+    cluster=$2
+    args="removeHostFrom $cluster $host"
+    echo "Removing host $host from $cluster"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"$args"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
+}
+
+discover_vcenter() {
+    vcenter=$1
+    echo "Discovering vCenter $vcenter"
+    vcenter discover $vcenter
+    sleep 60
+}
+
+approve_pending_event() {
+    EVENT_ID=$(events list emcworld | grep pending | awk '{print $1}')
+
+    if [ -z "$EVENT_ID" ]
+    then
+      echo "No event found. Test failure."
+      exit;
+    fi
+
+    echo "Approving event $EVENT_ID"
+    events approve $EVENT_ID
+    sleep 30
+}
+
+vcenter_event_test() {
+    echot "vCenter Event Test: Export to cluster, move host into cluster, rediscover vCenter, approve event"
+    expname=${EXPORT_GROUP_NAME}t2
+    item=${RANDOM}
+    cfs="ExportGroup ExportMask"
+    mkdir -p results/${item}
+
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Perform any DB validation in here
+    snap_db 1 ${cfs}
+
+    # Run the export group command
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+
+    # move hosts21 into cluster-1
+    remove_host_from_cluster "host21" "cluster-2"
+    add_host_to_cluster "host21" "cluster-1"
+    discover_vcenter "vcenter1"
+
+    approve_pending_event
+
+    # Remove the shared export
+    runcmd export_group delete ${PROJECT}/${expname}1
+
+    # Snap the DB again
+    snap_db 2 ${cfs}
+
+    # Validate nothing was left behind
+    validate_db 1 2 ${cfs}
+
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Set vCenter back to previous state
+    remove_host_from_cluster "host21" "cluster-1"
+    add_host_to_cluster "host21" "cluster-2"
+    discover_vcenter "vcenter1"
+}
+
+
 # Basic export test for vcenter cluster
 #
 #
@@ -1772,9 +1849,14 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume&5"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -1784,11 +1866,15 @@ test_3() {
 
     for failure in ${failure_injections}
     do
-      secho "Running Test 1 with failure scenario: ${failure}..."
+      secho "Running Test 3 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
+      project=${PROJECT}-${item}
+
+      # Create the project
+      project create ${project} --tenant $TENANT 
       
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -1797,7 +1883,7 @@ test_3() {
       snap_db 1 ${cfs}
 
       # Create the volume
-      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
+      fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
       # Let the async jobs calm down
       sleep 5
@@ -1810,16 +1896,318 @@ test_3() {
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
+      runcmd volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
       # Remove the volume
-      runcmd volume delete ${PROJECT}/${volname}-1 --wait
+      runcmd volume delete --project ${project} --wait
+
+      # Delete the project
+      project delete ${project}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+    done
+}
+
+# Test 4
+#
+# Test exporting the volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume export operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Unexport volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_4() {
+    echot "Test 4 Begins"
+    expname=${EXPORT_GROUP_NAME}t0
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_015"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the export that doesn't exist
+      snap_db 1 ${cfs}
+
+      # Create the export
+      fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Remove the export
+      runcmd export_group delete $PROJECT/${expname}1
       
       # Perform any DB validation in here
       snap_db 3 ${cfs}
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
+    done
+}
+
+# Test 5
+#
+# Test unexporting the volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 0. Export a volume to a host
+# 1. Save off state of DB (1)
+# 2. Perform volume unexport operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_5() {
+    echot "Test 5 Begins"
+    expname=${EXPORT_GROUP_NAME}t5
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_015"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 5 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Check the state of the export that it doesn't exist
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Delete the export
+      fail export_group delete $PROJECT/${expname}1
+
+      # Don't validate in here.  It's a delete operation and it's allowed to leave things behind, as long as the retry cleans it up.
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd export_group delete $PROJECT/${expname}1
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+    done
+}
+
+# Test 6
+#
+# Test adding a volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to a host
+# 3. Save off state of DB (2)
+# 4. Perform add volume operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_6() {
+    echot "Test 6 Begins"
+    expname=${EXPORT_GROUP_NAME}t6
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_017"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 6 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Snap the state before the export group was created
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Snap the DB state with the export group created
+      snap_db 2 ${cfs}
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Delete the export
+      fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+
+      # Validate nothing was left behind
+      snap_db 3 ${cfs}
+      validate_db 2 3 ${cfs}
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 4 ${cfs}
+      validate_db 1 4 ${cfs}
+    done
+}
+
+# Test 7
+#
+# Test adding an initiator while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to an initiator
+# 3. Save off state of DB (2)
+# 4. Perform add initiator operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_7() {
+    echot "Test 7 Begins"
+    expname=${EXPORT_GROUP_NAME}t7
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_016"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 7 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Check the state of the export that it doesn't exist
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
+
+      # Snsp the DB so we can validate after failures later
+      snap_db 2 ${cfs}
+
+      # Strip out colons for array helper command
+      h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Attempt to add an initiator
+      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+
+      # Delete the export
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Verify the DB is back to the original state
+      snap_db 4 ${cfs}
+      validate_db 1 4 ${cfs}
     done
 }
 

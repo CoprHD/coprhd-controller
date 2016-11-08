@@ -1,12 +1,12 @@
 %{
-  titleKey = 'LDAPsources.' + (oidcAuthnProvider?.id ? 'edit' : 'create') + '.title';
+  titleKey = 'LDAPsources.' + (authnProvider?.id ? 'edit' : 'create') + '.title';
   descriptionKey = 'LDAPsources.description';
   image = '/public/img/assets/AuthProvider.png';
 }%
 #{extends 'main.html' /}
 #{set navSelected: ['nav.security', 'nav.providers'] /}
 #{set 'title'}&{titleKey}#{/set}
-#{set editMode:oidcAuthnProvider?.id ? true : false/}
+#{set editMode:authnProvider?.id ? true : false/}
 #{ifErrors}
   #{set errors: true/}
 #{/ifErrors}
@@ -40,14 +40,14 @@
 #{form @save(), id:'authProviderForm', class:'form form-horizontal', autocomplete:"off"}
 
   <fieldset>
-    #{field 'oidcAuthnProvider.name'}
+    #{field 'authnProvider.name'}
      %{
         field.required = true
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
     
-    #{field 'oidcAuthnProvider.mode'}
+    #{field 'authnProvider.mode'}
      %{
         field.options = authSourceTypeList
         field.required = true
@@ -56,7 +56,7 @@
       #{Form.selectOneControlGroup field:field /}
     #{/field}
     
-    #{field 'oidcAuthnProvider.description'}
+    #{field 'authnProvider.description'}
      %{
         field.required = false
       }%
@@ -64,7 +64,7 @@
     #{/field}
     
     
-    #{field 'oidcAuthnProvider.domains'}
+    #{field 'authnProvider.domains'}
      %{
         field.required = true
         field.value = domainString
@@ -74,7 +74,7 @@
       #{Form.textAreaControlGroup field:field /}
     #{/field}
     
-    #{field 'oidcAuthnProvider.oidcBaseUrl'}
+    #{field 'authnProvider.oidcBaseUrl'}
      %{
         field.required = true
         field.helpTextKey = field.name + '.description'
@@ -82,7 +82,7 @@
       #{Form.textAreaControlGroup field:field /}
     #{/field}
     
-    #{field 'oidcAuthnProvider.disable'}
+    #{field 'authnProvider.disable'}
         %{
           field.cssClass = 'span0'
           field.required = false

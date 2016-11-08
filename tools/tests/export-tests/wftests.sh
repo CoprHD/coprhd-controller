@@ -781,7 +781,7 @@ login() {
     security login $SYSADMIN $SYSADMIN_PASSWORD
 }
 
-prerun_setup() {
+prerun_setup() {		
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -835,21 +835,22 @@ prerun_setup() {
     if [ $? -eq 0 ];
     then
 	ZONE_CHECK=0
+	SIM=1
 	echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
     then
-	array_ip=${VNXB_IP}
-	if [ "${SIM}" = "1" ]; then
-	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
-	else
-	    FC_ZONE_A=FABRIC_vplex154nbr2
-	fi
+	   array_ip=${VNXB_IP}
+	   FC_ZONE_A=FABRIC_vplex154nbr2
     elif [ "${SS}" = "vmax2" ]
     then
         FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
+    
+    if [ "${SIM}" = "1" ]; then
+	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+	fi
 
     # All export operations orchestration go through the same entry-points
     exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
@@ -1725,6 +1726,8 @@ test_2() {
     item=${RANDOM}
     cfs="ExportGroup ExportMask"
     mkdir -p results/${item}
+	echo test
+	
 
     verify_export ${expname}1 ${HOST1} gone
 

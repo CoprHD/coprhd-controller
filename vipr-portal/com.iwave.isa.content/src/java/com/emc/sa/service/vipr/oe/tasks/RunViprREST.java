@@ -118,7 +118,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
     }
     
 
-    private String makeRestCall(final URI uri, final String postBody, final String method) {
+    private String makeRestCall(final URI uri, final String postBody, final String method) throws Exception {
 
         ClientResponse response = null;
         OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
@@ -137,6 +137,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
                 break;
             default:
                 logger.error("Unknown REST method type");
+		throw new IllegalStateException("Invalid REST method type" + method);
         }
 
         SuccessCriteria o = new SuccessCriteria();

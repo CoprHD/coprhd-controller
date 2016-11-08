@@ -215,9 +215,9 @@ public class LDAPsources extends ViprResourceController {
         render("@editOidc", authnProvider);
     }
 
-    private static void editLdapForm(LDAPsourcesForm authnProvider) {
+    private static void editLdapForm(LDAPsourcesForm ldapSources) {
         addReferenceData();
-        render("@edit", authnProvider);
+        render("@edit", ldapSources);
     }
 
     public static void addTenants(String ldadSourceId, @As(",") String[] ids) {

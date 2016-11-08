@@ -245,8 +245,8 @@ public class LDAPsources extends ViprResourceController {
     }
 
     @FlashException(keep = true)
-    public static void saveLdap(LDAPsourcesForm authnProvider) {
-        save(authnProvider);
+    public static void saveLdap(LDAPsourcesForm ldapSources) {
+        save(ldapSources);
     }
 
     private static void save(AuthnProviderForm authnProvider) {

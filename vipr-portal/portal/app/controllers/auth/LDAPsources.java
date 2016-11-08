@@ -209,15 +209,15 @@ public class LDAPsources extends ViprResourceController {
         }
     }
 
-    private static void editOidcForm(OIDCAuthnProviderForm oidcAuthnProvider) {
+    private static void editOidcForm(OIDCAuthnProviderForm authnProvider) {
         renderArgs.put("authSourceTypeList", Arrays.asList(EnumOption.options(AuthSourceType.values())));
-        renderArgs.put("domainString", StringUtils.join(oidcAuthnProvider.domains, "\n"));
-        render("@editOidc", oidcAuthnProvider);
+        renderArgs.put("domainString", StringUtils.join(authnProvider.domains, "\n"));
+        render("@editOidc", authnProvider);
     }
 
-    private static void editLdapForm(LDAPsourcesForm ldapSources) {
+    private static void editLdapForm(LDAPsourcesForm authnProvider) {
         addReferenceData();
-        render("@edit", ldapSources);
+        render("@edit", authnProvider);
     }
 
     public static void addTenants(String ldadSourceId, @As(",") String[] ids) {

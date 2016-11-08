@@ -57,7 +57,7 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
 
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        WebResource.Builder builder = webResource.getRequestBuilder();
+        WebResource.Builder builder = resource.getRequestBuilder();
         for (Map.Entry<String, String> entry : _authHeaders.entrySet()) {
             builder.header(entry.getKey(), entry.getValue());
         }

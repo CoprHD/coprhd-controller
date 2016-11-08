@@ -147,7 +147,7 @@ public class RunViprREST extends ViPRExecutionTask<String> {
         try {
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
         } catch (IOException e) {
-            error("Error getting response from Orchestration Engine for: " + uriString +
+            error("Error getting response from Orchestration Engine for: " + uri +
                     " :: " + e.getMessage());
         }
 

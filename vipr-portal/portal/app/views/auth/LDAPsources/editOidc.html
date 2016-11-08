@@ -26,6 +26,10 @@
     function submitForm(){
         $('#authProviderForm').submit();
     }
+
+    $("#authSourceMode").change( function() {
+        alert("The mode has been changed.");
+    });
 </script>
 
 #{/set}
@@ -51,6 +55,7 @@
         field.options = authSourceTypeList
         field.required = true
         field.cssClass = 'span3'
+        field.id = 'authSourceMode'
       }%
       #{Form.selectOneControlGroup field:field /}
     #{/field}

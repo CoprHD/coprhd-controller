@@ -178,9 +178,17 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static void create() {
-        LDAPsourcesForm ldapSources = new LDAPsourcesForm();
-        // put all "initial create only" defaults here rather than field initializers
-        editLdapForm(ldapSources);
+        String authsource = params.get("authsource");
+        if (authsource == null) {
+            authsource = AuthSourceType.ad.name();
+        }
+
+        if ( authsource.equals( AuthSourceType.oidc.name() ) ) {
+            editOidcForm(new OIDCAuthnProviderForm());
+        } else {
+            // put all "initial create only" defaults here rather than field initializers
+            editLdapForm(new LDAPsourcesForm());
+        }
     }
 
     @FlashException("list")
@@ -201,10 +209,8 @@ public class LDAPsources extends ViprResourceController {
         Logger.info("The provider's mode is %s, id is %s", mode, authnProvider.getId());
 
         if (mode.equals(AuthnConfigurationService.AuthModeType.oidc.name())) {
-            Logger.info("1111111");
             editOidcForm(new OIDCAuthnProviderForm(authnProvider));
         } else {
-            Logger.info("2222222");
             editLdapForm(new LDAPsourcesForm(authnProvider));
         }
     }
@@ -651,6 +657,10 @@ public class LDAPsources extends ViprResourceController {
             Logger.info("oidc base url is %s", this.oidcBaseUrl);
             this.oidcAuthUrl = authnProvider.getOidcAuthorizeUrl();
             this.oidcTokenUrl = authnProvider.getOidcTokenUrl();
+        }
+
+        public OIDCAuthnProviderForm() {
+            this.mode = AuthSourceType.oidc.name();
         }
 
         @Override

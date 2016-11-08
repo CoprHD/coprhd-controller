@@ -51,6 +51,9 @@ public class AuthMapper {
         to.setMaxPageSize(from.getMaxPageSize());
         to.setGroupObjectClasses(from.getGroupObjectClassNames());
         to.setGroupMemberAttributes(from.getGroupMemberAttributeTypeNames());
+        to.setOidcBaseUrl(from.getOidcBaseUrl());
+        to.setOidcAuthorizeUrl(from.getOidcAuthorizeUrl());
+        to.setOidcTokenUrl(from.getOidcTokenUrl());
         return to;
     }
 
@@ -137,8 +140,8 @@ public class AuthMapper {
             authn.setGroupMemberAttributeTypeNames(ss);
         }
 
-        if (from.getOidcProviderAddress() != null) {
-            authn.setOidcProviderAddress(from.getOidcProviderAddress());
+        if (from.getOidcBaseUrl() != null) {
+            authn.setOidcBaseUrl(from.getOidcBaseUrl());
         }
 
         return authn;

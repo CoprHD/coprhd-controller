@@ -362,9 +362,9 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     private AuthnProvider buildOIDCParameters(AuthnProvider provider) {
-        provider.setJwksUrl( String.format("%s/jwks.json", provider.getOidcProviderAddress() ) );
-        provider.setOidcAuthorizeUrl( String.format("%s/authorize", provider.getOidcProviderAddress() ) );
-        provider.setOidcTokenUrl( String.format("%s/token", provider.getOidcProviderAddress() ) );
+        provider.setJwksUrl( String.format("%s/jwks.json", provider.getOidcBaseUrl() ) );
+        provider.setOidcAuthorizeUrl( String.format("%s/authorize", provider.getOidcBaseUrl() ) );
+        provider.setOidcTokenUrl( String.format("%s/token", provider.getOidcBaseUrl() ) );
 
         provider.setOidcCallBackUrl(buildCallbackURL());
         provider.setOidcClientId(buildClientId());
@@ -1230,7 +1230,7 @@ public class AuthnConfigurationService extends TaggedResource {
         }
 
         validateAuthnProviderParam(param, null, param.getServerUrls(), param.getDomains(),
-                param.getGroupWhitelistValues(), param.getOidcProviderAddress());
+                param.getGroupWhitelistValues(), param.getOidcBaseUrl());
     }
 
     /**

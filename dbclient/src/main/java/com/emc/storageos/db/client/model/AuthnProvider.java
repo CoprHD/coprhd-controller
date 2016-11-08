@@ -55,7 +55,7 @@ public class AuthnProvider extends DataObject {
     private String oidcTokenUrl;
     private String oidcAuthorizeUrl;
     private String jwksUrl;
-    private String oidcProviderAddress;
+    private String oidcBaseUrl;
 
     @Name("clientid")
     public String getOidcClientId() {
@@ -107,14 +107,14 @@ public class AuthnProvider extends DataObject {
         setChanged("jwksurl");
     }
 
-    public void setOidcProviderAddress(String oidcProviderAddress) {
-        this.oidcProviderAddress = oidcProviderAddress;
+    public void setOidcBaseUrl(String oidcBaseUrl) {
+        this.oidcBaseUrl = oidcBaseUrl;
         setChanged("oidcaddr");
     }
 
     @Name("oidcaddr")
-    public String getOidcProviderAddress() {
-        return oidcProviderAddress;
+    public String getOidcBaseUrl() {
+        return oidcBaseUrl;
     }
 
     // names to be used in the 'mode' element of the Provider

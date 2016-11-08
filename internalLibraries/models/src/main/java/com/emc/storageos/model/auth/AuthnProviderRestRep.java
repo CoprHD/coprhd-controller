@@ -37,6 +37,9 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
     private Integer maxPageSize;
     private Set<String> groupObjectClasses;
     private Set<String> groupMemberAttributes;
+    private String oidcBaseUrl;
+    private String oidcAuthorizeUrl;
+    private String oidcTokenUrl;
 
     /**
      * Description of the provider
@@ -297,5 +300,32 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     public void setGroupMemberAttributes(Set<String> groupMemberAttributes) {
         this.groupMemberAttributes = groupMemberAttributes;
+    }
+
+    @XmlElement(name = "oidc_base_url")
+    public String getOidcBaseUrl() {
+        return oidcBaseUrl;
+    }
+
+    public void setOidcBaseUrl(String oidcBaseUrl) {
+        this.oidcBaseUrl = oidcBaseUrl;
+    }
+
+    @XmlElement(name = "oidc_auth_url")
+    public String getOidcAuthorizeUrl() {
+        return oidcAuthorizeUrl;
+    }
+
+    public void setOidcAuthorizeUrl(String oidcAuthorizeUrl) {
+        this.oidcAuthorizeUrl = oidcAuthorizeUrl;
+    }
+
+    @XmlElement(name = "oidc_token_url")
+    public String getOidcTokenUrl() {
+        return oidcTokenUrl;
+    }
+
+    public void setOidcTokenUrl(String oidcTokenUrl) {
+        this.oidcTokenUrl = oidcTokenUrl;
     }
 }

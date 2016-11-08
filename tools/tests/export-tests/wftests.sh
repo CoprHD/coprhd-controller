@@ -1739,6 +1739,13 @@ discover_vcenter() {
 
 approve_pending_event() {
     EVENT_ID=$(events list emcworld | grep pending | awk '{print $1}')
+
+    if [ -z "$EVENT_ID" ]
+    then
+      echo "No event found. Test failure."
+      exit;
+    fi
+
     echo "Approving event $EVENT_ID"
     events approve $EVENT_ID
     sleep 30

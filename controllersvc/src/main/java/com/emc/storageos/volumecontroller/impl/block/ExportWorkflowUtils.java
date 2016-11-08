@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -255,14 +256,19 @@ public class ExportWorkflowUtils {
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
-        Workflow.Method method =
-                ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export,
-                        volumeMap);
+        Workflow.Method rollback = rollbackMethodNullMethod();
+        if (!DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())) {
+            List<URI> volumeList = new ArrayList<URI>();
+            volumeList.addAll(volumeMap.keySet());
+            rollback = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export, volumeList);
+        }
+
+        Workflow.Method method = ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export, volumeMap);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding volumes to export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+                storageSystem, method, rollback, waitFor);
     }
 
     public String generateExportGroupRemoveVolumes(Workflow workflow, String wfGroupId,

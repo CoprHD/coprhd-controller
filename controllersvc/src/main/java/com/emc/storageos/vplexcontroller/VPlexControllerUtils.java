@@ -717,6 +717,22 @@ public class VPlexControllerUtils {
             }
             removeVolumes = !volumesToRemoveFromExisting.isEmpty();
 
+            // Update volumes list to clean up volumes which are no longer present on the array.
+            if (removeVolumes) {
+                for (String wwn : volumesToRemoveFromExisting) {
+                    URIQueryResultList volumeList = new URIQueryResultList();
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                    if (volumeList.iterator().hasNext()) {
+                        URI volumeURI = volumeList.iterator().next();
+                        if (!exportMask.hasUserCreatedVolume(volumeURI) && exportMask.hasVolume(volumeURI)) {
+                            log.info("\tVolumes wwn {}, which will be removed from the existing volumes is also in the "
+                                    + "export mask's volumes and not in user added volumes, so removing from volumes", wwn);
+                            exportMask.removeVolume(volumeURI);
+                        }
+                    }
+                }
+            }
+
             // Grab the storage ports that have been allocated for this
             // existing mask and update them.
             List<String> storagePorts = storageView.getPorts();

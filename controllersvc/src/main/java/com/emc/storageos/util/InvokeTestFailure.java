@@ -32,6 +32,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_013 = "failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete";
     public static final String ARTIFICIAL_FAILURE_014 = "failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete";
     public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_some-method";
+    public static final String ARTIFICIAL_FAILURE_016 = "failure_016_Export_doRemoveInitiator";
+    public static final String ARTIFICIAL_FAILURE_017 = "failure_017_Export_doRemoveVolume";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

@@ -52,8 +52,6 @@ public class RunViprREST extends ViPRExecutionTask<String> {
 
     //TODO use Proxy user
     private String endPoint = "localhost";
-    private String userId = "root";
-    private String password = "ChangeMe1!";
 
     private DbClient dbClient;
     private RestPrimitive primitive;
@@ -81,15 +79,14 @@ public class RunViprREST extends ViPRExecutionTask<String> {
         factory.init();
 
         restClient = (OrchestrationEngineRestClient) factory.
-                getRESTClient(URI.create(endPoint), userId, password, true);
+                getRESTClient(URI.create(endPoint), "", "", true);
 
         primitive = PrimitiveHelper.query(name, RestPrimitive.class, dbClient);
 
-	restClient.setAuthToken(token);
         Set<String> extraHeaders = primitive.extraHeaders();
         Iterator it = extraHeaders.iterator();
         while(it.hasNext()) {
-            restClient.setHeaders(it.next().toString());
+            restClient.setAuthHeaders(token, it.next().toString());
         }
         
         ExecutionUtils.currentContext().logInfo("Setting up REST Client to execute %s REST Primitive", name);

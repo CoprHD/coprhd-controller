@@ -19,7 +19,6 @@ package com.emc.sa.api;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -27,6 +26,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.orchestration.InputParameterRestRep;
 import com.emc.storageos.model.orchestration.OutputParameterRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveList;
@@ -41,6 +41,7 @@ import com.emc.storageos.model.orchestration.internal.TableOutputParameter;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -53,7 +54,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 public class PrimitiveService {
     
     private final PrimitiveList PRIMITIVE_LIST;
-    private final Map<String, PrimitiveRestRep> PRIMITIVE_MAP;
+    private final ImmutableMap<String, PrimitiveRestRep> PRIMITIVE_MAP;
     
     public PrimitiveService() {
         Builder<String, PrimitiveRestRep> builder = ImmutableMap.<String, PrimitiveRestRep>builder();
@@ -103,7 +104,11 @@ public class PrimitiveService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public PrimitiveRestRep getPrimitive(@PathParam(value = "id") final String name) {
-        return PRIMITIVE_MAP.get(name);
+        final PrimitiveRestRep primitive = PRIMITIVE_MAP.get(name);
+        if( null == primitive) {
+            throw APIException.notFound.unableToFindEntityInURL(URIUtil.uri(name));
+        }
+        return primitive;
     }
 
     private static List<InputParameterRestRep> mapInput(List<InputParameter> inputParameters) {

@@ -16,10 +16,7 @@
  */
 package com.emc.storageos.model.orchestration.internal;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -27,14 +24,21 @@ import com.google.common.collect.ImmutableMap;
  */
 public final class PrimitiveHelper {
 
-    private static final Map<String, Primitive> PRIMITIVES = ImmutableMap.<String, Primitive>builder()
+    private static final ImmutableMap<String, Primitive> PRIMITIVES_MAP = ImmutableMap.<String, Primitive>builder()
             .put(RestPrimitive.class.getName(), new RestPrimitive())
             .put(LocalAnsible.class.getName(), new LocalAnsible())
             .put(BlockServiceCreateVolume.class.getName(), new BlockServiceCreateVolume())
             .build();
     
-    public static List<Primitive> list() {
-        return new ArrayList<Primitive>(PRIMITIVES.values());
+    private static final ImmutableList<Primitive> PRIMITIVES_LIST = ImmutableList.<Primitive>builder()
+            .addAll((PRIMITIVES_MAP.values()))
+            .build();
+    
+    public static ImmutableList<Primitive> list() {
+        return PRIMITIVES_LIST;
     }
     
+    public static Primitive get(final String name) {
+        return PRIMITIVES_MAP.get(name);
+    }
 }

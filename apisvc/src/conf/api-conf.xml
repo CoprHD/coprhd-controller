@@ -491,10 +491,6 @@
        </map>
        </property>
     </bean>
-    
-    <bean id="primitiveService" class="com.emc.storageos.api.service.impl.resource.PrimitiveService">
-    </bean>
-    
     <bean id="application" class="com.emc.storageos.api.service.impl.resource.StorageApplication">
         <property name="resource">
             <set>
@@ -530,7 +526,6 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
-                <ref bean="primitiveService"/>
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

@@ -99,27 +99,14 @@ public class BlockMapper {
     }
 
     public static VolumeRestRep map(Volume from) {
-        return map(null, from, null, null);
+        return map(null, from, null);
     }
 
     public static VolumeRestRep map(DbClient dbClient, Volume from) {
-        return map(dbClient, from, null, null);
+        return map(dbClient, from, null);
     }
     
-    private static StorageSystem getStorageSystemFromCache(URI uri, DbClient dbClient, Map<URI, StorageSystem> storageSystemCache) {
-        if (storageSystemCache != null) {
-            if (storageSystemCache.containsKey(uri)){
-                return storageSystemCache.get(uri);
-            } else {
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, uri);
-                storageSystemCache.put(uri, system);
-                return system;
-            }
-        }
-        return dbClient.queryObject(StorageSystem.class, uri);
-    }
-
-    public static VolumeRestRep map(DbClient dbClient, Volume from, Map<URI, StorageSystem> storageSystemCache,
+    public static VolumeRestRep map(DbClient dbClient, Volume from,
     		Map<URI, Boolean> projectSrdfCapableCache) {
         if (from == null) {
             return null;

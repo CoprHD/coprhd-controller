@@ -240,19 +240,19 @@ public class LDAPsources extends ViprResourceController {
     }
 
     @FlashException(keep = true)
-    public static void save(AuthnProviderForm dataForm) {
-        dataForm.validate("ldapSources");
+    public static void save(AuthnProviderForm authProviderForm) {
+        authProviderForm.validate("ldapSources");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
 
-        AuthnProviderRestRep authnProvider = dataForm.save();
-        authProviderName = dataForm.name;
+        AuthnProviderRestRep authnProvider = authProviderForm.save();
+        authProviderName = authProviderForm.name;
 
-        flash.success(MessagesUtils.get(SAVED, dataForm.name));
+        flash.success(MessagesUtils.get(SAVED, authProviderForm.name));
 
-        if (dataForm.mode.equals(AuthSourceType.keystone.name())) {
-            if ( ((LDAPsourcesForm) dataForm).autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
+        if (authProviderForm.mode.equals(AuthSourceType.keystone.name())) {
+            if ( ((LDAPsourcesForm) authProviderForm).autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
                 renderArgs.put("showDialog", "true");
                 editLdapForm(new LDAPsourcesForm(authnProvider));
             }

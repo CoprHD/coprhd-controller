@@ -240,20 +240,22 @@ public class LDAPsources extends ViprResourceController {
     }
 
     @FlashException(keep = true)
-    public static void save(LDAPsourcesForm ldapSources) {
-        ldapSources.validate("ldapSources");
+    public static void save(AuthnProviderForm dataForm) {
+        dataForm.validate("ldapSources");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
 
-        AuthnProviderRestRep authnProvider = ldapSources.save();
-        authProviderName = ldapSources.name;
+        AuthnProviderRestRep authnProvider = dataForm.save();
+        authProviderName = dataForm.name;
 
-        flash.success(MessagesUtils.get(SAVED, ldapSources.name));
+        flash.success(MessagesUtils.get(SAVED, dataForm.name));
 
-        if (ldapSources.autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
-            renderArgs.put("showDialog", "true");
-            editLdapForm(new LDAPsourcesForm(authnProvider));
+        if (dataForm.mode.equals(AuthSourceType.keystone.name())) {
+            if ( ((LDAPsourcesForm) dataForm).autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
+                renderArgs.put("showDialog", "true");
+                editLdapForm(new LDAPsourcesForm(authnProvider));
+            }
         }
 
         list();
@@ -289,6 +291,10 @@ public class LDAPsources extends ViprResourceController {
         abstract AuthnProviderRestRep save();
 
         abstract void validate(String fieldName);
+
+        public boolean isNew() {
+            return StringUtils.isBlank(id);
+        }
     }
 
 
@@ -348,10 +354,6 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
             renderArgs.put("readOnlySynchronizationInterval", this.synchronizationInterval);
-        }
-
-        public boolean isNew() {
-            return StringUtils.isBlank(id);
         }
 
         public void readFrom(AuthnProviderRestRep ldapSources) {
@@ -627,6 +629,9 @@ public class LDAPsources extends ViprResourceController {
 
     public static class OIDCAuthnProviderForm extends AuthnProviderForm {
         public List<String> domains;
+        public String oidcBaseUrl;
+        public String oidcAuthUrl;
+        public String oidcTokenUrl;
 
         public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
             this.id = stringId(authnProvider);
@@ -636,11 +641,38 @@ public class LDAPsources extends ViprResourceController {
             this.disable = authnProvider.getDisable();
 
             this.domains = Lists.newArrayList(authnProvider.getDomains());
-            Logger.info("domains %s", this.domains);
+            this.oidcBaseUrl = authnProvider.getOidcBaseUrl();
+            this.oidcAuthUrl = authnProvider.getOidcAuthorizeUrl();
+            this.oidcTokenUrl = authnProvider.getOidcTokenUrl();
         }
 
         @Override
         AuthnProviderRestRep save() {
+            if (isNew()) {
+                return create();
+            } else {
+                return update();
+            }
+        }
+
+        private AuthnProviderRestRep create() {
+            return null;
+        }
+
+        private AuthnProviderRestRep update() {
+            AuthnUpdateParam param = new AuthnUpdateParam();
+            AuthnProviderRestRep provider = AuthnProviderUtils.getAuthnProvider(this.id);
+
+            param.setLabel(this.name);
+            param.setMode(this.mode);
+            param.setDescription(StringUtils.trimToNull(this.description));
+            param.setDisable(this.disable);
+
+            param.setDomainChanges(getDomainChanges(provider));
+            return AuthnProviderUtils.update(this.id, param);
+        }
+
+        private DomainChanges getDomainChanges(AuthnProviderRestRep provider) {
             return null;
         }
 

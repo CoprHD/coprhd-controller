@@ -29,6 +29,7 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
     private GroupWhitelistValueChanges groupWhitelistValueChanges;
     private GroupObjectClassChanges groupObjectClassChanges;
     private GroupMemberAttributeChanges groupMemberAttributeChanges;
+    private String oidcBaseUrl;
 
     @XmlElement(name = "server_url_changes")
     public ServerUrlChanges getServerUrlChanges() {
@@ -104,6 +105,15 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
     public void setGroupMemberAttributeChanges(
             GroupMemberAttributeChanges groupGroupMemberAttributeChanges) {
         this.groupMemberAttributeChanges = groupGroupMemberAttributeChanges;
+    }
+
+    @XmlElement(name = "oidc_base_url")
+    public String getOidcBaseUrl() {
+        return oidcBaseUrl;
+    }
+
+    public void setOidcBaseUrl(String oidcBaseUrl) {
+        this.oidcBaseUrl = oidcBaseUrl;
     }
 
     public static class ServerUrlChanges {

@@ -68,10 +68,10 @@
       #{Form.textAreaControlGroup field:field /}
     #{/field}
     
-    #{field 'oidcAuthnProvider.serverUrls'}
+    #{field 'oidcAuthnProvider.oidcBaseUrl'}
      %{
         field.required = true
-        field.value = serverUrlsString
+        field.value = oidcBaseUrl
         field.helpTextKey = field.name + '.description'
       }%
       #{Form.textAreaControlGroup field:field /}

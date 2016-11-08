@@ -213,8 +213,7 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
         return sb.toString();
     }
 
-    @XmlElement(name = "oidc_address")
-    @JsonProperty("oidc_address")
+    @XmlElement(name = "oidc_base_url")
     public String getOidcBaseUrl() {
         return oidcBaseUrl;
     }

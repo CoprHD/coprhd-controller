@@ -9,6 +9,7 @@
 function init() {
     ctx = new Packages.org.springframework.context.support.ClassPathXmlApplicationContext("/dbutils-conf.xml");
     dbClient = ctx.getBean("dbclient");
+    dbClient.start();
 }
 
 function getClass(typeName) {

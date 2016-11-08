@@ -1,14 +1,14 @@
-//  A javascript based tool to duplicate a db object.
+//  A javascript based tool to generate db tombstones for some column family.
 //
 //  Usage:
-//  jjs dupdbobj.jjs -- <object id> <number of duplications> 
+//  jjs gendbtombstones.jjs -- <object id> <number of tombstones> 
 //
 //  Example -
-//  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc dupdbobj.jjs -- urn:storageos:Host:c66e4a97-9e8f-40ac-bc5b-857b83d71ee7:vdc1 100
+//  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc gendbtombstones.jjs -- urn:storageos:Host:c66e4a97-9e8f-40ac-bc5b-857b83d71ee7:vdc1 100
 
 
 function usage() {
-    print("Usage: dupdbobj.jjs <object id> <number of duplications>");
+    print("Usage: gendbtombstones.jjs <object id> <number of tombstones>");
     print();
     exit();
 }
@@ -38,7 +38,7 @@ function getClass(objId) {
 
 // Duplicate a new db object from given object id
 // Return value - the new object
-function duplicate(objId) {
+function duplicateAndRemove(objId) {
     clazz = getClass(objId);
     if (clazz == undefined) {
        print("ERROR - unknown data model class for " + objId);
@@ -81,6 +81,9 @@ function duplicate(objId) {
     dupObj.setId(newId);
     dupObj.setLabel(dupObj.getLabel() + "_dup");
     dbClient.updateObject(dupObj);
+    
+    // remove it
+    dbClient.removeObject(dupObj);
     return dupObj;
 }
 
@@ -98,7 +101,7 @@ if (num == undefined) {
 
 init();
 for(var i = 1; i < Number(num) + 1; i ++) {
-   dupObj=duplicate(objId);
-   print("Duplicated as " + newId + ". " + i + " of " + num);
+   dupObj=duplicateAndRemove(objId);
+   print("Duplicate and remove " + newId + ". " + i + " of " + num);
 }
 exit();

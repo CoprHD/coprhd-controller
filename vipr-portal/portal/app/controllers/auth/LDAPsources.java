@@ -642,6 +642,7 @@ public class LDAPsources extends ViprResourceController {
 
             this.domains = Lists.newArrayList(authnProvider.getDomains());
             this.oidcBaseUrl = authnProvider.getOidcBaseUrl();
+            Logger.info("oidc base url is %s", this.oidcBaseUrl);
             this.oidcAuthUrl = authnProvider.getOidcAuthorizeUrl();
             this.oidcTokenUrl = authnProvider.getOidcTokenUrl();
         }

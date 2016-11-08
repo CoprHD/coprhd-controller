@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -32,6 +33,7 @@ import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -571,7 +573,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
-
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
+        if (initiators == null || initiators.isEmpty()){
+             log.info(" Skipping service profile and boot volume deletion for host "+ host.getId()+ " since it has no initiators and might be a stale entry");
+             return waitFor;
+        }
         if (host.getComputeElement() == null) {
             /**
              * No steps need to be added - as this was not a host that we

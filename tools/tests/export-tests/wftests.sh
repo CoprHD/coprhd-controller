@@ -27,6 +27,8 @@
 #
 # set -x
 
+source $(dirname $0)/wftests_host_cluster.sh
+
 Usage()
 {
     echo 'Usage: wftests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity]  [test1 test2 ...]'

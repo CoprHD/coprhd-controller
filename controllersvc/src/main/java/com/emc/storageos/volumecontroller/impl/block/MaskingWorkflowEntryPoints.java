@@ -401,7 +401,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_018);
             getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_019);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {

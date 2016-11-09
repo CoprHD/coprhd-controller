@@ -34,6 +34,12 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_some-method";
     public static final String ARTIFICIAL_FAILURE_016 = "failure_016_Export_doRemoveInitiator";
     public static final String ARTIFICIAL_FAILURE_017 = "failure_017_Export_doRemoveVolume";
+    public static final String ARTIFICIAL_FAILURE_018 = "failure_018_Export_doRollbackExportCreate_before_delete";
+    public static final String ARTIFICIAL_FAILURE_019 = "failure_019_Export_doRollbackExportCreate_after_delete";
+    public static final String ARTIFICIAL_FAILURE_020 = "failure_020_Export_zoneRollback_before_delete";
+    public static final String ARTIFICIAL_FAILURE_021 = "failure_021_Export_zoneRollback_after_delete";
+    public static final String ARTIFICIAL_FAILURE_022 = "failure_022_VNXeStorageDevice_CreateVolume_before_async_job";
+    public static final String ARTIFICIAL_FAILURE_023 = "failure_023_VNXeStorageDevice_CreateVolume_after_async_job";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

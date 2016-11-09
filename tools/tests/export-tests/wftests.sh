@@ -1785,6 +1785,11 @@ test_3() {
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
 
+    if [ "${SS}" = "unity" ]
+    then
+	storage_failure_injections="failure_022 failure_023"
+    fi
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
@@ -1800,7 +1805,7 @@ test_3() {
       project=${PROJECT}-${item}
 
       # Create the project
-      project create ${project} --tenant $TENANT 
+      runcmd project create ${project} --tenant $TENANT
       
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -1828,7 +1833,7 @@ test_3() {
       runcmd volume delete --project ${project} --wait
 
       # Delete the project
-      project delete ${project}
+      runcmd project delete ${project}
 
       # Perform any DB validation in here
       snap_db 3 ${cfs}
@@ -1865,13 +1870,13 @@ test_4() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    #failure_injections="failure_004:failure_018"
 
     for failure in ${failure_injections}
     do
@@ -2084,7 +2089,7 @@ test_7() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_004:failure_016"
+	storage_failure_injections="failure_004:failure_016 failure_004:failure_020 failure_004:failure_021"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

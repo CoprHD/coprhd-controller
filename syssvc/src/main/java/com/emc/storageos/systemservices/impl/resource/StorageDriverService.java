@@ -297,7 +297,26 @@ public class StorageDriverService {
         if (!driverNames.contains(driverName)) {
             throw APIException.badRequests.driverNameNotFound();
         }
+
         precheckForEnv();
+
+        Set<String> usedProviderTypes = getUsedStorageProviderTypes();
+        Set<String> usedSystemTypes = getUsedStorageSystemTypes();
+        List<StorageSystemType> types = listStorageSystemTypes();
+        List<StorageSystemType> toUninstallTypes = new ArrayList<StorageSystemType>();
+        for (StorageSystemType type : types) {
+            if (!StringUtils.equals(driverName, type.getDriverName())) {
+                continue;
+            }
+            toUninstallTypes.add(type);
+        }
+
+        for (StorageSystemType type : toUninstallTypes) {
+            if (usedProviderTypes.contains(type.getStorageTypeName())
+                    || usedSystemTypes.contains(type.getStorageTypeName())) {
+                throw APIException.badRequests.cantUninstallDriverInUse(driverName);
+            }
+        }
 
         InterProcessLock lock = getStorageDriverOperationLock();
         try {
@@ -305,25 +324,10 @@ public class StorageDriverService {
             if (info == null) {
                 info = new StorageDriversInfo();
             }
-
-            Set<String> usedProviderTypes = getUsedStorageProviderTypes();
-            Set<String> usedSystemTypes = getUsedStorageSystemTypes();
-
-            List<StorageSystemType> types = listStorageSystemTypes();
-            for (StorageSystemType type : types) {
-                if (!StringUtils.equals(driverName, type.getStorageTypeName())) {
-                    continue;
-                }
-
-                if (usedProviderTypes.contains(type.getStorageTypeName())
-                        || usedSystemTypes.contains(type.getStorageTypeName())) {
-                    throw APIException.badRequests.cantUninstallDriverInUse(driverName);
-                }
-
+            for (StorageSystemType type : toUninstallTypes) {
                 type.setDriverStatus(StorageSystemType.STATUS.UNISNTALLING.toString());
                 dbClient.updateObject(type);
                 info.getInstalledDrivers().remove(type.getDriverFileName());
-                log.info("Remove {} from target list", type.getDriverFileName());
             }
             // update target list in ZK
             coordinator.setTargetInfo(info);

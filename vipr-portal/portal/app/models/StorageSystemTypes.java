@@ -8,10 +8,9 @@ import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+
 import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
@@ -211,14 +210,15 @@ public class StorageSystemTypes {
             if (provider != null) {
                 if (StringUtils.equals(VMAX, typeName)) {
                     options.add(new StringOption(SMIS, provider));
-                } 
+                }
                 else if (StringUtils.equals(XTREMIO, typeName)) {
                     options.add(new StringOption(XTREMIO, provider));
                 }
-            } else if (StringUtils.equals(UNITY, typeName)) { 
+            } else if (StringUtils.equals(UNITY, typeName)) {
                 options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
+        Collections.sort(options);
         return options;
     }
 

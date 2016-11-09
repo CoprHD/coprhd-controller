@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -91,15 +91,27 @@ if [ ${SS} = "vplex" ]; then
     if [ $VPLEX_QUICK_PARAM = 'quick' ]; then
         QUICK=1
     fi
+
+    # The VPLEX quick parameter can also choose xio vs. vnx
+    if [ "$VPLEX_QUICK_PARAM" = "xio" ]; then
+        VPLEX_USE_XIO=1
+    fi
+    if [ "$VPLEX_QUICK_PARAM" = "vnx" -o "$VPLEX_QUICK_PARAM" = "quick" ]; then
+        VPLEX_USE_XIO=0
+    fi
+
     VPLEX_INGEST_PARAM=${5:-'noingest'}
     if [ "$VPLEX_INGEST_PARAM" != 'noingest' ]; then
         # all, exported, or unexported
         VPLEX_INGEST_PARAM=${6}
         shift
     fi
+    echo "VPLEX_QUICK_PARAM is $VPLEX_QUICK_PARAM"
+    echo "VPLEX_USE_XIO is $VPLEX_USE_XIO"
     echo "VPLEX_INGEST_PARAM is ingest $VPLEX_INGEST_PARAM"
     AUTH=${6:-ldap}
     EXTRA_PARAM=${7}
+    exit 1;
 elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
@@ -204,14 +216,6 @@ do
         DO_SETUP_ONLY=1
     fi
 done
-
-# The VPLEX quick parameter can also choose xio vs. vnx
-if [ "$VPLEX_QUICK_PARAM" = "xio" ]; then
-    VPLEX_USE_XIO=1
-fi
-if [ "$VPLEX_QUICK_PARAM" = "vnx" -o "$VPLEX_QUICK_PARAM" = "quick" ]; then
-    VPLEX_USE_XIO=0
-fi
 
 case $SS in
     all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)

@@ -591,13 +591,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String comments = fileExport.getComments();
             String subDirectory = fileExport.getSubDirectory();
 
-            // Validate parameters for permissions and root user mapping.
-            if (permissions.equals(FileShareExport.Permissions.root.name()) && !root_user.equals("root")) {
-                String msg = "The root_user mapping is not set to root but the permission is.";
-                _log.error(msg);
-                throw IsilonException.exceptions.invalidParameters();
-            }
-
             List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,
                     comments);
@@ -698,6 +691,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
         newIsilonExport.setSecurityFlavors(new ArrayList<String>(securityFlavors));
+        newIsilonExport.setMapRoot(root_user);
 
         // set permission and add clients (endpoints) to the right group
         // we need to set/reset read_only and map_all to support case when list
@@ -705,17 +699,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (permissions.equals(FileShareExport.Permissions.ro.name())) {
             newIsilonExport.addReadOnlyClients(fileExport.getClients());
             newIsilonExport.setReadOnly();
-            newIsilonExport.setMapRoot(root_user);
         } else if (permissions.equals(FileShareExport.Permissions.rw.name())) {
             newIsilonExport.addReadWriteClients(fileExport.getClients());
             newIsilonExport.resetReadOnly();
-            newIsilonExport.setMapRoot(root_user);
         } else if (permissions.equals(FileShareExport.Permissions.root.name())) {
-            // Do not set root_user. Isilon api allows only one of map_root or
-            // map_all to be set.
             newIsilonExport.addRootClients(fileExport.getClients());
             newIsilonExport.resetReadOnly();
-            newIsilonExport.setMapAll("root");
         }
 
         return newIsilonExport;
@@ -729,7 +718,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("setIsilonExport called with {}", expRule.toString());
         String mountPath = expRule.getExportPath();
         String comments = "";
-        String secType = expRule.getSecFlavor();
         String root_user = expRule.getAnon();
 
         IsilonExport newIsilonExport = new IsilonExport();
@@ -742,21 +730,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // Empty list of clients means --- all clients.
         if (expRule.getReadOnlyHosts() != null) {
-            newIsilonExport.addClients(new ArrayList(expRule.getReadOnlyHosts()));
+            newIsilonExport.addClients(new ArrayList<String>(expRule.getReadOnlyHosts()));
             roHosts = expRule.getReadOnlyHosts().size();
-            newIsilonExport.addReadOnlyClients(new ArrayList(expRule.getReadOnlyHosts()));
+            newIsilonExport.addReadOnlyClients(new ArrayList<String>(expRule.getReadOnlyHosts()));
         }
 
         if (expRule.getReadWriteHosts() != null) {
-            newIsilonExport.addClients(new ArrayList(expRule.getReadWriteHosts()));
+            newIsilonExport.addClients(new ArrayList<String>(expRule.getReadWriteHosts()));
             rwHosts = expRule.getReadWriteHosts().size();
-            newIsilonExport.addReadWriteClients(new ArrayList(expRule.getReadWriteHosts()));
+            newIsilonExport.addReadWriteClients(new ArrayList<String>(expRule.getReadWriteHosts()));
         }
 
         if (expRule.getRootHosts() != null) {
-            newIsilonExport.addClients(new ArrayList(expRule.getRootHosts()));
+            newIsilonExport.addClients(new ArrayList<String>(expRule.getRootHosts()));
             rootHosts = expRule.getRootHosts().size();
-            newIsilonExport.addRootClients(new ArrayList(expRule.getRootHosts()));
+            newIsilonExport.addRootClients(new ArrayList<String>(expRule.getRootHosts()));
         }
 
         // set security type
@@ -772,19 +760,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             secFlavors.add(securityType);
         }
         newIsilonExport.setSecurityFlavors(secFlavors);
+        newIsilonExport.setMapRoot(root_user);
+        newIsilonExport.resetReadOnly();
 
         if (roHosts > 0 && rwHosts == 0 && rootHosts == 0) {
             // RO Export
             newIsilonExport.setReadOnly();
-            newIsilonExport.setMapRoot(root_user);
-        } else if (roHosts == 0 && rwHosts > 0 && rootHosts == 0) {
-            // RW Export
-            newIsilonExport.resetReadOnly();
-            newIsilonExport.setMapRoot(root_user);
-        } else if (roHosts == 0 && rootHosts > 0) {
-            // ROOT export
-            newIsilonExport.resetReadOnly();
-            newIsilonExport.setMapAll("root");
         }
 
         _log.info("setIsilonExport completed with creating {}", newIsilonExport.toString());
@@ -1422,7 +1403,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -1433,7 +1414,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> allExports = args.getExistingDBExportRules();
         String subDir = args.getSubDirectory();
         boolean allDirs = args.isAllDir();
-        FileShare fs = args.getFs();
 
         String exportPath;
         String subDirExportPath = "";
@@ -1660,9 +1640,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             _log.info("Add this export rule {}", exportRule.toString());
 
-            String root_user = exportRule.getAnon();
-            Set<String> rootHosts = exportRule.getRootHosts();
-
             String isilonExportId = exportRule.getDeviceExportId();
             String zoneName = getZoneName(args.getvNAS());
             if (isilonExportId != null) {
@@ -1671,7 +1648,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 modifyRules.add(exportRule);
             } else {
                 // Create the Export
-                List<String> allClients = new ArrayList<>();
                 _log.info("Export rule does not exist on the device so create it: {}", exportRule);
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
                 String expId = null;
@@ -1688,7 +1664,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 processIsiExport(isi, args, modifyRules);
             }
         }
-        _log.info("ProcessAddExport  Completed");
+        _log.info("ProcessAddExport completed.");
     }
 
     /**
@@ -1843,15 +1819,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         isilonExport.setReadOnly();
                     }
 
-                    // Do not set root_user. Isilon api allows only one of
-                    // map_root or map_all to be set.
-                    if (hasrootClients) {
-                        isilonExport.setMapRoot(null);
-                        isilonExport.setMapAll("root");
-                    } else {
-                        isilonExport.setMapAll(null);
-                        isilonExport.setMapRoot(root_user);
-                    }
+                    isilonExport.setMapAll(null);
+                    isilonExport.setMapRoot(root_user);
 
                     // There is export in Isilon with the given id.
                     // Overwrite this export with a new set of clients.
@@ -1896,13 +1865,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         _log.info("processRemoveIsiExport  Start");
 
-        List<ExportRule> modifyRules = new ArrayList<>();
-
         // process and export each NFSExport independently.
         for (ExportRule exportRule : exports) {
 
             // create and set IsilonExport instance from ExportRule
-
             _log.info("Remove this export rule {}", exportRule.toString());
             String isilonExportId = exportRule.getDeviceExportId();
 

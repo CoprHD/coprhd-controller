@@ -398,6 +398,11 @@
 	        } else {
 	            $('fieldset.onboardSmisProvider').hide();            
 	        }	  		
+            if (selectedType == "dellscsystem") {
+                // show useSSL checkbox for dellscsystem
+                $('#storageArray_useSSLControlGroup').show();
+                $('#storageArray_useSSL').trigger('change');
+            }
       }
     }
     

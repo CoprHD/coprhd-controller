@@ -174,15 +174,12 @@ public class BackupOps {
      */
     public Map<String, String> getHosts() {
         if (hosts == null || hosts.isEmpty()) {
-            hosts = initHosts();
+            initHosts();
         }
         return hosts;
     }
 
-    private synchronized Map<String, String> initHosts() {
-        if (hosts != null && !hosts.isEmpty()) {
-            return hosts;
-        }
+    private synchronized void initHosts() {
         CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
         hosts = new TreeMap<>();
         for (String nodeId : addressMap.getControllerNodeIPLookupMap().keySet()) {
@@ -195,8 +192,7 @@ public class BackupOps {
                 throw BackupException.fatals.failedToGetHost(nodeId, ex);
             }
         }
-        this.quorumSize = hosts.size() / 2 + 1;
-        return hosts;
+        quorumSize = hosts.size() / 2 + 1;
     }
 
     /**
@@ -278,22 +274,22 @@ public class BackupOps {
         File[] files = getBackupFiles(folder);
 
         try {
-            String localHostName = InetAddress.getLocalHost().getHostName();
+            String localHostID = getLocalHostID();
             Map<String, URI> nodes = getNodesInfo();
             for (Map.Entry<String, URI> node : nodes.entrySet()) {
-                String hostname = toHostName(node.getKey());
-                if (hostname.equals(localHostName)) {
+                String hostID = toHostID(node.getKey());
+                if (hostID.equals(localHostID)) {
                     continue; // zip file has already been downloaded
                 }
                 long size = 0;
                 for (File f : files) {
-                    if (belongToNode(f, hostname)) {
+                    if (belongToNode(f, hostID)) {
                         size += f.length();
                     }
                 }
-                downloadSize.put(hostname, size);
+                downloadSize.put(hostID, size);
             }
-        }catch(URISyntaxException | UnknownHostException e) {
+        }catch(URISyntaxException e) {
             log.error("Failed to set download size e=", e.getMessage());
         }
 
@@ -418,11 +414,11 @@ public class BackupOps {
 
     public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
         Map<String, URI> nodes = getNodesInfo();
-        String localHostName = InetAddress.getLocalHost().getHostName();
+        String localHostID = getLocalHostID();
         List<URI> uris = new ArrayList();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
-            String hostname = toHostName(node.getKey());
-            if (hostname.equals(localHostName)) {
+            String hostID = toHostID(node.getKey());
+            if (hostID.equals(localHostID)) {
                 continue;
             }
 
@@ -431,18 +427,18 @@ public class BackupOps {
         return uris;
     }
 
-    public URI getMyURI() throws URISyntaxException, UnknownHostException {
+    public URI getMyURI() throws URISyntaxException {
         Map<String, URI> nodes = getNodesInfo();
-        String localHostName = InetAddress.getLocalHost().getHostName();
+        String localHostID = getLocalHostID();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
-            String hostname = toHostName(node.getKey());
-            if (hostname.equals(localHostName)) {
+            String hostID = toHostID(node.getKey());
+            if (hostID.equals(localHostID)) {
                 return node.getValue();
             }
         }
 
-        log.error("Can't find my URI localhost={}", localHostName);
-        
+        log.error("Can't find my URI localhost={}", localHostID);
+
         return null;
     }
 
@@ -463,7 +459,7 @@ public class BackupOps {
         return filenames;
     }
 
-    private String toHostName(String nodeName) {
+    private String toHostID(String nodeName) {
         return nodeName.replace("node", "vipr");
     }
 
@@ -626,12 +622,8 @@ public class BackupOps {
             }
 
             if (increasedSize > 0) {
-                try {
-                    String localHostName = InetAddress.getLocalHost().getHostName();
-                    s.increaseDownloadedSize(localHostName, increasedSize);
-                }catch (UnknownHostException e) {
-                    log.error("Failed to set downloaded size e=", e);
-                }
+                String localHostID = getLocalHostID();
+                s.increaseDownloadedSize(localHostID, increasedSize);
             }
 
             if (increaseCompletedNodeNumber) {
@@ -647,7 +639,7 @@ public class BackupOps {
             persistBackupRestoreStatus(s, isLocal, doLog);
 
             if (doLog) {
-                log.info("Persist backup restore status {} to zk successfully ", s);
+                log.info("Persist backup restore status {} to zk successfully", s);
             }
         }finally {
             if (doLock) {
@@ -721,7 +713,6 @@ public class BackupOps {
         }
 
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
-
     }
 
     public synchronized  void setGeoFlag(String backupName, boolean isLocal) {
@@ -1569,6 +1560,18 @@ public class BackupOps {
                 "Please initialize coordinator client before any operations");
         DualInetAddress inetAddress = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
         return inetAddress.hasInet4() ? inetAddress.getInet4() : inetAddress.getInet6();
+    }
+
+    public String getLocalHostID() {
+        String localAddress = getLocalHost();
+        getHosts(); // init hosts if needed
+        for (Map.Entry<String, String> entry : hosts.entrySet()) {
+            if (entry.getValue().equals(localAddress)) {
+                return entry.getKey();
+            }
+        }
+        log.error("Can't find the host ID for local host {}", localAddress);
+        throw new RuntimeException("Can't find the host ID for local host");
     }
 
     private boolean isNodeAvailable(String host) {

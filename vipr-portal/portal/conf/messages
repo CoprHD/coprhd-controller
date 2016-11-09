@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR Controller
+application.name=Dell EMC ViPR Controller
 # Validation messages
 # Most of these are exact copies from the play framework and are here to make
 # it easier to find and change validation messages for the entire application.
@@ -284,35 +284,35 @@ PoolAssignment.automatic=Automatic
 PoolAssignment.manual=Manual
 
 StorageSystemType.NONE=None
-StorageSystemType.vmax=EMC VMAX
-StorageSystemType.vnxblock=EMC VNX Block
-StorageSystemType.vnxfile=EMC VNX File
-StorageSystemType.isilon=EMC Isilon
+StorageSystemType.vmax=Dell EMC VMAX
+StorageSystemType.vnxblock=Dell EMC VNX Block
+StorageSystemType.vnxfile=Dell EMC VNX File
+StorageSystemType.isilon=Dell EMC Isilon
 StorageSystemType.netapp=NetApp 7-mode
 StorageSystemType.netappc=NetApp Cluster-mode
-StorageSystemType.vplex=EMC VPLEX
+StorageSystemType.vplex=Dell EMC VPLEX
 StorageSystemType.hds=Hitachi
 StorageSystemType.ibmxiv=IBM XIV
 StorageSystemType.hp3par=HPE 3PAR
 StorageSystemType.openstack=Third-party block
 StorageSystemType.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.scaleioapi=ScaleIO Gateway
-StorageSystemType.xtremio=EMC XtremIO
-StorageSystemType.vnxe=EMC VNXe
-StorageSystemType.unity=EMC Unity
+StorageSystemType.xtremio=Dell EMC XtremIO
+StorageSystemType.vnxe=Dell EMC VNXe
+StorageSystemType.unity=Dell EMC Unity
 StorageSystemType.datadomain=Data Domain
 StorageSystemType.ceph=Ceph Block Device
-StorageSystemType.ecs=EMC Elastic Cloud Storage
-StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
-StorageSystemType.STORAGE_PROVIDER.vmaxonly=Storage Provider for EMC VMAX
+StorageSystemType.ecs=Dell EMC Elastic Cloud Storage
+StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for Dell EMC VMAX, VNX Block
+StorageSystemType.STORAGE_PROVIDER.vmaxonly=Storage Provider for Dell EMC VMAX
 StorageSystemType.STORAGE_PROVIDER.scaleioapi=ScaleIO Gateway
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
-StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX
+StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for Dell EMC VPLEX
 StorageSystemType.STORAGE_PROVIDER.cinder=Storage Provider for Third-party block storage systems
 StorageSystemType.STORAGE_PROVIDER.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.STORAGE_PROVIDER.ddmc=Storage Provider for Data Domain Management Center
 StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for IBM XIV
-StorageSystemType.STORAGE_PROVIDER.xtremio=Storage Provider for EMC XtremIO
+StorageSystemType.STORAGE_PROVIDER.xtremio=Storage Provider for Dell EMC XtremIO
 StorageSystemType.STORAGE_PROVIDER.ceph=Block Storage Powered by Ceph
 
 HostType.Linux=Linux
@@ -371,7 +371,7 @@ ProvisionType.Thick=Thick
 VirtualPoolPlacementPolicy.default_policy=Default - Storage Arrays/Pools selection based on performance metrics and capacity
 VirtualPoolPlacementPolicy.array_affinity=Host/Array Affinity - Storage Arrays/Pools selection based on Host/Cluster array affinity first, then performance metrics and capacity
 
-ProtectionSystemType.rp=EMC RecoverPoint
+ProtectionSystemType.rp=Dell EMC RecoverPoint
 ProtectionSystemType.srdf=VMAX SRDF
 
 HighAvailability.vplex_distributed=VPLEX Distributed
@@ -389,11 +389,11 @@ InfrastructureErrors.NOT_COMPATIBLE=Device is not compatible
 InfrastructureErrors.NOT_REACHABLE=Device is unreachable
 InfrastructureErrors.NOT_CONNECTED=Device is disconnected
 
-ConnectivityTypes.rp=EMC RecoverPoint
-ConnectivityTypes.vplex=EMC VPLEX
+ConnectivityTypes.rp=Dell EMC RecoverPoint
+ConnectivityTypes.vplex=Dell EMC VPLEX
 ConnectivityTypes.srdf=VMAX SRDF
 ConnectivityTypes.SRDF=VMAX SRDF
-ConnectivityTypes.rpvplex=EMC RecoverPoint/EMC VPLEX
+ConnectivityTypes.rpvplex=Dell EMC RecoverPoint/Dell EMC VPLEX
 ConnectivityTypes.unsupported=Unsupported
 
 RegistrationStatus.UNREGISTERED=Unregistered
@@ -549,11 +549,10 @@ initiators.protocol=Protocol
 initiators.registrationStatus=Registered
 initiators.port.invalidWWN=Not a valid WWN. Must be 16 hex characters, separated by colons
 initiators.port.invalidIQN=Not a valid IQN
-initiators.port.invalidRBD=Not a valid RBD pseudo port. Must be started with 'rbd:'
 initiator.node=Node
-initiator.node.help=Node WWN for Fibre-Channel ports, empty for iSCSI, RBD
+initiator.node.help=Node WWN for Fibre-Channel ports, empty for iSCSI
 initiator.port=Port
-initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI, a pseudo RBD port for Ceph
+initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI
 initiator.deleteConfirm=Are you sure you want to delete the selected Initiator(s)?
 
 cluster.name=Cluster
@@ -998,7 +997,7 @@ disasterRecovery.sync.status.lastSyncTime=Last time synchronized with active sit
 disasterRecovery.networkLatencyInMs=Latency (ms)
 disasterRecovery.networkLatency.notAvailable=Not Available
 disasterRecovery.cluster.state=Controller Status
-disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
+disasterRecovery.switchover.failed.instruction=Please contact an administrator or Dell EMC Support
 disasterRecovery.site.creation.time=Site Creation Time
 
 # About
@@ -1982,15 +1981,16 @@ smisProvider.hyperScalePassword=Hyper Scale Manager Password
 smisProvider.hyperScaleConfPasswd=Confirm Hyper Scale Manager Password
 
 storageProvider.interfaceType.hicommand=Hitachi HiCommand
-storageProvider.interfaceType.smis=SMI-S for EMC VMAX, VNX Block
+storageProvider.interfaceType.smis=SMI-S for Dell EMC VMAX, VNX Block
 storageProvider.interfaceType.scaleioapi=ScaleIO Gateway
 storageProvider.interfaceType.vplex=VPLEX
 storageProvider.interfaceType.cinder=Third-party block
 storageProvider.interfaceType.scaleio=ScaleIO CLI
 storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
-storageProvider.interfaceType.xtremio=EMC XtremIO
+storageProvider.interfaceType.xtremio=Dell EMC XtremIO
 storageProvider.interfaceType.ceph=Ceph Block Device
+storageProvider.interfaceType.dellscprovider=Dell SC Storage Provider
 
 StorageSystems.list.title=Storage Systems
 StorageSystems.edit.title=Edit Storage System
@@ -2198,13 +2198,13 @@ SupportedDriveType.SSD=SSD
 SupportedDriveType.HARD_DISK_DRIVE=HD
 
 systemType.noselection=Any
-systemType.vmax=EMC VMAX
-systemType.vnx=EMC VNX Block
-systemType.vnxfile=EMC VNX File
-systemType.isilon=EMC Isilon
+systemType.vmax=Dell EMC VMAX
+systemType.vnx=Dell EMC VNX Block
+systemType.vnxfile=Dell EMC VNX File
+systemType.isilon=Dell EMC Isilon
 systemType.netapp=NetApp 7-mode
 systemType.netappc=NetApp Cluster-mode
-systemType.xtremio=EMC XtremIO
+systemType.xtremio=Dell EMC XtremIO
 systemType.hp3par=HPE 3PAR
 
 storagePoolAssignment.automatic=Automatic
@@ -2391,7 +2391,7 @@ rpCopy.journalSize=Journal Size
 rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB
 
 # SRDF
-vpool.srdf.error.notSupported=Must be EMC VMAX when SRDF copy protection is used
+vpool.srdf.error.notSupported=Must be Dell EMC VMAX when SRDF copy protection is used
 vpool.srdfCopies=SRDF Copies
 vpool.srdfCopyMode=SRDF Copy Mode
 vpool.srdfCopies.help=Configure target Virtual Arrays and optional target Virtual Pools for SRDF copies.
@@ -2590,6 +2590,7 @@ license.type.trial=Limited Use
 licenseFeature.name=Feature
 licenseFeature.type=Type
 licenseFeature.status=Status
+licenseFeature.serial=Software Serial Number
 licenseFeature.expiry=Expiry
 
 consistencyGroups.list.title=Consistency Groups
@@ -3098,7 +3099,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR Controller
+dashboard.welcome=Welcome to Dell EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 
@@ -3684,7 +3685,7 @@ resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign t
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
 resources.filesystem.export.security=Security
-resources.filesystem.export.anon=Anon
+resources.filesystem.export.anon=Root User Mapping
 resources.filesystem.export.protocol=Protocol
 resources.filesystem.export.subdirectory=Sub Directory
 resources.filesystem.export.modify=Modify Endpoints
@@ -4171,7 +4172,7 @@ notifications.none=No notifications
 notification.approvalPending=Approval Required for '%s' from user %s
 
 # Approval required notification
-notification.approvalRequired.title=[EMC ViPR] Approval Request
+notification.approvalRequired.title=[Dell EMC ViPR] Approval Request
 notification.approvalRequired.summary=An order has been submitted that requires approval.
 notification.approvalRequired.linkSummary=To approve or deny this order, follow the link below:
 notification.approvalRequired.link=View Approval Request
@@ -4186,13 +4187,13 @@ notification.approval.by.APPROVED=Approved By
 notification.approval.by.REJECTED=Rejected By
 
 # Order status update notification
-notification.orderUpdated.title=[EMC ViPR] Order %s
+notification.orderUpdated.title=[Dell EMC ViPR] Order %s
 notification.orderUpdated.summary=The status of your order has been updated.
 notification.orderUpdated.linkSummary=To view this order, follow the link below:
 notification.orderUpdated.link=View Order
 
 # Approval status update notification
-notification.approvalUpdated.title=[EMC ViPR] Order %s
+notification.approvalUpdated.title=[Dell EMC ViPR] Order %s
 notification.approvalUpdated.summary=The approval status of your order has been updated.
 notification.approvalUpdated.linkSummary=To view this order, follow the link below:
 notification.approvalUpdated.link=View Order
@@ -4204,7 +4205,7 @@ setup.changePassword.description=Change the local user passwords (minimum 6 char
 setup.smtp=SMTP Settings
 setup.smtp.description=Configure the SMTP settings for sending notification emails
 setup.connectEMC=ConnectEMC
-setup.connectEMC.description=Configure the Connect EMC settings.
+setup.connectEMC.description=Configure the Connect Dell EMC settings.
 setup.network=Network
 setup.network.description=Configure the network settings for the nodes.
 
@@ -4571,7 +4572,7 @@ renderFunctions.recovery.result.reason=The reason was:
 renderFunctions.recovery.error.repair=Database repair failed
 renderFunctions.recovery.error.sync=Database rebuild failed
 renderFunctions.recovery.error.internal=Internal error
-renderFunctions.recovery.error.helpMsg=Please contact EMC support
+renderFunctions.recovery.error.helpMsg=Please contact Dell EMC support
 renderFunctions.manage=Manage
 
 renderFunctions.disasterRecovery.status.active=Active
@@ -4657,7 +4658,7 @@ boolean.true=True
 boolean.false=False
 
 rule.security=Security
-rule.anon=Anon
+rule.anon=Root User Mapping
 rule.subDir=Sub Directory
 
 shareACL.permission=Permission
@@ -4827,8 +4828,8 @@ gettingStarted.button.error=Complete Step
 gettingStarted.loader.recheck=Add more Storage
 gettingStarted.landing.loading=&nbsp;&nbsp;&nbsp;Loading...
 gettingStarted.loader.dismiss=Exit
-gettingStarted.landing.header=Welcome to EMC ViPR Controller
-gettingStarted.landing.text=With the ViPR Controller Guide we have made it easy for you to provision your EMC VMAX All Flash, EMC Unity All Flash, and XtremIO storage.<br><br>Exit the guide if you are not configuring ViPR Controller with all flash arrays, or prefer a custom configuration.
+gettingStarted.landing.header=Welcome to Dell EMC ViPR Controller
+gettingStarted.landing.text=With the ViPR Controller Guide we have made it easy for you to provision your Dell EMC VMAX All Flash, Dell EMC Unity All Flash, and XtremIO storage.<br><br>Exit the guide if you are not configuring ViPR Controller with all flash arrays, or prefer a custom configuration.<br><br>Click at 'Guide' Icon at top right to close or restart the guide.
 gettingStarted.landing.systemNew=You can now use our Getting Started Guide to help you configure ViPR
 gettingStarted.landing.systemPartial=Welcome back! You\'re almost done with the Getting Started Guide.
 gettingStarted.landing.systemReady=Welcome back! You\'re done with the Getting Started Guide.
@@ -4838,11 +4839,11 @@ gettingStarted.landing.oldData=Guide data has been changed externally. Please re
 gettingStarted.landing.updateData=Refresh Guide
 gettingStarted.landing.completed=Browse the Guide
 gettingStarted.licenses.title=Upload Licensing
-gettingStarted.licenses.text=To configure ViPR Controller, you will need a valid license (.lic) file. <br>To obtain your license file (.lic) from the EMC license management web site, you will need the License Authorization Code (LAC), which was emailed from EMC.
+gettingStarted.licenses.text=To configure ViPR Controller, you will need a valid license (.lic) file. <br>To obtain your license file (.lic) from the Dell EMC license management web site, you will need the License Authorization Code (LAC), which was emailed from Dell EMC.
 gettingStarted.licenses.error=Failed to upload license.<br>Check that you have selected the correct license file and upload again.
 gettingStarted.licenses.button=Upload Licensing
 gettingStarted.initialsetup.title=Initial Setup
-gettingStarted.initialsetup.text=To use ViPR you will need to configure some basic settings first.<br><br>The initial setup includes:<br>- Setting new root and system password<br>- Configuring the network settings for the nodes<br>- Configuring the Connect EMC settings<br>- Configuring the SMTP settings for sending notification emails
+gettingStarted.initialsetup.text=To use ViPR you will need to configure some basic settings first.<br><br>The initial setup includes:<br>- Setting new root and system password<br>- Configuring the network settings for the nodes<br>- Configuring the Connect Dell EMC settings<br>- Configuring the SMTP settings for sending notification emails
 gettingStarted.initialsetup.button=Start Initial Setup
 gettingStarted.storagesystem.title=Storage System
 gettingStarted.storagesystem.text=To use ViPR you will need to discover Storage Systems.<br><br>When a System Administrator adds storage systems to the ViPR Controller virtual data center, ViPR Controller discovers the arrays' physical ports and storage pools and brings them under ViPR Controller management.<br><br>This guide can help you configure the following Storage Systems:<ul><li>VMAX All-Flash<li>XtremIO<li>Unity All-Flash</ul>
@@ -4868,10 +4869,11 @@ gettingStarted.provision.fabric=Discovered Fabric Manager
 gettingStarted.provision.varray=Created Virtual Array
 gettingStarted.provision.vpool=Created Virtual Pool
 gettingStarted.provision.project=Created Project
+gettingStarted.navmenu.popover=This menu is not clickable while on the guide. Use this menu to learn how to navigate ViPR Controller.
 gettingStarted.incompletesteps.text=You must complete all prerequisite steps to start this step
 gettingStarted.popover=The Guide has been closed. <br/> Click Guide to return to it at any time.
 gettingStarted.step.popover=Please complete this step then click the arrow to continue.
 gettingStarted.vpool.allflash.desc=Virtual Pool for All-Flash Storage created by Getting Started Guide
-gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
-gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
-gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide
+gettingStarted.vpool.vmax.desc=Virtual Pool for Dell EMC VMAX All-Flash Storage created by Getting Started Guide
+gettingStarted.vpool.xio.desc=Virtual Pool for Dell EMC XtremIO Storage created by Getting Started Guide
+gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created by Getting Started Guide

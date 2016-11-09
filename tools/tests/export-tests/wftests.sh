@@ -2173,6 +2173,15 @@ cleanup_previous_run_artifacts() {
 	    runcmd volume delete ${id} --wait > /dev/null
 	done
     fi
+
+    events list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `events list emcworld | grep ActionableEvent | awk '{print $1}'`
+        do
+            echo "Deleting old event: ${id}"
+            runcmd events delete ${id} > /dev/null
+        done
+    fi
 }
 
 # call this to generate a random WWN for exports.

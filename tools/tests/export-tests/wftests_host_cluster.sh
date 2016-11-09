@@ -4,8 +4,8 @@
 # All Rights Reserved
 # set -x
 
-test_host_1() {
-    echot "Test 4 Add Initiator test"
+test_1_host_add_initiator() {
+    echot "test 1 - Add Initiator to Host"
     expname=${EXPORT_GROUP_NAME}t1
     item=${RANDOM}
     cfs="ExportGroup ExportMask Initiator"
@@ -18,33 +18,92 @@ test_host_1() {
 
     verify_export ${expname}1 ${HOST1} gone
 
-    # Perform any DB validation in here
-    #snap_db 1 ${cfs}
+    test_pwwn=`randwwn`
+    test_nwwn=`randwwn`
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
 
-    # Add initiator to network
-    test_pwwn=`randwwn`
-    test_nwwn=`randwwn`
-    runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
+    # Verify the initiator does not exist in the ExportGroup
+    runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
+    else
+        # Add initiator to network
+        runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
 
-    # Add initiator to host cluster
-    runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+        # Add initiator to host cluster
+        runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+
+        # Verify the initiator does exists in the ExportGroup
+        runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
+        if [ $? -ne 0 ]; then
+            echo "Verified that initiator "${test_pwwn}" has been added to export"
+        else
+            echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
+        fi
+
+        runcmd initiator delete ${HOST1}/${test_pwwn}
+        runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
+    fi
 
     # Remove the shared export
     runcmd export_group delete $PROJECT/${expname}1
 
-    # Snap the DB again
-    #snap_db 2 ${cfs}
-
-    # Validate nothing was left behind
-    #validate_db 1 2 ${cfs}
-
     verify_export ${expname}1 ${HOST1} gone
 }
 
-vcenter_event_test() {
+test_2_host_add_initiator() {
+    echot "test 2 - Add Initiator to Host"
+    expname=${EXPORT_GROUP_NAME}t1
+    item=${RANDOM}
+    cfs="ExportGroup ExportMask Initiator"
+    mkdir -p results/${item}
+
+    smisprovider list | grep SIM > /dev/null
+    if [ $? -eq 0 ]; then
+        FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
+    fi
+
+    verify_export ${expname}1 ${HOST1} gone
+
+    test_pwwn=`randwwn`
+    test_nwwn=`randwwn`
+
+    # Run the export group command
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
+
+    # Verify the initiator does not exist in the ExportGroup
+    runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
+        cleanup
+        finish
+    else
+        # Add initiator to network
+        runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
+
+        # Add initiator to host cluster
+        runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+
+        # Verify the initiator does exists in the ExportGroup
+        runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
+        if [ $? -ne 0 ]; then
+            echo "Add initiator to host test passsed. Initiator "${test_pwwn}" has been added to export"
+        else
+            echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
+            cleanup
+            finish
+        fi
+
+        # Remove the shared export
+        runcmd export_group delete $PROJECT/${expname}1
+
+        verify_export ${expname}1 ${HOST1} gone
+    fi
+}
+
+test_vcenter_event() {
     echot "vCenter Event Test: Export to cluster, move host into cluster, rediscover vCenter, approve event"
     expname=${EXPORT_GROUP_NAME}t2
     item=${RANDOM}

@@ -1557,6 +1557,7 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
             logZones(context.getZoneInfos());
+
             WorkflowStepCompleter.stepExecuting(taskId);
             _log.info("Beginning zone rollback");
             // Determine what needs to be rolled back.
@@ -1573,8 +1574,10 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
                     context.isAddingZones());
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
             completeWorkflowState(taskId, "ZoneRollback", result);
 

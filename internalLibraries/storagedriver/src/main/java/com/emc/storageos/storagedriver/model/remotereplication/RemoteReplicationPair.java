@@ -34,7 +34,7 @@ public class RemoteReplicationPair {
      * Replication mode of the pair.
      * Type: Input.
      */
-    private RemoteReplicationMode replicationMode;
+    private String replicationMode;
 
     /**
      * Replication state of the pair. Type: Output.
@@ -80,11 +80,11 @@ public class RemoteReplicationPair {
         this.replicationGroupNativeId = replicationGroupNativeId;
     }
 
-    public RemoteReplicationMode getReplicationMode() {
+    public String getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(RemoteReplicationMode replicationMode) {
+    public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
     }
 

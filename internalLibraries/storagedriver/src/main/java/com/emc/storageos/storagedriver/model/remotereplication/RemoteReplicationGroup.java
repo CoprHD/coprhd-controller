@@ -42,7 +42,7 @@ public class RemoteReplicationGroup {
      * Replication mode of the group.
      * Type: Input/Output.
      */
-    private RemoteReplicationMode replicationMode;
+    private String replicationMode;
 
     /**
      * Replication state of the group. Type: Output.
@@ -107,11 +107,11 @@ public class RemoteReplicationGroup {
         this.replicationSetNativeId = replicationSetNativeId;
     }
 
-    public RemoteReplicationMode getReplicationMode() {
+    public String getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(RemoteReplicationMode replicationMode) {
+    public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
     }
 

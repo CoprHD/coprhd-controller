@@ -80,7 +80,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup1_set1.setIsGroupConsistencyEnforced(true);
         replicationGroup1_set1.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
-        replicationGroup1_set1.setReplicationMode(replicationModeSync);
+        replicationGroup1_set1.setReplicationMode(replicationModeSync.getReplicationModeName());
         replicationGroup1_set1.setReplicationLinkGranularity(replicationLinkGranularity);
         // source and target systems
         replicationGroup1_set1.setSourceSystemNativeId(SourceStorageSystems.source_replicationGroup1_set1.toString());
@@ -96,7 +96,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup2_set1.setIsGroupConsistencyEnforced(true);
         replicationGroup2_set1.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
-        replicationGroup2_set1.setReplicationMode(replicationModeAsync);
+        replicationGroup2_set1.setReplicationMode(replicationModeAsync.getReplicationModeName());
         // group link granularity
         replicationGroup2_set1.setReplicationLinkGranularity(replicationLinkGranularity);
 
@@ -114,7 +114,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup1_set2.setIsGroupConsistencyEnforced(true);
         replicationGroup1_set2.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
-        replicationGroup1_set2.setReplicationMode(replicationModeSync);
+        replicationGroup1_set2.setReplicationMode(replicationModeSync.getReplicationModeName());
         // group link granularity
         replicationGroup1_set2.setReplicationLinkGranularity(replicationLinkGranularity);
 
@@ -133,7 +133,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup2_set2.setIsGroupConsistencyEnforced(true);
         replicationGroup2_set2.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
-        replicationGroup2_set2.setReplicationMode(replicationModeAsync);
+        replicationGroup2_set2.setReplicationMode(replicationModeAsync.getReplicationModeName());
         // group link granularity
         replicationGroup2_set2.setReplicationLinkGranularity(replicationLinkGranularity);
 

@@ -5,34 +5,15 @@
 package com.emc.storageos.db.client.model.remotereplication;
 
 
-import java.util.Set;
-
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 
 @Cf("RemoteReplicationSet")
 public class RemoteReplicationSet extends DiscoveredDataObject {
-
-    public enum ElementType {
-        REPLICATION_SET,
-        REPLICATION_GROUP,
-        REPLICATION_PAIR
-    }
-
-    public enum ReplicationState {
-        ACTIVE,
-        SYNCHRONIZING,
-        SUSPENDED,
-        SPLIT,
-        FAILED_OVER,
-        SWAPPED
-    }
 
     // native id of replication set.
     private String nativeId;
@@ -66,7 +47,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     private String replicationMode;
 
     // When replication link operations are supported on the SET level, defines state of the link for this set.
-    private ReplicationState replicationState;
+    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState;
 
     // Element types supported by this replication set.
     private StringSet supportedElementTypes;
@@ -183,11 +164,11 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     }
 
     @Name("replicationState")
-    public ReplicationState getReplicationState() {
+    public com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(ReplicationState replicationState) {
+    public void setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
     }

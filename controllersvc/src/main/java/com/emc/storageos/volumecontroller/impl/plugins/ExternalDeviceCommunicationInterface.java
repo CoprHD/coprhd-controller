@@ -1442,7 +1442,7 @@ public class ExternalDeviceCommunicationInterface extends
 
             // set replication mode for this group
             if (driverGroup.getReplicationMode() != null) {
-                systemGroup.setReplicationMode(driverGroup.getReplicationMode().getReplicationModeName());
+                systemGroup.setReplicationMode(driverGroup.getReplicationMode());
             }
 
             // set flag to indicate if group consistency for link operations is enforced

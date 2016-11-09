@@ -17,7 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.RemoteReplicationDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1723,7 +1725,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     @Override
     public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, TaskCompleter taskCompleter) {
 
-        _log.info("Create group replication pairs for remote replication pairs: {}", systemReplicationPairs);
+        _log.info("Create group replication pairs in group {}\n" +
+                "for remote replication pairs: {}", systemReplicationPairs.get(0).getReplicationGroup(), systemReplicationPairs);
 
         // prepare driver replication pairs and call driver
         List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
@@ -1745,8 +1748,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         } else {
             String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs: %s .", task.getMessage());
             _log.error(errorMsg);
-          //  ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed("createGroupReplicationPairs", errorMsg);
-          //  taskCompleter.error(dbClient, serviceError);
+            ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed(
+             driverRRPairs.get(0).getReplicationGroupNativeId(), errorMsg);
+            taskCompleter.error(dbClient, serviceError);
         }
     }
 
@@ -1898,9 +1902,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         dbClient.updateObject(dbPool);
     }
 
+    /**
+     * Builds driver repliction pairs from system replication pairs.
+     * @param systemReplicationPairs system replication pairs (input)
+     * @param driverRRPairs driver replication pairs (output)
+     */
     private void prepareDriverRemoteReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs,
                                                      List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs) {
 
+         for (RemoteReplicationPair systemPair : systemReplicationPairs) {
+             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair driverPair =
+                     new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair();
+             // set source and target volume in the pair
+             StorageVolume driverSourceVolume = new StorageVolume();
+             StorageVolume driverTargetVolume = new StorageVolume();
+             URI systemSourceVolumeUri = systemPair.getSourceElement().getURI();
+             URI systemTargetVolumeUri = systemPair.getTargetElement().getURI();
+             Volume systemSourceVolume = dbClient.queryObject(Volume.class, systemSourceVolumeUri);
+             Volume systemTargetVolume = dbClient.queryObject(Volume.class, systemTargetVolumeUri);
+             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, systemSourceVolume.getStorageController());
+             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, systemTargetVolume.getStorageController());
+
+             driverSourceVolume.setNativeId(systemSourceVolume.getNativeId());
+             driverSourceVolume.setStorageSystemId(sourceSystem.getNativeId());
+             driverTargetVolume.setNativeId(systemTargetVolume.getNativeId());
+             driverTargetVolume.setStorageSystemId(targetSystem.getNativeId());
+
+             driverPair.setSourceVolume(driverSourceVolume);
+             driverPair.setTargetVolume(driverTargetVolume);
+
+             // set replication mode
+             driverPair.setReplicationMode(systemPair.getReplicationMode());
+             // set replication group and replication set native ids
+             RemoteReplicationSet systemReplicationSet = dbClient.queryObject(RemoteReplicationSet.class, systemPair.getReplicationSet());
+             driverPair.setReplicationSetNativeId(systemReplicationSet.getNativeId());
+             RemoteReplicationGroup systemReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, systemPair.getReplicationGroup());
+             driverPair.setReplicationGroupNativeId(systemReplicationGroup.getNativeId());
+             // set replication state
+             driverPair.setReplicationState(systemPair.getReplicationState());
+
+             driverRRPairs.add(driverPair);
+         }
     }
 
 }

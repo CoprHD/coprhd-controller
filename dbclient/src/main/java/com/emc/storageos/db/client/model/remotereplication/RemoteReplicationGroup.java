@@ -47,13 +47,13 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     private StringSet supportedReplicationLinkGranularity;
 
     // replication state of this group
-    private RemoteReplicationSet.ReplicationState replicationState;
+    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState;
 
     // Defines if group consistency of link operations is enforced.
     private Boolean isGroupConsistencyEnforced;
 
     // Parent replication set
-    URI replicationSet;
+    private URI replicationSet;
 
     @Name("nativeId")
     public String getNativeId() {
@@ -149,11 +149,11 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     }
 
     @Name("replicationState")
-    public RemoteReplicationSet.ReplicationState getReplicationState() {
+    public com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
     }

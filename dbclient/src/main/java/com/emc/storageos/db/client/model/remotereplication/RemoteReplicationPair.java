@@ -38,7 +38,7 @@ public class RemoteReplicationPair extends DataObject {
     private String replicationMode;
 
     // Replication state of this pair.
-    private RemoteReplicationSet.ReplicationState replicationState;
+    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState;
 
     // Replication pair source element.
     // name: ElementType.VOLUME, Element.FILE_SYSTEM
@@ -91,11 +91,11 @@ public class RemoteReplicationPair extends DataObject {
     }
 
     @Name("replicationState")
-    public RemoteReplicationSet.ReplicationState getReplicationState() {
+    public com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
     }

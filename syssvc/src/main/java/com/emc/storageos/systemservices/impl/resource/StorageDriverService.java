@@ -342,6 +342,16 @@ public class StorageDriverService {
 
     }
 
+    @POST
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/{driverName}")
+    public Response upgrade(@PathParam("driverName") String driverName,
+            @FormDataParam("driver") InputStream uploadedInputStream,
+            @FormDataParam("driver") FormDataContentDisposition details) {
+        throw new RuntimeException("TODO: upgrade function is not implemented yet, " +
+            "driverName: " + driverName + ", driverFileName: " + details.getFileName());
+    }
+
     private Set<String> getAllDriverNames() {
         List<StorageSystemType> types = listStorageSystemTypes();
         Set<String> drivers = new HashSet<String>();

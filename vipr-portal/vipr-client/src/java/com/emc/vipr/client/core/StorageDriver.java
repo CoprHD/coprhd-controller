@@ -17,7 +17,9 @@ import com.sun.jersey.multipart.file.FileDataBodyPart;
 
 public class StorageDriver {
 
+    private static final String DRIVER_KEY_NAME = "driver";
     private RestClient client;
+
     public StorageDriver(RestClient client) {
         this.client = client;
     }
@@ -28,7 +30,7 @@ public class StorageDriver {
 
     public ClientResponse installDriver(File f) {
         FormDataMultiPart multiPart = new FormDataMultiPart();
-        multiPart.bodyPart(new FileDataBodyPart("driver", f, MediaType.APPLICATION_OCTET_STREAM_TYPE));
+        multiPart.bodyPart(new FileDataBodyPart(DRIVER_KEY_NAME, f, MediaType.APPLICATION_OCTET_STREAM_TYPE));
         return client.postMultiPart(ClientResponse.class, multiPart, PathConstants.STORAGE_DRIVER_INSTALL_URL);
     }
 
@@ -38,7 +40,8 @@ public class StorageDriver {
 
     public ClientResponse upgradeDriver(String driverName, File driverFile) {
         FormDataMultiPart multiPart = new FormDataMultiPart();
-        multiPart.bodyPart(new FileDataBodyPart("driver", driverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE));
-        return client.postMultiPart(ClientResponse.class, multiPart, PathConstants.STORAGE_DRIVER_UPGRADE_URL, driverName);
+        multiPart.bodyPart(new FileDataBodyPart(DRIVER_KEY_NAME, driverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE));
+        return client.postMultiPart(ClientResponse.class, multiPart, PathConstants.STORAGE_DRIVER_UPGRADE_URL,
+                driverName);
     }
 }

@@ -26,40 +26,39 @@ import com.emc.storageos.model.orchestration.internal.BasicInputParameter.InputC
  */
 public class TableInputParameter extends InputParameter {
 
-        private final List<InputColumn<?,?>> columns;
-        public TableInputParameter(String name, InputColumn<?,?>[] columns) {
-            super(name);
-            this.columns = Arrays.asList(columns);
-        }
-        
-        @Override 
-        public ParameterType getType() {
-            return ParameterType.TABLE;
-        }
-        
-        public List<InputColumn<?,?>> getColumns() {
-            return columns;
-        }
-        
-        @Override 
-        public boolean isBasicInputParameter() {
-            return false;
-        }
+    private final List<InputColumn<?, ?>> columns;
 
-        @Override 
-        public BasicInputParameter<?> asBasicInputParameter() {
-            return null;
-        }
+    public TableInputParameter(String name, InputColumn<?, ?>[] columns) {
+        super(name);
+        this.columns = Arrays.asList(columns);
+    }
 
-        @Override 
-        public boolean isTableInputParameter() {
-            return true;
-        }
+    @Override 
+    public ParameterType getType() {
+        return ParameterType.TABLE;
+    }
 
+    public List<InputColumn<?, ?>> getColumns() {
+        return columns;
+    }
 
-        @Override 
-        public TableInputParameter asTableInputParameter() {
-            return this;
-        }
+    @Override 
+    public boolean isBasicInputParameter() {
+        return false;
+    }
+
+    @Override 
+    public BasicInputParameter<?> asBasicInputParameter() {
+        return null;
+    }
+
+    @Override 
+    public boolean isTableInputParameter() {
+        return true;
+    }
+
+    @Override 
+    public TableInputParameter asTableInputParameter() {
+        return this;
     }
 }

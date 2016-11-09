@@ -22,8 +22,6 @@ import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import com.emc.storageos.model.orchestration.internal.TableInputParemeter.TableInputParameter;
-
 /**
  * Class that represents the meta data for an simple input parameter
  * 

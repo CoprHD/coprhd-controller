@@ -16,8 +16,6 @@
  */
 package com.emc.storageos.model.orchestration.internal;
 
-import com.emc.storageos.model.orchestration.internal.TableInputParemeter.TableInputParameter;
-
 /**
  * Base class for input parameters
  */

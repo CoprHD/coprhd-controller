@@ -205,6 +205,14 @@ do
     fi
 done
 
+# The VPLEX quick parameter can also choose xio vs. vnx
+if [ "$VPLEX_QUICK_PARAM" = "xio" ]; then
+    VPLEX_USE_XIO=1
+fi
+if [ "$VPLEX_QUICK_PARAM" = "vnx" -o "$VPLEX_QUICK_PARAM" = "quick" ]; then
+    VPLEX_USE_XIO=0
+fi
+
 case $SS in
     all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
     ;;
@@ -2780,7 +2788,6 @@ vplex_tests()
             # volume names would have changed after ingestion, based on backend vol with -0 suffix
             localVolume2="$localVolume2$sourceSideSuffix"
             localVolume3="$localVolume3$sourceSideSuffix"
-
         fi
         
         echo "**** Creating host"
@@ -2822,7 +2829,7 @@ vplex_tests()
         run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
         run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
         if [ $VPLEX_USE_XIO -eq 0 ]; then
-        run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+            run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
         else
             echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
         fi

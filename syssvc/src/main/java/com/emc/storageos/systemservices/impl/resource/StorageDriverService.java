@@ -344,6 +344,7 @@ public class StorageDriverService {
 
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{driverName}")
     public Response upgrade(@PathParam("driverName") String driverName,
             @FormDataParam("driver") InputStream uploadedInputStream,

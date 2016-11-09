@@ -483,8 +483,8 @@ public class UcsComputeDevice implements ComputeDevice {
             //forcefully skipping the sharedExport update step, due to concurrency issue
             // we will handle update of sharedExport to all hosts in bulk rather than one for each host.
             // Temporary workaround fix until the actual fix is delivered.
-            boolean skipStep = false;
-            if (skipStep) {
+            boolean performStep = false;
+            if (performStep) {
                 String addHostToSharedExportGroupsStepId = workflow.createStepId();
                 addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
                         "Add host to shared export groups", addHostPortsToNetworkStepId, computeSystem.getId(),

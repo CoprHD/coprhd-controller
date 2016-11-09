@@ -9,8 +9,10 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -601,9 +603,15 @@ public class ExportService extends VolumeService {
         if (exportGroup == null)
             throw APIException.badRequests.parameterIsNotValid("volume_id");
 
+        Set<URI> addedClusters = new HashSet<>();
+        Set<URI> removedClusters = new HashSet<>();
+        Set<URI> addedHosts = new HashSet<>();
+        Set<URI> removedHosts = new HashSet<>();
+        Set<URI> addedInitiators = new HashSet<>();
+        Set<URI> removedInitiators = new HashSet<>();
+
         // Step 2: Validate initiators are part of export group
         List<URI> currentURIs = new ArrayList<URI>();
-        List<URI> detachURIs = new ArrayList<URI>();
         List<Initiator> detachInitiators = getListOfInitiators(detach.connector, openstackTenantId, protocol, vol);
         currentURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
         for (Initiator initiator : detachInitiators) {
@@ -611,30 +619,21 @@ public class ExportService extends VolumeService {
             if (!currentURIs.contains(uri)) {
                 throw APIException.badRequests.parameterIsNotValid("volume_id");
             }
-            detachURIs.add(uri);
+            removedInitiators.add(uri);
         }
 
-        // Step 3: Remove initiators from export group
-        currentURIs.removeAll(detachURIs);
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
                 getController(BlockExportController.class, BlockExportController.EXPORT);
         // Now update export group
         String task = UUID.randomUUID().toString();
-        Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-        volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
-
         initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.DELETE_EXPORT_VOLUME);
 
         Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(StringSetUtil.uriListToStringSet(currentURIs));
-        List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-        List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-
         exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                null, null, null, null, null, null, task);
+                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
 
         return waitForTaskCompletion(exportGroup.getId(), task);
 
@@ -784,6 +783,13 @@ public class ExportService extends VolumeService {
 
         ExportGroup exportGroup = findExportGroup(vol);
 
+        Set<URI> addedClusters = new HashSet<>();
+        Set<URI> removedClusters = new HashSet<>();
+        Set<URI> addedHosts = new HashSet<>();
+        Set<URI> removedHosts = new HashSet<>();
+        Set<URI> addedInitiators = new HashSet<>();
+        Set<URI> removedInitiators = new HashSet<>();
+
         if (exportGroup != null) {
             // export group exists, we need to add the initiators to it.
             volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
@@ -791,7 +797,7 @@ public class ExportService extends VolumeService {
             for (Initiator initiator : newInitiators) {
                 URI uri = initiator.getId();
                 if (!initiatorURIs.contains(uri)) {
-                    initiatorURIs.add(uri);
+                    addedInitiators.add(uri);
                 }
             }
             _log.info("updateExportGroup request is submitted.");
@@ -803,13 +809,9 @@ public class ExportService extends VolumeService {
 
             Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-            List<URI> updatedInitiators = initiatorURIs;
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                    null, null, null, null, null, null, task);
+                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
         }
         else {
             // Create a new export group with the given list of initiators

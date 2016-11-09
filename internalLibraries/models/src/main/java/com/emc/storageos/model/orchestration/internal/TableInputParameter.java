@@ -24,8 +24,7 @@ import com.emc.storageos.model.orchestration.internal.BasicInputParameter.InputC
 /**
  * Input parameter type that represents a table of input parameters
  */
-public class TableInputParemeter {
-    public static class TableInputParameter extends InputParameter {
+public class TableInputParameter extends InputParameter {
 
         private final List<InputColumn<?,?>> columns;
         public TableInputParameter(String name, InputColumn<?,?>[] columns) {

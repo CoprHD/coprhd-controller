@@ -111,7 +111,6 @@ if [ ${SS} = "vplex" ]; then
     echo "VPLEX_INGEST_PARAM is ingest $VPLEX_INGEST_PARAM"
     AUTH=${6:-ldap}
     EXTRA_PARAM=${7}
-    exit 1;
 elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}

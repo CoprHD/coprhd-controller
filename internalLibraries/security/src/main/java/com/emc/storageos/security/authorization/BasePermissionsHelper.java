@@ -620,6 +620,14 @@ public class BasePermissionsHelper {
         return getObjectById(id.getURI(), clazz, false);
     }
 
+    public Volume getParentObject(DataObject obj) {
+        final List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                _dbClient, Volume.class,
+                AlternateIdConstraint.Factory.getVolumesByAssociatedId(obj.getId().toString()));
+
+        return vplexVolumes.get(0);
+    }
+
     /**
      * adds user's roles on root tenant to user object
      * 

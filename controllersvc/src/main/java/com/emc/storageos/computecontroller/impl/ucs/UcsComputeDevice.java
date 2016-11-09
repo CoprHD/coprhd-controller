@@ -523,13 +523,20 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-                    List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-                    List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-                    List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+                    List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+                    List<URI> existingHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
+                    List<URI> existingClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+
+                    Set<URI> addedClusters = new HashSet<>();
+                    Set<URI> removedClusters = new HashSet<>();
+                    Set<URI> addedHosts = new HashSet<>();
+                    Set<URI> removedHosts = new HashSet<>();
+                    Set<URI> addedInitiators = new HashSet<>();
+                    Set<URI> removedInitiators = new HashSet<>();
 
                     // add host reference to export group
-                    if (!updatedHosts.contains(host.getId())) {
-                        updatedHosts.add(host.getId());
+                    if (!existingHosts.contains(host.getId())) {
+                        addedHosts.add(host.getId());
                     }
 
                     List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
@@ -539,15 +546,15 @@ public class UcsComputeDevice implements ComputeDevice {
                         // if the initiators is not already in the list add
                         // it.
                         for (Initiator initiator : validInitiators) {
-                            if (!updatedInitiators.contains(initiator.getId())) {
-                                updatedInitiators.add(initiator.getId());
+                            if (!existingInitiators.contains(initiator.getId())) {
+                                addedInitiators.add(initiator.getId());
                             }
                         }
                     }
 
                     blockExportController.exportGroupUpdate(exportGroup.getId(),
                             noUpdatesVolumeMap, noUpdatesVolumeMap,
-                            null, null, null, null, null, null, task);
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
 
                     while (true) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
@@ -556,12 +563,12 @@ public class UcsComputeDevice implements ComputeDevice {
                         switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
                             case ready:
                                 WorkflowStepCompleter.stepSucceded(stepId);
-                                return;
+                                break;
                             case error:
                                 WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
                                         .getServiceError());
-                                return;
-                            case pending:
+                                break;
+                            default:
                                 break;
 
                         }

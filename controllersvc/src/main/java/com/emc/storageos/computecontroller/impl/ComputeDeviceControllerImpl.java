@@ -573,6 +573,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
+        if (host == null){
+            return waitFor;
+        }
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
         if (initiators == null || initiators.isEmpty()){
              log.info(" Skipping service profile and boot volume deletion for host "+ host.getId()+ " since it has no initiators and might be a stale entry");

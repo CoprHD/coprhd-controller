@@ -545,7 +545,7 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
-                    LOGGER.info("adding host " + host.getHostName() + " to ExportGroup: " + exportGroup.getId());
+                    LOGGER.info("adding host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
 
                     blockExportController.exportGroupUpdate(exportGroup.getId(),
                             noUpdatesVolumeMap, noUpdatesVolumeMap,
@@ -559,11 +559,11 @@ public class UcsComputeDevice implements ComputeDevice {
                         switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
                             case ready:
                                 taskCompleted = true;
-                                LOGGER.info("Successfully added host " + host.getHostName() + " to ExportGroup: " + exportGroup.getId());
+                                LOGGER.info("Successfully added host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
                                 break;
                             case error:
                                 taskCompleted = true;
-                                LOGGER.error("Failed to add host " + host.getHostName() + " to ExportGroup: " + exportGroup.getId());
+                                LOGGER.error("Failed to add host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
                                 WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
                                         .getServiceError());
                                 break;
@@ -1136,7 +1136,7 @@ public class UcsComputeDevice implements ComputeDevice {
                         LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
                                 cs.getUsername(), cs.getPassword(), sp.getDn());
 
-                        LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                        LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
 
                         ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                                 computeElement.getLabel(), ComputeBlade.class);

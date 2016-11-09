@@ -349,8 +349,8 @@ public class StorageDriverService {
     public Response upgrade(@PathParam("driverName") String driverName,
             @FormDataParam("driver") InputStream uploadedInputStream,
             @FormDataParam("driver") FormDataContentDisposition details) {
-        throw new RuntimeException("TODO: upgrade function is not implemented yet, " +
-            "driverName: " + driverName + ", driverFileName: " + details.getFileName());
+        throw new RuntimeException("TODO: upgrade function is not implemented yet, " + "driverName: " + driverName
+                + ", driverFileName: " + details.getFileName());
     }
 
     private Set<String> getAllDriverNames() {

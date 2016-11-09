@@ -118,6 +118,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
          */
         private URI getProjectIdFromResourceId(String uri, Class<? extends DataObject> clazz) {
             URI id = URI.create(uri);
+            _log.info("Getting project from resource id {}", id);
             ProjectResource projObj = null;
 
             DataObject obj = _permissionsHelper.getObjectById(id, clazz);
@@ -127,7 +128,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
             projObj = (ProjectResource) obj;
 
             if ( obj.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) ) {
+                _log.info("Resource {} is an internal resource", id);
                 DataObject parentObj = _permissionsHelper.getParentObject(obj);
+                _log.info("Resource {}'s parent is {}", id, parentObj.getId());
                 projObj = (ProjectResource) obj;
             }
 

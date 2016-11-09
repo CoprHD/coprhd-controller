@@ -1,5 +1,6 @@
 compute_redhat_linux_version=5.9
 compute_suse_linux_version=11
+compute_centos_linux_version=7.0.0
 compute_vmware_vcenter_version=5.0
 compute_windows_version=6.0.6002
 config_version=1392219021408

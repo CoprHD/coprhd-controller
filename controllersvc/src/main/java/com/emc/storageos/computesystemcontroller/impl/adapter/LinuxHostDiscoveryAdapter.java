@@ -40,6 +40,7 @@ import com.iwave.ext.linux.command.version.GetRedhatVersionCommandOne;
 import com.iwave.ext.linux.command.version.GetRedhatVersionCommandTwo;
 import com.iwave.ext.linux.command.version.GetRedhatVersionCommandThree;
 import com.iwave.ext.linux.command.version.GetSuSEVersionCommand;
+import com.iwave.ext.linux.command.version.GetCentosVersionCommand;
 import com.iwave.ext.linux.command.version.LinuxVersionCommand;
 import com.iwave.ext.linux.model.HBAInfo;
 import com.iwave.ext.linux.model.IPInterface;
@@ -81,7 +82,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             save(host);
             throw ComputeSystemControllerException.exceptions.incompatibleLinuxHostVersion(
                     getSupportedType(), version.toString(), getVersionValidator().getSuSELinuxMinimumVersion(false).toString(),
-                    getVersionValidator().getRedhatLinuxMinimumVersion(false).toString());
+                    getVersionValidator().getCentosLinuxMinimumVersion(false).toString(), getVersionValidator().getRedhatLinuxMinimumVersion(false).toString());
         }
     }
 
@@ -150,7 +151,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         LinuxSystemCLI cli = createLinuxCLI(host);
         List<LinuxVersion> versions = new ArrayList<LinuxVersion>();
 
-        LinuxVersionCommand[] commands = { new GetSuSEVersionCommand(), new GetRedhatVersionCommandOne(),
+        LinuxVersionCommand[] commands = { new GetSuSEVersionCommand(), new GetCentosVersionCommand(), new GetRedhatVersionCommandOne(),
                 new GetRedhatVersionCommandTwo(), new GetRedhatVersionCommandThree(), new GetLinuxVersionLSBReleaseCommand() };
 
         for (LinuxVersionCommand command : commands) {

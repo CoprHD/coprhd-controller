@@ -38,6 +38,7 @@ public class VersionCheckerTest {
         properties.put("controller_smis_provider_version", "4.6.1.1");
         properties.put("compute_windows_version", "6.0.6002");
         properties.put("compute_suse_linux_version", "11");
+        properties.put("compute_centos_linux_version", "7.0.0");
         properties.put("compute_redhat_linux_version", "5.9");
         properties.put("compute_hpux_version", "11.31");
         PropertyInfo propertyInfo = new PropertyInfo(properties);
@@ -222,6 +223,15 @@ public class VersionCheckerTest {
         exceptionHelper("compute_suse_linux_version", "10.9");
     }
 
+    @Test
+    public void testCentosLinuxHost() throws Exception {
+        noExceptionHelper("compute_centos_linux_version", "7");
+        noExceptionHelper("compute_centos_linux_version", "7.2");
+        noExceptionHelper("compute_centos_linux_version", "7.2.1511");
+        exceptionHelper("compute_centos_linux_version", "6.5");
+        exceptionHelper("compute_centos_linux_version", "6");
+    }
+    
     @Test
     public void testRedhatLinuxHost() throws Exception {
         noExceptionHelper("compute_redhat_linux_version", "5.9");

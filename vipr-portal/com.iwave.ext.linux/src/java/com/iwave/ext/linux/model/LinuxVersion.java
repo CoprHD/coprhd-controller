@@ -39,6 +39,7 @@ public class LinuxVersion {
     public enum LinuxDistribution {
         SUSE("SuSE"),
         REDHAT("RHEL"),
+        CENTOS("CentOS"),
         UNKNOWN("N/A");
 
         private String name;
@@ -66,6 +67,9 @@ public class LinuxVersion {
             }
             else if (REDHAT.getName().equals(name)) {
                 return REDHAT;
+            }
+            else if (CENTOS.getName().equals(name)) {
+                return CENTOS;
             }
             else {
                 return UNKNOWN;

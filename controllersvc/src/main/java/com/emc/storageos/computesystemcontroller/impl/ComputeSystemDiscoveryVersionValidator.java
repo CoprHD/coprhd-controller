@@ -23,6 +23,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private static final String WINDOWS_MIN_PROP = "compute_windows_version";
     private static final String REDHAT_MIN_PROP = "compute_redhat_linux_version";
     private static final String SUSE_MIN_PROP = "compute_suse_linux_version";
+    private static final String CENTOS_MIN_PROP = "compute_centos_linux_version";
     private static final String VCENTER_MIN_PROP = "compute_vmware_vcenter_version";
     private static final String AIX_MIN_PROP = "compute_aix_version";
     private static final String AIXVIO_MIN_PROP = "compute_aixvio_version";
@@ -34,6 +35,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private WindowsVersion windowsVersion;
     private LinuxVersion redhatVersion;
     private LinuxVersion suseVersion;
+    private LinuxVersion centosVersion;
     private VcenterVersion vcenterVersion;
     private AixVersion aixVersion;
     private AixVersion aixVioVersion;
@@ -166,6 +168,23 @@ public class ComputeSystemDiscoveryVersionValidator {
         return suseVersion;
     }
 
+    public LinuxVersion getCentosLinuxMinimumVersion(boolean forceLookup) {
+        if (forceLookup || centosVersion == null) {
+            String versionProp = this.getSysProperty(CENTOS_MIN_PROP);
+            if (isValidVersionNumber(versionProp)) {
+                centosVersion = new LinuxVersion(LinuxVersion.LinuxDistribution.CENTOS, versionProp);
+            }
+            else {
+                centosVersion = null;
+                throw new IllegalStateException(String.format(
+                        "System property for CentOS Linux Version Number(%s) is invalid - value is '%s'", CENTOS_MIN_PROP,
+                        versionProp));
+            }
+
+        }
+        return centosVersion;
+    }
+    
     public VcenterVersion getVcenterMinimumVersion(boolean forceLookup) {
         if (forceLookup || vcenterVersion == null) {
             String versionProp = this.getSysProperty(VCENTER_MIN_PROP);
@@ -234,6 +253,10 @@ public class ComputeSystemDiscoveryVersionValidator {
         else if (LinuxVersion.LinuxDistribution.SUSE.equals(version.getDistribution())) {
             return (VersionChecker.verifyVersionDetails(
                     getSuSELinuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
+        }
+        else if (LinuxVersion.LinuxDistribution.CENTOS.equals(version.getDistribution())) {
+            return (VersionChecker.verifyVersionDetails(
+                    getCentosLinuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
         }
         else {
             return false;

@@ -35,7 +35,7 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException incompatibleLinuxHostVersion(final String type, final String version,
-            final String minSuSe, final String minRH);
+            final String minSuSe, final String minCentos, final String minRH);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException powerStateChangeFailed(final String state, final String id,

@@ -12,6 +12,7 @@ public class GetLinuxVersionLSBReleaseCommand extends LinuxVersionCommand {
 
     private static final String RHEL = "RedHatEnterpriseServer";
     private static final String SUSE = "SUSE LINUX";
+    private static final String CENTOS = "CentOS";
 
     public GetLinuxVersionLSBReleaseCommand() {
         setCommand("lsb_release -a");
@@ -35,6 +36,9 @@ public class GetLinuxVersionLSBReleaseCommand extends LinuxVersionCommand {
                 }
                 else if (SUSE.equals(value)) {
                     distribution = LinuxVersion.LinuxDistribution.SUSE;
+                }
+                else if (CENTOS.equals(value)) {
+                    distribution = LinuxVersion.LinuxDistribution.CENTOS;
                 }
             }
             else if (key.equalsIgnoreCase(RELEASE)) {

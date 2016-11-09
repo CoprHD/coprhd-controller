@@ -74,8 +74,8 @@ public class ExportWorkflowEntryPoints implements Controller {
                 storageWorkflow);
     }
 
-    public static Workflow.Method exportGroupDeleteMethod(URI storageURI, URI exportGroupURI) {
-        return new Workflow.Method("exportGroupDelete", storageURI, exportGroupURI);
+    public static Workflow.Method exportGroupDeleteMethod(URI storageURI, URI exportGroupURI, boolean useForce) {
+        return new Workflow.Method("exportGroupDelete", storageURI, exportGroupURI, useForce);
     }
 
     public static Workflow.Method exportAddVolumesMethod(URI storageURI, URI exportGroupURI,
@@ -183,7 +183,7 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
-    public void exportGroupDelete(URI storageURI, URI exportGroupURI, String token)
+    public void exportGroupDelete(URI storageURI, URI exportGroupURI, boolean useForce, String token)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -191,7 +191,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.exportGroupDelete(storageURI, exportGroupURI, token);
+                orchestrator.exportGroupDelete(storageURI, exportGroupURI, useForce, token);
 
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);

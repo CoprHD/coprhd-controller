@@ -1347,7 +1347,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
         _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                 stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
-        blockController.exportGroupDelete(exportGroup, stepId);
+        blockController.exportGroupDelete(exportGroup, false, stepId);
     }
 
     @Override

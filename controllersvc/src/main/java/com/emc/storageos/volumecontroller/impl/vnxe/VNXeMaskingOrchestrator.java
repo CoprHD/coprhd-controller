@@ -128,7 +128,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void exportGroupDelete(URI storageURI,
             URI exportGroupURI,
-            String token) throws Exception {
+            boolean useForce, String token) throws Exception {
         try {
             _log.info(String.format("exportGroupDelete start - Array: %s ExportMask: %s",
                     storageURI.toString(), exportGroupURI.toString()));

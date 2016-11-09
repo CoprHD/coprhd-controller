@@ -2985,7 +2985,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * java.lang.String)
      */
     @Override
-    public void exportGroupDelete(URI vplex, URI export, String opId)
+    public void exportGroupDelete(URI vplex, URI export, boolean useForce, String opId)
             throws ControllerException {
         _log.info("Entering exportGroupDelete");
         ExportDeleteCompleter completer = null;

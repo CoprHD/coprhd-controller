@@ -659,7 +659,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public void exportGroupDelete(URI storageURI, URI exportGroupURI, String token)
+    public void exportGroupDelete(URI storageURI, URI exportGroupURI, boolean useForce, String token)
             throws Exception {
         try {
             log.info(String.format("exportGroupDelete start - Array: %s ExportGroup: %s",

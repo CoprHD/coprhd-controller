@@ -1204,7 +1204,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     @Override
-    public void exportGroupDelete(URI storageURI, URI exportGroupURI, String token)
+    public void exportGroupDelete(URI storageURI, URI exportGroupURI, boolean useForce, String token)
             throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {

@@ -110,7 +110,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     @Override
-    public void exportGroupDelete(URI storageURI, URI exportGroupURI, String token) throws Exception {
+    public void exportGroupDelete(URI storageURI, URI exportGroupURI, boolean useForce, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);

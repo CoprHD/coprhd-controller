@@ -2906,7 +2906,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
-    public void exportGroupDelete(URI protectionDevice, URI exportGroupID, String token) throws InternalException {
+    public void exportGroupDelete(URI protectionDevice, URI exportGroupID, boolean useForce, String token) throws InternalException {
         TaskCompleter taskCompleter = null;
         try {
             // Grab the RP System information; we'll need it to talk to the RP client
@@ -3002,7 +3002,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     device = _dbClient.queryObject(StorageSystem.class, block.getStorageController());
 
                     _exportWfUtils.generateExportGroupDeleteWorkflow(workflow, STEP_EXPORT_DELETE_SNAPSHOT, STEP_EXPORT_GROUP_DELETE,
-                            device.getId(), exportGroupID);
+                            device.getId(), exportGroupID, false);
                 }
             } catch (URISyntaxException e) {
                 _log.error("Couldn't find volume ID for export delete: " + volumeIDString, e);

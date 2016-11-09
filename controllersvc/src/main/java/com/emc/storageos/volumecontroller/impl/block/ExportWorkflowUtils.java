@@ -78,7 +78,7 @@ public class ExportWorkflowUtils {
                         volumeMap, initiatorURIs);
 
         Workflow.Method rollback =
-                ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
+                ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export, false);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Creating export on storage array %s (%s)",
@@ -114,7 +114,7 @@ public class ExportWorkflowUtils {
      * @param blockStorageControllerUri the block storage controller. This will always
      *            be used for adding/removing initiators as we
      *            do not want a protection controller doing this.
-     * @param useForce TODO
+     * @param useForce This will force the operation as USER is aware of the impact if any.
      * @return the id of the wrapper step that was added to main workflow
      * @throws IOException
      * @throws WorkflowException
@@ -237,12 +237,12 @@ public class ExportWorkflowUtils {
 
     public String generateExportGroupDeleteWorkflow(Workflow workflow, String wfGroupId,
             String waitFor, URI storage,
-            URI export)
+            URI export, boolean useForce)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method method =
-                ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
+                ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export, useForce);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Deleting export on storage array %s (%s)",

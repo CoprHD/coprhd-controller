@@ -136,12 +136,13 @@ public class BlockDeviceExportController implements BlockExportController {
      * Delete the export.
      *
      * @param export URI of ExportGroup
+     * @param useForce This will force the operation as USER is aware of the impact if any.
      * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
      *
      */
     @Override
-    public void exportGroupDelete(URI export, String opId) throws ControllerException {
+    public void exportGroupDelete(URI export, boolean useForce, String opId) throws ControllerException {
         ExportTaskCompleter taskCompleter = new ExportDeleteCompleter(export, false, opId);
         Workflow workflow = null;
         try {
@@ -172,7 +173,7 @@ public class BlockDeviceExportController implements BlockExportController {
                                 storageSystemURIs.add(storageURI);
                                 _wfUtils.
                                         generateExportGroupDeleteWorkflow(workflow, null,
-                                                null, storageURI, export);
+                                        null, storageURI, export, useForce);
                             }
                         }
                     } else {

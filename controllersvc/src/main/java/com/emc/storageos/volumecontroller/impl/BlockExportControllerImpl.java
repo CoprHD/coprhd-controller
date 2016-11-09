@@ -92,7 +92,7 @@ public class BlockExportControllerImpl implements BlockExportController {
      * 
      */
     @Override
-    public void exportGroupDelete(URI export, String opId) throws ControllerException {
+    public void exportGroupDelete(URI export, boolean useForce, String opId) throws ControllerException {
         blockRMI("exportGroupDelete", export, opId);
     }
 

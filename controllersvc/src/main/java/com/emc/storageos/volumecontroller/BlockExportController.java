@@ -59,10 +59,11 @@ public interface BlockExportController extends Controller {
      * Delete the export.
      * 
      * @param export URI of ExportMask
+     * @param useForce This will force the operation as USER is aware of the impact.
      * @param opId Operation ID
      * @throws ControllerException
      */
-    public void exportGroupDelete(URI export, String opId) throws ControllerException;
+    public void exportGroupDelete(URI export, boolean useForce, String opId) throws ControllerException;
 
     /**
      * Updates the export paths according to new path parameters in the Volume's VirtualPool.

@@ -50,11 +50,12 @@ public interface MaskingOrchestrator {
     /**
      * @param storageURI
      * @param exportGroupURI
+     * @param useForce
      * @param token @return
      */
     public void exportGroupDelete(URI storageURI,
             URI exportGroupURI,
-            String token) throws Exception;
+            boolean useForce, String token) throws Exception;
 
     /**
      * @param storageURI

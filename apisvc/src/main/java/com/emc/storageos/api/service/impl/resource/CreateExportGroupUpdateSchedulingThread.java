@@ -111,7 +111,7 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
                 dbClient.createObject(exportPathParam);
             }
 
-            boolean useForce = exportUpdateParam.getForceFlag();
+            boolean useForce = exportUpdateParam.getUseForce();
             _log.info("Use Force option is set to %s", Boolean.toString(useForce));
 
             // push it to storage devices

@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -1828,6 +1829,7 @@ public class ExportGroupService extends TaskResourceService {
      * NOTE: This is an asynchronous operation.
      *
      * @param groupId Block export identifier
+     * @param force will attempt to use the force option.
      * @brief Delete block export
      * @return Task resource representation
      * @throws ControllerException
@@ -1836,7 +1838,8 @@ public class ExportGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep deactivateExportGroup(@PathParam("id") URI groupId)
+    public TaskResourceRep deactivateExportGroup(@PathParam("id") URI groupId,
+            @DefaultValue("false") @QueryParam("force") boolean force)
             throws ControllerException {
         String task = UUID.randomUUID().toString();
         Operation op = null;
@@ -1875,7 +1878,7 @@ public class ExportGroupService extends TaskResourceService {
             _dbClient.persistObject(exportGroup);
 
             BlockExportController exportController = getExportController();
-            exportController.exportGroupDelete(exportGroup.getId(), task);
+            exportController.exportGroupDelete(exportGroup.getId(), false, task);
         }
         auditOp(OperationTypeEnum.DELETE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
                 exportGroup.getLabel(), exportGroup.getId().toString(),

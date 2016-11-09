@@ -18,6 +18,8 @@
 package com.emc.storageos.oe.api.restapi;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,7 @@ import com.sun.jersey.api.client.WebResource.Builder;
 public class OrchestrationEngineRestClient extends StandardRestClient {
 
     private static Logger log = LoggerFactory.getLogger(OrchestrationEngineRestClient.class);
+    private Map<String, String> _authHeaders = new HashMap<String, String>();
 
     /**
      * Constructor
@@ -48,9 +51,18 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
         _base = baseURI;
     }
 
+    public void setAuthHeaders(String token, String extraHeader) {
+        _authHeaders.put(token, extraHeader);
+    }
+
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        return resource.getRequestBuilder();
+        WebResource.Builder builder = resource.getRequestBuilder();
+        for (Map.Entry<String, String> entry : _authHeaders.entrySet()) {
+            builder.header(entry.getKey(), entry.getValue());
+        }
+  
+        return builder;
     }
 
     @Override

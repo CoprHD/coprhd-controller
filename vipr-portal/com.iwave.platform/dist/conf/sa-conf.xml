@@ -55,6 +55,10 @@
         <constructor-arg name="coordinator" ref="coordinator"/>
         <constructor-arg name="localDependencyChecker" ref="dependencyChecker"/>
     </bean>	
+
+    <bean id="orchestrationService" class="com.emc.sa.service.vipr.oe.OrchestrationService">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+    </bean>   
     
     <bean id="dbDependencyPurger" class="com.emc.storageos.db.common.DbDependencyPurger">
         <constructor-arg name="dbClient" ref="dbclient"/>

@@ -387,4 +387,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_UPGRADE_DRIVER_PRECHECK_FAILED)
     public InternalServerErrorException upgradeDriverPrecheckFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_UNINSTALL_DRIVER_FAILED)
+    public InternalServerErrorException uninstallDriverFailed(String errMsg);
 }

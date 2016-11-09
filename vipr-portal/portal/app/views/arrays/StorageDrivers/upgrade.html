@@ -1,0 +1,21 @@
+%{
+  titleKey = 'storageDrivers.upgrade.title';
+}%
+
+#{set 'title'}&{titleKey}#{/set}
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageDrivers'] /}
+
+#{alerts/}
+
+#{Form.header titleKey:'storageDrivers.upload.title' /}
+#{form @upgradeDriver(), enctype:'multipart/form-data', method:'POST', class:'form form-horizontal', autocomplete:"off"}
+     #{field 'driverFile'}
+        #{Form.fileUploadControlGroup field:field/}
+     #{/field}
+     #{Form.buttonBar}
+        <input name="driverName" value="${driverName}" style="display:none;" />
+        <button type="submit" class="btn btn-default" onclick="if (!confirm('&{'storageDrivers.upgrade.confirm'}')){return false;}">#{icon 'upload'/} &{'storageDrivers.uploadButton'}</button>
+     #{/Form.buttonBar}
+#{/form}

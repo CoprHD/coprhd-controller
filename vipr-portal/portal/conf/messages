@@ -3865,8 +3865,8 @@ storageDrivers.name=Storage Name
 storageDrivers.uploadButton=Upload
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.deleteButton=Delete
-storageDrivers.upgrade.confirm=Old driver will be removed, and controller services will be restarted, unfinished orders may fail. Are you still willing to proceed?
-storageDrivers.delete.confirm=Driver will be removed, and controller service will be restarted, unfinished orders may fail. Are you still willing to proceed?
+storageDrivers.upgrade.confirm=Controller services will be restarted, unfinished orders may fail. Are you still willing to proceed?
+storageDrivers.delete.confirm=Controller service will be restarted, unfinished orders may fail. Are you still willing to proceed?
 
 storageDrivers.install.init.success=Install request initiated ...
 storageDrivers.delete.init.success=Uninstall request initiated ...
@@ -3889,7 +3889,7 @@ storageSystemTypes.isOnlyMDM=Use Only MDM
 storageSystemTypes.isElementMgr=Is Element Manager
 storageSystemTypes.useMDM=Use MDM
 storageSystemTypes.driverClassName=Driver Class Name
-deviceDriverFile=Storage Driver Jar
+driverFile=Storage Driver Jar
 
 tasks.task=Task
 tasks.id=ID

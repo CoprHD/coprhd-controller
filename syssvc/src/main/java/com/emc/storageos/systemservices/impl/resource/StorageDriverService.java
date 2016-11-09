@@ -29,9 +29,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -141,7 +143,8 @@ public class StorageDriverService {
 
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
                 type.setDriverStatus(READY);
-                if (usedProviderTypes.contains(type.getStorageTypeName()) || usedSystemTypes.contains(type.getStorageTypeName())) {
+                if (usedProviderTypes.contains(type.getStorageTypeName())
+                        || usedSystemTypes.contains(type.getStorageTypeName())) {
                     type.setDriverStatus(IN_USE);
                 }
             }
@@ -191,7 +194,6 @@ public class StorageDriverService {
     }
 
     @POST
-    @Path("/install")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response install(@FormDataParam("driver") InputStream uploadedInputStream,
@@ -284,6 +286,69 @@ public class StorageDriverService {
                 log.error(String.format("Lock release failed when installing driver %s", metaData.getDriverName()));
             }
         }
+    }
+
+    @DELETE
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/{driverName}")
+    public Response uninstall(@PathParam("driverName") String driverName) {
+
+        Set<String> driverNames = getAllDriverNames();
+        if (!driverNames.contains(driverName)) {
+            throw APIException.badRequests.driverNameNotFound();
+        }
+        precheckForEnv();
+
+        InterProcessLock lock = getStorageDriverOperationLock();
+        try {
+            StorageDriversInfo info = coordinator.getTargetInfo(StorageDriversInfo.class);
+            if (info == null) {
+                info = new StorageDriversInfo();
+            }
+
+            Set<String> usedProviderTypes = getUsedStorageProviderTypes();
+            Set<String> usedSystemTypes = getUsedStorageSystemTypes();
+
+            List<StorageSystemType> types = listStorageSystemTypes();
+            for (StorageSystemType type : types) {
+                if (!StringUtils.equals(driverName, type.getStorageTypeName())) {
+                    continue;
+                }
+
+                if (usedProviderTypes.contains(type.getStorageTypeName())
+                        || usedSystemTypes.contains(type.getStorageTypeName())) {
+                    throw APIException.badRequests.cantUninstallDriverInUse(driverName);
+                }
+
+                type.setDriverStatus(StorageSystemType.STATUS.UNISNTALLING.toString());
+                dbClient.updateObject(type);
+                info.getInstalledDrivers().remove(type.getDriverFileName());
+                log.info("Remove {} from target list", type.getDriverFileName());
+            }
+            // update target list in ZK
+            coordinator.setTargetInfo(info);
+            log.info("Successfully triggered uninstall operation for driver", driverName);
+            return Response.ok().build();
+        } catch (Exception e) {
+            log.error("Error happened when installing driver file", e);
+            throw APIException.internalServerErrors.uninstallDriverFailed(e.getMessage());
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when uninstalling driver %s", driverName));
+            }
+        }
+
+    }
+
+    private Set<String> getAllDriverNames() {
+        List<StorageSystemType> types = listStorageSystemTypes();
+        Set<String> drivers = new HashSet<String>();
+        for (StorageSystemType type : types) {
+            drivers.add(type.getDriverName());
+        }
+        return drivers;
     }
 
     private void precheckForMetaData(StorageDriverMetaData metaData) {

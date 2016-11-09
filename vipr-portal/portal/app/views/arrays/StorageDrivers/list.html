@@ -51,7 +51,7 @@ function storageDriverStatus(o, val) {
 </script>
 
 <script type="text/javascript">
-var deleteUrl = #{jsAction @remove(':driverName') /}
+var deleteUrl = #{jsAction @delete(':driverName') /}
 var upgradeUrl = #{jsAction @upgrade(':driverName') /}
 
 angular.module('tags').directive({

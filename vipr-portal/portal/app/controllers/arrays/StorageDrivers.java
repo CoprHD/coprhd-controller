@@ -18,11 +18,9 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.StorageDriverDataTable;
 import models.datatable.StorageDriverDataTable.StorageDriverInfo;
-import play.data.binding.As;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StorageDriverUtils;
-import util.StorageSystemTypeUtils;
 import util.datatable.DataTablesSupport;
 
 @With(Common.class)
@@ -36,26 +34,20 @@ public class StorageDrivers extends ViprResourceController {
     protected static final String INTALL_INIT_SUCCESS = "storageDrivers.install.init.success";
     protected static final String UPGRADE_INIT_SUCCESS = "storageDrivers.upgrade.init.success";
 
-    // show create page
     public static void create() {
-        render("@upload");
+        render("@install");
     }
 
-    // This method does nothing
-    public static void delete() {
-        
+    @FlashException
+    public static void delete(String driverName) {
+        StorageDriverUtils.uninstallDriver(driverName);
+        flash.success(MessagesUtils.get(DELETED_SUCCESS));
+        list();
     }
 
     // placeholder method, show upgrade page
     public static void upgrade(String driverName) {
-        render("@upload", driverName);
-    }
-
-    // placeholder method
-    public static void remove(String driverName) {
-        // TODO send request to back-end API
-        flash.success(MessagesUtils.get(DELETED_SUCCESS));
-        list();
+        render("@upgrade", driverName);
     }
 
     public static void list() {
@@ -65,48 +57,31 @@ public class StorageDrivers extends ViprResourceController {
 
     public static void listJson() {
         List<StorageDriverInfo> drivers = Lists.newArrayList();
-//        StorageDriverDataTable.StorageDriverInfo driver = new StorageDriverDataTable.StorageDriverInfo();
-//        driver.driverName = "foo_driver";
-//        driver.driverVersion = "1.0.0.1";
-//        driver.supportedStorageSystems.add("Fool System");
-//        driver.supportedStorageSystems.add("Storage Provider for Fool System");
-//        driver.type = "Block";
-//        driver.defaultNonSslPort = "8080";
-//        driver.defaultSslPort = "443";
-//        driver.status = "Ready";
-//        drivers.add(driver);
-//        driver = new StorageDriverDataTable.StorageDriverInfo();
-//        driver.driverName = "bar_driver";
-//        driver.driverVersion = "2.0.0.0";
-//        driver.supportedStorageSystems.add("Bar System");
-//        driver.type = "File";
-//        driver.defaultNonSslPort = "9000";
-//        driver.defaultSslPort = "4443";
-//        driver.status = "In Use";
-//        drivers.add(driver);
         for (StorageDriverRestRep driver : StorageDriverUtils.getDrivers().getDrivers()) {
             drivers.add(new StorageDriverInfo(driver));
         }
         renderJSON(DataTablesSupport.createJSON(drivers, params));
     }
 
-    public static void uploadDriver(File deviceDriverFile, String driverName) throws IOException {
-        if (deviceDriverFile == null) {
+    @FlashException
+    public static void saveDriver(File driverFile) throws IOException {
+        if (driverFile == null) {
             flash.error("Error: please specify a driver jar file");
-            if (driverName == null || driverName.isEmpty()) {
-                create();
-            } else {
-                upgrade(driverName);
-            }
+            create();
         }
+        StorageDriverUtils.installDriver(driverFile);
+        flash.success(MessagesUtils.get(INTALL_INIT_SUCCESS));
+        list();
+    }
 
-        // TODO upload driver
-
-        if (driverName == null || driverName.isEmpty()) {
-            flash.success(MessagesUtils.get(INTALL_INIT_SUCCESS));
-        } else {
-            flash.success(MessagesUtils.get(UPGRADE_INIT_SUCCESS));
+    @FlashException
+    public static void upgradeDriver(File driverFile, String driverName) {
+        if (driverFile == null) {
+            flash.error("Error: please specify a driver jar file");
+            upgrade(driverName);
         }
+        StorageDriverUtils.upgradeDriver(driverFile, driverName);
+        flash.success(MessagesUtils.get(INTALL_INIT_SUCCESS));
         list();
     }
 }

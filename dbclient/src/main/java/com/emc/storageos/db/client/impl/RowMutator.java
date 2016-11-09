@@ -35,8 +35,7 @@ public class RowMutator {
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
     private UUID _timeUUID;
     private long _timeStamp;
-    private MutationBatch _recordMutator;
-    private MutationBatch _indexMutator;
+    private MutationBatch _mutationBatch;
     private Keyspace keyspace;
     private boolean retryFailedWriteWithLocalQuorum = false;
     
@@ -51,10 +50,8 @@ public class RowMutator {
         _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
         _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
 
-        _recordMutator = keyspace.prepareMutationBatch();
-        _indexMutator = keyspace.prepareMutationBatch();
-        _recordMutator.setTimestamp(_timeStamp);
-        _indexMutator.setTimestamp(_timeStamp);
+        _mutationBatch = keyspace.prepareMutationBatch();
+        _mutationBatch.setTimestamp(_timeStamp);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
@@ -86,7 +83,7 @@ public class RowMutator {
         }
         ColumnListMutation<CompositeColumnName> row = rowMap.get(key);
         if (row == null) {
-            row = _recordMutator.withRow(cf, key);
+            row = _mutationBatch.withRow(cf, key);
             rowMap.put(key, row);
         }
         return row;
@@ -108,7 +105,7 @@ public class RowMutator {
         }
         ColumnListMutation<IndexColumnName> row = rowMap.get(key);
         if (row == null) {
-            row = _indexMutator.withRow(cf, key);
+            row = _mutationBatch.withRow(cf, key);
             rowMap.put(key, row);
         }
         return row;
@@ -119,8 +116,7 @@ public class RowMutator {
      */
     public void executeRecordFirst() {
         try {
-            executeMutatorWithRetry(_recordMutator);
-            executeMutatorWithRetry(_indexMutator);
+            executeMutatorWithRetry(_mutationBatch);
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -131,8 +127,7 @@ public class RowMutator {
      */
     public void executeIndexFirst() {
         try {
-            executeMutatorWithRetry(_indexMutator);
-            executeMutatorWithRetry(_recordMutator);
+            executeMutatorWithRetry(_mutationBatch);
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -159,8 +154,7 @@ public class RowMutator {
                     mutator.execute();
                     log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
                     ((AstyanaxConfigurationImpl)keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    _indexMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    _recordMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+                    _mutationBatch.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                 } else {
                     throw ex;
                 }

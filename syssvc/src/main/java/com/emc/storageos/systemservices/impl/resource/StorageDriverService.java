@@ -331,7 +331,7 @@ public class StorageDriverService {
             }
             // update target list in ZK
             coordinator.setTargetInfo(info);
-            log.info("Successfully triggered uninstall operation for driver", driverName);
+            log.info("Successfully triggered uninstall operation for driver {}", driverName);
             return Response.ok().build();
         } catch (Exception e) {
             log.error("Error happened when installing driver file", e);

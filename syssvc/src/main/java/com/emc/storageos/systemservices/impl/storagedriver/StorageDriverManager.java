@@ -227,7 +227,7 @@ public class StorageDriverManager {
             Map<Service, StorageDriversInfo> localInfos = coordinator.getAllNodeInfos(StorageDriversInfo.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet()) {
-                log.info("Storage drivers info for {} of {}: {}", info.getKey().getName(), siteId,
+                log.info("Storage drivers info for {} of {}: {}", info.getKey().getId(), siteId,
                         Arrays.toString(info.getValue().getInstalledDrivers().toArray()));
                 infos.add(info.getValue());
             }

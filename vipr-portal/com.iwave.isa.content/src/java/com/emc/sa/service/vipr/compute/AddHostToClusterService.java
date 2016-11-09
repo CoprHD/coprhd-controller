@@ -243,13 +243,16 @@ public class AddHostToClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
                 project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
 
         logInfo("compute.cluster.exports.installing.os");
         List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
         logInfo("compute.cluster.exports.installed.os",
                 ComputeUtils.nonNull(hostsWithOs).size());
-
+        // Below step to update the shared export group to the cluster (the newly added
+        // hosts will be taken care of this update cluster method and in a synchronized way)
+        ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+        logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         pushToVcenter();
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);

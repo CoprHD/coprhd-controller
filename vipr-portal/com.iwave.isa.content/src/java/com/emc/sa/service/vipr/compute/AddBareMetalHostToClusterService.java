@@ -133,8 +133,12 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
                 project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
         ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+        // Below step to update the shared export group to the cluster (the newly added
+        // hosts will be taken care of this update cluster method and in a synchronized way)
+        ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+        logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

@@ -258,8 +258,11 @@ public class CreateComputeClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
                 project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
-
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
+        // Below step to update the shared export group to the cluster (the newly added
+        // hosts will be taken care of this update cluster method and in a synchronized way)
+        ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+        logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);

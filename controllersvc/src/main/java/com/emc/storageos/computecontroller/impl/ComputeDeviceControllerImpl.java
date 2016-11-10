@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -33,7 +32,6 @@ import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -573,20 +571,17 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
-        if (host == null){
-            return waitFor;
-        }
-        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
-        if (initiators == null || initiators.isEmpty()){
-             log.info(" Skipping service profile and boot volume deletion for host "+ host.getId()+ " since it has no initiators and might be a stale entry");
-             return waitFor;
-        }
-        if (host.getComputeElement() == null) {
+        if (host == null || host.getComputeElement() == null) {
             /**
              * No steps need to be added - as this was not a host that we
              * created in ViPR. If it was computeElement property of the host
              * would have been set.
              */
+            if (host == null){
+                 log.error("No host found with Id: "+ hostId);
+            } else{
+                 log.info("Host: " + host.getLabel() + " has no associated computeElement. So skipping service profile and boot volume deletion steps");
+            }
             return waitFor;
         }
 
@@ -594,6 +589,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
+            if (cs == null){
+                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
+                return waitFor;
+            }
 
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
@@ -604,7 +603,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockVolume", hostId), null, null);
+            } else if (!deactivateBootVolume) {
+                 log.info("flag deactivateBootVolume set to false");
+            } else if (host.getBootVolumeId() == null){
+                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
+        } else {
+            log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
         }
 
         return waitFor;
@@ -969,11 +974,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             if (host.getComputeElement() == null) {
                 // NO-OP
+                log.info("Host " + host.getLabel() + " has no computeElement association");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             } else {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
+                    log.info("Host " + host.getLabel() + " has computeElement " + host.getComputeElement() + " with label " + computeElement.getLabel() + " and Dn "+ computeElement.getDn());
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
                 }

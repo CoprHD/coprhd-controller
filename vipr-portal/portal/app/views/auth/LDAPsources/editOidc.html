@@ -31,7 +31,7 @@
         $("#authnProvider_mode")
             .change( function() {
                 var newMode = this.value;
-                alert("The mode has been changed to " + newMode);
+                alert("The mode has been changed to " + newMode + ", create uri is: " + @{create()});
                 window.location.href = @{create(newMode)};
         })
     });

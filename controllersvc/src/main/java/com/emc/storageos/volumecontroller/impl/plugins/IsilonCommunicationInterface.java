@@ -1415,14 +1415,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<FileShare> discoveredFS = new ArrayList<FileShare>();
             do {
                 
-                /*
-                IsilonApi.IsilonList<FileShare> discoveredIsilonFS = discoverAllFileSystem(storageSystem, resumeToken);
-                
-                resumeToken = discoveredIsilonFS.getToken();
-                discoveredFS = discoveredIsilonFS.getList();
-                
-                */
-                
                 HashMap<String,Object> discoverdFileDetails =discoverAllFileSystem(storageSystem, resumeToken);
                 
                 IsilonApi.IsilonList<FileShare> discoveredIsilonFS = (IsilonApi.IsilonList<FileShare>) discoverdFileDetails.get(UMFS_DETAILS);
@@ -1880,7 +1872,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
-   // private IsilonApi.IsilonList<FileShare> discoverAllFileSystem(StorageSystem storageSystem, String resumeToken)
     private  HashMap<String, Object> discoverAllFileSystem(StorageSystem storageSystem, String resumeToken)
             throws IsilonCollectionException {
 
@@ -1902,8 +1893,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
              
             // get first page of quota data, process and insert to database
 
-            //IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null);
-            
             IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listFileQuotas(null);
             
             HashMap<String, IsilonSmartQuota> tempQuotaMap = new HashMap<String, IsilonSmartQuota>();

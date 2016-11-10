@@ -1062,7 +1062,7 @@ public class IsilonApi {
         }
         return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
     }
-    
+
     /**
      * Create a smartquota
      * 

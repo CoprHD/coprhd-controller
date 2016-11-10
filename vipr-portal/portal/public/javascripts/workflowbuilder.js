@@ -1002,14 +1002,12 @@ angular.module("portalApp").controller('builderController', function($scope) { /
     $(function() {
         initializeJsTree();
         addTab("tab1");
-        $('#wftabs').on('click','.close',function(){
-             var tabID = $(this).parents('a').attr('data-id');
-             $(tabID).remove();
-             delete $scope.workflowTabs[tabID];
-             $(this).parents('li').remove();
-            $(".nav-tabs li").children('a').first().click();
-        });
     });
+
+    $scope.closeTab = function(tabID){
+        delete $scope.workflowTabs[tabID];
+        $(".nav-tabs li").children('a').first().click();
+    };
 
     // This method will create tab view for workflows
     function previewNode(node) {

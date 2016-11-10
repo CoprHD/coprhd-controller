@@ -19,7 +19,7 @@
 
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
             <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home">Home</a></li>
-            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" data-id="{{workflowTab.id}}" role="tab" data-toggle="tab">{{workflowTab.id}}<button class="close" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
+            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.id}}<button class="close" ng-click="closeTab(workflowTab.id)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
         </ul>
 
         <div class="tab-content">

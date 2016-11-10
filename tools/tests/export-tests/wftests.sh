@@ -229,7 +229,7 @@ arrayhelper_create_export_mask_operation() {
 	vmax2|vmax3)
 	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -259,7 +259,7 @@ arrayhelper_volume_mask_operation() {
     vplex)
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -289,7 +289,7 @@ arrayhelper_initiator_mask_operation() {
     vplex)
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -318,7 +318,7 @@ arrayhelper_delete_volume() {
     vplex)
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -340,7 +340,7 @@ arrayhelper_delete_export_mask() {
     vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -369,7 +369,7 @@ arrayhelper_delete_mask() {
     vplex)
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -398,7 +398,7 @@ arrayhelper_verify_export() {
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -963,10 +963,9 @@ vnx_setup() {
 
 unity_setup()
 {
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
 
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     run storagedevice discover_all

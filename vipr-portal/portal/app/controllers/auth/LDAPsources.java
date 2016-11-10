@@ -177,17 +177,17 @@ public class LDAPsources extends ViprResourceController {
         return result;
     }
 
-    public static void create(String authSource) {
-        Logger.info("Get request for creating provider in mode %s", authSource);
-        if (authSource == null) {
-            authSource = AuthSourceType.ad.name();
+    public static void create(String authsource) {
+        Logger.info("Get request for creating provider in mode %s", authsource);
+        if (authsource == null) {
+            authsource = AuthSourceType.ad.name();
         }
 
-        if ( authSource.equals( AuthSourceType.oidc.name() ) ) {
+        if ( authsource.equals( AuthSourceType.oidc.name() ) ) {
             editOidcForm(new OIDCAuthnProviderForm());
         } else {
             // put all "initial create only" defaults here rather than field initializers
-            editLdapForm(new LDAPsourcesForm(authSource));
+            editLdapForm(new LDAPsourcesForm(authsource));
         }
     }
 

@@ -685,6 +685,7 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.getDomains().addAll(parseMultiLineInput(this.domains.get(0)));
+            param.setOidcBaseUrl(this.oidcBaseUrl);
 
             return AuthnProviderUtils.create(param);
         }

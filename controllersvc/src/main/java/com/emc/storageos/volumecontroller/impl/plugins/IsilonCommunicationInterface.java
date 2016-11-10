@@ -151,6 +151,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String LICENSE_ACTIVATED = "Activated";
     private static final String LICENSE_EVALUATION = "Evaluation";
     private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
+    private static final String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
 
     private List<String> _discPathsForUnManaged;
     private int _discPathsLength;
@@ -2600,8 +2601,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         Iterator<URI> iter = result.iterator();
         while (iter.hasNext()) {
-            URI fileSystemtURI = iter.next();
-            FileShare fileShare = _dbClient.queryObject(FileShare.class, fileSystemtURI);
+            URI umfsQDURI = iter.next();
+            UnManagedFileQuotaDirectory fileShare = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, umfsQDURI);
             if (fileShare != null && !fileShare.getInactive()) {
                 return true;
             }
@@ -2654,16 +2655,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
-        List<URI> filesystemUris = new ArrayList<URI>();
+        List<URI> umfsQdUris = new ArrayList<URI>();
         Iterator<URI> iter = result.iterator();
         while (iter.hasNext()) {
             URI unFileSystemtURI = iter.next();
-            filesystemUris.add(unFileSystemtURI);
+            umfsQdUris.add(unFileSystemtURI);
         }
 
-        for (URI fileSystemURI : filesystemUris) {
+        for (URI umfsQdURI : umfsQdUris) {
             quotaDirectoryInfo = _dbClient.queryObject(UnManagedFileQuotaDirectory.class,
-                    fileSystemURI);
+                    umfsQdURI);
             if (quotaDirectoryInfo != null && !quotaDirectoryInfo.getInactive()) {
                 return quotaDirectoryInfo;
             }
@@ -3514,7 +3515,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private String getCustomConfigPath(){
         URIQueryResultList results = new URIQueryResultList();
         
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType("IsilonPathCustomization"), results);
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType(ISILON_PATH_CUSTOMIZATION), results);
         
         Iterator<URI> iter = results.iterator();
         

@@ -4,7 +4,20 @@
 # All Rights Reserved
 # set -x
 
-test_1_host_add_initiator() {
+# Test - Host Add Initiator
+#
+# Happy path test for add initiator to a host that is part of an exclusive and shared export group.
+#
+# 1. Export volume to an exclusive export group
+# 2. Export volume to a shared export group
+# 3. Add initiator port wwn to network
+# 4. Add initiator to host
+# 5. Delete exclusive export group
+# 6. Delete shared export group
+# 7. Delete initiator
+# 8. Remove initiator port wwn from network
+#
+test_host_add_initiator() {
     echot "test 1 - Add Initiator to Host"
     expname=${EXPORT_GROUP_NAME}t1
     item=${RANDOM}
@@ -16,45 +29,76 @@ test_1_host_add_initiator() {
         FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
     fi
 
-    verify_export ${expname}1 ${HOST1} gone
-
     test_pwwn=`randwwn`
     test_nwwn=`randwwn`
 
-    # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
+    exclusive_export=${expname}1_exclusive
+    cluster_export=${expname}1_cluster
+
+    verify_export ${exclusive_export} ${HOST1} gone
+    verify_export ${cluster_export} ${CLUSTER} gone
+
+    # Run the exclusive export group create command
+    runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
+
+    # Run the cluster export group create command
+    runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
 
     # Verify the initiator does not exist in the ExportGroup
-    runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
-    if [ $? -eq 0 ]; then
+    exclusive_init_test=`runcmd export_group show $PROJECT/${exclusive_export} | grep ${test_pwwn}`
+    cluser_init_test=`runcmd export_group show $PROJECT/${cluster_export} | grep ${test_pwwn}`
+
+    add_init="false"
+    if [[ "${exclusive_init_test}" = "0" && "${cluster_init_test}" = "0" ]]; then
         echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
     else
         # Add initiator to network
         runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
 
-        # Add initiator to host cluster
+        # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups
         runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
 
         # Verify the initiator does exists in the ExportGroup
-        runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
-        if [ $? -ne 0 ]; then
+        exclusive_init_test=`runcmd export_group show $PROJECT/${exclusive_export} | grep ${test_pwwn}`
+        cluser_init_test=`runcmd export_group show $PROJECT/${cluster_export} | grep ${test_pwwn}`
+
+        if [[ "${exclusive_init_test}" != "0" && "${cluster_init_test}" != "0" ]]; then
+            add_init="true"
             echo "Verified that initiator "${test_pwwn}" has been added to export"
         else
             echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
         fi
-
-        runcmd initiator delete ${HOST1}/${test_pwwn}
-        runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
     fi
 
+    # Remove the exclusive export
+    runcmd export_group delete $PROJECT/${exclusive_export}
     # Remove the shared export
-    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT/${cluster_export}
 
-    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${exclusive_export} ${HOST1} gone
+    verify_export ${cluster_export} ${HOST1} gone
+
+    if [ ${add_init} = "true"  ]; then
+        runcmd initiator delete ${HOST1}/${test_pwwn}
+        runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
+    fi        
 }
 
-test_2_host_add_initiator() {
-    echot "test 2 - Add Initiator to Host"
+# Test - Host Add Initiator Failure
+#
+# Happy path test for add initiator to a host that is part of an exclusive and shared export group.
+#
+# 1. Export volume to an exclusive export group
+# 2. Export volume to a shared export group
+# 3. Add initiator port wwn to network
+# 4. Add initiator to host
+# 5. Delete exclusive export group
+# 6. Delete shared export group
+# 7. Delete initiator
+# 8. Remove initiator port wwn from network
+#
+test_host_add_initiator_failure() {
+    echot "test 1 - Add Initiator to Host"
     expname=${EXPORT_GROUP_NAME}t1
     item=${RANDOM}
     cfs="ExportGroup ExportMask Initiator"
@@ -65,41 +109,58 @@ test_2_host_add_initiator() {
         FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
     fi
 
-    verify_export ${expname}1 ${HOST1} gone
-
     test_pwwn=`randwwn`
     test_nwwn=`randwwn`
 
-    # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
+    exclusive_export=${expname}1_exclusive
+    cluster_export=${expname}1_cluster
+
+    verify_export ${exclusive_export} ${HOST1} gone
+    verify_export ${cluster_export} ${CLUSTER} gone
+
+    # Run the exclusive export group create command
+    runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
+
+    # Run the cluster export group create command
+    runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
 
     # Verify the initiator does not exist in the ExportGroup
-    runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
-    if [ $? -eq 0 ]; then
+    exclusive_init_test=`runcmd export_group show $PROJECT/${exclusive_export} | grep ${test_pwwn}`
+    cluser_init_test=`runcmd export_group show $PROJECT/${cluster_export} | grep ${test_pwwn}`
+
+    add_init="false"
+    if [[ "${exclusive_init_test}" = "0" && "${cluster_init_test}" = "0" ]]; then
         echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
-        cleanup
-        finish
     else
         # Add initiator to network
         runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
 
-        # Add initiator to host cluster
+        # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups
         runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
 
         # Verify the initiator does exists in the ExportGroup
-        runcmd export_group show $PROJECT/${expname}1 | grep ${test_pwwn} > /dev/null
-        if [ $? -ne 0 ]; then
-            echo "Add initiator to host test passsed. Initiator "${test_pwwn}" has been added to export"
+        exclusive_init_test=`runcmd export_group show $PROJECT/${exclusive_export} | grep ${test_pwwn}`
+        cluser_init_test=`runcmd export_group show $PROJECT/${cluster_export} | grep ${test_pwwn}`
+
+        if [[ "${exclusive_init_test}" != "0" && "${cluster_init_test}" != "0" ]]; then
+            add_init="true"
+            echo "Verified that initiator "${test_pwwn}" has been added to export"
         else
             echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
-            cleanup
-            finish
         fi
+    fi
 
-        # Remove the shared export
-        runcmd export_group delete $PROJECT/${expname}1
+    # Remove the exclusive export
+    runcmd export_group delete $PROJECT/${exclusive_export}
+    # Remove the shared export
+    runcmd export_group delete $PROJECT/${cluster_export}
 
-        verify_export ${expname}1 ${HOST1} gone
+    verify_export ${exclusive_export} ${HOST1} gone
+    verify_export ${cluster_export} ${HOST1} gone
+
+    if [ ${add_init} = "true"  ]; then
+        runcmd initiator delete ${HOST1}/${test_pwwn}
+        runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
     fi
 }
 

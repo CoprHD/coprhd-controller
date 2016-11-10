@@ -282,7 +282,7 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         // trying to modify cluster attribute on virtual machine.
-        if (updateParam.getVirtualMachine() == null && host.getVirtualMachine() == true) {
+        if (updateParam.getVirtualMachine() == null && host.getVirtualMachine()) {
             if (updateParam.getCluster() != null) {
 
                 throw APIException.badRequests.virtualHostCantNotbeInCluster();

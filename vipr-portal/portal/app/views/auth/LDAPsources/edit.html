@@ -49,9 +49,9 @@
         }
         $('#ldapSources_mode').on('change', setFormByType);
         $('#ldapSources_mode').on('change', setDefaults);
-        $('#authnProvider_mode')
+        $('#ldapSources_mode')
             .change( function() {
-                window.location.href = "@{create(authSource)}?authsource="+this.value;
+                window.location.href = "@{create()}?authsource="+this.value;
         });
 
         $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSyncOptions);

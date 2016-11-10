@@ -21,13 +21,15 @@ test_host_add_initiator() {
     echot "test 1 - Add Initiator to Host"
     expname=${EXPORT_GROUP_NAME}t1
     item=${RANDOM}
-    cfs="ExportGroup ExportMask Initiator"
+    cfs="ExportGroup ExportMask Initiator Network"
     mkdir -p results/${item}
 
     smisprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ]; then
         FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
     fi
+
+    snap_db 1 ${cfs}
 
     test_pwwn=`randwwn`
     test_nwwn=`randwwn`
@@ -81,7 +83,12 @@ test_host_add_initiator() {
     if [ ${add_init} = "true"  ]; then
         runcmd initiator delete ${HOST1}/${test_pwwn}
         runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
-    fi        
+    fi
+
+    snap_db 2 ${cfs}  
+
+    # Validate that nothing was left behind
+    validate_db 1 2 ${cfs}          
 }
 
 # Test - Host Add Initiator Failure

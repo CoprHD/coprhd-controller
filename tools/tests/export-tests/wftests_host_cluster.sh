@@ -110,7 +110,7 @@ test_host_add_initiator_failure() {
     item=${RANDOM}
     expname=${EXPORT_GROUP_NAME}t1
     
-    #common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
     export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
     
@@ -132,7 +132,7 @@ test_host_add_initiator_failure() {
     verify_export ${exclusive_export} ${HOST1} gone
     verify_export ${cluster_export} ${CLUSTER} gone
     
-    failure_injections="${export_failure_injections}"
+    failure_injections="${common_failure_injections} ${export_failure_injections}"
     
     for failure in ${failure_injections}
     do

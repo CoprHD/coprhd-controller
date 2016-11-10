@@ -1607,13 +1607,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
 
                     for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
-                        if (targetUserToNFSACLMap.get(sourceACEUser) != null
-                                && !targetUserToNFSACLMap.get(sourceACEUser).getPermissions()
-                                        .equals(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions())) {
 
-                            NfsACE ace = targetUserToNFSACLMap.get(sourceACEUser);
-                            ace.setPermissions(sourceUserToNFSACLMap.get(sourceACEUser).getPermissions());
-                            aclToModify.add(ace);
+                        NfsACE targetACE = targetUserToNFSACLMap.get(sourceACEUser);
+                        NfsACE sourceACE = sourceUserToNFSACLMap.get(sourceACEUser);
+
+                        if (targetACE != null &&
+                                (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+
+                            targetACE.setPermissions(sourceACE.getPermissions());
+                            targetACE.setPermissionType(sourceACE.getPermissionType());
+                            aclToModify.add(targetACE);
                         }
                     }
 

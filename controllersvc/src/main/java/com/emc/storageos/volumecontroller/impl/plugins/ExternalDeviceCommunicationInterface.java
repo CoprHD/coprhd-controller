@@ -526,7 +526,6 @@ public class ExternalDeviceCommunicationInterface extends
 
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
                         pool.setInactive(false);
-                        pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);
                     } else if (pools.size() == 1) {
                         _log.info("Pool {} was previously discovered, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
@@ -545,6 +544,7 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.setOperationalStatus(storagePool.getOperationalStatus());
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
+                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,

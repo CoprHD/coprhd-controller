@@ -457,7 +457,10 @@ public class SystemsMapper {
 		to.setDriverClassName(from.getDriverClassName());
         to.setIsSecretKey(from.getIsSecretKey());
         if (from.getManagedBy() != null) {
-            to.setManagedBy(from.getManagedBy().toString());
+            to.setManagedBy(from.getManagedBy());
+        }
+        if (from.getIsNative() != null) {
+            to.setNative(from.getIsNative());
         }
 
 		return to;
@@ -482,7 +485,10 @@ public class SystemsMapper {
 		to.setDriverClassName(from.getDriverClassName());
         to.setIsSecretKey(from.getIsSecretKey());
         if (from.getManagedBy() != null) {
-            to.setManagedBy(from.getManagedBy().toString());
+            to.setManagedBy(from.getManagedBy());
+        }
+        if (from.getIsNative() != null) {
+            to.setNative(from.getIsNative());
         }
 
 		return to;

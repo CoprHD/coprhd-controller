@@ -47,7 +47,7 @@ public class StorageSystemType extends DataObject {
     private String driverFileName;
     private String driverStatus;
     private Boolean isNative;
-    private URI managedBy;
+    private String managedBy;
 
     // Type of Storage System Types
     public static enum META_TYPE {
@@ -89,11 +89,11 @@ public class StorageSystemType extends DataObject {
     }
 
     @Name("managedBy")
-    public URI getManagedBy() {
+    public String getManagedBy() {
         return managedBy;
     }
 
-    public void setManagedBy(URI managedBy) {
+    public void setManagedBy(String managedBy) {
         this.managedBy = managedBy;
         setChanged("managedBy");
     }

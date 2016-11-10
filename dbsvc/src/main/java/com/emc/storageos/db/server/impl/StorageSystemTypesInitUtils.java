@@ -256,6 +256,7 @@ public class StorageSystemTypesInitUtils {
                 type.setIsSecretKey(SECREAT_KEY_ENABLE_LIST.contains(system));
                 type.setSslPort(SSL_PORT_MAP.get(system));
                 type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
+                type.setIsNative(true);
 
                 if (alreadyExists(type)) {
                     log.info("Meta data for {} already exist", type.getStorageTypeName());

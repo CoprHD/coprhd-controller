@@ -30,8 +30,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String driverClassName;
     private boolean isSecretKey = false;
     private String managedBy;
+    private boolean isNative = true;
     
     public StorageSystemTypeRestRep() {
+    }
+
+    @XmlElement(name = "is_native")
+    public boolean isNative() {
+        return isNative;
+    }
+
+    public void setNative(boolean isNative) {
+        this.isNative = isNative;
     }
 
     @XmlElement(name = "managed_by")

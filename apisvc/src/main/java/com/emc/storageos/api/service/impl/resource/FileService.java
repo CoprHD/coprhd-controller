@@ -3185,7 +3185,10 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem Failback");
 
         boolean replicateConfiguration = param.isReplicateConfiguration();
-
+        if (_dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice()).getSystemType()
+                .equalsIgnoreCase(SystemType.unity.name())) {
+            replicateConfiguration = false; // unity does not need to replicate configuration.
+        }
         if (replicateConfiguration) {
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());

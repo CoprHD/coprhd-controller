@@ -1144,7 +1144,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 existingStoragePorts.add(port);
             }
             port.setPortNetworkId(
-                    system.getLabel() + ":" + client.getNasServer(intf.getNasServer().getId()).getName() + ":" + intf.getIpAddress());
+                    system.getLabel() + ":" + nasServerId + ":" + intf.getIpAddress());
             port.setIpAddress(intf.getIpAddress());
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());

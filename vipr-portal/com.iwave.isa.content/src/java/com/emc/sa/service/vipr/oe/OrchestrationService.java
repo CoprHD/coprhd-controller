@@ -71,19 +71,6 @@ public class OrchestrationService extends ViPRService {
 
     private int code;
 
-    public String getEval() {
-        return eval;
-    }
-
-    public List<String> getEvaluateVal() {
-        return evaluateVal;
-    }
-
-    public void setCode(int code)
-    {
-        this.code = code;
-    }
-
     @Override
     public void precheck() throws Exception {
 

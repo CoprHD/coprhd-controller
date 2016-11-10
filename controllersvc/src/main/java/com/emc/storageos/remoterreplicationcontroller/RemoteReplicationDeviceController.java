@@ -242,7 +242,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             createGroupPairs = true;
         }
         String linkState = (String) parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE);
-        boolean createActive = com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.ReplicationState.ACTIVE.toString().
+        boolean createActive = RemoteReplicationSet.ReplicationState.ACTIVE.toString().
                 equalsIgnoreCase(linkState);
         if (createGroupPairs) {
             rrDevice.createGroupReplicationPairs(rrPairs, taskCompleter);
@@ -326,11 +326,11 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
             // link state
             if (parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE) != null) {
-                rrPair.setReplicationState(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(
+                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.valueOf(
                         (String) parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE)));
             } else {
                 // if not specified in the descriptor, create as SPLIT
-                rrPair.setReplicationState(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.ReplicationState.SPLIT);
+                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.SPLIT);
             }
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));

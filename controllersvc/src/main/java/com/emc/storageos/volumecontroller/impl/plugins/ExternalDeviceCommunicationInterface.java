@@ -1372,7 +1372,7 @@ public class ExternalDeviceCommunicationInterface extends
             // set replication state
             RemoteReplicationSet.ReplicationState replicationState = driverSet.getReplicationState();
             systemSet.setReplicationState(
-                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(replicationState.toString()));
+                    RemoteReplicationSet.ReplicationState.valueOf(replicationState.toString()));
 
 
             // set systems to roles map
@@ -1438,7 +1438,7 @@ public class ExternalDeviceCommunicationInterface extends
             // set replication state
             RemoteReplicationSet.ReplicationState replicationState = driverGroup.getReplicationState();
             systemGroup.setReplicationState(
-                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(replicationState.toString()));
+                    RemoteReplicationSet.ReplicationState.valueOf(replicationState.toString()));
 
             // set replication mode for this group
             if (driverGroup.getReplicationMode() != null) {

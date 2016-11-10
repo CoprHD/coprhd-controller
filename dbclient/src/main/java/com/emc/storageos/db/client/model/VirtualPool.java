@@ -82,6 +82,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private StringMap _protectionVarraySettings;
     // SRDF Protection
     private StringMap _protectionRemoteCopySettings;
+    // Remote replication settings: key: target varray, value: target vpool
+    private StringMap _remoteReplicationProtectionSettings;
     // percentage to specify thinVolumePreAllocateSize during provisioning.
     private Integer _thinVolumePreAllocationPercentage;
     private Long _quotaGB;
@@ -1364,6 +1366,17 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setProtectionRemoteCopySettings(final StringMap _protectionRemoteCopySettings) {
         this._protectionRemoteCopySettings = _protectionRemoteCopySettings;
     }
+
+    @Name("remoteReplicationProtectionSettings")
+    public StringMap getRemoteReplicationProtectionSettings() {
+        return _remoteReplicationProtectionSettings;
+    }
+
+    public void setRemoteReplicationProtectionSettings(final StringMap remoteReplicationProtectionSettings) {
+        this._remoteReplicationProtectionSettings = remoteReplicationProtectionSettings;
+        setChanged("remoteReplicationProtectionSettings");
+    }
+
 
     // this field is not used in 2.0
     @Name("nonDisruptiveExpansion")

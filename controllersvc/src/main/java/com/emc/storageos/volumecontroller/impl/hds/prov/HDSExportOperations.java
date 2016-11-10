@@ -1443,38 +1443,28 @@ public class HDSExportOperations implements ExportMaskOperations {
                 for (URI hostURI : hostToInitiatorMap.keySet()) {
                     Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
                     boolean isNewExportMask = false;
-                    // Create single ExportMask for each hsd having host initiators
-                    List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
+                    // Create single ExportMask for each host
+                    ExportMask exportMask = fetchExportMaskFromDB(activeMasks,
                             hostInitiators, storage);
-                    for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
-                        String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
-                        ExportMask maskForHSD = null;
-                        for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
-                            if(exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
-                                maskForHSD = exportMaskhavingInitiators;
-                                break;
-                            }
-                        }
-                        if (null == maskForHSD) {
-                            isNewExportMask = true;
-                            maskForHSD = new ExportMask();
-                            maskForHSD.setId(URIUtil.createId(ExportMask.class));
-                            maskForHSD.setStorageDevice(storage.getId());
-                            maskForHSD.setCreatedBySystem(false);
-                        }
-                        Set<HostStorageDomain> hsdSet = new HashSet<>();
-                        hsdSet.add(hsd);
-                        updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
-                        if (isNewExportMask) {
-                            dbClient.createObject(maskForHSD);
-                        } else {
-                            ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
-                            dbClient.updateAndReindexObject(maskForHSD);
-                        }
-                        updateMatchingMasksForHost(
-                                matchedHostInitiators.get(hostURI), maskForHSD,
-                                matchingMasks);
+                    if (null == exportMask) {
+                        isNewExportMask = true;
+                        exportMask = new ExportMask();
+                        exportMask.setId(URIUtil.createId(ExportMask.class));
+                        exportMask.setStorageDevice(storage.getId());
+                        exportMask.setCreatedBySystem(false);
                     }
+                    updateHSDInfoInExportMask(exportMask, hostInitiators,
+                            matchedHostHSDsMap.get(hostURI), storage,
+                            matchingMasks);
+                    if (isNewExportMask) {
+                        dbClient.createObject(exportMask);
+                    } else {
+                        ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
+                        dbClient.updateAndReindexObject(exportMask);
+                    }
+                    updateMatchingMasksForHost(
+                            matchedHostInitiators.get(hostURI), exportMask,
+                            matchingMasks);
                 }
             }
 

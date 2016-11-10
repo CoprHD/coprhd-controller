@@ -7,7 +7,7 @@
 #{script 'workflowbuilder.js'/}
 #{script 'jstree.min.js'/}
 
-<div class="row">
+<div ng-controller="builderController" class="row">
     <div id="theSidebar" class="sidebar" style="width: inherit !important;" >
         <div>
             <input class="search-input form-control" placeholder="search..."></input>
@@ -18,32 +18,17 @@
     <div class="builder-column">
 
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
-            <li class="active"><a href="#tab1" role="tab" data-toggle="tab">Home</a></li>
+            <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home">Home</a></li>
+            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" data-id="{{workflowTab.id}}" role="tab" data-toggle="tab">{{workflowTab.id}}<button class="close" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
         </ul>
 
         <div class="tab-content">
-            <div class="tab-pane fade in active" id="tab1">
-                #{workflowDesigner id:'tab1'/}
+            <div class="tab-pane active" id="home">
+                Welcome!
+            </div>
+            <div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.id}}">
+                #{workflowDesigner/}
             </div>
         </div>
     </div>
-
 </div>
-<script type="text/javascript">
-    function toHTML(tabID){
-        return `<div class="buttonbar">
-    <input id="Export" type="button" value="Export" onclick="buildJSON('`+tabID+`');" />
-    <input id="Import" type="button" value="Import" onclick="loadJSON('`+tabID+`');" />
-    <input id="reset" type="button" value="reset" onclick="reset('`+tabID+`');" />
-</div>
-<div id="sb-site-`+tabID+`" class="exampleEditor">
-    <div class="row">
-        <div class="col s12" style="padding: 0 !important;">
-            <div class="parent">
-                <div id="diagramContainer-`+tabID+`" class="jsPlumb-container"></div>
-            </div>
-        </div>
-    </div>
-</div>`
-    }
-</script>

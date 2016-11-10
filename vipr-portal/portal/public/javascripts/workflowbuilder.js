@@ -1018,11 +1018,11 @@ angular.module("portalApp").controller('builderController', function($scope) {
     }
 })
 
-.controller('tabController', function($element,$rootScope, $scope, $timeout, $document, $http, $q, $window, translate,$compile) {
+.controller('tabController', function($element, $scope, $compile) {
 
     var diagramContainer = $element.find('#diagramContainer')
     var sbSite = $element.find('#sb-site')
-    var instance;
+    var jspInstance;
 
     initializeJsPlumb();
     initializePanZoom();
@@ -1056,15 +1056,15 @@ angular.module("portalApp").controller('builderController', function($scope) {
             relative: false
         });
         $panzoom.on('panzoomzoom', function(e, panzoom, scale) {
-            instance.setZoom(scale);
+            jspInstance.setZoom(scale);
             currentScale = scale;
         });
     }
 
     function initializeJsPlumb(){
         //initialize jsPlumb, will need to make instantiable
-        instance = jsPlumb.getInstance();
-        instance.importDefaults({
+        jspInstance = jsPlumb.getInstance();
+        jspInstance.importDefaults({
             DragOptions: {
                 cursor: "none"
             },
@@ -1078,8 +1078,8 @@ angular.module("portalApp").controller('builderController', function($scope) {
 
                 } ]]
         });
-        instance.setContainer(diagramContainer);
-        instance.setZoom(1);
+        jspInstance.setContainer(diagramContainer);
+        jspInstance.setZoom(1);
         sbSite.droppable({drop: dragEndFunc});
         setBindings($element);
     }
@@ -1131,7 +1131,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
         //compensate x,y for zoom
         var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
         var y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-        var scaleMultiplier = 1 / instance.getZoom();;
+        var scaleMultiplier = 1 / jspInstance.getZoom();;
         var positionY = (y - diagramContainer.offset().top) * scaleMultiplier;
         var positionX = (x - diagramContainer.offset().left) * scaleMultiplier;
 
@@ -1148,7 +1148,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
 
     }
     function setBindings() {
-        instance.bind("connection", function(connection) {
+        jspInstance.bind("connection", function(connection) {
             var source=$(connection.source);
             var sourceEndpoint=$(connection.sourceEndpoint.canvas);
             var sourceData = source.data();
@@ -1165,7 +1165,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
             source.data("Next",sourceNext);
         });
 
-        instance.bind("connectionDetached", function(connection) {
+        jspInstance.bind("connectionDetached", function(connection) {
             var source=$(connection.source);
             var sourceEndpoint=$(connection.sourceEndpoint.canvas);
             var sourceData = source.data();
@@ -1207,7 +1207,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
     }
 
     $scope.removeStep = function(step) {
-        instance.remove(diagramContainer.find('#' + step));
+        jspInstance.remove(diagramContainer.find('#' + step));
     }
 
     function loadStep(step) {
@@ -1238,10 +1238,10 @@ angular.module("portalApp").controller('builderController', function($scope) {
         });
 
         //add jsPlumb options
-        instance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-pass"}, passEndpoint);
-        instance.makeTarget(diagramContainer.find(' #'+stepId), targetParams);
-        instance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-fail"}, failEndpoint);
-        instance.draggable(diagramContainer.find(' #'+stepId+'-wrapper'));
+        jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-pass"}, passEndpoint);
+        jspInstance.makeTarget(diagramContainer.find(' #'+stepId), targetParams);
+        jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-fail"}, failEndpoint);
+        jspInstance.draggable(diagramContainer.find(' #'+stepId+'-wrapper'));
 
         //updates angular handlers for the new element
         $compile(theNewItemWrapper.contents())($scope);
@@ -1250,12 +1250,12 @@ angular.module("portalApp").controller('builderController', function($scope) {
     function loadConnections(step) {
         if(step.Next){
             if(step.Next.Default){
-                var passEndpoint = instance.getEndpoint(step.StepId+"-pass");
-                instance.connect({source:passEndpoint, target:step.Next.Default});
+                var passEndpoint = jspInstance.getEndpoint(step.StepId+"-pass");
+                jspInstance.connect({source:passEndpoint, target:step.Next.Default});
             }
             if(step.Next.Failure){
-                var failEndpoint = instance.getEndpoint(step.StepId+"-fail");
-                instance.connect({source:failEndpoint, target:step.Next.Failure});
+                var failEndpoint = jspInstance.getEndpoint(step.StepId+"-fail");
+                jspInstance.connect({source:failEndpoint, target:step.Next.Failure});
             }
         }
     }
@@ -1280,7 +1280,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
     }
 
     $scope.reset = function() {
-        instance.deleteEveryEndpoint();
+        jspInstance.deleteEveryEndpoint();
         diagramContainer.find(' .example-item-card-wrapper').each( function(idx,elem) {
             var $elem = $(elem);
             $elem.remove();

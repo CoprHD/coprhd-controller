@@ -772,12 +772,6 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantRenameDevice(String originalDeviceName, String newName, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantRenameDeviceBackToOriginalName(String originalDeviceName, String newName, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException cantUseBackendExportMaskNotAllPortsInVarray(final String maskName, final String varray,
             final String listOfPorts);
 
@@ -841,4 +835,13 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexSerialNumberChanged(final String oldSerialNumber, final String newSerialNumber);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantFindVolumeForDeatchMirror(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantFindDistributedDeviceForRename(final String deviceId);    
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDistributedDevice(final String name);
 }

@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 /**
  * Class represents Storage System Types.
  */
@@ -45,6 +47,7 @@ public class StorageSystemType extends DataObject {
     private String driverFileName;
     private String driverStatus;
     private Boolean isNative;
+    private URI managedBy;
 
     // Type of Storage System Types
     public static enum META_TYPE {
@@ -83,6 +86,16 @@ public class StorageSystemType extends DataObject {
         };
 
         public abstract boolean isStorageOperationOngoing();
+    }
+
+    @Name("managedBy")
+    public URI getManagedBy() {
+        return managedBy;
+    }
+
+    public void setManagedBy(URI managedBy) {
+        this.managedBy = managedBy;
+        setChanged("managedBy");
     }
 
     @Name("driverName")

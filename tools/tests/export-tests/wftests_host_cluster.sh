@@ -124,7 +124,13 @@ test_vcenter_event() {
     add_host_to_cluster "host21" "cluster-1"
     discover_vcenter "vcenter1"
 
-    approve_pending_event
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+      echo "FAILED. Expected an event"
+    else
+      approve_pending_event $EVENT_ID 
+    fi
 
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
@@ -167,16 +173,11 @@ discover_vcenter() {
     vcenter discover $vcenter
 }
 
+get_pending_event() {
+    echo $(events list emcworld | grep pending | awk '{print $1}')
+} 
+
 approve_pending_event() {
-    EVENT_ID=$(events list emcworld | grep pending | awk '{print $1}')
-
-    if [ -z "$EVENT_ID" ]
-    then
-      echo "No event found. Test failure."
-      exit;
-    fi
-
-    echo "Approving event $EVENT_ID"
-    events approve $EVENT_ID
-    sleep 30
+    echo "Approving event $1"
+    events approve $1
 }

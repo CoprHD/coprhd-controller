@@ -2166,6 +2166,15 @@ cleanup_previous_run_artifacts() {
 	return;
     fi
 
+    events list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `events list emcworld | grep ActionableEvent | awk '{print $1}'`
+        do
+            echo "Deleting old event: ${id}"
+            runcmd events delete ${id} > /dev/null
+        done
+    fi
+
     export_group list $PROJECT | grep YES > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
@@ -2182,15 +2191,6 @@ cleanup_previous_run_artifacts() {
 	    echo "Deleting old volume: ${id}"
 	    runcmd volume delete ${id} --wait > /dev/null
 	done
-    fi
-
-    events list emcworld &> /dev/null
-    if [ $? -eq 0 ]; then
-        for id in `events list emcworld | grep ActionableEvent | awk '{print $1}'`
-        do
-            echo "Deleting old event: ${id}"
-            runcmd events delete ${id} > /dev/null
-        done
     fi
 }
 

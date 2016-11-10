@@ -8410,8 +8410,22 @@ class Bourne:
     def event_delete(self, uri):
         return self.api('POST', URI_EVENT_DELETE.format(uri))
 
+    def event_show_task(self, event, task):
+        print task
+        return self.api('GET', URI_TASK_GET.format(task))
+
     def event_approve(self, uri):
-        return self.api('POST', URI_EVENT_APPROVE.format(uri))
+        o = self.api('POST', URI_EVENT_APPROVE.format(uri))
+        self.assert_is_dict(o)
+        try:
+            tr_list = o['task']
+            for tr in tr_list:
+              sync = self.api_sync_2(tr['resource']['id'], tr['id'], self.event_show_task)
+              s = sync['state']
+              m = sync['message']
+        except:
+            print o
+        return (o, s, m)
 
     def event_decline(self, uri):
         return self.api('POST', URI_EVENT_DECLINE.format(uri))

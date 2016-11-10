@@ -250,15 +250,16 @@ approve_pending_event() {
 }
 
 
-####
-# Remove initiator
-# 1. Add manual host using UI
-# 2. Add 4 initiators to the host using the UI
+# Test Host Remove Initiator
+#
+# 1. Add manual host
+# 2. Add 4 initiators to the host
 # 3. Add these 4 initiators to the network assigned to your virtual array
 # 4. Create and export a volume to this host
-# 5. Verify that 2 initiators are in the export group for this host
-# 6. Remove 1 initiator from the host using the UI
-# 7. Monitor the export group update task and verify the export group contains only 1 initiator when complete
+# 5. Verify that all 4 initiators are in the export group for this host
+# 6. Remove 2 initiators from the host
+# 7. Monitor the export group update task and verify the export group contains only 2 initiators when complete
+# 8. Clean up
 test_host_remove_initiator() {
     echot "Test host_remove_initiator Begins"
 

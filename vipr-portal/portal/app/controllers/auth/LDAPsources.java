@@ -678,7 +678,15 @@ public class LDAPsources extends ViprResourceController {
         }
 
         private AuthnProviderRestRep create() {
-            return null;
+            AuthnCreateParam param = new AuthnCreateParam();
+
+            param.setLabel(this.name);
+            param.setMode(this.mode);
+            param.setDescription(StringUtils.trimToNull(this.description));
+            param.setDisable(this.disable);
+            param.getDomains().addAll(parseMultiLineInput(this.domains.get(0)));
+
+            return AuthnProviderUtils.create(param);
         }
 
         private AuthnProviderRestRep update() {

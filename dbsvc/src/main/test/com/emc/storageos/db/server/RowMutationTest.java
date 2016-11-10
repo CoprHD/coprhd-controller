@@ -4,7 +4,7 @@ import java.net.URI;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.testng.Assert;
+import org.junit.Assert;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;

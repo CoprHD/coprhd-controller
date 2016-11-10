@@ -38,6 +38,18 @@
           lockable: true
         },
         
+        domain:{
+          type:"text",
+          required: false,
+          lockable: true
+        },
+        
+        rootUserMapping:{
+          type:"text",
+          initialValue:"root",
+          lockable: true
+        },
+        
         permission:{
           type:"assetType.vipr.fileNFSPermission",
           initialValue:"ro",

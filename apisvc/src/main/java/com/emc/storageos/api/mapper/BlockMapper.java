@@ -94,27 +94,10 @@ public class BlockMapper {
     }
 
     public static VolumeRestRep map(Volume from) {
-        return map(null, from, null);
+        return map(null, from);
     }
 
     public static VolumeRestRep map(DbClient dbClient, Volume from) {
-        return map(dbClient, from, null);
-    }
-    
-    private static StorageSystem getStorageSystemFromCache(URI uri, DbClient dbClient, Map<URI, StorageSystem> storageSystemCache) {
-        if (storageSystemCache != null) {
-            if (storageSystemCache.containsKey(uri)){
-                return storageSystemCache.get(uri);
-            } else {
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, uri);
-                storageSystemCache.put(uri, system);
-                return system;
-            }
-        }
-        return dbClient.queryObject(StorageSystem.class, uri);
-    }
-
-    public static VolumeRestRep map(DbClient dbClient, Volume from, Map<URI, StorageSystem> storageSystemCache) {
         if (from == null) {
             return null;
         }
@@ -166,23 +149,6 @@ public class BlockMapper {
             if ((sourceSideBackingVolume != null) 
                     && DiscoveredDataObject.Type.vmax3.name().equalsIgnoreCase(sourceSideBackingVolume.getSystemType())) {
                 to.setSupportsSnapshotSessions(Boolean.TRUE);
-            }
-            // Set xio3xvolume in virtual volume only if its backend volume belongs to xtremio & version is 3.x
-            for (String backendVolumeuri : from.getAssociatedVolumes()) {
-                Volume backendVol = null;
-                if (sourceSideBackingVolume != null && backendVolumeuri.equals(sourceSideBackingVolume.getId().toString())) {
-                    backendVol = sourceSideBackingVolume;
-                } else {
-                    backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
-                }
-                if (null != backendVol) {
-                    StorageSystem system = getStorageSystemFromCache(backendVol.getStorageController(), dbClient, storageSystemCache);
-                    if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
-                            && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
-                        to.setHasXIO3XVolumes(Boolean.TRUE);
-                        break;
-                    }
-                }
             }
             // Get the SRDF underlying volume if present. That will be used to fill on the
             // SrdfRestRep below.

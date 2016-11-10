@@ -30,7 +30,6 @@
     $(document).ready( function() {
         $("#authnProvider_mode")
             .change( function() {
-                var optionSelected = $("option:selected", this);
                 var newMode = this.value;
                 alert("The mode has been changed to " + newMode);
         })

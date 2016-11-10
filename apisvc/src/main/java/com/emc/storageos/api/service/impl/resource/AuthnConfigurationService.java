@@ -1172,7 +1172,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 }
             }
         } else if ( ProvidersType.oidc.toString().equalsIgnoreCase( param.getMode() ) ) {
-            ArgValidator.checkFieldNotEmpty(oidcAddress, "oidc_address");
+            ArgValidator.checkFieldNotEmpty(oidcAddress, "oidc_base_url");
             ensureSingleOidcProvider();
         } else if ( AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase( param.getMode() ) ) {
             String managerDn = param.getManagerDn();

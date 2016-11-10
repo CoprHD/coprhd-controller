@@ -30,9 +30,7 @@
     $(document).ready( function() {
         $("#authnProvider_mode")
             .change( function() {
-                var authSource = this.value;
-                alert("The mode has been changed to " + authSource );
-                window.location.href = "@{create(authSource)}?authsource="+authSource;
+                window.location.href = "@{create(authSource)}?authsource="+this.value;
         });
     });
 </script>

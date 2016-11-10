@@ -1289,8 +1289,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         setDiscPathsForUnManaged(pathList);
         
-        _discCustomPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
-                dataSource);
+        _discCustomPath = getCustomConfigPath();
     }
 
     /**
@@ -1692,9 +1691,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 for(UnManagedFileQuotaDirectory umfsQd : discoveredUmfsQd ){
                     if(!checkStorageQuotaDirectoryExistsInDB(umfsQd.getNativeGuid())){
                         
-                        String fsUnManagedQdNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingQuotaDirectory(
-                                storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber(),umfsQd.getNativeId());
+                    	
+                    	String fsUnManagedQdNativeGuid = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(), storageSystem.getSerialNumber(), umfsQd.getNativeId(), "");
+                        
                         String qdPathName = umfsQd.getPath();
                         UnManagedFileQuotaDirectory unManagedFileQd = checkUnManagedFileSystemQuotaDirectoryExistsInDB(fsUnManagedQdNativeGuid);
                         
@@ -2052,22 +2051,28 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         int softLimit=0;
         int softGrace=0;
         int notificationLimit=0;
+        String nativeGuid=null;
         
         
         
         UnManagedFileQuotaDirectory umfsQd = new UnManagedFileQuotaDirectory();
+        StringMap extensionsMap = new StringMap();
         
         
         String[] tempDirNames = qdNativeId.split("/");
         umfsQd.setParentFSNativeGuid(fsNativeGuid);
         
         umfsQd.setLabel(tempDirNames[tempDirNames.length -1]);
-
-        String nativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                storageSystem.getSystemType(),
-                storageSystem.getSerialNumber(), qdNativeId);
+     
+        try{
+         nativeGuid=       
+        NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(), storageSystem.getSerialNumber(), qdNativeId, "");
+        }catch(IOException e){
+        	_log.error("Exception while generating NativeGuid for UnManagedQuotaDirectory", e);
+        }
 
         umfsQd.setNativeGuid(nativeGuid);
+        umfsQd.setNativeId(qdNativeId);
 
         long capacity = 0;
         if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
@@ -2084,10 +2089,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if(null!=quota.getThresholds().getAdvisory() && capacity != 0){
         notificationLimit = new Long(quota.getThresholds().getAdvisory() * 100 / capacity).intValue();
         }
+        
+        if(null!= quota.getId()){
+        	extensionsMap.put(QUOTA, quota.getId());
+        }
 
         umfsQd.setSoftLimit(softLimit);
         umfsQd.setSoftGrace(softGrace);
         umfsQd.setNotificationLimit(notificationLimit);
+        umfsQd.setExtensions(extensionsMap);
         
         return umfsQd;
     }
@@ -2576,10 +2586,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     
     /**
-     * check Storage fileSystem exists in DB
+     * check QuotaDirectory for given nativeGuid exists in DB
      * 
      * @param nativeGuid
-     * @return
+     * @return boolean
      * @throws java.io.IOException
      */
     protected boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
@@ -2632,10 +2642,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
     
     /**
-     * check Pre Existing Storage filesystem exists in DB
+     * check Pre Existing UnManagedFileSystemQuotaDirectory in DB
      * 
      * @param nativeGuid
-     * @return unManageFileSystem
+     * @return UnManagedFileQuotaDirectory
      * @throws IOException
      */
     protected UnManagedFileQuotaDirectory checkUnManagedFileSystemQuotaDirectoryExistsInDB(

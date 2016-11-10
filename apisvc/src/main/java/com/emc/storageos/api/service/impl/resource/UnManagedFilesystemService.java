@@ -702,6 +702,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
             quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
+            quotaDirectory.setExtensions(unManagedFileQuotaDirectory.getExtensions());
             quotaDirectories.add(quotaDirectory);
         }
 

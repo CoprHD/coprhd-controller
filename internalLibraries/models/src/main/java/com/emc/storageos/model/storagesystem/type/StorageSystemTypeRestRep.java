@@ -29,8 +29,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String sslPort;
     private String driverClassName;
     private boolean isSecretKey = false;
+    private String managedBy;
     
     public StorageSystemTypeRestRep() {
+    }
+
+    @XmlElement(name = "managed_by")
+    public String getManagedBy() {
+        return managedBy;
+    }
+
+    public void setManagedBy(String managedBy) {
+        this.managedBy = managedBy;
     }
 
     /**

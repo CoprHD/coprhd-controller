@@ -14,9 +14,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class PairedInitiatorCreateParam
 {
 
-    BaseInitiatorParam firstInitiator;
+    private BaseInitiatorParam firstInitiator;
 
-    BaseInitiatorParam secondInitiator;
+    private BaseInitiatorParam secondInitiator;
 
     @XmlElement(name = "first_initiator", required = true)
     public BaseInitiatorParam getFirstInitiator() {

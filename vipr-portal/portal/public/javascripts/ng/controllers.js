@@ -2272,6 +2272,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $(colWiz).on('shown.bs.popover', function(){
         $(colWiz).popover('toggle');
     });
+
     $(colWiz).popover({
         delay : {
             show : 0,
@@ -2282,6 +2283,23 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         trigger : 'manual',
         content : translate("gettingStarted.popover"),
         selector : 'colWiz'
+
+    });
+
+    $('.menuTree .active').on('shown.bs.popover', function(){
+        $('.menuTree .active').popover('toggle');
+    });
+
+    $('.menuTree .active').popover({
+        delay : {
+            show : 0,
+            hide : 5000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.navmenu.popover"),
+        selector : '.menuTree .active'
 
     });
 
@@ -2349,6 +2367,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         if(newValue) {
             $('.rootNav , .navMenu a').on('click', function(event) {
                 $('.wizard-side-next').popover('show');
+                $('.menuTree .active').popover('show');
                 return false;
             });
             guideMonitor = window.setInterval(checkCookieChanged, 500);

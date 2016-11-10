@@ -71,6 +71,22 @@ public class StringSetUtil {
     }
 
     /**
+     * Returns a set of strings from a list of URIs
+     *
+     * @param uris the Set of URIs
+     * @return a set of strings
+     */
+    public static StringSet uriSetToStringSet(Set<URI> uris) {
+        StringSet set = new StringSet();
+        if (uris != null && !uris.isEmpty()) {
+            for (URI uri : uris) {
+                set.add(uri.toString());
+            }
+        }
+        return set;
+    }
+
+    /**
      * Returns a StringSet from the keySet of a StringMap
      *
      * @param map StringMap

@@ -229,10 +229,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return volume.getConsistencyGroup() != null;
     }
 
-    protected static boolean hasXIO3XVolumes(VolumeRestRep volume) {
-        return volume.getHasXIO3XVolumes() != null && volume.getHasXIO3XVolumes() == true;
-    }
-
     @Asset("blockVolumeOrConsistencyType")
     @AssetDependencies("project")
     public List<AssetOption> getblockVolumeOrConsistencyType(AssetOptionsContext ctx, URI project) {
@@ -1112,7 +1108,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     public boolean accept(BlockSnapshotRestRep snapshot) {
                         VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
                         return ((isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot)) ||
-                                !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                                !isInConsistencyGroup(snapshot));
                     }
                 });
 

@@ -453,6 +453,7 @@ public class ComputeUtils {
                 hostItr.set(null);
             }
         }
+        ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.completed", successfulHostURIs);
         return hosts;
     }
 
@@ -689,6 +690,29 @@ public class ComputeUtils {
                             host.getHostName()) + "  ");
                 }
             }
+        }
+
+        // Check if all the shared exports of the cluster were updated properly with the hosts.
+        List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(cluster.getId(), null, null);
+        boolean isExportGroupFailed = false;
+        if (null != exportGroups) {
+            for (ExportGroupRestRep exportGroup : exportGroups) {
+                List<String> exportedHostNames = Lists.newArrayList();
+                List<HostRestRep> exportedHosts = exportGroup.getHosts();
+                if (null != exportedHosts) {
+                    for (HostRestRep hostRestRep : exportedHosts) {
+                        exportedHostNames.add(hostRestRep.getHostName());
+                    }
+                    if (!hostNames.contains(exportedHostNames)) {
+                        isExportGroupFailed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if(isExportGroupFailed) {
+            orderErrors.append(ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed",
+                    cluster.getLabel()));
         }
         return orderErrors.toString();
     }

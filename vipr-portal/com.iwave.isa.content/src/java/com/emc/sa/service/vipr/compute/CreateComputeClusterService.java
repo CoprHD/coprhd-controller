@@ -38,6 +38,7 @@ import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @Service("CreateComputeCluster")
@@ -94,12 +95,15 @@ public class CreateComputeClusterService extends ViPRService {
     Cluster cluster = null;
     List<String> hostNames = null;
     List<String> hostIps = null;
+    List<String> copyOfHostNames = null;
 
     @Override
     public void precheck() throws Exception {
 
         StringBuffer preCheckErrors = new StringBuffer();
         hostNames = ComputeUtils.getHostNamesFromFqdnToIps(fqdnToIps);
+        //Creating a copy of hostNames so that we can check if these hosts were properly exported to the shared exportGroups.
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
         hostIps = ComputeUtils.getIpsFromFqdnToIps(fqdnToIps);
 
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
@@ -277,7 +281,7 @@ public class CreateComputeClusterService extends ViPRService {
             pushToVcenter();
         }
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(

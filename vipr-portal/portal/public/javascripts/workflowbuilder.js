@@ -886,11 +886,11 @@
       }
     ]
 
-angular.module("portalApp").controller('builderController', function($scope) {
+angular.module("portalApp").controller('builderController', function($scope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.workflowTabs = {};
 
-    addTab = function(tabid) {
+    function addTab(tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
       $scope.$apply();
     }
@@ -1018,7 +1018,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
     }
 })
 
-.controller('tabController', function($element, $scope, $compile) {
+.controller('tabController', function($element, $scope, $compile) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer')
     var sbSite = $element.find('#sb-site')
@@ -1037,7 +1037,7 @@ angular.module("portalApp").controller('builderController', function($scope) {
             minScale: 0.5,
             maxScale: 2,
             increment: 0.1,
-            duration: 100,
+            duration: 100
             //TODO add contain: 'invert'
         });
         $panzoom.parent().on('mousewheel.focal', function(e) {
@@ -1057,7 +1057,6 @@ angular.module("portalApp").controller('builderController', function($scope) {
         });
         $panzoom.on('panzoomzoom', function(e, panzoom, scale) {
             jspInstance.setZoom(scale);
-            currentScale = scale;
         });
     }
 
@@ -1202,7 +1201,6 @@ angular.module("portalApp").controller('builderController', function($scope) {
         //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
         dummyWorkflowData.Steps = blocks;
 
-        //copyData = JSON.stringify(dummyWorkflowData);
         dummyWF = jQuery.extend(true, {}, dummyWorkflowData);
     }
 

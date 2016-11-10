@@ -131,6 +131,7 @@ public interface ServiceParams {
     public String SECURITY = "security";
     public String USER = "user";
     public String SUB_DIRECTORY = "subDirectory";
+    public String ROOT_USER_MAPPING = "rootUserMapping";
 
     public String SUBDIRECTORY = "subDirectory";
     public String ALLDDIRECTORY = "allDirectory";

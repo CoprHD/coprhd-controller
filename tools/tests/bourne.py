@@ -8220,9 +8220,21 @@ class Bourne:
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))
 
+    def vcenter_show_task(self, vcenter, task):
+        uri_vcenter_task = URI_VCENTER + '/tasks/{1}'
+        return self.api('GET', uri_vcenter_task.format(vcenter, task))
+
     def vcenter_discover(self, name):
         uri = self.vcenter_query(name)
-        return self.api('POST', URI_VCENTER_DISCOVER.format(uri))
+        o = self.api('POST', URI_VCENTER_DISCOVER.format(uri))
+        self.assert_is_dict(o)
+        try:
+            sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.vcenter_show_task)
+            s = sync['state']
+            m = sync['message']
+        except:
+            print o
+        return (o, s, m)
 
     def vcenter_delete(self, name):
         uri = self.vcenter_query(name)

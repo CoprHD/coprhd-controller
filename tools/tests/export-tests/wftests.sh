@@ -899,6 +899,7 @@ reset_system_props() {
     set_artificial_failure "none"
     set_validation_check true
     set_validation_refresh true
+    set_controller_cs_discovery_refresh_interval 60
 }
 
 # Clean zones from previous tests, verify no zones are on the switch
@@ -1576,6 +1577,10 @@ set_suspend_on_class_method() {
 
 set_artificial_failure() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+}
+
+set_controller_cs_discovery_refresh_interval() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
 }
 
 # Verify no masks

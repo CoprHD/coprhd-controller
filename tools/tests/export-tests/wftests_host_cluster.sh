@@ -109,6 +109,7 @@ test_vcenter_event() {
     item=${RANDOM}
     cfs="ExportGroup ExportMask"
     mkdir -p results/${item}
+    set_controller_cs_discovery_refresh_interval 1
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -164,7 +165,6 @@ discover_vcenter() {
     vcenter=$1
     echo "Discovering vCenter $vcenter"
     vcenter discover $vcenter
-    sleep 60
 }
 
 approve_pending_event() {

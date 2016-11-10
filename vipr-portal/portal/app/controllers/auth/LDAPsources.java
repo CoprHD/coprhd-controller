@@ -178,6 +178,7 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static void create(String authSource) {
+        Logger.info("Get request for creating provider in mode %s", authSource);
         if (authSource == null) {
             authSource = AuthSourceType.ad.name();
         }
@@ -186,7 +187,7 @@ public class LDAPsources extends ViprResourceController {
             editOidcForm(new OIDCAuthnProviderForm());
         } else {
             // put all "initial create only" defaults here rather than field initializers
-            editLdapForm(new LDAPsourcesForm());
+            editLdapForm(new LDAPsourcesForm(authSource));
         }
     }
 
@@ -365,6 +366,11 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
             renderArgs.put("readOnlySynchronizationInterval", this.synchronizationInterval);
+        }
+
+        public LDAPsourcesForm(String authSource) {
+            this();
+            this.mode = authSource;
         }
 
         public void readFrom(AuthnProviderRestRep ldapSources) {

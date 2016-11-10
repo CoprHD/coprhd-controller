@@ -745,9 +745,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         } catch (Exception e) {
             _log.error("Problem in doDeleteVolume: ", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteVolume",
-                    e.getMessage());
-            taskCompleter.error(_dbClient, error);
+            // Check to see if an Asynchronous job will now handle the task status.
+            if (!taskCompleter.isAsynchronous()) {
+                ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteVolume",
+                        e.getMessage());
+                taskCompleter.error(_dbClient, error);
+            }
         }
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));

@@ -32,6 +32,7 @@
             .change( function() {
                 var newMode = this.value;
                 alert("The mode has been changed to " + newMode);
+                window.location.href = @{create(newMode)};
         })
     });
 </script>

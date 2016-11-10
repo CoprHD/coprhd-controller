@@ -51,7 +51,7 @@ public class RowMutator {
         _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
 
         _mutationBatch = keyspace.prepareMutationBatch();
-        _mutationBatch.setTimestamp(_timeStamp);
+        _mutationBatch.setTimestamp(_timeStamp).withAtomicBatch(true);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();

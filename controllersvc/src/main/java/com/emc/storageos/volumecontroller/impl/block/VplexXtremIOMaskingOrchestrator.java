@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -42,6 +43,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.placement.PlacementUtils;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -108,7 +110,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
-            URI varrayURI, int nInitiatorGroups, Map<String, Integer> switchToPortNumber) {
+            URI varrayURI, int nInitiatorGroups, Map<URI, Map<String, Integer>> switchToPortNumber,
+            Map<URI, PortAllocationContext> contextMap) {
         /**
          * Number of Port Group for XtremIO is always one.
          * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
@@ -407,14 +410,17 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
-            List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI, Map<String, Integer> switchToPortNumber) {
+            List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI, 
+            Map<String, Integer> switchToPortNumber, PortAllocationContext context) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator, candidatePorts, portsRequested, net, varrayURI,
-                simulation, _blockScheduler, _dbClient, switchToPortNumber);
+                simulation, _blockScheduler, _dbClient, switchToPortNumber, context);
     }
 
     @Override
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
-            Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+            Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, 
+            StoragePortsAssigner assigner, Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap) {
 
         StringSetMap zoningMap = new StringSetMap();
         // Set up a map to track port usage so that we can use all ports more or less equally.
@@ -431,6 +437,12 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         }
         _log.info(String.format("VPLEX Directors: %s, X-bricks: %s, Number of paths per VPLEX Director: %s", vplexDirectorCount,
                 xtremIOXbricksCount, pathsPerDirector));
+
+        boolean isSwitchAffinity = false;
+        if (initiatorSwitchMap != null && !initiatorSwitchMap.isEmpty() &&
+                switchStoragePortsMap != null && !switchStoragePortsMap.isEmpty()) {
+            isSwitchAffinity = true;
+        }
 
         int directorNumber = 1;
         for (String director : initiatorGroup.keySet()) {
@@ -455,11 +467,34 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                                 net.getLabel(), numberOfInitiatorsPerNetwork, director));
                         break;
                     }
-
+                    
+                    List<StoragePort> assignablePorts = null;
+                    if (isSwitchAffinity) {
+                        // find the ports with the same switch as the initiator
+                        String switchName = initiatorSwitchMap.get(initiator.getId());
+                        if (!switchName.equals(NullColumnValueGetter.getNullStr())) {
+                            Map<String, List<StoragePort>>switchMap = switchStoragePortsMap.get(networkURI);
+                            if (switchMap != null) {
+                                List<StoragePort> switchPorts = switchMap.get(switchName);
+                                if (switchPorts != null && !switchPorts.isEmpty()) {
+                                    _log.info(String.format("Found the same switch ports, switch is %s", switchName));
+                                    assignablePorts = switchPorts;
+                                }
+                            }
+                        }
+                    }
+                    
                     List<StoragePort> portList = getStoragePortSetForDirector(portGroup.get(networkURI), directorNumber);
+                    if (assignablePorts != null) {
+                        assignablePorts.retainAll(portList);
+                    }
+                    
+                    if (assignablePorts == null || assignablePorts.isEmpty()) {
+                        assignablePorts = portList;
+                    }
                     // find a port for the initiator
                     StoragePort storagePort = VPlexBackEndOrchestratorUtil.assignPortToInitiator(assigner,
-                            portList, net, initiator, portUsage, null);
+                            assignablePorts, net, initiator, portUsage, null);
                     if (storagePort != null) {
                         _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
                                 initiator.getInitiatorPort(), storagePort.getPortNetworkId(),

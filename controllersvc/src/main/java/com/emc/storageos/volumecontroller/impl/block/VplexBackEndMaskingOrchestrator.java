@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.workflow.Workflow;
 
@@ -95,11 +96,13 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param nInitiatorGroups
      *            -- the number of Initiator Groups created
      * @param switchToPortNumber
-     *            -- the number of port number to be allocated per switch
+     *            -- the number of port number to be allocated per switch per network
+     * @param contextMap - PortAllocationContext map per network, for unit tests only
      * @return Set of PortGroups.
      */
     Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, Map<String, Integer> switchToPortNumber);
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
+            Map<URI, Map<String, Integer>> switchToPortNumber, Map<URI, PortAllocationContext> contextMap);
 
     /**
      * Configure the zoning for an ExportMask given its PortGroup and InitiatorGroup.
@@ -112,11 +115,17 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- map of Network URI to NetworkLite structures.
      * @param assigner
      *            an instance of StoragePortsAssigner
+     * @param initiatorSwitchMap
+     *            -- Map of initiator URI to switch name
+     * @param switchstoragePortsMap
+     *            -- Map of switch name to list of storage ports by network URI
      * @return StringSetMap -- the zoningMap entry that should be used for the ExportMask.
      */
     StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner);
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
+            Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap);
 
     /**
      * Return a Workflow method for createOrAddVolumesToExportMask.

@@ -2,6 +2,7 @@ package com.emc.storageos.volumecontroller.placement;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -132,5 +133,58 @@ public class PlacementUtils {
             log.warn("The portWWN is not set");
         }
         return null;
+    }
+    
+    /**
+     * Get switch name for initiators and storage ports.
+     * 
+     * @param initiators initiators
+     * @param storagePorts storage ports
+     * @param dbClient
+     * @param system storage system
+     * @param initiatorSwitchMap OUTPUT map of initiator to switch name
+     * @param switchStoragePortsMap OUPTUT map of switch name to list of storage ports
+     */
+    public static void getSwitchfoForInititaorsStoragePorts(List<Initiator> initiators, 
+            Map<URI, List<StoragePort>> storagePorts, DbClient dbClient, StorageSystem system, 
+            Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNetMap) {
+        boolean isSwitchAffinityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
+                DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        if (!isSwitchAffinityEnabled) {
+            return;
+        }
+        initiatorSwitchMap = new HashMap<URI, String>();
+        switchStoragePortsByNetMap = new HashMap<URI, Map<String, List<StoragePort>>>();
+        for (Initiator initiator : initiators) {
+            String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), dbClient);
+            if (switchName == null || switchName.isEmpty()) {
+                switchName = NullColumnValueGetter.getNullStr();
+            }
+            initiatorSwitchMap.put(initiator.getId(), switchName);
+        }
+
+        for (Map.Entry<URI, List<StoragePort>> entry : storagePorts.entrySet()) {
+            URI net = entry.getKey();
+            Collection <StoragePort> ports = entry.getValue();
+            Map<String, List<StoragePort>> switchPortMap = switchStoragePortsByNetMap.get(net);
+            if (switchPortMap == null) {
+                switchPortMap = new HashMap<String, List<StoragePort>>();
+                switchStoragePortsByNetMap.put(net, switchPortMap);
+            }
+            for (StoragePort port : ports) {
+                String switchName = PlacementUtils.getSwitchName(port.getPortNetworkId(), dbClient);
+                if (switchName == null || switchName.isEmpty()) {
+                    switchName = NullColumnValueGetter.getNullStr();
+                }
+                List<StoragePort> portsInMap = switchPortMap.get(switchName);
+                if (portsInMap == null) {
+                    portsInMap = new ArrayList<>();
+                    switchPortMap.put(switchName, portsInMap);
+                }
+                portsInMap.add(port);
+            }
+        }
+        
     }
 }

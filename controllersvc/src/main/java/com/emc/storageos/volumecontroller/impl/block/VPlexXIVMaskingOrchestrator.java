@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -121,7 +122,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups,
-            Map<String, Integer> switchToPortNumber) {
+            Map<URI, Map<String, Integer>> switchToPortNumber, 
+            Map<URI, PortAllocationContext> contextMap) {
 
         _log.debug("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
@@ -141,12 +143,21 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
 
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
+                Map<String, Integer> switchCountMap = null;
+                if (switchToPortNumber != null) {
+                    switchCountMap = switchToPortNumber.get(netURI);
+                }
+                PortAllocationContext context = null;
+                if (contextMap != null) {
+                    context = contextMap.get(netURI);
+                }
                 List<StoragePort> allocatedPorts = allocatePorts(allocator,
                         allocatablePorts.get(netURI),
                         portsAllocatedPerNetwork.get(netURI),
                         net,
                         varrayURI,
-                        switchToPortNumber);
+                        switchCountMap,
+                        context);
                 if (portGroup.get(netURI) == null) {
                     portGroup.put(netURI, new ArrayList<List<StoragePort>>());
                 }
@@ -177,9 +188,12 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap,
-            StoragePortsAssigner assigner) {
+            StoragePortsAssigner assigner,
+            Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap) {
 
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner,
+                initiatorSwitchMap, switchStoragePortsMap);
     }
 
     /*
@@ -410,7 +424,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             int portsRequested,
             NetworkLite nwLite,
             URI varrayURI,
-            Map<String, Integer> switchToPortNumber) {
+            Map<String, Integer> switchToPortNumber,
+            PortAllocationContext context) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator,
                 candidatePorts,
                 portsRequested,
@@ -419,7 +434,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 simulation,
                 _blockScheduler,
                 _dbClient,
-                switchToPortNumber);
+                switchToPortNumber,
+                context);
     }
 
 }

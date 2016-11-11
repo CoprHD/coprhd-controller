@@ -1727,6 +1727,8 @@ authnProvider.description=Description
 authnProvider.disable=Disabled
 authnProvider.oidcBaseUrl=OIDC Provider Base Url
 authnProvider.domains=Domains
+authnProvider.domains.description=List all Domains, one per line
+authnProvider.oidcBaseUrl.description=Base URL of OIDC provider
 
 #Data Protection Systems
 DataProtectionSystems.list.title=Data Protection Systems

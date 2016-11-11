@@ -3119,4 +3119,14 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException varrayNotInExportGroup(String varray);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException additionalInitiators(final String exportMask, final String initiators);
+    
 }

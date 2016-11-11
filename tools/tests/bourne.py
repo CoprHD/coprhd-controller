@@ -343,6 +343,7 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/port-allocate-preview' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -5204,6 +5205,24 @@ class Bourne:
         else:
             s = 'error'
         return (o, s)
+
+    def export_group_realloc(self, groupId, systemId, varrayId, useExisting, pathParam):
+        parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+        if varrayId != "":
+            parms['virtual_array'] = varrayId
+        parms['storage_system'] = systemId
+        if useExisting:
+            parms['use_existing_paths'] = 'true'
+
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
+        return o
 
     #
     # block snapshot

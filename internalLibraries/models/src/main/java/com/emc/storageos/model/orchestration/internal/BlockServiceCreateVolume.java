@@ -42,8 +42,8 @@ public class BlockServiceCreateVolume extends ViPRPrimitive {
     private final static URIParameter VPOOL = new URIParameter("vpool", true, null);
     private final static URIParameter VARRAY = new URIParameter("varray", true, null);
     private final static URIParameter PROJECT = new URIParameter("project", true, null);
-    private final static URIParameter CONSISTENCY_GROUP = new URIParameter("consistencyGroup", false, null);
-    private final static URIParameter COMPUTE_RESOURCE = new URIParameter("computeResource", false, null);
+    private final static URIParameter CONSISTENCY_GROUP = new URIParameter("consistency_group", false, null);
+    private final static URIParameter COMPUTE_RESOURCE = new URIParameter("compute_resource", false, null);
     
     private final static InputParameter INPUT[] = {VOLUME_NAME, SIZE, COUNT, VPOOL, VARRAY, PROJECT, CONSISTENCY_GROUP, COMPUTE_RESOURCE};
     
@@ -52,6 +52,17 @@ public class BlockServiceCreateVolume extends ViPRPrimitive {
     private final static TableOutputParameter RESOURCE_LIST = new TableOutputParameter("taskList", TABLE);
     
     private final static OutputParameter OUTPUT[] = {RESOURCE_LIST};
+    
+    private final static String BODY = "{\n" +
+            "  \"consistency_group\": \"$consistencyGroup\",\n" +
+            "  \"computeResource\": \"$computeResource\",\n" +
+            "  \"count\": \"$count\",\n" +
+            "  \"name\": \"$name\",\n" +
+            "  \"project\": \"$project\",\n" +
+            "  \"size\": \"$size\",\n" +
+            "  \"varray\": \"$varray\",\n" +
+            "  \"vpool\": \"$vpool\"\n" +
+            "}";
     
     public BlockServiceCreateVolume() {
         super(BlockServiceCreateVolume.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT);
@@ -65,6 +76,11 @@ public class BlockServiceCreateVolume extends ViPRPrimitive {
     @Override 
     public String method() {
         return METHOD;
+    }
+
+    @Override 
+    public String body() {
+        return BODY;
     }
 
 }

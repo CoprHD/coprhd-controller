@@ -15,6 +15,7 @@
 	<bean id="clientConfig" class="com.emc.vipr.client.ClientConfig">
 		<property name="host" value="localhost" />
 		<property name="ignoreCertificates" value="true"/>
+                <property name="mediaType" value="application/json"/>
 	</bean>
 
 	<bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">

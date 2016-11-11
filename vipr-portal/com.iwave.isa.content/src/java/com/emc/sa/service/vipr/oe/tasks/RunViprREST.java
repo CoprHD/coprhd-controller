@@ -17,138 +17,100 @@
 
 package com.emc.sa.service.vipr.oe.tasks;
 
-import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.OrchestrationService;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.sa.service.vipr.oe.SuccessCriteria;
-import com.emc.sa.service.vipr.oe.primitive.PrimitiveHelper;
-import com.emc.sa.service.vipr.oe.primitive.RestPrimitive;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
-import com.sun.jersey.api.client.ClientResponse;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.oe.OrchestrationService;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
+import com.emc.sa.service.vipr.oe.SuccessCriteria;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
+import com.emc.vipr.client.impl.RestClient;
+import com.sun.jersey.api.client.ClientResponse;
 
 public class RunViprREST extends ViPRExecutionTask<String> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
-    private String name;
-    private Map<String, List<String>> input;
-    private String token;
-    private OrchestrationEngineRestClient restClient;
+    private final Map<String, List<String>> input;
+    private final RestClient client;
+    private final ViPRPrimitive primitive;
 
-    //TODO use Proxy user
-    private String endPoint = "localhost";
-
-    private DbClient dbClient;
-    private RestPrimitive primitive;
-
-    public RunViprREST(final DbClient dbClient, final String name, final String token, final Map<String, List<String>> input) {
-        this.name = name;
+    public RunViprREST(final ViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
         this.input = input;
-        this.token = token;
-        this.dbClient = dbClient;
-
-        initRestClient();
-    }
-    
-
-    private void initRestClient()
-    {
-        OrchestrationEngineRestClientFactory factory = new OrchestrationEngineRestClientFactory();
-
-        factory.setMaxConnections(100);
-
-        factory.setMaxConnectionsPerHost(100);
-        factory.setNeedCertificateManager(false);
-        factory.setSocketConnectionTimeoutMs(3600000);
-        factory.setConnectionTimeoutMs(3600000);
-        factory.init();
-
-        restClient = (OrchestrationEngineRestClient) factory.
-                getRESTClient(URI.create(endPoint), "", "", true);
-
-        primitive = PrimitiveHelper.query(name, RestPrimitive.class, dbClient);
-
-        Set<String> extraHeaders = primitive.extraHeaders();
-        Iterator it = extraHeaders.iterator();
-        while(it.hasNext()) {
-            restClient.setAuthHeaders(token, it.next().toString());
-        }
-        
-        ExecutionUtils.currentContext().logInfo("Setting up REST Client to execute %s REST Primitive", name);
+        this.client = client;
+        this.primitive = primitive;
     }
 
     @Override
     public String executeTask() throws Exception {
 
-        String result;
-        String postBody = null;
+        final String result;
+        final String requestBody;
 
-        String uriDb = primitive.uri();
-        String body = primitive.body();
-        String method = primitive.method();
+        final String templatePath = primitive.path();
+        final String body = primitive.body();
+        final String method = primitive.method();
 
         if (OrchestrationServiceConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
-            postBody = makePostBody(body);
+            requestBody = makePostBody(body);
+        } else {
+            requestBody = "";
         }
 
-        URI uri = makeUri(uriDb);
+        String path = makePath(templatePath);
 
-        ExecutionUtils.currentContext().logInfo("Started Executing REST API with uri:%s and POST Body:%s ", uri, postBody);
+        ExecutionUtils.currentContext().logInfo(String.format("Started Executing REST API with uri: %s and POST Body: %s ", path, requestBody));
 
-        result = makeRestCall(uri, postBody, method);
+        result = makeRestCall(path, requestBody, method);
 
-        ExecutionUtils.currentContext().logInfo("Done Executing REST Step. REST result:%s", result);
+        ExecutionUtils.currentContext().logInfo(String.format("Done Executing REST Step. REST result: %s", result));
 
         return result;
     }
     
 
-    private String makeRestCall(final URI uri, final String postBody, final String method) throws Exception {
+    private String makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
 
-        ClientResponse response = null;
+        final ClientResponse response;
         OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
+
         switch(restmethod) {
             case GET:
-                response = restClient.get(uri);
+                response = client.get(ClientResponse.class, path);
                 break;
-            case PUT:
-                response = restClient.put(uri, postBody);
+            case PUT: 
+                response = client.put(ClientResponse.class, requestBody, path);
                 break;
             case POST:
-                response = restClient.post(uri, postBody);
+                response = client.post(ClientResponse.class, requestBody, path);
                 break;
             case DELETE:
-                response = restClient.delete(uri);
+                response = client.delete(ClientResponse.class, path);
                 break;
             default:
                 logger.error("Unknown REST method type");
-		throw new IllegalStateException("Invalid REST method type" + method);
+		        throw new IllegalStateException("Invalid REST method type" + method);
         }
 
         SuccessCriteria o = new SuccessCriteria();
         o.setReturnCode(response.getStatus());
-        logger.info("Status of ViPR REST Operation:{} is :{}", name, response.getStatus());
+        logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
 
         String responseString = null;
         try {
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
         } catch (IOException e) {
-            error("Error getting response from Orchestration Engine for: " + uri +
+            error("Error getting response from Orchestration Engine for: " + path +
                     " :: " + e.getMessage());
         }
 
@@ -158,25 +120,28 @@ public class RunViprREST extends ViPRExecutionTask<String> {
 
     /**
      * Example uri: "/block/volumes/{id}/findname/{name}";
-     * @param s
+     * @param templatePath
      * @return
      */
-    private URI makeUri(String s) {
-    
-        Pattern p = Pattern.compile("(\\{(.*?)\\})");
-        Matcher m = p.matcher(s);
-        while (m.find()) {
-            String val1 = m.group().replace("{", "").replace("}", "");
-
-            s = (s.replace(m.group(), input.get(val1).get(0)));
-            
-        }
-        UriTemplate template = new UriTemplate(OrchestrationServiceConstants.VIPR_REST_URI);
-        URI restUri = template.expand(primitive.scheme(), endPoint, primitive.port(), s); 
+    private String makePath(String templatePath) {
+        final UriTemplate template = new UriTemplate(templatePath);
+        final List<String> pathParameters = template.getVariableNames();
+        final Map<String, Object> pathParameterMap = new HashMap<String, Object>();
         
-        ExecutionUtils.currentContext().logInfo("URI string is: %s", restUri);
+        for(final String key : pathParameters) {
+            List<String> value = input.get(key);
+            if(null == value) {
+                //TODO convert to a better exception?
+                throw new IllegalStateException("Unfulfilled path parameter: " + key);
+            }
+            pathParameterMap.put(key, value);
+        }
+        
+        final String path = template.expand(pathParameterMap).getPath(); 
 
-        return restUri;
+        ExecutionUtils.currentContext().logInfo(String.format("URI string is: %s", path));
+
+        return path;
     }
 
 

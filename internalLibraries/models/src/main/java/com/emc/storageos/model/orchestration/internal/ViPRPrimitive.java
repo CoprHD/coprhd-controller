@@ -30,5 +30,6 @@ public abstract class ViPRPrimitive extends Primitive {
 
     public abstract String path();
     public abstract String method();
+    public abstract String body();
     
 }

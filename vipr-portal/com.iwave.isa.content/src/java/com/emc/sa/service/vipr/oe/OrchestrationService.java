@@ -17,32 +17,15 @@
 
 package com.emc.sa.service.vipr.oe;
 
-import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.ViPRExecutionUtils;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Input;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Step;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.StepAttribute;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
-import com.emc.sa.service.vipr.ViPRService;
-
 import java.io.FileReader;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.sa.service.vipr.oe.gson.ViprOperation;
-import com.emc.sa.service.vipr.oe.gson.ViprTask;
-import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
-import com.emc.storageos.db.client.DbClient;
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +34,26 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
+import com.emc.sa.service.vipr.oe.gson.ViprOperation;
+import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Input;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Step;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.StepAttribute;
+import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.model.orchestration.internal.Primitive;
+import com.emc.storageos.model.orchestration.internal.PrimitiveHelper;
+import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
@@ -77,11 +80,6 @@ public class OrchestrationService extends ViPRService {
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
 
-        // validate input params to insure service will run
-
-        // add a proxy token that OE can use to login to ViPR API
-        params.put("ProxyToken", ExecutionUtils.currentContext().
-                getExecutionState().getProxyToken());
     }
 
     @Override
@@ -138,10 +136,15 @@ public class OrchestrationService extends ViPRService {
             String result = null;
 
             StepType type = StepType.fromString(step.getType());
+            Primitive primitive = PrimitiveHelper.get(step.getOpName());
+            if( null == primitive) {
+                //TODO fail workflow
+                throw new IllegalStateException("Primitive not found: " + step.getOpName());
+            }
             switch (type) {
                 case VIPR_REST: {
-                    ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName:{}" + step.getOpName() + inputPerStep.get(step.getStepId()));
-                    result = ViPRExecutionUtils.execute(new RunViprREST(dbClient, step.getOpName(), params.get("ProxyToken").toString(), inputPerStep.get(step.getStepId())));
+                    ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName: " + step.getOpName() + inputPerStep.get(step.getStepId()));
+                    result = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive)(primitive), getClient().getRestClient(), inputPerStep.get(step.getStepId())));
 
                     break;
                 }

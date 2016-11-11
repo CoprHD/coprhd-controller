@@ -17,6 +17,17 @@
 
 package com.emc.sa.service.vipr.oe;
 
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Input;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.Step;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition.StepAttribute;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
+import com.emc.sa.service.vipr.ViPRService;
+
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +37,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.sa.service.vipr.oe.gson.ViprOperation;
+import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
+import com.emc.storageos.db.client.DbClient;
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +96,8 @@ public class OrchestrationService extends ViPRService {
 
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
+
+        // validate input params to insure service will run
 
     }
 

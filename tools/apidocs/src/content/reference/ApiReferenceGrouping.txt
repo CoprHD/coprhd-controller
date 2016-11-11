@@ -130,6 +130,7 @@ MeteringService
 WorkflowService
 TaskService
 DisasterRecoveryService
+PrimitiveService
 
 =API Differences
 Block Services

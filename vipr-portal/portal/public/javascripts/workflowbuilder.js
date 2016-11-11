@@ -889,6 +889,7 @@
 angular.module("portalApp").controller('builderController', function($scope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.workflowTabs = {};
+    initializeJsTree();
 
     function addTab(tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
@@ -999,11 +1000,6 @@ angular.module("portalApp").controller('builderController', function($scope) { /
         })
     }
 
-    $(function() {
-        initializeJsTree();
-        addTab("tab1");
-    });
-
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
         $(".nav-tabs li").children('a').first().click();
@@ -1011,7 +1007,7 @@ angular.module("portalApp").controller('builderController', function($scope) { /
 
     // This method will create tab view for workflows
     function previewNode(node) {
-        var tabID = "tab"+node.id;
+        var tabID = "tab_"+node.id;
         addTab(tabID);
     }
 })
@@ -1021,6 +1017,10 @@ angular.module("portalApp").controller('builderController', function($scope) { /
     var diagramContainer = $element.find('#diagramContainer')
     var sbSite = $element.find('#sb-site')
     var jspInstance;
+    var workflowData;
+
+    //TODO: get workflowData from the API or user input and remove dummy data
+    workflowData = jQuery.extend(true, {}, dummyWorkflowData);
 
     initializeJsPlumb();
     initializePanZoom();
@@ -1195,15 +1195,14 @@ angular.module("portalApp").controller('builderController', function($scope) { /
             } ));
         });
 
-        //dummyWorkflowData, copyData and log are for development purposes. This will be used to export to file or post to backend
         //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
-        dummyWorkflowData.Steps = blocks;
+        workflowData.Steps = blocks;
 
-        dummyWF = jQuery.extend(true, {}, dummyWorkflowData);
+        dummyWF = jQuery.extend(true, {}, workflowData);
     }
 
-    $scope.removeStep = function(step) {
-        jspInstance.remove(diagramContainer.find('#' + step));
+    $scope.removeStep = function(stepId) {
+        jspInstance.remove(diagramContainer.find('#' + stepId));
     }
 
     function loadStep(step) {
@@ -1259,10 +1258,9 @@ angular.module("portalApp").controller('builderController', function($scope) { /
     $scope.loadJSON = function() {
 
         //TODO: replace dummyWF with json from API or import
-        //TODO: replace dummyWorkflowData with instance of workflow data variable
         var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
-        dummyWorkflowData.WorkflowName = loadedWorkflow.WorkflowName;
-        dummyWorkflowData.Description = loadedWorkflow.Description;
+        workflowData.WorkflowName = loadedWorkflow.WorkflowName;
+        workflowData.Description = loadedWorkflow.Description;
 
         //load steps with position data
         loadedWorkflow.Steps.forEach(function(step) {
@@ -1281,7 +1279,7 @@ angular.module("portalApp").controller('builderController', function($scope) { /
             var $elem = $(elem);
             $elem.remove();
         });
-        dummyWorkflowData = {};
+        workflowData = {};
         }
 
 });

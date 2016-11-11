@@ -21,7 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
 
 /**
- *
+ * Rest representation class for an orchestration output parameter
  */
 public class OutputParameterRestRep {
 
@@ -47,6 +47,7 @@ public class OutputParameterRestRep {
         this.type = type;
     }
 
+    @XmlElement(name = "table")
     public String getTable() {
         return table;
     }

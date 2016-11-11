@@ -42,6 +42,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1655,6 +1656,29 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                     remoteSettingsMap.put(remoteSettings.getVarray(), remoteCopySettingsParam);
                 }
                 vpool.setProtectionRemoteCopySettings(remoteCopysettingsMap);
+            }
+
+            // Process remote replication protection settings
+            if (null != param.getProtection().getRemoteReplicationParam() &&
+                    null != param.getProtection().getRemoteReplicationParam().getRemoteReplicationSettings()) {
+                StringMap remoteReplicationProtection = new StringMap();
+                for (VirtualPoolRemoteReplicationSettingsParam remoteReplicationSetting : param.getProtection().getRemoteReplicationParam()
+                        .getRemoteReplicationSettings()) {
+                    URI vArrayUri = remoteReplicationSetting.getVarray();
+                    URI vPoolUri = remoteReplicationSetting.getVpool();
+                    // vArray should always be set in the remote replication settings
+                    VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, vArrayUri);
+                    if (null == remoteVArray || remoteVArray.getInactive()) {
+                        throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteReplicationSetting.getVarray());
+                    }
+
+                    // if vPool is not set in the remote replication settings, default to this vPool for remote replicas
+                    if (URIUtil.isNull(vPoolUri)) {
+                        vPoolUri = vpool.getId();
+                    }
+                    remoteReplicationProtection.put(vArrayUri.toString(), vPoolUri.toString());
+                    vpool.setRemoteReplicationProtectionSettings(remoteReplicationProtection);
+                }
             }
         }
 

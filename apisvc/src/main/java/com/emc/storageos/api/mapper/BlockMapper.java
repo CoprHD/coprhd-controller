@@ -264,6 +264,10 @@ public class BlockMapper {
             toSRDF.setSrdfGroup(srdfVolume.getSrdfGroup());
         }
 
+        // remote replication specific section
+        VolumeRestRep.RemoteReplicationRestRep toRemoteReplication = null;
+        // todo: add processing of Remote Replication information for the volume
+
         // Protection object encapsulates mirrors and RP
         if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null) {
             ProtectionRestRep toProtection = new ProtectionRestRep();
@@ -271,6 +275,7 @@ public class BlockMapper {
             toProtection.setRpRep(toRp);
             toProtection.setFullCopyRep(toFullCopy);
             toProtection.setSrdfRep(toSRDF);
+            toProtection.setRemoteReplicationRep(toRemoteReplication);
             to.setProtection(toProtection);
         }
 

@@ -480,14 +480,18 @@ public class UcsComputeDevice implements ComputeDevice {
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
                             "addHostPortsToVArrayNetworks", varray, host),
                     null, addHostPortsToNetworkStepId);
-
-            String addHostToSharedExportGroupsStepId = workflow.createStepId();
-            addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
-                    "Add host to shared export groups", addHostPortsToNetworkStepId,
-                    computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "addHostToSharedExportGroups", host),
-                    null, addHostToSharedExportGroupsStepId);
-
+            //forcefully skipping the sharedExport update step, due to concurrency issue
+            // we will handle update of sharedExport to all hosts in bulk rather than one for each host.
+            // Temporary workaround fix until the actual fix is delivered.
+            boolean performStep = false;
+            if (performStep) {
+                String addHostToSharedExportGroupsStepId = workflow.createStepId();
+                addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
+                        "Add host to shared export groups", addHostPortsToNetworkStepId, computeSystem.getId(),
+                        computeSystem.getSystemType(), this.getClass(),
+                        new Workflow.Method("addHostToSharedExportGroups", host), null,
+                        addHostToSharedExportGroupsStepId);
+            }
             workflow.executePlan(taskCompleter, "Successfully created host : " + host.getHostName());
 
             LOGGER.info("create Host : " + host.getLabel() + " Complete");

@@ -24,6 +24,7 @@ import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 
 @Service("CreateBareMetalCluster")
 public class CreateBareMetalClusterService extends ViPRService {
@@ -51,12 +52,15 @@ public class CreateBareMetalClusterService extends ViPRService {
 
     Cluster cluster = null;
     List<String> hostNames = null;
+    List<String> copyOfHostNames = null;
 
     @Override
     public void precheck() throws Exception {
 
         StringBuffer preCheckErrors = new StringBuffer();
         hostNames = ComputeUtils.getHostNamesFromFqdn(fqdnValues);
+        //Creating a copy of hostNames so that we can check if these hosts were properly exported to the shared exportGroups.
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
 
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
         cluster = ComputeUtils.getCluster(name);
@@ -83,11 +87,13 @@ public class CreateBareMetalClusterService extends ViPRService {
             }
         }
 
-        if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
+        // Commenting for COP-26104, this pre-check will not allow order to be resubmitted if
+        // only the shared export group fails and all other steps succeeded.
+        /*if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
                 hostNamesInCluster.containsAll(existingHostNames) && (hostNames.size() == hostNamesInCluster.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
-        }
+        }*/
 
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
                 virtualArray, size, hostNames.size() - existingHostNames.size())) {
@@ -150,16 +156,19 @@ public class CreateBareMetalClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
                 project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
 
         ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
-
+        // Below step to update the shared export group to the cluster (the newly added
+        // hosts will be taken care of this update cluster method and in a synchronized way)
+        ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+        logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
         }
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(

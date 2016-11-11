@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @Service("AddHostToCluster")
@@ -94,12 +95,15 @@ public class AddHostToClusterService extends ViPRService {
     private Cluster cluster;
     List<String> hostNames = null;
     List<String> hostIps = null;
+    List<String> copyOfHostNames = null;
 
     @Override
     public void precheck() throws Exception {
 
         StringBuilder preCheckErrors = new StringBuilder();
         hostNames = ComputeUtils.getHostNamesFromFqdnToIps(fqdnToIps);
+        //Creating a copy of hostNames so that we can check if these hosts were properly exported to the shared exportGroups.
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
         hostIps = ComputeUtils.getIpsFromFqdnToIps(fqdnToIps);
 
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
@@ -243,16 +247,19 @@ public class AddHostToClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
                 project, virtualArray);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
 
         logInfo("compute.cluster.exports.installing.os");
         List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
         logInfo("compute.cluster.exports.installed.os",
                 ComputeUtils.nonNull(hostsWithOs).size());
-
+        // Below step to update the shared export group to the cluster (the newly added
+        // hosts will be taken care of this update cluster method and in a synchronized way)
+        ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+        logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         pushToVcenter();
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(

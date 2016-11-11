@@ -545,22 +545,28 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
+                    LOGGER.info("adding host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
+
                     blockExportController.exportGroupUpdate(exportGroup.getId(),
                             noUpdatesVolumeMap, noUpdatesVolumeMap,
                             updatedClusters, updatedHosts, updatedInitiators, task);
+                    boolean taskCompleted = false;
 
-                    while (true) {
+                    while (!taskCompleted) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
 
                         switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
                             case ready:
-                                WorkflowStepCompleter.stepSucceded(stepId);
-                                return;
+                                taskCompleted = true;
+                                LOGGER.info("Successfully added host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
+                                break;
                             case error:
+                                taskCompleted = true;
+                                LOGGER.error("Failed to add host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
                                 WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
                                         .getServiceError());
-                                return;
+                                break;
                             case pending:
                                 break;
 
@@ -1118,37 +1124,48 @@ public class UcsComputeDevice implements ComputeDevice {
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
 
         try {
-            if (host != null && host.getComputeElement() != null && host.getUuid() != null) {
+             if (host != null && host.getComputeElement() != null ) {
+                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                if (computeElement == null){
+                    LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
+                    LOGGER.info("Service profile deletion will not be triggered");
+                    return;
+                }
+                LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
+                if (host.getUuid() != null ) {
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), host.getUuid());
 
-                LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                        cs.getUsername(), cs.getPassword(), host.getUuid());
+                    if (sp != null) {
 
-                if (sp != null) {
+                        LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
+                                cs.getUsername(), cs.getPassword(), sp.getDn());
 
-                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                        LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
 
-                    LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), sp.getDn());
+                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getLabel(), ComputeBlade.class);
+                       
+                        if (computeBlade == null){
+                             LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
+                        } else {
 
-                    LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                             // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                             if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                                 computeElement.setAvailable(true);
+                                 _dbClient.persistObject(computeElement);
+                             }
+                        }
 
-                    ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getLabel(), ComputeBlade.class);
-
-                    // Release the computeElement back into the pool as soon as we have unbound it from the service
-                    // profile
-                    if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
-                        computeElement.setAvailable(true);
-                        _dbClient.persistObject(computeElement);
+                        ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                unboundServiceProfile.getDn());
+                    } else {
+                        LOGGER.info("No service profile with uuid: " + host.getUuid() + " found on the UCS. Nothing to delete. "); 
                     }
 
-                    ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            unboundServiceProfile.getDn());
+                    // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+                    removeHostInitiatorsFromNetworks(host);
                 }
-
-                // On successful deletion of the service profile - get rid of the objects that represent objects from
-                // the service profile
-                removeHostInitiatorsFromNetworks(host);
             }
 
         } catch (ClientGeneralException e) {

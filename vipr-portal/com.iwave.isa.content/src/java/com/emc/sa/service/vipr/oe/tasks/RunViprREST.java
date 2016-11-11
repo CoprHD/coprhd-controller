@@ -32,25 +32,10 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.oe.SuccessCriteria;
-import com.emc.sa.service.vipr.oe.primitive.PrimitiveHelper;
-import com.emc.sa.service.vipr.oe.primitive.RestPrimitive;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
+import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
+import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.util.UriTemplate;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class RunViprREST extends ViPRExecutionTask<String> {
 

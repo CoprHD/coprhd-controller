@@ -60,7 +60,7 @@ public class RowMutationTest extends DbsvcTestBase {
         rowMutator.getIndexColumnList(indexCF, "vo").
         	putColumn(new IndexColumnName("Volume", volumeLabel, volumeLabel, rowKey, rowMutator.getTimeUUID()), "");
         
-        rowMutator.executeRecordFirst();
+        rowMutator.execute();
         
         //verify data object information
         Volume volume = (Volume)this.getDbClient().queryObject(URI.create(rowKey));
@@ -97,7 +97,7 @@ public class RowMutationTest extends DbsvcTestBase {
         no_columnList.putColumn(new CompositeColumnName("test"), 20);
         
         try {
-			rowMutator.executeRecordFirst();
+			rowMutator.execute();
 			Assert.fail();
 		} catch (Exception e) {
 			//expected exception

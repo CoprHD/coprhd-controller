@@ -1153,7 +1153,7 @@ public class DbClientImpl implements DbClient {
                 serializeTasks(object, mutator, objectsToCleanup);
             }
         }
-        mutator.executeRecordFirst();
+        mutator.execute();
 
         return objectsToCleanup;
     }

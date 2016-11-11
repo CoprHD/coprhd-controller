@@ -112,20 +112,9 @@ public class RowMutator {
     }
 
     /**
-     * Updates record first and index second. This is used for insertion
+     * Updates record and index with atomic batch
      */
-    public void executeRecordFirst() {
-        try {
-            executeMutatorWithRetry(_mutationBatch);
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-    }
-
-    /**
-     * Updates index first and record second. This is used for deletion.
-     */
-    public void executeIndexFirst() {
+    public void execute() {
         try {
             executeMutatorWithRetry(_mutationBatch);
         } catch (ConnectionException e) {

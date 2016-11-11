@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
+import com.emc.storageos.security.ssl.CustomHostnameVerifier;
 import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.nimbusds.jose.JWSObject;
@@ -74,9 +75,8 @@ public class OIDCAuthenticationManager {
         this.dbClient = dbClient;
         this.permissionsHelper = new BasePermissionsHelper(dbClient);
         this.authProviders = authProviders;
-        HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(coordinator));
-        HTTPRequest.setDefaultHostnameVerifier(new CustomHostnameVerifier());
-        log.info("Set default ssl socket factory to vipr's");
+        HTTPRequest.setDefaultSSLSocketFactory(new ViPRSSLSocketFactory(this.coordinator));
+        HTTPRequest.setDefaultHostnameVerifier(new CustomHostnameVerifier(this.coordinator));
     }
 
     public URI buildAuthenticationRequestInURI(String resourceURI) throws Exception {
@@ -244,18 +244,5 @@ public class OIDCAuthenticationManager {
 
     public void verifyAuthModeForOIDC() {
         // TODO, throw exception if not oidc mode
-    }
-
-    public class CustomHostnameVerifier implements HostnameVerifier {
-
-        @Override
-        public boolean verify(String s, SSLSession sslSession) {
-            log.info("Entering CustomHostnameVerifier. Host name is {} and name from session is {}", s, sslSession.getPeerHost());
-            if (KeyStoreUtil.getAcceptAllCerts(new CoordinatorConfigStoringHelper(coordinator))) {
-                log.info("The system is set to accept all. Ingore host name verifying");
-                return true;
-            }
-            return false;
-        }
     }
 }

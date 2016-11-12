@@ -1250,6 +1250,22 @@ public class VPlexApiClient {
                 _baseURI);
         return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
     }
+    
+    /**
+     * Renames the distributed device with the passed name to the passed new name.
+     * 
+     * @param currentName The current device name
+     * @param newName The new device name.
+     */
+    public void renameDistributedDevice(String currentName, String newName) {
+        VPlexDistributedDeviceInfo ddInfo = _discoveryMgr.findDistributedDevice(currentName);
+        if (ddInfo != null) {
+            renameResource(ddInfo, newName);
+        } else {
+            s_logger.error("Can't find distributed device {} for rename request.", currentName);
+            throw VPlexApiException.exceptions.cantFindDistributedDeviceForRename(currentName);   
+        }
+    }
 
     /**
      * Reattach the mirror on the specified cluster to the distributed VPLEX

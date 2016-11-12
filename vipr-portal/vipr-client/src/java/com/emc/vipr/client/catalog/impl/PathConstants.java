@@ -60,5 +60,9 @@ public class PathConstants {
     public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
     public static final String SCHEDULED_EVENTS_DEACTIVATE_URL = SCHEDULED_EVENTS_URL + "/{id}/deactivate";
     public static final String SCHEDULED_EVENTS_CANCELLATION_URL = SCHEDULED_EVENTS_URL + "/{id}/cancel";
+    public static final String WF_DIRECTORIES = "/workflow/directory";
+    public static final String WF_DIRECTORY_BULK = "/workflow/directory/bulk";
+    public static final String WF_DIRECTORY = "/workflow/directory/{id}";
+    public static final String WF_DIRECTORY_DELETE = "/workflow/directory/{id}/deactivate";
 
 }

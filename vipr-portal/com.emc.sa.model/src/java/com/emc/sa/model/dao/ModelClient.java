@@ -58,6 +58,8 @@ public class ModelClient {
     private ClusterFinder clusterDAO;
     private ActionableEventFinder actionableEventDAO;
 
+    private WFDirectoryFinder wfDirectoryDAO;
+
     public ModelClient(DBClientWrapper client) {
         this.client = client;
     }
@@ -322,6 +324,13 @@ public class ModelClient {
             tenantPreferencesDAO = new TenantPreferencesFinder(client);
         }
         return tenantPreferencesDAO;
+    }
+
+    public WFDirectoryFinder wfDirectory() {
+        if (wfDirectoryDAO == null) {
+            wfDirectoryDAO = new WFDirectoryFinder(client);
+        }
+        return wfDirectoryDAO;
     }
 
     private <T extends DataObject> boolean isNew(T model) {

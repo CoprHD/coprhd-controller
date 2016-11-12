@@ -886,7 +886,7 @@
       }
     ]
 
-angular.module("portalApp").controller('builderController', function($scope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+angular.module("portalApp").controller('builderController', function($scope, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.workflowTabs = {};
     initializeJsTree();
@@ -906,8 +906,7 @@ angular.module("portalApp").controller('builderController', function($scope) { /
             "core": {
                 "animation": 0,
                 "check_callback": true,
-                "themes": {"stripes": false},
-                'data' : rootjson
+                "themes": {"stripes": false}
             },
             "types": {
                 "#": {
@@ -994,6 +993,24 @@ angular.module("portalApp").controller('builderController', function($scope) { /
                  }
             }
         }).on('ready.jstree', function() {
+            // -- populate tree data
+            //TODO: get ViPR Library nodes from API (pending)
+            var rootjson = [
+                {"id":"myLib", "parent":"#","text":"My Library"},
+                {"id":"viprLib","parent":"#","text":"ViPR Library"},
+                {"id":"rest","parent":"viprLib","text":"ViPR REST Primitives"},
+                {"id":"ansible","parent":"viprLib","text":"Ansible Primitives"},
+                {"id":"email","parent":"ansible","text":"Send Email", "type": "file", "li_attr": {"class": "draggable-card"}},
+                {"id":"create","parent":"rest","text":"Create Volume", "type": "file", "li_attr": {"class": "draggable-card"}},
+                {"id":"export","parent":"rest","text":"Export Volume", "type": "file", "li_attr": {"class": "draggable-card"}}
+            ]
+            $http.get(routes.WF_directories()).then(function (data) {
+                console.log(data.data)
+                $('#jstree_demo').jstree(true).settings.core.data = rootjson.concat(data.data);
+                $('#jstree_demo').jstree(true).refresh();
+            });
+            // --
+
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
         }).bind("rename_node.jstree clear_search.jstree search.jstree", function() {
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
@@ -1010,6 +1027,43 @@ angular.module("portalApp").controller('builderController', function($scope) { /
         var tabID = "tab_"+node.id;
         addTab(tabID);
     }
+
+    // jstree actions
+    //TODO: do error handling on all actions
+    $('#jstree_demo').on("rename_node.jstree", function(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).then(function (data) {
+            });
+        }
+        else {
+            //TODO: edit workflow (API pending)
+            console.log("edit workflow pending")
+        }
+    });
+
+    $('#jstree_demo').on("delete_node.jstree", function(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_delete({"id": data.node.id})).then(function (data) {
+            });
+        }
+        else {
+            //TODO: delete workflow (API pending)
+            console.log("delete workflow pending")
+        }
+
+    });
+
+    $('#jstree_demo').on("create_node.jstree", function(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.parent})).then(function (resp) {
+                data.instance.set_id(data.node, resp.data.id);
+            });
+        }
+        else {
+            //TODO: create workflow (API pending)
+            console.log("create workflow pending")
+        }
+    });
 })
 
 .controller('tabController', function($element, $scope, $compile) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")

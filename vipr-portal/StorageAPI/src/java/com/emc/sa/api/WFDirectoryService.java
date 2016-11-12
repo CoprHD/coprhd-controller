@@ -1,0 +1,235 @@
+/*
+ * Copyright 2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+package com.emc.sa.api;
+
+import com.emc.sa.catalog.WorkflowDirectoryManager;
+import com.emc.storageos.api.service.impl.resource.TaggedResource;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
+import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.model.*;
+import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.model.catalog.WFBulkRep;
+import com.emc.vipr.model.catalog.WFDirectoryList;
+import com.emc.vipr.model.catalog.WFDirectoryParam;
+import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+
+import javax.annotation.PostConstruct;
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
+/**
+ * WF Directory API service
+ */
+@DefaultPermissions(
+        readRoles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
+@Path("/workflow/directory")
+public class WFDirectoryService extends TaggedResource {
+
+    private static final Logger log = LoggerFactory.getLogger(WFDirectoryService.class);
+    private static final String EVENT_SERVICE_TYPE = "wf-directory";
+
+    @PostConstruct
+    public void init() {
+        log.info("Initializing WF Directory service");
+    }
+
+    @Autowired
+    private WorkflowDirectoryManager wfDirectoryManager;
+
+    /**
+     * Get workflow directories
+     *
+     * @prereq none
+     * @brief Get workflow directories
+     * @return Workflow directories
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public WFDirectoryList getWFDirectories() {
+        List<WFDirectory> wfDirectories = wfDirectoryManager.getWFDirectories();
+        WFDirectoryList wfDirectoryList = new WFDirectoryList();
+        for (WFDirectory dir : wfDirectories) {
+            NamedRelatedResourceRep wfDirectoryRestRep = toNamedRelatedResource(ResourceTypeEnum.WF_DIRECTORY,
+                    dir.getId(), dir.getLabel());
+            wfDirectoryList.getWFDirectories().add(wfDirectoryRestRep);
+        }
+
+        return wfDirectoryList;
+    }
+
+    /**
+     * Get workflow directories
+     *
+     * @prereq none
+     * @brief Get workflow directories
+     * @return Workflow directories
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/bulk")
+    @Override
+    public WFBulkRep getBulkResources(BulkIdParam param) {
+        return (WFBulkRep)super.getBulkResources(param);
+    }
+
+    /**
+     * Get workflow directories
+     *
+     * @prereq none
+     * @brief Get workflow directories
+     * @return Workflow directories
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    public WFDirectoryRestRep getWFDirectory(@PathParam("id") URI id) {
+        WFDirectory wfDirectory = wfDirectoryManager.getWFDirectoryById(id);
+        return map(wfDirectory);
+    }
+
+    /**
+     * Get workflow directories
+     *
+     * @prereq none
+     * @brief Get workflow directories
+     * @return Workflow directories
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
+    public WFDirectoryRestRep createWFDirectory(WFDirectoryParam wfDirectoryParam) {
+        log.info("Creating wf directory");
+        //Check for null fields
+        // get,set workflows
+        WFDirectory wfDirectory = new WFDirectory();
+        wfDirectory.setLabel(wfDirectoryParam.getName());
+        wfDirectory.setParent(wfDirectoryParam.getParent());
+        wfDirectory.setWorkflows(StringSetUtil.uriListToStringSet(wfDirectoryParam.getWorkflows()));
+        wfDirectoryManager.createWFDirectory(wfDirectory);
+        return map(wfDirectory);
+    }
+
+    /**
+     * Get workflow directories
+     *
+     * @prereq none
+     * @brief Get workflow directories
+     * @return Workflow directories
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
+    @Path("/{id}/deactivate")
+    public Response deactivateWFDirectory(@PathParam("id") URI id) {
+        log.info("Deactivate wf directory");
+        wfDirectoryManager.deactivateWFDirectory(id);
+        return Response.ok().build();
+    }
+
+    /**
+     * Get workflow directories
+     *
+     * @prereq none
+     * @brief Get workflow directories
+     * @return Workflow directories
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
+    @Path("/{id}")
+    public WFDirectoryRestRep updateWFDirectory(@PathParam("id") URI id, WFDirectoryParam param) {
+        WFDirectory wfDirectory = wfDirectoryManager.getWFDirectoryById(id);
+        //update object
+        // label cannot be null/empty
+        if (null != param.getName()) {
+            wfDirectory.setLabel(param.getName());
+        }
+        // Parent can be null for top level folder
+        wfDirectory.setParent(param.getParent());
+        // Workflows can be null or empty (if user wants to remove all workflows from a folder)
+        wfDirectory.setWorkflows(StringSetUtil.uriListToStringSet(param.getWorkflows()));
+        wfDirectoryManager.updateWFDirectory(wfDirectory);
+        return map(wfDirectory);
+    }
+
+
+    private WFDirectoryRestRep map(WFDirectory from) {
+        WFDirectoryRestRep to = new WFDirectoryRestRep();
+        mapDataObjectFields(from, to);
+        if (null != from.getParent()) {
+            to.setParent(new RelatedResourceRep(from.getParent(), new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.WF_DIRECTORY, from.getParent()))));
+        }
+        //TODO: Change this to return OEWorkflow records(when API is ready)
+        if (null != from.getWorkflows()) {
+            to.setWorkflows(StringSetUtil.stringSetToUriList(from.getWorkflows()));
+        }
+        return to;
+    }
+
+
+    @Override
+    protected DataObject queryResource(URI id) {
+        return null;
+    }
+
+    @Override
+    protected URI getTenantOwner(URI id) {
+        return null;
+    }
+
+    @Override
+    protected ResourceTypeEnum getResourceType() {
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<WFDirectory> getResourceClass() {
+        return WFDirectory.class;
+    }
+
+    @Override
+    public WFBulkRep queryBulkResourceReps(List<URI> ids) {
+        List<WFDirectoryRestRep> wfDirectoryRestReps =
+                new ArrayList<>();
+        List<WFDirectory> wfDirectories = wfDirectoryManager.getWFDirectories(ids);
+        //wfDirectories.forEach(wfd -> wfDirectoryRestReps.add(map(wfd)));
+        for (WFDirectory wfd : wfDirectories) {
+            wfDirectoryRestReps.add(map(wfd));
+        }
+        return new WFBulkRep(wfDirectoryRestReps);
+    }
+}

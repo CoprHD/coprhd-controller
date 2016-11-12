@@ -73,7 +73,7 @@ public class WFDirectoryService extends TaggedResource {
      *
      * @prereq none
      * @brief Get workflow directories
-     * @return Workflow directories
+     * @return List of workflow directories
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -90,11 +90,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * Retrieve resource representations based on input ids.
      *
      * @prereq none
-     * @brief Get workflow directories
-     * @return Workflow directories
+     * @brief List of workflow directories
+     * @return list of representations
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -105,11 +105,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * Get workflow directory by ID
      *
      * @prereq none
-     * @brief Get workflow directories
-     * @return Workflow directories
+     * @brief Get workflow directory by ID
+     * @return Workflow directory
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -120,11 +120,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * Create workflow directory
      *
      * @prereq none
-     * @brief Get workflow directories
-     * @return Workflow directories
+     * @brief Create workflow directory
+     * @return Created workflow directory
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -143,11 +143,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * Deactivate workflow directory
      *
      * @prereq none
-     * @brief Get workflow directories
-     * @return Workflow directories
+     * @brief Deactivate workflow directory
+     * @return No data returned in response body
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -160,11 +160,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get workflow directories
+     * Update workflow directory (name, parent, workflows)
      *
      * @prereq none
-     * @brief Get workflow directories
-     * @return Workflow directories
+     * @brief Update workflow directory
+     * @return Updated workflow directory
      */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

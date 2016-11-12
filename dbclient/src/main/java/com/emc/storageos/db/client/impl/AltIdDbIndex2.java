@@ -3,6 +3,8 @@ package com.emc.storageos.db.client.impl;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
+
+import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,7 @@ public class AltIdDbIndex2 extends DbIndex<IndexColumnName2> {
                       String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
-            _log.warn("Empty string in altenate id field: {}", fieldName);
+            _log.warn("Empty string in alternate id field: {}", fieldName);
             return false;
         }
 
@@ -32,10 +34,10 @@ public class AltIdDbIndex2 extends DbIndex<IndexColumnName2> {
 
         ColumnListMutation<IndexColumnName2> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        _log.info("lbytt0: add order {} key={}", className, recordKey);
+        _log.info("lbytt0: add {} key={} inactive={}", className, recordKey, obj.getInactive());
 
         //IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, mutator.getTimeUUID());
-        IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, mutator.getTimeStamp());
+        IndexColumnName2 indexEntry = new IndexColumnName2(className, recordKey, obj.getInactive(), mutator.getTimeStamp());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -47,12 +49,14 @@ public class AltIdDbIndex2 extends DbIndex<IndexColumnName2> {
                          String className, RowMutator mutator,
                          Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         UUID uuid = column.getName().getTimeUUID();
+        long timestamp = TimeUUIDUtils.getMicrosTimeFromUUID(uuid);
 
         String rowKey = getRowKey(column);
 
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
+        ColumnListMutation<IndexColumnName2> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        indexColList.deleteColumn(new IndexColumnName(className, recordKey, uuid));
+        _log.info("lbyf0 to delete rowKey={} stack=", rowKey, new Throwable());
+        indexColList.deleteColumn(new IndexColumnName2(className, recordKey, timestamp));
 
         return true;
     }

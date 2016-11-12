@@ -7,7 +7,9 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.constraint.impl.AlternateId2ConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AuthnProvider;
@@ -73,6 +75,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -770,6 +773,12 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
+        }
+
+        public static AlternateIdConstraint getOrders(String user, long startTimeInMS, long endTimeInMS, boolean markForDelete) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
+            return new AlternateId2ConstraintImpl(field, user, startTimeInMS, endTimeInMS, markForDelete);
         }
     }
 }

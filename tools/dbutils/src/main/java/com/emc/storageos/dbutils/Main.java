@@ -22,23 +22,18 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
 import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.dbutils.CommandHandler.*;
 
 /**
  * Class provided simple cli for DB, to dump records in user readable format
@@ -199,7 +194,7 @@ public class Main {
         Keyspace keyspace;
         AlternateIdConstraintImpl constraint;
         ColumnFamily<String, IndexColumnName2> cf;
-        MutationBatch m;
+        MutationBatch mutationBatch;
         int pageCount;
 
         MigrationQueryHitIterator(Keyspace ks, AlternateIdConstraintImpl c, RowQuery<String, IndexColumnName> query)  {
@@ -207,8 +202,8 @@ public class Main {
 
             keyspace = ks;
             constraint = c;
-            cf = new ColumnFamily<String, IndexColumnName2>("UserToOrders3", StringSerializer.get(), IndexColumnNameSerializer2.get());
-            m = ks.prepareMutationBatch();
+            cf = new ColumnFamily<String, IndexColumnName2>("UserToOrders4", StringSerializer.get(), IndexColumnNameSerializer2.get());
+            mutationBatch = ks.prepareMutationBatch();
             pageCount = constraint.getPageCount();
         }
 
@@ -220,10 +215,10 @@ public class Main {
                 long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
 
                 IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(), timeInMicros);
-                m.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
+                mutationBatch.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
                 if ( n % pageCount == 0) {
-                    m.execute(); // commit
-                    m = keyspace.prepareMutationBatch();
+                    mutationBatch.execute(); // commit
+                    mutationBatch = keyspace.prepareMutationBatch();
                 }
 
                 return id;
@@ -254,7 +249,7 @@ public class Main {
                 iterator.next();
             }
 
-            iterator.m.execute();
+            iterator.mutationBatch.execute();
 
             long end = System.currentTimeMillis();
             System.out.println("Read "+n+" : "+ (end - start));
@@ -360,6 +355,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         System.out.println("Start to collect performance info");
+        /*
         deleteDbutilsPidFile();
         changeLogFileOwner();
         if (args.length == 0) {
@@ -390,6 +386,7 @@ public class Main {
             }
             System.exit(CommandHandler.repairDb(args));
         }
+        */
 
         try {
             // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
@@ -399,8 +396,30 @@ public class Main {
 
             _client.init();
 
-            migrateMyOrderIndexes();
+            // migrateMyOrderIndexes();
 
+            List<URI> ids = new ArrayList();
+            URI uri = new URI("urn:storageos:Order:b1c0eaca-725f-416d-aa6a-9cfcefa4f8f9:vdc1");
+            ids.add(uri);
+
+            List<Order> orders = _client._dbClient.queryObject(Order.class, ids, true);
+            Order order = orders.get(0);
+            log.info("lby1 order={}", order);
+
+            _client._dbClient.markForDeletion(order);
+            orders = _client._dbClient.queryObject(Order.class, ids, true);
+            if (!orders.isEmpty()) {
+                log.info("lby2 order={}", orders.get(0));
+            }
+
+            orders = _client._dbClient.queryObject(Order.class, ids, false);
+            if (!orders.isEmpty()) {
+                log.info("lby3 order={}", orders.get(0));
+            }
+
+            System.exit(1);
+
+            /*
             CommandHandler handler = null;
             boolean result = false;
 
@@ -469,6 +488,7 @@ public class Main {
                     throw new IllegalArgumentException("Invalid command ");
             }
             handler.process(_client);
+        */
         } catch (Exception e) {
             System.err.println("Exception e=" + e);
             log.error("Exception e=", e);

@@ -10,16 +10,16 @@ import java.util.UUID;
  */
 public class IndexColumnName2 implements CompositeIndexColumnName {
     private @Component(ordinal = 0)
-    String one;
+    String className;
 
     private @Component(ordinal = 1)
-    long timeInMicros;
+    String  inactive;
 
     private @Component(ordinal = 2)
-    String two;
+    long timeInMicros;
 
     private @Component(ordinal = 3)
-    String three;
+    String id;
 
     private @Component(ordinal = 4)
     String four;
@@ -27,40 +27,36 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
     public IndexColumnName2() {
     }
 
-    public IndexColumnName2(String one, String two, long timeInMicros) {
-        this.one = one;
-        this.two = two;
-        this.timeInMicros = timeInMicros;
+    public IndexColumnName2(String className, String id, long timeInMicros) {
+        this(className, id, false, "", timeInMicros);
     }
 
-    public IndexColumnName2(String one, String two, String three, long timestamp) {
-        this.one = one;
-        this.two = two;
-        this.three = three;
+    public IndexColumnName2(String className, String id, boolean inactive, long timestamp) {
+        this(className, id, inactive, "", timestamp);
+    }
+
+    public IndexColumnName2(String className, String id, boolean inactive, String four, long timestamp) {
+        this.className = className;
+        this.id = id;
+        this.inactive = Boolean.toString(inactive);
         this.timeInMicros = timestamp;
-    }
-
-    public IndexColumnName2(String one, String two, String three, String four, long time) {
-        this.one = one;
-        this.two = two;
-        this.three = three;
         this.four = four;
-        this.timeInMicros = time;
+        timeInMicros = timestamp;
     }
 
     @Override
     public String getOne() {
-        return one;
+        return className;
     }
 
     @Override
     public String getTwo() {
-        return two;
+        return id;
     }
 
     @Override
     public String getThree() {
-        return three;
+        return inactive;
     }
 
     @Override
@@ -79,14 +75,14 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(Long.toString(timeInMicros));
+        StringBuilder builder = new StringBuilder(className);
 
         builder.append(":")
-                .append(one)
+                .append(inactive)
                 .append(":")
-                .append(two)
+                .append(Long.toString(timeInMicros))
                 .append(":")
-                .append(three)
+                .append(id)
                 .append(":")
                 .append(four);
 

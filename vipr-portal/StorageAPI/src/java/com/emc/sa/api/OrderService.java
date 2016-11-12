@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -39,6 +40,8 @@ import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
@@ -631,6 +634,54 @@ public class OrderService extends CatalogTaggedResourceService {
             list.getOrders().add(resourceRep);
         }
         return list;
+    }
+
+    /**
+     * Deactivates the order
+     *
+     * @brief Deactivate Order
+     * @return OK if deactivation completed successfully
+     * @throws DatabaseException when a DB error occurs
+     */
+    @DELETE
+    @Path("/remove")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
+                                 @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime) {
+        StorageOSUser user = getUserFromContext();
+
+        log.info("lby0:starTime={} endTime={} user={}", new Object[] {startTime, endTime, user.getName()});
+
+        long now = System.currentTimeMillis();
+        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
+        long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime);
+        AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(user.getName(), startTimeInMacros, endTimeInMacros, true);
+        NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
+        long matchedCount = 0;
+        //_dbClient.start();
+        //_dbClient.queryByConstraint(constraint, queryResults, null, 6000);
+        _dbClient.queryByConstraint(constraint, queryResults);
+
+        for (NamedElementQueryResultList.NamedElement e : queryResults) {
+            matchedCount++;
+        }
+
+        log.info("lbyg0: {} to be deleted", matchedCount);
+        /*
+        Order order = queryResource(id);
+        ArgValidator.checkEntity(order, id, true);
+
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
+        }
+
+        orderManager.deleteOrder(order);
+
+        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());
+        */
+
+        return Response.ok().build();
     }
 
     /**

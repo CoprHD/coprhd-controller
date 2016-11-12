@@ -1,6 +1,7 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.Date;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -30,10 +32,13 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     private long startTimeMicros;
     private long endTimeMicros;
     private long lastMatchedTimeStamp = 0;
+    private boolean markForDelete = false;
+    private MutationBatch mutationBatch;
+    private long matchedCount = 0;
 
     private Keyspace _keyspace;
 
-    public AlternateId2ConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS) {
+    public AlternateId2ConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS, boolean markForDelete) {
         super(field, altId);
         indexSerializer = IndexColumnNameSerializer2.get();
 
@@ -42,6 +47,7 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
         _entryType = field.getDataObjectType();
         startTimeMicros = startTimeInMS*1000L;
         endTimeMicros = endTimeInMS * 1000L;
+        this.markForDelete = markForDelete;
     }
 
     @Override
@@ -60,13 +66,19 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
 
     @Override
     protected RowQuery<String, IndexColumnName2> genQuery() {
-        log.info("cf={} key={}", _altIdCf.getName(), _altId);
+        log.info("cf={} key={} delete={}", _altIdCf.getName(), _altId, markForDelete);
         log.info("prefix={} startime= {} endtime= {}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
-        log.info("pageCount={}", pageCount);
+        log.info("pageCount={} false={}", pageCount, Boolean.FALSE.toString());
+        try {
+            log.info("keyspace={}", _keyspace.describeKeyspace().getName());
+        }catch (Exception e) {
+            log.error("lbymm9 e=",e);
+        }
 
         RowQuery<String, IndexColumnName2> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
                 .withColumnRange(IndexColumnNameSerializer2.get().buildRange()
                         .withPrefix(_entryType.getSimpleName())
+                        .withPrefix(Boolean.FALSE.toString())
                         .greaterThan(startTimeMicros)
                         .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
@@ -92,6 +104,35 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName2> column) {
+        //log.info("lbymm0 markForDelete={} stack=", markForDelete, new Throwable());
+        log.info("lbymm0 markForDelete={} ", markForDelete);
+        if (markForDelete) {
+            matchedCount++;
+
+            log.info("lbymm1");
+            if (markForDelete) {
+                mutationBatch = _keyspace.prepareMutationBatch();
+            }
+
+            IndexColumnName2 columnName = column.getName();
+            IndexColumnName2 col = new IndexColumnName2(columnName.getOne(), columnName.getTwo(), true, columnName.getTimeInMicros());
+            mutationBatch.withRow(_altIdCf, _altId).deleteColumn(columnName);
+            mutationBatch.withRow(_altIdCf, _altId).putEmptyColumn(col, null);
+
+            //if ( matchedCount % pageCount == 0) {
+                try {
+                    log.info("lbymm2");
+                    mutationBatch.execute(); // commit
+                    log.info("lbymm3");
+                }catch (ConnectionException e) {
+                    log.error("Failed to update key={} column={} e=", _altId, columnName, e);
+                    throw new RuntimeException(e);
+                }
+                mutationBatch = _keyspace.prepareMutationBatch();
+            log.info("lbymm4");
+            // }
+        }
+        log.info("lbydd0");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }

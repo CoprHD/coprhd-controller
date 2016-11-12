@@ -11,10 +11,10 @@ public class IndexColumnNameSerializer2 extends AnnotatedCompositeSerializer<Ind
             //"org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.TimeUUIDType,"+
             //"org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.TimestampType,"+
             //"org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.LongType,"+
-            "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UTF8Type,"+
-                    "org.apache.cassandra.db.marshal.LongType," +
-                    "org.apache.cassandra.db.marshal.UTF8Type," +
-                    "org.apache.cassandra.db.marshal.UTF8Type," +
+            "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UTF8Type,"+ // class name
+                    "org.apache.cassandra.db.marshal.UTF8Type," +    // inactive
+                    "org.apache.cassandra.db.marshal.LongType," +    // timestamp
+                    "org.apache.cassandra.db.marshal.UTF8Type," +    // object ID
                     "org.apache.cassandra.db.marshal.UTF8Type)";
 
     public static IndexColumnNameSerializer2 get() {

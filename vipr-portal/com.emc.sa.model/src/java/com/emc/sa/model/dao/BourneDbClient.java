@@ -143,7 +143,7 @@ public class BourneDbClient implements DBClientWrapper {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         AlternateIdConstraint constraint = new AlternateId2ConstraintImpl(doType.getColumnField(columnField), value,
-                startTime, endTime);
+                startTime, endTime, false);
 
         return queryNamedElementsByConstraint(constraint, maxCount);
     }
@@ -175,7 +175,7 @@ public class BourneDbClient implements DBClientWrapper {
 
             while (found) {
                 AlternateId2ConstraintImpl constraint = new AlternateId2ConstraintImpl(doType.getColumnField(columnField),
-                        username, startTimeInMS, endTimeInMS);
+                        username, startTimeInMS, endTimeInMS, false);
 
                 List<NamedElement> orderIds = queryNamedElementsByConstraint(constraint, nNextRead);
                 LOG.info("lbyc3 nNexRead={}", nNextRead);

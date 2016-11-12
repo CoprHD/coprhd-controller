@@ -224,11 +224,9 @@ public abstract class CommandHandler {
         @SuppressWarnings("unchecked")
         private <T extends DataObject> void dataImport(DBClient client) throws Exception {
             long indexTime = 0;
-            long dbTime = 0;
 
             long startTime = System.currentTimeMillis();
 
-            long t3 = System.currentTimeMillis();
             Iterator<T> objects;
             InternalDbClientImpl dbClient = client.getDbClient();
             Class clazz = client.getClassFromCFName(cfName);
@@ -243,8 +241,6 @@ public abstract class CommandHandler {
                 return;
             }
             objects = dbClient.queryIterativeObjects(clazz, uris);
-            long t4 = System.currentTimeMillis();
-            dbTime = t4 - t3 + dbTime;
 
             long t1 = System.currentTimeMillis();
             IndexClientImpl indexclient = new IndexClientImpl();
@@ -255,11 +251,7 @@ public abstract class CommandHandler {
             System.out.println("Index server start!");
             int countAll = 0;
             while (objects.hasNext()) {
-
-                t3 = System.currentTimeMillis();
                 T object = objects.next();
-                t4 = System.currentTimeMillis();
-                dbTime = t4 - t3 + dbTime;
 
                 t1 = System.currentTimeMillis();
                 boolean success = indexclient.importRecords(clazz, object);
@@ -270,6 +262,9 @@ public abstract class CommandHandler {
                     countAll++;
                     System.out.println(countAll);
                 }
+                if (countAll >= 5000) {
+                    break;
+                }
             }
 
             t1 = System.currentTimeMillis();
@@ -279,10 +274,10 @@ public abstract class CommandHandler {
             indexTime = t2 - t1 + indexTime;
 
             long stopTime = System.currentTimeMillis();
-            long time = stopTime - startTime;
-            System.out.println("Total number:" + countAll + " Total time:" + time + " ms");
-            System.out.println("Time for index:" + indexTime + " ms");
-            System.out.println("Time for db:" + dbTime + " ms");
+            long time = (stopTime - startTime) / 60000;
+            indexTime /= 60000;
+            System.out.println("Total number:" + countAll + " Total time:" + time + " minutes");
+            System.out.println("Time for index:" + indexTime + " minutes");
         }
 
     }
@@ -303,7 +298,7 @@ public abstract class CommandHandler {
             IndexClientImpl indexclient = new IndexClientImpl();
             indexclient.init(clazz);
             System.out.println("Index server start!");
-            indexclient.deleteAllData(clazz);
+            indexclient.deleteAllData();
             indexclient.stop();
         }
     }

@@ -54,6 +54,51 @@ if [ "$1"x != "x" ]; then
    fi
 fi
 
+# A method that reports on the status of the test, along with other 
+# important information:
+#
+# What is helpful in one line:
+# 1. storage system under test
+# 2. simulator or not
+# 3. test number
+# 4. failure scenario within that test
+# 5. git branch
+# 6. git commit SHA
+# 7. IP address
+# 8. date/time stamp
+# 9. test status
+#
+# A huge plus, but wouldn't be available on a single line is:
+# 1. output from a failed test case
+# 2. the controller/apisvc logs for the test case
+#
+# But maybe we crawl before we run.
+report_results() {
+    testname=${1}
+    failure_scenario=${2}
+    branch=`git rev-parse --abbrev-ref HEAD`
+    sha=`git rev-parse HEAD`
+    ss=${SS}
+    simulator="Hardware"
+    if [ "${SIM}" = "1" ]; then
+	simulator="Simulator"
+    fi
+    status="PASSED"
+    if [ ${TRIP_VERIFY_FAIL_COUNT} -gt 0 ]; then
+	status="FAILED"
+    fi
+    datetime=`date +"%Y-%m-%d.%H:%M:%S"`
+
+    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},${status}"
+    mkdir -p /root/reliability
+    echo ${result} > /tmp/report-result.txt
+    echo ${result} >> /root/reliability/results-local-set.db
+
+    if [ "${REPORT}" = "1" ]; then
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@10.247.101.46 "cat >> /root/reliability/result-set.db" > /dev/null
+    fi
+}
+
 # Determine the mask name, given the storage system and other info
 get_masking_view_name() {
     no_host_name=0
@@ -96,8 +141,14 @@ get_masking_view_name() {
     echo ${masking_view_name}
 }
 
-VERIFY_EXPORT_COUNT=0
-VERIFY_EXPORT_FAIL_COUNT=0
+# Overall suite counts
+VERIFY_COUNT=0
+VERIFY_FAIL_COUNT=0
+
+# Per-test counts
+TRIP_VERIFY_COUNT=0
+TRIP_VERIFY_FAIL_COUNT=0
+
 verify_export() {
     export_name=$1
     host_name=$2
@@ -111,11 +162,19 @@ verify_export() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
 	cleanup
 	finish
     fi
-    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+    TRIP_VERIFY_COUNT=`expr $TRIP_VERIFY_COUNT + 1`
+    VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
+}
+
+# Reset the trip counters on a distinct test case
+reset_counts() {
+    VERIFY_COUNT=0
+    VERIFY_FAIL_COUNT=0
 }
 
 # Extra gut-check.  Make sure we didn't just grab a different mask off the array.
@@ -547,8 +606,8 @@ dbupdate() {
 
 finish() {
     code=${1}
-    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
-        exit $VERIFY_EXPORT_FAIL_COUNT
+    if [ $VERIFY_FAIL_COUNT -ne 0 ]; then
+        exit $VERIFY_FAIL_COUNT
     fi
     if [ "${code}" != "" ]; then
 	exit ${code}
@@ -674,7 +733,8 @@ runcmd() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
     fi
 }
 
@@ -695,7 +755,8 @@ fail(){
         echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
     else
 	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
@@ -1670,13 +1731,14 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    failure_injections="failure_004"
 
     for failure in ${failure_injections}
     do
       secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
+      reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       
@@ -1710,6 +1772,9 @@ test_1() {
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_1 ${failure}
     done
 }
 
@@ -1724,6 +1789,7 @@ test_2() {
     item=${RANDOM}
     cfs="ExportGroup ExportMask"
     mkdir -p results/${item}
+    reset_counts
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -1743,6 +1809,9 @@ test_2() {
     validate_db 1 2 ${cfs}
 
     verify_export ${expname}1 ${HOST1} gone
+
+    # Report results
+    report_results test_2 ${failure}
 }
 
 # Test 3
@@ -1797,6 +1866,7 @@ test_3() {
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       project=${PROJECT}-${item}
+      reset_counts
 
       # Create the project
       runcmd project create ${project} --tenant $TENANT
@@ -1834,6 +1904,9 @@ test_3() {
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_3 ${failure}
     done
 }
 
@@ -1879,6 +1952,7 @@ test_4() {
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
+      reset_counts
       
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -1907,6 +1981,9 @@ test_4() {
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_4 ${failure}
     done
 }
 
@@ -1952,6 +2029,7 @@ test_5() {
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
+      reset_counts
       
       # Check the state of the export that it doesn't exist
       snap_db 1 ${cfs}
@@ -1976,6 +2054,9 @@ test_5() {
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
+
+      # Report results
+      report_results test_5 ${failure}
     done
 }
 
@@ -2022,6 +2103,7 @@ test_6() {
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
+      reset_counts
       
       # Snap the state before the export group was created
       snap_db 1 ${cfs}
@@ -2052,6 +2134,9 @@ test_6() {
       # Validate the DB is back to its original state
       snap_db 4 ${cfs}
       validate_db 1 4 ${cfs}
+
+      # Report results
+      report_results test_6 ${failure}
     done
 }
 
@@ -2098,6 +2183,7 @@ test_7() {
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
+      reset_counts
       
       # Check the state of the export that it doesn't exist
       snap_db 1 ${cfs}
@@ -2133,6 +2219,9 @@ test_7() {
       # Verify the DB is back to the original state
       snap_db 4 ${cfs}
       validate_db 1 4 ${cfs}
+
+      # Report results
+      report_results test_7 ${failure}
     done
 }
 
@@ -2145,7 +2234,7 @@ cleanup() {
 	done
 	runcmd volume delete --project $PROJECT --wait
     fi
-    echo There were $VERIFY_EXPORT_FAIL_COUNT failures
+    echo There were $VERIFY_FAIL_COUNT failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
@@ -2273,6 +2362,13 @@ elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     fi
 fi
 
+# Whether to report results to the master data collector of all things
+REPORT=0
+if [ "${1}" = "-report" ]; then
+    REPORT=1
+    shift;
+fi
+
 login
 
 if [ "$1" = "regression" ]
@@ -2302,7 +2398,7 @@ then
     shift
 fi
 
-test_start=0
+test_start=1
 test_end=25
 
 # If there's a last parameter, take that
@@ -2338,8 +2434,8 @@ else
    done
 fi
 
-echo There were $VERIFY_EXPORT_COUNT export verifications
-echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+echo There were $VERIFY_COUNT verifications
+echo There were $VERIFY_FAIL_COUNT verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
@@ -2348,5 +2444,4 @@ if [ "${docleanup}" = "1" ]; then
 fi
 
 finish;
-
 

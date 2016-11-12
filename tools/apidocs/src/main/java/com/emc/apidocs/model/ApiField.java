@@ -21,6 +21,7 @@ public class ApiField implements Comparable<ApiField> {
     public boolean collection = false;
     public int min = 0;
     public int max = 1;
+    public String jsonName; // value of JsonProperty
 
     // Used during diff operations
     public ChangeState changeState = ChangeState.NOT_CHANGED;

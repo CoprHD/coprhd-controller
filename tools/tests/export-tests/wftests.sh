@@ -54,6 +54,51 @@ if [ "$1"x != "x" ]; then
    fi
 fi
 
+# A method that reports on the status of the test, along with other 
+# important information:
+#
+# What is helpful in one line:
+# 1. storage system under test
+# 2. simulator or not
+# 3. test number
+# 4. failure scenario within that test
+# 5. git branch
+# 6. git commit SHA
+# 7. IP address
+# 8. date/time stamp
+# 9. test status
+#
+# A huge plus, but wouldn't be available on a single line is:
+# 1. output from a failed test case
+# 2. the controller/apisvc logs for the test case
+#
+# But maybe we crawl before we run.
+report_results() {
+    testname=${1}
+    failure_scenario=${2}
+    branch=`git rev-parse --abbrev-ref HEAD`
+    sha=`git rev-parse HEAD`
+    ss=${SS}
+    simulator="Hardware"
+    if [ "${SIM}" = "1" ]; then
+	simulator="Simulator"
+    fi
+    status="PASSED"
+    if [ ${TRIP_VERIFY_FAIL_COUNT} -gt 0 ]; then
+	status="FAILED"
+    fi
+    datetime=`date +"%Y-%m-%d.%H:%M:%S"`
+
+    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},${status}"
+    mkdir -p /root/reliability
+    echo ${result} > /tmp/report-result.txt
+    echo ${result} >> /root/reliability/results-local-set.db
+
+    if [ "${REPORT}" = "1" ]; then
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@10.247.101.46 "cat >> /root/reliability/result-set.db" > /dev/null
+    fi
+}
+
 # Determine the mask name, given the storage system and other info
 get_masking_view_name() {
     no_host_name=0
@@ -96,8 +141,14 @@ get_masking_view_name() {
     echo ${masking_view_name}
 }
 
-VERIFY_EXPORT_COUNT=0
-VERIFY_EXPORT_FAIL_COUNT=0
+# Overall suite counts
+VERIFY_COUNT=0
+VERIFY_FAIL_COUNT=0
+
+# Per-test counts
+TRIP_VERIFY_COUNT=0
+TRIP_VERIFY_FAIL_COUNT=0
+
 verify_export() {
     export_name=$1
     host_name=$2
@@ -111,11 +162,19 @@ verify_export() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
 	cleanup
 	finish
     fi
-    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+    TRIP_VERIFY_COUNT=`expr $TRIP_VERIFY_COUNT + 1`
+    VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
+}
+
+# Reset the trip counters on a distinct test case
+reset_counts() {
+    VERIFY_COUNT=0
+    VERIFY_FAIL_COUNT=0
 }
 
 # Extra gut-check.  Make sure we didn't just grab a different mask off the array.
@@ -229,7 +288,7 @@ arrayhelper_create_export_mask_operation() {
 	vmax2|vmax3)
 	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -259,7 +318,7 @@ arrayhelper_volume_mask_operation() {
     vplex)
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -289,7 +348,7 @@ arrayhelper_initiator_mask_operation() {
     vplex)
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -318,7 +377,7 @@ arrayhelper_delete_volume() {
     vplex)
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -340,7 +399,7 @@ arrayhelper_delete_export_mask() {
     vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -369,7 +428,7 @@ arrayhelper_delete_mask() {
     vplex)
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -398,7 +457,7 @@ arrayhelper_verify_export() {
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -547,8 +606,8 @@ dbupdate() {
 
 finish() {
     code=${1}
-    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
-        exit $VERIFY_EXPORT_FAIL_COUNT
+    if [ $VERIFY_FAIL_COUNT -ne 0 ]; then
+        exit $VERIFY_FAIL_COUNT
     fi
     if [ "${code}" != "" ]; then
 	exit ${code}
@@ -674,7 +733,8 @@ runcmd() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
     fi
 }
 
@@ -695,7 +755,8 @@ fail(){
         echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
     else
 	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
@@ -963,10 +1024,9 @@ vnx_setup() {
 
 unity_setup()
 {
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
 
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     run storagedevice discover_all
@@ -1614,7 +1674,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g'  > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap"  > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -1671,13 +1731,14 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    failure_injections="failure_004"
 
     for failure in ${failure_injections}
     do
       secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
+      reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       
@@ -1711,6 +1772,9 @@ test_1() {
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_1 ${failure}
     done
 }
 
@@ -1725,6 +1789,7 @@ test_2() {
     item=${RANDOM}
     cfs="ExportGroup ExportMask"
     mkdir -p results/${item}
+    reset_counts
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -1744,6 +1809,9 @@ test_2() {
     validate_db 1 2 ${cfs}
 
     verify_export ${expname}1 ${HOST1} gone
+
+    # Report results
+    report_results test_2 ${failure}
 }
 
 # Test 3
@@ -1770,9 +1838,19 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume&5"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
+    fi
+
+    if [ "${SS}" = "unity" ]
+    then
+	storage_failure_injections="failure_022 failure_023"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -1782,11 +1860,16 @@ test_3() {
 
     for failure in ${failure_injections}
     do
-      secho "Running Test 1 with failure scenario: ${failure}..."
+      secho "Running Test 3 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
+      project=${PROJECT}-${item}
+      reset_counts
+
+      # Create the project
+      runcmd project create ${project} --tenant $TENANT
       
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -1795,7 +1878,7 @@ test_3() {
       snap_db 1 ${cfs}
 
       # Create the volume
-      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
+      fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
       # Let the async jobs calm down
       sleep 5
@@ -1808,16 +1891,337 @@ test_3() {
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
+      runcmd volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
       # Remove the volume
-      runcmd volume delete ${PROJECT}/${volname}-1 --wait
+      runcmd volume delete --project ${project} --wait
+
+      # Delete the project
+      runcmd project delete ${project}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_3 ${failure}
+    done
+}
+
+# Test 4
+#
+# Test exporting the volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume export operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Unexport volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_4() {
+    echot "Test 4 Begins"
+    expname=${EXPORT_GROUP_NAME}t0
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_004:failure_018"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the export that doesn't exist
+      snap_db 1 ${cfs}
+
+      # Create the export
+      fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Remove the export
+      runcmd export_group delete $PROJECT/${expname}1
       
       # Perform any DB validation in here
       snap_db 3 ${cfs}
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_4 ${failure}
+    done
+}
+
+# Test 5
+#
+# Test unexporting the volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 0. Export a volume to a host
+# 1. Save off state of DB (1)
+# 2. Perform volume unexport operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_5() {
+    echot "Test 5 Begins"
+    expname=${EXPORT_GROUP_NAME}t5
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_015"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 5 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Check the state of the export that it doesn't exist
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Delete the export
+      fail export_group delete $PROJECT/${expname}1
+
+      # Don't validate in here.  It's a delete operation and it's allowed to leave things behind, as long as the retry cleans it up.
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd export_group delete $PROJECT/${expname}1
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Report results
+      report_results test_5 ${failure}
+    done
+}
+
+# Test 6
+#
+# Test adding a volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to a host
+# 3. Save off state of DB (2)
+# 4. Perform add volume operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_6() {
+    echot "Test 6 Begins"
+    expname=${EXPORT_GROUP_NAME}t6
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_017"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 6 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Snap the state before the export group was created
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Snap the DB state with the export group created
+      snap_db 2 ${cfs}
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Delete the export
+      fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+
+      # Validate nothing was left behind
+      snap_db 3 ${cfs}
+      validate_db 2 3 ${cfs}
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 4 ${cfs}
+      validate_db 1 4 ${cfs}
+
+      # Report results
+      report_results test_6 ${failure}
+    done
+}
+
+# Test 7
+#
+# Test adding an initiator while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to an initiator
+# 3. Save off state of DB (2)
+# 4. Perform add initiator operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_7() {
+    echot "Test 7 Begins"
+    expname=${EXPORT_GROUP_NAME}t7
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_016 failure_004:failure_020 failure_004:failure_021"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004"
+
+    for failure in ${failure_injections}
+    do
+      secho "Running Test 7 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="ExportGroup ExportMask"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Check the state of the export that it doesn't exist
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
+
+      # Snsp the DB so we can validate after failures later
+      snap_db 2 ${cfs}
+
+      # Strip out colons for array helper command
+      h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Attempt to add an initiator
+      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+
+      # Delete the export
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Verify the DB is back to the original state
+      snap_db 4 ${cfs}
+      validate_db 1 4 ${cfs}
+
+      # Report results
+      report_results test_7 ${failure}
     done
 }
 
@@ -1830,7 +2234,7 @@ cleanup() {
 	done
 	runcmd volume delete --project $PROJECT --wait
     fi
-    echo There were $VERIFY_EXPORT_FAIL_COUNT failures
+    echo There were $VERIFY_FAIL_COUNT failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
@@ -1958,6 +2362,13 @@ elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     fi
 fi
 
+# Whether to report results to the master data collector of all things
+REPORT=0
+if [ "${1}" = "-report" ]; then
+    REPORT=1
+    shift;
+fi
+
 login
 
 if [ "$1" = "regression" ]
@@ -1987,7 +2398,7 @@ then
     shift
 fi
 
-test_start=0
+test_start=1
 test_end=25
 
 # If there's a last parameter, take that
@@ -2023,8 +2434,8 @@ else
    done
 fi
 
-echo There were $VERIFY_EXPORT_COUNT export verifications
-echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+echo There were $VERIFY_COUNT verifications
+echo There were $VERIFY_FAIL_COUNT verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
@@ -2033,5 +2444,4 @@ if [ "${docleanup}" = "1" ]; then
 fi
 
 finish;
-
 

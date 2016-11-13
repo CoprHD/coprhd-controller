@@ -38,6 +38,8 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
+import com.emc.storageos.protectioncontroller.ProtectionExportController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceExportController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexUtil;
@@ -117,9 +119,25 @@ public class BlockDeviceExportController implements BlockExportController {
                             "ExportGroupCreate: " + exportGroup.getLabel());
                 }
 
-                _wfUtils.
-                        generateExportGroupCreateWorkflow(workflow, null, null,
-                                entry.getKey(), export, entry.getValue(), initiatorURIs);
+                // Initialize the Map of objects to export with all objects.
+                Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(entry.getValue());
+
+                String waitFor = null;
+
+                ProtectionExportController protectionController = getProtectionExportController();
+                waitFor = protectionController.addStepsForExportGroupCreate(workflow, null, waitFor, export, objectsToAdd, entry.getKey(),
+                        initiatorURIs);
+
+                if (!objectsToAdd.isEmpty()) {
+                    // There are no export BlockObjects tied to the current storage system that have an associated protection
+                    // system. We can just create a step to call the block controller directly for export group create.
+                    _log.info(String.format(
+                            "Generating exportGroupCreates steps for objects %s associated with storage system [%s]",
+                            objectsToAdd, entry.getKey()));
+                    _wfUtils.
+                            generateExportGroupCreateWorkflow(workflow, null, waitFor,
+                                    entry.getKey(), export, objectsToAdd, initiatorURIs);
+                }
             }
 
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
@@ -152,7 +170,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask tempExportMask : tempExportMasks) {               
+                for (ExportMask tempExportMask : tempExportMasks) {
                     List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                             _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                             StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), tempExportMask.getStorageDevice());
@@ -261,7 +279,7 @@ public class BlockDeviceExportController implements BlockExportController {
         Map<URI, Map<URI, Integer>> map = new HashMap<URI, Map<URI, Integer>>();
         for (Map.Entry<URI, Integer> entry : uriToHLU.entrySet()) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, entry.getKey());
-            URI storage = getExportStorageController(blockObject);
+            URI storage = blockObject.getStorageController();
             Map<URI, Integer> volumesForStorage = map.get(storage);
             if (volumesForStorage == null) {
                 volumesForStorage = new HashMap<URI, Integer>();
@@ -357,10 +375,10 @@ public class BlockDeviceExportController implements BlockExportController {
             Set<URI> addedClusters, Set<URI> removedClusters,
             Set<URI> addedHosts, Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, String opId)
             throws ControllerException {
-        Map<BlockObjectControllerKey, Map<URI, Integer>> addedStorageToBlockObjects =
-                new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
-        Map<BlockObjectControllerKey, Map<URI, Integer>> removedStorageToBlockObjects =
-                new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
+        Map<URI, Map<URI, Integer>> addedStorageToBlockObjects =
+                new HashMap<URI, Map<URI, Integer>>();
+        Map<URI, Map<URI, Integer>> removedStorageToBlockObjects =
+                new HashMap<URI, Map<URI, Integer>>();
 
         Workflow workflow = null;
         try {
@@ -378,16 +396,16 @@ public class BlockDeviceExportController implements BlockExportController {
             // keeping the completer simple.
             Map<URI, Integer> addedBlockObjects = new HashMap<>();
 
-            for (BlockObjectControllerKey controllerKey : addedStorageToBlockObjects.keySet()) {
-                addedBlockObjects.putAll(addedStorageToBlockObjects.get(controllerKey));
+            for (URI storageUri : addedStorageToBlockObjects.keySet()) {
+                addedBlockObjects.putAll(addedStorageToBlockObjects.get(storageUri));
             }
 
             // Generate a flat list of volume/snap objects that will be removed
             // to the export update completer so the completer will know what
             // to remove upon task completion.
             Map<URI, Integer> removedBlockObjects = new HashMap<>();
-            for (BlockObjectControllerKey controllerKey : removedStorageToBlockObjects.keySet()) {
-                removedBlockObjects.putAll(removedStorageToBlockObjects.get(controllerKey));
+            for (URI storageUri : removedStorageToBlockObjects.keySet()) {
+                removedBlockObjects.putAll(removedStorageToBlockObjects.get(storageUri));
             }
 
             // Construct the export update completer with exactly which objects will
@@ -401,19 +419,16 @@ public class BlockDeviceExportController implements BlockExportController {
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);
 
-            // need to iterate over all unique storage controller -> protection controller
-            // combinations.
-
-            for (BlockObjectControllerKey controllerKey : addedStorageToBlockObjects.keySet()) {
-                _log.info("Creating sub-workflow for storage system {}", String.valueOf(controllerKey.getStorageControllerUri()));
+            for (URI storageUri : addedStorageToBlockObjects.keySet()) {
+                _log.info("Creating sub-workflow for storage system {}", String.valueOf(storageUri));
                 // TODO: Need to fix, getExportMask() returns a single mask,
                 // but there could be more than 1 for a array and ExportGroup
                 _wfUtils.
                         generateExportGroupUpdateWorkflow(workflow, null, null,
-                                controllerKey.getController(), export, getExportMask(export, controllerKey.getStorageControllerUri()),
-                                addedStorageToBlockObjects.get(controllerKey),
-                                removedStorageToBlockObjects.get(controllerKey),
-                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), controllerKey.getStorageControllerUri());
+                                export, getExportMask(export, storageUri),
+                                addedStorageToBlockObjects.get(storageUri),
+                                removedStorageToBlockObjects.get(storageUri),
+                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());
@@ -454,16 +469,14 @@ public class BlockDeviceExportController implements BlockExportController {
     private void computeDiffs(URI expoUri,
             Map<URI, Integer> addedBlockObjectsFromRequest,
             Map<URI, Integer> removedBlockObjectsFromRequest,
-            Map<BlockObjectControllerKey, Map<URI, Integer>> addedBlockObjects,
-            Map<BlockObjectControllerKey, Map<URI, Integer>> removedBlockObjects,
+            Map<URI, Map<URI, Integer>> addedBlockObjects,
+            Map<URI, Map<URI, Integer>> removedBlockObjects,
             Set<URI> addedInitiators,
             Set<URI> removedInitiators, Set<URI> addedHosts,
             Set<URI> removedHosts, Set<URI> addedClusters,
             Set<URI> removedClusters) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
-
-        BlockObjectControllerKey controllerKey = null;
 
         // If there are existing volumes, make sure their controller is represented in the
         // addedBlockObjects and removedBlockObjects maps, even if nothing was added / or removed.
@@ -474,52 +487,35 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
             for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
                 BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
-                URI storageControllerUri = getExportStorageController(bo);
-                controllerKey = new BlockObjectControllerKey();
-                controllerKey.setStorageControllerUri(bo.getStorageController());
-                if (!storageControllerUri.equals(bo.getStorageController())) {
-                    controllerKey.setProtectionControllerUri(storageControllerUri);
-                }
-                _log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
+
+                _log.info("Existing block object {} in storage {}", bo.getId(), bo.getStorageController());
+
                 // add an entry in each map for the storage system if not already exists
-                getOrAddStorageMap(controllerKey, addedBlockObjects);
-                getOrAddStorageMap(controllerKey, removedBlockObjects);
+                getOrAddStorageMap(bo.getStorageController(), addedBlockObjects);
+                getOrAddStorageMap(bo.getStorageController(), removedBlockObjects);
             }
         }
 
         // compute a map of storage-system-to-volumes for volumes to be added
         for (URI uri : addedBlockObjectsFromRequest.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, uri);
-            URI storageControllerUri = getExportStorageController(bo);
 
-            controllerKey = new BlockObjectControllerKey();
-            controllerKey.setStorageControllerUri(bo.getStorageController());
-            if (!storageControllerUri.equals(bo.getStorageController())) {
-                controllerKey.setProtectionControllerUri(storageControllerUri);
-            }
             // add an entry in each map for the storage system if not already exists
-            getOrAddStorageMap(controllerKey, addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
-            getOrAddStorageMap(controllerKey, removedBlockObjects);
+            getOrAddStorageMap(bo.getStorageController(), addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
+            getOrAddStorageMap(bo.getStorageController(), removedBlockObjects);
 
-            _log.info("Block object {} to add to storage: {}", bo.getId(), controllerKey.getController());
+            _log.info("Block object {} to add to storage: {}", bo.getId(), bo.getStorageController());
         }
 
         for (URI uri : removedBlockObjectsFromRequest.keySet()) {
             if (existingMap.containsKey(uri)) {
                 BlockObject bo = BlockObject.fetch(_dbClient, uri);
-                URI storageControllerUri = getExportStorageController(bo);
-
-                controllerKey = new BlockObjectControllerKey();
-                controllerKey.setStorageControllerUri(bo.getStorageController());
-                if (!storageControllerUri.equals(bo.getStorageController())) {
-                    controllerKey.setProtectionControllerUri(storageControllerUri);
-                }
 
                 // add an empty map for the added blocks so that the two maps have the same keyset
-                getOrAddStorageMap(controllerKey, addedBlockObjects);
-                getOrAddStorageMap(controllerKey, removedBlockObjects).put(uri, existingMap.get(uri));
+                getOrAddStorageMap(bo.getStorageController(), addedBlockObjects);
+                getOrAddStorageMap(bo.getStorageController(), removedBlockObjects).put(uri, existingMap.get(uri));
 
-                _log.info("Block object {} to remove from storage: {}", bo.getId(), controllerKey.getController());
+                _log.info("Block object {} to remove from storage: {}", bo.getId(), bo.getStorageController());
             }
         }
 
@@ -550,21 +546,21 @@ public class BlockDeviceExportController implements BlockExportController {
 
     }
 
-    private Map<URI, Integer> getOrAddStorageMap(BlockObjectControllerKey controllerKey,
-            Map<BlockObjectControllerKey, Map<URI, Integer>> map) {
-        Map<URI, Integer> volumesForStorage = map.get(controllerKey);
+    private Map<URI, Integer> getOrAddStorageMap(URI storageUri,
+            Map<URI, Map<URI, Integer>> map) {
+        Map<URI, Integer> volumesForStorage = map.get(storageUri);
         if (volumesForStorage == null) {
             volumesForStorage = new HashMap<URI, Integer>();
-            map.put(controllerKey, volumesForStorage);
+            map.put(storageUri, volumesForStorage);
         }
         return volumesForStorage;
     }
 
     private ExportMask getExportMask(URI exportGroupUri, URI storageUri) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-    
+
         for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
-            try {               
+            try {
                 if (exportMask.getStorageDevice().equals(storageUri)) {
                     return exportMask;
                 }
@@ -573,7 +569,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
             }
         }
-        
+
         return null;
     }
 
@@ -887,5 +883,17 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         }
         return systemToVolumeMap;
+    }
+
+    /**
+     * Gets an instance of ProtectionExportController.
+     * <p>
+     * NOTE: This method currently only returns an instance of RPDeviceExportController. In the future, this will need to return other
+     * protection export controllers if support is added.
+     * 
+     * @return the ProtectionExportController
+     */
+    private ProtectionExportController getProtectionExportController() {
+        return new RPDeviceExportController(_dbClient, _wfUtils);
     }
 }

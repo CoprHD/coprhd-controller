@@ -10,28 +10,15 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.ref.SoftReference;
 import java.net.URI;
-import java.util.*;
-
-import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.IndexCleaner;
-import com.emc.storageos.db.client.impl.IndexCleanupList;
-import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.impl.PrefixDbIndex;
-import com.emc.storageos.db.client.impl.RowMutator;
-import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.util.RangeBuilder;
-import com.netflix.astyanax.util.TimeUUIDUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -43,11 +30,60 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.TestDBClientUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.*;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
+import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.IndexCleaner;
+import com.emc.storageos.db.client.impl.IndexCleanupList;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.RowMutator;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FSExportMap;
+import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
-import com.emc.storageos.db.server.DbClientTest;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.cql.CqlStatement;
+import com.netflix.astyanax.cql.CqlStatementResult;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.query.ColumnFamilyQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class PersistingChangesTest extends DbsvcTestBase {
     private static final Logger _log = LoggerFactory.getLogger(PersistingChangesTest.class);
@@ -961,5 +997,75 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         Assert.assertTrue(unManagedVolume.getVolumeInformation().get(key2).contains("test7"));
         Assert.assertFalse(unManagedVolume.getVolumeInformation().get(key2).contains("test6"));
+    }
+    
+    @Test
+    public void testUpdateObjectWithAtomicBatchAcrossDB() throws Exception {
+    	try {
+    		dbClient.updateObjectWithAtomicBatch(new Volume(), new Project());
+    		Assert.fail();
+    	} catch (IllegalArgumentException e) {
+    		//expected exception
+    	}
+    }
+    
+    @Test
+    public void testUpdateObjectWithAtomicBatch() throws Exception {
+    	VirtualPool vpool = new VirtualPool();
+        vpool.setId(URIUtil.createId(VirtualPool.class));
+        vpool.setLabel("vpool label");
+        vpool.setType("file");
+        vpool.setQuota(100L);
+    	
+    	String prefix = "testUpdateObjectWithAtomicBatch";
+    	Volume volume = new Volume();
+        URI id = URIUtil.createId(Volume.class);
+        volume.setId(id);
+        volume.setLabel(prefix + "volume");
+        volume.setPool(vpool.getId());
+        volume.setNativeGuid(prefix + "native_guid-2");
+        volume.setNativeId(prefix + "native_id-2");
+        volume.setCompositionType(prefix + "compositionType");
+        volume.setInactive(false);
+        volume.setAllocatedCapacity(1000L);
+        volume.setProvisionedCapacity(2000L);
+        
+        dbClient.updateObjectWithAtomicBatch(vpool, volume);
+        
+        Volume targetVolume = (Volume)dbClient.queryObject(id);
+        Assert.assertNotNull(targetVolume);
+        Assert.assertEquals(volume.getLabel(), targetVolume.getLabel());
+        Assert.assertEquals(volume.getPool(), targetVolume.getPool());
+        Assert.assertEquals(volume.getNativeGuid(), targetVolume.getNativeGuid());
+        Assert.assertEquals(volume.getNativeId(), targetVolume.getNativeId());
+        Assert.assertEquals(volume.getCompositionType(), targetVolume.getCompositionType());
+        Assert.assertEquals(volume.getAllocatedCapacity(), targetVolume.getAllocatedCapacity());
+        Assert.assertEquals(volume.getProvisionedCapacity(), targetVolume.getProvisionedCapacity());
+        
+        VirtualPool targetPool = (VirtualPool)dbClient.queryObject(vpool.getId());
+        Assert.assertNotNull(targetPool);
+        Assert.assertEquals(vpool.getLabel(), targetPool.getLabel());
+        Assert.assertEquals(vpool.getType(), targetPool.getType());
+        Assert.assertEquals(vpool.getQuota(), targetPool.getQuota());
+        
+        CqlStatement statement = ((DbClientImpl)dbClient).getLocalContext().getKeyspace().prepareCqlStatement();
+        String cql = String.format("select * from \"LabelPrefixIndex\" where key='%s' and column1='Volume' and column2='%s' and column3='%s' and column4='%s'", 
+        		prefix.toLowerCase().substring(0, 2), volume.getLabel().toLowerCase(), volume.getLabel(), volume.getId().toString());
+        CqlStatementResult result = statement.withCql(cql).execute().getResult();
+		Rows<String, IndexColumnName> rows = result.getRows(new ColumnFamily<String, IndexColumnName>("LabelPrefixIndex",
+                StringSerializer.get(),
+                IndexColumnNameSerializer.get()));
+        
+        Assert.assertEquals(1, rows.size());
+        
+        statement = ((DbClientImpl)dbClient).getLocalContext().getKeyspace().prepareCqlStatement();
+        cql = String.format("select * from \"LabelPrefixIndex\" where key='%s' and column1='VirtualPool' and column2='%s' and column3='%s' and column4='%s'", 
+        		vpool.getLabel().toLowerCase().substring(0, 2), vpool.getLabel().toLowerCase(), vpool.getLabel(), vpool.getId().toString());
+        result = statement.withCql(cql).execute().getResult();
+		rows = result.getRows(new ColumnFamily<String, IndexColumnName>("LabelPrefixIndex",
+                StringSerializer.get(),
+                IndexColumnNameSerializer.get()));
+        
+        Assert.assertEquals(1, rows.size());
     }
 }

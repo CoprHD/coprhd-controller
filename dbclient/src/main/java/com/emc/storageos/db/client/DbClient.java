@@ -707,4 +707,6 @@ public interface DbClient {
      * @return true if there are useful data
      */
     boolean hasUsefulData();
+    
+    <T extends DataObject> void updateObjectWithAtomicBatch(T... object);
 }

@@ -1163,7 +1163,7 @@ public class DbClientImpl implements DbClient {
         DataObjectType doType = TypeMap.getDoType(clazz);
         return queryRowsWithAllColumns(ks, objectsToCleanup, doType.getCF());
     }
-
+    
     protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Keyspace ks, Rows<String, CompositeColumnName> rows) {
         // cleanup old entries for indexed columns
         // CHECK - persist is called only with same object types for now
@@ -1981,6 +1981,56 @@ public class DbClientImpl implements DbClient {
         String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
+
+	@Override
+	public <T extends DataObject> void updateObjectWithAtomicBatch(T... objects) {
+		List<DataObject> dataobjects = Arrays.asList(objects);
+		if (dataobjects == null || dataobjects.isEmpty()) {
+            return;
+        }
+		
+        boolean isLocalDataObject = false;
+        boolean isGlobalDataObject = false;
+        for (DataObject obj : dataobjects) {
+        	isLocalDataObject = !obj.isGlobal();
+        	isGlobalDataObject = obj.isGlobal();
+        	
+        	if (isLocalDataObject && isGlobalDataObject) {
+        		break;
+        	}
+        }
+        
+        if (isLocalDataObject && isGlobalDataObject) {
+        	String errroMessage = "Detect both local and global data objects, can't update them with atomic batch";
+			_log.error(errroMessage);
+        	throw new IllegalArgumentException(errroMessage);
+        }
+
+        //update data objects with one row mutator
+		Keyspace keySpace = isLocalDataObject ? getLocalKeyspace() : getGeoKeyspace();
+        List<URI> cleanupURIList = insertNewColumns(keySpace, dataobjects);
+        
+        //clean up old columns by class
+        if (cleanupURIList.isEmpty()) {
+        	Map<Class<DataObject>, List<URI>> cleanupListByClass = new HashMap<Class<DataObject>, List<URI>>();
+        	for (URI uri : cleanupURIList) {
+        		Class<DataObject> clazz = URIUtil.getModelClass(uri);
+        		if (!cleanupListByClass.containsKey(clazz)) {
+        			cleanupListByClass.put(clazz, new ArrayList<URI>());
+        		}
+        		
+        		cleanupListByClass.get(clazz).add(uri);
+        	}
+        	
+        	Iterator<Map.Entry<Class<DataObject>, List<URI>>> iterator = cleanupListByClass.entrySet().iterator();
+        	while (iterator.hasNext()) {
+        		Map.Entry<Class<DataObject>, List<URI>> entry = iterator.next();
+        		Rows<String, CompositeColumnName> rows = fetchNewest(entry.getKey(), keySpace, entry.getValue());
+                cleanupOldColumns(entry.getKey(), keySpace, rows);
+        	}
+            
+        }
+	}
 
     
 }

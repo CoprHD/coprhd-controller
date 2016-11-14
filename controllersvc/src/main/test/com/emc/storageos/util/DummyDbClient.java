@@ -463,4 +463,9 @@ public class DummyDbClient implements DbClient {
         return null;
     }
 
+	@Override
+	public <T extends DataObject> void updateObjectWithAtomicBatch(T... object) {
+		// TODO Auto-generated method stub
+	}
+
 }

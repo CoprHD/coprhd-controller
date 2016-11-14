@@ -3213,10 +3213,6 @@ public class ExportGroupService extends TaskResourceService {
         validatePortAllocate(exportGroup, initiators, system, varray, response, existingPathMap);
         
         try {
-            
-            if (Boolean.TRUE.equals(param.getUseExistingPaths())) {
-                
-            }
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
             ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
             // Call the storage port allocator/assigner for all initiators (host or cluster) in

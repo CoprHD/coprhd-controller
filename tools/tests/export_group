@@ -99,7 +99,7 @@ def export_group_realloc(args):
     except:
         print rep
         return
-    print "Added Paths: "
+    print "Added or Retained Paths: "
     for path in addedpaths:
         for port in path['storage_ports']:
             print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']

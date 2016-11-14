@@ -48,8 +48,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
 
     public static void main(String[] args) {
         VdcUtil.setDbClient(new DummyDbClient());
-        String path = "C:\\view0525\\coprhd-controller\\controllersvc\\src\\main\\test\\com\\emc\\storageos\\volumecontroller\\impl\\block\\log4j.properties";
-        PropertyConfigurator.configure(path);
+        PropertyConfigurator.configure("log4j.properties");
         _log.info("Beginning logging");
         PortAllocatorTestContext contextPrototype = new PortAllocatorTestContext();
         StoragePortsAllocator.setContextPrototype(contextPrototype);

@@ -1109,4 +1109,14 @@ public class StoragePortsAllocator {
         }
         return sameSwitchStoragePorts;
     }
+    
+    /**
+     * Get Storage port to switch name map in th context
+     * 
+     * @param context port allocation conext
+     * @return the map of the storage port to switch name
+     */
+    public Map<StoragePort, String> getPortSwitchMap(PortAllocationContext context) {
+        return context._storagePortToSwitchName;
+    }
 }

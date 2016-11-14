@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,9 +47,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
 
     public static void main(String[] args) throws InterruptedException {
         VdcUtil.setDbClient(new DummyDbClient());
-        String path = "C:\\view0525\\coprhd-controller\\controllersvc\\src\\main\\test\\com\\emc\\storageos\\volumecontroller\\impl\\block\\log4j.properties";
-        PropertyConfigurator.configure(path);
-        //PropertyConfigurator.configure("log4j.properties");
+        PropertyConfigurator.configure("log4j.properties");
         _log.info("Beginning logging");
         PortAllocatorTestContext contextPrototype = new PortAllocatorTestContext();
         StoragePortsAllocator.setContextPrototype(contextPrototype);
@@ -298,8 +297,11 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         allocatablePorts.clear();
         Map<URI, Map<String, List<StoragePort>>> portSwitchMap = new HashMap<URI, Map<String, List<StoragePort>>>();
         
-        getNet3PortsSA(networkMap, allocatablePorts, portSwitchMap);
-        getNet4PortsSA(networkMap, allocatablePorts, portSwitchMap);
+        PortAllocationContext context1 = getNet3PortsSA(networkMap, allocatablePorts, portSwitchMap);
+        PortAllocationContext context2 = getNet4PortsSA(networkMap, allocatablePorts, portSwitchMap);
+        Map<URI, PortAllocationContext> contextMap = new HashMap<URI, PortAllocationContext>();
+        contextMap.put(context1._initiatorNetwork.getId(), context1);
+        contextMap.put(context2._initiatorNetwork.getId(), context2);
         logNetworks(allocatablePorts);
         Map<URI, String> initiatorSwitchMap = new HashMap<URI, String>();
         getInitiatorsVplex154Clus1DualEnginesSA(directorToInitiators, initiatorIdToNetwork, initiatorMap,
@@ -308,7 +310,8 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
         directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
         orca.setVplexDirectorCount(directorCount);
-        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null);
+        Map<URI, Map<String, Integer>> switchPortNumber = getSwitchToPortNumber(networkMap.keySet(), 2);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size(), switchPortNumber, contextMap);
         makeExportMasksSA(arrayURI, orca, portGroups, initiatorGroups, networkMap, initiatorSwitchMap, portSwitchMap );
     }
 
@@ -712,15 +715,19 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         List<StoragePort> switchAPorts = new ArrayList<StoragePort>();
         List<StoragePort> switchBPorts = new ArrayList<StoragePort>();
         port = createFCPort("X1-SC1:fc1", "50:00:00:00:00:00:00:7E:00");
+        addPort(context, port, "mds-a");
         ports.add(port);
         switchAPorts.add(port);
         port = createFCPort("X1-SC2:fc1", "50:00:00:00:00:00:00:8E:00");
+        addPort(context, port, "mds-a");
         ports.add(port);
         switchAPorts.add(port);
         port = createFCPort("X2-SC1:fc1", "50:00:00:00:00:00:00:9E:00");
+        addPort(context, port, "mds-b");
         ports.add(port);
         switchBPorts.add(port);
         port = createFCPort("X2-SC2:fc1", "50:00:00:00:00:00:00:AE:00");
+        addPort(context, port, "mds-b");
         ports.add(port);
         switchBPorts.add(port);
         allocatablePorts.put(id, ports);
@@ -744,15 +751,19 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         List<StoragePort> switchAPorts = new ArrayList<StoragePort>();
         List<StoragePort> switchBPorts = new ArrayList<StoragePort>();
         port = createFCPort("X1-SC1:fc2", "50:00:00:00:00:00:00:7F:00");
+        addPort(context, port, "mds-a");
         ports.add(port);
         switchAPorts.add(port);
         port = createFCPort("X1-SC2:fc2", "50:00:00:00:00:00:00:8F:00");
+        addPort(context, port, "mds-a");
         ports.add(port);
         switchAPorts.add(port);
         port = createFCPort("X2-SC1:fc2", "50:00:00:00:00:00:00:9F:00");
+        addPort(context, port, "mds-b");
         ports.add(port);
         switchBPorts.add(port);
         port = createFCPort("X2-SC2:fc2", "50:00:00:00:00:00:00:AF:00");
+        addPort(context, port, "mds-b");
         ports.add(port);
         switchBPorts.add(port);
         allocatablePorts.put(id, ports);
@@ -855,6 +866,17 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
         }
         _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    }
+    
+    private static Map<URI, Map<String, Integer>> getSwitchToPortNumber(Collection<URI> networkList, Integer path) {
+        Map<URI, Map<String, Integer>> result = new HashMap<URI, Map<String, Integer>>();
+        for (URI net : networkList) {
+            Map<String, Integer> switchMap = new HashMap<String, Integer>();
+            switchMap.put("mds-a", path);
+            switchMap.put("mds-b", path);
+            result.put(net, switchMap);
+        }
+        return result;
     }
 
 }

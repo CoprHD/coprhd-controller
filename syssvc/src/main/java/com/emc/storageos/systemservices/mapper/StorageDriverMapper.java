@@ -56,6 +56,7 @@ public class StorageDriverMapper {
             provider.setSslPort(Long.toString(driver.getSslPort()));
             provider.setNonSslPort(Long.toString(driver.getNonSslPort()));
             provider.setDriverClassName(driver.getDriverClassName());
+            type.setManagedBy(provider.getStorageTypeId());
             types.add(provider);
         }
         return types;

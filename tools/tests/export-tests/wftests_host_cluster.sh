@@ -302,15 +302,14 @@ approve_pending_event() {
 test_host_remove_initiator() {
     echot "Test host_remove_initiator Begins"
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
+    common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
 
 
-    #failure_injections="${common_failure_injections}"
+    failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    #failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
     for failure in ${failure_injections}
     do
@@ -415,8 +414,9 @@ test_host_remove_initiator() {
         # 4. Delete the host initiators
         # 5. Delete the host
         runcmd export_group update ${PROJECT}/${exportgroup} --remVols ${PROJECT}/${volume}
-        runcmd volume delete ${PROJECT}/${volume} --wait
+        runcmd volume delete ${PROJECT}/${volume} --wait                
         runcmd export_group delete ${PROJECT}/${exportgroup}    
+        sleep 5
         runcmd initiator delete ${host}/${init3}
         runcmd initiator delete ${host}/${init4}
         runcmd hosts delete ${host}

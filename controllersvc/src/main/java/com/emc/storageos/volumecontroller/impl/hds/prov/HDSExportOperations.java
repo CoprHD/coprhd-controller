@@ -1571,14 +1571,14 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     /**
-     * Fetches ExportMasks from DB based on the given initiators.
+     * Fetches ExportMask from DB based on the given initiators.
      * 
      * @param hostInitiators
      * @param storage
      * @return
      */
-    private List<ExportMask> fetchExportMasksFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
-        List<ExportMask> exportMasks = new ArrayList<>();
+    private ExportMask fetchExportMaskFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
+    	ExportMask exportMask = null;
         if (null != activeMasks && !activeMasks.isEmpty()) {
             for (ExportMask activeExportMask : activeMasks) {
                 if (!activeExportMask.getStorageDevice().equals(storage.getId())) {
@@ -1587,11 +1587,12 @@ public class HDSExportOperations implements ExportMaskOperations {
                 Set<URI> emInitiators = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, activeExportMask);
                 Set<URI> matchingInitiators = Sets.intersection(emInitiators, hostInitiators);
                 if (!matchingInitiators.isEmpty()) {
-                    exportMasks.add(activeExportMask);
+                	exportMask = activeExportMask;
+                    break;
                 }
             }
         }
-        return exportMasks;
+        return exportMask;
     }
 
     /**

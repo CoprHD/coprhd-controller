@@ -799,14 +799,29 @@
 angular.module("portalApp").controller('builderController', function($scope, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.workflowTabs = {};
-    initializeJsTree();
 
     function addTab(tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
       $scope.$apply();
     }
 
-    function initializeJsTree(){
+    // -- populate tree data
+    //TODO: get ViPR Library nodes from API (pending)
+    var dirJSON = [
+        {"id":"myLib", "parent":"#","text":"My Library"},
+        {"id":"viprLib","parent":"#","text":"ViPR Library"},
+        {"id":"rest","parent":"viprLib","text":"ViPR REST Primitives"},
+        {"id":"ansible","parent":"viprLib","text":"Ansible Primitives"},
+        {"id":"email","parent":"ansible","text":"Send Email", "type": "file", "li_attr": {"class": "draggable-card"}},
+        {"id":"create","parent":"rest","text":"Create Volume", "type": "file", "li_attr": {"class": "draggable-card"}, "data": dummyStepData},
+        {"id":"export","parent":"rest","text":"Export Volume", "type": "file", "li_attr": {"class": "draggable-card"}}
+    ]
+    $http.get(routes.WF_directories()).then(function (data) {
+        initializeJsTree(dirJSON.concat(data.data))
+    });
+    // --
+
+    function initializeJsTree(dirJSON){
         $(".search-input").keyup(function() {
             var searchString = $(this).val();
             $('#jstree_demo').jstree('search', searchString);
@@ -816,7 +831,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             "core": {
                 "animation": 0,
                 "check_callback": true,
-                "themes": {"stripes": false}
+                "themes": {"stripes": false},
+                "data": dirJSON
             },
             "types": {
                 "#": {
@@ -903,29 +919,17 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
                  }
             }
         }).on('ready.jstree', function() {
-            // -- populate tree data
-            //TODO: get ViPR Library nodes from API (pending)
-            var rootjson = [
-                {"id":"myLib", "parent":"#","text":"My Library"},
-                {"id":"viprLib","parent":"#","text":"ViPR Library"},
-                {"id":"rest","parent":"viprLib","text":"ViPR REST Primitives"},
-                {"id":"ansible","parent":"viprLib","text":"Ansible Primitives"},
-                {"id":"email","parent":"ansible","text":"Send Email", "type": "file", "li_attr": {"class": "draggable-card"}},
-                {"id":"create","parent":"rest","text":"Create Volume", "type": "file", "li_attr": {"class": "draggable-card"}},
-                {"id":"export","parent":"rest","text":"Export Volume", "type": "file", "li_attr": {"class": "draggable-card"}}
-            ]
-            $http.get(routes.WF_directories()).then(function (data) {
-                console.log(data.data)
-                $('#jstree_demo').jstree(true).settings.core.data = rootjson.concat(data.data);
-                $('#jstree_demo').jstree(true).refresh();
-            });
-            // --
-
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
         }).bind("rename_node.jstree clear_search.jstree search.jstree", function() {
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
         })
     }
+
+    // jstree actions
+    //TODO: do error handling on all actions
+    $('#jstree_demo').on("rename_node.jstree", renameDir);
+    $('#jstree_demo').on("delete_node.jstree", deleteDir);
+    $('#jstree_demo').on("create_node.jstree", createDir);
 
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
@@ -938,32 +942,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         addTab(tabID);
     }
 
-    // jstree actions
-    //TODO: do error handling on all actions
-    $('#jstree_demo').on("rename_node.jstree", function(event, data) {
-        if ("file" != data.node.type) {
-            $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).then(function (data) {
-            });
-        }
-        else {
-            //TODO: edit workflow (API pending)
-            console.log("edit workflow pending")
-        }
-    });
-
-    $('#jstree_demo').on("delete_node.jstree", function(event, data) {
-        if ("file" != data.node.type) {
-            $http.get(routes.WF_directory_delete({"id": data.node.id})).then(function (data) {
-            });
-        }
-        else {
-            //TODO: delete workflow (API pending)
-            console.log("delete workflow pending")
-        }
-
-    });
-
-    $('#jstree_demo').on("create_node.jstree", function(event, data) {
+    function createDir(event, data) {
         if ("file" != data.node.type) {
             $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.parent})).then(function (resp) {
                 data.instance.set_id(data.node, resp.data.id);
@@ -973,7 +952,27 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             //TODO: create workflow (API pending)
             console.log("create workflow pending")
         }
-    });
+    };
+
+    function deleteDir(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_delete({"id": data.node.id}));
+        }
+        else {
+            //TODO: delete workflow (API pending)
+            console.log("delete workflow pending")
+        }
+    };
+
+    function renameDir(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
+        }
+        else {
+            //TODO: edit workflow (API pending)
+            console.log("edit workflow pending")
+        }
+    };
 })
 
 .controller('tabController', function($element, $scope, $compile) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
@@ -1083,7 +1082,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     Functions for managing step data on jsplumb instance
     */
     function dragEndFunc(e) {
-
         //set ID and text within the step element
         //TODO: retrieve stepname from step data when API is available
         var randomIdHash = Math.random().toString(36).substring(7);

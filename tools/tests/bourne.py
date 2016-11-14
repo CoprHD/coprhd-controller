@@ -8411,7 +8411,6 @@ class Bourne:
         return self.api('POST', URI_EVENT_DELETE.format(uri))
 
     def event_show_task(self, event, task):
-        print task
         return self.api('GET', URI_TASK_GET.format(task))
 
     def event_approve(self, uri):

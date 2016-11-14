@@ -2028,9 +2028,11 @@ public class DbClientImpl implements DbClient {
         		Rows<String, CompositeColumnName> rows = fetchNewest(entry.getKey(), keySpace, entry.getValue());
                 cleanupOldColumns(entry.getKey(), keySpace, rows);
         	}
-            
         }
 	}
 
-    
+    @Override
+    public <T extends DataObject> void updateObjectWithAtomicBatch(Collection<T> objects) {
+        this.updateObjectWithAtomicBatch(objects);
+    }
 }

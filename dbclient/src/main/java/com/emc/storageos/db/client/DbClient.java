@@ -708,5 +708,20 @@ public interface DbClient {
      */
     boolean hasUsefulData();
     
-    <T extends DataObject> void updateObjectWithAtomicBatch(T... object);
+    /**
+     * Updates given list of objects to DB. DataObject.id field must be filled in.
+     * This method only updates non null fields to DB (meaning partial write is possible).
+     * 
+     * This method will update all data object with ONE MutationBatch to make sure consistency.
+     * LIMITATION: all data objects should be either LOCAL or GLOBAL. Can't persist data object to LOCAL 
+     * and GLOBAL at same time.
+     * @param objects objects to update
+     * @param <T> data objects
+     */
+    <T extends DataObject> void updateObjectWithAtomicBatch(T... objects);
+    
+    /**
+     * @see DbClient#updateObjectWithAtomicBatch(Collection)
+     */
+    <T extends DataObject> void updateObjectWithAtomicBatch(Collection<T> objects);
 }

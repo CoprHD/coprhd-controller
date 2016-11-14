@@ -423,6 +423,11 @@ public class FileControllerImplTest {
 			// TODO Auto-generated method stub
 		}
 
+        @Override
+        public <T extends DataObject> void updateObjectWithAtomicBatch(Collection<T> objects) {
+            // TODO Auto-generated method stub
+        }
+
     }
 
     @BeforeClass

@@ -1620,7 +1620,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return set;
     }
 
-
     /**
      * A utility for processing initiators and updating data structures. The data
      * structures are for mapping an initiator reference on the array, which is

@@ -239,11 +239,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             exportGroup, storageURI) &&
                             exportGroup.hasInitiators()) {
                         _log.info("No existing masks to which the requested volumes can be added. Creating a new mask");
-                        List<URI> initiators =
-                                StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
 
-                        Map<String, List<URI>> hostInitiatorMap =
-                                mapInitiatorsToComputeResource(exportGroup, initiators);
+                        Map<String, List<URI>> hostInitiatorMap = mapInitiatorsToComputeResource(exportGroup, initiators);
 
                         if (!hostInitiatorMap.isEmpty()) {
                             for (Map.Entry<String, List<URI>> resourceEntry : hostInitiatorMap

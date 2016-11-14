@@ -66,6 +66,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -697,7 +698,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
-
             Set<URI> addedClusters = new HashSet<>();
             Set<URI> removedClusters = new HashSet<>();
             Set<URI> addedHosts = new HashSet<>();
@@ -958,17 +958,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> adedHosts, Set<URI> removedHosts,
             Set<URI> addedInitiators,
             Set<URI> removedInitiators, String stepId) throws Exception {
-        Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
-        Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
-        ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
-        ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
-        BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-
         try {
+            Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
+            Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
+            ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
+            ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
+            BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
+
             _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_001);
+
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
-                removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
+                    removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_002);
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
@@ -1390,8 +1397,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 _dbClient, ExportGroup.class,
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "clusters", clusterId.toString()));
-
-
 
         for (ExportGroup export : exportGroups) {
 

@@ -27,6 +27,8 @@
 #
 #set -x
 
+source $(dirname $0)/wftests_host_cluster.sh
+
 Usage()
 {
     echo 'Usage: wftests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity]  [test1 test2 ...]'
@@ -851,7 +853,7 @@ login() {
     security login $SYSADMIN $SYSADMIN_PASSWORD
 }
 
-prerun_setup() {
+prerun_setup() {		
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -911,16 +913,16 @@ prerun_setup() {
 
     if [ "${SS}" = "vnx" ]
     then
-	array_ip=${VNXB_IP}
-	if [ "${SIM}" = "1" ]; then
-	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
-	else
-	    FC_ZONE_A=FABRIC_vplex154nbr2
-	fi
+	   array_ip=${VNXB_IP}
+	   FC_ZONE_A=FABRIC_vplex154nbr2
     elif [ "${SS}" = "vmax2" ]
     then
         FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
+    
+    if [ "${SIM}" = "1" ]; then
+	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+	fi
 
     # All export operations orchestration go through the same entry-points
     exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
@@ -967,6 +969,7 @@ reset_system_props() {
     set_artificial_failure "none"
     set_validation_check true
     set_validation_refresh true
+    set_controller_cs_discovery_refresh_interval 60
 }
 
 # Clean zones from previous tests, verify no zones are on the switch
@@ -1645,6 +1648,10 @@ set_artificial_failure() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
 }
 
+set_controller_cs_discovery_refresh_interval() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
+}
+
 # Verify no masks
 #
 # Makes sure there are no masks on the array before running tests
@@ -2265,6 +2272,15 @@ cleanup_previous_run_artifacts() {
     project list --tenant emcworld  > /dev/null 2> /dev/null
     if [ $? -eq 1 ]; then
 	return;
+    fi
+
+    events list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `events list emcworld | grep ActionableEvent | awk '{print $1}'`
+        do
+            echo "Deleting old event: ${id}"
+            runcmd events delete ${id} > /dev/null
+        done
     fi
 
     export_group list $PROJECT | grep YES > /dev/null 2> /dev/null

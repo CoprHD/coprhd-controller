@@ -371,6 +371,7 @@ URI_IPINTERFACE_DEREGISTER      = URI_SERVICES_BASE   + '/compute/ip-interfaces/
 URI_IPINTERFACES_BULKGET        = URI_SERVICES_BASE   + '/compute/ip-interfaces/bulk'
 URI_VCENTERS                    = URI_SERVICES_BASE   + '/compute/vcenters'
 URI_VCENTER                     = URI_SERVICES_BASE   + '/compute/vcenters/{0}'
+URI_VCENTER_DISCOVER            = URI_VCENTER         + '/discover'
 URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
@@ -8219,6 +8220,22 @@ class Bourne:
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))
 
+    def vcenter_show_task(self, vcenter, task):
+        uri_vcenter_task = URI_VCENTER + '/tasks/{1}'
+        return self.api('GET', uri_vcenter_task.format(vcenter, task))
+
+    def vcenter_discover(self, name):
+        uri = self.vcenter_query(name)
+        o = self.api('POST', URI_VCENTER_DISCOVER.format(uri))
+        self.assert_is_dict(o)
+        try:
+            sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.vcenter_show_task)
+            s = sync['state']
+            m = sync['message']
+        except:
+            print o
+        return (o, s, m)
+
     def vcenter_delete(self, name):
         uri = self.vcenter_query(name)
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_VCENTER.format(uri)))
@@ -8393,8 +8410,21 @@ class Bourne:
     def event_delete(self, uri):
         return self.api('POST', URI_EVENT_DELETE.format(uri))
 
+    def event_show_task(self, event, task):
+        return self.api('GET', URI_TASK_GET.format(task))
+
     def event_approve(self, uri):
-        return self.api('POST', URI_EVENT_APPROVE.format(uri))
+        o = self.api('POST', URI_EVENT_APPROVE.format(uri))
+        self.assert_is_dict(o)
+        try:
+            tr_list = o['task']
+            for tr in tr_list:
+              sync = self.api_sync_2(tr['resource']['id'], tr['id'], self.event_show_task)
+              s = sync['state']
+              m = sync['message']
+        except:
+            print o
+        return (o, s, m)
 
     def event_decline(self, uri):
         return self.api('POST', URI_EVENT_DECLINE.format(uri))

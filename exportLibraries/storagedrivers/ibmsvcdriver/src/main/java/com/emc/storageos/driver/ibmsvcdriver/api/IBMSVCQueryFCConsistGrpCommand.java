@@ -37,11 +37,16 @@ public class IBMSVCQueryFCConsistGrpCommand extends AbstractIBMSVCQueryCommand<I
     public IBMSVCQueryFCConsistGrpCommand(String fcConsistGrpId, String consistGrpName) {
         addArgument("svcinfo lsfcconsistgrp -delim :");
         addArgument(String.format("%s", fcConsistGrpId));
+        results = new IBMSVCQueryFCConsistGrpResult();
     }
 
     @Override
     protected void processError() throws CommandException {
         results.setErrorString(getErrorMessage());
+        if (results.getErrorString().contains(
+                "The action failed because an object that was specified in the command does not exist.")){
+            results.setSuccess(false);
+        }
         results.setSuccess(false);
     }
 
@@ -52,7 +57,7 @@ public class IBMSVCQueryFCConsistGrpCommand extends AbstractIBMSVCQueryCommand<I
 
     @Override
     void beforeProcessing() {
-        results = new IBMSVCQueryFCConsistGrpResult();
+
     }
 
     @Override

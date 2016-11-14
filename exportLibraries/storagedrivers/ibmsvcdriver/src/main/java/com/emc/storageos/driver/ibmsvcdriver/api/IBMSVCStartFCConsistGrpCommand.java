@@ -21,9 +21,9 @@ public class IBMSVCStartFCConsistGrpCommand extends AbstractIBMSVCQueryCommand<I
     };
 
     public IBMSVCStartFCConsistGrpCommand(String fcConsistGrpId, String consistGrpName, boolean isRestore) {
-        addArgument("svctask startfcconsistgrp");
+        addArgument("svctask startfcconsistgrp -prep");
         if (isRestore) {
-            addArgument("-prep -restore");
+            addArgument("-restore");
         }
         addArgument(String.format("%s", fcConsistGrpId));
 

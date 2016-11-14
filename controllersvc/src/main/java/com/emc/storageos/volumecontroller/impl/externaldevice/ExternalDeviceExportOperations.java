@@ -870,7 +870,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         for (URI removeUri : storagePortListFromMask) {
             exportMask.removeTarget(removeUri);
         }
-        exportMask.setStoragePorts(null);
+        // exportMask.setStoragePorts(null);
 
         // Add new target ports
         for (com.emc.storageos.db.client.model.StoragePort port : storagePorts) {

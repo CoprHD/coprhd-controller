@@ -77,39 +77,50 @@ public class IBMSVCConsistencyGroups {
     // map the volumes to the consistency group.
     //
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
-
+        // 0. create svc consistency group for the host if it doesn't exist.
+        // need to find hostname, not sure where to get the info from
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_CREATE_SNAPSHOT_VOLUMES);
         String consistGrpName = "";
         try {
-            SSHConnection connectioncg = connectionManager.getClientBySystemId(snapshots.get(0).getStorageSystemId());
-            consistGrpName = snapshots.get(0).getDisplayName();
-            // check if consistency group exists
-            IBMSVCQueryFCConsistGrpResult resultConsistquery = IBMSVCCLI.queryFCConsistGrp(connectioncg,
-                    consistGrpName,consistGrpName);
+            if (snapshots.size() > 0) {
+                String test = String.format(snapshots.get(0).getStorageSystemId());
+                consistGrpName = snapshots.get(0).getDisplayName();
+                SSHConnection connectioncg = connectionManager.getClientBySystemId(snapshots.get(0).getStorageSystemId());
 
-            if (!resultConsistquery.isSuccess()) {
-                IBMSVCCreateFCConsistGrpResult resultConsistGrp = IBMSVCCLI.createFCConsistGrp(
-                        connectioncg, consistGrpName);
-                consistGrpName = resultConsistGrp.getConsistGrpName();
+                // check if consistency group exists
+                IBMSVCQueryFCConsistGrpResult resultConsistquery = IBMSVCCLI.queryFCConsistGrp(connectioncg,
+                        consistGrpName, consistGrpName);
+                if (!resultConsistquery.isSuccess()) {
+                    if (resultConsistquery.getErrorString().contains(
+                        "The action failed because an object that was specified in the command does not exist.")) {
+
+                        IBMSVCCreateFCConsistGrpResult resultConsistGrp = IBMSVCCLI.createFCConsistGrp(
+                                connectioncg, consistGrpName);
+                        consistGrpName = resultConsistGrp.getConsistGrpName();
+                    }
+                    else {
+                        throw new Exception(resultConsistquery.getErrorString());
+                    }
+                }
+
             }
         } catch (Exception e) {
             _log.error("Unable to determine the required consistency group {}",consistGrpName);
             task.setMessage(String.format("Unable to determine the required consistency group {}",consistGrpName));
             task.setStatus(DriverTask.TaskStatus.FAILED);
             e.printStackTrace();
+            return task;
         }
 
+        //snapshot iteration
+        // 1. Get the Source Volume details for the, target volume creation
+        // 2. Create the target volume
+        // 3. Use the volumes to create the flash copy to the consisteny group.
         for (VolumeSnapshot volumeSnapshot : snapshots) {
-
             _log.info("createVolumeSnapshot() for storage system {} - start", volumeSnapshot.getStorageSystemId());
-
             try {
                 SSHConnection connection = connectionManager.getClientBySystemId(volumeSnapshot.getStorageSystemId());
 
-                // 1. Get the Source Volume details like fc_map_count,
-                // se_copy_count, copy_count
-                // As each Snapshot has an Max of 256 FC Mappings only for each
-                // source volume
                 IBMSVCGetVolumeResult resultGetVolume = IBMSVCCLI.queryStorageVolume(connection,
                         volumeSnapshot.getParentId());
 
@@ -184,197 +195,31 @@ public class IBMSVCConsistencyGroups {
                             // 3. Create FC Mapping for the source and target
                             // volume
                             // Set the fullCopy to false to indicate its Volume
+                            // add to the hosts consistency group
                             // Snapshot
-                            //todo consistency group
-
                             IBMSVCCreateFCMappingResult resultFCMapping = IBMSVCCLI.createFCMapping(connection,
                                     sourceVolumeName, targetVolumeName, consistGrpName, false);
 
                             if (resultFCMapping.isSuccess()) {
                                 _log.info(String.format("Created flashCopy mapping %s\n", resultFCMapping.getId()));
 
-                                // 4. Prepare the Start of FC Mapping
-                                IBMSVCPreStartFCMappingResult resultPreStartFCMapping = IBMSVCCLI
-                                        .preStartFCMapping(connection, resultFCMapping.getId());
-
-                                if (resultPreStartFCMapping.isSuccess()) {
-                                    _log.info(String.format("Prepared to start flashCopy mapping %s\n",
-                                            resultPreStartFCMapping.getId()));
-
-                                    boolean mapping_ready = false;
-
-                                    int wait_time = 5;
-                                    int max_retries = (IBMSVCConstants.FC_MAPPING_QUERY_TIMEOUT / wait_time) + 1;
-
-                                    // 5. Retry the Query of FC Mapping status
-                                    // till Maximum Tries reaches
-                                    label: for (int i = 1; i <= max_retries; i++) {
-
-                                        IBMSVCQueryFCMappingResult resultQueryFCMapping = IBMSVCCLI.queryFCMapping(
-                                                connection, resultPreStartFCMapping.getId(), false, null, null);
-
-                                        if (resultQueryFCMapping.isSuccess()) {
-                                            _log.info(String.format("Queried flashCopy mapping %s\n",
-                                                    resultQueryFCMapping.getId()));
-
-                                            String fcMapStatus = resultQueryFCMapping.getProperty("FCMapStatus");
-
-                                            // 6. If the FC Mapping status is
-                                            // "unknown" then set task as Failed
-                                            // and return
-                                            switch (fcMapStatus) {
-                                                case "unknown":
-                                                case "preparing":
-                                                    _log.warn(String.format(
-                                                            "Unexpected flashCopy mapping Id %s with status %s\n",
-                                                            resultQueryFCMapping.getId(), fcMapStatus));
-                                                    task.setMessage(String.format(
-                                                            "Unexpected flashCopy mapping Id %s with status %s.",
-                                                            resultQueryFCMapping.getId(), fcMapStatus));
-                                                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                                                    break label;
-                                                case "stopped": // 7. If the FC
-                                                    // Mapping status is
-                                                    // "stopped" then
-                                                    // again Prepare the
-                                                    // Start of FC
-                                                    // Mapping. Repeat
-                                                    // Step 4
-                                                    preStartFCMapping(connection, resultFCMapping.getId());
-
-                                                    break;
-                                                case "prepared":
-                                                    mapping_ready = true;
-                                                    // 8. If the FC Mapping status
-                                                    // is "prepared" then Start the
-                                                    // FC Mapping
-                                                    startFCMapping(connection, resultFCMapping.getId());
-                                                    task.setMessage(String.format(
-                                                            "Created flashCopy mapping for the source volume %s and the target volume %s.",
-                                                            sourceVolumeName, targetVolumeName));
-                                                    task.setStatus(DriverTask.TaskStatus.READY);
-                                                    break label;
-                                            }
-
-                                        } else {
-                                            _log.warn(String.format("Querying flashCopy mapping Id %s failed %s\n",
-                                                    resultQueryFCMapping.getId(),
-                                                    resultQueryFCMapping.getErrorString()));
-                                        }
-
-                                        SECONDS.sleep(5);
-                                    }
-
-                                    if (!mapping_ready) {
-                                        _log.warn(String.format(
-                                                "Preparing for flashCopy mapping Id %s failed to complete within the allocated %s seconds timeout. Terminating. %s\n",
-                                                resultPreStartFCMapping.getId(),
-                                                IBMSVCConstants.FC_MAPPING_QUERY_TIMEOUT,
-                                                resultPreStartFCMapping.getErrorString()));
-
-                                        _log.error(String.format(
-                                                "Cleaning up the snapshot volume %s and FC Mapping Id %s.",
-                                                resultCreateVol.getName(), resultPreStartFCMapping.getId()));
-
-                                        // deleteFCMapping(connection,
-                                        // resultPreStartFCMapping.getId());
-                                        /**
-                                         * Deleting volume stops and deletes all
-                                         * the related FC mappings to that
-                                         * volume And finally deletes the volume
-                                         */
-                                        IBMSVCDeleteVolumeResult delresult = IBMSVCCLI.deleteStorageVolumes(connection, resultCreateVol.getId());
-
-                                        _log.error(String.format(
-                                                "Cleaned up the snapshot volume %s and flashCopy mapping Id %s.",
-                                                resultCreateVol.getName(), resultPreStartFCMapping.getId()));
-
-                                        task.setMessage(String.format(
-                                                "Preparing for flashCopy mapping Id %s failed to complete within the allocated %d seconds timeout. Terminating. %s\n",
-                                                resultPreStartFCMapping.getId(),
-                                                IBMSVCConstants.FC_MAPPING_QUERY_TIMEOUT,
-                                                resultPreStartFCMapping.getErrorString()));
-
-                                        task.setStatus(DriverTask.TaskStatus.FAILED);
-                                    }
-
-                                } else {
-                                    _log.warn(String.format("Preparing for flashCopy mapping Id %s failed %s\n",
-                                            resultPreStartFCMapping.getId(), resultPreStartFCMapping.getErrorString()));
-
-                                    _log.error(String.format("Cleaning up the snapshot volume %s and FC Mapping Id %s.",
-                                            resultCreateVol.getName(), resultPreStartFCMapping.getId()));
-
-                                    // stopFCMapping(connection,
-                                    // resultPreStartFCMapping.getId());
-                                    // deleteFCMapping(connection,
-                                    // resultPreStartFCMapping.getId());
-                                    /**
-                                     * Deleting volume stops and deletes all the
-                                     * related FC mappings to that volume And
-                                     * finally deletes the volume
-                                     */
-                                    IBMSVCDeleteVolumeResult delresult = IBMSVCCLI.deleteStorageVolumes(connection, resultCreateVol.getId());
-
-                                    _log.error(String.format(
-                                            "Cleaned up the snapshot volume %s and flashCopy mapping Id %s.",
-                                            resultCreateVol.getName(), resultPreStartFCMapping.getId()));
-
-                                    task.setMessage(String.format("Preparing for flashCopy mapping Id %s failed : %s",
-                                            resultPreStartFCMapping.getId(), resultPreStartFCMapping.getErrorString()));
-
-                                    task.setStatus(DriverTask.TaskStatus.FAILED);
+                            }
+                            else {
+                                IBMSVCDeleteVolumeResult delVolREsult = IBMSVCCLI.deleteStorageVolumes(
+                                        connection,targetVolumeName);
+                                if (delVolREsult.isSuccess()) {
+                                    throw new Exception("Failed to create FCMapping, reverted");
+                                }
+                                else {
+                                    throw new Exception("Failed to create FCMapping, not reverted");
                                 }
 
-                            } else {
-                                _log.error(String.format("Creating flashCopy mapping failed %s",
-                                        resultFCMapping.getErrorString()), resultFCMapping.isSuccess());
-
-                                _log.error(String.format("Cleaning up the snapshot volume %s.",
-                                        resultCreateVol.getName()));
-
-                                /**
-                                 * Deleting volume stops and deletes all the
-                                 * related FC mappings to that volume And
-                                 * finally deletes the volume
-                                 */
-                                IBMSVCDeleteVolumeResult delresult = IBMSVCCLI.deleteStorageVolumes(connection, resultCreateVol.getId());
-
-                                _log.error(
-                                        String.format("Cleaned up the snapshot volume %s.", resultCreateVol.getName()));
-
-                                task.setMessage(String.format(
-                                        "Creating flashCopy mapping for the source volume %s and the target volume %s failed : %s.",
-                                        sourceVolumeName, targetVolumeName, resultFCMapping.getErrorString()));
-                                task.setStatus(DriverTask.TaskStatus.FAILED);
                             }
 
-                        } else {
-                            _log.error(String.format("Creating storage snapshot volume failed %s\n",
-                                    resultCreateVol.getErrorString()), resultCreateVol.isSuccess());
-                            task.setMessage(
-                                    String.format("Unable to create the snapshot volume %s on the storage system %s",
-                                            volumeSnapshot.getDeviceLabel(), volumeSnapshot.getStorageSystemId())
-                                            + resultCreateVol.getErrorString());
-                            task.setStatus(DriverTask.TaskStatus.FAILED);
                         }
-
-                    } else {
-                        _log.error(String.format("FlashCopy mapping has reached the maximum for the source volume %s\n",
-                                resultGetVolume.getProperty("VolumeName")));
-                        task.setMessage(
-                                String.format("FlashCopy mapping has reached the maximum for the source volume %s",
-                                        resultGetVolume.getProperty("VolumeName")) + resultGetVolume.getErrorString());
-                        task.setStatus(DriverTask.TaskStatus.FAILED);
                     }
-
-                } else {
-                    _log.error(String.format("Processing get storage volume Id %s failed %s\n",
-                            resultGetVolume.getProperty("VolumeId"), resultGetVolume.getErrorString()));
-                    task.setMessage(String.format("Processing get storage volume failed : %s",
-                            resultGetVolume.getProperty("VolumeId")) + resultGetVolume.getErrorString());
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
+
             } catch (Exception e) {
                 _log.error("Unable to create the snapshot volume {} on the storage system {}",
                         volumeSnapshot.getParentId(), volumeSnapshot.getStorageSystemId());
@@ -385,6 +230,37 @@ public class IBMSVCConsistencyGroups {
             }
 
             _log.info("createVolumeSnapshot() for storage system {} - end", volumeSnapshot.getStorageSystemId());
+        }
+
+        // 4 Run consistency group start, this will start the copy.
+        try {
+            SSHConnection connection = connectionManager.getClientBySystemId(snapshots.get(0).getStorageSystemId());
+            IBMSVCQueryFCConsistGrpResult resultQueryConsistGrp = IBMSVCCLI.queryFCConsistGrp(
+                    connection,consistGrpName,consistGrpName);
+            // if the consistancy group is not empty then start it
+            if (resultQueryConsistGrp.isSuccess()) {
+                switch(resultQueryConsistGrp.getConsistGrpStatus()) {
+                    case "empty":
+                        task.setStatus(DriverTask.TaskStatus.FAILED);
+                        break;
+                    case "idle_or_copied":
+                        IBMSVCStartFCConsistGrpResult ResultStartGrp = IBMSVCCLI.startFCConsistGrp(
+                                connection, consistGrpName, consistGrpName);
+                        if (ResultStartGrp.isSuccess()){
+                            task.setStatus(DriverTask.TaskStatus.READY);
+                        }
+                        break;
+                    // TODO : add remaining cases with a wait /empty, idle_or_copied, preparing, prepared, copying, stopped,
+                    //      suspended, stopping
+                }
+            }
+        }catch (Exception e) {
+            _log.error("Unable to start the consistency group {} ",
+                    consistGrpName);
+            task.setMessage(String.format("Unable to start the consistency group {} ",
+                    consistGrpName));
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
         }
 
         return task;

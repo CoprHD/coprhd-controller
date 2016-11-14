@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
 import com.emc.storageos.driver.ibmsvcdriver.exceptions.IBMSVCDriverException;
+import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCConsistencyGroups;
 import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCDiscovery;
 import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCProvisioning;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
@@ -63,6 +64,7 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 
     private IBMSVCDiscovery ibmsvcDiscoveryHelper = new IBMSVCDiscovery();
     private IBMSVCProvisioning ibmsvcProvisioningHelper = new IBMSVCProvisioning();
+    private IBMSVCConsistencyGroups ibmsvcConsistencyGroups = new IBMSVCConsistencyGroups();
 
 	public IBMSVCStorageDriver() {
 		super();
@@ -248,6 +250,11 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 	public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities){
+		return ibmsvcConsistencyGroups.createVolumeSnapshot(snapshots,capabilities);
 	}
 
 

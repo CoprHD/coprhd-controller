@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,14 +38,15 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.systemservices.mapper.StorageDriverMapper;
 import com.google.common.io.Files;
 
 /**
@@ -145,20 +147,9 @@ public class StorageDriverManager {
             log.warn("No all nodes are online, skip updating meta data");
             return;
         }
-        // We don't care if standby sites have finished syncing
-        // for (Site site : drUtil.listStandbySites()) {
-        // List<StorageDriversInfo> standbyInfos =
-        // getDriversInfo(site.getUuid());
-        // if (site.getNodeCount() != standbyInfos.size()) {
-        // log.error("There's node down in standby site {}, skip updating meta
-        // data", site.getName());
-        // return;
-        // }
-        // infos.addAll(standbyInfos);
-        // }
 
         boolean needRestart = false;
-        // If driver to install has been on every node, set to active
+
         List<StorageSystemType> installingTypes = queryDriversByStatus(StorageSystemType.STATUS.INSTALLING);
         log.info("Installing storage system types: {}", concatStorageSystemTypeNames(installingTypes));
         for (StorageSystemType type : installingTypes) {
@@ -176,7 +167,7 @@ public class StorageDriverManager {
                 needRestart = true;
             }
         }
-        // if driver to uninstall has been deleted on every node, dete it in db
+
         List<StorageSystemType> uninstallingTypes = queryDriversByStatus(StorageSystemType.STATUS.UNISNTALLING);
         log.info("Uninstalling storage system types: {}", concatStorageSystemTypeNames(uninstallingTypes));
         for (StorageSystemType type : uninstallingTypes) {
@@ -193,19 +184,80 @@ public class StorageDriverManager {
                 needRestart = true;
             }
         }
-        // handle upgrading ones
+
+        Map<String, StorageDriverMetaData> upgradingDriverMap = getUpgradeDriverMetaDataMap();
+        Map<String, StorageDriverMetaData> toInsertNewMetaDatas = new HashMap<String, StorageDriverMetaData>();
         List<StorageSystemType> upgradingTypes = queryDriversByStatus(StorageSystemType.STATUS.UPGRADING);
         log.info("Upgrading storage system types: {}", concatStorageSystemTypeNames(upgradingTypes));
         for (StorageSystemType type : upgradingTypes) {
-            // TODO if found new meta data in ZK, insert it to db and delete it
-            // from zk
-            // TODO if not found new meta data in ZK, set status to ACTIVE
-            // TODO remember to set needRestart flag, to restart controller
-            // services
+            String driverName = type.getDriverName();
+            String driverFileName = type.getDriverFileName();
+            if (upgradingDriverMap.containsKey(driverName)) {
+                StorageDriverMetaData metaData = upgradingDriverMap.get(driverName);
+                // last one removes old meta data
+                boolean finished = true;
+                for (StorageDriversInfo info : infos) {
+                    if (info.getInstalledDrivers().contains(driverFileName)) {
+                        finished = false;
+                        break;
+                    }
+                }
+                if (finished) {
+                    toInsertNewMetaDatas.put(metaData.getDriverName(), metaData);
+                    log.info("DriverUpgradephase1: remove {} ", type.getStorageTypeName());
+                    dbClient.removeObject(type);
+                }
+            } else {
+                // last one marks active
+                boolean finished = true;
+                for (StorageDriversInfo info : infos) {
+                    if (!info.getInstalledDrivers().contains(type.getDriverFileName())) {
+                        finished = false;
+                        break;
+                    }
+                }
+                if (finished) {
+                    type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
+                    dbClient.updateObject(type);
+                    log.info("DriverUpgradephase2: mark active for {}", type.getStorageTypeName());
+                    needRestart = true;
+                }
+            }
         }
+        // Last one deletes data in zk, inserts it into db, and triggers downloading of new driver file
+        if (!toInsertNewMetaDatas.isEmpty()) {
+            StorageDriversInfo info = coordinatorClient.getTargetInfo(StorageDriversInfo.class);
+            if (info == null) {
+                info = new StorageDriversInfo();
+            }
+            for (StorageDriverMetaData metaData : toInsertNewMetaDatas.values()) {
+                List<StorageSystemType> types = StorageDriverMapper.map(metaData);
+                log.info("DriverUpgradePhase1: Delete metadata from zk and insert it into db: {}", metaData.toString());
+                dbClient.createObject(types);
+                coordinatorClient.removeServiceConfiguration(metaData.toConfiguration());
+                info.getInstalledDrivers().add(metaData.getDriverFileName());
+            }
+            // update target list, trigger new driver downloading
+            log.info("DriverUpgradePhase1: trigger downloading for new driver files listed above");
+            coordinatorClient.setTargetInfo(info);
+        }
+
         if (needRestart) {
             restartControllerServices();
         }
+    }
+
+    private Map<String, StorageDriverMetaData> getUpgradeDriverMetaDataMap() {
+        List<Configuration> configs = coordinatorClient.queryAllConfiguration(StorageDriverMetaData.KIND);
+        Map<String, StorageDriverMetaData> result = new HashMap<String, StorageDriverMetaData>();
+        if (configs == null || configs.isEmpty()) {
+            return result;
+        }
+        for (Configuration config : configs) {
+            StorageDriverMetaData newMetaData = new StorageDriverMetaData(config);
+            result.put(newMetaData.getDriverName(), newMetaData);
+        }
+        return result;
     }
 
     private String concatStorageSystemTypeNames(List<StorageSystemType> types) {
@@ -253,8 +305,26 @@ public class StorageDriverManager {
         return true;
     }
 
+    private boolean isNewDriverFile(String fileName) {
+        List<Configuration> configs = coordinatorClient.queryAllConfiguration(StorageDriverMetaData.KIND);
+        if (configs == null || configs.isEmpty()) {
+            return false;
+        }
+        for (Configuration config : configs) {
+            StorageDriverMetaData newMetaData = new StorageDriverMetaData(config);
+            if (StringUtils.equals(newMetaData.getDriverFileName(), fileName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void removeDrivers(Set<String> drivers) {
         for (String driver : drivers) {
+            if (isNewDriverFile(driver)) {
+                log.info("{} is new driver file, skip removing it", driver);
+                continue;
+            }
             log.info("removing driver file: {}", driver);
             LocalRepository.getInstance().removeStorageDriver(driver);
         }

@@ -30,6 +30,7 @@ import java.util.zip.ZipFile;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -94,6 +95,7 @@ public class StorageDriverService {
     private static final String NON_SSL_PORT = "non_ssl_port";
     private static final String SSL_PORT = "ssl_port";
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
+    private static final int DRIVER_VERSION_NUM_SIZE = 4;
     private static final Set<String> VALID_META_TYPES = new HashSet<String>(
             Arrays.asList(new String[] { "block", "file", "block_and_file", "object" }));
     private static final String READY = "READY";
@@ -208,39 +210,7 @@ public class StorageDriverService {
 
         precheckForEnv();
 
-        File driverFile = new File(StorageDriverManager.TMP_DIR + fileName);
-        int accSize = 0;
-        OutputStream os = null;
-        try {
-            os = new BufferedOutputStream(new FileOutputStream(driverFile));
-            int bytesRead = 0;
-            while (true) {
-                byte[] buffer = new byte[0x10000];
-                bytesRead = uploadedInputStream.read(buffer);
-                if (bytesRead == -1) {
-                    break;
-                }
-                accSize += bytesRead;
-                if (accSize > MAX_DRIVER_SIZE) {
-                    throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
-                }
-                os.write(buffer, 0, bytesRead);
-            }
-            uploadedInputStream.close();
-        } catch (IOException e) {
-            log.error("Error happened when uploading driver file", e);
-            throw APIException.internalServerErrors.installDriverUploadFailed(e.getMessage());
-        } finally {
-            if (os != null) {
-                try {
-                    os.close();
-                } catch (IOException e) {
-                    log.error("Error happened when closing output stream of driver file {}", fileName, e);
-                }
-            }
-        }
-
-        log.info("Finished uploading driver file");
+        File driverFile = saveToTmpDir(fileName, uploadedInputStream);
 
         StorageDriverMetaData metaData = parseDriverMetaData(driverFile);
 
@@ -292,6 +262,7 @@ public class StorageDriverService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{driverName}")
     public Response uninstall(@PathParam("driverName") String driverName) {
+        log.info("Start to uninstall driver {} ...", driverName);
 
         Set<String> driverNames = getAllDriverNames();
         if (!driverNames.contains(driverName)) {
@@ -346,15 +317,105 @@ public class StorageDriverService {
 
     }
 
+    private File saveToTmpDir(String fileName, InputStream uploadedInputStream) {
+        File driverFile = new File(StorageDriverManager.TMP_DIR + fileName);
+        int accSize = 0;
+        OutputStream os = null;
+        try {
+            os = new BufferedOutputStream(new FileOutputStream(driverFile));
+            int bytesRead = 0;
+            while (true) {
+                byte[] buffer = new byte[0x10000];
+                bytesRead = uploadedInputStream.read(buffer);
+                if (bytesRead == -1) {
+                    break;
+                }
+                accSize += bytesRead;
+                if (accSize > MAX_DRIVER_SIZE) {
+                    throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
+                }
+                os.write(buffer, 0, bytesRead);
+            }
+            uploadedInputStream.close();
+        } catch (IOException e) {
+            log.error("Error happened when uploading driver file", e);
+            throw APIException.internalServerErrors.installDriverUploadFailed(e.getMessage());
+        } finally {
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    log.error("Error happened when closing output stream of driver file {}", fileName, e);
+                }
+            }
+        }
+
+        log.info("Finished saving driver file to {}", driverFile.getAbsolutePath());
+        return driverFile;
+    }
+
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("/{driverName}")
     public Response upgrade(@PathParam("driverName") String driverName,
             @FormDataParam("driver") InputStream uploadedInputStream,
-            @FormDataParam("driver") FormDataContentDisposition details) {
-        throw new RuntimeException("TODO: upgrade function is not implemented yet, " + "driverName: " + driverName
-                + ", driverFileName: " + details.getFileName());
+            @FormDataParam("driver") FormDataContentDisposition details,
+            @FormDataParam("force") @DefaultValue("false") boolean force) {
+        log.info("Start to upgrade driver for {} ...", driverName);
+        String fileName = details.getFileName();
+
+        long fileSize = details.getSize();
+        log.info("Received driver jar file: {}, size: {}", fileName, fileSize);
+        if (fileSize >= MAX_DRIVER_SIZE) {
+            throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
+        }
+
+        precheckForEnv();
+
+        File driverFile = saveToTmpDir(fileName, uploadedInputStream);
+
+        StorageDriverMetaData metaData = parseDriverMetaData(driverFile);
+
+        precheckForMetaData(metaData, true, force);
+
+        InterProcessLock lock = getStorageDriverOperationLock();
+        try {
+            // move file from /tmp to /data/drivers
+            Files.move(driverFile, new File(StorageDriverManager.DRIVER_DIR + driverFile.getName()));
+
+            // save new meta data to ZK
+            coordinator.persistServiceConfiguration(metaData.toConfiguration());
+
+            // update status to UPGRADING in db
+            StorageDriversInfo targetInfo = coordinator.getTargetInfo(StorageDriversInfo.class);
+            if (targetInfo == null) {
+                targetInfo = new StorageDriversInfo();
+            }
+            List<StorageSystemType> types = listStorageSystemTypes();
+            for (StorageSystemType type : types) {
+                if (!StringUtils.equals(driverName, type.getDriverName())) {
+                    continue;
+                }
+                type.setDriverStatus(StorageSystemType.STATUS.UPGRADING.toString());
+                dbClient.updateObject(type);
+                // remove old driver file name from target list
+                targetInfo.getInstalledDrivers().remove(type.getDriverFileName());
+            }
+
+            coordinator.setTargetInfo(targetInfo);
+            log.info("Successfully triggered upgrade operation for driver", metaData.getDriverName());
+            return Response.ok().build();
+        } catch (Exception e) {
+            log.error("Error happened when upgrading driver file", e);
+            throw APIException.internalServerErrors.upgradeDriverFailed(e.getMessage());
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when upgrading driver %s", metaData.getDriverName()));
+            }
+        }
     }
 
     private Set<String> getAllDriverNames() {
@@ -367,36 +428,83 @@ public class StorageDriverService {
     }
 
     private void precheckForMetaData(StorageDriverMetaData metaData) {
+        precheckForMetaData(metaData, false, false);
+    }
+
+    private void compareVersion(String oldVersionStr, String newVersionStr) {
+        String[] oldVersionSegs = oldVersionStr.split("\\.");
+        String[] newVersionSegs = newVersionStr.split("\\.");
+        if (oldVersionSegs.length != DRIVER_VERSION_NUM_SIZE || newVersionSegs.length != DRIVER_VERSION_NUM_SIZE) {
+            throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(
+                    String.format("Invalid driver version format (four numbers separated by dot), old: %s, new: %s",
+                            oldVersionStr, newVersionStr));
+        }
+        for (int i = 0; i < DRIVER_VERSION_NUM_SIZE; i ++) {
+            int oldVersion = Integer.valueOf(oldVersionSegs[i]);
+            int newVersion = Integer.valueOf(newVersionSegs[i]);
+            if (newVersion > oldVersion) {
+                return;
+            } else if (newVersion < oldVersion) {
+                throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(String.format(
+                        "new version (%s) should be biger than the old one (%s)", oldVersionStr, newVersionStr));
+            }
+        }
+        throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(String.format(
+                "new version (%s) should be biger than the old one (%s)", oldVersionStr, newVersionStr));
+    }
+
+    private void precheckForMetaData(StorageDriverMetaData metaData, boolean upgrade, boolean force) {
         List<StorageSystemType> types = listStorageSystemTypes();
         Set<String> drivers = new HashSet<String>();
+        boolean driverNameExists = false;
         for (StorageSystemType type : types) {
-            if (StringUtils.equals(type.getDriverName(), metaData.getDriverName())) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate driver name: %s", metaData.getDriverName()));
+            if (upgrade && StringUtils.equals(type.getDriverName(), metaData.getDriverName())) {
+                driverNameExists = true;
+                if (!force) {
+                    String oldVersion = type.getDriverVersion();
+                    String newVersion = metaData.getDriverVersion();
+                    compareVersion(oldVersion, newVersion);
+                }
+            } else {
+                if (StringUtils.equals(type.getDriverName(), metaData.getDriverName())) {
+                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                            String.format("Duplicate driver name: %s", metaData.getDriverName()));
+                }
+                if (StringUtils.equals(type.getStorageTypeName(), metaData.getStorageName())) {
+                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                            String.format("Duplicate storage name: %s", metaData.getStorageName()));
+                }
+                if (StringUtils.equals(type.getStorageTypeDispName(), metaData.getStorageDisplayName())) {
+                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                            String.format("Duplicate storage display name: %s", metaData.getStorageDisplayName()));
+                }
+                if (StringUtils.equals(type.getStorageTypeName(), metaData.getProviderName())) {
+                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                            String.format("Duplicate provider name: %s", metaData.getProviderName()));
+                }
+                if (StringUtils.equals(type.getStorageTypeDispName(), metaData.getProviderDisplayName())) {
+                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                            String.format("Duplicate provider display name: %s", metaData.getProviderDisplayName()));
+                }
+                if (StringUtils.equals(type.getDriverClassName(), metaData.getDriverClassName())) {
+                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                            String.format("Duplicate driver class name", metaData.getDriverClassName()));
+                }
             }
-            if (StringUtils.equals(type.getStorageTypeName(), metaData.getStorageName())) {
+
+            if (StringUtils.equals(type.getDriverFileName(), metaData.getDriverFileName())) {
                 throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate storage name: %s", metaData.getStorageName()));
-            }
-            if (StringUtils.equals(type.getStorageTypeDispName(), metaData.getStorageDisplayName())) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate storage display name: %s", metaData.getStorageDisplayName()));
-            }
-            if (StringUtils.equals(type.getStorageTypeName(), metaData.getProviderName())) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate provider name: %s", metaData.getProviderName()));
-            }
-            if (StringUtils.equals(type.getStorageTypeDispName(), metaData.getProviderDisplayName())) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate provider display name: %s", metaData.getProviderDisplayName()));
-            }
-            if (StringUtils.equals(type.getDriverClassName(), metaData.getDriverClassName())) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate driver class name", metaData.getDriverClassName()));
+                        String.format("Duplicate driver file name", metaData.getDriverClassName()));
             }
             drivers.add(type.getDriverName());
         }
-        if (drivers.size() >= MAX_DRIVER_NUMBER) {
+
+        if (upgrade && !driverNameExists) {
+            throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(
+                    String.format("Can't find specified driver name: %s", metaData.getDriverName()));
+        }
+
+        if (!upgrade && drivers.size() >= MAX_DRIVER_NUMBER) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(String
                     .format("Can't install more drivers as max driver number %s has been reached", MAX_DRIVER_NUMBER));
         }

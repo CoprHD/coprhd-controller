@@ -1,22 +1,15 @@
 package com.emc.storageos.db.client.model;
 
 public class FileReplicationPolicy extends FilePolicy {
+
+    // File Replication type
     private String fileReplicationType;
 
-    // File Replication RPO value
-    private Long _frRpoValue;
-
-    // File Replication RPO type
-    private String _frRpoType;
+    // File Replication copy type
+    private String fileReplicationCopyType;
 
     public static enum FileReplicationType {
-        LOCAL, REMOTE, NONE;
-    }
-
-    public static enum FileReplicationRPOType {
-        MINUTES,
-        HOURS,
-        DAYS,
+        LOCAL, REMOTE;
     }
 
     @Name("fileReplicationType")
@@ -29,23 +22,13 @@ public class FileReplicationPolicy extends FilePolicy {
         setChanged("fileReplicationType");
     }
 
-    @Name("frRpoValue")
-    public Long getFrRpoValue() {
-        return _frRpoValue;
+    @Name("frCopyType")
+    public String getFileReplicationCopyType() {
+        return fileReplicationCopyType;
     }
 
-    public void setFrRpoValue(Long frRpoValue) {
-        this._frRpoValue = frRpoValue;
-        setChanged("frRpoValue");
-    }
-
-    @Name("frRpoType")
-    public String getFrRpoType() {
-        return _frRpoType;
-    }
-
-    public void setFrRpoType(String frRpoType) {
-        this._frRpoType = frRpoType;
-        setChanged("frRpoType");
+    public void setFileReplicationCopyType(String fileReplicationCopyType) {
+        this.fileReplicationCopyType = fileReplicationCopyType;
+        setChanged("frCopyType");
     }
 }

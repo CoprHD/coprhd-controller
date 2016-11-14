@@ -13,9 +13,15 @@ public class FileSystemReplicationSettings implements Serializable {
     private static final long serialVersionUID = 1L;
     private Long rpoValue;
     private String rpoType;
+    private String replicationType;
+    private String replicationCopyType;
 
     public enum ReplicationRPOType {
         MINUTES, HOURS, DAYS
+    }
+
+    public enum ReplicationCopyType {
+        SYNC, ASYC
     }
 
     public FileSystemReplicationSettings() {
@@ -51,4 +57,21 @@ public class FileSystemReplicationSettings implements Serializable {
         this.rpoType = rpoType;
     }
 
+    @XmlElement(name = "replicationType")
+    public String getReplicationType() {
+        return replicationType;
+    }
+
+    public void setReplicationType(String replicationType) {
+        this.replicationType = replicationType;
+    }
+
+    @XmlElement(name = "replicationCopyType")
+    public String getReplicationCopyType() {
+        return replicationCopyType;
+    }
+
+    public void setReplicationCopyType(String replicationCopyType) {
+        this.replicationCopyType = replicationCopyType;
+    }
 }

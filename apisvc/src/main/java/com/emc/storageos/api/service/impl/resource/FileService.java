@@ -66,7 +66,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
-import com.emc.storageos.db.client.model.FilePolicyProfile;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -115,7 +114,6 @@ import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
-import com.emc.storageos.model.file.FilePolicyProfileParam;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationCreateParam;
 import com.emc.storageos.model.file.FileReplicationParam;
@@ -4278,26 +4276,5 @@ public class FileService extends TaskResourceService {
         }
         return false;
     }
-    /**
-     * 
-     * @param id
-     * @param param
-     * @return
-     */
-    @POST
-    @Path("/file-policy-profile")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public FilePolicyProfileParam createFilePolicyProfile(FilePolicyProfileParam param) {
 
-        _log.info("file policy profile creation started -- ");
-        FilePolicyProfile policyProfile = new FilePolicyProfile();
-        policyProfile.setId(URIUtil.createId(FilePolicyProfile.class));
-        policyProfile.setProfileName(param.getProfileName());
-
-        _dbClient.createObject(policyProfile);
-        _log.info(" Policy Profile {} created successfully", policyProfile);
-        return param;
-    }
 }

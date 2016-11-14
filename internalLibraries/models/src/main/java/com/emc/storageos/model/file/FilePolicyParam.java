@@ -5,8 +5,10 @@ import java.io.Serializable;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "file_policy")
+@XmlRootElement(name = "file_policy_create")
 public class FilePolicyParam implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     // Type of the policy
     private String policyType;
@@ -17,8 +19,11 @@ public class FilePolicyParam implements Serializable {
     // Level at which policy has to be applied..
     private String applyAt;
 
-    // Replication
+    // Replication related parameters
     private FileSystemReplicationSettings replicationSettingParam;
+
+    // policy schedule parameters..
+    private FilePolicyScheduleParams policySchedule;
 
     public static enum PolicyType {
         file_snapshot, file_replication, file_quota
@@ -65,5 +70,14 @@ public class FilePolicyParam implements Serializable {
 
     public void setReplicationSettingParam(FileSystemReplicationSettings replicationSettingParam) {
         this.replicationSettingParam = replicationSettingParam;
+    }
+
+    @XmlElement(name = "policy_schedule")
+    public FilePolicyScheduleParams getPolicySchedule() {
+        return policySchedule;
+    }
+
+    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
+        this.policySchedule = policySchedule;
     }
 }

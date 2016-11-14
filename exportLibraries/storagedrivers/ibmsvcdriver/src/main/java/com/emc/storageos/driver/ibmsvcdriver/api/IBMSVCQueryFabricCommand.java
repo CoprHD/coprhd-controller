@@ -70,6 +70,9 @@ public class IBMSVCQueryFabricCommand extends AbstractIBMSVCQueryCommand<IBMSVCQ
                 fabricConnectivity.setClusterName(fabricData[9]);
                 fabricConnectivity.setType(fabricData[10]);
 
+                results.addInitiator(fabricData[0]);
+                results.addTarget(fabricData[4]);
+
                 results.addFabricConnectivityList(fabricConnectivity);
                 results.setSuccess(true);
                 break;

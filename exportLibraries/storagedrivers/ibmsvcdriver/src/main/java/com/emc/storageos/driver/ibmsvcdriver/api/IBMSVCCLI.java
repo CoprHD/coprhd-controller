@@ -132,9 +132,9 @@ public class IBMSVCCLI {
         return command.getResults();
     }
 
-    public static IBMSVCQueryFabricResult queryFabricConnectivity(SSHConnection connection, String volumeId){
+    public static IBMSVCQueryFabricResult queryFabricConnectivity(SSHConnection connection, String hostId){
         _log.info("Starting IBMSVCQueryFabricCommand() for Querying IBM-SVC Fabric Connectivity information...");
-        IBMSVCQueryFabricCommand command = new IBMSVCQueryFabricCommand(volumeId);
+        IBMSVCQueryFabricCommand command = new IBMSVCQueryFabricCommand(hostId);
         executeCommand(connection, command);
         _log.info("Ending IBMSVCQueryFabricCommand() for Querying IBM-SVC Fabric Connectivity information...");
         return command.getResults();

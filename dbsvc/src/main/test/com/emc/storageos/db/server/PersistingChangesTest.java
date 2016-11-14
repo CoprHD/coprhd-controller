@@ -1067,5 +1067,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 IndexColumnNameSerializer.get()));
         
         Assert.assertEquals(1, rows.size());
+        
+        dbClient.removeObject(volume, vpool);
     }
 }

@@ -16,7 +16,11 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.ModelObject;
+import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.RelationIndex;
 
 import java.net.URI;
 
@@ -37,7 +41,7 @@ public class WFDirectory extends ModelObject {
     }
 
     public void setParent(URI parent) {
-        this._parent = parent;
+        _parent = parent;
         setChanged("parent");
     }
 
@@ -48,7 +52,7 @@ public class WFDirectory extends ModelObject {
 
     public void setWorkflows(StringSet workflows) {
 
-        this._workflows = workflows;
+        _workflows = workflows;
         setChanged("workflows");
     }
 }

@@ -192,7 +192,6 @@ public class WFDirectoryService extends TaggedResource {
         if (null != from.getParent()) {
             to.setParent(new RelatedResourceRep(from.getParent(), new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.WF_DIRECTORY, from.getParent()))));
         }
-        //TODO: Change this to return OEWorkflow records(when API is ready)
         if (null != from.getWorkflows()) {
             to.setWorkflows(StringSetUtil.stringSetToUriList(from.getWorkflows()));
         }

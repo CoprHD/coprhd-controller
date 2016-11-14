@@ -19,7 +19,9 @@ package com.emc.vipr.model.catalog;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
-import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import java.net.URI;
 import java.util.List;
 
@@ -30,7 +32,6 @@ import java.util.List;
 public class WFDirectoryRestRep extends DataObjectRestRep{
 
     private RelatedResourceRep parent;
-    //TODO: Change this to return OEWorkflowRestRep when it is ready
     private List<URI> workflows;
 
     @XmlElement(name = "parent")

@@ -194,8 +194,12 @@ public class StorageSystemTypes {
                 } else if (!StringUtils.equals(VNX_BLOCK, typeName)) { // VNX block is covered by VMAX
                     options.add(new StringOption(typeName, type.getStorageTypeDispName()));
                 }
+            } else if (type.getIsSmiProvider()) {
+                continue;
             } else if (type.getManagedBy() != null) {
                 options.add(new StringOption(typeName, typeMap.get(type.getManagedBy()).getStorageTypeDispName()));
+            } else {
+                options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
         return options;

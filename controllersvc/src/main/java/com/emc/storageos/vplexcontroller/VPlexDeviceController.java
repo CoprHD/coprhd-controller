@@ -367,6 +367,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
     private static final String DETACHED_DEVICE = "detachedDevice";
+    private static final String RESTORE_DEVICE_NAME = "restoreDeviceName";
 
     private static CoordinatorClient coordinator;
 
@@ -6527,7 +6528,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // If the migration is not committed, then rollback of the migration
             // creation step will cancel the migration.
             if (migrationCommitted) {
-                _log.info("Migration is committed, failing rollback");
+                _log.info("The migration has already been committed or the migration state can not be determined, failing rollback");
                 // Don't allow rollback to go further than the first error.
                 _workflowService.setWorkflowRollbackContOnError(stepId, false);
                 ServiceError serviceError = VPlexApiException.errors.cantRollbackCommittedMigration();
@@ -8975,6 +8976,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String vplexVolumeName = vplexVolume.getDeviceLabel();
             _log.info("Got VPLEX volume");
 
+            // COP-17337 : If device length is greater than 47 character then VPLEX does 
+            // not allow reattaching mirror. This is mostly going to be the case for the
+            // distributed volume with XIO back-end on both legs. Temporarily rename the 
+            // device to 47 characters and then detach the mirror. Now when we reattach
+            // the device name will not exceed the limit. We must do this before we detach
+            // so that the device name is the same for the detach/attach operations. If
+            // we try to rename prior to reattaching the mirror, COP-25581 will result.
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexVolumeName, vplexVolume.getNativeId());
+            if (vvInfo != null) {
+                String distDeviceName = vvInfo.getSupportingDevice();
+                if (distDeviceName.length() > VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR) {
+                    String modifiedName = distDeviceName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
+                    _log.info("Temporarily renaming the distributed device from {} to {} as VPLEX expects the name "
+                            + " to be 47 characters or less when we reattach the mirror.", distDeviceName, modifiedName);
+                    client.renameDistributedDevice(distDeviceName, modifiedName);
+                    stepData.put(RESTORE_DEVICE_NAME, distDeviceName);
+                }
+            } else {
+                _log.error("Can't find volume {}:{} to detach mirror.", vplexVolumeName, vplexVolumeURI);
+                throw VPlexApiException.exceptions.cantFindVolumeForDeatchMirror(vplexVolume.forDisplay());
+            }
+
             // If the volume is in a CG, we must first remove it before
             // detaching the remote mirror.
             if (cgURI != null) {
@@ -9126,6 +9149,30 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             detachStepData.put(REATTACH_MIRROR, Boolean.FALSE.toString());
             _workflowService.storeStepData(detachStepId, detachStepData);
 
+            // If on detach it was required to temporarily modify the distributed device name
+            // then we restore the correct name now after the volume is back together.
+            String modifiedName = null;
+            String successWarningMessage = null;
+            String restoreDeviceName = detachStepData.get(RESTORE_DEVICE_NAME);
+            if (restoreDeviceName != null) {
+                try {
+                    modifiedName = restoreDeviceName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
+                    client.renameDistributedDevice(modifiedName, restoreDeviceName);
+                    _log.info("Restored name of distributed device from {} to {}", modifiedName, restoreDeviceName);
+                } catch (Exception e) {
+                    // We don't fail the workflow step in this case, but instead just log a message 
+                    // indicating this error. The distributed device for the volume will just have
+                    // the modified name.
+                    successWarningMessage = String.format("Failed renaming the distributed device %s back "
+                            + " to its orginal name %s after reattaching remote mirror", modifiedName, restoreDeviceName);
+                    _log.warn(successWarningMessage);
+                }
+                // Remove the entry in the step data. We do this regardless of success
+                // or failure so that we don't try and rename again in a rollback 
+                // scenario.
+                detachStepData.remove(RESTORE_DEVICE_NAME);
+            }
+            
             // If the volume is in a CG, we can now add it back.
             if (cgURI != null) {
                 ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vplexVolume);
@@ -9140,7 +9187,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Update workflow step state to success.
+            if (successWarningMessage != null) {
+                WorkflowStepCompleter.stepSucceeded(stepId, successWarningMessage);
+            } else {
             WorkflowStepCompleter.stepSucceded(stepId);
+            }
             _log.info("Updated workflow step state to success");
         } catch (VPlexApiException vae) {
             _log.error("Exception attaching mirror for VPLEX distributed volume" + vae.getMessage(), vae);
@@ -9795,10 +9846,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             @SuppressWarnings("unchecked")
             Map<String, String> rollbackData = (Map<String, String>) _workflowService
                     .loadStepData(detachStepId);
+            String successWarningMessage = null;
             if (rollbackData != null) {
                 boolean reattachMirror = Boolean.parseBoolean(rollbackData.get(REATTACH_MIRROR));
                 boolean addVolumeBackToCG = Boolean.parseBoolean(rollbackData.get(ADD_BACK_TO_CG));
-                if (reattachMirror || addVolumeBackToCG) {
+                String restoreDeviceName = rollbackData.get(RESTORE_DEVICE_NAME);
+                if ((restoreDeviceName != null) || reattachMirror || addVolumeBackToCG) {
                     // Get the API client.
                     StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                     VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
@@ -9818,6 +9871,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         _log.info("Reattached the mirror");
                     }
 
+                    // If the rollback data indicates the device name was temporarily changed
+                    // and needs to be restored, do so after reattaching the device.
+                    if (restoreDeviceName != null) {
+                        String modifiedName = null;
+                        try {
+                            modifiedName = restoreDeviceName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
+                            client.renameDistributedDevice(modifiedName, restoreDeviceName);
+                        } catch (Exception e) {
+                            // We don't fail the rollback workflow step in this case, but instead just log a message 
+                            // indicating this error. The distribute device for the volume will just have
+                            // the modified name.
+                            successWarningMessage = String.format("Failed renaming the distributed device %s back "
+                                    + " to its orginal name %s after reattaching remote mirror", modifiedName, restoreDeviceName);
+                            _log.warn(successWarningMessage);
+                        }                        
+                    }
+
                     // If the rollback data indicates we need to try and
                     // add the volume back to a consistency group, do so
                     // only after the remote mirror has been successfully
@@ -9831,7 +9901,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Update workflow step state to success.
+            if (successWarningMessage != null) {
+                WorkflowStepCompleter.stepSucceeded(stepId, successWarningMessage);
+            } else {
             WorkflowStepCompleter.stepSucceded(stepId);
+            }
             _log.info("Updated workflow step state to success");
         } catch (VPlexApiException vae) {
             _log.error("Exception in restore/resync volume rollback for VPLEX distributed volume" + vae.getMessage(), vae);

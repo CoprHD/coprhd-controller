@@ -61,6 +61,9 @@ public abstract class TaskCompleter implements Serializable {
     @XmlTransient
     private boolean notifyWorkflow = true;
 
+    @XmlTransient
+    private boolean asynchronous;
+
     /**
      * JAXB requirement
      */
@@ -83,6 +86,14 @@ public abstract class TaskCompleter implements Serializable {
         _clazz = task._clazz;
         _ids.add(task._id);
         _opId = task._opId;
+    }
+
+    public boolean isAsynchronous() {
+        return asynchronous;
+    }
+
+    public void setAsynchronous(boolean asynchronous) {
+        this.asynchronous = asynchronous;
     }
 
     public Class getType() {

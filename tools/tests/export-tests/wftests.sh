@@ -25,7 +25,7 @@
 # the array/switch/RP resources so the operation can be tried again.  At worst, the user would need to clean up
 # the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
 #
-# set -x
+#set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
 
@@ -39,6 +39,12 @@ Usage()
 
 # Extra debug output
 DUTEST_DEBUG=${DUTEST_DEBUG:-0}
+
+# Global test repo location
+GLOBAL_RESULTS_IP=10.247.101.46
+GLOBAL_RESULTS_PATH=/srv/www/htdocs
+LOCAL_RESULTS_PATH=/tmp
+GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR=output_files
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
@@ -91,13 +97,14 @@ report_results() {
     fi
     datetime=`date +"%Y-%m-%d.%H:%M:%S"`
 
-    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},${status}"
+    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},<a href=\"${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}\">${status}</a>"
     mkdir -p /root/reliability
     echo ${result} > /tmp/report-result.txt
     echo ${result} >> /root/reliability/results-local-set.db
 
     if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@10.247.101.46 "cat >> /root/reliability/result-set.db" > /dev/null
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null
     fi
 }
 
@@ -175,8 +182,8 @@ verify_export() {
 
 # Reset the trip counters on a distinct test case
 reset_counts() {
-    VERIFY_COUNT=0
-    VERIFY_FAIL_COUNT=0
+    TRIP_VERIFY_COUNT=0
+    TRIP_VERIFY_FAIL_COUNT=0
 }
 
 # Extra gut-check.  Make sure we didn't just grab a different mask off the array.
@@ -676,24 +683,26 @@ drawstars() {
     repeatchar=`expr $1 + 2`
     while [ ${repeatchar} -gt 0 ]
     do 
-       echo -n "*"
+       echo -n "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
        repeatchar=`expr ${repeatchar} - 1`
     done
-    echo "*"
+    echo "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
+
+TEST_OUTPUT_FILE=test_output_file.out
 
 echot() {
     numchar=`echo $* | wc -c`
-    echo ""
+    echo "" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     drawstars $numchar
-    echo "* $* *"
+    echo "* $* *" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     drawstars $numchar
 }
 
 # General echo output
 secho()
 {
-    echo -e "*** $*"
+    echo -e "*** $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
 # Place to put command output in case of failure
@@ -703,7 +712,7 @@ rm -f ${CMD_OUTPUT}
 # A method to run a command that exits on failure.
 run() {
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -714,7 +723,7 @@ run() {
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
 	fi
-	echo There was a failure
+	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	cleanup
 	finish -1
     fi
@@ -723,18 +732,18 @@ run() {
 # A method to run a command that continues on failure.
 runcmd() {
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
+	$cmd &> ${CMD_OUTPUT}  | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     else
-	$cmd 2>&1
+	$cmd 2>&1 | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
+	    cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	fi
-	echo There was a failure
+	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
 	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
     fi
@@ -744,7 +753,7 @@ runcmd() {
 #executes a command that is expected to fail
 fail(){
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
     else
@@ -753,10 +762,10 @@ fail(){
 
     status=$?
     if [ $status -eq 0 ] ; then
-        echo '**********************************************************************'
-        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
-	cat ${CMD_OUTPUT}
-        echo '**********************************************************************'
+        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
 	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
     else
@@ -898,7 +907,7 @@ prerun_setup() {
     if [ $? -eq 0 ];
     then
 	ZONE_CHECK=0
-	SIM=1
+	SIM=1;
 	echo "Shutting off zone check for simulator environment"
     fi
 
@@ -1739,10 +1748,11 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004"
+    #failure_injections="failure_004"
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
@@ -1788,16 +1798,23 @@ test_1() {
 
 # Basic export test for vcenter cluster
 #
-#
-#
+# Currently only runs on simulator
 #
 test_2() {
+    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
     echot "Test 2 Export VCenter Cluster test"
     expname=${EXPORT_GROUP_NAME}t2
     item=${RANDOM}
     cfs="ExportGroup ExportMask"
     mkdir -p results/${item}
     reset_counts
+
+    if [ "${SIM}" = "0" ]; then
+	secho "This test is only supported on simulated platforms at this time.  Bypassing"
+	# Report results
+	report_results test_2 none
+	return
+    fi
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -1868,6 +1885,7 @@ test_3() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 3 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
@@ -1955,6 +1973,7 @@ test_4() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2032,6 +2051,7 @@ test_5() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 5 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2106,6 +2126,7 @@ test_6() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2186,6 +2207,7 @@ test_7() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 7 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2365,6 +2387,7 @@ if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "
 then
     echo "Setting up testing based on real hardware"
     setup=1;
+    SIM=0;
     shift 1;
 elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
@@ -2416,7 +2439,7 @@ then
 fi
 
 test_start=1
-test_end=25
+test_end=7
 
 # If there's a last parameter, take that
 # as the name of the test to run

@@ -73,6 +73,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
+    // remote replication parameters (SB SDK)
+    public static final String REMOTE_REPLICATION_SET = "remoteReplicationSet";
+    public static final String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
+    public static final String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
     /**

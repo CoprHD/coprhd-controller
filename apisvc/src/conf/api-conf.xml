@@ -503,6 +503,7 @@
            <entry key="vplex" value-ref="vplexBlockServiceApiImpl"/>
            <entry key="mirror" value-ref="blockMirrorServiceApiImpl" />
            <entry key="group" value-ref="defaultBlockServiceApiImpl" />
+           <entry key="remotereplication" value-ref="remoteReplicationBlockServiceApiImpl" />
        </map>
        </property>
     </bean>

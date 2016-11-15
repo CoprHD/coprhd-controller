@@ -1123,6 +1123,21 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
+     * Convenience method to determine if the Virtual Pool supports remote replication (SB SDK)
+     *
+     * @param virtualPool
+     *            virtual pool
+     * @return true if supports remote replication
+     */
+    public static boolean vPoolSpecifiesRemoteReplication(final VirtualPool virtualPool) {
+        if (virtualPool.getRemoteReplicationProtectionSettings() == null
+                || virtualPool.getRemoteReplicationProtectionSettings().size() == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Returns whether or not the passed VirtualPool specifies Protection
      * 
      * @param virtualPool

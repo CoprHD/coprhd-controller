@@ -266,7 +266,7 @@ public class BlockMapper {
 
         // remote replication specific section
         VolumeRestRep.RemoteReplicationRestRep toRemoteReplication = null;
-        // todo: add processing of Remote Replication information for the volume
+        // todo: add processing of Remote Replication information and set it in the VolumeRestRep (see VolumeRestRep)
 
         // Protection object encapsulates mirrors and RP
         if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null) {

@@ -735,9 +735,9 @@ runcmd() {
     echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}  | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	$cmd &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1 | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	$cmd 2>&1 
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
@@ -1996,7 +1996,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004:failure_018"
+    failure_injections="failure_004:failure_018"
 
     for failure in ${failure_injections}
     do

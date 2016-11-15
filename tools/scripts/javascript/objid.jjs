@@ -1,9 +1,14 @@
-#
-#  Usage:
-#  jjs objid.jjs -- Volume 
-#
-#  Example -
-#  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc objid.jjs -- Volume
+//  JRE Rhino javascript based tool to list all object IDs from given table. It calls db client
+//  API to manipuate Cassandra database.
+//
+//  It depends on jjs command in JRE only. Simply copy this scripts to any coprhd nodes and run
+//  it as the following
+//
+//  Usage:
+//  jjs objid.jjs -- Volume 
+//
+//  Example -
+//  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc objid.jjs -- Volume
 
 
 function init() {

@@ -1,4 +1,8 @@
-//  A javascript based tool to generate db tombstones for some column family.
+//  JRE Rhino javascript based tool to generate cassandra tombstones. It calls db client
+//  API to manipuate Cassandra database.
+//
+//  It depends on jjs command in JRE only. Simply copy this scripts to any coprhd nodes and run
+//  it as the following
 //
 //  Usage:
 //  jjs gendbtombstones.jjs -- <object id> <number of tombstones> 

@@ -1,9 +1,12 @@
-//  A javascript based tool to duplicate a db object.
+//  JRE Rhino javascript based tool to duplicate a db object in the database. It calls db client 
+//  API to manipuate Cassandra database. 
+//  It depends on jjs command in JRE only. Simply copy this scripts to any coprhd nodes and run
+//  it as the following 
 //
 //  Usage:
 //  jjs dupdbobj.jjs -- <object id> <number of duplications> 
 //
-//  Example -
+//  Full command line example -
 //  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc dupdbobj.jjs -- urn:storageos:Host:c66e4a97-9e8f-40ac-bc5b-857b83d71ee7:vdc1 100
 
 

@@ -1131,7 +1131,7 @@ public class DbClientImpl implements DbClient {
 
             // Instrumentation for the benefit of finding anti-patterns. This can be removed or
             // encapsulated around a system property
-            printPersistedObject(obj);
+            // printPersistedObject(obj);
         }
 
         for (Entry<Class<? extends T>, List<T>> entry : typeObjMap.entrySet()) {

@@ -77,8 +77,7 @@ public class StorageDriverManager {
     private Waiter waiter = new Waiter();
     private LocalRepository localRepo = LocalRepository.getInstance();
 
-    private Set<String> toRemove;
-    private Set<String> toDownload;
+    Map<String, StorageDriverMetaData> upgradingDriverMap;
 
     public void setCoordinator(CoordinatorClientExt coordinator) {
         this.coordinator = coordinator;
@@ -185,7 +184,6 @@ public class StorageDriverManager {
             }
         }
 
-        Map<String, StorageDriverMetaData> upgradingDriverMap = getUpgradeDriverMetaDataMap();
         Map<String, StorageDriverMetaData> toInsertNewMetaDatas = new HashMap<String, StorageDriverMetaData>();
         List<StorageSystemType> upgradingTypes = queryDriversByStatus(StorageSystemType.STATUS.UPGRADING);
         log.info("Upgrading storage system types: {}", concatStorageSystemTypeNames(upgradingTypes));
@@ -306,13 +304,8 @@ public class StorageDriverManager {
     }
 
     private boolean isNewDriverFile(String fileName) {
-        List<Configuration> configs = coordinatorClient.queryAllConfiguration(StorageDriverMetaData.KIND);
-        if (configs == null || configs.isEmpty()) {
-            return false;
-        }
-        for (Configuration config : configs) {
-            StorageDriverMetaData newMetaData = new StorageDriverMetaData(config);
-            if (StringUtils.equals(newMetaData.getDriverFileName(), fileName)) {
+        for (StorageDriverMetaData driver : upgradingDriverMap.values()) {
+            if (StringUtils.equals(driver.getDriverFileName(), fileName)) {
                 return true;
             }
         }
@@ -468,10 +461,12 @@ public class StorageDriverManager {
             @Override
             public void run() {
                 initializeLocalAndTargetInfo();
+\
+                upgradingDriverMap = getUpgradeDriverMetaDataMap();
 
                 // remove drivers and restart controller service
-                toRemove = minus(localDriverFiles, targetDriverFiles);
-                toDownload = minus(targetDriverFiles, localDriverFiles);
+                Set<String> toRemove = minus(localDriverFiles, targetDriverFiles);
+                Set<String> toDownload = minus(targetDriverFiles, localDriverFiles);
 
                 if (!toRemove.isEmpty()) {
                     removeDrivers(toRemove);
@@ -528,9 +523,8 @@ public class StorageDriverManager {
     }
 
     public void start() {
-        addDriverInfoListener();
         updateLocalDriversList();
-        checkAndUpdate();
+        addDriverInfoListener();
     }
 
     class DriverInfoListener implements NodeListener {

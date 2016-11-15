@@ -5,6 +5,8 @@
 package com.emc.storageos.coordinator.client.model;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -29,6 +31,8 @@ public class StorageDriverMetaData {
     private static final String KEY_NON_SSL_PORT = "nonSslPort";
     private static final String KEY_DRIVER_CLASS_NAME = "driverClassName";
     private static final String KEY_DRIVER_FILE_NAME = "driverFileName";
+
+    private static final Logger log = LoggerFactory.getLogger(StorageDriverMetaData.class);
 
     // kind
     public static final String KIND = "toUpgradeDriver";
@@ -193,7 +197,8 @@ public class StorageDriverMetaData {
     }
 
     private void fromConfiguration(Configuration config) {
-        if (StringUtils.equals(KIND, config.getKind())) {
+        if (!StringUtils.equals(KIND, config.getKind())) {
+            log.error("Unexpected configuration kind for StorageDriverMetaData");
             throw new IllegalArgumentException("Unexpected configuration kind for StorageDriverMetaData");
         }
         try {
@@ -219,6 +224,7 @@ public class StorageDriverMetaData {
             driverClassName = config.getConfig(KEY_DRIVER_CLASS_NAME);
             driverFileName = config.getConfig(KEY_DRIVER_FILE_NAME);
         } catch (Exception e) {
+            log.error("Unrecognized configuration data for StorageDriverMetaData", e);
             throw new IllegalArgumentException("Unrecognized configuration data for StorageDriverMetaData", e);
         }
     }

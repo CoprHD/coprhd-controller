@@ -56,8 +56,6 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.FilePolicy;
-import com.emc.storageos.db.client.model.FileReplicationPolicy;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ObjectNamespace;
@@ -88,7 +86,6 @@ import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.auth.RoleAssignments;
-import com.emc.storageos.model.file.FilePolicyParam;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterCreateParam;
@@ -1731,39 +1728,6 @@ public class TenantsService extends TaggedResource {
             }
 
         }
-    }
-
-    /**
-     * 
-     * @param id
-     * @param param
-     * @return
-     */
-    @POST
-    @Path("/file-policy-create")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public FilePolicyParam createFilePolicy(FilePolicyParam policyParam) {
-        // Some validations..
-        _log.info("file policy creation started -- ");
-
-        if (policyParam.getPolicyType().equals(FilePolicyParam.PolicyType.file_replication.name())) {
-            FileReplicationPolicy replicationPolicy = new FileReplicationPolicy();
-            replicationPolicy.setId(URIUtil.createId(FilePolicy.class));
-            replicationPolicy.setFilePolicyName(policyParam.getPolicyName());
-            replicationPolicy.setFileReplicationType(policyParam.getReplicationSettingParam().getReplicationType());
-            replicationPolicy.setFileReplicationCopyType(policyParam.getReplicationSettingParam().getReplicationCopyType());
-
-            _dbClient.createObject(replicationPolicy);
-            _log.info("Policy {} created successfully", replicationPolicy);
-
-        } else if (policyParam.getPolicyType().equals(FilePolicyParam.PolicyType.file_snapshot.name())) {
-
-        } else if (policyParam.getPolicyType().equals(FilePolicyParam.PolicyType.file_quota.name())) {
-
-        }
-        return policyParam;
     }
 
 }

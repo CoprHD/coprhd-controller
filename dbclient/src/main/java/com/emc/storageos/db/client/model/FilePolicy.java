@@ -35,6 +35,16 @@ public class FilePolicy extends DataObject {
     // Snapshot expire at
     private Long snapshotExpireTime;
 
+    // File Replication type
+    private String fileReplicationType;
+
+    // File Replication copy type
+    private String fileReplicationCopyType;
+
+    public static enum FileReplicationType {
+        LOCAL, REMOTE;
+    }
+
     public static enum ScheduleFrequency {
         DAYS, WEEKS, MONTHS
     }
@@ -49,6 +59,26 @@ public class FilePolicy extends DataObject {
 
     public static enum policyApplyLevel {
         vpool, project, file_system
+    }
+
+    @Name("fileReplicationType")
+    public String getFileReplicationType() {
+        return fileReplicationType;
+    }
+
+    public void setFileReplicationType(String fileReplicationType) {
+        this.fileReplicationType = fileReplicationType;
+        setChanged("fileReplicationType");
+    }
+
+    @Name("frCopyType")
+    public String getFileReplicationCopyType() {
+        return fileReplicationCopyType;
+    }
+
+    public void setFileReplicationCopyType(String fileReplicationCopyType) {
+        this.fileReplicationCopyType = fileReplicationCopyType;
+        setChanged("frCopyType");
     }
 
     @Name("filePolicyType")

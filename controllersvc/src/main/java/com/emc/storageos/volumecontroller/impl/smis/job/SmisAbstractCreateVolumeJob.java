@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -205,62 +204,75 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             URI volumeId, WBEMClient client, DbClient dbClient,
             StringBuilder logMsgBuilder, Calendar creationTime) throws Exception, IOException, DeviceControllerException, WBEMException {
         Volume volume = dbClient.queryObject(Volume.class, volumeId);
-        CIMInstance volumeInstance = commonVolumeUpdate(dbClient, client, volume, volumePath);
-        URI storageSystemURI = volume.getStorageController();
-        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
-        if (volume.getIsComposite() && _cimPath != null) {
-            // need to set meta volume member size (required for volume expansion).
-            // this call is context dependent --- this is why we check for cimPath be set.
-            // first, get meta members list;
-            // second, get second member and get its size (the first member is a head and it will show size of meta volume itself);
-            // third, set this size as meta volume size in vipr volume
-            ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
-            CIMArgument<CIMObjectPath> volumeReference = new CIMArgument<CIMObjectPath>(SmisConstants.CP_THE_ELEMENT,
-                    CIMDataType.getDataType(volumePath), volumePath);
-            // set request type to "children"
-            CIMArgument<UnsignedInteger16> requestType = new CIMArgument<UnsignedInteger16>("RequestType", CIMDataType.UINT16_T,
-                    new UnsignedInteger16(2));
-            list.add(volumeReference);
-            list.add(requestType);
-            CIMArgument[] inArgs = {};
-            inArgs = list.toArray(inArgs);
+        // If the volume is inactive, the job failed while the asynchronous work was running.
+        // Honor that the job failed and do not commit the volume, which would make it active again.
+        // if (volume.getInactive()) {
+        // if (logMsgBuilder.length() != 0) {
+        // logMsgBuilder.append("\n");
+        // }
+        // logMsgBuilder.append(String.format(
+        // "Create volume job failed and volume set to inactive. Volume was likely created successfully and will be left
+        // on the array for ingestion. NativeId: %s, URI: %s",
+        // nativeID,
+        // getTaskCompleter().getId()));
+        // } else {
+            CIMInstance volumeInstance = commonVolumeUpdate(dbClient, client, volume, volumePath);
+            URI storageSystemURI = volume.getStorageController();
+            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            if (volume.getIsComposite() && _cimPath != null) {
+                // need to set meta volume member size (required for volume expansion).
+                // this call is context dependent --- this is why we check for cimPath be set.
+                // first, get meta members list;
+                // second, get second member and get its size (the first member is a head and it will show size of meta
+                // volume itself);
+                // third, set this size as meta volume size in vipr volume
+                ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
+                CIMArgument<CIMObjectPath> volumeReference = new CIMArgument<CIMObjectPath>(SmisConstants.CP_THE_ELEMENT,
+                        CIMDataType.getDataType(volumePath), volumePath);
+                // set request type to "children"
+                CIMArgument<UnsignedInteger16> requestType = new CIMArgument<UnsignedInteger16>("RequestType", CIMDataType.UINT16_T,
+                        new UnsignedInteger16(2));
+                list.add(volumeReference);
+                list.add(requestType);
+                CIMArgument[] inArgs = {};
+                inArgs = list.toArray(inArgs);
 
-            CIMArgument[] outArgs = new CIMArgument[5];
-            CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
 
-            SmisCommandHelper helper = jobContext.getSmisCommandHelper();
-            StorageSystem forProvider = helper.getStorageSystemForProvider(storageSystem, volume);
-            helper.invokeMethod(forProvider, elementCompositionServicePath,
-                    "GetCompositeElements", inArgs, outArgs);
+                SmisCommandHelper helper = jobContext.getSmisCommandHelper();
+                StorageSystem forProvider = helper.getStorageSystemForProvider(storageSystem, volume);
+                helper.invokeMethod(forProvider, elementCompositionServicePath,
+                        "GetCompositeElements", inArgs, outArgs);
 
-            // get member volumes from output
-            CIMObjectPath[] metaMembersPaths = (CIMObjectPath[]) _cimPath.getFromOutputArgs(outArgs, "OutElements");
-            // get meta member size. use second member --- the first member will show size of meta volume itself.
-            CIMObjectPath metaMemberPath = metaMembersPaths[1];
-            CIMInstance cimVolume = helper.getInstance(forProvider, metaMemberPath, false,
-                    false, new String[] { SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE });
+                // get member volumes from output
+                CIMObjectPath[] metaMembersPaths = (CIMObjectPath[]) _cimPath.getFromOutputArgs(outArgs, "OutElements");
+                // get meta member size. use second member --- the first member will show size of meta volume itself.
+                CIMObjectPath metaMemberPath = metaMembersPaths[1];
+                CIMInstance cimVolume = helper.getInstance(forProvider, metaMemberPath, false,
+                        false, new String[] { SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE });
 
-            CIMProperty consumableBlocks = cimVolume.getProperty(SmisConstants.CP_CONSUMABLE_BLOCKS);
-            CIMProperty blockSize = cimVolume.getProperty(SmisConstants.CP_BLOCK_SIZE);
-            // calculate size = consumableBlocks * block size
-            Long size =
-                    Long.valueOf(consumableBlocks.getValue().toString()) * Long.valueOf(blockSize.getValue().toString());
+                CIMProperty consumableBlocks = cimVolume.getProperty(SmisConstants.CP_CONSUMABLE_BLOCKS);
+                CIMProperty blockSize = cimVolume.getProperty(SmisConstants.CP_BLOCK_SIZE);
+                // calculate size = consumableBlocks * block size
+                Long size = Long.valueOf(consumableBlocks.getValue().toString()) * Long.valueOf(blockSize.getValue().toString());
 
-            // set member size for meta volume (required for volume expansion)
-            volume.setMetaMemberSize(size);
-            _log.info(String.format("Meta member info: blocks --- %s, block size --- %s, size --- %s .", consumableBlocks.getValue()
-                    .toString(),
-                    blockSize.getValue().toString(), size));
-        }
+                // set member size for meta volume (required for volume expansion)
+                volume.setMetaMemberSize(size);
+                _log.info(String.format("Meta member info: blocks --- %s, block size --- %s, size --- %s .", consumableBlocks.getValue()
+                        .toString(),
+                        blockSize.getValue().toString(), size));
+            }
 
-        specificProcessing(storageSystem, dbClient, client, volume, volumeInstance, volumePath);
-        dbClient.updateObject(volume);
-        if (logMsgBuilder.length() != 0) {
-            logMsgBuilder.append("\n");
-        }
-        logMsgBuilder.append(String.format(
-                "Created volume successfully .. NativeId: %s, URI: %s", nativeID,
-                getTaskCompleter().getId()));
+            specificProcessing(storageSystem, dbClient, client, volume, volumeInstance, volumePath);
+            dbClient.updateObject(volume);
+            if (logMsgBuilder.length() != 0) {
+                logMsgBuilder.append("\n");
+            }
+            logMsgBuilder.append(String.format(
+                    "Created volume successfully .. NativeId: %s, URI: %s", nativeID,
+                    getTaskCompleter().getId()));
+        // }
     }
 
     /**

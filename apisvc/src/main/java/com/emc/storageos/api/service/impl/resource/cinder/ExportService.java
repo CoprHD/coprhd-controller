@@ -9,8 +9,10 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -29,12 +31,12 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
 import com.emc.storageos.cinder.CinderConstants.ExportOperations;
-import com.emc.storageos.cinder.model.CinderInitConnectionResponse;
 import com.emc.storageos.cinder.model.Connector;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.cinder.model.VolumeActionRequest;
@@ -44,9 +46,9 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
@@ -71,9 +73,11 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -87,9 +91,6 @@ import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
-import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 
 @Path("/v2/{tenant_id}/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -602,9 +603,15 @@ public class ExportService extends VolumeService {
         if (exportGroup == null)
             throw APIException.badRequests.parameterIsNotValid("volume_id");
 
+        Set<URI> addedClusters = new HashSet<>();
+        Set<URI> removedClusters = new HashSet<>();
+        Set<URI> addedHosts = new HashSet<>();
+        Set<URI> removedHosts = new HashSet<>();
+        Set<URI> addedInitiators = new HashSet<>();
+        Set<URI> removedInitiators = new HashSet<>();
+
         // Step 2: Validate initiators are part of export group
         List<URI> currentURIs = new ArrayList<URI>();
-        List<URI> detachURIs = new ArrayList<URI>();
         List<Initiator> detachInitiators = getListOfInitiators(detach.connector, openstackTenantId, protocol, vol);
         currentURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
         for (Initiator initiator : detachInitiators) {
@@ -612,30 +619,21 @@ public class ExportService extends VolumeService {
             if (!currentURIs.contains(uri)) {
                 throw APIException.badRequests.parameterIsNotValid("volume_id");
             }
-            detachURIs.add(uri);
+            removedInitiators.add(uri);
         }
 
-        // Step 3: Remove initiators from export group
-        currentURIs.removeAll(detachURIs);
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
                 getController(BlockExportController.class, BlockExportController.EXPORT);
         // Now update export group
         String task = UUID.randomUUID().toString();
-        Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-        volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
-
         initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.DELETE_EXPORT_VOLUME);
 
         Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(StringSetUtil.uriListToStringSet(currentURIs));
-        List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-        List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-
         exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                updatedClusters, updatedHosts, updatedInitiators, task);
+                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
 
         return waitForTaskCompletion(exportGroup.getId(), task);
 
@@ -785,6 +783,13 @@ public class ExportService extends VolumeService {
 
         ExportGroup exportGroup = findExportGroup(vol);
 
+        Set<URI> addedClusters = new HashSet<>();
+        Set<URI> removedClusters = new HashSet<>();
+        Set<URI> addedHosts = new HashSet<>();
+        Set<URI> removedHosts = new HashSet<>();
+        Set<URI> addedInitiators = new HashSet<>();
+        Set<URI> removedInitiators = new HashSet<>();
+
         if (exportGroup != null) {
             // export group exists, we need to add the initiators to it.
             volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
@@ -792,7 +797,7 @@ public class ExportService extends VolumeService {
             for (Initiator initiator : newInitiators) {
                 URI uri = initiator.getId();
                 if (!initiatorURIs.contains(uri)) {
-                    initiatorURIs.add(uri);
+                    addedInitiators.add(uri);
                 }
             }
             _log.info("updateExportGroup request is submitted.");
@@ -804,13 +809,9 @@ public class ExportService extends VolumeService {
 
             Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-            List<URI> updatedInitiators = initiatorURIs;
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                    updatedClusters, updatedHosts, updatedInitiators, task);
+                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
         }
         else {
             // Create a new export group with the given list of initiators

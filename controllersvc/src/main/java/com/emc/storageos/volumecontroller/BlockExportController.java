@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.Controller;
 
@@ -38,20 +39,20 @@ public interface BlockExportController extends Controller {
      * @param export the export group to be updated
      * @param addedBlockObjectMap (only the block objects that were added);
      * @param removedBlockObjectMap (only the block objects that were removed)
-     * can be null in which case computed from updatedBlockObjectMap
-     * @param updatedClusters the updated list of clusters
-     * @param updatedHosts the updated list of hosts
-     * @param updatedInitiators the updates list of initiators
+     *            can be null in which case computed from updatedBlockObjectMap
+     * @param addedClusters Added Cluster URIs
+     * @param removedClusters Removed Cluster URIs
+     * @param addedHosts Added Host URIs
+     * @param removedHosts Removed Host URIs
+     * @param addedInitiators Added Initiator URIs
+     * @param removedInitiators Removed Initiator URIs
      * @param opId the taskId
      * @throws ControllerException
      */
     public void exportGroupUpdate(URI export, 
-            Map<URI, Integer> addedBlockObjectMap,
-            Map<URI,  Integer> removedBlockObjectMap,
-            List<URI> updatedClusters,
-            List<URI> updatedHosts,
-            List<URI> updatedInitiators,
-            String opId) throws ControllerException;
+            Map<URI, Integer> addedBlockObjectMap, Map<URI, Integer> removedBlockObjectMap,
+            Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> addedHosts,
+            Set<URI> removedHosts, Set<URI> addedInitiators, Set<URI> removedInitiators, String opId) throws ControllerException;
 
     /**
      * Delete the export.

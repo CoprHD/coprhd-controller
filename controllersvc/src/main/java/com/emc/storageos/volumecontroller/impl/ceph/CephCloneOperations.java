@@ -292,6 +292,7 @@ public class CephCloneOperations implements CloneOperations {
         snapshot.setSourceNativeId(CephUtils.createNativeId(snapshot));
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
         snapshot.setStorageController(volume.getStorageController());
+        snapshot.setSystemType(volume.getSystemType());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());

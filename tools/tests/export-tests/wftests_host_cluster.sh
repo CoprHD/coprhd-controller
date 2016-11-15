@@ -213,7 +213,7 @@ test_vcenter_event() {
     echot "vCenter Event Test: Export to cluster, move host into cluster, rediscover vCenter, approve event"
     expname=${EXPORT_GROUP_NAME}t2
     item=${RANDOM}
-    cfs="ExportGroup ExportMask"
+    cfs="ExportGroup ExportMask Host Initiator Cluster"
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
 
@@ -240,6 +240,11 @@ test_vcenter_event() {
 
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
+    
+    # Set vCenter back to previous state
+    remove_host_from_cluster "host21" "cluster-1"
+    add_host_to_cluster "host21" "cluster-2"
+    discover_vcenter "vcenter1"
 
     # Snap the DB again
     snap_db 2 ${cfs}
@@ -248,11 +253,6 @@ test_vcenter_event() {
     validate_db 1 2 ${cfs}
 
     verify_export ${expname}1 ${HOST1} gone
-
-    # Set vCenter back to previous state
-    remove_host_from_cluster "host21" "cluster-1"
-    add_host_to_cluster "host21" "cluster-2"
-    discover_vcenter "vcenter1"
 }
 
 

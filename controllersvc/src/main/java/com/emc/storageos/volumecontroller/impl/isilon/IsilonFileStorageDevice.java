@@ -2557,9 +2557,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private String getSystemAccessZoneNamespace() {
 
         String namespace = "";
-
+        DataSource dataSource = new DataSource();
+        dataSource.addProperty(CustomConfigConstants.ISILON_NO_DIR, "");
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
-                null);
+                dataSource);
 
         return namespace;
     }

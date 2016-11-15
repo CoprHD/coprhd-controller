@@ -1751,9 +1751,16 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume \
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
@@ -1761,7 +1768,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume"
 
     for failure in ${failure_injections}
     do
@@ -1883,12 +1890,12 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
@@ -1901,7 +1908,7 @@ test_3() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
 
     for failure in ${failure_injections}
     do

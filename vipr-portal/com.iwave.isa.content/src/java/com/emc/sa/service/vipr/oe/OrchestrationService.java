@@ -39,6 +39,7 @@ import java.util.Set;
 
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.tasks.RunAnsible;
 import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
 import com.emc.storageos.db.client.DbClient;
 import com.google.gson.Gson;
@@ -75,7 +76,7 @@ import com.google.gson.stream.JsonReader;
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
-    private Map<String, Object> params;
+    private Map<String, Object> params = new HashMap<String, Object>();
     private String oeOrderJson;
 
     @Autowired
@@ -98,6 +99,8 @@ public class OrchestrationService extends ViPRService {
         params = ExecutionUtils.currentContext().getParameters();
 
         // validate input params to insure service will run
+        params.put("name", "/data/hello.yml");
+        params.put("arg1", "Mozart");
 
     }
 
@@ -173,7 +176,7 @@ public class OrchestrationService extends ViPRService {
                 }
                 case ANSIBLE: {
                     ExecutionUtils.currentContext().logInfo("Running Ansible Step");
-
+                    result = ViPRExecutionUtils.execute(new RunAnsible((String)params.get("name"), inputPerStep.get(step.getStepId())));
                     break;
                 }
                 default:

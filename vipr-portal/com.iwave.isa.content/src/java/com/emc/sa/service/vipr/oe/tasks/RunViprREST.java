@@ -39,7 +39,7 @@ import com.sun.jersey.api.client.ClientResponse;
 
 public class RunViprREST extends ViPRExecutionTask<String> {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
 
     private final Map<String, List<String>> input;
     private final RestClient client;

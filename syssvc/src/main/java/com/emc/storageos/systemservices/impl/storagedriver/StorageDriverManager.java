@@ -230,6 +230,10 @@ public class StorageDriverManager {
             }
             for (StorageDriverMetaData metaData : toInsertNewMetaDatas.values()) {
                 List<StorageSystemType> types = StorageDriverMapper.map(metaData);
+                for (StorageSystemType type : types) {
+                    type.setIsNative(false);
+                    type.setDriverStatus(StorageSystemType.STATUS.UPGRADING.toString());
+                }
                 log.info("DriverUpgradePhase1: Delete metadata from zk and insert it into db: {}", metaData.toString());
                 dbClient.createObject(types);
                 coordinatorClient.removeServiceConfiguration(metaData.toConfiguration());
@@ -485,9 +489,7 @@ public class StorageDriverManager {
                     InterProcessLock lock = null;
                     try {
                         lock = getLock(DRIVERS_UPDATE_LOCK);
-                        // if (areAllNodesUpdated()) {
                         updateMetaData();
-                        // }
                     } catch (Exception e) {
                         log.error("error happend when updating driver info", e);
                     } finally {

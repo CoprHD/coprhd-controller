@@ -136,49 +136,59 @@ public class CreateBareMetalClusterService extends ViPRService {
         if (cluster == null) {
             cluster = ComputeUtils.createCluster(name);
             logInfo("compute.cluster.created", name);
-        }
-        else {
-            // If the hostName already exists, we remove it from the hostnames list.
+        } else {
+            // If the hostName already exists, we remove it from the hostnames
+            // list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
 
         List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
-
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project,
-                virtualArray, virtualPool, size, hosts, getClient());
-        logInfo("compute.cluster.boot.volumes.created",
-                ComputeUtils.nonNull(bootVolumeIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts,
-                bootVolumeIds);
-
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
-
-        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
-        // Below step to update the shared export group to the cluster (the newly added
-        // hosts will be taken care of this update cluster method and in a synchronized way)
+        // Below step to update the shared export group to the cluster (the
+        // newly added hosts will be taken care of this update cluster
+        // method and in a synchronized way)
         ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
         logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
-        if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
-            logInfo("compute.cluster.removing.empty.cluster");
-            ComputeUtils.deactivateCluster(cluster);
-        }
+        // Make sure the all hosts that are being created belong to the all
+        // of the exportGroups of the cluster, else fail the order.
+        // Not do so and continuing to create bootvolumes to the host we
+        // might end up in "consistent lun violation" issue.
+        if (!ComputeUtils.nonNull(hosts).isEmpty()
+                && ComputeUtils.verifyClusterSharedExportGroups(cluster, copyOfHostNames)) {
+            ComputeUtils.deactivateHosts(hosts);
+            // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
+            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+            throw new IllegalStateException(
+                    ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
+        } else {
+            List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                    getClient());
+            logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+            hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
+            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray);
+            logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
+            hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+
+            ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+
+            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
+                logInfo("compute.cluster.removing.empty.cluster");
+                ComputeUtils.deactivateCluster(cluster);
+            }
+        }
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
                         ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
-            }
-            else {
+            } else {
                 logError("compute.cluster.order.incomplete", orderErrors);
                 setPartialSuccess();
             }
         }
+
     }
 
     public URI getProject() {

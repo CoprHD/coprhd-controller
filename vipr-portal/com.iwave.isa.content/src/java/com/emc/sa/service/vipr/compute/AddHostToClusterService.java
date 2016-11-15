@@ -221,8 +221,7 @@ public class AddHostToClusterService extends ViPRService {
         Map<String, String> hostToIPs = new HashMap<String, String>();
 
         if (hostNames.size() != hostIps.size()) {
-            throw new IllegalStateException(
-                    ExecutionUtils.getMessage("compute.cluster.host.ip.mismatch"));
+            throw new IllegalStateException(ExecutionUtils.getMessage("compute.cluster.host.ip.mismatch"));
         }
 
         int index = 0;
@@ -237,29 +236,39 @@ public class AddHostToClusterService extends ViPRService {
 
         List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
-
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(
-                project, virtualArray, virtualPool, size, hosts, getClient());
-        logInfo("compute.cluster.boot.volumes.created",
-                ComputeUtils.nonNull(bootVolumeIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds);
-
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds);
-
-        logInfo("compute.cluster.exports.installing.os");
-        List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-        logInfo("compute.cluster.exports.installed.os",
-                ComputeUtils.nonNull(hostsWithOs).size());
-        // Below step to update the shared export group to the cluster (the newly added
-        // hosts will be taken care of this update cluster method and in a synchronized way)
+        // Below step to update the shared export group to the cluster (the
+        // newly added hosts will be taken care of this update cluster
+        // method and in a synchronized way)
         ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
         logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
-        pushToVcenter();
+        // Make sure the all hosts that are being created belong to the all
+        // of the exportGroups of the cluster, else fail the order.
+        // Not do so and continuing to create bootvolumes to the host we
+        // might end up in "consistent lun violation" issue.
+        if (!ComputeUtils.nonNull(hosts).isEmpty()
+                && ComputeUtils.verifyClusterSharedExportGroups(cluster, copyOfHostNames)) {
+            ComputeUtils.deactivateHosts(hosts);
+            // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
+            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+            throw new IllegalStateException(
+                    ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
+        } else {
+            List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                    getClient());
+            logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+            hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
+            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray);
+            logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
+            hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+
+            logInfo("compute.cluster.exports.installing.os");
+            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+            logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
+
+            pushToVcenter();
+        }
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
@@ -269,6 +278,7 @@ public class AddHostToClusterService extends ViPRService {
                 setPartialSuccess();
             }
         }
+
     }
 
     public String getRootPassword() {

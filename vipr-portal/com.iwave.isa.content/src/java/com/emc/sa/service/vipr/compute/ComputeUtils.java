@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
@@ -369,7 +370,7 @@ public class ComputeUtils {
     }
 
     public static List<Host> deactivateHostsWithNoBootVolume(List<Host> hosts,
-            List<URI> bootVolumeIds) {
+            List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
             return Lists.newArrayList();
         }
@@ -393,12 +394,14 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
+            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         }
         return hosts;
     }
 
     public static List<Host> deactivateHostsWithNoExport(List<Host> hosts,
-            List<URI> exportIds, List<URI> bootVolumeIds) {
+            List<URI> exportIds, List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
             return Lists.newArrayList();
         }
@@ -427,6 +430,8 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
+            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         }
         // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
         if (!bootVolsToRemove.isEmpty()) {
@@ -691,29 +696,6 @@ public class ComputeUtils {
                 }
             }
         }
-
-        // Check if all the shared exports of the cluster were updated properly with the hosts.
-        List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(cluster.getId(), null, null);
-        boolean isExportGroupFailed = false;
-        if (null != exportGroups) {
-            for (ExportGroupRestRep exportGroup : exportGroups) {
-                List<String> exportedHostNames = Lists.newArrayList();
-                List<HostRestRep> exportedHosts = exportGroup.getHosts();
-                if (null != exportedHosts) {
-                    for (HostRestRep hostRestRep : exportedHosts) {
-                        exportedHostNames.add(hostRestRep.getHostName());
-                    }
-                    if (!hostNames.contains(exportedHostNames)) {
-                        isExportGroupFailed = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if(isExportGroupFailed) {
-            orderErrors.append(ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed",
-                    cluster.getLabel()));
-        }
         return orderErrors.toString();
     }
 
@@ -779,5 +761,54 @@ public class ComputeUtils {
         ClusterRestRep clusterRestRep = execute(new UpdateCluster(clusterID, clusterName));
         return (clusterRestRep == null) ? null : BlockStorageUtils
                 .getCluster(clusterRestRep.getId());
+    }
+
+    /**
+     * Verify if the given hostNames have been properly exported to all the cluster
+     * shared export groups.
+     * This method internally has a wait/retry mechanism so that the export group update
+     * operations complete.  The reason to have this crude wait/retry is because the
+     * updateCluster API does not return a task for us to monitor.
+     * @param cluster cluster to which the hosts are being added.
+     * @param hostNames hosts being added to the cluster
+     * @return true if the export groups does not have the given hostNames else false.
+     * @throws InterruptedException
+     */
+    public static boolean verifyClusterSharedExportGroups(Cluster cluster, List<String> hostNames) throws InterruptedException {
+
+        int retryCount = 1;
+        boolean isExportGroupFailed = false;
+        // Having this retry mechanism to verify if all the shared export groups for
+        // a given cluster is done.  The reason to have this crude wait is the
+        // updateCluster API does not return a task for us to monitor.
+        while (retryCount >= 0) {
+            isExportGroupFailed = false;
+            // Check if all the shared exports of the cluster were updated
+            // properly with the hosts.
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(cluster.getId(),
+                    null, null);
+            if (null != exportGroups) {
+                for (ExportGroupRestRep exportGroup : exportGroups) {
+                    List<String> exportedHostNames = Lists.newArrayList();
+                    List<HostRestRep> exportedHosts = exportGroup.getHosts();
+                    if (null != exportedHosts) {
+                        for (HostRestRep hostRestRep : exportedHosts) {
+                            exportedHostNames.add(hostRestRep.getHostName());
+                        }
+                        if (!exportedHostNames.containsAll(hostNames)) {
+                            isExportGroupFailed = true;
+                            break;
+                        }
+                    }
+                }
+                if(isExportGroupFailed && retryCount >= 0) {
+                    retryCount--;
+                    TimeUnit.MINUTES.sleep(5);
+                } else {
+                    retryCount = -1;
+                }
+            }
+        }
+        return isExportGroupFailed;
     }
 }

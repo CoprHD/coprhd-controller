@@ -526,6 +526,7 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
+                <ref bean="exportPathParametersService" />
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>
@@ -785,6 +786,10 @@
                     <property name="sysUtils" ref="sysUtils" />
                     <property name="ipsecConfig" ref="ipsecConfig" />
                     <property name="drUtil" ref="drUtil" />
+                </bean>
+                <bean id ="exportPathParametersService" class="com.emc.storageos.api.service.impl.resource.ExportPathParametersService">
+                  <property name="dbClient" ref="dbclient"/>
+                  <property name="coordinator" ref="coordinator"/>
                 </bean>
             </set>
         </property>

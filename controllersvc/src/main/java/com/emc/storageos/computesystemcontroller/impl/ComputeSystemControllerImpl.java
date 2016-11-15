@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -76,6 +77,8 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -571,7 +574,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             this.getClass(),
                             updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                     addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                            null, null);
+                            updateExportGroupRollbackMethod(export.getId()), null);
                 }
             }
         }
@@ -604,7 +607,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return waitFor;
@@ -668,7 +671,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         updateExportGroupMethod(export.getId(),
                                 CollectionUtils.isEmpty(export.getInitiators()) ? new HashMap<URI, Integer>() : updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return newWaitFor;
@@ -738,7 +741,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), updatedVolumesMap,
                             addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                    null, null);
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
         return waitFor;
     }
@@ -791,7 +794,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     this.getClass(),
                     updateExportGroupMethod(eg.getId(), updatedVolumesMap,
                             addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                    null, null);
+                    updateExportGroupRollbackMethod(eg.getId()), null);
         }
 
         if (isVcenter) {
@@ -940,7 +943,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return waitFor;
@@ -952,6 +955,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return new Workflow.Method("updateExportGroup", exportGroupURI, newVolumesMap,
                 addedClusters, removedClusters, adedHosts, removedHosts, addedInitiators,
                 removedInitiators);
+    }
+    
+    public Workflow.Method updateExportGroupRollbackMethod(URI exportGroupURI) {
+        return new Workflow.Method("updateExportGroupRollback", exportGroupURI);
     }
 
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
@@ -965,8 +972,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
             BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
 
-            _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
-                    stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+            Operation op = _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                    stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);            
+            exportGroupObject.getOpStatus().put(stepId, op);
+            _dbClient.updateObject(exportGroupObject);
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_001);
@@ -978,8 +987,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_002);
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
+            // Clean up any pending tasks
+            ExportTaskCompleter taskCompleter = new ExportUpdateCompleter(exportGroup, stepId);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+            // Fail the step
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
+    }
+    
+    public void updateExportGroupRollback(URI exportGroup, String stepId) throws Exception {
+        // No specific steps yet, just pass through.
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
@@ -1433,7 +1452,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return waitFor;
@@ -1658,7 +1677,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             new HashSet<>(export.getAddedClusters()), new HashSet<>(export.getRemovedClusters()),
                             new HashSet<>(export.getAddedHosts()), new HashSet<>(export.getRemovedHosts()),
                             new HashSet<>(export.getAddedInitiators()), new HashSet<>(export.getRemovedInitiators())),
-                    null, null);
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
 
         return waitFor;

@@ -62,11 +62,14 @@ public class FileUnityStoragePortMigration extends BaseCustomMigrationCallback {
 
                     Network network = dbClient.queryObject(Network.class, sPort.getNetwork());
                     StringMap endpoints = network.getEndpointsMap();
-                    String value = endpoints.get(sPort.getPortNetworkId());
-                    endpoints.remove(sPort.getPortNetworkId());
-                    endpoints.put(newPortNetworkId, value);
-                    network.setEndpointsMap(endpoints);
-                    changedNetworks.add(network);
+                    if (endpoints.containsKey(sPort.getPortNetworkId())) {
+                        String value = endpoints.get(sPort.getPortNetworkId());
+                        endpoints.remove(sPort.getPortNetworkId());
+                        endpoints.put(newPortNetworkId, value);
+                        network.setEndpointsMap(endpoints);
+                        changedNetworks.add(network);
+                    }
+
                 }
             }
             if (!changedNetworks.isEmpty()) {

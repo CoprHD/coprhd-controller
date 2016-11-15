@@ -124,6 +124,7 @@
         <entry key="3.0">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileUnityStoragePortMigration"/>
             </list>
         </entry>
         <entry key="3.1">
@@ -139,8 +140,7 @@
         <entry key="3.5">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration"/>
-                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration"/>
-                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileUnityStoragePortMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration"/>               
             </list>
         </entry>
     </util:map>

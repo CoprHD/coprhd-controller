@@ -13,7 +13,6 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
  * 
@@ -49,9 +48,9 @@ public class FileUnityStoragePortMigration extends BaseCustomMigrationCallback {
                 StoragePort sPort = sPorts.next();
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, sPort.getStorageDevice());
                 if (system.getSystemType().equalsIgnoreCase(SystemType.unity.name()) && sPort.getTransportType().equalsIgnoreCase("IP")) {
-                    String newNativeGUID = NativeGUIDGenerator.generateNativeGuid(system,
+                    String newNativeGUID = generateNativeGuid(system,
                             sPort.getPortGroup() + "+" + sPort.getPortNetworkId(),
-                            NativeGUIDGenerator.PORT);
+                            "PORT");
                     String newIpAddress = sPort.getPortNetworkId();
                     String newPortNetworkId = system.getLabel() + ":" + sPort.getPortGroup() + ":" + sPort.getPortNetworkId();
 
@@ -83,5 +82,9 @@ public class FileUnityStoragePortMigration extends BaseCustomMigrationCallback {
             String errorMsg = String.format("%s encountered unexpected error %s", this.getName(), e.getMessage());
             throw new MigrationCallbackException(errorMsg, e);
         }
+    }
+
+    public String generateNativeGuid(StorageSystem device, String uniqueId, String type) {
+        return String.format("%s+%s+%s+%s", "UNITY", device.getSerialNumber(), type, uniqueId);
     }
 }

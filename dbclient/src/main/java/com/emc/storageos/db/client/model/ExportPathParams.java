@@ -29,6 +29,8 @@ public class ExportPathParams extends DataObject {
      */
     private Boolean allowFewerPorts = false;
     
+    private String name;
+    
     // Return the default params if asked.
     // MaxPaths will be set to 4.
     // Minpaths will be set to 0 which is ignored.
@@ -61,6 +63,16 @@ public class ExportPathParams extends DataObject {
                 returnExportGroupType().name(), getMaxPaths(), getMinPaths(), getPathsPerInitiator(), getMaxInitiatorsPerPort());
     }
     
+    @Name("name")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        setChanged("name");
+    }
+
     @Name("maxPaths")
     public Integer getMaxPaths() {
         return maxPaths;

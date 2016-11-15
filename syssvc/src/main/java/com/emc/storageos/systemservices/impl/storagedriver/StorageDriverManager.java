@@ -461,7 +461,7 @@ public class StorageDriverManager {
             @Override
             public void run() {
                 initializeLocalAndTargetInfo();
-\
+
                 upgradingDriverMap = getUpgradeDriverMetaDataMap();
 
                 // remove drivers and restart controller service

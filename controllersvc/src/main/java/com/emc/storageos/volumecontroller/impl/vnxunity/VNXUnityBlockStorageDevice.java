@@ -37,10 +37,9 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.locking.LockTimeoutValue;
-import com.emc.storageos.locking.LockType;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
@@ -157,6 +156,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             }
             List<String> volNames = new ArrayList<String>();
             String autoTierPolicyName = null;
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_022);
             for (Volume volume : volumes) {
                 String tenantName = "";
                 try {
@@ -197,6 +197,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     taskCompleter, storagePool.getId(), isCG);
 
             ControllerServiceImpl.enqueueJob(new QueueJob(createVolumesJob));
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_023);
         } catch (VNXeException e) {
             logger.error("Create volumes got the exception", e);
             opFailed = true;

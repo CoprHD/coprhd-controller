@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Migration;
@@ -810,7 +811,7 @@ public class BulkList<T> implements List<T> {
     }
     
     public static class ExportPathParamsFilter
-            extends PermissionsEnforcingResourceFilter<SchedulePolicy> {
+            extends PermissionsEnforcingResourceFilter<ExportPathParams> {
 
         public ExportPathParamsFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
@@ -818,14 +819,10 @@ public class BulkList<T> implements List<T> {
         }
 
         @Override
-        public boolean isAccessible(SchedulePolicy resource) {
+        public boolean isAccessible(ExportPathParams resource) {
             boolean ret = false;
-            ret = isTenantAccessible(resource.getTenantOrg().getURI());
-            if (!ret) {
-                return ret = _permissionsHelper.userHasGivenRole(
-                        _user, resource.getId(), Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
-            }
-            return ret;
+            return ret = _permissionsHelper.userHasGivenRole(
+                    _user, resource.getId(), Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
         }
     }
 }

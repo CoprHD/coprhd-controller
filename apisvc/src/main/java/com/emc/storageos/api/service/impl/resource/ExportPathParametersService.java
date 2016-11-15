@@ -185,7 +185,7 @@ public class ExportPathParametersService extends TaggedResource {
     public ExportPathParamsBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<ExportPathParams> _dbIterator = _dbClient.queryIterativeObjects(
                 getResourceClass(), ids);
-        BulkList.ExportPathParamsFilter filter = new BulkList.ExportPathParamsFilter(getUserFromContext(), _permissionsHelper);
+        BulkList.ResourceFilter filter = new BulkList.ExportPathParamsFilter(getUserFromContext(), _permissionsHelper);
         return  new ExportPathParamsBulkRep(BulkList.wrapping(_dbIterator,
                 MapExportPathParams.getInstance(_dbClient), filter));
     }

@@ -1365,12 +1365,25 @@ vplex_setup() {
     esac
 }
 
+xio_sim_setup() {
+    XIO-PROVIDER=XIO-PROVIDER-SIM
+    XTREMIO_3X_IP=$XIO_SIMULATOR_IP
+    XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
+    XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+}
+
 xio_setup() {
     # do this only once
     echo "Setting up XtremIO"
-    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
     storage_password=$XTREMIO_3X_PASSWD
-    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP 443 $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    XTREMIO_PORT=443
+    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+
+    if [ "${SIM}" = "1" ]; then
+	xio_sim_setup
+    fi    
+    
+    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     run storagedevice discover_all --ignore_error
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1641,7 +1654,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_006"
+    #failure_injections="failure_006_BlockDeviceController.createVolumes_after_device_create"
 
     for failure in ${failure_injections}
     do
@@ -1657,12 +1670,19 @@ test_1() {
       # Check the state of the volume that doesn't exist
       snap_db 1 ${cfs}
 
-      # Create the volume
-      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
-      # Let the async jobs calm down
-      sleep 5
-
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
       # Perform any DB validation in here
       snap_db 2 ${cfs}
 
@@ -1675,7 +1695,7 @@ test_1() {
 
       # Remove the volume
       runcmd volume delete ${PROJECT}/${volname} --wait
-      
+
       # Perform any DB validation in here
       snap_db 3 ${cfs}
 

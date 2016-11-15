@@ -428,3 +428,109 @@ test_host_remove_initiator() {
         validate_db 1 2 ${column_family}
     done
 }
+
+test_happy_path_move_clustered_host_to_another_cluster() {
+    echot "Test test_happy_path_move_clustered_host_to_another_cluster Begins"
+
+    secho "Running test_happy_path_move_clustered_host_to_another_cluster"
+        
+    column_family="Volume ExportGroup ExportMask"
+    random_number=${RANDOM}
+    mkdir -p results/${random_number}
+    volume1=${VOLNAME}-1
+    volume2=${VOLNAME}-2
+    
+    host1=fakehost-1-${random_number}
+    host2=fakehost-2-${random_number}
+    cluster1=fakecluster-1-${random_number}
+    cluster2=fakecluster-2-${random_number}
+    
+    exportgroup1=exportgroup-1-${random_number}
+    exportgroup2=exportgroup-2-${random_number}
+    
+    # Snap DB
+    snap_db 1 ${column_family}
+        
+    # Create new random WWNs for nodes and initiators
+    node1=`randwwn 20 C1`
+    node2=`randwwn 20 C2`
+    node3=`randwwn 20 C3`
+    node4=`randwwn 20 C4`
+    init1=`randwwn 10 C1`
+    init2=`randwwn 10 C2`
+    init3=`randwwn 10 C3`
+    init4=`randwwn 10 C4`
+        
+    # Add initator WWNs to the network
+    run transportzone add $NH/${FC_ZONE_A} ${init1}
+    run transportzone add $NH/${FC_ZONE_A} ${init2}
+    run transportzone add $NH/${FC_ZONE_A} ${init3}
+    run transportzone add $NH/${FC_ZONE_A} ${init4}
+        
+    # Create fake clusters
+    runcmd cluster create ${cluster1} $TENANT
+    runcmd cluster create ${cluster2} $TENANT
+    
+    # Create fake hosts
+    runcmd hosts create ${host1} $TENANT Other ${host1}.lss.emc.com --port 1 --cluster $TENANT/${cluster1}
+    runcmd hosts create ${host2} $TENANT Other ${host2}.lss.emc.com --port 1 --cluster $TENANT/${cluster2}
+    
+    # Create new initators and add to fakehosts
+    runcmd initiator create ${host1} FC ${init1} --node ${node1}
+    runcmd initiator create ${host1} FC ${init2} --node ${node2}
+    runcmd initiator create ${host2} FC ${init3} --node ${node3}
+    runcmd initiator create ${host2} FC ${init4} --node ${node4}
+
+    # Export the volumes to the fake clusters    
+    runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+    runcmd export_group create $PROJECT ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
+    
+    # Double check the export groups to ensure the initiators are present
+    foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
+    foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
+    foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
+    foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
+    
+    if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
+        # Fail, initiators should have been added to the export group
+        echo "+++ FAIL - Some initiators were not found on the export groups...fail."
+        exit 1
+    else
+        echo "+++ SUCCESS - All initiators from clusters present on export group"   
+    fi
+    
+    # Move host1 into cluster2
+    runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
+    
+    # TODO wait on export group update tasks instead of sleeping
+    sleep 15
+    
+    # Ensure that all initiators are now in same cluster
+    foundinit1=`export_group show $PROJECT/${exportgroup2} | grep ${init1}`
+    foundinit2=`export_group show $PROJECT/${exportgroup2} | grep ${init2}`
+    foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
+    foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
+
+    if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
+        # Fail, initiators should have been added to the export group
+        echo "+++ FAIL - Some initiators were not found  in export group ${exportgroup2}...fail."
+        exit 1
+    else
+        echo "+++ SUCCESS - All initiators from clusters present on export group ${exportgroup2}"   
+    fi
+
+    # The other export group should be deleted    
+    fail export_group show $PROJECT/${exportgroup1}   
+    
+    # Cleanup    
+    runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}
+    runcmd export_group delete ${PROJECT}/${exportgroup2}    
+    runcmd hosts delete ${host1}
+    runcmd hosts delete ${host2}
+    
+    # Snap DB
+    snap_db 2 ${column_family}
+    
+    # Validate DB
+    validate_db 1 2 ${column_family}
+}

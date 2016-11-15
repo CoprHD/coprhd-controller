@@ -13,7 +13,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.valid.Range;
 
 @XmlRootElement(name = "export_path_parameters")
-public class ExportPathParmsRestRep extends DataObjectRestRep {
+public class ExportPathParamsRestRep extends DataObjectRestRep {
 
     private String name;
     private URI id;

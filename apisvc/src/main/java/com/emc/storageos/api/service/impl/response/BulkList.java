@@ -808,4 +808,24 @@ public class BulkList<T> implements List<T> {
             return ret;
         }
     }
+    
+    public static class ExportPathParamsFilter
+            extends PermissionsEnforcingResourceFilter<SchedulePolicy> {
+
+        public ExportPathParamsFilter(StorageOSUser user,
+                PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        @Override
+        public boolean isAccessible(SchedulePolicy resource) {
+            boolean ret = false;
+            ret = isTenantAccessible(resource.getTenantOrg().getURI());
+            if (!ret) {
+                return ret = _permissionsHelper.userHasGivenRole(
+                        _user, resource.getId(), Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
+            }
+            return ret;
+        }
+    }
 }

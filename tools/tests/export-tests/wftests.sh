@@ -1983,7 +1983,7 @@ test_4() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

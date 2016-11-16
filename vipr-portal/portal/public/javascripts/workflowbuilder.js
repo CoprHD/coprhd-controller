@@ -920,7 +920,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             }
         }).on('ready.jstree', function() {
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
-        }).bind("rename_node.jstree clear_search.jstree search.jstree", function() {
+        }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
         })
     }

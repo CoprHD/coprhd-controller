@@ -212,9 +212,9 @@ public class Main {
             try {
                 n++;
                 URI id = URI.create(column.getName().getTwo());
-                long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+                // long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
 
-                IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(), timeInMicros);
+                IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(),column.getName().getTimeUUID());
                 mutationBatch.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
                 if ( n % pageCount == 0) {
                     mutationBatch.execute(); // commit

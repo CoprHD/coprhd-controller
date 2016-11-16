@@ -6,6 +6,9 @@ package com.emc.storageos.util;
 
 import javax.wbem.WBEMException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 
 /**
@@ -13,6 +16,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
  * rollback and other workflow anomalies in a repeatable and automated way.
  */
 public final class InvokeTestFailure {
+    private static Logger _log = LoggerFactory.getLogger(InvokeTestFailure.class);
+
     // Controller property
     private static final String ARTIFICIAL_FAILURE = "artificial_failure";
 
@@ -31,7 +36,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_012 = "failure_012_VNXVMAX_Post_Placement_inside_trycatch";
     public static final String ARTIFICIAL_FAILURE_013 = "failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete";
     public static final String ARTIFICIAL_FAILURE_014 = "failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete";
-    public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_some-method";
+    public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_";
     public static final String ARTIFICIAL_FAILURE_016 = "failure_016_Export_doRemoveInitiator";
     public static final String ARTIFICIAL_FAILURE_017 = "failure_017_Export_doRemoveVolume";
     public static final String ARTIFICIAL_FAILURE_018 = "failure_018_Export_doRollbackExportCreate_before_delete";
@@ -70,6 +75,7 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
+            _log.info("Injecting failure: " + failureKey);
             throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
         }
     }
@@ -91,10 +97,11 @@ public final class InvokeTestFailure {
         }
         
         // Extract the method name from the system property
-        String failOnMethodName = invokeArtificialFailure.substring("failure_016_SmisCommandHelper.invokeMethod_".length());
+        String failOnMethodName = invokeArtificialFailure.substring(ARTIFICIAL_FAILURE_015.length());
         String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
                 && methodName.equalsIgnoreCase(failOnMethodName)) {
+            _log.info("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
             throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
         }
     }

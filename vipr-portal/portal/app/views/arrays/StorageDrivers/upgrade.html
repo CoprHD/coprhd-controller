@@ -14,8 +14,11 @@
      #{field 'driverFile'}
         #{Form.fileUploadControlGroup field:field/}
      #{/field}
+     <control-group v-field="force">
+         <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+     </control-group>
      #{Form.buttonBar}
         <input name="driverName" value="${driverName}" style="display:none;" />
-        <button type="submit" class="btn btn-default" onclick="if (!confirm('&{'storageDrivers.upgrade.confirm'}')){return false;}">#{icon 'upload'/} &{'storageDrivers.uploadButton'}</button>
+        <button type="submit" class="btn btn-default" onclick="if (!confirm('&{'storageDrivers.upgrade.confirm'}')){return false;}">#{icon 'upload'/} &{'storageDrivers.upgradeButton'}</button>
      #{/Form.buttonBar}
 #{/form}

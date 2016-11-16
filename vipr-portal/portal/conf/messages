@@ -3862,7 +3862,8 @@ storageDrivers.status=Status
 storageDrivers.actions=Actions
 storageDrivers.upload.title=Upload Storage Driver
 storageDrivers.name=Storage Name
-storageDrivers.uploadButton=Upload
+storageDrivers.installButton=Install
+storageDrivers.upgradeButton=Upgrade
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.deleteButton=Delete
 storageDrivers.upgrade.confirm=Controller services will be restarted, unfinished orders may fail. Are you still willing to proceed?
@@ -3890,6 +3891,7 @@ storageSystemTypes.isElementMgr=Is Element Manager
 storageSystemTypes.useMDM=Use MDM
 storageSystemTypes.driverClassName=Driver Class Name
 driverFile=Storage Driver Jar
+force=Force
 
 tasks.task=Task
 tasks.id=ID

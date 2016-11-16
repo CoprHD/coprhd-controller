@@ -21,8 +21,8 @@ public class StorageDriverUtils {
         return getViprClient().storageDriver().installDriver(f);
     }
 
-    public static ClientResponse upgradeDriver(File driverFile, String driverName) {
-        return getViprClient().storageDriver().upgradeDriver(driverName, driverFile);
+    public static ClientResponse upgradeDriver(File driverFile, String driverName, boolean force) {
+        return getViprClient().storageDriver().upgradeDriver(driverName, driverFile, force);
     }
 
     public static ClientResponse uninstallDriver(String driverName) {

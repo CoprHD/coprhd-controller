@@ -75,13 +75,13 @@ public class StorageDrivers extends ViprResourceController {
     }
 
     @FlashException
-    public static void upgradeDriver(File driverFile, String driverName) {
+    public static void upgradeDriver(File driverFile, String driverName, boolean force) {
         if (driverFile == null) {
             flash.error("Error: please specify a driver jar file");
             upgrade(driverName);
         }
-        StorageDriverUtils.upgradeDriver(driverFile, driverName);
-        flash.success(MessagesUtils.get(INTALL_INIT_SUCCESS));
+        StorageDriverUtils.upgradeDriver(driverFile, driverName, force);
+        flash.success(MessagesUtils.get(UPGRADE_INIT_SUCCESS));
         list();
     }
 }

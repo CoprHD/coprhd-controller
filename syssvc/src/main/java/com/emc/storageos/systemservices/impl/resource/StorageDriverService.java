@@ -376,6 +376,10 @@ public class StorageDriverService {
         File driverFile = saveToTmpDir(fileName, uploadedInputStream);
 
         StorageDriverMetaData metaData = parseDriverMetaData(driverFile);
+        if (!StringUtils.equals(driverName, metaData.getDriverName())) {
+            throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(
+                    String.format("Driver name specified in jar file is not %s", driverName));
+        }
 
         precheckForMetaData(metaData, true, force);
 

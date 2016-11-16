@@ -61,13 +61,16 @@ public class RemoteReplicationScheduler implements Scheduler {
     }
 
     @Override
-    /**
-     * 1. We call basic storage scheduler to get matching storage pools for source volumes (based on source virtual array and source virtual pool)
-     * 2. We call basic storage scheduler to get matching storage pools for target volumes (based on target varray and optionally target virtual pool)
-     * 3. Filter out source pools which do not match replication group or replication set.
-     * 4. The same step for target pools.
-     */
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+        /**
+         * 1. We call basic storage scheduler to get matching storage pools for source volumes (based on source storage systems and
+         * based on source virtual array and source virtual pool)
+         *
+         * 2. We call basic storage scheduler to get matching storage pools for target volumes (based on target storage system and
+         * based on target varray and optionally target virtual pool)
+         *
+         * 3. Build recommendations for source and target storage volumes based on sets of matching source and target storage pools.
+         */
         _log.info("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
         Map<String, Object> attributeMap = new HashMap<>();
@@ -92,9 +95,8 @@ public class RemoteReplicationScheduler implements Scheduler {
 
         }
 
-
-        // Get all storage pools for source volumes that match the passed vpool params and
-        // protocols. In addition, the pool must have enough capacity
+        // Get all storage pools for source volumes that match set of source storage systems and also match
+        // passed vpool params and protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), sourceStorageSystems);
         List<StoragePool> sourcePools = _blockScheduler.getMatchingPools(vArray, vPool, capabilities, attributeMap);
@@ -115,7 +117,8 @@ public class RemoteReplicationScheduler implements Scheduler {
                     errorMessage.toString());
         }
 
-        // Get all storage pools for target volumes that match the passed target vpool params and
+        // Get all storage pools for target volumes that match set of target storage systems
+        // and also match passed target vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         VirtualPoolCapabilityValuesWrapper targetCapabilities;
@@ -166,7 +169,7 @@ public class RemoteReplicationScheduler implements Scheduler {
 
         }
 
-        // list of recommendations for all volumes which we return
+        // list of recommendations for all volumes
         List<Recommendation> volumeRecommendations = new ArrayList<>();
         // We have candidate source and target storage pools now. Get recommendations for the source and target volumes.
         List<Recommendation> sourceRecommendationsForPools = _blockScheduler.getRecommendationsForPools(vArray.getId().toString(), sourcePools, capabilities);
@@ -189,7 +192,7 @@ public class RemoteReplicationScheduler implements Scheduler {
         }
 
         // Build recommendation for each volume
-        // create recommendation for each source volume
+        // Create recommendation for each source volume
         List<Recommendation> sourceVolumeRecommendations = new ArrayList<>();
         for (Recommendation recommendation : sourceRecommendationsForPools) {
             int count = recommendation.getResourceCount();
@@ -197,15 +200,16 @@ public class RemoteReplicationScheduler implements Scheduler {
                 Recommendation volumeRecommendation = new Recommendation();
                 volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
                 volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
-                volumeRecommendation.setVirtualArray(recommendation.getVirtualArray());
-                volumeRecommendation.setVirtualPool(recommendation.getVirtualPool());
+                volumeRecommendation.setVirtualArray(vArray.getId());
+                volumeRecommendation.setVirtualPool(vPool);
                 volumeRecommendation.setResourceCount(1);
                 sourceVolumeRecommendations.add(volumeRecommendation);
+            //    volumeRecommendations.add(volumeRecommendation);
                 count--;
             }
         }
 
-        // create recommendation for each target volume
+        // Create recommendation for each target volume. Use source volume recommendations as underlying recommendations.
         int sourceVolumeRecommendationIndex = 0;
         for (Recommendation recommendation : targetRecommendationsForPools) {
             int count = recommendation.getResourceCount();
@@ -213,8 +217,8 @@ public class RemoteReplicationScheduler implements Scheduler {
                 Recommendation volumeRecommendation = new Recommendation();
                 volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
                 volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
-                volumeRecommendation.setVirtualArray(recommendation.getVirtualArray());
-                volumeRecommendation.setVirtualPool(recommendation.getVirtualPool());
+                volumeRecommendation.setVirtualArray(targetVirtualArray.getId());
+                volumeRecommendation.setVirtualPool(targetVirtualPool);
                 volumeRecommendation.setResourceCount(1);
                 // set source volume recommendation as underlying recommendation
                 volumeRecommendation.setRecommendation(sourceVolumeRecommendations.get(sourceVolumeRecommendationIndex++));

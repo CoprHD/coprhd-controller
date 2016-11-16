@@ -87,6 +87,11 @@ report_results() {
     branch=`git rev-parse --abbrev-ref HEAD`
     sha=`git rev-parse HEAD`
     ss=${SS}
+
+    if [ "${SS}" = "vplex" ]; then
+	ss="${SS} ${VPLEX_MODE}"
+    fi
+
     simulator="Hardware"
     if [ "${SIM}" = "1" ]; then
 	simulator="Simulator"
@@ -1768,7 +1773,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume"
+    # failure_injections="failure_004"
 
     for failure in ${failure_injections}
     do
@@ -2001,7 +2006,7 @@ test_4() {
     for failure in ${failure_injections}
     do
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 1 with failure scenario: ${failure}..."
+      secho "Running Test 4 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}

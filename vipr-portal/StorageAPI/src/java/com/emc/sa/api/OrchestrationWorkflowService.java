@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -79,7 +80,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @PUT
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final OrchestrationWorkflowCreateParam workflow) {  
+    public OrchestrationWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final OrchestrationWorkflowUpdateParam workflow) {  
         final OEWorkflow updated;
         try {
             updated = WorkflowHelper.update(getOEWorkflow(id), workflow.getDocument()); 

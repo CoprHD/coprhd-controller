@@ -1935,16 +1935,18 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 Initiator initiator =
                         _dbClient.queryObject(Initiator.class,
                                 newExportMaskInitiator);
-                String clusterName = getClusterName(singleCluster, initiator);
-                List<URI> initiatorSet = result.get(clusterName);
-                if (initiatorSet == null) {
-                    initiatorSet = new ArrayList<URI>();
-                    result.put(clusterName, initiatorSet);
+                if (initiator != null) {
+                    String clusterName = getClusterName(singleCluster, initiator);
+                    List<URI> initiatorSet = result.get(clusterName);
+                    if (initiatorSet == null) {
+                        initiatorSet = new ArrayList<URI>();
+                        result.put(clusterName, initiatorSet);
+                    }
+                    initiatorSet.add(newExportMaskInitiator);
+                    _log.info(String.format("cluster = %s, initiators to add to map: %s, ",
+                            clusterName,
+                            newExportMaskInitiator.toString()));
                 }
-                initiatorSet.add(newExportMaskInitiator);
-                _log.info(String.format("cluster = %s, initiators to add to map: %s, ",
-                        clusterName,
-                        newExportMaskInitiator.toString()));
             }
         } else {
             // Bogus URI for those initiators without a host object, helps maintain a good map.

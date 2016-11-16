@@ -5,6 +5,11 @@
 package com.emc.storageos.db.client.model.remotereplication;
 
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -181,5 +186,44 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     public void setSupportedElementTypes(StringSet supportedElementTypes) {
         this.supportedElementTypes = supportedElementTypes;
         setChanged("supportedElementTypes");
+    }
+
+    /**
+     * Convenience method to get source storage systems
+     * @return set of source storage systems ids
+     */
+    public Set<String> getSourceSystems() {
+        Set<String> sourceSystems = new HashSet<>();
+        if (getSystemToRolesMap() == null) {
+            return sourceSystems;
+        }
+
+
+        for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : getSystemToRolesMap().entrySet()) {
+            AbstractChangeTrackingSet<String> roles = entry.getValue();
+            if (roles.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.SOURCE.toString())) {
+                sourceSystems.add(entry.getKey());
+            }
+        }
+        return sourceSystems;
+    }
+
+    /**
+     * Convenience method to get target storage systems
+     * @return set of target storage systems ids
+     */
+    public Set<String> getTargetSystems() {
+        Set<String> targetSystems = new HashSet<>();
+        if (getSystemToRolesMap() == null) {
+            return targetSystems;
+        }
+
+        for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : getSystemToRolesMap().entrySet()) {
+            AbstractChangeTrackingSet<String> roles = entry.getValue();
+            if (roles.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.TARGET.toString())) {
+                targetSystems.add(entry.getKey());
+            }
+        }
+        return targetSystems;
     }
 }

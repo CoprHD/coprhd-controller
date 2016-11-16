@@ -438,4 +438,19 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.remove(keyEntry);
         }
     }
+
+    public String getRemoteReplicationSet() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_SET);
+        return value != null ? (String) value : null;
+    }
+
+    public String getRemoteReplicationGroup() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_GROUP);
+        return value != null ? (String) value : null;
+    }
+
+    public String getRemoteReplicationMode() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_MODE);
+        return value != null ? (String) value : null;
+    }
 }

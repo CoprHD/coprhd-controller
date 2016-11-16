@@ -108,8 +108,8 @@ report_results() {
     echo ${result} >> /root/reliability/results-local-set.db
 
     if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null 2> /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
     fi
 }
 
@@ -999,6 +999,7 @@ vnx_setup() {
     echo "Setting up SMIS for VNX"
     storage_password=$SMIS_PASSWD
 
+    VNX_PROVIDER_NAME=VNX-PROVIDER
     if [ "${SIM}" = "1" ]; then
 	vnx_sim_setup
     fi
@@ -1726,6 +1727,29 @@ validate_db() {
     done
 }
 
+# Verify the failures in the variable were actually hit when the job ran.
+verify_failures() {
+    INVOKE_FAILURE_FILE=/opt/storageos/logs/invoke-test-failure.log
+    FAILURES=${1}
+
+    # cat ${INVOKE_FAILURE_FILE}
+
+    for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
+    do
+	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho 
+	    secho "FAILED: Failure injection ${failure_check} was not encountered during the operation execution."
+	    secho 
+	    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	fi
+    done
+
+    # delete the invoke test failure file.  It will get recreated.
+    rm -f ${INVOKE_FAILURE_FILE}
+}
+
 # Test 1
 #
 # Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
@@ -1801,9 +1825,13 @@ test_1() {
       	  # Create the volume
       	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
       	  # Let the async jobs calm down
       	  sleep 5
       fi
+
       # Perform any DB validation in here
       snap_db 2 ${cfs}
 
@@ -1938,6 +1966,9 @@ test_3() {
       # Create the volume
       fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Let the async jobs calm down
       sleep 5
 
@@ -2001,7 +2032,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004:failure_018"
+    # failure_injections=${common_failure_injections}
 
     for failure in ${failure_injections}
     do
@@ -2021,6 +2052,9 @@ test_4() {
 
       # Create the export
       fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}
@@ -2103,6 +2137,9 @@ test_5() {
       # Delete the export
       fail export_group delete $PROJECT/${expname}1
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Don't validate in here.  It's a delete operation and it's allowed to leave things behind, as long as the retry cleans it up.
 
       # Rerun the command
@@ -2181,6 +2218,9 @@ test_6() {
       # Delete the export
       fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Validate nothing was left behind
       snap_db 3 ${cfs}
       validate_db 2 3 ${cfs}
@@ -2235,7 +2275,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    # failure_injections="failure_004:failure_016"
 
     for failure in ${failure_injections}
     do
@@ -2265,6 +2305,9 @@ test_7() {
       # Attempt to add an initiator
       fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Perform any DB validation in here
       snap_db 3 ${cfs}
 
@@ -2288,7 +2331,7 @@ test_7() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null
@@ -2393,6 +2436,10 @@ fi
 
 setup=0;
 
+# Expected that storage platform is argument after sanity.conf
+# Expected that switches occur after that, in any order
+# Expected that test name(s) occurs last
+
 SS=${1}
 shift
 
@@ -2415,39 +2462,44 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
-if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
-then
-    echo "Setting up testing based on real hardware"
-    setup=1;
-    SIM=0;
-    shift 1;
-elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
-	echo "Setting up testing based on simulators"
-	SIM=1;
-	ZONE_CHECK=0;
-	setup=1;
-	shift 1;
-    else
-	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	exit 1
-    fi
-fi
-
-# Whether to report results to the master data collector of all things
 REPORT=0
-if [ "${1}" = "-report" ]; then
-    REPORT=1
-    shift;
-fi
+DO_CLEANUP=0;
+while [ "${1:0:1}" = "-" ]
+do
+    if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
+    then
+	echo "Setting up testing based on real hardware"
+	setup=1;
+	SIM=0;
+	shift 1;
+    elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
+	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+	    echo "Setting up testing based on simulators"
+	    SIM=1;
+	    ZONE_CHECK=0;
+	    setup=1;
+	    shift 1;
+	else
+	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	    exit 1
+	fi
+    fi
+
+    # Whether to report results to the master data collector of all things
+    if [ "${1}" = "-report" ]; then
+	REPORT=1
+	shift;
+    fi
+
+    if [ "$1" = "-cleanup" ]
+    then
+	DO_CLEANUP=1;
+	shift
+    fi
+done
+
 
 login
-
-if [ "$1" = "regression" ]
-then
-    test_0;
-    shift 2;
-fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2463,12 +2515,6 @@ then
     fi
 fi
 
-docleanup=0;
-if [ "$1" = "-cleanup" ]
-then
-    docleanup=1;
-    shift
-fi
 
 test_start=1
 test_end=7
@@ -2511,7 +2557,7 @@ echo There were $VERIFY_FAIL_COUNT verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
-if [ "${docleanup}" = "1" ]; then
+if [ "${DO_CLEANUP}" = "1" ]; then
     cleanup;
 fi
 

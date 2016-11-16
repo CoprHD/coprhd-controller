@@ -46,9 +46,8 @@ test_host_add_initiator() {
     runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
 
     # Verify the initiator does not exist in the ExportGroup
-
     add_init="false"
-    if [[ $(export_contains $exclusive_export $test_pwwn) && $(export_contains $cluster_export $test_pwwn) ]]; then
+    if [[ $(export_contains $exclusive_export $test_pwwn) || $(export_contains $cluster_export $test_pwwn) ]]; then
         echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
     else
         # Add initiator to network
@@ -101,14 +100,12 @@ test_host_add_initiator() {
 #
 test_host_add_initiator_failure() {
     echot "Test test_host_add_initiator_failure"
-    expname=${EXPORT_GROUP_NAME}t1
     item=${RANDOM}
     cfs="ExportGroup ExportMask Initiator Network"
     expname=${EXPORT_GROUP_NAME}t1
     
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
     export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
+                               #failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
     
     mkdir -p results/${item}
 
@@ -128,7 +125,7 @@ test_host_add_initiator_failure() {
     verify_export ${exclusive_export} ${HOST1} gone
     verify_export ${cluster_export} ${CLUSTER} gone
     
-    failure_injections="${common_failure_injections} ${export_failure_injections}"
+    failure_injections="${export_failure_injections}"
     
     for failure in ${failure_injections}
     do
@@ -147,17 +144,15 @@ test_host_add_initiator_failure() {
         runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
 
         # Verify the initiator does not exist in the ExportGroup
-        exclusive_init_test=`runcmd export_group show $PROJECT/${exclusive_export} | grep ${test_pwwn}`
-        cluser_init_test=`runcmd export_group show $PROJECT/${cluster_export} | grep ${test_pwwn}`
-
         add_init="false"
-        if [[ "${exclusive_init_test}" = "0" && "${cluster_init_test}" = "0" ]]; then
+        if [[ $(export_contains $exclusive_export $test_pwwn) || $(export_contains $cluster_export $test_pwwn) ]]; then
             echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
         else
             # Add initiator to network
             runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
     
-            # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups
+            # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups. This is because
+            # The host is already part of the cluster that was used to create the cluster export group.
             fail initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
     
             # Let the async jobs calm down
@@ -174,10 +169,7 @@ test_host_add_initiator_failure() {
             runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
     
             # Verify the initiator does exists in the ExportGroup
-            exclusive_init_test=`runcmd export_group show $PROJECT/${exclusive_export} | grep ${test_pwwn}`
-            cluser_init_test=`runcmd export_group show $PROJECT/${cluster_export} | grep ${test_pwwn}`
-
-            if [[ "${exclusive_init_test}" != "0" && "${cluster_init_test}" != "0" ]]; then
+            if [[ $(export_contains $exclusive_export $test_pwwn) && $(export_contains $cluster_export $test_pwwn) ]]; then
                 add_init="true"
                 echo "Verified that initiator "${test_pwwn}" has been added to export"
             else

@@ -228,7 +228,7 @@ public class StoragePort extends StorageObject {
 
     @Override
     public String toString() {
-        return "StoragePort_"+storageSystemId+"-"+getNativeId();
+        return "StoragePort_"+storageSystemId+"---"+getNativeId();
     }
 
 }

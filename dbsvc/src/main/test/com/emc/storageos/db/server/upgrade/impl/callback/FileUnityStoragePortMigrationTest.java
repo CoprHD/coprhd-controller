@@ -24,10 +24,6 @@ import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
-/**
- * Test proper population of the new assigned virtual arrays field
- * for Networks.
- */
 public class FileUnityStoragePortMigrationTest extends DbSimpleMigrationTestBase {
 
     @BeforeClass

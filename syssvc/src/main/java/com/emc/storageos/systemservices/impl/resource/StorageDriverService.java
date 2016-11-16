@@ -361,7 +361,7 @@ public class StorageDriverService {
     public Response upgrade(@PathParam("driverName") String driverName,
             @FormDataParam("driver") InputStream uploadedInputStream,
             @FormDataParam("driver") FormDataContentDisposition details,
-            @FormDataParam("force") @DefaultValue("false") boolean force) {
+            @FormDataParam("force") @DefaultValue("false") Boolean force) {
         log.info("Start to upgrade driver for {} ...", driverName);
         String fileName = details.getFileName();
 

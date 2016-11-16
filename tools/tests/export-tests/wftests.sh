@@ -757,6 +757,11 @@ runcmd() {
 #counterpart for run
 #executes a command that is expected to fail
 fail(){
+    if [ "${1}" = "-with_error" ]; then
+      witherror=${2}
+      shift 2
+      # TODO When the cmd fails, we can check if the failure output contains this expected error message
+    fi
     cmd=$*
     echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
@@ -1840,10 +1845,18 @@ test_1() {
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
-      # Remove the volume
-      runcmd volume delete ${PROJECT}/${volname} --wait
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
 
       # Perform any DB validation in here
       snap_db 3 ${cfs}

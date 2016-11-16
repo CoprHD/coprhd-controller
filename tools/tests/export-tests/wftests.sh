@@ -87,6 +87,11 @@ report_results() {
     branch=`git rev-parse --abbrev-ref HEAD`
     sha=`git rev-parse HEAD`
     ss=${SS}
+
+    if [ "${SS}" = "vplex" ]; then
+	ss="${SS} ${VPLEX_MODE}"
+    fi
+
     simulator="Hardware"
     if [ "${SIM}" = "1" ]; then
 	simulator="Simulator"
@@ -735,9 +740,9 @@ runcmd() {
     echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}  | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	$cmd &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1 | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	$cmd 2>&1 
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
@@ -995,6 +1000,7 @@ vnx_setup() {
     echo "Setting up SMIS for VNX"
     storage_password=$SMIS_PASSWD
 
+    VNX_PROVIDER_NAME=VNX-PROVIDER
     if [ "${SIM}" = "1" ]; then
 	vnx_sim_setup
     fi
@@ -1752,9 +1758,16 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume \
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
@@ -1884,12 +1897,12 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
@@ -1902,7 +1915,7 @@ test_3() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
 
     for failure in ${failure_injections}
     do
@@ -1995,7 +2008,7 @@ test_4() {
     for failure in ${failure_injections}
     do
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 1 with failure scenario: ${failure}..."
+      secho "Running Test 4 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
@@ -2277,7 +2290,7 @@ test_7() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null
@@ -2400,6 +2413,10 @@ fi
 
 setup=0;
 
+# Expected that storage platform is argument after sanity.conf
+# Expected that switches occur after that, in any order
+# Expected that test name(s) occurs last
+
 SS=${1}
 shift
 
@@ -2422,39 +2439,44 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
-if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
-then
-    echo "Setting up testing based on real hardware"
-    setup=1;
-    SIM=0;
-    shift 1;
-elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
-	echo "Setting up testing based on simulators"
-	SIM=1;
-	ZONE_CHECK=0;
-	setup=1;
-	shift 1;
-    else
-	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	exit 1
-    fi
-fi
-
-# Whether to report results to the master data collector of all things
 REPORT=0
-if [ "${1}" = "-report" ]; then
-    REPORT=1
-    shift;
-fi
+DO_CLEANUP=0;
+while [ "${1:0:1}" = "-" ]
+do
+    if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
+    then
+	echo "Setting up testing based on real hardware"
+	setup=1;
+	SIM=0;
+	shift 1;
+    elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
+	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+	    echo "Setting up testing based on simulators"
+	    SIM=1;
+	    ZONE_CHECK=0;
+	    setup=1;
+	    shift 1;
+	else
+	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	    exit 1
+	fi
+    fi
+
+    # Whether to report results to the master data collector of all things
+    if [ "${1}" = "-report" ]; then
+	REPORT=1
+	shift;
+    fi
+
+    if [ "$1" = "-cleanup" ]
+    then
+	DO_CLEANUP=1;
+	shift
+    fi
+done
+
 
 login
-
-if [ "$1" = "regression" ]
-then
-    test_0;
-    shift 2;
-fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2470,12 +2492,6 @@ then
     fi
 fi
 
-docleanup=0;
-if [ "$1" = "-cleanup" ]
-then
-    docleanup=1;
-    shift
-fi
 
 test_start=1
 test_end=7
@@ -2520,7 +2536,7 @@ echo There were $VERIFY_FAIL_COUNT verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
-if [ "${docleanup}" = "1" ]; then
+if [ "${DO_CLEANUP}" = "1" ]; then
     cleanup;
 fi
 

@@ -22,7 +22,11 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.model.*;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -38,7 +42,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 
 import javax.annotation.PostConstruct;
-import javax.ws.rs.*;
+import javax.ws.rs.Path;
+import javax.ws.rs.GET;
+import javax.ws.rs.Produces;
+import javax.ws.rs.POST;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.PUT;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
@@ -225,7 +235,6 @@ public class WFDirectoryService extends TaggedResource {
         List<WFDirectoryRestRep> wfDirectoryRestReps =
                 new ArrayList<>();
         List<WFDirectory> wfDirectories = wfDirectoryManager.getWFDirectories(ids);
-        //wfDirectories.forEach(wfd -> wfDirectoryRestReps.add(map(wfd)));
         for (WFDirectory wfd : wfDirectories) {
             wfDirectoryRestReps.add(map(wfd));
         }

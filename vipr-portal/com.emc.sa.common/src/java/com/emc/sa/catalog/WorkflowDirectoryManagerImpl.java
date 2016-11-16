@@ -55,7 +55,7 @@ public class WorkflowDirectoryManagerImpl implements WorkflowDirectoryManager {
 
         // Disallow operation if this node has children
         List<WFDirectory> children = getWFDirectoryChildren(id);
-        if (null != children && children.size() > 0) {
+        if ((null != children && children.size() > 0) || (null != wfDirectory.getWorkflows() && wfDirectory.getWorkflows().size() > 0)) {
             throw APIException.methodNotAllowed.notSupportedWithReason("Directory has children. Cannot be deleted");
         }
 

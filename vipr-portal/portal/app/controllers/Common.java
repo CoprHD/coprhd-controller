@@ -74,6 +74,13 @@ public class Common extends Controller {
 
     public static final String CACHE_EXPR = "2min";
 
+    public static final String PATH_SANITIZER = "pathSanitizer";
+    private static final Map<String,String> PATH_XSS_PARAMS = new HashMap<String, String>(){
+        {
+            put("/orders/submitOrder,mountPoint", "pathSanitizer");
+        }
+    };
+
     @Before(priority = 0)
     @Unrestricted
     public static void checkSetup() {
@@ -122,15 +129,25 @@ public class Common extends Controller {
             String[] data = params.getAll(param);
 
             if ((data != null) && (data.length > 0)) {
+                String sanitizer = getSanitizer(param);
                 Logger.debug("Cleaning data for " + param);
                 String[] cleanValues = new String[data.length];
                 for (int i = 0; i < data.length; ++i) {
-                    cleanValues[i] = SecurityUtils.stripXSS(data[i]);
+                    if (sanitizer != null){
+                        if (PATH_SANITIZER.equals(sanitizer)){
+                            cleanValues[i] = SecurityUtils.stripPathXSS(data[i]);
+                        }
+                    } else {
+                        cleanValues[i] = SecurityUtils.stripXSS(data[i]);
+                    }
+                    params.put(param, cleanValues);
                 }
-
-                params.put(param, cleanValues);
             }
         }
+    }
+
+    private static String getSanitizer(String param){
+        return PATH_XSS_PARAMS.get(request.path.concat(",".concat(param)));
     }
 
     @Before(priority = 5)

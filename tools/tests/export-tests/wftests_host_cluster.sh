@@ -169,6 +169,7 @@ test_vcenter_event() {
     if [ -z "$EVENT_ID" ]
     then
       echo "FAILED. Expected an event"
+      finish -1
     else
       approve_pending_event $EVENT_ID 
     fi
@@ -498,12 +499,6 @@ test_happy_path_move_clustered_host_to_another_cluster() {
 
     # The other export group should be deleted    
     fail export_group show $PROJECT/${exportgroup1}   
-    
-    # Cleanup    
-    runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}
-    runcmd export_group delete ${PROJECT}/${exportgroup2}    
-    runcmd hosts delete ${host1}
-    runcmd hosts delete ${host2}
     
     # Snap DB
     snap_db 2 ${column_family}

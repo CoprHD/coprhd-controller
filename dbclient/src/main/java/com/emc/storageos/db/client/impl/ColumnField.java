@@ -18,36 +18,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.AlternateId2;
-import com.emc.storageos.db.client.model.NoInactiveIndex;
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
-import com.emc.storageos.db.client.model.AbstractSerializableNestedObject;
-import com.emc.storageos.db.client.model.AlternateId;
-import com.emc.storageos.db.client.model.ClockIndependent;
-import com.emc.storageos.db.client.model.ClockIndependentValue;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DecommissionedIndex;
-import com.emc.storageos.db.client.model.Encrypt;
-import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.db.client.model.Id;
-import com.emc.storageos.db.client.model.IndexByKey;
-import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.NamedRelationIndex;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.PermissionsIndex;
-import com.emc.storageos.db.client.model.PrefixIndex;
-import com.emc.storageos.db.client.model.Relation;
-import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelIndex;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Ttl;
-import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ByteBufferRange;
@@ -698,6 +672,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
 
         ColumnFamily<String, IndexColumnName> indexCF = null;
         ColumnFamily<String, IndexColumnName2> indexCF2 = null;
+        ColumnFamily<String, IndexColumnName3> indexCF3 = null;
         int minPrefixChars;
 
         boolean isLazyLoadable = false;
@@ -757,6 +732,10 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                 indexCF2 = new ColumnFamily<String, IndexColumnName2>(((AlternateId2) a).value(), StringSerializer.get(),
                         IndexColumnNameSerializer2.get());
                 _index = new AltIdDbIndex2(indexCF2);
+            } else if (a instanceof AlternateId3) {
+                indexCF3 = new ColumnFamily<String, IndexColumnName3>(((AlternateId3) a).value(), StringSerializer.get(),
+                        IndexColumnNameSerializer3.get());
+                _index = new AltIdDbIndex3(indexCF3);
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());

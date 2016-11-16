@@ -778,7 +778,7 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getOrders(String user, long startTimeInMS, long endTimeInMS, boolean markForDelete) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
-            return new AlternateId2ConstraintImpl(field, user, startTimeInMS, endTimeInMS, markForDelete);
+            return new AlternateId2ConstraintImpl(field, user, startTimeInMS, endTimeInMS);
         }
     }
 }

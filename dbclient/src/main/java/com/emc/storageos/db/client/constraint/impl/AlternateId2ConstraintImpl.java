@@ -1,18 +1,15 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.Date;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -32,13 +29,10 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     private long startTimeMicros;
     private long endTimeMicros;
     private long lastMatchedTimeStamp = 0;
-    private boolean markForDelete = false;
-    private MutationBatch mutationBatch;
-    private long matchedCount = 0;
 
     private Keyspace _keyspace;
 
-    public AlternateId2ConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS, boolean markForDelete) {
+    public AlternateId2ConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS) {
         super(field, altId);
         indexSerializer = IndexColumnNameSerializer2.get();
 
@@ -47,7 +41,6 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
         _entryType = field.getDataObjectType();
         startTimeMicros = startTimeInMS*1000L;
         endTimeMicros = endTimeInMS * 1000L;
-        this.markForDelete = markForDelete;
     }
 
     @Override
@@ -66,9 +59,9 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
 
     @Override
     protected RowQuery<String, IndexColumnName2> genQuery() {
-        log.info("cf={} key={} delete={}", _altIdCf.getName(), _altId, markForDelete);
+        log.info("cf={} key={}", _altIdCf.getName(), _altId);
         log.info("prefix={} startime= {} endtime= {}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
-        log.info("pageCount={} false={}", pageCount, Boolean.FALSE.toString());
+        log.info("pageCount={}", pageCount);
         try {
             log.info("keyspace={}", _keyspace.describeKeyspace().getName());
         }catch (Exception e) {
@@ -78,7 +71,7 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
         RowQuery<String, IndexColumnName2> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
                 .withColumnRange(IndexColumnNameSerializer2.get().buildRange()
                         .withPrefix(_entryType.getSimpleName())
-                        .withPrefix(Boolean.FALSE.toString())
+                        // .withPrefix(Boolean.FALSE.toString())
                         .greaterThan(startTimeMicros)
                         .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
@@ -99,12 +92,13 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
 
     @Override
     protected URI getURI(Column<IndexColumnName2> col) {
-        return URI.create(col.getName().getTwo());
+        return URI.create(col.getName().getThree());
     }
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName2> column) {
         //log.info("lbymm0 markForDelete={} stack=", markForDelete, new Throwable());
+        /*
         log.info("lbymm0 markForDelete={} ", markForDelete);
         if (markForDelete) {
             matchedCount++;
@@ -132,7 +126,8 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
             log.info("lbymm4");
             // }
         }
-        log.info("lbydd0");
+        */
+        log.info("lbydd1");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }

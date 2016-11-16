@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer2;
+import com.emc.storageos.db.client.impl.*;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -64,12 +64,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
-import com.emc.storageos.db.client.impl.TimeSeriesType;
-import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
@@ -608,6 +602,8 @@ public class SchemaUtil {
                     comparator = IndexColumnNameSerializer.getComparatorName();
                 } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer2) {
                     comparator = IndexColumnNameSerializer2.getComparatorName();
+                } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer3) {
+                    comparator = IndexColumnNameSerializer3.getComparatorName();
                 } else {
                     throw new IllegalArgumentException();
                 }

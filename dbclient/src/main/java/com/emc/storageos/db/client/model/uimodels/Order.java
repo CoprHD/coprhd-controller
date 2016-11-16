@@ -203,7 +203,8 @@ public class Order extends ModelObject implements TenantDataObject {
      * @return
      */
     @Name("indexed")
-    @DecommissionedIndex("timeseriesIndex")
+    //@DecommissionedIndex("timeseriesIndex")
+    @AlternateId3("timeseriesIndex3")
     public Boolean getIndexed() {
         return indexed;
     }

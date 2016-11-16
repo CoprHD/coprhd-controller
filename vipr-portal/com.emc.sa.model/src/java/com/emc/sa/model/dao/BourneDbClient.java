@@ -143,7 +143,7 @@ public class BourneDbClient implements DBClientWrapper {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         AlternateIdConstraint constraint = new AlternateId2ConstraintImpl(doType.getColumnField(columnField), value,
-                startTime, endTime, false);
+                startTime, endTime);
 
         return queryNamedElementsByConstraint(constraint, maxCount);
     }
@@ -157,8 +157,15 @@ public class BourneDbClient implements DBClientWrapper {
         //DecommissionedConstraint constraint = DecommissionedConstraint.Factory.getTimeConstraint(clazz, columnField, startTime, endTime);
         // return queryNamedElementsByConstraint(constraint);
 
-        List<NamedElement> allOrderIds = new ArrayList(maxCount);
+        //List<NamedElement> allOrderIds = new ArrayList(maxCount);
 
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+        long startTimeInMS = startTime.getTime();
+        long endTimeInMS = endTime.getTime();
+        AlternateId3ConstraintImpl constraint = new AlternateId3ConstraintImpl(doType.getColumnField(columnField),
+                startTimeInMS, endTimeInMS);
+        List<NamedElement> allOrderIds = queryNamedElementsByConstraint(constraint, maxCount);
+        /*
         List<URI> ids = dbClient.queryByType(StorageOSUserDAO.class, false);
         boolean found = true;
         DataObjectType doType = TypeMap.getDoType(Order.class);
@@ -175,7 +182,7 @@ public class BourneDbClient implements DBClientWrapper {
 
             while (found) {
                 AlternateId2ConstraintImpl constraint = new AlternateId2ConstraintImpl(doType.getColumnField(columnField),
-                        username, startTimeInMS, endTimeInMS, false);
+                        username, startTimeInMS, endTimeInMS);
 
                 List<NamedElement> orderIds = queryNamedElementsByConstraint(constraint, nNextRead);
                 LOG.info("lbyc3 nNexRead={}", nNextRead);
@@ -194,6 +201,7 @@ public class BourneDbClient implements DBClientWrapper {
                 nNextRead = maxCount - nRead;
             }
         }
+        */
 
         return allOrderIds;
     }

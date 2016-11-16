@@ -461,7 +461,7 @@ public class StorageDriverManager {
      * notification thread
      */
     private void checkAndUpdate() {
-        EXECUTOR.submit(new Runnable() {
+        EXECUTOR.execute(new Runnable() {
             @Override
             public void run() {
                 initializeLocalAndTargetInfo();

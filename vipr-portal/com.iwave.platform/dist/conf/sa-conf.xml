@@ -111,7 +111,11 @@
         <property name="coordinator" ref="coordinator"/>	
 	</bean>
 	<bean id="primitiveService" class="com.emc.sa.api.PrimitiveService"/>
-	
+        <bean id="orchestrationWorkflowService" class="com.emc.sa.api.OrchestrationWorkflowService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        </bean>	
+
 	<bean id="application"
 		class="com.emc.storageos.api.service.impl.resource.StorageApplication">
 		<property name="resource">
@@ -128,6 +132,7 @@
 				<ref bean="userPreferenceService" />
 				<ref bean="catalogPreferenceService" />
 				<ref bean="primitiveService" />
+                                <ref bean="orchestrationWorkflowService" />
 				<bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
 				<bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
 				<bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>

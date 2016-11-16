@@ -28,7 +28,6 @@ public final class OrchestrationServiceConstants {
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
-    public static final long DEFAULT_STEP_TIMEOUT = 3600; //min
 
     //SuccessCriteria Constants
     public static final String ERROR_CODE = "errorCode";

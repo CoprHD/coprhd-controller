@@ -26,14 +26,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.gson.AffectedResource;
 import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.gson.Gson;
@@ -264,7 +265,7 @@ public class OrchestrationUtils {
         // temporarily insert test JSON here until DB calls are ready (Shane is doing DB work)
         workflowDefinition = "{\"workflow\": \"test JSON Workflow Goes Here\"}";
 
-        WorkflowDefinition workflowObj = gson.fromJson(workflowDefinition,WorkflowDefinition.class);
+        OrchestrationWorkflowDocument workflowObj = gson.fromJson(workflowDefinition,OrchestrationWorkflowDocument.class);
 
         // add code here to insert values of parameters into object model of workflow
         // TODO:  insert params

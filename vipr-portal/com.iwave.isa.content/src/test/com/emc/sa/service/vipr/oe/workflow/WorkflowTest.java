@@ -16,39 +16,35 @@
  */
 package com.emc.sa.service.vipr.oe.workflow;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import java.io.File;
+import java.io.IOException;
 
-import com.emc.sa.service.DummyDbClient;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
-import com.emc.storageos.db.client.DbClient;
-import com.google.gson.Gson;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.junit.Assert;
+import org.junit.Test;
+import org.testng.reporters.Files;
+
+import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 
 /**
  * Test class for the workflow helper
  */
 public class WorkflowTest {
 
-    private DbClient dbClient;
-    private final static Gson GSON = new Gson();
-    
-    @Before
-    public void setUp() {
-        dbClient = new DummyDbClient();
-        dbClient.start();
-    }
-
     @Test
-    public void createWorkflow() {
-        final String wfJson = "{ \"WorkflowName\": \"sample\"}";
-        final WorkflowDefinition wfDefinition = GSON.fromJson(wfJson, WorkflowDefinition.class);
-        
-        WorkflowHelper.persist(wfDefinition, dbClient);
-        
-        WorkflowDefinition result = WorkflowHelper.query("sample", dbClient);
+    public void createWorkflow() throws JsonGenerationException, JsonMappingException, IOException {
+        final String json = Files.readFile(new File("/Users/ssulliva/Documents/OEjson_sample.json"));
 
-        Assert.assertEquals(wfJson, wfDefinition.getWorkflowName(), result.getWorkflowName());
+        final OrchestrationWorkflowDocument wfDefinition = WorkflowHelper.toWorkflowDocument(json);
+        
+        OEWorkflow workflow = WorkflowHelper.create(wfDefinition);
+        
+        OrchestrationWorkflowDocument result = WorkflowHelper.toWorkflowDocument(workflow.getDocument());
+
+        Assert.assertEquals(wfDefinition.getName(), result.getName());
         
         
     }

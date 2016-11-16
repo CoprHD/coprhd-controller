@@ -14,36 +14,50 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.db.client.model;
+package com.emc.storageos.db.client.model.uimodels;
+
+import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.Name;
 
 /**
  * DB model to represent an orchestration engine workflow document
  */
 @Cf("OEWorkflow")
-public class OEWorkflow extends DataObject {
+public class OEWorkflow extends ModelObjectWithACLs {
 
-    private String _name;
-    private String _document;
+    public static final String DOCUMENT = "document";
+    public static final String NAME = "name";
+    
+    private String name;
+    private String document;
+    private Integer sortedIndex;
 
-    @Name("name")
+    @Name(NAME)
     @AlternateId("OEWorkflowNameIndex")
     public String getName() {
-        return _name;
+        return name;
     }
 
     public void setName(final String name) {
-        _name = name;
-        setChanged("name");
+        this.name = name;
+        setChanged(NAME);
     }
     
-    @Name("document")
+    @Name(DOCUMENT)
     public String getDocument() {
-        return _document;
+        return document;
     }
 
     public void setDocument(final String document) {
-        _document = document;
-        setChanged("document");
+        this.document = document;
+        setChanged(DOCUMENT);
+    }
+
+    @Override
+    public Object[] auditParameters() {
+        // TODO Auto-generated method stub
+        return null;
     }
     
 }

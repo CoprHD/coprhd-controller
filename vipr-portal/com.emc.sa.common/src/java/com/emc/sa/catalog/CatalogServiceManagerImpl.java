@@ -36,13 +36,12 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ServiceIdPredicate;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OEWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceAndFields;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.RecentService;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -68,6 +67,9 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
 
     @Autowired
     private CatalogCategoryManager catalogCategoryManager;
+    
+    @Autowired 
+    private OrchestrationWorkflowManager orchestrationWorkflowManager;
 
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {
@@ -370,7 +372,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     public String getWorkflowDocument(String workflowName) {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
-        List<NamedElement> results = client.findByAlternateId(OEWorkflow.class, "name", workflowName);
+        List<OEWorkflow> results = orchestrationWorkflowManager.getByName(workflowName);
         if(null == results || results.isEmpty()) {
             return null;
         }
@@ -378,8 +380,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             throw new IllegalStateException("Multiple workflows with the name " + workflowName);
         }
         
-        OEWorkflow workflow = client.findById(OEWorkflow.class, results.get(0).getId());
-        return workflow == null ? null : workflow.getDocument();
+        return results.get(0).getDocument();
     }
 
 }

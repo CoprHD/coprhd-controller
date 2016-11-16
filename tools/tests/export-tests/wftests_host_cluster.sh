@@ -342,8 +342,7 @@ test_host_remove_initiator() {
         run transportzone add $NH/${FC_ZONE_A} ${init4}
             
         # Create fake host
-        runcmd hosts create $host $TENANT Other ${host}.lss.emc.com --port 1
-        # runcmd hosts create $host $TENANT Other ${host}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${tenant}/${cluster}
+        runcmd hosts create $host $TENANT Other ${host}.lss.emc.com --port 1       
         
         # Create new initators and add to fakehost
         runcmd initiator create $host FC ${init1} --node ${node1}
@@ -533,4 +532,132 @@ test_happy_path_move_clustered_host_to_another_cluster() {
     
     # Validate DB
     validate_db 1 2 ${column_family}
+}
+
+# Test Cluster Remove Host
+#
+# 1. Create 2 hosts and initiators for those hosts.
+# 2. Create a cluster and update both hosts to put them into the cluster.
+# 3. Export a volume to this cluster (cluster export group is created)
+# 4. Update a host to remove it from this cluster.
+# 5. This host should no longer be in the cluster's export group.
+# 6. Clean up
+test_cluster_remove_host() {
+    echot "Test cluster_remove_host Begins"
+
+    common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
+
+
+    #failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running cluster_remove_host with failure scenario: ${failure}..."
+        
+        column_family="Volume ExportGroup ExportMask"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+        volume1=${VOLNAME}-1-${random_number}
+        volume2=${VOLNAME}-2-${random_number}
+        host1=fakehost1-${random_number}
+        host2=fakehost2-${random_number}
+        cluster1=fakecluster1-${random_number}
+        exportgroup1=exportgroup1-${random_number}
+        exportgroup2=exportgroup2-${random_number}
+        
+        # Snap DB
+        snap_db 1 ${column_family}
+            
+        # Create new random WWNs for nodes and initiators
+        node1=`randwwn 20 C1`
+        node2=`randwwn 20 C2`
+        node3=`randwwn 20 C3`
+        node4=`randwwn 20 C4`
+        init1=`randwwn 10 C1`
+        init2=`randwwn 10 C2`
+        init3=`randwwn 10 C3`
+        init4=`randwwn 10 C4`
+        
+        # Add initator WWNs to the network
+        run transportzone add $NH/${FC_ZONE_A} ${init1}
+        run transportzone add $NH/${FC_ZONE_A} ${init2}
+        run transportzone add $NH/${FC_ZONE_A} ${init3}
+        run transportzone add $NH/${FC_ZONE_A} ${init4}
+        
+         # Create fake cluster
+        runcmd cluster create ${cluster1} $TENANT
+            
+        # Create fake hosts
+        runcmd hosts create $host1 $TENANT Other ${host1}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}
+        runcmd hosts create $host2 $TENANT Other ${host2}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}       
+        
+        # Create new initators and add to fakehost
+        runcmd initiator create $host1 FC ${init1} --node ${node1}
+        runcmd initiator create $host1 FC ${init2} --node ${node2}
+        runcmd initiator create $host2 FC ${init3} --node ${node3}
+        runcmd initiator create $host2 FC ${init4} --node ${node4}
+    
+        # Create volumes
+        runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        
+        # Zzzzzz
+        sleep 2
+        
+        # Export the volume to the fake cluster    
+        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+        runcmd export_group create $PROJECT ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster1}
+        
+        # Double check the export group to ensure the initiators are present
+        foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
+        foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
+        foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
+        foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
+        foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
+        foundhost2=`export_group show $PROJECT/${exportgroup1} | grep ${host2}`    
+        
+        if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
+            # Fail, hosts and initiators should have been added to the export group
+            echo "+++ FAIL - Some hosts and host initiators were not found on the export group...fail."
+            exit 1
+        else
+            echo "+++ SUCCESS - All hosts and host initiators present on export group"   
+        fi
+                               
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+        
+        # Try and remove host from cluster, this should fail
+        runcmd hosts update $host1 --cluster null        
+        
+        # Rerun the command with no failures
+        set_artificial_failure none 
+        runcmd hosts update $host1 --cluster null
+                                        
+        # Zzzzzz
+        sleep 5
+        
+        # Ensure that initiator 1 and 2 and host1 have been removed
+        foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
+        foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
+        foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
+        
+        if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
+            # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
+            echo "+++ FAIL - Expected host and host initiators were not removed from the export group."
+            exit 1
+        else
+            echo "+++ SUCCESS - Expected host and host initiators removed from export group" 
+        fi               
+        
+        # Snap DB
+        snap_db 2 ${column_family}
+        
+        # Validate DB
+        validate_db 1 2 ${column_family}
+    done
 }

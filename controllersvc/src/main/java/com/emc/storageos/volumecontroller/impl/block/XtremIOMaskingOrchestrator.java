@@ -390,6 +390,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
+            //validateAndUpdateConsistentLun(storage, exportGroup, initiatorURIs, null); need to add lunMap
+
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {
@@ -736,6 +738,12 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+    }
+
+    @Override
+    public void validateAndUpdateConsistentLun(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        validateConsistentLun(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     @Override

@@ -171,6 +171,30 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     /**
+     * Validate consistent lun violation
+     * 
+     */
+    public void validateConsistentLun(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
+            Map<URI, Integer> volumeMap) {
+
+        String hostStr = exportGroup.getHosts().iterator().next();
+        Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
+        List<URI> clusterInitiators = null;
+        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            _log.info("Host {} is part of Cluster", host.getHostName());
+            // get all the hosts' initiators for this cluster
+            clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
+        }
+        Set<Integer> clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+        Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
+        if (!clusterUsedHlus.contains(newHostUsedHlus)) {
+            findUpdateFreeHLUsForClusterExport(storage, exportGroup, newInitiatorURIs, volumeMap);
+        }
+
+        // return true;
+    }
+
+    /**
      * Generates snapshot related workflow steps.
      *
      * @param workflow

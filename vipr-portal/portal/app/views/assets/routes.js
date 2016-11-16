@@ -106,6 +106,9 @@ var routes = {
   VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /},
   Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
   VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
-  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /}
-
+  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /},
+  WF_directories: #{jsAction @catalog.WorkflowBuilder.getWFDirectories() /},
+  WF_directory_edit_name: #{jsAction @catalog.WorkflowBuilder.editWFDirName(':id',':newName') /},
+  WF_directory_delete: #{jsAction @catalog.WorkflowBuilder.deleteWFDir(':id') /},
+  WF_directory_create: #{jsAction @catalog.WorkflowBuilder.createWFDir(':name',':parent') /}
 };

@@ -101,6 +101,7 @@ public enum ResourceTypeEnum {
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
     ORCHESTRATION_WORKFLOW("orchestration_workflow", "/workflow");
+    WF_DIRECTORY("wf_directory","/workflow/directory");
 
     private final String type;
     private final String service;

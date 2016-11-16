@@ -79,6 +79,8 @@ public class ModelClient {
     private ActionableEventFinder actionableEventDAO;
     private OrchestrationWorkflowFinder orchestrationWorkflowDAO;
 
+    private WFDirectoryFinder wfDirectoryDAO;
+
     public ModelClient(DBClientWrapper client) {
         this.client = client;
     }
@@ -351,6 +353,13 @@ public class ModelClient {
         }
         
         return orchestrationWorkflowDAO;
+    }
+
+    public WFDirectoryFinder wfDirectory() {
+        if (wfDirectoryDAO == null) {
+            wfDirectoryDAO = new WFDirectoryFinder(client);
+        }
+        return wfDirectoryDAO;
     }
 
     private <T extends DataObject> boolean isNew(T model) {

@@ -9,6 +9,7 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.vipr.client.Task;
 
 public class DeactivateHostNoWait extends ViPRExecutionTask<Task<HostRestRep>> {
@@ -40,6 +41,8 @@ public class DeactivateHostNoWait extends ViPRExecutionTask<Task<HostRestRep>> {
 
     @Override
     public Task<HostRestRep> executeTask() throws Exception {
-        return getClient().hosts().deactivate(hostId, detachStorage);
+        Task<HostRestRep> task = getClient().hosts().deactivate(hostId, detachStorage);
+        addOrderIdTag(task.getTaskResource().getId());
+        return task;
     }
 }

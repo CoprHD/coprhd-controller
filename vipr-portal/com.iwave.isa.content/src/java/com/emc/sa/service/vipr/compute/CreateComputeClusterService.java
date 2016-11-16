@@ -95,15 +95,13 @@ public class CreateComputeClusterService extends ViPRService {
     Cluster cluster = null;
     List<String> hostNames = null;
     List<String> hostIps = null;
-    List<String> copyOfHostNames = null;
 
     @Override
     public void precheck() throws Exception {
 
         StringBuffer preCheckErrors = new StringBuffer();
         hostNames = ComputeUtils.getHostNamesFromFqdnToIps(fqdnToIps);
-        //Creating a copy of hostNames so that we can check if these hosts were properly exported to the shared exportGroups.
-        copyOfHostNames = ImmutableList.copyOf(hostNames);
+
         hostIps = ComputeUtils.getIpsFromFqdnToIps(fqdnToIps);
 
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
@@ -254,17 +252,16 @@ public class CreateComputeClusterService extends ViPRService {
         // Below step to update the shared export group to the cluster (the
         // newly added hosts will be taken care of this update cluster
         // method and in a synchronized way)
-        ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+        URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
         logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
         // Make sure the all hosts that are being created belong to the all
         // of the exportGroups of the cluster, else fail the order.
         // Not do so and continuing to create bootvolumes to the host we
         // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty()
-                && ComputeUtils.verifyClusterSharedExportGroups(cluster, copyOfHostNames)) {
+        if (!ComputeUtils.nonNull(hosts).isEmpty() && null == updatedClusterURI) {
             ComputeUtils.deactivateHosts(hosts);
             // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
-            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
+            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
         } else {

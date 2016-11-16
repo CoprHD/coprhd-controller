@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -36,6 +37,7 @@ import com.emc.sa.service.vipr.compute.tasks.InstallOs;
 import com.emc.sa.service.vipr.compute.tasks.RemoveHostFromCluster;
 import com.emc.sa.service.vipr.compute.tasks.SetBootVolume;
 import com.emc.sa.service.vipr.compute.tasks.UpdateCluster;
+import com.emc.sa.service.vipr.compute.tasks.UpdateClusterExports;
 import com.emc.sa.service.vipr.compute.tasks.UpdateVcenterCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.storageos.db.client.model.Cluster;
@@ -394,8 +396,8 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
-            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
-            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
+            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.update.rollback.done", cluster.getLabel());
         }
         return hosts;
     }
@@ -430,8 +432,8 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
-            ComputeUtils.updateCluster(cluster.getId(), cluster.getLabel());
-            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
+            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.update.rollback.done", cluster.getLabel());
         }
         // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
         if (!bootVolsToRemove.isEmpty()) {
@@ -764,51 +766,35 @@ public class ComputeUtils {
     }
 
     /**
-     * Verify if the given hostNames have been properly exported to all the cluster
-     * shared export groups.
-     * This method internally has a wait/retry mechanism so that the export group update
-     * operations complete.  The reason to have this crude wait/retry is because the
-     * updateCluster API does not return a task for us to monitor.
-     * @param cluster cluster to which the hosts are being added.
-     * @param hostNames hosts being added to the cluster
-     * @return true if the export groups does not have the given hostNames else false.
-     * @throws InterruptedException
+     * Method to updated the shared exports groups of a given cluster, this method
+     * monitors the task until done and returns a successful cluster URI back, if failed
+     * null is returned.
+     * @param clusterID cluster id URI
+     * @param clusterName name of cluster
+     * @return
      */
-    public static boolean verifyClusterSharedExportGroups(Cluster cluster, List<String> hostNames) throws InterruptedException {
+    public static URI updateClusterSharedExports(URI clusterID, String clusterName) {
+        ArrayList<Task<ClusterRestRep>> tasks = Lists.newArrayList();
 
-        int retryCount = 1;
-        boolean isExportGroupFailed = false;
-        // Having this retry mechanism to verify if all the shared export groups for
-        // a given cluster is done.  The reason to have this crude wait is the
-        // updateCluster API does not return a task for us to monitor.
-        while (retryCount >= 0) {
-            isExportGroupFailed = false;
-            // Check if all the shared exports of the cluster were updated
-            // properly with the hosts.
-            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(cluster.getId(),
-                    null, null);
-            if (null != exportGroups) {
-                for (ExportGroupRestRep exportGroup : exportGroups) {
-                    List<String> exportedHostNames = Lists.newArrayList();
-                    List<HostRestRep> exportedHosts = exportGroup.getHosts();
-                    if (null != exportedHosts) {
-                        for (HostRestRep hostRestRep : exportedHosts) {
-                            exportedHostNames.add(hostRestRep.getHostName());
-                        }
-                        if (!exportedHostNames.containsAll(hostNames)) {
-                            isExportGroupFailed = true;
-                            break;
-                        }
-                    }
-                }
-                if(isExportGroupFailed && retryCount >= 0) {
-                    retryCount--;
-                    TimeUnit.MINUTES.sleep(5);
-                } else {
-                    retryCount = -1;
-                }
+        try {
+            tasks.add(execute(new UpdateClusterExports(clusterID, clusterName)));
+        } catch (Exception ex) {
+            ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", clusterName, ex.getMessage());
+        }
+        List<URI> successfulIds = Lists.newArrayList();
+        while (!tasks.isEmpty()) {
+            waitAndRefresh(tasks);
+            for (Task<ClusterRestRep> successfulTask : getSuccessfulTasks(tasks)) {
+                successfulIds.add(successfulTask.getResourceId());
+                addAffectedResource(successfulTask.getResourceId());
+                tasks.remove(successfulTask);
+            }
+            for (Task<ClusterRestRep> failedTask : getFailedTasks(tasks)) {
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", clusterName, errorMessage);
+                tasks.remove(failedTask);
             }
         }
-        return isExportGroupFailed;
+        return (successfulIds.isEmpty()) ? null : successfulIds.get(0);
     }
 }

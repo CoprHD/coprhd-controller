@@ -9,7 +9,6 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.host.HostRestRep;
-import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.vipr.client.Task;
 
 public class DeactivateHostNoWait extends ViPRExecutionTask<Task<HostRestRep>> {

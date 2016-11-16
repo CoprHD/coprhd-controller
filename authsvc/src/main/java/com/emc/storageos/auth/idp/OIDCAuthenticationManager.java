@@ -18,8 +18,6 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
-import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
-import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.security.ssl.CustomHostnameVerifier;
 import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -47,8 +45,6 @@ import org.slf4j.LoggerFactory;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -120,12 +116,17 @@ public class OIDCAuthenticationManager {
         userInfo.setUserName(sub);
         userInfo.setGroups( getGroupSet(groups) );
 
-        userInfo.setTenantId( findTenant(userInfo) );
+        userInfo.setTenantId( findTenant(userInfo, getDomainFromName(sub)) );
 
         return userInfo;
     }
 
-    private String findTenant(StorageOSUserDAO userInfo) {
+    private String getDomainFromName(String sub) {
+        log.info("the subject name is {}", sub);
+        return "";
+    }
+
+    private String findTenant(StorageOSUserDAO userInfo, String userDomain) {
         Map<URI, List<BasePermissionsHelper.UserMapping>> tenantToMappingMap =
                 permissionsHelper.getAllUserMappingsForDomain(getOidcAuthProvider().getDomains());
 
@@ -133,8 +134,12 @@ public class OIDCAuthenticationManager {
 
         // Dont support user attributes in this IDP case for now. So pass an empty attribute map here
         Map<String, List<String>> userMappingAttributes = new HashMap<String, List<String>>();
+
+        StringSet domains = new StringSet();
+        domains.add(userDomain);
+
         Map<URI, BasePermissionsHelper.UserMapping> tenants =
-                TenantMapper.mapUserToTenant(getOidcAuthProvider().getDomains(), userInfo, userMappingAttributes, tenantToMappingMap, dbClient);
+                TenantMapper.mapUserToTenant(domains, userInfo, userMappingAttributes, tenantToMappingMap, dbClient);
 
         if (null == tenants || tenants.isEmpty()) {
             log.error("User {} did not match any tenant", userInfo.getUserName());

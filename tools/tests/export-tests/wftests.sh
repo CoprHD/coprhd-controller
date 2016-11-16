@@ -999,6 +999,7 @@ vnx_setup() {
     echo "Setting up SMIS for VNX"
     storage_password=$SMIS_PASSWD
 
+    VNX_PROVIDER_NAME=VNX-PROVIDER
     if [ "${SIM}" = "1" ]; then
 	vnx_sim_setup
     fi
@@ -2288,7 +2289,7 @@ test_7() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null
@@ -2393,6 +2394,10 @@ fi
 
 setup=0;
 
+# Expected that storage platform is argument after sanity.conf
+# Expected that switches occur after that, in any order
+# Expected that test name(s) occurs last
+
 SS=${1}
 shift
 
@@ -2415,39 +2420,44 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
-if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
-then
-    echo "Setting up testing based on real hardware"
-    setup=1;
-    SIM=0;
-    shift 1;
-elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
-	echo "Setting up testing based on simulators"
-	SIM=1;
-	ZONE_CHECK=0;
-	setup=1;
-	shift 1;
-    else
-	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	exit 1
-    fi
-fi
-
-# Whether to report results to the master data collector of all things
 REPORT=0
-if [ "${1}" = "-report" ]; then
-    REPORT=1
-    shift;
-fi
+DO_CLEANUP=0;
+while [ "${1:0:1}" = "-" ]
+do
+    if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
+    then
+	echo "Setting up testing based on real hardware"
+	setup=1;
+	SIM=0;
+	shift 1;
+    elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
+	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+	    echo "Setting up testing based on simulators"
+	    SIM=1;
+	    ZONE_CHECK=0;
+	    setup=1;
+	    shift 1;
+	else
+	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	    exit 1
+	fi
+    fi
+
+    # Whether to report results to the master data collector of all things
+    if [ "${1}" = "-report" ]; then
+	REPORT=1
+	shift;
+    fi
+
+    if [ "$1" = "-cleanup" ]
+    then
+	DO_CLEANUP=1;
+	shift
+    fi
+done
+
 
 login
-
-if [ "$1" = "regression" ]
-then
-    test_0;
-    shift 2;
-fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2463,12 +2473,6 @@ then
     fi
 fi
 
-docleanup=0;
-if [ "$1" = "-cleanup" ]
-then
-    docleanup=1;
-    shift
-fi
 
 test_start=1
 test_end=7
@@ -2511,7 +2515,7 @@ echo There were $VERIFY_FAIL_COUNT verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
-if [ "${docleanup}" = "1" ]; then
+if [ "${DO_CLEANUP}" = "1" ]; then
     cleanup;
 fi
 

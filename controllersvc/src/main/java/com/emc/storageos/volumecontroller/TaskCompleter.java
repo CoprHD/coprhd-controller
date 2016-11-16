@@ -17,6 +17,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,9 @@ public abstract class TaskCompleter implements Serializable {
     @XmlTransient
     private boolean asynchronous;
 
+    @XmlTransient
+    private boolean completed;
+
     /**
      * JAXB requirement
      */
@@ -94,6 +98,14 @@ public abstract class TaskCompleter implements Serializable {
 
     public void setAsynchronous(boolean asynchronous) {
         this.asynchronous = asynchronous;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
     }
 
     public Class getType() {
@@ -174,26 +186,29 @@ public abstract class TaskCompleter implements Serializable {
      */
     public void ready(DbClient dbClient) throws DeviceControllerException {
         complete(dbClient, Status.ready, null);
+        setCompleted(true);
     }
 
     public void ready(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
         complete(dbClient, locker, Status.ready, null);
+        setCompleted(true);
     }
 
     /**
      * Update the Operation status of the task to "error" and the current workflow step to "error" too (if any)
      * 
-     * @param dbClient
-     * @param message
-     *            String message from controller
+     * @param dbClient      Database client
+     * @param serviceCoded  Service code
      * @throws DeviceControllerException
      */
     public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
         complete(dbClient, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        setCompleted(true);
     }
 
     public void error(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
         complete(dbClient, locker, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        setCompleted(true);
     }
 
     public void suspendedNoError(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
@@ -512,5 +527,19 @@ public abstract class TaskCompleter implements Serializable {
                     break;
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("_clazz", _clazz)
+                .add("_opId", _opId)
+                .add("_ids", _ids)
+                .add("_consistencyGroupIds", _consistencyGroupIds)
+                .add("_volumeGroupIds", _volumeGroupIds)
+                .add("notifyWorkflow", notifyWorkflow)
+                .add("asynchronous", asynchronous)
+                .add("completed", completed)
+                .toString();
     }
 }

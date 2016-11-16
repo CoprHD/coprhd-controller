@@ -43,4 +43,11 @@ public interface WorkflowExceptions {
 
     @DeclareServiceCode(ServiceCode.WORKFLOW_IN_WRONG_STATE)
     public WorkflowException workflowNotSuspended(final String string, final String state);
+
+    /**
+     * @param taskId
+     * @return
+     */
+    @DeclareServiceCode(ServiceCode.WORKFLOW_INVALID_ARGUMENTS)
+    public WorkflowException workflowTaskIdInUse(String taskId);
 }

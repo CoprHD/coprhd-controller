@@ -9,8 +9,11 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -21,16 +24,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
@@ -218,38 +226,43 @@ public abstract class TaskCompleter implements Serializable {
 
     protected void setStatus(DbClient dbClient, Operation.Status status, ServiceCoded coded, String message)
             throws DeviceControllerException {
+        setStatus(_clazz, _ids, dbClient, status, coded, message);
+    }
+
+    protected void setStatus(Class<? extends DataObject> clazz, List<URI> ids, DbClient dbClient, Operation.Status status,
+            ServiceCoded coded, String message) throws DeviceControllerException {
         switch (status) {
             case error:
-                for (URI id : _ids) {
-                    dbClient.error(_clazz, id, _opId, coded);
+            for (URI id : ids) {
+                dbClient.error(clazz, id, _opId, coded);
                 }
                 break;
             case ready:
-                for (URI id : _ids) {
+            for (URI id : ids) {
                     if (message == null) {
-                        dbClient.ready(_clazz, id, _opId);
+                    dbClient.ready(clazz, id, _opId);
                     } else {
-                        dbClient.ready(_clazz, id, _opId, message);
+                    dbClient.ready(clazz, id, _opId, message);
                     }
                 }
                 break;
             case suspended_no_error:
-                for (URI id : _ids) {
+            for (URI id : ids) {
                     if (message == null)
-                        dbClient.suspended_no_error(_clazz, id, _opId);
+                    dbClient.suspended_no_error(clazz, id, _opId);
                     else
-                        dbClient.suspended_no_error(_clazz, id, _opId, message);
+                    dbClient.suspended_no_error(clazz, id, _opId, message);
                 }
                 break;
             case suspended_error:
-                for (URI id : _ids) {
-                    dbClient.suspended_error(_clazz, id, _opId, coded);
+            for (URI id : ids) {
+                dbClient.suspended_error(clazz, id, _opId, coded);
                 }
                 break;
             default:
                 if (message != null) {
-                    for (URI id : _ids) {
-                        dbClient.pending(_clazz, id, _opId, message);
+                for (URI id : ids) {
+                    dbClient.pending(clazz, id, _opId, message);
                     }
                 }
         }
@@ -501,5 +514,66 @@ public abstract class TaskCompleter implements Serializable {
                     break;
             }
         }
+    }
+
+    /**
+     * ends the task that is associated with a workflow
+     * 
+     * @param state
+     *            the completion state of the workflow
+     * @param _dbClient
+     * @param _locker
+     * @param error
+     */
+    public void completeWorkflowTask(WorkflowState state, DbClient _dbClient, ControllerLockingService _locker, ServiceError error) {
+        Operation.Status status = Operation.Status.ready;
+        try {
+            switch (state) {
+            case ERROR:
+                error(_dbClient, _locker, error);
+                status = Operation.Status.error;
+                break;
+            case SUCCESS:
+                ready(_dbClient, _locker);
+                break;
+            case SUSPENDED_ERROR:
+                suspendedError(_dbClient, _locker, error);
+                status = Operation.Status.suspended_error;
+                break;
+            case SUSPENDED_NO_ERROR:
+                suspendedNoError(_dbClient, _locker);
+                status = Operation.Status.suspended_no_error;
+                break;
+            default:
+                break;
+            }
+        } finally {
+            clearAllTasks(_dbClient, status, error);
+        }
+    }
+
+    /**
+     * clears all tasks by querying all tasks with the task id
+     */
+    private void clearAllTasks(DbClient _dbClient, Operation.Status status, ServiceError serviceCoded) {
+        List<Task> tasksForTaskId = TaskUtils.findTasksForRequestId(_dbClient, _opId);
+        Map<Class<? extends DataObject>, List<URI>> resourceMap = new HashMap<Class<? extends DataObject>, List<URI>>();
+        for (Task task : tasksForTaskId) {
+            if (!task.getCompletedFlag()) {
+                URI resourceId = task.getResource().getURI();
+                Class<? extends DataObject> resourceType = URIUtil.getModelClass(resourceId);
+                if (resourceMap.get(resourceType) == null) {
+                    resourceMap.put(resourceType, new ArrayList<URI>());
+                }
+                resourceMap.get(resourceType).add(resourceId);
+            }
+        }
+
+        for (Entry<Class<? extends DataObject>, List<URI>> entry : resourceMap.entrySet()) {
+            // if error, ready
+            setStatus(entry.getKey(), entry.getValue(), _dbClient, status,
+                    serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen(), null);
+        }
+
     }
 }

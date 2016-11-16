@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,6 +37,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
@@ -734,22 +736,7 @@ public class WorkflowService implements WorkflowController {
 
             // Throw task completer if supplied.
             if (workflow._taskCompleter != null) {
-                switch (state) {
-                    case ERROR:
-                        workflow._taskCompleter.error(_dbClient, _locker, error);
-                        break;
-                    case SUCCESS:
-                        workflow._taskCompleter.ready(_dbClient, _locker);
-                        break;
-                    case SUSPENDED_ERROR:
-                        workflow._taskCompleter.suspendedError(_dbClient, _locker, error);
-                        break;
-                    case SUSPENDED_NO_ERROR:
-                        workflow._taskCompleter.suspendedNoError(_dbClient, _locker);
-                        break;
-                    default:
-                        break;
-                }
+                workflow._taskCompleter.completeWorkflowTask(state, _dbClient, _locker, error);
             }
         } finally {
             logWorkflow(workflow, true);
@@ -836,6 +823,9 @@ public class WorkflowService implements WorkflowController {
      */
     private Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId, URI workflowURI,
             TaskCompleter completer) {
+        if (taskIdInUse(taskId)) {
+            throw WorkflowException.exceptions.workflowTaskIdInUse(taskId);
+        }
         Workflow workflow = new Workflow(this, controller.getClass().getSimpleName(),
                 method, taskId, workflowURI);
         workflow.setRollbackContOnError(rollbackContOnError);
@@ -847,6 +837,31 @@ public class WorkflowService implements WorkflowController {
         // Keep track if it's a nested Workflow
         workflow._nested = associateToParentWorkflow(workflow);
         return workflow;
+    }
+
+    /**
+     * return true if there is another active workflow with the task id
+     * 
+     * @param taskId
+     * @return
+     */
+    private boolean taskIdInUse(String taskId) {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getWorkflowByOrchTaskId(taskId), result);
+        List<URI> workflowIds = new ArrayList<URI>();
+        if (result.iterator().hasNext()) {
+            while (result.iterator().hasNext()) {
+                workflowIds.add(result.iterator().next());
+            }
+            Iterator<com.emc.storageos.db.client.model.Workflow> wfItr = _dbClient
+                    .queryIterativeObjects(com.emc.storageos.db.client.model.Workflow.class, workflowIds);
+            while (wfItr.hasNext()) {
+                if (!wfItr.next().getCompleted()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

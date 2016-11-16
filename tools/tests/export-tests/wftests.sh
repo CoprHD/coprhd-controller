@@ -108,8 +108,8 @@ report_results() {
     echo ${result} >> /root/reliability/results-local-set.db
 
     if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null 2> /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
     fi
 }
 
@@ -1727,6 +1727,29 @@ validate_db() {
     done
 }
 
+# Verify the failures in the variable were actually hit when the job ran.
+verify_failures() {
+    INVOKE_FAILURE_FILE=/opt/storageos/logs/invoke-test-failure.log
+    FAILURES=${1}
+
+    # cat ${INVOKE_FAILURE_FILE}
+
+    for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
+    do
+	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho 
+	    secho "FAILED: Failure injection ${failure_check} was not encountered during the operation execution."
+	    secho 
+	    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+	    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	fi
+    done
+
+    # delete the invoke test failure file.  It will get recreated.
+    rm -f ${INVOKE_FAILURE_FILE}
+}
+
 # Test 1
 #
 # Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
@@ -1802,9 +1825,13 @@ test_1() {
       	  # Create the volume
       	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
       	  # Let the async jobs calm down
       	  sleep 5
       fi
+
       # Perform any DB validation in here
       snap_db 2 ${cfs}
 
@@ -1939,6 +1966,9 @@ test_3() {
       # Create the volume
       fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Let the async jobs calm down
       sleep 5
 
@@ -2002,7 +2032,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004:failure_018"
+    # failure_injections=${common_failure_injections}
 
     for failure in ${failure_injections}
     do
@@ -2022,6 +2052,9 @@ test_4() {
 
       # Create the export
       fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}
@@ -2104,6 +2137,9 @@ test_5() {
       # Delete the export
       fail export_group delete $PROJECT/${expname}1
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Don't validate in here.  It's a delete operation and it's allowed to leave things behind, as long as the retry cleans it up.
 
       # Rerun the command
@@ -2182,6 +2218,9 @@ test_6() {
       # Delete the export
       fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Validate nothing was left behind
       snap_db 3 ${cfs}
       validate_db 2 3 ${cfs}
@@ -2236,7 +2275,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    # failure_injections="failure_004:failure_016"
 
     for failure in ${failure_injections}
     do
@@ -2265,6 +2304,9 @@ test_7() {
 
       # Attempt to add an initiator
       fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
 
       # Perform any DB validation in here
       snap_db 3 ${cfs}

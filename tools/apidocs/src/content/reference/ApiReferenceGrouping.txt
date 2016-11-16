@@ -83,6 +83,7 @@ com.emc.sa.api.OrderService
 com.emc.sa.api.ScheduledEventService
 com.emc.sa.api.ServiceDescriptorService
 com.emc.sa.api.UserPreferenceService
+com.emc.sa.api.WFDirectoryService
 
 =UI Services (Deprecated)
 api.AssetOptionsApi.AssetOptionsService

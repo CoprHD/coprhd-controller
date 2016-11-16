@@ -2011,6 +2011,11 @@ public class BlockService extends TaskResourceService {
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
      *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR DB and leaves the volume on array as it is.
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes on array and vipr db.
+     * VIPR_ONLY : Deletes the volume references only from ViPR db and leaves the volume on array as it is.
+     * 
      * NOTE: This is an asynchronous operation.
      *
      *
@@ -2018,6 +2023,8 @@ public class BlockService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR volume to delete
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete volume
      * @return Volume information
@@ -2050,6 +2057,11 @@ public class BlockService extends TaskResourceService {
      *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
+     * 
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR DB and leaves the volume on array as it is.
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes on array and vipr db.
+     * VIPR_ONLY : Deletes the volume references only from ViPR db and leaves the volume on array as it is.
      *
      * NOTE: This is an asynchronous operation.
      *
@@ -2059,6 +2071,8 @@ public class BlockService extends TaskResourceService {
      * @param volumeURIs
      *            The POST data specifying the ids of the volume(s) to be
      *            deleted.
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete multiple volumes
      * @return A reference to a BlockTaskList containing a list of
@@ -2787,9 +2801,15 @@ public class BlockService extends TaskResourceService {
      *            the URN of a ViPR Source volume
      * @param param
      *            List of copies to deactivate
-     * @param deleteType
-     *            the type of deletion
-     *
+     * @param type {@link DefaultValue} FULL
+     *            Possible type of deletion
+     *            <ul>
+     *            <li>FULL</li>
+     *            <li>VIPR_ONLY</li>
+     *            </ul>
+     *            if type is FULL, ViPR deletes the continuous copy from array and removes from ViPR DB.
+     *            if type is VIPR_ONLY, ViPR removes the continuous copy only from ViPR DB and leaves the continuous copy on array as
+     *            it is.
      * @brief Delete continuous copies
      * @return TaskList
      *

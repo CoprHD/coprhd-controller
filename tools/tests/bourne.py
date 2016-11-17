@@ -8352,11 +8352,15 @@ class Bourne:
     def host_update(self, uri, cluster):
         clusterURI = None
         if (cluster):
-            clusterURI = self.cluster_query(cluster)
-
+        	if (cluster == 'null'):
+        		clusterURI = "null"
+        	else:	
+        		clusterURI = self.cluster_query(cluster)
+            
         parms = {
-                    'cluster' : clusterURI
+        	'cluster' : clusterURI
         }
+        
         return self.api('PUT', URI_HOST.format(uri), parms);
 
     def host_list(self, tenant):

@@ -832,12 +832,12 @@ setup_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_file="${DIR}/preExistingConfig.properties"
     if [ -f "$tools_file" ]; then
-	echo "stale $tools_file found. Deleting it."
+	secho "stale $tools_file found. Deleting it."
 	rm $tools_file
     fi
 
     if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
+	secho "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
 	exit;
     fi
 
@@ -1025,11 +1025,6 @@ vnx_setup() {
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    # Can no longer do this since network discovers where the ports are
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
-    storageport $VNXB_NATIVEGUID list --v | grep FABRIC
 
     common_setup
 
@@ -1110,9 +1105,6 @@ vmax2_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-       run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
 
     common_setup
 
@@ -1168,7 +1160,6 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
@@ -1188,11 +1179,6 @@ vmax3_setup() {
 
 vplex_sim_setup() {
     secho "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
-
-    # Discover the Brocade SAN switch.
-    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-    FABRIC_SIMULATOR=fabric-sim
-    run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 
     # Discover the storage systems 
     secho "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
@@ -1324,13 +1310,6 @@ vplex_setup() {
     if [ "${SIM}" = "1" ]; then
 	vplex_sim_setup
 	return
-    fi
-
-    isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
-    if [ $isNetworkDiscovered -eq 0 ]; then
-        secho "Discovering Brocade SAN Switch ..."
-        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-        sleep 30
     fi
 
     secho "Discovering VPLEX Storage Assets"
@@ -1501,9 +1480,6 @@ xio_setup() {
     setup_varray
 
     run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
 
     common_setup
 
@@ -1582,11 +1558,7 @@ common_setup() {
 
 setup_varray() {
     run neighborhood create $NH
-    if [ "${SIM}" = "1" ]; then
-	run transportzone create $FC_ZONE_A $NH --type FC
-    else
-	run transportzone assign ${FC_ZONE_A} ${NH}
-    fi
+    run transportzone assign ${FC_ZONE_A} ${NH}
 }
 
 setup() {
@@ -1642,12 +1614,20 @@ setup() {
 
     if [ "${SIM}" != "1" ]; then
 	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    else
+	FABRIC_SIMULATOR=fabric-sim
+	if [ "${SS}" = "vplex" ]; then
+	    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+	    run networksystem create $FABRIC_SIMULATOR mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+	else
+	    secho "Configuring MDS/Cisco Simulator using SSH on: $SIMULATOR_CISCO_MDS"
+	    run networksystem create $FABRIC_SIMULATOR mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+	fi
     fi
 
     ${SS}_setup
 
     run cos allow $VPOOL_BASE block $TENANT
-    sleep 30
     reset_system_props
     run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
@@ -2045,7 +2025,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections=${common_failure_injections}
+    # failure_injections="failure_004:failure_020"
 
     for failure in ${failure_injections}
     do
@@ -2538,10 +2518,10 @@ test_end=7
 # ./dutest.sh sanity.conf vplex local test_7+
 if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
-   echo Request to run $*
+   secho Request to run $*
    for t in $*
    do
-      echo Run $t
+      secho Run $t
       reset_system_props
       prerun_tests
       $t

@@ -490,9 +490,9 @@ public class FileService extends TaskResourceService {
     }
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
-        // validate the vpool for protection and throw error if any other field invalid
-
-        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+        //validate the vpool for protection and throw error if any other field invalid
+    	
+    	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
             if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
@@ -4260,7 +4260,7 @@ public class FileService extends TaskResourceService {
     }
 
     private boolean isSubDirValid(FileShare fs, String subDir) {
-        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir, _dbClient);
+        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir,_dbClient);
         if (!exportFileRulesTemp.isEmpty()) {
             return true;
         }

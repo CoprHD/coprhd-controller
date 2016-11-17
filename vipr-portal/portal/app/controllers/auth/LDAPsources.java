@@ -217,7 +217,6 @@ public class LDAPsources extends ViprResourceController {
 
     private static void editOidcForm(OIDCAuthnProviderForm authnProvider) {
         renderArgs.put("authSourceTypeList", Arrays.asList(EnumOption.options(AuthSourceType.values())));
-        renderArgs.put("domainString", StringUtils.join(authnProvider.domains, "\n"));
         render("@editOidc", authnProvider);
     }
 
@@ -645,7 +644,6 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static class OIDCAuthnProviderForm extends AuthnProviderForm {
-        public List<String> domains;
         public String oidcBaseUrl;
         public String oidcAuthUrl;
         public String oidcTokenUrl;
@@ -657,7 +655,6 @@ public class LDAPsources extends ViprResourceController {
             this.description = authnProvider.getDescription();
             this.disable = authnProvider.getDisable();
 
-            this.domains = Lists.newArrayList(authnProvider.getDomains());
             this.oidcBaseUrl = authnProvider.getOidcBaseUrl();
             Logger.info("oidc base url is %s", this.oidcBaseUrl);
             this.oidcAuthUrl = authnProvider.getOidcAuthorizeUrl();
@@ -684,7 +681,6 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            param.getDomains().addAll(parseMultiLineInput(this.domains.get(0)));
             param.setOidcBaseUrl(this.oidcBaseUrl);
 
             return AuthnProviderUtils.create(param);

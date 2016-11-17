@@ -98,6 +98,7 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
     public GroupMemberAttributeChanges getGroupMemberAttributeChanges() {
         if (groupMemberAttributeChanges == null) {
             groupMemberAttributeChanges = new GroupMemberAttributeChanges();
+            groupMemberAttributeChanges = new GroupMemberAttributeChanges();
         }
         return groupMemberAttributeChanges;
     }

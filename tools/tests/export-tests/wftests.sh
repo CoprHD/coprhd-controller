@@ -1973,10 +1973,17 @@ test_3() {
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
-
-      # Remove the volume
-      runcmd volume delete --project ${project} --wait
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_023" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+          # TODO Delete the original volume
+      else
+        runcmd volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+        # Remove the volume
+        runcmd volume delete --project ${project} --wait
+      fi
 
       # Delete the project
       runcmd project delete ${project}

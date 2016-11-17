@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.util;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import javax.wbem.WBEMException;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -31,7 +35,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_012 = "failure_012_VNXVMAX_Post_Placement_inside_trycatch";
     public static final String ARTIFICIAL_FAILURE_013 = "failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete";
     public static final String ARTIFICIAL_FAILURE_014 = "failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete";
-    public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_some-method";
+    public static final String ARTIFICIAL_FAILURE_015 = "failure_015_SmisCommandHelper.invokeMethod_";
     public static final String ARTIFICIAL_FAILURE_016 = "failure_016_Export_doRemoveInitiator";
     public static final String ARTIFICIAL_FAILURE_017 = "failure_017_Export_doRemoveVolume";
     public static final String ARTIFICIAL_FAILURE_018 = "failure_018_Export_doRollbackExportCreate_before_delete";
@@ -77,6 +81,7 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
+            log("Injecting failure: " + failureKey);
             throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
         }
     }
@@ -98,11 +103,37 @@ public final class InvokeTestFailure {
         }
         
         // Extract the method name from the system property
-        String failOnMethodName = invokeArtificialFailure.substring("failure_016_SmisCommandHelper.invokeMethod_".length());
+        String failOnMethodName = invokeArtificialFailure.substring(ARTIFICIAL_FAILURE_015.length());
         String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
                 && methodName.equalsIgnoreCase(failOnMethodName)) {
+            log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
             throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
         }
+    }
+
+    /**
+     * Local logging, needed for debug on failure detection.
+     * 
+     * @param msg
+     *            error message
+     */
+    public static void log(String msg) {
+        try {
+            String logFileName = "/opt/storageos/logs/invoke-test-failure.log";
+            File logFile = new File(logFileName);
+            if (!logFile.exists()) {
+                logFile.createNewFile();
+            }
+            FileOutputStream fop = new FileOutputStream(logFile, true);
+            StringBuffer sb = new StringBuffer(msg + "\n");
+            // Last chance, if file is deleted, write manually.
+            fop.write(sb.toString().getBytes());
+            fop.flush();
+            fop.close();
+        } catch (IOException e) {
+            // It's OK if we can't log this.
+        }
+
     }
 }

@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
@@ -78,7 +79,6 @@ import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
-import com.emc.storageos.isilon.restapi.IsilonSmartQuota.Thresholds;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
@@ -2600,9 +2600,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         Iterator<URI> iter = result.iterator();
         while (iter.hasNext()) {
-            URI umfsQDURI = iter.next();
-            UnManagedFileQuotaDirectory fileShare = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, umfsQDURI);
-            if (fileShare != null && !fileShare.getInactive()) {
+            URI storageQDURI = iter.next();
+           
+            QuotaDirectory quotaDirectory = _dbClient.queryObject(QuotaDirectory.class, storageQDURI);
+            if (quotaDirectory != null && !quotaDirectory.getInactive()) {
                 return true;
             }
         }

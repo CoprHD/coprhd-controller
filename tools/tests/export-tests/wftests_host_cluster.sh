@@ -299,6 +299,11 @@ test_host_remove_initiator() {
     # Placeholder when a specific failure case is being worked...
     #failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
+    # Create volume
+    random_number=${RANDOM}    
+    volume=${VOLNAME}-${random_number}
+    runcmd volume create ${volume} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        
     for failure in ${failure_injections}
     do
         secho "Running host_remove_initiator with failure scenario: ${failure}..."
@@ -306,7 +311,6 @@ test_host_remove_initiator() {
         column_family="Volume ExportGroup ExportMask"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
-        volume=${VOLNAME}-${random_number}
         host=fakehost${random_number}
         exportgroup=exportgroup${random_number}
         
@@ -337,9 +341,6 @@ test_host_remove_initiator() {
         runcmd initiator create $host FC ${init2} --node ${node2}
         runcmd initiator create $host FC ${init3} --node ${node3}
         runcmd initiator create $host FC ${init4} --node ${node4}
-    
-        # Create volume
-        runcmd volume create ${volume} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
         
         # Zzzzzz
         sleep 2
@@ -393,20 +394,6 @@ test_host_remove_initiator() {
         else
             echo "+++ SUCCESS - All expected host initiators removed from export group" 
         fi
-        
-        # Cleanup    
-        # 1. Unexport the volume
-        # 2. Delete the volume
-        # 3. Delete the export group
-        # 4. Delete the host initiators
-        # 5. Delete the host
-        runcmd export_group update ${PROJECT}/${exportgroup} --remVols ${PROJECT}/${volume}
-        runcmd volume delete ${PROJECT}/${volume} --wait                
-        runcmd export_group delete ${PROJECT}/${exportgroup}    
-        sleep 5
-        runcmd initiator delete ${host}/${init3}
-        runcmd initiator delete ${host}/${init4}
-        runcmd hosts delete ${host}
         
         # Snap DB
         snap_db 2 ${column_family}
@@ -628,14 +615,27 @@ test_cluster_remove_host() {
     echot "Test cluster_remove_host Begins"
 
     common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
-
+                                failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update \
+                                failure_003_host_export_ComputeSystemControllerImpl.deleteExportGroup_before_delete \ 
+                                failure_004_host_export_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
+                                failure_005_host_export_ComputeSystemControllerImpl.verifyDatastore_after_verify \
+                                failure_006_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
+                                failure_007_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
+                                failure_008_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
+                                failure_009_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
 
     #failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
+    # Create volumes
+    random_number=${RANDOM}        
+    volume1=${VOLNAME}-1-${random_number}
+    volume2=${VOLNAME}-2-${random_number}    
+    runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+        
     for failure in ${failure_injections}
     do
         secho "Running cluster_remove_host with failure scenario: ${failure}..."
@@ -643,13 +643,10 @@ test_cluster_remove_host() {
         column_family="Volume ExportGroup ExportMask"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
-        volume1=${VOLNAME}-1-${random_number}
-        volume2=${VOLNAME}-2-${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
         cluster1=fakecluster1-${random_number}
         exportgroup1=exportgroup1-${random_number}
-        exportgroup2=exportgroup2-${random_number}
         
         # Snap DB
         snap_db 1 ${column_family}
@@ -673,7 +670,7 @@ test_cluster_remove_host() {
          # Create fake cluster
         runcmd cluster create ${cluster1} $TENANT
             
-        # Create fake hosts
+        # Create fake hosts and add them to cluster
         runcmd hosts create $host1 $TENANT Other ${host1}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}
         runcmd hosts create $host2 $TENANT Other ${host2}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}       
         
@@ -683,22 +680,17 @@ test_cluster_remove_host() {
         runcmd initiator create $host2 FC ${init3} --node ${node3}
         runcmd initiator create $host2 FC ${init4} --node ${node4}
     
-        # Create volumes
-        runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-        runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-        
         # Zzzzzz
         sleep 2
         
         # Export the volume to the fake cluster    
-        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
-        runcmd export_group create $PROJECT ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster1}
+        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}       
         
-        # Double check the export group to ensure the initiators are present
+        # Double check the export groups to ensure the hosts and initiators are present
         foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
         foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
-        foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
-        foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
+        foundinit3=`export_group show $PROJECT/${exportgroup1} | grep ${init3}`
+        foundinit4=`export_group show $PROJECT/${exportgroup1} | grep ${init4}`
         foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
         foundhost2=`export_group show $PROJECT/${exportgroup1} | grep ${host2}`    
         

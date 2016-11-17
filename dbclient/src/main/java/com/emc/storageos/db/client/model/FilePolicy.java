@@ -1,5 +1,14 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.model;
 
+/**
+ * 
+ * @author jainm15
+ *
+ */
 @Cf("FilePolicy")
 public class FilePolicy extends DataObject {
     // Type of the policy

@@ -1,5 +1,12 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
+/**
+ * @author jainm15
+ */
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -20,10 +27,10 @@ public class FilePolicyParam implements Serializable {
     private String applyAt;
 
     // Replication related parameters
-    private FileSystemReplicationSettings replicationSettingParam;
+    private FileReplicationPolicyParam replicationPolicyParams;
 
-    // policy schedule parameters..
-    private FilePolicyScheduleParams policySchedule;
+    // Snapshot related parameters..
+    private FileSnapshotPolicyParam snapshotPolicyPrams;
 
     public static enum PolicyType {
         file_snapshot, file_replication, file_quota
@@ -38,7 +45,7 @@ public class FilePolicyParam implements Serializable {
 
     @XmlElement(required = true, name = "policy_type")
     public String getPolicyType() {
-        return policyType;
+        return this.policyType;
     }
 
     public void setPolicyType(String policyType) {
@@ -47,7 +54,7 @@ public class FilePolicyParam implements Serializable {
 
     @XmlElement(required = true, name = "policy_name")
     public String getPolicyName() {
-        return policyName;
+        return this.policyName;
     }
 
     public void setPolicyName(String policyName) {
@@ -56,28 +63,29 @@ public class FilePolicyParam implements Serializable {
 
     @XmlElement(required = true, name = "apply_at")
     public String getApplyAt() {
-        return applyAt;
+        return this.applyAt;
     }
 
     public void setApplyAt(String applyAt) {
         this.applyAt = applyAt;
     }
 
-    @XmlElement(name = "replication_settings")
-    public FileSystemReplicationSettings getReplicationSettingParam() {
-        return replicationSettingParam;
+    @XmlElement(name = "replication_params")
+    public FileReplicationPolicyParam getReplicationPolicyParams() {
+        return this.replicationPolicyParams;
     }
 
-    public void setReplicationSettingParam(FileSystemReplicationSettings replicationSettingParam) {
-        this.replicationSettingParam = replicationSettingParam;
+    public void setReplicationPolicyParams(FileReplicationPolicyParam replicationPolicyParams) {
+        this.replicationPolicyParams = replicationPolicyParams;
     }
 
-    @XmlElement(name = "policy_schedule")
-    public FilePolicyScheduleParams getPolicySchedule() {
-        return policySchedule;
+    @XmlElement(name = "snapshot_params")
+    public FileSnapshotPolicyParam getSnapshotPolicyPrams() {
+        return this.snapshotPolicyPrams;
     }
 
-    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
-        this.policySchedule = policySchedule;
+    public void setSnapshotPolicyPrams(FileSnapshotPolicyParam snapshotPolicyPrams) {
+        this.snapshotPolicyPrams = snapshotPolicyPrams;
     }
+
 }

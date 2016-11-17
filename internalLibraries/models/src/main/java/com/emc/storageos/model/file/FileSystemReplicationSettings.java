@@ -11,10 +11,18 @@ import javax.xml.bind.annotation.XmlElement;
 public class FileSystemReplicationSettings implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    // to be removed
     private Long rpoValue;
+    // to be removed
     private String rpoType;
+
     private String replicationType;
+
     private String replicationCopyType;
+
+    // policy schedule parameters..
+    private FilePolicyScheduleParams policySchedule;
 
     public enum ReplicationRPOType {
         MINUTES, HOURS, DAYS
@@ -73,5 +81,14 @@ public class FileSystemReplicationSettings implements Serializable {
 
     public void setReplicationCopyType(String replicationCopyType) {
         this.replicationCopyType = replicationCopyType;
+    }
+
+    @XmlElement(name = "policy_schedule")
+    public FilePolicyScheduleParams getPolicySchedule() {
+        return policySchedule;
+    }
+
+    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
+        this.policySchedule = policySchedule;
     }
 }

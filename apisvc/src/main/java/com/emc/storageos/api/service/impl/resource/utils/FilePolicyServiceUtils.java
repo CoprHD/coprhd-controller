@@ -1,0 +1,194 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.api.service.impl.resource.utils;
+
+/**
+ * @author jainm15
+ */
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.FilePolicyService;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
+import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.file.FilePolicyScheduleParams;
+import com.emc.storageos.model.file.FileSnapshotPolicyExpireParam;
+import com.emc.storageos.model.file.FileSnapshotPolicyParam;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+
+public class FilePolicyServiceUtils {
+    private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
+
+    /**
+     * validates whether the schedule policy parameters are valid or not
+     * 
+     * @param policyScheduleparams - schedule policy parameters
+     * @param schedulePolicy - schedulePolicy object to set schedule values
+     * @param errorMsg - error message
+     * @return true/false
+     */
+    public static boolean validatePolicySchdeuleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
+            StringBuilder errorMsg) {
+
+        if (policyScheduleparams != null) {
+
+            // check schedule frequency is valid or not
+            if (!ArgValidator.isValidEnum(policyScheduleparams.getScheduleFrequency(), ScheduleFrequency.class)) {
+                errorMsg.append("Schedule frequency: " + policyScheduleparams.getScheduleFrequency()
+                        + " is invalid. Valid schedule frequencies are days, weeks and months");
+                return false;
+            }
+
+            // validating schedule repeat period
+            if (policyScheduleparams.getScheduleRepeat() < 1) {
+                errorMsg.append("required parameter schedule_repeat is missing or value: " + policyScheduleparams.getScheduleRepeat()
+                        + " is invalid");
+                return false;
+            }
+
+            // validating schedule time
+            String period = " PM";
+            int hour, minute;
+            boolean isValid = true;
+            if (policyScheduleparams.getScheduleTime().contains(":")) {
+                String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
+                hour = Integer.parseInt(splitTime[0]);
+                minute = Integer.parseInt(splitTime[1]);
+                if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
+                    isValid = false;
+                }
+            } else {
+                hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
+                minute = 0;
+            }
+            if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
+                if (hour < 12) {
+                    period = " AM";
+                }
+            } else {
+                errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
+                return false;
+            }
+
+            ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
+            switch (scheduleFreq) {
+
+                case DAYS:
+                    schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    if (schedulePolicy.getScheduleDayOfWeek() != null && !schedulePolicy.getScheduleDayOfWeek().isEmpty()) {
+                        schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
+                    }
+                    if (schedulePolicy.getScheduleDayOfMonth() != null) {
+                        schedulePolicy.setScheduleDayOfMonth(0L);
+                    }
+                    break;
+                case WEEKS:
+                    schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
+                    if (policyScheduleparams.getScheduleDayOfWeek() != null && !policyScheduleparams.getScheduleDayOfWeek().isEmpty()) {
+                        List<String> weeks = Arrays.asList("monday", "tuesday", "wednesday", "thursday", "friday",
+                                "saturday", "sunday");
+                        if (weeks.contains(policyScheduleparams.getScheduleDayOfWeek().toLowerCase())) {
+                            schedulePolicy.setScheduleDayOfWeek(policyScheduleparams.getScheduleDayOfWeek().toLowerCase());
+                        } else {
+                            errorMsg.append("Schedule day of week: " + policyScheduleparams.getScheduleDayOfWeek() + " is invalid");
+                            return false;
+                        }
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_week was missing or empty");
+                        return false;
+                    }
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    if (schedulePolicy.getScheduleDayOfMonth() != null) {
+                        schedulePolicy.setScheduleDayOfMonth(0L);
+                    }
+                    break;
+                case MONTHS:
+                    if (policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
+                        schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
+                        schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
+                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                        if (schedulePolicy.getScheduleDayOfWeek() != null) {
+                            schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
+                        }
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_month is missing or value: "
+                                + policyScheduleparams.getScheduleDayOfMonth()
+                                + " is invalid");
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {
+        boolean isValidSnapshotExpire = false;
+        // check snapshot expire type is valid or not
+        String expireType = param.getSnapshotExpireParams().getExpireType();
+        if (!ArgValidator.isValidEnum(expireType, SnapshotExpireType.class)) {
+            _log.error(
+                    "Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks, months and never",
+                    expireType);
+            throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
+        }
+        isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+        if (!isValidSnapshotExpire) {
+            int expireTime = param.getSnapshotExpireParams().getExpireValue();
+            int minExpireTime = 2;
+            int maxExpireTime = 10;
+            _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
+                    expireTime, minExpireTime, maxExpireTime);
+            throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
+        }
+    }
+
+    /**
+     * validates whether the snapshot expire parameters are valid or not
+     * 
+     * @param expireParam - snapshot expire parameters
+     * @return true/false
+     */
+    private static boolean validateSnapshotExpireParam(FileSnapshotPolicyExpireParam expireParam) {
+
+        long seconds = 0;
+        long minPeriod = 7200;
+        long maxPeriod = 10 * 365 * 24 * 3600;
+        int expireValue = expireParam.getExpireValue();
+        SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getExpireType().toUpperCase());
+        switch (expireType) {
+            case HOURS:
+                seconds = TimeUnit.HOURS.toSeconds(expireValue);
+                break;
+            case DAYS:
+                seconds = TimeUnit.DAYS.toSeconds(expireValue);
+                break;
+            case WEEKS:
+                seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
+                break;
+            case MONTHS:
+                seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
+                break;
+            case NEVER:
+                return true;
+            default:
+                return false;
+        }
+        if (seconds >= minPeriod && seconds <= maxPeriod) {
+            return true;
+        }
+        return false;
+    }
+}

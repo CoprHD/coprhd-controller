@@ -1,5 +1,12 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
+/**
+ * @author jainm15
+ */
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -23,19 +30,13 @@ public class FilePolicyScheduleParams implements Serializable {
     // Day of month when policy run
     private Long scheduleDayOfMonth;
 
-    // Snapshot expire type e.g hours, days, weeks, months or never
-    private String snapshotExpireType;
-
-    // Snapshot expire at
-    private Long snapshotExpireTime;
-
     public FilePolicyScheduleParams() {
 
     }
 
     @XmlElement(name = "schedule_frequency")
     public String getScheduleFrequency() {
-        return scheduleFrequency;
+        return this.scheduleFrequency;
     }
 
     public void setScheduleFrequency(String scheduleFrequency) {
@@ -44,7 +45,7 @@ public class FilePolicyScheduleParams implements Serializable {
 
     @XmlElement(name = "schedule_repeat")
     public Long getScheduleRepeat() {
-        return scheduleRepeat;
+        return this.scheduleRepeat;
     }
 
     public void setScheduleRepeat(Long scheduleRepeat) {
@@ -53,7 +54,7 @@ public class FilePolicyScheduleParams implements Serializable {
 
     @XmlElement(name = "schedule_time")
     public String getScheduleTime() {
-        return scheduleTime;
+        return this.scheduleTime;
     }
 
     public void setScheduleTime(String scheduleTime) {
@@ -62,7 +63,7 @@ public class FilePolicyScheduleParams implements Serializable {
 
     @XmlElement(name = "schedule_day_of_week")
     public String getScheduleDayOfWeek() {
-        return scheduleDayOfWeek;
+        return this.scheduleDayOfWeek;
     }
 
     public void setScheduleDayOfWeek(String scheduleDayOfWeek) {
@@ -71,29 +72,10 @@ public class FilePolicyScheduleParams implements Serializable {
 
     @XmlElement(name = "schedule_day_of_month")
     public Long getScheduleDayOfMonth() {
-        return scheduleDayOfMonth;
+        return this.scheduleDayOfMonth;
     }
 
     public void setScheduleDayOfMonth(Long scheduleDayOfMonth) {
         this.scheduleDayOfMonth = scheduleDayOfMonth;
     }
-
-    @XmlElement(name = "snapshot_expire_type")
-    public String getSnapshotExpireType() {
-        return snapshotExpireType;
-    }
-
-    public void setSnapshotExpireType(String snapshotExpireType) {
-        this.snapshotExpireType = snapshotExpireType;
-    }
-
-    @XmlElement(name = "snapshot_expire_time")
-    public Long getSnapshotExpireTime() {
-        return snapshotExpireTime;
-    }
-
-    public void setSnapshotExpireTime(Long snapshotExpireTime) {
-        this.snapshotExpireTime = snapshotExpireTime;
-    }
-
 }

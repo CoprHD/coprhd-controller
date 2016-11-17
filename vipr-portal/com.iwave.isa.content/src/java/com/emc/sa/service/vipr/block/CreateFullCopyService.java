@@ -74,7 +74,7 @@ public class CreateFullCopyService extends ViPRService {
         List<RetainedReplica> replicas = findObsoleteReplica(volumeOrCgId);
         for (RetainedReplica replica : replicas) {
             for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
-                BlockObjectRestRep obsoleteCopy = BlockStorageUtils.getVolume(volumeId);
+                BlockObjectRestRep obsoleteCopy = BlockStorageUtils.getVolume(uri(obsoleteCopyId));
                 info("Delete full copy %s (%s) since it exceeds max number of copies allowed", obsoleteCopyId, obsoleteCopy.getName());
                 
                 if (ConsistencyUtils.isVolumeStorageType(storageType)) {

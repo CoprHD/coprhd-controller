@@ -78,7 +78,8 @@ public class Common extends Controller {
     public static final String PATH_SANITIZER = "pathSanitizer";
     private static final MultiKeyMap XSS_SANITIZERS = new MultiKeyMap() {
         {
-            put("/orders/submitOrder","mountPoint", "pathSanitizer");
+            put("/orders/submitOrder","mountPoint", PATH_SANITIZER);
+            put("/orders/submitOrder","mountPath", PATH_SANITIZER);
         }
     };
 

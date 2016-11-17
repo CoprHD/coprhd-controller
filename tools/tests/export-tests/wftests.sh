@@ -986,6 +986,7 @@ reset_system_props() {
 prerun_tests() {
     clean_zones ${FC_ZONE_A:7} ${HOST1}
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    cleanup_previous_run_artifacts
 }
 
 vnx_sim_setup() {
@@ -2380,13 +2381,31 @@ cleanup_previous_run_artifacts() {
 	done
     fi
 
-    volume list ${PROJECT} | grep YES | grep hijack > /dev/null2> /dev/null
+    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null2> /dev/null
     if [ $? -eq 0 ]; then
-	for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
+	for id in `volume list ${PROJECT} | grep YES | grep "hijack\|fake" | awk '{print $7}'`
 	do
 	    echo "Deleting old volume: ${id}"
 	    runcmd volume delete ${id} --wait > /dev/null
 	done
+    fi
+
+    hosts list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `hosts list emcworld | grep fake | awk '{print $4}'`
+        do
+            echo "Deleting old host: ${id}"
+            runcmd hosts delete ${id} > /dev/null
+        done
+    fi
+
+    cluster list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `cluster list emcworld | grep fake | awk '{print $4}'`
+        do
+            echo "Deleting old cluster: ${id}"
+            runcmd cluster delete ${id} > /dev/null
+        done
     fi
 }
 
@@ -2564,6 +2583,8 @@ else
      num=`expr ${num} + 1`
    done
 fi
+
+cleanup_previous_run_artifacts
 
 echo There were $VERIFY_COUNT verifications
 echo There were $VERIFY_FAIL_COUNT verification failures

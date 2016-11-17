@@ -222,6 +222,7 @@ test_vcenter_event() {
     if [ -z "$EVENT_ID" ]
     then
       echo "FAILED. Expected an event"
+      finish -1
     else
       approve_pending_event $EVENT_ID 
     fi
@@ -481,7 +482,7 @@ test_happy_path_move_clustered_host_to_another_cluster() {
     if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
         # Fail, initiators should have been added to the export group
         echo "+++ FAIL - Some initiators were not found on the export groups...fail."
-        exit 1
+        finish -1
     else
         echo "+++ SUCCESS - All initiators from clusters present on export group"   
     fi
@@ -501,19 +502,13 @@ test_happy_path_move_clustered_host_to_another_cluster() {
     if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
         # Fail, initiators should have been added to the export group
         echo "+++ FAIL - Some initiators were not found  in export group ${exportgroup2}...fail."
-        exit 1
+        finish -1 
     else
         echo "+++ SUCCESS - All initiators from clusters present on export group ${exportgroup2}"   
     fi
 
     # The other export group should be deleted    
     fail export_group show $PROJECT/${exportgroup1}   
-    
-    # Cleanup    
-    runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}
-    runcmd export_group delete ${PROJECT}/${exportgroup2}    
-    runcmd hosts delete ${host1}
-    runcmd hosts delete ${host2}
     
     # Snap DB
     snap_db 2 ${column_family}

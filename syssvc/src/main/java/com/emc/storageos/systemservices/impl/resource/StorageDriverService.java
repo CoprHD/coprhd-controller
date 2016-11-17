@@ -44,6 +44,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
@@ -57,9 +58,11 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagedriver.StorageDriverList;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -100,6 +103,7 @@ public class StorageDriverService {
             Arrays.asList(new String[] { "block", "file", "block_and_file", "object" }));
     private static final String READY = "READY";
     private static final String IN_USE = "IN_USE";
+    private static final String EVENT_SERVICE_TYPE = "StorageDriver";
 
     // TODO we may need to make these 2 values configurable by overwrite it with
     // value from ZK
@@ -108,6 +112,9 @@ public class StorageDriverService {
     private static final int MAX_DISPLAY_STRING_LENGTH = 50;
     private static final String STORAGE_DRIVER_OPERATION_lOCK = "storagedriveroperation";
     private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
+
+    @Autowired
+    private AuditLogManager auditMgr;
 
     private CoordinatorClient coordinator;
     private CoordinatorClientExt coordinatorExt;
@@ -245,9 +252,13 @@ public class StorageDriverService {
             info.getInstalledDrivers().add(metaData.getDriverFileName());
             coordinator.setTargetInfo(info);
             log.info("Successfully triggered install operation for driver", metaData.getDriverName());
+            auditOperation(OperationTypeEnum.INSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                    AuditLogManager.AUDITOP_BEGIN, metaData.getDriverName());
             return Response.ok().build();
         } catch (Exception e) {
             log.error("Error happened when installing driver file", e);
+            auditOperation(OperationTypeEnum.INSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_FAILURE, null,
+                    metaData.getDriverName());
             throw APIException.internalServerErrors.installDriverFailed(e.getMessage());
         } finally {
             try {
@@ -303,9 +314,13 @@ public class StorageDriverService {
             // update target list in ZK
             coordinator.setTargetInfo(info);
             log.info("Successfully triggered uninstall operation for driver {}", driverName);
+            auditOperation(OperationTypeEnum.UNINSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                    AuditLogManager.AUDITOP_BEGIN, driverName);
             return Response.ok().build();
         } catch (Exception e) {
             log.error("Error happened when installing driver file", e);
+            auditOperation(OperationTypeEnum.UNINSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_FAILURE, null,
+                    driverName);
             throw APIException.internalServerErrors.uninstallDriverFailed(e.getMessage());
         } finally {
             try {
@@ -409,9 +424,13 @@ public class StorageDriverService {
 
             coordinator.setTargetInfo(targetInfo);
             log.info("Successfully triggered upgrade operation for driver", metaData.getDriverName());
+            auditOperation(OperationTypeEnum.UPGRADE_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                    AuditLogManager.AUDITOP_BEGIN, driverName);
             return Response.ok().build();
         } catch (Exception e) {
             log.error("Error happened when upgrading driver file", e);
+            auditOperation(OperationTypeEnum.UPGRADE_STORAGE_DRIVER, AuditLogManager.AUDITLOG_FAILURE, null,
+                    driverName);
             throw APIException.internalServerErrors.upgradeDriverFailed(e.getMessage());
         } finally {
             try {
@@ -725,5 +744,11 @@ public class StorageDriverService {
             result.add(it.next());
         }
         return result;
+    }
+
+    private void auditOperation(OperationTypeEnum type, String status, String stage, Object... descparams) {
+        this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, type, System.currentTimeMillis(), status, stage,
+                descparams);
+
     }
 }

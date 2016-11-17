@@ -29,6 +29,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.StorageDriverMetaData;
@@ -40,6 +41,8 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -65,6 +68,7 @@ public class StorageDriverManager {
             StorageDriversInfo.ID);
     private static final Logger log = LoggerFactory.getLogger(StorageDriverManager.class);
     private static final String DRIVERS_UPDATE_LOCK = "driversupdatelock";
+    private static final String EVENT_SERVICE_TYPE = "StorageDriver";
     private static final ThreadPoolExecutor EXECUTOR = new NamedThreadPoolExecutor("DriverUpdateThead", 1);
 
     private Set<String> localDriverFiles;
@@ -78,6 +82,9 @@ public class StorageDriverManager {
     private LocalRepository localRepo = LocalRepository.getInstance();
 
     Map<String, StorageDriverMetaData> upgradingDriverMap;
+
+    @Autowired
+    private AuditLogManager auditMgr;
 
     public void setCoordinator(CoordinatorClientExt coordinator) {
         this.coordinator = coordinator;
@@ -102,29 +109,6 @@ public class StorageDriverManager {
             localRepo.remoteRestartService(node, CONTROLLER_SERVICE);
         }
     }
-    // Maybe we don't need to check if all nodes are updated here, so comment it
-    // out for now
-    // private boolean areAllNodesUpdated() throws Exception {
-    // for (Site site : drUtil.listSites()) {
-    // Map<Service, StorageDriversInfo> localInfos =
-    // coordinator.getAllNodeInfos(StorageDriversInfo.class,
-    // CONTROL_NODE_SYSSVC_ID_PATTERN, site.getUuid());
-    // for (Map.Entry<Service, StorageDriversInfo> info : localInfos.entrySet())
-    // {
-    // if (!targetDriverFiles.equals(info.getValue().getInstalledDrivers())) {
-    // log.info("Drivers on node {} have not been updated",
-    // info.getKey().getName());
-    // log.info("Target drivers: {}",
-    // Arrays.toString(targetDriverFiles.toArray()));
-    // log.info("Local drivers on node {}: {}", info.getKey().getName(),
-    // Arrays.toString(info.getValue().getInstalledDrivers().toArray()));
-    // return false;
-    // }
-    // }
-    // }
-    // log.info("All nodes's drivers are synced with target list");
-    // return true;
-    // }
 
     private List<StorageSystemType> queryDriversByStatus(StorageSystemType.STATUS status) {
         List<StorageSystemType> types = new ArrayList<StorageSystemType>();
@@ -246,6 +230,18 @@ public class StorageDriverManager {
 
         if (needRestart) {
             restartControllerServices();
+            for (String driver : extractDrivers(installingTypes)) {
+                auditCompleteOperation(OperationTypeEnum.INSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                        driver);
+            }
+            for (String driver : extractDrivers(uninstallingTypes)) {
+                auditCompleteOperation(OperationTypeEnum.UNINSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                        driver);
+            }
+            for (String driver : extractDrivers(upgradingTypes)) {
+                auditCompleteOperation(OperationTypeEnum.UPGRADE_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                        driver);
+            }
         }
     }
 
@@ -527,6 +523,22 @@ public class StorageDriverManager {
     public void start() {
         updateLocalDriversList();
         addDriverInfoListener();
+    }
+
+    private Set<String> extractDrivers(List<StorageSystemType> types) {
+        Set<String> result = new HashSet<String>();
+        if (types == null || types.isEmpty()) {
+            return result;
+        }
+        for (StorageSystemType type :types) {
+            result.add(type.getDriverName());
+        }
+        return result;
+    }
+
+    private void auditCompleteOperation(OperationTypeEnum type, String status, Object... descparams) {
+        auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, type, System.currentTimeMillis(), status,
+                AuditLogManager.AUDITOP_END, descparams);
     }
 
     class DriverInfoListener implements NodeListener {

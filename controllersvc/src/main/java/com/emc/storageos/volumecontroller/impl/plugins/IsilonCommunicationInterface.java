@@ -160,7 +160,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private CustomConfigHandler customConfigHandler;
     @Autowired
     private DataSourceFactory dataSourceFactory;
-    
 
     /**
      * Get Unmanaged File System Container paths
@@ -1356,7 +1355,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         List<UnManagedFileSystem> unManagedFileSystems = new ArrayList<UnManagedFileSystem>();
         List<UnManagedFileSystem> existingUnManagedFileSystems = new ArrayList<UnManagedFileSystem>();
-        
         List<UnManagedFileQuotaDirectory> unManagedFileQuotaDir = new ArrayList<UnManagedFileQuotaDirectory>();
         List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDir = new ArrayList<UnManagedFileQuotaDirectory>();
 
@@ -1893,14 +1891,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // get first page of quota data, process and insert to database
 
             IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listFileQuotas(null);
-            
+
             HashMap<String, IsilonSmartQuota> tempQuotaMap = new HashMap<String, IsilonSmartQuota>();
-            
-            for(IsilonSmartQuota quota: quotas.getList()){
+
+            for (IsilonSmartQuota quota : quotas.getList()) {
                 tempQuotaMap.put(quota.getPath(), quota);
             }
-            
-            
             
             for (IsilonSmartQuota quota : quotas.getList()) {
 
@@ -1920,7 +1916,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             Set<String> filePaths = fsQuotaMap.keySet();
             Set<String> quotaPaths = quotaDirMap.keySet();
             /*
-               Associate Quota directories with correct File paths
+             * Associate Quota directories with correct File paths
              */
             HashMap<String, Set<String>> fileQuotas = new HashMap<String, Set<String>>();
             for (String filePath : filePaths) {
@@ -1932,30 +1928,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
                 if (!qdPaths.isEmpty()) {
-                     quotaPaths.removeAll(qdPaths);
+                    quotaPaths.removeAll(qdPaths);
                     fileQuotas.put(filePath, qdPaths);
                 }
             }
             
-            for(String fsNativeId: filePaths){
+            for (String fsNativeId : filePaths) {
                 IsilonSmartQuota fileFsQuota = fsQuotaMap.get(fsNativeId);
                 FileShare fs = extractFileShare(fsNativeId, fileFsQuota, storageSystem);
-                
+
                 _log.debug("quota id {} with capacity {}", fsNativeId + ":QUOTA:" + fileFsQuota.getId(),
                         fs.getCapacity() + " used capacity " + fs.getUsedCapacity());
                 fsWithQuotaMap.put(fsNativeId, fs);
-                
-				Set<String> fsQuotaIds = fileQuotas.get(fsNativeId);
-				if (null != fsQuotaIds) {
-					for (String quotaNativeId : fsQuotaIds) {
-						IsilonSmartQuota qdQuota = tempQuotaMap.get(quotaNativeId);
-						if (null != qdQuota) {
-							UnManagedFileQuotaDirectory qd = getUnManagedFileQuotaDirectory(fs.getNativeGuid(), qdQuota,
-									storageSystem);
-							qdMap.put(quotaNativeId, qd);
-						}
-					}
-				}
+
+                Set<String> fsQuotaIds = fileQuotas.get(fsNativeId);
+                if (null != fsQuotaIds) {
+                    for (String quotaNativeId : fsQuotaIds) {
+                        IsilonSmartQuota qdQuota = tempQuotaMap.get(quotaNativeId);
+                        if (null != qdQuota) {
+                            UnManagedFileQuotaDirectory qd = getUnManagedFileQuotaDirectory(fs.getNativeGuid(), qdQuota,
+                                    storageSystem);
+                            qdMap.put(quotaNativeId, qd);
+                        }
+                    }
+                }
             }
                 
             // get all other pages of quota data, process and set quota page by page
@@ -1965,14 +1961,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoveredFS = new ArrayList<FileShare>(fsWithQuotaMap.values());
             IsilonApi.IsilonList<FileShare> isilonFSList = new IsilonApi.IsilonList<FileShare>();
             isilonFSList.addList(discoveredFS);
-            
-            HashMap<String, Object> discoveredFileDetails= new HashMap<String, Object>();
-            
+
+            HashMap<String, Object> discoveredFileDetails = new HashMap<String, Object>();
+
             discoverdQuotaDirectory.addAll(qdMap.values());
-            
+
             discoveredFileDetails.put(UMFS_DETAILS, isilonFSList);
-            discoveredFileDetails.put(UMFSQD_DETAILS,discoverdQuotaDirectory);
-            
+            discoveredFileDetails.put(UMFSQD_DETAILS, discoverdQuotaDirectory);
+
             return discoveredFileDetails;
 
         } catch (IsilonException ie) {
@@ -2023,15 +2019,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             fs.getExtensions().put(QUOTA, quota.getId());
         }
 
-		if (null != quota.getThresholds().getSoft() && capacity != 0) {
-			softLimit = quota.getThresholds().getSoft() * 100 / capacity;
-		}
-		if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
-			softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
-		}
-		if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
-			notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
-		}
+        if (null != quota.getThresholds().getSoft() && capacity != 0) {
+            softLimit = quota.getThresholds().getSoft() * 100 / capacity;
+        }
+        if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
+            softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
+        }
+        if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
+            notificationLimit = quota.getThresholds().getAdvisory() * 100 / capacity;
+        }
 
         fs.setSoftLimit(softLimit);
         fs.setSoftGracePeriod(softGrace);
@@ -2047,28 +2043,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             StorageSystem storageSystem) {
         String qdNativeId = quota.getPath();
         _log.debug("Converting IsilonSmartQuota {} for fileSystem {}", quota.getPath(), fsNativeGuid);
-        
-        int softLimit=0;
-        int softGrace=0;
-        int notificationLimit=0;
-        String nativeGuid=null;
-        
-        
-        
+
+        int softLimit = 0;
+        int softGrace = 0;
+        int notificationLimit = 0;
+        String nativeGuid = null;
+
         UnManagedFileQuotaDirectory umfsQd = new UnManagedFileQuotaDirectory();
         StringMap extensionsMap = new StringMap();
-        
-        
+
         String[] tempDirNames = qdNativeId.split("/");
         umfsQd.setParentFSNativeGuid(fsNativeGuid);
-        
-        umfsQd.setLabel(tempDirNames[tempDirNames.length -1]);
-     
-        try{
-         nativeGuid=       
-        NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(), storageSystem.getSerialNumber(), qdNativeId, "");
-        }catch(IOException e){
-        	_log.error("Exception while generating NativeGuid for UnManagedQuotaDirectory", e);
+
+        umfsQd.setLabel(tempDirNames[tempDirNames.length - 1]);
+
+        try {
+            nativeGuid = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
+                    storageSystem.getSerialNumber(), qdNativeId, "");
+        } catch (IOException e) {
+            _log.error("Exception while generating NativeGuid for UnManagedQuotaDirectory", e);
         }
 
         umfsQd.setNativeGuid(nativeGuid);
@@ -2080,25 +2073,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         umfsQd.setSize(capacity);
-        if(null!=quota.getThresholds().getSoft() && capacity != 0){
-        softLimit = new Long(quota.getThresholds().getSoft() * 100 / capacity).intValue();
+        if (null != quota.getThresholds().getSoft() && capacity != 0) {
+            softLimit = new Long(quota.getThresholds().getSoft() * 100 / capacity).intValue();
         }
-        if(null!=quota.getThresholds().getSoftGrace() && capacity != 0){
-        softGrace = new Long(quota.getThresholds().getSoftGrace() / ( 24 * 60 * 60)).intValue();
+        if (null != quota.getThresholds().getSoftGrace() && capacity != 0) {
+            softGrace = new Long(quota.getThresholds().getSoftGrace() / (24 * 60 * 60)).intValue();
         }
-        if(null!=quota.getThresholds().getAdvisory() && capacity != 0){
-        notificationLimit = new Long(quota.getThresholds().getAdvisory() * 100 / capacity).intValue();
+        if (null != quota.getThresholds().getAdvisory() && capacity != 0) {
+            notificationLimit = new Long(quota.getThresholds().getAdvisory() * 100 / capacity).intValue();
         }
-        
-        if(null!= quota.getId()){
-        	extensionsMap.put(QUOTA, quota.getId());
+
+        if (null != quota.getId()) {
+            extensionsMap.put(QUOTA, quota.getId());
         }
 
         umfsQd.setSoftLimit(softLimit);
         umfsQd.setSoftGrace(softGrace);
         umfsQd.setNotificationLimit(notificationLimit);
         umfsQd.setExtensions(extensionsMap);
-        
+
         return umfsQd;
     }
 
@@ -2115,7 +2108,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
     
     private int isQuotaOrFile(String fsNativeId) {
-        
+
         if (_discPathsLength == 0) {
             computeCustomConfigPathLengths();
         }
@@ -2601,7 +2594,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Iterator<URI> iter = result.iterator();
         while (iter.hasNext()) {
             URI storageQDURI = iter.next();
-           
+
             QuotaDirectory quotaDirectory = _dbClient.queryObject(QuotaDirectory.class, storageQDURI);
             if (quotaDirectory != null && !quotaDirectory.getInactive()) {
                 return true;
@@ -3511,20 +3504,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return physicalNas;
     }
     
-    
-    private String getCustomConfigPath(){
+    private String getCustomConfigPath() {
         URIQueryResultList results = new URIQueryResultList();
-        
+
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType(ISILON_PATH_CUSTOMIZATION), results);
-        
+
         Iterator<URI> iter = results.iterator();
-        
+
         CustomConfig tempConfig = null;
-        
-        while(iter.hasNext()){
+
+        while (iter.hasNext()) {
             tempConfig = _dbClient.queryObject(CustomConfig.class, iter.next());
-            if(tempConfig != null && !tempConfig.getInactive()){
-                _log.info("Getting custom Config {}  ",tempConfig.getLabel());
+            if (tempConfig != null && !tempConfig.getInactive()) {
+                _log.info("Getting custom Config {}  ", tempConfig.getLabel());
                 break;
             }
         }
@@ -3533,16 +3525,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     /**
      * Compute the path length for discovering a file system
-     * its 
-     *  CustomConfigPath + 2 
-     *  where path would be like 
-     *  /ifs/<access-zone>/<vpool_name>/<tenant_name>/<project_name>
+     * its
+     * CustomConfigPath + 2
+     * where path would be like
+     * /ifs/<access-zone>/<vpool_name>/<tenant_name>/<project_name>
      */
-    private void computeCustomConfigPathLengths(){
+    private void computeCustomConfigPathLengths() {
         String tempCustomConfigPathLength = getCustomConfigPath();
-        if(StringUtils.isNotEmpty(tempCustomConfigPathLength)){
-        _discPathsLength =(INITIAL_PATH+tempCustomConfigPathLength).split("/").length;
-        }else{
+        if (StringUtils.isNotEmpty(tempCustomConfigPathLength)) {
+            _discPathsLength = (INITIAL_PATH + tempCustomConfigPathLength).split("/").length;
+        } else {
             _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
             _discPathsLength = (INITIAL_PATH).split("/").length;
         }

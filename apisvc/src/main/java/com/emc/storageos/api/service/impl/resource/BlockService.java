@@ -57,6 +57,7 @@ import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
+import com.emc.storageos.api.service.impl.resource.utils.LimitCheckUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -1001,6 +1002,9 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
+        // check volume limit per project
+        LimitCheckUtils.validateVolumeLimitPerProject(project, _dbClient, _coordinator);
+        
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:

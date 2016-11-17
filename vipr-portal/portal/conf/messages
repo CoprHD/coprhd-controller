@@ -3515,6 +3515,9 @@ resources.volume.accessState.readwrite=Read Write
 resources.volume.accessState.writeonce=Write Once
 resources.volume.accessState.notready=Not Ready
 
+resources.volume.reachVolumeLimitAlert=It has reached maximum number of volumes current project. System performance may be downgraded.
+resources.volume.approachVolumeLimitAlert=It is approaching maximum number of volumes for this project. System performance may be downgraded.  
+
 resources.continuouscopy=Continuous Copy
 resources.continuouscopy.image=assets/Continuous_Copy.png
 resources.continuouscopies.none=No Continuous Copies

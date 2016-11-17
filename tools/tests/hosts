@@ -116,7 +116,7 @@ create.add_argument('--discoverable',   help = 'discoverable: true or false', de
 # host update uri
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 update.add_argument('name', help = 'name of host')
-update.add_argument('--cluster', help = 'host cluster')
+update.add_argument('--cluster', help = 'host cluster or specify null if looking to remove host from existing cluster')
 
 # host delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

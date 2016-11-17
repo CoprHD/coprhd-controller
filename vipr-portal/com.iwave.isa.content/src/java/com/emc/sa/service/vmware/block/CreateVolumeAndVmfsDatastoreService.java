@@ -7,6 +7,7 @@ package com.emc.sa.service.vmware.block;
 import static com.emc.sa.service.ServiceParams.MULTIPATH_POLICY;
 import static com.emc.sa.service.ServiceParams.STORAGE_IO_CONTROL;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,6 +17,7 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.sa.service.vmware.VMwareBinding;
 import com.emc.sa.service.vmware.VMwareBinding.DatastoreToVolumeParams;
@@ -106,16 +108,23 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         }
 
         int index = 0;
+        List<URI> volumesToExport = Lists.newArrayList();
         Map<String, BlockObjectRestRep> datastoreVolumeMap = Maps.newHashMap();
         for (String datastoreName : datastoreNames) {
-            List<BlockObjectRestRep> volumes = createBlockVolumeHelpers.get(index).createAndExportVolumes();
+            List<URI> volumes = createBlockVolumeHelpers.get(index).createVolumes(createBlockVolumeHelpers.get(index).getComputeResource());
+            volumesToExport.addAll(volumes);
             if (volumes.isEmpty()) {
                 ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
             }
-            BlockObjectRestRep volume = volumes.get(0);
-            datastoreVolumeMap.put(datastoreName, volume);
+
+            if (!volumes.isEmpty()) {
+                BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumes.get(0));
+                datastoreVolumeMap.put(datastoreName, volume);
+            }
             index++;
         }
+
+        createBlockVolumeHelpers.get(0).exportVolumes(volumesToExport);
 
         connectAndInitializeHost();
 

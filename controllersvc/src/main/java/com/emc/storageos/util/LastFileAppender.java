@@ -39,6 +39,12 @@ public class LastFileAppender extends FileAppender {
 
     private boolean checkLogFileExist() {
         File logFile = new File(super.fileName);
+
+        // If we're using fop, act like we're not using the base logger.
+        if (fop != null) {
+            return false;
+        }
+
         if (!logFile.exists()) {
             try {
                 super.closeWriter();

@@ -139,7 +139,7 @@ public class PortMetricsProcessor {
 
         MetricsKeys.putLong(MetricsKeys.lastSampleTime, sampleTime, dbMetrics);
         haDomain.setMetrics(dbMetrics);
-        _dbClient.persistObject(haDomain);
+        _dbClient.updateObject(haDomain);
     }
 
     /**
@@ -192,7 +192,7 @@ public class PortMetricsProcessor {
 
         MetricsKeys.putLong(MetricsKeys.lastSampleTime, sampleTime, dbMetrics);
         haDomain.setMetrics(dbMetrics);
-        _dbClient.persistObject(haDomain);
+        _dbClient.updateObject(haDomain);
     }
 
     /**
@@ -265,7 +265,7 @@ public class PortMetricsProcessor {
                 && !system.checkIfVmax3());
         updateUnmanagedVolumeAndInitiatorCounts(port, countMetaMembers, dbMetrics);
         port.setMetrics(dbMetrics);
-        _dbClient.persistObject(port);
+        _dbClient.updateObject(port);
     }
 
     /**
@@ -333,7 +333,7 @@ public class PortMetricsProcessor {
         MetricsKeys.putLong(MetricsKeys.lastSampleTime, sampleTime, dbMetrics);
 
         port.setMetrics(dbMetrics);
-        _dbClient.persistObject(port);
+        _dbClient.updateObject(port);
     }
 
     /**
@@ -380,7 +380,18 @@ public class PortMetricsProcessor {
             MetricsKeys.putDouble(MetricsKeys.avgCpuPercentBusy, cpuPercentBusy, port.getMetrics());
 
             portMetricDouble += cpuPercentBusy;
-            portMetricDouble /= 2.0;        // maintain on a scale of 0 - 100%
+            Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, port.getMetrics());
+            
+            _log.info(String.format("Volume Count for port %s : %d", portName(port), volumeCount));
+            
+            // Compute port metric taking into account volume count information. 
+            // A volume will be considered 100% busy if it has 2048 volumes mapped to it. Although certain arrays such as VMAX have a 
+            // higher limit (4096), we will still use 2048 to make sure volumes are evenly distributed across ports. 
+            
+            Double volumeCountBusyMetric = (volumeCount / 2048) * 100.0;
+            portMetricDouble += volumeCountBusyMetric;
+            portMetricDouble /= 3.0; // maintain on a scale of 0 - 100%
+            _log.info("portMetricDouble with volume count information : " + portMetricDouble);
         }
 
         _log.info(String.format("%s %s: portMetric %f port %f %f cpu %s %s",
@@ -545,7 +556,7 @@ public class PortMetricsProcessor {
                         StringMap dbMetrics = vNAS.getMetrics();
                         MetricsKeys.putDouble(MetricsKeys.avgPortPercentBusy, avgPortPercentBusy, dbMetrics);
                         MetricsKeys.putDouble(MetricsKeys.avgPercentBusy, avgPercentBusy, dbMetrics);
-                        _dbClient.persistObject(vNAS);
+                        _dbClient.updateObject(vNAS);
 
                     }
                 }
@@ -830,7 +841,7 @@ public class PortMetricsProcessor {
 
         // Save the over ceiling value for display on the UI.
         MetricsKeys.putBoolean(MetricsKeys.allocationDisqualified, overCeiling, sp.getMetrics());
-        _dbClient.persistObject(sp);
+        _dbClient.updateObject(sp);
         return overCeiling;
     }
 
@@ -885,6 +896,7 @@ public class PortMetricsProcessor {
 
         // if port metrics allocation is disabled, than ports metrics are not used for allocation.
         if (!isPortMetricsAllocationEnabled(DiscoveredDataObject.Type.valueOf(system.getSystemType()))) {
+        	_log.info("PortMetricsEnabled : false");
             return false;
         }
 
@@ -1058,7 +1070,7 @@ public class PortMetricsProcessor {
             // Update the counts.
             MetricsKeys.putLong(MetricsKeys.initiatorCount, initiatorCount, sp.getMetrics());
             MetricsKeys.putLong(MetricsKeys.volumeCount, volumeCount, sp.getMetrics());
-            _dbClient.persistObject(sp);
+            _dbClient.updateObject(sp);
 
             _log.debug(String.format("Port %s %s updated initiatorCount %d volumeCount %d",
                     sp.getNativeGuid(), portName(sp), initiatorCount, volumeCount));

@@ -132,6 +132,7 @@ WorkflowService
 TaskService
 DisasterRecoveryService
 PrimitiveService
+WorkflowService
 
 =API Differences
 Block Services

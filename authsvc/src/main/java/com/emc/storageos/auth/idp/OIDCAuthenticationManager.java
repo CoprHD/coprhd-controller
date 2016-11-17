@@ -110,20 +110,36 @@ public class OIDCAuthenticationManager {
         JSONObject jsonIdToken = JWSObject.parse(idToken).getPayload().toJSONObject();
         String sub = (String) jsonIdToken.get("sub");
         JSONArray groups = (JSONArray) jsonIdToken.get("http://www.watch4net.com/openid/groups");
-        log.info("the user info: {}, {}", sub, groups.toString());
+        String domain = getDomainFromName(sub);
+        log.info("The user info, sub: {}, grp: {}, domain: {}", sub, groups.toString(), domain);
 
         StorageOSUserDAO userInfo = new StorageOSUserDAO();
-        userInfo.setUserName(sub);
-        userInfo.setGroups( getGroupSet(groups) );
-
-        userInfo.setTenantId( findTenant(userInfo, getDomainFromName(sub)) );
+        userInfo.setUserName( subjectToUPN(sub) );
+        userInfo.setGroups( getGroupSet(groups, domain) );
+        userInfo.setTenantId( findTenant(userInfo, domain) );
 
         return userInfo;
     }
 
+    /**
+     * Convert domain\\user to user@domain. If no domain, just keep the name
+     * @param sub
+     * @return
+     */
+    private String subjectToUPN(String sub) {
+        String[] parts = sub.split("\\\\");
+        if (parts.length < 2) { // No domain
+            return sub;
+        }
+        return String.format("%s@%s", parts[1], parts[0]);
+    }
+
     private String getDomainFromName(String sub) {
-        log.info("the subject name is {}", sub);
-        return "";
+        String[] parts = sub.split("\\\\");
+        if (parts.length < 2) { // No domain
+            return null;
+        }
+        return parts[0];
     }
 
     private String findTenant(StorageOSUserDAO userInfo, String userDomain) {
@@ -169,6 +185,23 @@ public class OIDCAuthenticationManager {
             }
         }
         return groupSet;
+    }
+
+    private StringSet getGroupSet(JSONArray groups, String domain) {
+        if (groups == null) {
+            return null;
+        }
+
+        StringSet groupSet = new StringSet();
+
+        for (Object grp: groups) {
+            groupSet.add(shortNameToUPN((String) grp, domain));
+        }
+        return groupSet;
+    }
+
+    private String shortNameToUPN(String name, String domain) {
+        return String.format("%s@%s", name, domain);
     }
 
     private String upn(String grpDN) throws InvalidNameException {

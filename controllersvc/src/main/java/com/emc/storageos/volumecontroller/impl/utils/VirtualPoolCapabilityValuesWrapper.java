@@ -77,6 +77,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String REMOTE_REPLICATION_SET = "remoteReplicationSet";
     public static final String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
     public static final String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+    public static final String REMOTE_REPLICATION_CREATE_INACTIVE = "remoteReplicationCreateInactive";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -439,18 +440,23 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         }
     }
 
-    public String getRemoteReplicationSet() {
+    public URI getRemoteReplicationSet() {
         Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_SET);
-        return value != null ? (String) value : null;
+        return value != null ? (URI) value : null;
     }
 
-    public String getRemoteReplicationGroup() {
+    public URI getRemoteReplicationGroup() {
         Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_GROUP);
-        return value != null ? (String) value : null;
+        return value != null ? (URI) value : null;
     }
 
     public String getRemoteReplicationMode() {
         Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_MODE);
         return value != null ? (String) value : null;
+    }
+
+    public Boolean getRemoteReplicationCreateInactive() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_CREATE_INACTIVE);
+        return value != null ? (Boolean) value : null;
     }
 }

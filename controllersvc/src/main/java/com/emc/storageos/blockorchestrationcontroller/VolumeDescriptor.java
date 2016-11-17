@@ -85,17 +85,6 @@ public class VolumeDescriptor implements Serializable {
     public static final String PARAM_MIGRATION_SUSPEND_BEFORE_COMMIT = "migrationSuspendBeforeCommit";
     public static final String PARAM_MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE = "migrationSuspendBeforeDeleteSource";
 
-    // remote replication specific parameters
-    // RRG of source-target pair
-    public static final String PARAM_REMOTE_REPLICATION_GROUP_ID = "remoteReplicationGroup";
-    // RRS of source-target pair
-    public static final String PARAM_REMOTE_REPLICATION_SET_ID = "remoteReplicationSet";
-    // link state of source-target pair
-    public static final String PARAM_REMOTE_REPLICATION_LINK_STATE = "remoteReplicationLinkState";
-    // replication mode
-    public static final String PARAM_REMOTE_REPLICATION_MODE = "remoteReplicationMode";
-    //
-
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
             VirtualPoolCapabilityValuesWrapper capabilities, Long volumeSize) {

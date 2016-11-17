@@ -11,6 +11,7 @@ public class RemoteReplicationParameters {
         private String remoteReplicationMode;
         private URI remoteReplicationSet;
         private URI remoteReplicationGroup;
+        private Boolean createInactive = Boolean.FALSE;;
 
         public RemoteReplicationParameters() {
         }
@@ -40,5 +41,14 @@ public class RemoteReplicationParameters {
 
     public void setRemoteReplicationGroup(URI remoteReplicationGroup) {
         this.remoteReplicationGroup = remoteReplicationGroup;
+    }
+
+    @XmlElement(name = "create_inactive", defaultValue = "false")
+    public Boolean getCreateInactive() {
+        return createInactive;
+    }
+
+    public void setCreateInactive(Boolean createInactive) {
+        this.createInactive = createInactive;
     }
 }

@@ -81,13 +81,11 @@ public class RemoteReplicationScheduler implements Scheduler {
 
         // Get source and target storage systems from remote replication configuration
         if (capabilities.getRemoteReplicationGroup() != null) {
-            URI rrGroupUri = URIUtil.uri(capabilities.getRemoteReplicationGroup());
-            RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, rrGroupUri);
+            RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, capabilities.getRemoteReplicationGroup());
             sourceStorageSystems.add(rrGroup.getSourceSystem().toString());
             targetStorageSystems.add(rrGroup.getTargetSystem().toString());
         } else if (capabilities.getRemoteReplicationSet() != null) {
-            URI rrSetUri = URIUtil.uri(capabilities.getRemoteReplicationSet());
-            RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, rrSetUri);
+            RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, capabilities.getRemoteReplicationSet());
             sourceStorageSystems = rrSet.getSourceSystems();
             targetStorageSystems = rrSet.getTargetSystems();
         } else {
@@ -147,7 +145,7 @@ public class RemoteReplicationScheduler implements Scheduler {
                 targetCapabilities = capabilities;
             }
             attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), targetStorageSystems);
-            targetPools = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, capabilities, attributeMap);
+            targetPools = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, targetCapabilities, attributeMap);
 
             if (targetPools == null || targetPools.isEmpty()) {
                 _log.error(
@@ -164,9 +162,7 @@ public class RemoteReplicationScheduler implements Scheduler {
                 throw APIException.badRequests.noStoragePools(targetVirtualArray.getLabel(), targetVirtualPool.getLabel(),
                         errorMessage.toString());
             }
-
             break;
-
         }
 
         // list of recommendations for all volumes
@@ -228,7 +224,6 @@ public class RemoteReplicationScheduler implements Scheduler {
         }
 
         return volumeRecommendations;
-
     }
 
     @Override

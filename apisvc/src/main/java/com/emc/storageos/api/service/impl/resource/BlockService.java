@@ -1010,6 +1010,7 @@ public class BlockService extends TaskResourceService {
                capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
                capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
                capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
+               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
            } else {
                // error
                // todo:

@@ -25,6 +25,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationA
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.Logger;
@@ -237,13 +238,13 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         RemoteReplicationDevice rrDevice = getDevice();
 
         // All replication pairs should have the same link characteristics
-        Map<String, Object> parameters = sourceDescriptors.get(0).getParameters();
-        if (parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_GROUP_ID) != null) {
+        VirtualPoolCapabilityValuesWrapper capabilities = sourceDescriptors.get(0).getCapabilitiesValues();
+        if (capabilities.getRemoteReplicationGroup() != null) {
             createGroupPairs = true;
         }
-        String linkState = (String) parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE);
-        boolean createActive = RemoteReplicationSet.ReplicationState.ACTIVE.toString().
-                equalsIgnoreCase(linkState);
+        //String linkState = (String) parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE);
+        //boolean createActive = RemoteReplicationSet.ReplicationState.ACTIVE.toString().
+        //        equalsIgnoreCase(linkState);
         if (createGroupPairs) {
             rrDevice.createGroupReplicationPairs(rrPairs, taskCompleter);
         } else {
@@ -317,19 +318,13 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             rrPair.setId(URIUtil.createId(RemoteReplicationPair.class));
             rrPair.setElementType(RemoteReplicationPair.ElementType.VOLUME);
 
-            Map<String, Object> parameters = sourceDescriptor.getParameters();
-            if (parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_GROUP_ID) != null) {
-                rrPair.setReplicationGroup((URI)parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_GROUP_ID));
-            }
-            rrPair.setReplicationSet((URI) parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_SET_ID));
-            rrPair.setReplicationMode((String)parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_MODE));
-
-            // link state
-            if (parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE) != null) {
-                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.valueOf(
-                        (String) parameters.get(VolumeDescriptor.PARAM_REMOTE_REPLICATION_LINK_STATE)));
+            VirtualPoolCapabilityValuesWrapper capabilities = sourceDescriptor.getCapabilitiesValues();
+            rrPair.setReplicationGroup(capabilities.getRemoteReplicationGroup());
+            rrPair.setReplicationSet(capabilities.getRemoteReplicationSet());
+            rrPair.setReplicationMode(capabilities.getRemoteReplicationMode());
+            if (capabilities.getRemoteReplicationCreateInactive()) {
+                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
             } else {
-                // if not specified in the descriptor, create as SPLIT
                 rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.SPLIT);
             }
 

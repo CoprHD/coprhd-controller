@@ -1502,9 +1502,11 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_024);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
             status = result.isCommandSuccess();
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_025);
 
             // Update the workflow state.
             completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);

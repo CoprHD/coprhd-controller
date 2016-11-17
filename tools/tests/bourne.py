@@ -140,6 +140,7 @@ URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
+URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
 
 URI_EVENT                   = URI_VDC    + "/events"
 URI_EVENT_GET               = URI_EVENT    + '/{0}'
@@ -3628,6 +3629,9 @@ class Bourne:
 
     def task_list(self):
         return self.api('GET', URI_TASK_LIST)
+
+    def task_list_system(self):
+        return self.api('GET', URI_TASK_LIST_SYSTEM)
 
     def task_show(self, uri):
         return self.api('GET', URI_TASK_GET.format(uri))
@@ -8348,11 +8352,15 @@ class Bourne:
     def host_update(self, uri, cluster):
         clusterURI = None
         if (cluster):
-            clusterURI = self.cluster_query(cluster)
-
+        	if (cluster == 'null'):
+        		clusterURI = "null"
+        	else:	
+        		clusterURI = self.cluster_query(cluster)
+            
         parms = {
-                    'cluster' : clusterURI
+        	'cluster' : clusterURI
         }
+        
         return self.api('PUT', URI_HOST.format(uri), parms);
 
     def host_list(self, tenant):

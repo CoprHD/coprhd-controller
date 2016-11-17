@@ -124,7 +124,7 @@ public interface MaskingOrchestrator {
      * 
      * 
      */
-    public void validateAndUpdateConsistentLun(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+    public void validateAndUpdateConsistentHLU(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) throws Exception;
     /**
      * Update the Path Parameters for the volume specified in any of the Export Mask(s)

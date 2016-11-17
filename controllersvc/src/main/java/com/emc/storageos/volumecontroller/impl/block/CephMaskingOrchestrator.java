@@ -486,4 +486,11 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     }
 
+    @Override
+    public void validateAndUpdateConsistentHLU(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+        
+    }
+
 }

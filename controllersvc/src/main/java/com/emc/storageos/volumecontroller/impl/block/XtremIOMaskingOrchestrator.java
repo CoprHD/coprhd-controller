@@ -390,9 +390,10 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
-            //validateAndUpdateConsistentLun(storage, exportGroup, initiatorURIs, null); need to add lunMap
-
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
+
+            validateAndUpdateConsistentHLU(storage, exportGroup, initiatorURIs, volumes);
+
             log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 // find the export mask which has the same Host name as the initiator
@@ -741,9 +742,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public void validateAndUpdateConsistentLun(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+    public void validateAndUpdateConsistentHLU(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        validateConsistentLun(storage, exportGroup, initiatorURIs, volumeMap);
+        validateConsistentHLU(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     @Override

@@ -174,7 +174,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * Validate consistent lun violation
      * 
      */
-    public void validateConsistentLun(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
+    public void validateConsistentHLU(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
             Map<URI, Integer> volumeMap) {
 
         String hostStr = exportGroup.getHosts().iterator().next();
@@ -189,9 +189,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
         if (!clusterUsedHlus.contains(newHostUsedHlus)) {
             findUpdateFreeHLUsForClusterExport(storage, exportGroup, newInitiatorURIs, volumeMap);
+        } else {
+            //throw proper exception
         }
 
-        // return true;
     }
 
     /**

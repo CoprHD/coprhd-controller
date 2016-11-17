@@ -4,10 +4,11 @@
  */
 package com.emc.storageos.util;
 
-import javax.wbem.WBEMException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.wbem.WBEMException;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 
@@ -16,8 +17,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
  * rollback and other workflow anomalies in a repeatable and automated way.
  */
 public final class InvokeTestFailure {
-    private static Logger _log = LoggerFactory.getLogger(InvokeTestFailure.class);
-
     // Controller property
     private static final String ARTIFICIAL_FAILURE = "artificial_failure";
 
@@ -75,7 +74,7 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
-            _log.info("Injecting failure: " + failureKey);
+            log("Injecting failure: " + failureKey);
             throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
         }
     }
@@ -101,8 +100,33 @@ public final class InvokeTestFailure {
         String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
                 && methodName.equalsIgnoreCase(failOnMethodName)) {
-            _log.info("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
+            log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
             throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
         }
+    }
+
+    /**
+     * Local logging, needed for debug on failure detection.
+     * 
+     * @param msg
+     *            error message
+     */
+    public static void log(String msg) {
+        try {
+            String logFileName = "/opt/storageos/logs/invoke-test-failure.log";
+            File logFile = new File(logFileName);
+            if (!logFile.exists()) {
+                logFile.createNewFile();
+            }
+            FileOutputStream fop = new FileOutputStream(logFile, true);
+            StringBuffer sb = new StringBuffer(msg + "\n");
+            // Last chance, if file is deleted, write manually.
+            fop.write(sb.toString().getBytes());
+            fop.flush();
+            fop.close();
+        } catch (IOException e) {
+            // It's OK if we can't log this.
+        }
+
     }
 }

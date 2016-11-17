@@ -119,7 +119,7 @@ public class OrchestrationService extends ViPRService {
 
         final List<Step> steps = obj.getSteps();
         for (Step step : steps)
-            stepsHash.put(step.getStepId(), step);
+            stepsHash.put(step.getId(), step);
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefault();
@@ -128,25 +128,25 @@ public class OrchestrationService extends ViPRService {
             step = stepsHash.get(next);
 
             ExecutionUtils.currentContext().logInfo("Orchestration Engine Running " +
-                    "Step: " + step.getStepId());
+                    "Step: " + step.getId());
 
             updateInputPerStep(step);
 
             //TODO implement waitfortask
-            StepAttribute stepAttribute = step.getStepAttribute();
+            StepAttribute stepAttribute = step.getAttributes();
 
             String result = null;
 
             StepType type = StepType.fromString(step.getType());
-            Primitive primitive = PrimitiveHelper.get(step.getOpName());
+            Primitive primitive = PrimitiveHelper.get(step.getOperation());
             if( null == primitive) {
                 //TODO fail workflow
-                throw new IllegalStateException("Primitive not found: " + step.getOpName());
+                throw new IllegalStateException("Primitive not found: " + step.getOperation());
             }
             switch (type) {
                 case VIPR_REST: {
-                    ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName: " + step.getOpName() + inputPerStep.get(step.getStepId()));
-                    result = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive)(primitive), getClient().getRestClient(), inputPerStep.get(step.getStepId())));
+                    ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName: " + step.getOperation() + inputPerStep.get(step.getId()));
+                    result = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive)(primitive), getClient().getRestClient(), inputPerStep.get(step.getId())));
 
                     break;
                 }
@@ -170,7 +170,7 @@ public class OrchestrationService extends ViPRService {
 
             if (next == null) {
                 ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrieve next step " +
-                        "Step: " + step.getStepId() + ":" + step);
+                        "Step: " + step.getId() + ":" + step);
 
                 throw new IllegalStateException(result);
             }
@@ -188,15 +188,15 @@ public class OrchestrationService extends ViPRService {
     private String updateResult(final boolean status, final String result, final Step step) {
         if (status) {
             ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
-                    "Step: " + step.getStepId() + ":" + step + "result:" + result);
+                    "Step: " + step.getId() + ":" + step + "result:" + result);
 
             return step.getNext().getDefault();
         }
 
         ExecutionUtils.currentContext().logError("Orchestration Engine failed to run step " +
-                "Step: " + step.getStepId() + ":" + step + "result:" + result);
+                "Step: " + step.getId() + ":" + step + "result:" + result);
 
-        return step.getNext().getFailedStep();
+        return step.getNext().getFailed();
 
     }
 
@@ -206,7 +206,7 @@ public class OrchestrationService extends ViPRService {
      * @param step It is the GSON Object of Step
      */
     private void updateInputPerStep(final Step step) throws Exception {
-        logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
+        logger.info("executing Step Id: {} of Type: {}", step.getId(), step.getType());
 
         Map<String, Input> input = step.getInput();
         if (input == null)
@@ -220,7 +220,7 @@ public class OrchestrationService extends ViPRService {
             Input value = input.get(key);
             
             if (value == null) {
-                logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getStepId());
+                logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getId());
 
                 throw new IllegalStateException();
             }
@@ -234,7 +234,7 @@ public class OrchestrationService extends ViPRService {
 
                     if (paramVal == null) {
                         if (value.getRequired()) {
-                            logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
+                            logger.error("Can't retrieve input:{} to execute step:{}", key, step.getId());
 
                             throw new IllegalStateException();
                         }
@@ -250,13 +250,13 @@ public class OrchestrationService extends ViPRService {
                     
                     if(!isValidinput(value))
                     {
-                        logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
+                        logger.error("Can't retrieve input:{} to execute step:{}", key, step.getId());
                         
                         throw new IllegalStateException();
                     }
 
-                    if (value.getOtherStepValue() != null) {
-                        final String[] paramVal = value.getOtherStepValue().split("\\.");
+                    if (value.getValue() != null) {
+                        final String[] paramVal = value.getValue().split("\\.");
                         final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
                         final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
 
@@ -290,7 +290,7 @@ public class OrchestrationService extends ViPRService {
                     if (false == value.getRequired()) 
                         break;
 
-                    logger.error("Can't retrieve input:{} to execute step:{}", key, step.getStepId());
+                    logger.error("Can't retrieve input:{} to execute step:{}", key, step.getId());
 
                     throw new IllegalStateException();
 
@@ -302,12 +302,12 @@ public class OrchestrationService extends ViPRService {
             }
         }
 
-        inputPerStep.put(step.getStepId(), inputs);
+        inputPerStep.put(step.getId(), inputs);
     }
     
     private boolean isValidinput(Input value)
     {
-        if (value.getOtherStepValue() == null && value.getDefaultValue() == null && value.getRequired()) {
+        if (value.getValue() == null && value.getDefaultValue() == null && value.getRequired()) {
             return false;
         }
         
@@ -342,7 +342,7 @@ public class OrchestrationService extends ViPRService {
             out.put(key, evaluateValue(result, value));
         }
 
-        outputPerStep.put(step.getStepId(), out);
+        outputPerStep.put(step.getId(), out);
     }
 
     /**
@@ -360,7 +360,7 @@ public class OrchestrationService extends ViPRService {
             return false;
         }
 
-        String opName = step.getOpName();
+        String opName = step.getOperation();
         //TODO get returncode for REST API from DB. Now it is hard coded.
         int code = 200;
         if (returnCode == code)

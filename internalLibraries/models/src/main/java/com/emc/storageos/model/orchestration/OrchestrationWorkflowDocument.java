@@ -70,11 +70,10 @@ public class OrchestrationWorkflowDocument {
         private String type;
         private String friendlyName;
         private String defaultValue;
-        private String assetValue;
-        private String otherStepValue;
+        private String value;
         private String group;
         private boolean required = true;
-        private boolean lockdown = false;
+        private boolean locked = false;
         
         @XmlElement(name = "type")
         public String getType() {
@@ -83,7 +82,7 @@ public class OrchestrationWorkflowDocument {
         public void setType(String type) {
             this.type = type;
         }
-        @XmlElement(name = "friendlyName")
+        @XmlElement(name = "friendly_name")
         public String getFriendlyName() {
             return friendlyName;
         }
@@ -91,7 +90,7 @@ public class OrchestrationWorkflowDocument {
             this.friendlyName = friendlyName;
         }
         
-        @XmlElement(name = "defaultValue")
+        @XmlElement(name = "default_value")
         public String getDefaultValue() {
             return defaultValue;
         }
@@ -99,20 +98,12 @@ public class OrchestrationWorkflowDocument {
             this.defaultValue = defaultValue;
         }
         
-        @XmlElement(name = "assetValue")
-        public String getAssetValue() {
-            return assetValue;
+        @XmlElement(name = "value")
+        public String getValue() {
+            return value;
         }
-        public void setAssetValue(String assetValue) {
-            this.assetValue = assetValue;
-        }
-        
-        @XmlElement(name = "otherStepValue")
-        public String getOtherStepValue() {
-            return otherStepValue;
-        }
-        public void setOtherStepValue(String otherStepValue) {
-            this.otherStepValue = otherStepValue;
+        public void setValue(String assetValue) {
+            this.value = assetValue;
         }
         
         @XmlElement(name = "group")
@@ -131,12 +122,12 @@ public class OrchestrationWorkflowDocument {
             this.required = required;
         }
         
-        @XmlElement(name = "lockdown")
-        public boolean getLockdown() {
-            return lockdown;
+        @XmlElement(name = "locked")
+        public boolean getLocked() {
+            return locked;
         }
-        public void setLockdown(boolean lockdown) {
-            this.lockdown = lockdown;
+        public void setLocked(boolean locked) {
+            this.locked = locked;
         }
     }
 
@@ -146,7 +137,7 @@ public class OrchestrationWorkflowDocument {
         private boolean waitForTask = true;
         private long timeout = DEFAULT_STEP_TIMEOUT;
         
-        @XmlElement(name = "waitForTask")
+        @XmlElement(name = "wait_for_task")
         public boolean getWaitForTask() {
             return waitForTask;
         }
@@ -166,30 +157,30 @@ public class OrchestrationWorkflowDocument {
 
     public static class Step {
 
-        private String stepId;
-        private String opName;
+        private String id;
+        private String operation;
         private String description;
         private String type;
         private Map<String, Input> input;
         private Map<String, String> output;
-        private StepAttribute stepAttribute;
+        private StepAttribute attributes;
         private String successCriteria;
         private NextStep next;
         
-        @XmlElement(name = "stepId")
-        public String getStepId() {
-            return stepId;
+        @XmlElement(name = "id")
+        public String getId() {
+            return id;
         }
-        public void setStepId(String stepId) {
-            this.stepId = stepId;
+        public void setId(String stepId) {
+            this.id = stepId;
         }
         
-        @XmlElement(name = "opName")
-        public String getOpName() {
-            return opName;
+        @XmlElement(name = "operation")
+        public String getOperation() {
+            return operation;
         }
-        public void setOpName(String opName) {
-            this.opName = opName;
+        public void setOperation(String opName) {
+            this.operation = opName;
         }
         
         @XmlElement(name = "description")
@@ -224,15 +215,15 @@ public class OrchestrationWorkflowDocument {
             this.output = output;
         }
         
-        @XmlElement(name = "stepAttribute")
-        public StepAttribute getStepAttribute() {
-            return stepAttribute;
+        @XmlElement(name = "attributes")
+        public StepAttribute getAttributes() {
+            return attributes;
         }
-        public void setStepAttribute(StepAttribute stepAttribute) {
-            this.stepAttribute = stepAttribute;
+        public void setAttributes(StepAttribute attributes) {
+            this.attributes = attributes;
         }
         
-        @XmlElement(name = "successCriteria")
+        @XmlElement(name = "success_criteria")
         public String getSuccessCriteria() {
             return successCriteria;
         }
@@ -260,11 +251,11 @@ public class OrchestrationWorkflowDocument {
             this.defaultStep = defaultstep;
         }
         
-        @XmlElement(name = "failedStep")
-        public String getFailedStep() {
+        @XmlElement(name = "failed")
+        public String getFailed() {
             return failedStep;
         }
-        public void setFailedStep(String failedStep) {
+        public void setFailed(String failedStep) {
             this.failedStep = failedStep;
         }
     }

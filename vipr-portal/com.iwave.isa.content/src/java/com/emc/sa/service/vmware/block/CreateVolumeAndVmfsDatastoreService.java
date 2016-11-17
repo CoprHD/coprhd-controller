@@ -8,6 +8,8 @@ import static com.emc.sa.service.ServiceParams.MULTIPATH_POLICY;
 import static com.emc.sa.service.ServiceParams.STORAGE_IO_CONTROL;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -21,6 +23,7 @@ import com.emc.sa.service.vmware.VMwareBinding.DatastoreToVolumeTable;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.mo.Datastore;
 
@@ -103,25 +106,26 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         }
 
         int index = 0;
+        Map<String, BlockObjectRestRep> datastoreVolumeMap = Maps.newHashMap();
         for (String datastoreName : datastoreNames) {
             List<BlockObjectRestRep> volumes = createBlockVolumeHelpers.get(index).createAndExportVolumes();
             if (volumes.isEmpty()) {
                 ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
             }
             BlockObjectRestRep volume = volumes.get(0);
-
-            connectAndInitializeHost();
-            Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
-            vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
-            vmware.setStorageIOControl(datastore, storageIOControl);
-
-            vmware.disconnect();
-
+            datastoreVolumeMap.put(datastoreName, volume);
             index++;
         }
 
-        // Refresh the storage on all hosts in the cluster after creating the datastores
         connectAndInitializeHost();
+
+        for (Entry<String, BlockObjectRestRep> t : datastoreVolumeMap.entrySet()) {
+            Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, t.getValue(), t.getKey());
+            vmware.setMultipathPolicy(host, cluster, multipathPolicy, t.getValue());
+            vmware.setStorageIOControl(datastore, storageIOControl);
+        }
+
+        // Refresh the storage on all hosts in the cluster after creating the datastores
         vmware.refreshStorage(host, cluster);
         vmware.disconnect();
     }

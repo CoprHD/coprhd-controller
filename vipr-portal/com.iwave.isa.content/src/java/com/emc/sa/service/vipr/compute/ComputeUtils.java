@@ -769,16 +769,14 @@ public class ComputeUtils {
      * null is returned.
      * @param clusterID cluster id URI
      * @param clusterName name of cluster
-     * @return
+     * @return returns a successful cluster URI back, if failed
+     * null is returned.
      */
     public static URI updateClusterSharedExports(URI clusterID, String clusterName) {
         ArrayList<Task<ClusterRestRep>> tasks = Lists.newArrayList();
 
-        try {
-            tasks.add(execute(new UpdateClusterExports(clusterID, clusterName)));
-        } catch (Exception ex) {
-            ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", clusterName, ex.getMessage());
-        }
+        tasks.add(execute(new UpdateClusterExports(clusterID, clusterName)));
+
         List<URI> successfulIds = Lists.newArrayList();
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
@@ -789,7 +787,8 @@ public class ComputeUtils {
             }
             for (Task<ClusterRestRep> failedTask : getFailedTasks(tasks)) {
                 String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
-                ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", clusterName, errorMessage);
+                ExecutionUtils.currentContext().logError("compute.cluster.sharedexports.update.failed", clusterName,
+                        errorMessage);
                 tasks.remove(failedTask);
             }
         }

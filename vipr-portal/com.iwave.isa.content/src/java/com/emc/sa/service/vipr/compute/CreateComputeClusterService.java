@@ -38,7 +38,6 @@ import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @Service("CreateComputeCluster")
@@ -253,18 +252,21 @@ public class CreateComputeClusterService extends ViPRService {
         // newly added hosts will be taken care of this update cluster
         // method and in a synchronized way)
         URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-        logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
+
         // Make sure the all hosts that are being created belong to the all
         // of the exportGroups of the cluster, else fail the order.
         // Not do so and continuing to create bootvolumes to the host we
         // might end up in "consistent lun violation" issue.
         if (!ComputeUtils.nonNull(hosts).isEmpty() && null == updatedClusterURI) {
+            logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
             ComputeUtils.deactivateHosts(hosts);
             // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
             ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+            logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
         } else {
+            logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
             List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                     getClient());
             logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());

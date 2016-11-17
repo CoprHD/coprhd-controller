@@ -497,7 +497,7 @@ public class ClusterService extends TaskResourceService {
     }
 
     /**
-     * Updates one or more of the cluster attributes.
+     * Updates the shared export groups of the give cluster
      *
      * @param id the URN of a ViPR cluster
      *

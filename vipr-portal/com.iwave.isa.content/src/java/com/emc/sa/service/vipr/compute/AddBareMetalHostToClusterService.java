@@ -215,4 +215,32 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         this.size = size;
     }
 
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @param cluster the cluster to set
+     */
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    /**
+     * @return the hostNames
+     */
+    public List<String> getHostNames() {
+        return hostNames;
+    }
+
+    /**
+     * @param hostNames the hostNames to set
+     */
+    public void setHostNames(List<String> hostNames) {
+        this.hostNames = hostNames;
+    }
+
 }

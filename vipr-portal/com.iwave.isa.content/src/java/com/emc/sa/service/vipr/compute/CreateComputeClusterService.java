@@ -498,4 +498,46 @@ public class CreateComputeClusterService extends ViPRService {
         return project;
     }
 
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @param cluster the cluster to set
+     */
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    /**
+     * @return the hostNames
+     */
+    public List<String> getHostNames() {
+        return hostNames;
+    }
+
+    /**
+     * @param hostNames the hostNames to set
+     */
+    public void setHostNames(List<String> hostNames) {
+        this.hostNames = hostNames;
+    }
+
+    /**
+     * @return the hostIps
+     */
+    public List<String> getHostIps() {
+        return hostIps;
+    }
+
+    /**
+     * @param hostIps the hostIps to set
+     */
+    public void setHostIps(List<String> hostIps) {
+        this.hostIps = hostIps;
+    }
+
 }

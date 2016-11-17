@@ -150,12 +150,20 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     /**
      * Deletes the BlockSnapshotSession instance with the passed id.
      * 
+     * If "?type=VIPR_ONLY" is added to the path, it will delete snapshot session only from ViPR data base and leaves the snapshot session
+     * on storage array as it is.
+     * 
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the snapshot session on storage array and ViPR data base.
+     * VIPR_ONLY : Deletes the snapshot session only from ViPR data base and leaves the snapshot on storage array as it is.
+     * 
      * @brief Delete a block snapshot session.
      * 
      * @prereq The block snapshot session has no linked target volumes.
      * 
      * @param id The URI of the BlockSnapshotSession instance to be deleted.
      * @param type The type of deletion VIPR_ONLY or FULL.
+     *            {@link DefaultValue} FULL
      * 
      * @return TaskList representing the tasks for deleting snapshot sessions.
      */

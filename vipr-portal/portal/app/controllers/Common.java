@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import models.security.UserInfo;
 
+import org.apache.commons.collections.map.MultiKeyMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 
@@ -75,9 +76,9 @@ public class Common extends Controller {
     public static final String CACHE_EXPR = "2min";
 
     public static final String PATH_SANITIZER = "pathSanitizer";
-    private static final Map<String,String> PATH_XSS_PARAMS = new HashMap<String, String>(){
+    private static final MultiKeyMap XSS_SANITIZERS = new MultiKeyMap() {
         {
-            put("/orders/submitOrder,mountPoint", "pathSanitizer");
+            put("/orders/submitOrder","mountPoint", "pathSanitizer");
         }
     };
 
@@ -119,7 +120,6 @@ public class Common extends Controller {
     @Before(priority = 0)
     public static void xssCheck() {
         for (String param : params.all().keySet()) {
-
             // skip xss sanitation for fields which name contains password
             if (param.toLowerCase().contains("password")) {
                 Logger.debug("skip sanitation for " + param);
@@ -129,14 +129,12 @@ public class Common extends Controller {
             String[] data = params.getAll(param);
 
             if ((data != null) && (data.length > 0)) {
-                String sanitizer = getSanitizer(param);
+                String sanitizer = (String)XSS_SANITIZERS.get(request.path,param);
                 Logger.debug("Cleaning data for " + param);
                 String[] cleanValues = new String[data.length];
                 for (int i = 0; i < data.length; ++i) {
-                    if (sanitizer != null){
-                        if (PATH_SANITIZER.equals(sanitizer)){
-                            cleanValues[i] = SecurityUtils.stripPathXSS(data[i]);
-                        }
+                    if (PATH_SANITIZER.equals(sanitizer)){
+                        cleanValues[i] = SecurityUtils.stripPathXSS(data[i]);
                     } else {
                         cleanValues[i] = SecurityUtils.stripXSS(data[i]);
                     }
@@ -144,10 +142,6 @@ public class Common extends Controller {
                 }
             }
         }
-    }
-
-    private static String getSanitizer(String param){
-        return PATH_XSS_PARAMS.get(request.path.concat(",".concat(param)));
     }
 
     @Before(priority = 5)

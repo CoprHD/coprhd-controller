@@ -74,7 +74,7 @@ public class SecurityUtils {
             return null;
         }
 
-        // Jsoup cleans all html tags, which includes <script> tags
+        // Remove null character and Jsoup cleans all html tags, which includes <script> tags
         value = value.replaceAll("\0", "");
         value = Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
 

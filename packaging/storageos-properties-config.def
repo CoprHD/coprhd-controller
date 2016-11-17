@@ -3094,4 +3094,20 @@
         controlNodeOnly : true,
         value : "5",
     },
+    {
+        key : "max_num_of_volumes_per_project",
+        label : "Volume Limit Per Project",
+        description : "Maximum number of volumes allowed in a project",
+        type : "uint32",
+        userConfigurable : true,
+        userMutable : true,
+        hidden : true,
+        advanced : true,
+        tag : "Other",
+        reconfigRequired : false,
+        rebootRequired : true,
+        controlNodeOnly : true,
+        value : "10",
+    },
+
 ]

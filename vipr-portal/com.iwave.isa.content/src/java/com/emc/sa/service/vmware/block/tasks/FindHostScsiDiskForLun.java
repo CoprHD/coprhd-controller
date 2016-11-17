@@ -71,7 +71,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private HostScsiDisk findLun() {
-        HostScsiDisk lun = null;
+        HostScsiDisk lun = getLunDisk();
         long startTime = System.currentTimeMillis();
 
         while ((lun == null) && canRetry(startTime, FIND_DISK_TIMEOUT)) {

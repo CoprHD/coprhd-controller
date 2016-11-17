@@ -50,7 +50,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
     protected FqdnTable[] fqdnValues;
 
     private Cluster cluster;
-    List<String> hostNames = null;
+    private List<String> hostNames = null;
 
 
     @Override

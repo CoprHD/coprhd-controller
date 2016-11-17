@@ -92,8 +92,8 @@ public class AddHostToClusterService extends ViPRService {
     protected URI datacenterId;
 
     private Cluster cluster;
-    List<String> hostNames = null;
-    List<String> hostIps = null;
+    private List<String> hostNames = null;
+    private List<String> hostIps = null;
 
     @Override
     public void precheck() throws Exception {

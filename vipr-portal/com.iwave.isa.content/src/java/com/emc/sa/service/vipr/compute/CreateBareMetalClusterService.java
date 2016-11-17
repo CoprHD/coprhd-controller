@@ -49,8 +49,8 @@ public class CreateBareMetalClusterService extends ViPRService {
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
 
-    Cluster cluster = null;
-    List<String> hostNames = null;
+    private Cluster cluster = null;
+    private List<String> hostNames = null;
 
 
     @Override

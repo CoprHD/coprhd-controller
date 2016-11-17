@@ -765,16 +765,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitForFailback = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
-            if (replicateConfiguration) {
+            stepDescription = String.format(
+                    "Replicating directory quota settings from source file system : %s to file target system : %s",
+                    sourceFileShare.getId(), targetFileShare.getId());
+            Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                    systemSource.getId(), targetFileShare.getId());
+            String replicateDirQuotaSettingsStep = workflow.createStepId();
+            workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                    systemSource.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
 
-                stepDescription = String.format(
-                        "Replicating directory quota settings from source file system : %s to file target system : %s",
-                        sourceFileShare.getId(), targetFileShare.getId());
-                Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
-                        systemSource.getId(), targetFileShare.getId());
-                String replicateDirQuotaSettingsStep = workflow.createStepId();
-                workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
-                        systemSource.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+            if (replicateConfiguration) {
 
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
                 Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
@@ -886,16 +886,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitForFailover = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
-            if (replicateConfiguration) {
+            stepDescription = String.format(
+                    "Replicating directory quota settings from source file system : %s to file target system : %s",
+                    sourceFileShare.getId(), targetFileShare.getId());
+            Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                    systemTarget.getId(), fsURI);
+            String replicateDirQuotaSettingsStep = workflow.createStepId();
+            workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                    systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
 
-                stepDescription = String.format(
-                        "Replicating directory quota settings from source file system : %s to file target system : %s",
-                        sourceFileShare.getId(), targetFileShare.getId());
-                Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
-                        systemTarget.getId(), fsURI);
-                String replicateDirQuotaSettingsStep = workflow.createStepId();
-                workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
-                        systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+            if (replicateConfiguration) {
 
                 Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
                 Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);

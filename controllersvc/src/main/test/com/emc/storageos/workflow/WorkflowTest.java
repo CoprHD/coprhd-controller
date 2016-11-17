@@ -25,16 +25,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.joiner.Joiner;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ControllersvcTestBase;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.workflow.Workflow.StepState;
 
 /**
@@ -1004,6 +1013,169 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         WorkflowState state = waitOnWorkflowComplete(taskId);
         printLog("Workflow state: " + state);
         assertTrue(state == WorkflowState.SUCCESS);
+    }
+    
+    @Test
+    /**
+     * Tests that two workflows cannot be created with the same orchestraton task id.
+     */
+    public void test18_no_two_wfs_with_same_taskid() {
+        final String testname = new Object() {}.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        Object[] args = new Object[1];
+        String taskId = UUID.randomUUID().toString();
+        args[0] = taskId;
+        workflowService.setSuspendClassMethodTestOnly(null);
+        workflowService.setSuspendOnErrorTestOnly(true);
+        injectedFailures.clear();
+        sleepMillis = SLEEP_MILLIS;
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, testname, false, taskId);
+        workflow.createStep(testname, "nop", null, nullURI, this.getClass().getName(), false, this.getClass(),
+                deepfirstnopMethod(1, 1), deepfirstnopMethod(1, 1), false, null);
+        workflow.executePlan(null, "success", new WorkflowCallback(), args, null, null);
+
+        // we should not be able to create a second workflow with the same task id as the running one
+        boolean duplicateTaskException = false;
+        try {
+            @SuppressWarnings("unused")
+            Workflow duplicateTask = workflowService.getNewWorkflow(this, testname, false, taskId);
+        } catch (Exception e) {
+            duplicateTaskException = true;
+        }
+
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog(String.format("task %s state %s", taskId, state));
+        assertTrue(duplicateTaskException);
+
+        // no that the running workflow is complete, it should be ok to re-use the task id
+        boolean taskIsAvailable = true;
+        try {
+            @SuppressWarnings("unused")
+            Workflow duplicateTask = workflowService.getNewWorkflow(this, testname, false, taskId);
+        } catch (Exception e) {
+            taskIsAvailable = false;
+        }
+        assertTrue(taskIsAvailable);
+        printLog(testname + " completed successfully");
+    }
+
+    @Test
+    /**
+     * Tests that the workflow completer clears tasks left pending by the steps.
+     */
+    public void test19_completer_clears_pending_task() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        int nsteps = 5;
+        byte[] bigArgs = new byte[2500];
+        String taskId = UUID.randomUUID().toString();
+        String[] args = new String[1];
+        args[0] = taskId;
+        sleepMillis = SLEEP_MILLIS;
+        
+        // create a resource so we can hang a task off of it
+        Volume resource = createVolumeResource();
+        Operation op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        Task task = requeryTask(resource, taskId, op);
+        assertTrue(task.getStatus().equals("pending"));
+        
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate completer clears pending task", false, taskId);
+        String lastStepId = null;
+        for (int i=0; i < nsteps; i++) {
+            String message = String.format("Step %d of %d steps", i+1, nsteps);
+            lastStepId = workflow.createStep("null", message, lastStepId, nullURI, this.getClass().getName(), false, this.getClass(),
+                    stepBigArgsMethod(bigArgs), stepBigArgsMethod(bigArgs), false, null);
+        }
+        CompleterDoesntClearTask completer = new CompleterDoesntClearTask(taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+
+        task = requeryTask(resource, taskId, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+
+        printLog("Workflow state: " + state);
+        assertTrue(state == WorkflowState.SUCCESS);
+
+        task = requeryTask(resource, taskId, op);
+        assertTrue(task.getStatus().equals("ready"));
+        printLog(testname + " completed successfully");
+    }
+
+    /**
+     * requeries the task object from the database
+     * 
+     * @param resource
+     * @param taskId
+     * @param operation
+     * @return
+     */
+    private Task requeryTask(DataObject resource, String taskId, Operation operation) {
+        return dbClient.queryObject(Task.class, toTask(resource, taskId, operation).getId());
+    }
+
+    /**
+     * creates a volume resource
+     * 
+     * @return
+     */
+    private Volume createVolumeResource() {
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URIUtil.createId(TenantOrg.class));
+        dbClient.createObject(tenant);
+
+        Project project = new Project();
+        project.setId(URIUtil.createId(Project.class));
+        project.setLabel("project1");
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        dbClient.createObject(project);
+
+        Volume vol = new Volume();
+        vol.setId(URIUtil.createId(Volume.class));
+        vol.setLabel("volumeObject");
+        vol.setProject(new NamedURI(project.getId(), vol.getLabel()));
+        vol.setTenant(new NamedURI(tenant.getId(), vol.getLabel()));
+        dbClient.createObject(vol);
+
+        return vol;
+    }
+
+    /**
+     * completer that doesn't clear any tasks
+     * 
+     * @author root
+     *
+     */
+    public static class CompleterDoesntClearTask extends TaskCompleter {
+
+        /**
+         * 
+         */
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * @param taskId
+         */
+        public CompleterDoesntClearTask(String taskId) {
+            _opId = taskId;
+        }
+
+        /*
+         * (non-Javadoc)
+         * 
+         * @see com.emc.storageos.volumecontroller.TaskCompleter#complete(com.emc.storageos.db.client.DbClient,
+         * com.emc.storageos.db.client.model.Operation.Status, com.emc.storageos.svcs.errorhandling.model.ServiceCoded)
+         */
+        @Override
+        protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
+            // noop
+
+        }
+
     }
 
     private Task toTask(DataObject resource, String taskId, Operation operation) {

@@ -44,6 +44,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_021 = "failure_021_Export_zoneRollback_after_delete";
     public static final String ARTIFICIAL_FAILURE_022 = "failure_022_VNXeStorageDevice_CreateVolume_before_async_job";
     public static final String ARTIFICIAL_FAILURE_023 = "failure_023_VNXeStorageDevice_CreateVolume_after_async_job";
+    public static final String ARTIFICIAL_FAILURE_024 = "failure_024_Export_zone_removeInitiator_before_delete";
+    public static final String ARTIFICIAL_FAILURE_025 = "failure_025_Export_zone_removeInitiator_after_delete";
         
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_001 = "failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_002 = "failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update";

@@ -989,7 +989,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void createVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs,
             VirtualPoolCapabilityValuesWrapper capabilities, String opId) throws ControllerException {
 
-        boolean opCreateFailed = false;
         List<Volume> volumes = new ArrayList<Volume>();
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
@@ -1028,24 +1027,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         .toString()));
             }
             _log.info(logMsgBuilder.toString());
-        } catch (InternalException e) {
-            _log.error(String.format("createVolume Failed - Array: %s Pool:%s Volume:%s",
-                    systemURI.toString(), poolURI.toString(), Joiner.on("\t").join(volumeURIs)));
-            doFailTask(Volume.class, volumeURIs, opId, e);
-            WorkflowStepCompleter.stepFailed(opId, e);
-            opCreateFailed = true;
         } catch (Exception e) {
             _log.error(String.format("createVolume Failed - Array: %s Pool:%s Volume:%s",
                     systemURI.toString(), poolURI.toString(), Joiner.on("\t").join(volumeURIs)), e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            doFailTask(Volume.class, volumeURIs, opId, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
-            opCreateFailed = true;
-        }
-        if (opCreateFailed) {
-            for (Volume volume : volumes) {
-                volume.setInactive(true);
-                _dbClient.updateObject(volume);
+            Workflow workflow = WorkflowService.getInstance().getWorkflowFromStepId(opId);
+            if (workflow != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                doFailTask(Volume.class, volumeURIs, opId, serviceError);
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
+                setVolumesInactive(volumes);
+            } else {
+                _log.info("Workflow is null which means that the workflow has already completed. Not performing any error handling");
             }
         }
     }
@@ -1054,7 +1046,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Return a Workflow.Method for rollbackCreateVolumes
      *
      * @param systemURI
-     * @param volumeURI
+     * @param volumeURIs
      * @return Workflow.Method
      */
     public static Workflow.Method rollbackCreateVolumesMethod(URI systemURI, List<URI> volumeURIs) {
@@ -1067,16 +1059,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void rollBackCreateVolumes(URI systemURI, List<URI> volumeURIs, String opId) throws ControllerException {
+        MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, opId);
+        List<Volume> volumes = new ArrayList<>(volumeURIs.size());
         try {
             String logMsg = String.format(
                     "rollbackCreateVolume start - Array:%s, Volume:%s", systemURI.toString(), Joiner.on(',').join(volumeURIs));
             _log.info(logMsg.toString());
-
             WorkflowStepCompleter.stepExecuting(opId);
-
-            for (URI volumeId : volumeURIs) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
-
+            volumes.addAll(_dbClient.queryObject(Volume.class, volumeURIs));
+            for (Volume volume : volumes) {
                 // CTRL-5597 clean volumes which have failed only in a multi-volume request
                 if (null != volume.getNativeGuid()) {
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
@@ -1154,24 +1145,46 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Call regular delete volumes
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_013);
-            deleteVolumes(systemURI, volumeURIs, opId);
+            deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_014);
 
             logMsg = String.format(
                     "rollbackCreateVolume end - Array:%s, Volume:%s", systemURI.toString(), Joiner.on(',').join(volumeURIs));
             _log.info(logMsg.toString());
-        } catch (InternalException e) {
-            _log.error(String.format("rollbackCreateVolume Failed - Array:%s, Volume:%s", systemURI.toString(),
-                    Joiner.on(',').join(volumeURIs)));
-            doFailTask(Volume.class, volumeURIs, opId, e);
-            WorkflowStepCompleter.stepFailed(opId, e);
         } catch (Exception e) {
             _log.error(String.format("rollbackCreateVolume Failed - Array:%s, Volume:%s", systemURI.toString(),
                     Joiner.on(',').join(volumeURIs)));
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            doFailTask(Volume.class, volumeURIs, opId, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            handleException(e, completer);
         }
+    }
+
+    public void handleException(Exception e, TaskCompleter taskCompleter) {
+        _log.error("Handling exception with task completer: {}", taskCompleter, e);
+        if (taskCompleter != null && (taskCompleter.isCompleted() || taskCompleter.isAsynchronous())) {
+            _log.warn("Task has been marked as either asynchronous or completed.  Not performing any error handling.");
+            return;
+        }
+
+        if (e instanceof InternalException) {
+            InternalException ie = (InternalException) e;
+            doFailTask(Volume.class, taskCompleter.getIds(), taskCompleter.getOpId(), ie);
+            WorkflowStepCompleter.stepFailed(taskCompleter.getOpId(), ie);
+        } else {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            doFailTask(Volume.class, taskCompleter.getIds(), taskCompleter.getOpId(), serviceError);
+            WorkflowStepCompleter.stepFailed(taskCompleter.getOpId(),
+                    DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
+        }
+
+        List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
+        setVolumesInactive(volumes);
+    }
+
+    private void setVolumesInactive(List<Volume> volumes) {
+        for (Volume volume : volumes) {
+            volume.setInactive(true);
+        }
+        _dbClient.updateObject(volumes);
     }
 
     /**
@@ -1783,13 +1796,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * {@inheritDoc} NOTE NOTE: The arguments here must match deleteVolumesMethod defined above (except opId).
      */
     @Override
-    public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String opId)
+    public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String opId) throws ControllerException {
+        MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, opId);
+        deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
+    }
+
+    /**
+     * Deletes the given volumes with an existing task completer.
+     *
+     * @param systemURI     Storage system URI
+     * @param volumeURIs    List of Volume URI
+     * @param completer     Task completer
+     * @throws ControllerException
+     */
+    public void deleteVolumesWithCompleter(URI systemURI, List<URI> volumeURIs, MultiVolumeTaskCompleter completer)
             throws ControllerException {
+
+        String opId = completer.getOpId();
+
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                     systemURI);
-            List<Volume> volumes = new ArrayList<Volume>();
-            List<VolumeTaskCompleter> volumeCompleters = new ArrayList<VolumeTaskCompleter>();
+            List<Volume> volumes = new ArrayList<>();
             Iterator<URI> volumeURIsIter = volumeURIs.iterator();
             String arrayName = systemURI.toString();
             StringBuilder entryLogMsgBuilder = new StringBuilder(String.format(
@@ -1833,13 +1861,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _log.info("Volume does not exist or is already deleted");
                     volumeCompleter.error(_dbClient, serviceError);
                 }
-                volumeCompleters.add(volumeCompleter);
+                completer.addVolumeCompleter(volumeCompleter);
             }
             _log.info(entryLogMsgBuilder.toString());
             if (!volumes.isEmpty()) {
                 WorkflowStepCompleter.stepExecuting(opId);
-                TaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs,
-                        volumeCompleters, opId);
                 getDevice(storageSystem.getSystemType()).doDeleteVolumes(storageSystem, opId,
                         volumes, completer);
             } else {
@@ -1847,13 +1873,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 WorkflowStepCompleter.stepSucceded(opId);
             }
             _log.info(exitLogMsgBuilder.toString());
-        } catch (InternalException e) {
-            doFailTask(Volume.class, volumeURIs, opId, e);
-            WorkflowStepCompleter.stepFailed(opId, e);
         } catch (Exception e) {
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            doFailTask(Volume.class, volumeURIs, opId, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
+            handleException(e, completer);
         }
     }
 
@@ -1864,8 +1885,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            -- The Workflow being built
      * @param waitFor
      *            -- Previous steps to waitFor
-     * @param volumesDescriptors
-     *            -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @param volumes
+     *            -- List<Volume> -- volumes of all types to be processed
      * @return last step added to waitFor
      * @throws ControllerException
      */

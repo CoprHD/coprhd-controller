@@ -113,6 +113,11 @@ public class Services extends Controller {
         Map<String, String> overriddenValues = getOverriddenValues(service);
         Map<String, String> availableAssets = getAvailableAssets(assetFieldDescriptors, overriddenValues);
 
+        Logger.info("========= availableAssets values");
+        for (Map.Entry e : availableAssets.entrySet()) {
+            Logger.info("key: %s, value: %s", e.getKey());
+        }
+
         // Load any Asset Options for root fields so they are rendered directly onto the form
         List<ServiceFieldRestRep> allFields = ServiceDescriptorUtils.getAllFieldList(serviceDescriptor.getItems());
         for (ServiceFieldRestRep field : allFields) {

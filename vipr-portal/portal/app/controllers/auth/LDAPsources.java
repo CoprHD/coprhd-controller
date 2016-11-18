@@ -667,9 +667,12 @@ public class LDAPsources extends ViprResourceController {
 
         @Override
         AuthnProviderRestRep save() {
+            Logger.info("id is %s", this.id);
             if (isNew()) {
+                Logger.info("it is new");
                 return create();
             } else {
+                Logger.info("it is new");
                 return update();
             }
         }

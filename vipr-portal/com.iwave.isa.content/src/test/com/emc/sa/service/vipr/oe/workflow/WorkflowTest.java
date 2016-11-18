@@ -26,7 +26,7 @@ import org.junit.Test;
 import org.testng.reporters.Files;
 
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 
 /**
@@ -40,9 +40,9 @@ public class WorkflowTest {
 
         final OrchestrationWorkflowDocument wfDefinition = WorkflowHelper.toWorkflowDocument(json);
         
-        OEWorkflow workflow = WorkflowHelper.create(wfDefinition);
+        OrchestrationWorkflow workflow = WorkflowHelper.create(wfDefinition);
         
-        OrchestrationWorkflowDocument result = WorkflowHelper.toWorkflowDocument(workflow.getDocument());
+        OrchestrationWorkflowDocument result = WorkflowHelper.toWorkflowDocument(workflow.getSteps());
 
         Assert.assertEquals(wfDefinition.getName(), result.getName());
         

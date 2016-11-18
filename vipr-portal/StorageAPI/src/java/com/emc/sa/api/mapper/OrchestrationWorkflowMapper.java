@@ -19,16 +19,22 @@ package com.emc.sa.api.mapper;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.List;
 
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowBulkRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  *
  */
-public class OrchestrationWorkflowMapper {
+public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkflow, OrchestrationWorkflowRestRep> {
     public static final OrchestrationWorkflowMapper instance = new OrchestrationWorkflowMapper();
 
     public static OrchestrationWorkflowMapper getInstance() {
@@ -38,17 +44,34 @@ public class OrchestrationWorkflowMapper {
     private OrchestrationWorkflowMapper() {
     }
     
-    public static OrchestrationWorkflowRestRep map(OEWorkflow from) {
+    public static OrchestrationWorkflowRestRep map(OrchestrationWorkflow from) {
         OrchestrationWorkflowRestRep to = new OrchestrationWorkflowRestRep(); 
         
         mapDataObjectFields(from, to);
         
         try {
-            to.setDocument(WorkflowHelper.toWorkflowDocument(from.getDocument()));
+            to.setDocument(WorkflowHelper.toWorkflowDocument(from));
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error deserializing workflow", e);
         }
         
         return to;
+    }
+    
+    public static OrchestrationWorkflowList mapList(List<URI> fromList) {
+        return new OrchestrationWorkflowList(fromList);
+    }
+    
+    public static OrchestrationWorkflowBulkRep mapBulk(List<OrchestrationWorkflow> workflows) {
+        final List<OrchestrationWorkflowRestRep> workflowRestRepList = Lists.newArrayList();
+        for( final OrchestrationWorkflow workflow : workflows) {
+            workflowRestRepList.add(map(workflow));
+        }
+        return new OrchestrationWorkflowBulkRep(workflowRestRepList);
+    }
+
+    @Override
+    public OrchestrationWorkflowRestRep apply(OrchestrationWorkflow input) {
+        return map(input);
     }
 }

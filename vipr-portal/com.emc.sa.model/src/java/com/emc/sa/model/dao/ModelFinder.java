@@ -4,9 +4,11 @@
  */
 package com.emc.sa.model.dao;
 
-import com.emc.storageos.db.client.model.DataObject;
 import java.net.URI;
+import java.util.Iterator;
 import java.util.List;
+
+import com.emc.storageos.db.client.model.DataObject;
 
 public class ModelFinder<T extends DataObject> extends BaseModelFinder<T> {
 
@@ -25,5 +27,9 @@ public class ModelFinder<T extends DataObject> extends BaseModelFinder<T> {
 
     public List<URI> findAllIds() throws DataAccessException {
         return client.findAllIds(clazz);
+    }
+    
+    public Iterator<T> findAllFields(final List<URI> ids, final List<String> columnField) {
+        return client.findAllFields(clazz, ids, columnField);
     }
 }

@@ -51,17 +51,21 @@ import static com.emc.storageos.model.ResourceTypeEnum.MIGRATION;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.OPENSTACK_TENANT;
+import static com.emc.storageos.model.ResourceTypeEnum.ORCHESTRATION_WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.ORDER;
 import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
 import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
+import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_TIER;
 import static com.emc.storageos.model.ResourceTypeEnum.SYS_EVENT;
 import static com.emc.storageos.model.ResourceTypeEnum.TASK;
@@ -80,13 +84,10 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
-import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
-import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,6 +117,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.OSTenant;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -128,6 +130,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.SysEvent;
 import com.emc.storageos.db.client.model.Task;
@@ -151,11 +154,9 @@ import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
-
-import static com.emc.storageos.model.ResourceTypeEnum.*;
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
@@ -232,7 +233,8 @@ public class ResourceTypeMapping {
         classMapping.put(CATALOG_IMAGE, CatalogImage.class);
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
-
+        classMapping.put(ORCHESTRATION_WORKFLOW, OrchestrationWorkflow.class);
+        
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());
         }

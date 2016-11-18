@@ -14,23 +14,32 @@
  * limitations under the License.
  *
  */
-package com.emc.sa.catalog;
+package com.emc.storageos.model.orchestration;
 
 import java.net.URI;
-import java.util.Iterator;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
-public interface OrchestrationWorkflowManager {
-
-    public OrchestrationWorkflow getById(final URI id);
-    public List<OrchestrationWorkflow> getByName(final String name);
-    public List<URI> list();
-    public Iterator<OrchestrationWorkflow> getSummaries(final List<URI> ids);
-    public void save(final OrchestrationWorkflow workflow);
-    public void delete(final OrchestrationWorkflow workflow);
-
+@XmlRootElement(name = "orchestration_workflow_list")
+public class OrchestrationWorkflowList {
     
+    private List<URI> workflows;
+    
+    public OrchestrationWorkflowList() {}
+    
+    public OrchestrationWorkflowList(List<URI> workflows) {
+        this.workflows = workflows;
+    }
+
+    @XmlElement(name = "workflows")
+    public List<URI> getWorkflows() {
+        return workflows;
+    }
+
+    public void setWorkflows(List<URI> workflows) {
+        this.workflows = workflows;
+    }
     
 }

@@ -2026,7 +2026,7 @@ test_4() {
 
     if [ "${SS}" = "vnx" ]
     then
-        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID"
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]

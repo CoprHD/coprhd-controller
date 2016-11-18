@@ -111,4 +111,28 @@ public class WwnUtils {
         return found;
     }
 
+    /**
+     * Validate that the wwn contains hex values and colons (optional)
+     * 
+     * @param wwnString
+     *            string of wwn value
+     * @return true if it's fairly valid
+     */
+    public static boolean isValidEndpoint(String wwnString) {
+        if (wwnString.length() < 16) {
+            return false;
+        }
+
+        // Just make sure it's long enough and has colons and hex values
+        Pattern pattern = Pattern
+                .compile("^([0-9a-fA-F:])*");
+
+        Matcher matcher = pattern.matcher(wwnString);
+        boolean found = false;
+        while (matcher.find()) {
+            found = true;
+        }
+        return found;
+    }
+
 }

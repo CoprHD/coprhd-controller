@@ -190,7 +190,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                 _logger.info("Export Mask {} already available", exportMask.getMaskName());
                 masksIngestedCount.increment();
-                List<URI> iniList = new ArrayList<URI>(Collections2.transform(exportMask.getInitiators(),
+                List<URI> iniList = new ArrayList<URI>(Collections2.transform(unManagedExportMask.getKnownInitiatorUris(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, iniList);
 

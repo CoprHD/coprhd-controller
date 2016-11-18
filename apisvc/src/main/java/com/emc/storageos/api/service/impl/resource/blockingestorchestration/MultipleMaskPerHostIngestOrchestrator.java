@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.google.common.collect.Sets;
 
 /*
  * MULTIPLE_MASK_PER_HOST :
@@ -59,7 +60,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
                 }
                 // COP-18184 : Check if the initiators are also matching
                 if (exportMask.getInitiators() != null
-                        && exportMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
+                        && !(Sets.intersection(exportMask.getInitiators(), mask.getKnownInitiatorUris()).isEmpty())) {
                     return exportMask;
                 }
             }

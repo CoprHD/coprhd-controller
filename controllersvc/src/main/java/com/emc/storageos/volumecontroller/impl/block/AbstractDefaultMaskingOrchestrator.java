@@ -1578,24 +1578,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     /**
      * Utility for merging a bunch of maskURIs into a single Set of URIs.
      *
-     * @param exportGroup
-     *            [in] - ExportGroup object
-     * @param maskURIs
-     *            [in] - Collection of Set of URIs
+     * @param exportGroup [in] - ExportGroup object
+     * @param maskURIs [in] - Collection of Set of URIs
      * @return Set of String -- the union of ExportGroup.exportMasks and maskURIs.
      *         There shouldn't be any duplicates.
      */
     protected Set<String> mergeWithExportGroupMaskURIs(ExportGroup exportGroup,
             Collection<Set<URI>> maskURIs) {
         Set<String> set = new HashSet<String>();
-        if (maskURIs != null) {
-            for (Set<URI> entry : maskURIs) {
-                Collection<String> uris = Collections2.transform(entry,
-                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
-                set.addAll(uris);
-            }
-        }
-        if (exportGroup != null &&
+        if (exportGroup != null && maskURIs != null &&
                 exportGroup.getExportMasks() != null) {
             Set<String> exportGroupMaskNames = new HashSet<String>();
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
@@ -1603,7 +1594,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 exportGroupMaskNames.add(exportMask.getMaskName());
                 set.add(exportMask.getId().toString());
             }
-            set.addAll(exportGroup.getExportMasks());
+            
+            for (Set<URI> entry : maskURIs) {
+                Collection<String> uris = Collections2.transform(entry,
+                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
+                set.addAll(uris);
+            }
             Iterator<String> currMaskIter = set.iterator();
             while (currMaskIter.hasNext()) {
                 URI currMaskURI = URI.create(currMaskIter.next());

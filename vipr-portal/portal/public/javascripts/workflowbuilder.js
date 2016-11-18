@@ -810,11 +810,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     var dirJSON = [
         {"id":"myLib", "parent":"#","text":"My Library"},
         {"id":"viprLib","parent":"#","text":"ViPR Library"},
-        {"id":"rest","parent":"viprLib","text":"ViPR REST Primitives"},
-        {"id":"ansible","parent":"viprLib","text":"Ansible Primitives"},
-        {"id":"email","parent":"ansible","text":"Send Email", "type": "file", "li_attr": {"class": "draggable-card"}},
-        {"id":"create","parent":"rest","text":"Create Volume", "type": "file", "li_attr": {"class": "draggable-card"}, "data": dummyStepData},
-        {"id":"export","parent":"rest","text":"Export Volume", "type": "file", "li_attr": {"class": "draggable-card"}}
+        {"id":"viprrest","parent":"viprLib","text":"ViPR REST Primitives"}
     ]
     $http.get(routes.WF_directories()).then(function (data) {
         initializeJsTree(dirJSON.concat(data.data))

@@ -16,6 +16,8 @@
  */
 package controllers.catalog;
 
+import com.emc.storageos.model.orchestration.PrimitiveList;
+import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -37,16 +39,42 @@ import static util.BourneUtil.getCatalogClient;
 @With(Common.class)
 public class WorkflowBuilder extends Controller {
     private static final String MY_LIBRARY_ROOT = "myLib";
+    private static final String VIPR_LIBRARY_ROOT = "viprLib";
+    private static final String VIPR_PRIMITIVE_ROOT = "viprrest";
+    private static final String NODE_TYPE_FILE = "file";
+    private static final List<String> PRIMITIVE_CLASS_NAMES = new ArrayList<String>(){{
+        add("RestPrimitive");
+        add("LocalAnsible");
+        }};
 
     public static void view() {
         render();
     }
+
 
     private static class Node {
         private String id;
         private String  text;
         @SerializedName("parent")
         private String parentID;
+        private PrimitiveRestRep data;
+        private String type;
+
+        Node() {
+        }
+
+        Node(String id, String text, String parentID) {
+            this.id = id;
+            this.text = text;
+            this.parentID = parentID;
+        }
+
+        Node(String id, String text, String parentID, String type) {
+            this.id = id;
+            this.text = text;
+            this.parentID = parentID;
+            this.type = type;
+        }
     }
 
     public static void getWFDirectories() {
@@ -66,6 +94,10 @@ public class WorkflowBuilder extends Controller {
             }
             topLevelNodes.add(node);
         }
+
+        // Get primitives data
+        addPrimitives(topLevelNodes);
+
         renderJSON(topLevelNodes);
     }
 
@@ -105,6 +137,32 @@ public class WorkflowBuilder extends Controller {
         catch (Exception e) {
             Logger.error(e.getMessage());
         }
+    }
 
+    // Get Primitives and add them to directory list
+    private static void addPrimitives(List<Node> topLevelNodes) {
+        try {
+            PrimitiveList primitiveList = getCatalogClient().oePrimitives().getPrimitives();
+            Node node;
+            String primitiveName, primitiveClassName;
+            String parent;
+            for (PrimitiveRestRep primitive : primitiveList.getPrimitives()) {
+                primitiveName = primitive.getName();
+                primitiveClassName = primitiveName.substring(primitiveName.lastIndexOf('.') + 1);
+                // Default grouping: "ViPR Library"
+                parent = VIPR_LIBRARY_ROOT;
+                // For primitives other than ansible and rest grouping is " ViPR REST Primitives"
+                if (!PRIMITIVE_CLASS_NAMES.contains(primitiveClassName)) {
+                    parent = VIPR_PRIMITIVE_ROOT;
+                }
+                node = new Node(primitiveClassName, primitive.getFriendlyName(), parent, NODE_TYPE_FILE);
+
+                node.data = primitive;
+                topLevelNodes.add(node);
+            }
+        }
+        catch (Exception e) {
+            Logger.error(e.getMessage());
+        }
     }
 }

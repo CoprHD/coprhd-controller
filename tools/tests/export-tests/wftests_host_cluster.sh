@@ -371,6 +371,9 @@ test_host_remove_initiator() {
         # Try and remove an initiator from the host, this should fail during updateExport()
         fail initiator delete ${host}/${init1}
         
+        # Zzzzzz
+        sleep 5
+        
         # Rerun the command
         set_artificial_failure none 
                
@@ -395,12 +398,27 @@ test_host_remove_initiator() {
             echo "+++ SUCCESS - All expected host initiators removed from export group" 
         fi
         
+        # Cleanup    
+        # 1. Unexport the volume
+        # 2. Delete the export group
+        # 3. Delete the host initiators
+        # 4. Delete the host
+        runcmd export_group update ${PROJECT}/${exportgroup} --remVols ${PROJECT}/${volume}                      
+        runcmd export_group delete ${PROJECT}/${exportgroup}    
+        sleep 5
+        runcmd initiator delete ${host}/${init3}
+        runcmd initiator delete ${host}/${init4}
+        runcmd hosts delete ${host}
+        
         # Snap DB
         snap_db 2 ${column_family}
         
         # Validate DB
         validate_db 1 2 ${column_family}
     done
+    
+    # Cleanup the volume
+    runcmd volume delete ${PROJECT}/${volume} --wait 
 }
 
 test_happy_path_move_clustered_host_to_another_cluster() {

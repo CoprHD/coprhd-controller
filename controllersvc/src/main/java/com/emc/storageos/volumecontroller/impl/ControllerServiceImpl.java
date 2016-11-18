@@ -69,6 +69,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollec
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobSerializer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionArrayAffinityJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
@@ -582,6 +583,7 @@ public class ControllerServiceImpl implements ControllerService {
     private void initDriverInfo() {
         List<StorageSystemType> types = listNonNativeTypes();
 
+        // init storageDriverManager instance
         StorageDriverManager driverManager = (StorageDriverManager) getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
         for (StorageSystemType type : types) {
             String typeName = type.getStorageTypeName();
@@ -604,9 +606,12 @@ public class ControllerServiceImpl implements ControllerService {
             _log.info("Driver info for storage system type {} has been set into storageDriverManager instancce", typeName);
         }
 
+        // init externalBlockStorageDevice instance and externaldevice instance
         ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(ExternalBlockStorageDevice.BEAN_NAME);
+        ExternalDeviceCommunicationInterface externalinterface = (ExternalDeviceCommunicationInterface) getBean(ExternalDeviceCommunicationInterface.BEAN_NAME);
         // key: storage system type name, value: driver instance
-        Map<String, AbstractStorageDriver> drivers = blockDevice.getDrivers();
+        Map<String, AbstractStorageDriver> blockDeviceDrivers = blockDevice.getDrivers();
+        Map<String, AbstractStorageDriver> extInterfaceDrivers = externalinterface.getDrivers();
         // key: main class name, value: driver instance
         Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
         for (StorageSystemType type : types) {
@@ -617,18 +622,20 @@ public class ControllerServiceImpl implements ControllerService {
             String className = type.getDriverClassName();
             // provider and managed system should use the same driver instance
             if (cachedDriverInstances.containsKey(className)) {
-                drivers.put(typeName, cachedDriverInstances.get(className));
+                blockDeviceDrivers.put(typeName, cachedDriverInstances.get(className));
+                extInterfaceDrivers.put(typeName, cachedDriverInstances.get(className));
                 continue;
             }
             String mainClassName = type.getDriverClassName();
             try {
                 AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
-                drivers.put(typeName, driverInstance);
+                blockDeviceDrivers.put(typeName, driverInstance);
+                extInterfaceDrivers.put(typeName, driverInstance);
                 cachedDriverInstances.put(className, driverInstance);
             } catch (Exception e) {
                 _log.error("Error happened when instantiating class {}", mainClassName);
             }
-            _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instancce", typeName);
+            _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice and externaldevice instancces", typeName);
         }
     }
 

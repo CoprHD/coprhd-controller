@@ -35,17 +35,13 @@
     }
     
     function checkVolumeLimits() {
-    	if (table.volumes.dataTable.getDataTable() == null) {
-    	    return;
-    	}
-    	var limit = ${volumeLimitPerProject};
-    	var numOfVolumes = table.volumes.dataTable.getDataTable().fnGetData().length;
-    	if (numOfVolumes >= limit) {
-    		$('#reachVolumeLimitAlert').show();
-    	} else if (numOfVolumes * 100 / limit >=90){
-    		$('#approachVolumeLimitAlert').show();
-    	}
+        //Do nothing if dataTable is not created
+        if (table.volumes.dataTable.getDataTable() != null) {
+	        var limit = ${volumeLimitPerProject};
+	        table.volumes.checkResourceLimits(limit);
+        }
     }
+    
     function reloadVolumesbyFilter() {
     	var filterSelected = $('#filter option:selected').val();
     	reloadVolumes(filterSelected);
@@ -63,9 +59,7 @@
 #{Resources.projectsApplicationsControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
-
-<p id="reachVolumeLimitAlert" class="alert alert-info" style="display:none">&{'resources.volume.reachVolumeLimitAlert'}</p>
-<p id="approachVolumeLimitAlert" class="alert alert-info" style="display:none">&{'resources.volume.approachVolumeLimitAlert'}</p>
+<p id="resourceLimitAlert" class="alert alert-info" style="display:none">&{'resources.resourceLimitAlert'}</p>
 
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',

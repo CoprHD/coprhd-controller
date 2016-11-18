@@ -768,5 +768,14 @@ function DataTable(selector, columns) {
         $('.dataTables_selectedItems').text(Messages.get('dataTable.selectedItems', numItems));
     }
 
+	my.checkResourceLimits = function (limit) {
+    	var numOfResources = dataTable.fnGetData().length;
+    	if (numOfResources * 100 / limit >= 90){
+    		$('#resourceLimitAlert').text(Messages.get('dataTable.resourceLimitAlert', limit));
+    		$('#resourceLimitAlert').show();
+    		showError(Messages.get('dataTable.resourceLimitAlert', limit));
+    	}
+    }
+	
     return my;
 }

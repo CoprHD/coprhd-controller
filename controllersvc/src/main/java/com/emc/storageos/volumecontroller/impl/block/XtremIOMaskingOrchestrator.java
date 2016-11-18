@@ -392,7 +392,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
 
-            validateHLUForLunViolation(storage, exportGroup, initiatorURIs, volumes);
+            validateHLUForLunViolations(storage, exportGroup, initiatorURIs);
 
             log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {
@@ -739,12 +739,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
-    }
-
-    @Override
-    public void validateHLUForLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) {
-        validateHLUForLunViolation(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     @Override

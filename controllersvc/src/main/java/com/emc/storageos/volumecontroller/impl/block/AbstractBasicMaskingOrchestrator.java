@@ -44,6 +44,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -174,23 +175,25 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * Validate consistent lun violation
      * 
      */
-    public void validateHLUForLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
-            Map<URI, Integer> volumeMap) {
+    public void validateHLUForLunViolations(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
 
-        String hostStr = exportGroup.getHosts().iterator().next();
-        Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
-        List<URI> clusterInitiators = null;
-        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            _log.info("Host {} is part of Cluster", host.getHostName());
-            // get all the hosts' initiators for this cluster
-            clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
+        Set<Integer> clusterUsedHlus = null;
+        Set<Integer> newHostUsedHlus = null;
+        if (exportGroup.forCluster()) {
+            String hostStr = exportGroup.getHosts().iterator().next();
+            Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
+            List<URI> clusterInitiators = null;
+            if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                _log.info("Host {} is part of Cluster", host.getHostName());
+                // get all the hosts' initiators for this cluster
+                clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
+            }
+            clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+            newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
         }
-        Set<Integer> clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
-        Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
-        if (!clusterUsedHlus.contains(newHostUsedHlus)) {
-            findUpdateFreeHLUsForClusterExport(storage, exportGroup, newInitiatorURIs, volumeMap);
-        } else {
-            //throw proper exception
+        
+        if (newHostUsedHlus.containsAll(clusterUsedHlus)) {
+            throw XtremIOApiException.exceptions.hluViolation();
         }
 
     }

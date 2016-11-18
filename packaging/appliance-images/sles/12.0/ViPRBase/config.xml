@@ -48,6 +48,15 @@
     <source path="/slesmedia/12-SLES-DVD1"/>
   </repository>
   <packages type="image" profiles="base,appliance">
+    <package name="haveged" bootinclude="true"/>
+    <package name="libfipscheck1" bootinclude="true"/>
+    <package name="openssh-fips" bootinclude="true"/>
+    <package name="fipscheck" bootinclude="true"/>
+    <package name="dracut-fips" bootinclude="true"/>
+    <package name="libcryptsetup4-hmac" bootinclude="true"/>
+    <package name="libgcrypt20-hmac" bootinclude="true"/>
+    <package name="libopenssl1_0_0-hmac" bootinclude="true"/>
+    <package name="libsoftokn3-hmac" bootinclude="true"/>
     <package name="audit"/>
     <package name="curl"/>
     <package name="dracut"/>

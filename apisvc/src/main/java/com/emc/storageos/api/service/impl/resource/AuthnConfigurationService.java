@@ -1103,7 +1103,6 @@ public class AuthnConfigurationService extends TaggedResource {
         }
         // validate syntax of the provided parameters for POST and PUT operations
         if (domains != null) {
-            ArgValidator.checkFieldNotEmpty(domains, "domains");
             for (String domain : domains) {
                 ArgValidator.checkFieldNotEmpty(domain, "domain");
                 if (provider == null || !provider.getDomains().contains(domain.toLowerCase())) {
@@ -1211,6 +1210,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         if ( ! param.getMode().equalsIgnoreCase(ProvidersType.oidc.name()) ) { // for ad, ldap or keystone
             ArgValidator.checkFieldNotNull(param.getDomains(), "domains");
+            ArgValidator.checkFieldNotEmpty(param.getDomains(), "domains");
             ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
             ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
             // The syntax for search_filter will be checked in the following section of this function

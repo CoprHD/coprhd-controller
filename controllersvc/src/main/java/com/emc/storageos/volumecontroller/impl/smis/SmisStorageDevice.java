@@ -785,7 +785,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         
         List<URI> volURIs = Lists.newArrayList();
         if (volumeURIs != null) {
-            initiators.addAll(_dbClient.queryObject(Initiator.class, volumeURIs));
+        	volURIs.addAll(volumeURIs);
         }
 
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),

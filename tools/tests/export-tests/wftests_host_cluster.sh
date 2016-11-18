@@ -4,9 +4,11 @@
 # All Rights Reserved
 # set -x
 
+HAPPY_PATH_TEST_INJECTION="happy_path_test_injection"
+
 # Test - Host Add Initiator
 #
-# Happy path test for add initiator to a host that is part of an exclusive and shared export group.
+# Happy path/failure test for add initiator to a host that is part of an exclusive and shared export group.
 #
 # 1. Export volume to an exclusive export group
 # 2. Export volume to a shared export group
@@ -18,18 +20,22 @@
 # 8. Remove initiator port wwn from network
 #
 test_host_add_initiator() {
-    echot "Test test_host_add_initiator"
-    expname=${EXPORT_GROUP_NAME}t1
+    echot "Test test_host_add_initiator_failure"
+    item=${RANDOM}
     cfs="ExportGroup ExportMask Initiator Network"
+    cfs2="ExportGroup ExportMask Initiator"
+    expname=${EXPORT_GROUP_NAME}t1
+    
+    export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
+    
     mkdir -p results/${item}
 
     smisprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ]; then
         FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
     fi
-
-    snap_db 1 ${cfs}
-
+    
     test_pwwn=`randwwn`
     test_nwwn=`randwwn`
 
@@ -38,156 +44,79 @@ test_host_add_initiator() {
 
     verify_export ${exclusive_export} ${HOST1} gone
     verify_export ${cluster_export} ${CLUSTER} gone
-
+    
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${export_failure_injections}"
+    
     # Run the exclusive export group create command
     runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
 
     # Run the cluster export group create command
-    runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
-
-    # Verify the initiator does not exist in the ExportGroup
-    add_init="false"
-    if [[ $(export_contains $exclusive_export $test_pwwn) || $(export_contains $cluster_export $test_pwwn) ]]; then
-        echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
-    else
-        # Add initiator to network
-        runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
-
-        # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups. This is because
-        # The host is already part of the cluster that was used to create the cluster export group.
-        runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
-        add_init="true"
-
-        # Verify the initiator does exists in the ExportGroup
-        if [[ $(export_contains $exclusive_export $test_pwwn) && $(export_contains $cluster_export $test_pwwn) ]]; then            
-            echo "Verified that initiator "${test_pwwn}" has been added to export"
-        else
-            echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
-        fi         
-    fi
-
-    # Remove the exclusive export
-    runcmd export_group delete $PROJECT/${exclusive_export}
-    # Remove the shared export
-    runcmd export_group delete $PROJECT/${cluster_export}
-
-    verify_export ${exclusive_export} ${HOST1} gone
-    verify_export ${cluster_export} ${HOST1} gone
-
-    if [ ${add_init} = "true"  ]; then
-        runcmd initiator delete ${HOST1}/${test_pwwn}
-        runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
-    fi
-
-    snap_db 2 ${cfs}  
-
-    # Validate that nothing was left behind
-    validate_db 1 2 ${cfs}          
-}
-
-# Test - Host Add Initiator Failure
-#
-# Failure test for add initiator to a host that is part of an exclusive and shared export group.
-#
-# 1. Export volume to an exclusive export group
-# 2. Export volume to a shared export group
-# 3. Add initiator port wwn to network
-# 4. Add initiator to host
-# 5. Delete exclusive export group
-# 6. Delete shared export group
-# 7. Delete initiator
-# 8. Remove initiator port wwn from network
-#
-test_host_add_initiator_failure() {
-    echot "Test test_host_add_initiator_failure"
-    item=${RANDOM}
-    cfs="ExportGroup ExportMask Initiator Network"
-    expname=${EXPORT_GROUP_NAME}t1
-    
-    export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                               #failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
-    
-    mkdir -p results/${item}
-
-    smisprovider list | grep SIM > /dev/null
-    if [ $? -eq 0 ]; then
-        FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
-    fi
+    #runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
     
     snap_db 1 ${cfs}
     
-    test_pwwn=`randwwn`
-    test_nwwn=`randwwn`
-
-    exclusive_export=${expname}1_exclusive
-    cluster_export=${expname}1_cluster
-
-    verify_export ${exclusive_export} ${HOST1} gone
-    verify_export ${cluster_export} ${CLUSTER} gone
-    
-    failure_injections="${export_failure_injections}"
-    
     for failure in ${failure_injections}
     do
-        secho "Running Add initiator to host with failure scenario: ${failure}..."
-        
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            secho "Running happy path test for add initiator to host..."
+        else    
+            secho "Running Add initiator to host with failure scenario: ${failure}..."
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+        fi
         
         # Check the state before exporting volumes
-        snap_db 2 ${cfs}
-        
-        # Run the exclusive export group create command
-        runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
-
-        # Run the cluster export group create command
-        runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${CLUSTER}
+        snap_db 2 ${cfs2}
 
         # Verify the initiator does not exist in the ExportGroup
         add_init="false"
-        if [[ $(export_contains $exclusive_export $test_pwwn) || $(export_contains $cluster_export $test_pwwn) ]]; then
+        if [[ $(export_contains $exclusive_export $test_pwwn) ]]; then
+            #|| $(export_contains $cluster_export $test_pwwn) ]]; then
             echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
+            finish -1
         else
             # Add initiator to network
             runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
     
             # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups. This is because
             # The host is already part of the cluster that was used to create the cluster export group.
-            fail initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+            if [ ${failure} = ${HAPPY_PATH_TEST_INJECTION} ]; then
+                # If this is the happy path test, the command should succeed
+                runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+            else
+                fail initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+                
+                # Let the async jobs calm down
+                sleep 5
     
-            # Let the async jobs calm down
-            sleep 5
-    
-            # Perform any DB validation in here
-            snap_db 3 ${cfs}
+                # Perform any DB validation in here
+                snap_db 3 ${cfs2}
 
-            # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
-
-            # Rerun the command
-            set_artificial_failure none
-            runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+                # Validate nothing was left behind
+                validate_db 2 3 ${cfs2}
+                
+                # Rerun the command
+                set_artificial_failure none
+                runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}                
+            fi
     
             # Verify the initiator does exists in the ExportGroup
-            if [[ $(export_contains $exclusive_export $test_pwwn) && $(export_contains $cluster_export $test_pwwn) ]]; then
+            if [[ $(export_contains $exclusive_export $test_pwwn) ]]; then
+                #&& $(export_contains $cluster_export $test_pwwn) ]]; then
                 add_init="true"
                 echo "Verified that initiator "${test_pwwn}" has been added to export"
             else
                 echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
+                finish -1
             fi
         fi
 
-        # Remove the exclusive export
-        runcmd export_group delete $PROJECT/${exclusive_export}
-        # Remove the shared export
-        runcmd export_group delete $PROJECT/${cluster_export}
-
-        verify_export ${exclusive_export} ${HOST1} gone
-        verify_export ${cluster_export} ${HOST1} gone
-        
         if [ ${add_init} = "true"  ]; then
+            # If we've added an initiator, remove it here so the export groups are clean for the next failure iteration
             runcmd initiator delete ${HOST1}/${test_pwwn}
-            runcmd run transportzone remove ${FC_ZONE_A} ${test_pwwn}
+            sleep 20
+            runcmd transportzone remove ${FC_ZONE_A} ${test_pwwn}
+            sleep 20
         fi
         
         snap_db 4 ${cfs}  
@@ -371,6 +300,10 @@ test_host_remove_initiator() {
         # Try and remove an initiator from the host, this should fail during updateExport()
         fail initiator delete ${host}/${init1}
         
+        # Zzzzzz
+        secho "Sleeping for 5..."
+        sleep 5
+        
         # Rerun the command
         set_artificial_failure none 
                
@@ -379,6 +312,7 @@ test_host_remove_initiator() {
         runcmd initiator delete ${host}/${init2}
         
         # Zzzzzz
+        secho "Sleeping for 5..."
         sleep 5
         
         # Ensure that initiator 1 and 2 have been removed
@@ -395,12 +329,27 @@ test_host_remove_initiator() {
             echo "+++ SUCCESS - All expected host initiators removed from export group" 
         fi
         
+        # Cleanup    
+        # 1. Unexport the volume
+        # 2. Delete the export group
+        # 3. Delete the host initiators
+        # 4. Delete the host
+        runcmd export_group update ${PROJECT}/${exportgroup} --remVols ${PROJECT}/${volume}                      
+        runcmd export_group delete ${PROJECT}/${exportgroup}    
+        sleep 5
+        runcmd initiator delete ${host}/${init3}
+        runcmd initiator delete ${host}/${init4}
+        runcmd hosts delete ${host}
+        
         # Snap DB
         snap_db 2 ${column_family}
         
         # Validate DB
         validate_db 1 2 ${column_family}
     done
+    
+    # Cleanup the volume
+    runcmd volume delete ${PROJECT}/${volume} --wait 
 }
 
 test_happy_path_move_clustered_host_to_another_cluster() {

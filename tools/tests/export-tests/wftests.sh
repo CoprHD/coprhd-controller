@@ -1013,10 +1013,10 @@ vnx_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VNXB_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VNXB_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VNXB_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
-	run storagedevice deregister CLARIION+${id}
-	run storagedevice delete CLARIION+${id}
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
     done
 
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1093,10 +1093,10 @@ vmax2_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VMAX_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
-	run storagedevice deregister SYMMETRIX+${id}
-	run storagedevice delete SYMMETRIX+${id}
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
     done
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1148,10 +1148,10 @@ vmax3_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VMAX_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
-	run storagedevice deregister SYMMETRIX+${id}
-	run storagedevice delete SYMMETRIX+${id}
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
     done
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -2022,9 +2022,14 @@ test_4() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
+    fi 
+
+    if [ "${SS}" = "vnx" ]
+    then
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi

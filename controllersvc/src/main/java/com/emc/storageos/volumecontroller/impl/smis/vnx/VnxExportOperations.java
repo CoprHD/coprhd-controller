@@ -403,7 +403,13 @@ public class VnxExportOperations implements ExportMaskOperations {
                 }
             }
 
-            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(context == null);
+            validator.removeVolumes(ctx).validate();
 
             if (null == volumeURIList || volumeURIList.isEmpty()) {
                 taskCompleter.ready(_dbClient);

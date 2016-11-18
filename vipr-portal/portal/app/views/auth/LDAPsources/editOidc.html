@@ -84,9 +84,15 @@
           field.required = false
         }%
       #{Form.booleanCheckBoxControlGroup field:field/}
-    #{/field} 
+    #{/field}
 
-    </fieldset>
+    #{if authnProvider?.id}
+      #{field 'authnProvider.id'}
+        <input type="hidden" name="${field.name}" value="${field.value}">
+      #{/field}
+    #{/if}
+
+  </fieldset>
 
     #{Form.buttonBar}
     #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'submitForm();'/}

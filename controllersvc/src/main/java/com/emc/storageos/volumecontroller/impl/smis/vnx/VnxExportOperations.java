@@ -258,6 +258,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(context == null);
             validator.exportMaskDelete(ctx).validate();
 
             CIMObjectPath protocolController = _cimPath.getClarProtocolControllers(storage, nativeId)[0];

@@ -228,12 +228,4 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator 
         // TODO Auto-generated method stub
 
     }
-
-    @Override
-    public void validateAndUpdateConsistentHLU(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) throws Exception {
-        // TODO Auto-generated method stub
-        
-    }
-
 }

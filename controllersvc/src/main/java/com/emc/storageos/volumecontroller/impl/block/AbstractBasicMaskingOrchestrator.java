@@ -174,7 +174,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * Validate consistent lun violation
      * 
      */
-    public void validateConsistentHLU(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
+    public void validateHLUForLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
             Map<URI, Integer> volumeMap) {
 
         String hostStr = exportGroup.getHosts().iterator().next();

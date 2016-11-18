@@ -7,10 +7,14 @@ package com.emc.storageos.volumecontroller.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -33,6 +37,7 @@ import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerI
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.DataObjectScanner;
@@ -44,11 +49,15 @@ import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerService;
 import com.emc.storageos.volumecontroller.JobContext;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJobSerializer;
 import com.emc.storageos.volumecontroller.impl.job.QueueJobTracker;
@@ -461,6 +470,7 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+        initDriverInfo();
         _drQueueCleanupHandler.run();
         
         _dispatcher.start();
@@ -563,6 +573,77 @@ public class ControllerServiceImpl implements ControllerService {
         }
 
         _capacityService.close();
+    }
+
+    /**
+     * Fetch driver information from db and wire it into StorageDriverManager
+     * instance and ExternalBlockStorageDevice instance
+     */
+    private void initDriverInfo() {
+        List<StorageSystemType> types = listNonNativeTypes();
+
+        StorageDriverManager driverManager = (StorageDriverManager) getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        for (StorageSystemType type : types) {
+            String typeName = type.getStorageTypeName();
+            String driverName = type.getDriverName();
+            if (type.getIsSmiProvider()) {
+                driverManager.getStorageProvidersMap().put(driverName, typeName);
+                continue;
+            }
+            driverManager.getStorageSystemsMap().put(driverName, typeName);
+            if (type.getManagedBy() != null) {
+                driverManager.getProviderManaged().add(typeName);
+            } else {
+                driverManager.getDirectlyManaged().add(typeName);
+            }
+            if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.FILE.toString())) {
+                driverManager.getFileSystems().add(typeName);
+            } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                driverManager.getBlockSystems().add(typeName);
+            }
+            _log.info("Driver info for storage system type {} has been set into storageDriverManager instancce", typeName);
+        }
+
+        ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(ExternalBlockStorageDevice.BEAN_NAME);
+        // key: storage system type name, value: driver instance
+        Map<String, AbstractStorageDriver> drivers = blockDevice.getDrivers();
+        // key: main class name, value: driver instance
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
+        for (StorageSystemType type : types) {
+            if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                continue;
+            }
+            String typeName = type.getStorageTypeName();
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                drivers.put(typeName, cachedDriverInstances.get(className));
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                drivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName);
+            }
+            _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instancce", typeName);
+        }
+    }
+
+    private List<StorageSystemType> listNonNativeTypes() {
+        List<StorageSystemType> result = new ArrayList<StorageSystemType>();
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (type.getIsNative() == null ||type.getIsNative() == true) {
+                continue;
+            }
+            result.add(it.next());
+        }
+        return result;
     }
 
     private void startCapacityService() {

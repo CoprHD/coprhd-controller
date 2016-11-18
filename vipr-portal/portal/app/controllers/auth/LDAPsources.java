@@ -691,14 +691,13 @@ public class LDAPsources extends ViprResourceController {
 
         private AuthnProviderRestRep update() {
             AuthnUpdateParam param = new AuthnUpdateParam();
-            AuthnProviderRestRep provider = AuthnProviderUtils.getAuthnProvider(this.id);
 
             param.setLabel(this.name);
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
+            param.setOidcBaseUrl(this.oidcBaseUrl);
 
-            param.setDomainChanges(getDomainChanges(provider));
             return AuthnProviderUtils.update(this.id, param);
         }
 

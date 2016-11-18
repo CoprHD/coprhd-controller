@@ -34,11 +34,9 @@ import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
-import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
@@ -170,11 +168,19 @@ public abstract class TaskCompleter implements Serializable {
      *             TODO
      */
     public void ready(DbClient dbClient) throws DeviceControllerException {
-        complete(dbClient, Status.ready, null);
+        ready(dbClient, (ControllerLockingService) null);
     }
 
     public void ready(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
-        complete(dbClient, locker, Status.ready, null);
+        try {
+            if (locker == null) {
+                complete(dbClient, Status.ready, (ServiceCoded) null);
+            } else {
+                complete(dbClient, locker, Status.ready, (ServiceCoded) null);
+            }
+        } finally {
+            clearAllTasks(dbClient, Status.ready, (ServiceCoded) null);
+        }
     }
 
     /**
@@ -186,21 +192,38 @@ public abstract class TaskCompleter implements Serializable {
      * @throws DeviceControllerException
      */
     public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
-        complete(dbClient, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        error(dbClient, (ControllerLockingService) null, serviceCoded);
     }
 
     public void error(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
-        complete(dbClient, locker, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        try {
+            if (locker == null) {
+                complete(dbClient, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+            } else {
+                complete(dbClient, locker, Status.error,
+                        serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+            }
+        } finally {
+            clearAllTasks(dbClient, Status.error, serviceCoded);
+        }
     }
 
     public void suspendedNoError(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded) null);
+        try {
+            complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded) null);
+        } finally {
+            clearAllTasks(dbClient, Status.suspended_no_error, (ServiceCoded) null);
+        }
     }
 
     public void suspendedError(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded)
             throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended_error,
+        try {
+            complete(dbClient, locker, Status.suspended_error,
                 serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        } finally {
+            clearAllTasks(dbClient, Status.suspended_error, serviceCoded);
+        }
     }
 
     public void statusReady(DbClient dbClient) throws DeviceControllerException {
@@ -517,63 +540,28 @@ public abstract class TaskCompleter implements Serializable {
     }
 
     /**
-     * ends the task that is associated with a workflow
-     * 
-     * @param state
-     *            the completion state of the workflow
-     * @param _dbClient
-     * @param _locker
-     * @param error
-     */
-    public void completeWorkflowTask(WorkflowState state, DbClient _dbClient, ControllerLockingService _locker, ServiceError error) {
-        Operation.Status status = Operation.Status.ready;
-        try {
-            switch (state) {
-            case ERROR:
-                error(_dbClient, _locker, error);
-                status = Operation.Status.error;
-                break;
-            case SUCCESS:
-                ready(_dbClient, _locker);
-                break;
-            case SUSPENDED_ERROR:
-                suspendedError(_dbClient, _locker, error);
-                status = Operation.Status.suspended_error;
-                break;
-            case SUSPENDED_NO_ERROR:
-                suspendedNoError(_dbClient, _locker);
-                status = Operation.Status.suspended_no_error;
-                break;
-            default:
-                break;
-            }
-        } finally {
-            clearAllTasks(_dbClient, status, error);
-        }
-    }
-
-    /**
      * clears all tasks by querying all tasks with the task id
      */
-    private void clearAllTasks(DbClient _dbClient, Operation.Status status, ServiceError serviceCoded) {
-        List<Task> tasksForTaskId = TaskUtils.findTasksForRequestId(_dbClient, _opId);
-        Map<Class<? extends DataObject>, List<URI>> resourceMap = new HashMap<Class<? extends DataObject>, List<URI>>();
-        for (Task task : tasksForTaskId) {
-            if (!task.getCompletedFlag()) {
-                URI resourceId = task.getResource().getURI();
-                Class<? extends DataObject> resourceType = URIUtil.getModelClass(resourceId);
-                if (resourceMap.get(resourceType) == null) {
-                    resourceMap.put(resourceType, new ArrayList<URI>());
+    private void clearAllTasks(DbClient _dbClient, Operation.Status status, ServiceCoded serviceCoded) {
+        if (_opId != null) {
+            List<Task> tasksForTaskId = TaskUtils.findTasksForRequestId(_dbClient, _opId);
+            Map<Class<? extends DataObject>, List<URI>> resourceMap = new HashMap<Class<? extends DataObject>, List<URI>>();
+            for (Task task : tasksForTaskId) {
+                if (!task.getCompletedFlag()) {
+                    URI resourceId = task.getResource().getURI();
+                    Class<? extends DataObject> resourceType = URIUtil.getModelClass(resourceId);
+                    if (resourceMap.get(resourceType) == null) {
+                        resourceMap.put(resourceType, new ArrayList<URI>());
+                    }
+                    resourceMap.get(resourceType).add(resourceId);
                 }
-                resourceMap.get(resourceType).add(resourceId);
+            }
+
+            for (Entry<Class<? extends DataObject>, List<URI>> entry : resourceMap.entrySet()) {
+                // if error, ready
+                setStatus(entry.getKey(), entry.getValue(), _dbClient, status, serviceCoded != null ? serviceCoded
+                        : DeviceControllerException.errors.unforeseen(), null);
             }
         }
-
-        for (Entry<Class<? extends DataObject>, List<URI>> entry : resourceMap.entrySet()) {
-            // if error, ready
-            setStatus(entry.getKey(), entry.getValue(), _dbClient, status,
-                    serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen(), null);
-        }
-
     }
 }

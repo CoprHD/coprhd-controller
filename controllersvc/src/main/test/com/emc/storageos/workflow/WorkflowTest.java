@@ -19,7 +19,6 @@ import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +51,7 @@ import com.emc.storageos.workflow.Workflow.StepState;
  * The controllersvc is started from within setup().
  *
  */
-@Ignore
+// @Ignore
 public class WorkflowTest extends ControllersvcTestBase implements Controller {
     private static final int SLEEP_MILLIS = 3000;
     private static final URI nullURI = NullColumnValueGetter.getNullURI();
@@ -1074,6 +1073,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         String[] args = new String[1];
         args[0] = taskId;
         sleepMillis = SLEEP_MILLIS;
+        injectedFailures.clear();
         
         // create a resource so we can hang a task off of it
         Volume resource = createVolumeResource();
@@ -1104,6 +1104,226 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         task = requeryTask(resource, taskId, op);
         assertTrue(task.getStatus().equals("ready"));
         printLog(testname + " completed successfully");
+    }
+
+    @Test
+    /**
+     * Tests that the workflow completer clears tasks left pending by the steps.
+     */
+    public void test20_completer_clears_pending_task_wf_failed() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+
+        workflowService.setSuspendClassMethodTestOnly(null);
+        workflowService.setSuspendOnErrorTestOnly(false);
+        injectedFailures.clear();
+        addInjectedFailure(0, 3); // level 0, step 3
+
+        Volume resource = createVolumeResource();
+        String taskId = UUID.randomUUID().toString();
+        Operation op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        Task task = requeryTask(resource, taskId, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate completer clears pending task", false, taskId);
+
+        // first step
+        String lastStep = workflow.createStep("first deep", genMsg(0, 1, "sub"), null, nullURI, this.getClass().getName(), false,
+                this.getClass(), deepfirstnopMethod(0, 1), deepfirstnopMethod(0, 1), false, null);
+        // second step
+        lastStep = workflow.createStep("second", genMsg(0, 2, "sub"), lastStep, nullURI, this.getClass().getName(), false, this.getClass(),
+                subMethod(0, 1, 2), nopMethod(0, 2), false, null);
+        // third step
+        lastStep = workflow.createStep("third deep", genMsg(0, 3, "sub"), lastStep, nullURI, this.getClass().getName(), false,
+                this.getClass(), deeplastnopMethod(0, 3), deeplastnopMethod(0, 3), false, null);
+
+        String[] args = new String[1];
+        args[0] = taskId;
+        CompleterDoesntClearTask completer = new CompleterDoesntClearTask(taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        assertTrue(state == WorkflowState.ERROR);
+
+        task = requeryTask(resource, taskId, op);
+        printLog("task stauts is " + task.getStatus());
+        assertTrue(task.getStatus().equals("error"));
+
+        printLog(testname + " completed successfully");
+
+    }
+
+    @Test
+    /**
+     * Tests to make sure tasks are cleared if the workflow is suspended without an error
+     */
+    public void test21_completer_clears_pending_task_wf_suspended() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+
+        workflowService.setSuspendClassMethodTestOnly(this.getClass().getSimpleName() + ".deepfirstnop");
+        workflowService.setSuspendOnErrorTestOnly(true);
+        injectedFailures.clear();
+        // addInjectedFailure(0, 3); // level 0, step 3
+
+        Volume resource = createVolumeResource();
+        String taskId = UUID.randomUUID().toString();
+        Operation op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        Task task = requeryTask(resource, taskId, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate completer clears pending task", false, taskId);
+
+        // first step
+        String lastStepId = workflow.createStep("first deep", genMsg(0, 1, "sub"), null, nullURI, this.getClass().getName(), false,
+                this.getClass(), deepfirstnopMethod(0, 1), deepfirstnopMethod(0, 1), false, null);
+
+        int nsteps = 2;
+        byte[] bigArgs = new byte[2500];
+        String[] args = new String[1];
+        args[0] = taskId;
+        sleepMillis = SLEEP_MILLIS;
+        for (int i = 0; i < nsteps; i++) {
+            String message = String.format("Step %d of %d steps", i + 1, nsteps);
+            lastStepId = workflow.createStep("null", message, lastStepId, nullURI, this.getClass().getName(), false, this.getClass(),
+                    stepBigArgsMethod(bigArgs), stepBigArgsMethod(bigArgs), false, null);
+        }
+
+        CompleterDoesntClearTask completer = new CompleterDoesntClearTask(taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        assertTrue(state == WorkflowState.SUSPENDED_NO_ERROR);
+
+        task = requeryTask(resource, taskId, op);
+        printLog("task stauts is " + task.getStatus());
+        assertTrue(task.getStatus().equals("suspended_no_error"));
+
+        printLog(testname + " completed successfully");
+
+    }
+
+    @Test
+    /**
+     * Tests to make sure tasks are cleared if the workflow is suspended with an error
+     */
+    public void test22_completer_clears_pending_task_wf_suspended_with_error() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+
+        workflowService.setSuspendClassMethodTestOnly(null);
+        workflowService.setSuspendOnErrorTestOnly(true);
+        injectedFailures.clear();
+        addInjectedFailure(0, 3); // level 0, step 2
+
+        Volume resource = createVolumeResource();
+        String taskId = UUID.randomUUID().toString();
+        Operation op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        Task task = requeryTask(resource, taskId, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate completer clears pending task", false, taskId);
+
+        // first step
+        String lastStep = workflow.createStep("first deep", genMsg(0, 1, "sub"), null, nullURI, this.getClass().getName(), false,
+                this.getClass(), deepfirstnopMethod(0, 1), deepfirstnopMethod(0, 1), false, null);
+        // second step
+        lastStep = workflow.createStep("second", genMsg(0, 2, "sub"), lastStep, nullURI, this.getClass().getName(), false, this.getClass(),
+                subMethod(0, 1, 2), nopMethod(0, 2), false, null);
+        // third step
+        lastStep = workflow.createStep("third deep", genMsg(0, 3, "sub"), lastStep, nullURI, this.getClass().getName(), false,
+                this.getClass(), deeplastnopMethod(0, 3), deeplastnopMethod(0, 3), false, null);
+
+        String[] args = new String[1];
+        args[0] = taskId;
+        CompleterDoesntClearTask completer = new CompleterDoesntClearTask(taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        assertTrue(state == WorkflowState.SUSPENDED_ERROR);
+
+        task = requeryTask(resource, taskId, op);
+        printLog("task stauts is " + task.getStatus());
+        assertTrue(task.getStatus().equals("suspended_error"));
+
+        printLog(testname + " completed successfully");
+
+    }
+
+    @Test
+    /**
+     * Tests that the  completer clears tasks if error is called before the workflow is started.
+     * This to test a couple of negative test cases and demonstrates that no extra logic is needed to clear the task if an exception is 
+     * thrown before the workflow is started or even created
+     */
+    public void test23_completer_clears_pending_task_no_workflow() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        Volume resource = createVolumeResource();
+
+        // test 20.1 call TaskCompleter.error before creating the workflow
+        // create a resource so we can hang a task off of it
+        String taskId1 = UUID.randomUUID().toString();
+        Operation op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId1, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        Task task = requeryTask(resource, taskId1, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        // call error before even creating the workflow
+        CompleterDoesntClearTask completer = new CompleterDoesntClearTask(taskId1);
+        completer.error(dbClient, DeviceControllerException.errors.unforeseen());
+
+        task = requeryTask(resource, taskId1, op);
+        assertTrue(task.getStatus().equals("error"));
+        assertTrue(task.getCompletedFlag());
+
+        // test 20.2 call Task error after creating the workflow but before executing it
+        // create a resource so we can hang a task off of it
+        String taskId2 = UUID.randomUUID().toString();
+        op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId2, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        task = requeryTask(resource, taskId2, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        completer = new CompleterDoesntClearTask(taskId2);
+
+        Workflow workflow = workflowService.getNewWorkflow(this, testname, false, taskId2);
+        workflow.createStep(testname, "nop", null, nullURI, this.getClass().getName(), false, this.getClass(), deepfirstnopMethod(1, 1),
+                deepfirstnopMethod(1, 1), false, null);
+
+        // call error before executing the workflow
+        completer.error(dbClient, DeviceControllerException.errors.unforeseen());
+
+        task = requeryTask(resource, taskId2, op);
+        assertTrue(task.getStatus().equals("error"));
+        assertTrue(task.getCompletedFlag());
+
+        // test 20.3 call Task ready without creating a workflow (to test use cases that don't go through the workflow)
+        // create a resource so we can hang a task off of it
+        String taskId3 = UUID.randomUUID().toString();
+        op = dbClient.createTaskOpStatus(Volume.class, resource.getId(), taskId3, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+
+        task = requeryTask(resource, taskId3, op);
+        assertTrue(task.getStatus().equals("pending"));
+
+        completer = new CompleterDoesntClearTask(taskId3);
+
+        // call ready without creating a workflow
+        completer.ready(dbClient);
+
+        task = requeryTask(resource, taskId3, op);
+        assertTrue(task.getStatus().equals("ready"));
+        assertTrue(task.getCompletedFlag());
     }
 
     /**

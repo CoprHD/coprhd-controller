@@ -736,7 +736,22 @@ public class WorkflowService implements WorkflowController {
 
             // Throw task completer if supplied.
             if (workflow._taskCompleter != null) {
-                workflow._taskCompleter.completeWorkflowTask(state, _dbClient, _locker, error);
+                switch (state) {
+                case ERROR:
+                    workflow._taskCompleter.error(_dbClient, _locker, error);
+                    break;
+                case SUCCESS:
+                    workflow._taskCompleter.ready(_dbClient, _locker);
+                    break;
+                case SUSPENDED_ERROR:
+                    workflow._taskCompleter.suspendedError(_dbClient, _locker, error);
+                    break;
+                case SUSPENDED_NO_ERROR:
+                    workflow._taskCompleter.suspendedNoError(_dbClient, _locker);
+                    break;
+                default:
+                    break;
+                }
             }
         } finally {
             logWorkflow(workflow, true);

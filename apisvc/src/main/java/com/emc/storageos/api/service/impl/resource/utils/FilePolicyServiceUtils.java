@@ -4,10 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
-/**
- * @author jainm15
- */
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -25,8 +23,15 @@ import com.emc.storageos.model.file.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.FileSnapshotPolicyParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+/**
+ * @author jainm15
+ */
 public class FilePolicyServiceUtils {
     private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
+    private static final int MIN_SNAPSHOT_EXPIRE_TIME = 2;
+    private static final int MAX_SNAPSHOT_EXPIRE_TIME = 10;
+    private static final long MIN_SNAPSHOT_EXPIRE_SECONDS = 7200;
+    private static final long MAX_SNAPSHOT_EXPIRE_SECONDS = 10 * 365 * 24 * 3600;
 
     /**
      * validates whether the schedule policy parameters are valid or not
@@ -42,11 +47,8 @@ public class FilePolicyServiceUtils {
         if (policyScheduleparams != null) {
 
             // check schedule frequency is valid or not
-            if (!ArgValidator.isValidEnum(policyScheduleparams.getScheduleFrequency(), ScheduleFrequency.class)) {
-                errorMsg.append("Schedule frequency: " + policyScheduleparams.getScheduleFrequency()
-                        + " is invalid. Valid schedule frequencies are days, weeks and months");
-                return false;
-            }
+            ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency(), "schedule_frequency",
+                    EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
             // validating schedule repeat period
             if (policyScheduleparams.getScheduleRepeat() < 1) {
@@ -136,22 +138,18 @@ public class FilePolicyServiceUtils {
 
     public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {
         boolean isValidSnapshotExpire = false;
+
         // check snapshot expire type is valid or not
-        String expireType = param.getSnapshotExpireParams().getExpireType();
-        if (!ArgValidator.isValidEnum(expireType, SnapshotExpireType.class)) {
-            _log.error(
-                    "Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks, months and never",
-                    expireType);
-            throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
-        }
+        ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType(), "expire_type",
+                EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
+
         isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
         if (!isValidSnapshotExpire) {
             int expireTime = param.getSnapshotExpireParams().getExpireValue();
-            int minExpireTime = 2;
-            int maxExpireTime = 10;
             _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
-                    expireTime, minExpireTime, maxExpireTime);
-            throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
+                    expireTime, MIN_SNAPSHOT_EXPIRE_TIME, MAX_SNAPSHOT_EXPIRE_TIME);
+            throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, MIN_SNAPSHOT_EXPIRE_TIME,
+                    MAX_SNAPSHOT_EXPIRE_TIME);
         }
     }
 
@@ -162,10 +160,7 @@ public class FilePolicyServiceUtils {
      * @return true/false
      */
     private static boolean validateSnapshotExpireParam(FileSnapshotPolicyExpireParam expireParam) {
-
         long seconds = 0;
-        long minPeriod = 7200;
-        long maxPeriod = 10 * 365 * 24 * 3600;
         int expireValue = expireParam.getExpireValue();
         SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getExpireType().toUpperCase());
         switch (expireType) {
@@ -186,9 +181,10 @@ public class FilePolicyServiceUtils {
             default:
                 return false;
         }
-        if (seconds >= minPeriod && seconds <= maxPeriod) {
+        if (seconds >= MIN_SNAPSHOT_EXPIRE_SECONDS && seconds <= MAX_SNAPSHOT_EXPIRE_SECONDS) {
             return true;
         }
         return false;
     }
+
 }

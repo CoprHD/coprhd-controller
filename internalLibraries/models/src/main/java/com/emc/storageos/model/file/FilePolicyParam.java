@@ -4,14 +4,14 @@
  */
 package com.emc.storageos.model.file;
 
-/**
- * @author jainm15
- */
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * @author jainm15
+ */
 @XmlRootElement(name = "file_policy_create")
 public class FilePolicyParam implements Serializable {
 
@@ -23,22 +23,11 @@ public class FilePolicyParam implements Serializable {
     // Name of the policy
     private String policyName;
 
-    // Level at which policy has to be applied..
-    private String applyAt;
-
     // Replication related parameters
     private FileReplicationPolicyParam replicationPolicyParams;
 
     // Snapshot related parameters..
     private FileSnapshotPolicyParam snapshotPolicyPrams;
-
-    public static enum PolicyType {
-        file_snapshot, file_replication, file_quota
-    }
-
-    public static enum policyApplyLevel {
-        vpool, project, file_system
-    }
 
     public FilePolicyParam() {
     }
@@ -59,15 +48,6 @@ public class FilePolicyParam implements Serializable {
 
     public void setPolicyName(String policyName) {
         this.policyName = policyName;
-    }
-
-    @XmlElement(required = true, name = "apply_at")
-    public String getApplyAt() {
-        return this.applyAt;
-    }
-
-    public void setApplyAt(String applyAt) {
-        this.applyAt = applyAt;
     }
 
     @XmlElement(name = "replication_params")

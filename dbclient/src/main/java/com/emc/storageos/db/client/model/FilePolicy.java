@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.util.Set;
+
 /**
  * 
  * @author jainm15
@@ -11,6 +13,9 @@ package com.emc.storageos.db.client.model;
  */
 @Cf("FilePolicy")
 public class FilePolicy extends DataObject {
+
+    private static final long serialVersionUID = 1L;
+
     // Type of the policy
     private String filePolicyType;
 
@@ -19,6 +24,9 @@ public class FilePolicy extends DataObject {
 
     // Level at which policy has to be applied..
     private String applyAt;
+
+    // Assigned resources for which policy is being applied
+    private Set<String> assignedResources;
 
     // Tenants who will have access to this policy
     private StringSet accessTenants;
@@ -48,10 +56,14 @@ public class FilePolicy extends DataObject {
     private String fileReplicationType;
 
     // File Replication copy type
-    private String fileReplicationCopyType;
+    private String fileReplicationCopyMode;
 
     public static enum FileReplicationType {
         LOCAL, REMOTE;
+    }
+
+    public static enum FileReplicationCopyMode {
+        SYNC, ASYNC;
     }
 
     public static enum ScheduleFrequency {
@@ -66,13 +78,13 @@ public class FilePolicy extends DataObject {
         file_snapshot, file_replication, file_quota
     }
 
-    public static enum policyApplyLevel {
+    public static enum FilePolicyApplyLevel {
         vpool, project, file_system
     }
 
     @Name("fileReplicationType")
     public String getFileReplicationType() {
-        return fileReplicationType;
+        return this.fileReplicationType;
     }
 
     public void setFileReplicationType(String fileReplicationType) {
@@ -80,19 +92,19 @@ public class FilePolicy extends DataObject {
         setChanged("fileReplicationType");
     }
 
-    @Name("frCopyType")
-    public String getFileReplicationCopyType() {
-        return fileReplicationCopyType;
+    @Name("frCopyMode")
+    public String getFileReplicationCopyMode() {
+        return this.fileReplicationCopyMode;
     }
 
-    public void setFileReplicationCopyType(String fileReplicationCopyType) {
-        this.fileReplicationCopyType = fileReplicationCopyType;
-        setChanged("frCopyType");
+    public void setFileReplicationCopyMode(String fileReplicationCopyMode) {
+        this.fileReplicationCopyMode = fileReplicationCopyMode;
+        setChanged("frCopyMode");
     }
 
     @Name("filePolicyType")
     public String getFilePolicyType() {
-        return filePolicyType;
+        return this.filePolicyType;
     }
 
     public void setFilePolicyType(String filePolicyType) {
@@ -102,7 +114,7 @@ public class FilePolicy extends DataObject {
 
     @Name("filePolicyName")
     public String getFilePolicyName() {
-        return filePolicyName;
+        return this.filePolicyName;
     }
 
     public void setFilePolicyName(String filePolicyName) {
@@ -112,7 +124,7 @@ public class FilePolicy extends DataObject {
 
     @Name("applyAt")
     public String getApplyAt() {
-        return applyAt;
+        return this.applyAt;
     }
 
     public void setApplyAt(String applyAt) {
@@ -122,7 +134,7 @@ public class FilePolicy extends DataObject {
 
     @Name("scheduleFrequency")
     public String getScheduleFrequency() {
-        return scheduleFrequency;
+        return this.scheduleFrequency;
     }
 
     public void setScheduleFrequency(String scheduleFrequency) {
@@ -132,7 +144,7 @@ public class FilePolicy extends DataObject {
 
     @Name("scheduleRepeat")
     public Long getScheduleRepeat() {
-        return scheduleRepeat;
+        return this.scheduleRepeat;
     }
 
     public void setScheduleRepeat(Long scheduleRepeat) {
@@ -142,7 +154,7 @@ public class FilePolicy extends DataObject {
 
     @Name("scheduleTime")
     public String getScheduleTime() {
-        return scheduleTime;
+        return this.scheduleTime;
     }
 
     public void setScheduleTime(String scheduleTime) {
@@ -152,7 +164,7 @@ public class FilePolicy extends DataObject {
 
     @Name("scheduleDayOfWeek")
     public String getScheduleDayOfWeek() {
-        return scheduleDayOfWeek;
+        return this.scheduleDayOfWeek;
     }
 
     public void setScheduleDayOfWeek(String scheduleDayOfWeek) {
@@ -162,7 +174,7 @@ public class FilePolicy extends DataObject {
 
     @Name("scheduleDayOfMonth")
     public Long getScheduleDayOfMonth() {
-        return scheduleDayOfMonth;
+        return this.scheduleDayOfMonth;
     }
 
     public void setScheduleDayOfMonth(Long scheduleDayOfMonth) {
@@ -172,7 +184,7 @@ public class FilePolicy extends DataObject {
 
     @Name("snapshotExpireType")
     public String getSnapshotExpireType() {
-        return snapshotExpireType;
+        return this.snapshotExpireType;
     }
 
     public void setSnapshotExpireType(String snapshotExpireType) {
@@ -182,7 +194,7 @@ public class FilePolicy extends DataObject {
 
     @Name("snapshotExpireTime")
     public Long getSnapshotExpireTime() {
-        return snapshotExpireTime;
+        return this.snapshotExpireTime;
     }
 
     public void setSnapshotExpireTime(Long snapshotExpireTime) {
@@ -198,6 +210,16 @@ public class FilePolicy extends DataObject {
     public void setTenantOrg(StringSet accessTenants) {
         this.accessTenants = accessTenants;
         setChanged("accessTenants");
+    }
+
+    @Name("assignedResources")
+    public Set<String> getAssignedResources() {
+        return this.assignedResources;
+    }
+
+    public void setAssignedResources(Set<String> assignedResources) {
+        this.assignedResources = assignedResources;
+        setChanged("assignedResources");
     }
 
 }

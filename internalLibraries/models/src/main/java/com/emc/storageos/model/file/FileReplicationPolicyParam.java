@@ -1,24 +1,25 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
 
+/**
+ * 
+ * @author jainm15
+ *
+ */
 public class FileReplicationPolicyParam implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String replicationType;
-    private String replicationCopyType;
-    private boolean replicateConfiguration = false;
+    private String replicationCopyMode;
+    private Boolean replicateConfiguration = false;
     private FilePolicyScheduleParams policySchedule;
-
-    public enum ReplicationCopyType {
-        SYNC, ASYC
-    }
-
-    public enum ReplicationType {
-        LOCAL, REMOTE
-    }
 
     public FileReplicationPolicyParam() {
 
@@ -33,13 +34,13 @@ public class FileReplicationPolicyParam implements Serializable {
         this.replicationType = replicationType;
     }
 
-    @XmlElement(name = "replicationCopyType")
-    public String getReplicationCopyType() {
-        return this.replicationCopyType;
+    @XmlElement(name = "replicationCopyMode")
+    public String getReplicationCopyMode() {
+        return this.replicationCopyMode;
     }
 
-    public void setReplicationCopyType(String replicationCopyType) {
-        this.replicationCopyType = replicationCopyType;
+    public void setReplicationCopyMode(String replicationCopyMode) {
+        this.replicationCopyMode = replicationCopyMode;
     }
 
     /**

@@ -4,13 +4,13 @@
  */
 package com.emc.storageos.model.file;
 
-/**
- * @author jainm15
- */
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
 
+/**
+ * @author jainm15
+ */
 public class FilePolicyScheduleParams implements Serializable {
 
     private static final long serialVersionUID = 1L;

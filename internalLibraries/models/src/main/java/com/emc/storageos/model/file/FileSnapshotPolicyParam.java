@@ -17,12 +17,8 @@ public class FileSnapshotPolicyParam implements Serializable {
     // snapshot policy schedule parameters..
     private FilePolicyScheduleParams policySchedule;
 
-    // Snapshot expire params like type and value..
+    // Snapshot expire parameters like type and value..
     private FileSnapshotPolicyExpireParam snapshotExpireParams;
-
-    public static enum SnapshotExpireType {
-        HOURS, DAYS, WEEKS, MONTHS, NEVER
-    }
 
     public FileSnapshotPolicyParam() {
 

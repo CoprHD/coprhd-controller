@@ -373,6 +373,7 @@ test_host_remove_initiator() {
         fail initiator delete ${host}/${init1}
         
         # Zzzzzz
+        secho "Sleeping for 5..."
         sleep 5
         
         # Rerun the command
@@ -383,6 +384,7 @@ test_host_remove_initiator() {
         runcmd initiator delete ${host}/${init2}
         
         # Zzzzzz
+        secho "Sleeping for 5..."
         sleep 5
         
         # Ensure that initiator 1 and 2 have been removed

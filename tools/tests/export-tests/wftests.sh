@@ -2022,9 +2022,14 @@ test_4() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
+    fi 
+
+    if [ "${SS}" = "vnx" ]
+    then
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi

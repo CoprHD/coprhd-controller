@@ -62,6 +62,12 @@ if [ "$1"x != "x" ]; then
    fi
 fi
 
+# Helper method to increment the failure counts
+incr_fail_count() {
+    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+}
+
 # A method that reports on the status of the test, along with other 
 # important information:
 #
@@ -176,8 +182,7 @@ verify_export() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	incr_fail_count
 	cleanup
 	finish
     fi
@@ -749,8 +754,7 @@ runcmd() {
 	    cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	fi
 	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	incr_fail_count
     fi
 }
 
@@ -776,8 +780,7 @@ fail(){
         echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
         echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	incr_fail_count;
     else
 	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
@@ -1726,8 +1729,7 @@ verify_failures() {
 	    secho 
 	    secho "FAILED: Failure injection ${failure_check} was not encountered during the operation execution."
 	    secho 
-	    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	    incr_fail_count
 	fi
     done
 
@@ -2523,7 +2525,18 @@ test_end=7
 # as the name of the test to run
 # To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
 # ./dutest.sh sanity.conf vplex local test_7+
-if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
+if [ "$1" = "hosts" ]
+then
+   secho Request to run ${HOST_TEST_CASES}
+   for t in ${HOST_TEST_CASES}
+   do
+      secho Run $
+      reset_system_props
+      prerun_tests
+      $t
+      reset_system_props
+   done
+elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
    secho Request to run $*
    for t in $*

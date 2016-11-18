@@ -34,17 +34,22 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.sa.api.utils.OrderServiceJob;
+import com.emc.sa.api.utils.OrderServiceJobConsumer;
+import com.emc.sa.api.utils.OrderServiceJobSerializer;
 import com.emc.sa.engine.scheduler.SchedulerDataManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
+import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
 import org.apache.commons.codec.binary.*;
@@ -102,6 +107,8 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
 
+    private static String ORDER_SERVICE_QUEUE_NAME="OrderService";
+
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
 
@@ -134,6 +141,8 @@ public class OrderService extends CatalogTaggedResourceService {
     private ModelClient client;
 
     private ScheduledExecutorService _executorService = new NamedScheduledThreadPoolExecutor("OrderScheduler", 1);
+
+    private DistributedQueue<OrderServiceJob> queue;
 
     @Override
     protected Order queryResource(URI id) {
@@ -192,6 +201,17 @@ public class OrderService extends CatalogTaggedResourceService {
                 },
                 0, scheduleInterval, TimeUnit.SECONDS);
 
+        startJobQueue();
+    }
+
+    private void startJobQueue() {
+        log.info("Starting oder service job queue");
+        try {
+            // no job consumer in geoclient
+            queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, new OrderServiceJobConsumer(), new OrderServiceJobSerializer(), 1);
+        } catch (Exception e) {
+            log.error("can not startup geosvc job queue", e);
+        }
     }
 
     /**
@@ -648,19 +668,29 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
-                                 @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime) {
+                                 @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
+                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_ID_PARAM) String tenandID) {
         StorageOSUser user = getUserFromContext();
 
-        log.info("lby0:starTime={} endTime={} user={}", new Object[] {startTime, endTime, user.getName()});
+        log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenandID, user.getName()});
 
         long now = System.currentTimeMillis();
         long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
         long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime);
+
+        OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tenandID);
+        try {
+            queue.put(job);
+        }catch (Exception e) {
+            String errMsg = String.format("Failed to put the job into the queue %s", ORDER_SERVICE_QUEUE_NAME);
+            log.error("{} e=", errMsg, e);
+            APIException.internalServerErrors.genericApisvcError(errMsg, e);
+        }
+
+        /*
         AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(user.getName(), startTimeInMacros, endTimeInMacros, true);
         NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
         long matchedCount = 0;
-        //_dbClient.start();
-        //_dbClient.queryByConstraint(constraint, queryResults, null, 6000);
         _dbClient.queryByConstraint(constraint, queryResults);
 
         for (NamedElementQueryResultList.NamedElement e : queryResults) {
@@ -668,6 +698,7 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         log.info("lbyg0: {} to be deleted", matchedCount);
+        */
         /*
         Order order = queryResource(id);
         ArgValidator.checkEntity(order, id, true);

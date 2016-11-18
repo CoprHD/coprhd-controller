@@ -685,7 +685,6 @@ public class ArgValidator {
         if (!WwnUtils.isValidEndpoint(wwn)) {
             throw APIException.badRequests.invalidParameterWwnBadFormat(wwn);
         }
-
     }
 
 }

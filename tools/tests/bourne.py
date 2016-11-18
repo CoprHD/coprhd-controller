@@ -8487,8 +8487,11 @@ class Bourne:
     def initiator_delete(self, name):
         (host, label) = name.split('/', 1)
         hostUri = self.host_query(host)
-        uri = self.initiator_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_INITIATOR.format(uri)))
+        uri = self.initiator_query(name)        
+        o =  self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_INITIATOR.format(uri)))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        return (o, s)
 
     def initiator_register(self, name):
         uri = self.initiator_query(name)

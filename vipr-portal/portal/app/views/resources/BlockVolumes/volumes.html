@@ -37,8 +37,11 @@
     function checkVolumeLimits() {
         //Do nothing if dataTable is not created
         if (table.volumes.dataTable.getDataTable() != null) {
-	        var limit = ${volumeLimitPerProject};
-	        table.volumes.checkResourceLimits(limit);
+            var limit = ${resource_limit_project_volumes};
+            if (table.volumes.dataTable.needResourceLimitAlert(limit)){
+                $('#resourceLimitAlert').text(Messages.get('resources.resourceLimitAlert', limit));
+       		    $('#resourceLimitAlert').show();
+            }
         }
     }
     
@@ -59,7 +62,7 @@
 #{Resources.projectsApplicationsControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
-<p id="resourceLimitAlert" class="alert alert-info" style="display:none">&{'resources.resourceLimitAlert'}</p>
+<p id="resourceLimitAlert" class="alert alert-info" style="display:none"></p>
 
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',

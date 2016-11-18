@@ -35,6 +35,7 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -81,9 +82,11 @@ public class BlockVolumes extends ResourceController {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
         renderArgs.put("filterOptions", FILTER_OPTIONS);
+        
         CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        String val = coordinatorClient.getPropertyInfo().getProperty("max_num_of_volumes_per_project");
-        renderArgs.put("volumeLimitPerProject", Integer.parseInt(val));
+        String val = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES);
+        renderArgs.put(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES, Integer.parseInt(val));
+        
         addReferenceData();
         render();
     }

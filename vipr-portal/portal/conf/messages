@@ -3470,6 +3470,8 @@ resources.initiator.cluster=Cluster
 
 resources.actions=Actions
 
+resources.resourceLimitAlert=It is approaching or exceeding resource limit of current project or tenant (%s). System performance may be downgraded.   
+
 resources.blocksnapshots.unknown=Unknown Snapshot with ID '%s'
 
 resources.volumes=Volumes
@@ -4134,7 +4136,6 @@ dataTable.noResults=No results
 dataTable.actions=Edit
 dataTable.selectedItems=%s entries selected
 dataTable.confirmSelected=Note: %s entries selected.
-dataTable.resourceLimitAlert=It is approaching or exceeding resource limit %s of current project or tenant. System performance may be downgraded.   
 
 # Date time picker control
 dateTimePicker.currentTime=Current Time

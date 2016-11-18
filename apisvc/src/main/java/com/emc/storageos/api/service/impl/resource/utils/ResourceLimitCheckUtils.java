@@ -11,6 +11,7 @@ import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.Constraint;
@@ -21,6 +22,7 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.property.PropertyInfo;
@@ -29,23 +31,20 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class ResourceLimitCheckUtils {
     private final static Logger log = LoggerFactory.getLogger(ResourceLimitCheckUtils.class);
     
-    public static String PROJECT_RESOURCE_LIMIT_VOLUMES = "max_num_of_volumes_per_project";
-    public static String PROJECT_RESOURCE_LIMIT_SNAPSHOTS = "max_num_of_snapshots_per_project";
-    
     private static String PROJECT = "project";
     
     public static int USE_RATE_WARNING = 90;
     public static int USE_RATE_ERROR = 100;
     
     public static void validateVolumeLimitPerProject(Project project, DbClient dbClient, CoordinatorClient coordinator) {
-        boolean underLimit = checkLimits(Volume.class, PROJECT, project.getId(), PROJECT_RESOURCE_LIMIT_VOLUMES, dbClient, coordinator);
+        boolean underLimit = checkLimits(Volume.class, PROJECT, project.getId(), Constants.RESOURCE_LIMIT_PROJECT_VOLUMES, dbClient, coordinator);
         if (!underLimit){
             throw APIException.badRequests.reachVolumeLimitPerProject(project.getLabel());
         }
     }
     
     public static void validateBlockSnapshotLimitPerProject(URI projectId, DbClient dbClient, CoordinatorClient coordinator) {
-        boolean underLimit = checkLimits(BlockSnapshot.class, PROJECT, projectId, PROJECT_RESOURCE_LIMIT_SNAPSHOTS, dbClient, coordinator);
+        boolean underLimit = checkLimits(BlockSnapshot.class, PROJECT, projectId, Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS, dbClient, coordinator);
         if (!underLimit){
             throw APIException.badRequests.reachSnapshotLimitPerProject(projectId.toString());
         }

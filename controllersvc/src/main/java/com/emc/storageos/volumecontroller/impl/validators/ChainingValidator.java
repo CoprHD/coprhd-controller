@@ -56,10 +56,6 @@ public class ChainingValidator implements Validator {
             }
         }
 
-        if (logger.hasErrors() && shouldThrowException()) {
-            logger.generateException(type);
-        }
-
         return true;
     }
 

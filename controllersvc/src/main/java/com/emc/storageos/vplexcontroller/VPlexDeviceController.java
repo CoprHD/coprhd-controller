@@ -4244,13 +4244,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
 
-                _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
-                VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
-                VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
-                        VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName),
-                        _networkDeviceController);
-
                 boolean updateExportMask = false;
 
                 // Determine host of ExportMask

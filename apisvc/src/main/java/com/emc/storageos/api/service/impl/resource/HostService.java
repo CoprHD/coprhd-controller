@@ -292,7 +292,6 @@ public class HostService extends TaskResourceService {
 
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
-            ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, updateParam.getCluster(), host.getId());
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -311,6 +310,8 @@ public class HostService extends TaskResourceService {
                             || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
+            } else {
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, updateParam.getCluster(), host.getId());
             }
         }
         /*

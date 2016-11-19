@@ -311,7 +311,7 @@ public class HostService extends TaskResourceService {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
-                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, updateParam.getCluster(), host.getId());
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
             }
         }
         /*

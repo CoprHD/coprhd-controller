@@ -6102,14 +6102,21 @@ sbsdk_setup()
     echo "***** Executing setup for SB SDK sanity tests *****"
 
     #Define variables
-    SBSDK_DRIVER_SYS_NAME=SBSDK_DriverSimulator-${RANDOM}
+    #SBSDK_DRIVER_SYS_NAME=SBSDK_DriverSimulator-${RANDOM}
+    # System names are important to align with remote replication configuration
+    SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
+    SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
+    ##
+    SBSDK_DRIVER_SYS_NAME=source_replicationGroup1_set1
     SBSDK_DRIVER_SYS_TYPE=driversystem
-    SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
+    #SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
+    SBSDK_DRIVER_SYS_NATIVEGUID=source_replicationGroup1_set1
     SBSDK_DRIVER_SYS_IP=10.20.30.40
     SBSDK_DRIVER_SYS_PORT=8080
     SBSDK_DRIVER_SYS_USER=user
     SBSDK_DRIVER_SYS_PASSWORD=password
     SBSDK_DRIVER_SYS_VPOOL_NAME=SBSDK_VPOOL
+    SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
     SBSDK_DRIVER_SYS_PWWN10=61:FE:FE:FE:FE:FE:FE:10
     SBSDK_DRIVER_SYS_PWWN11=61:FE:FE:FE:FE:FE:FE:11
     SBSDK_DRIVER_SYS_PWWN12=61:FE:FE:FE:FE:FE:FE:12
@@ -6118,10 +6125,26 @@ sbsdk_setup()
     SBSDK_DRIVER_SYS_PWWN15=61:FE:FE:FE:FE:FE:FE:15
     SBSDK_DRIVER_SYS_PWWN16=61:FE:FE:FE:FE:FE:FE:16
 
+    # System names are important to align with remote replication configuration
+    SBSDK_DRIVER_SYS_TARGET_NAME=target_replicationGroup1_set1
+    SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=target_replicationGroup1_set1
+    SBSDK_DRIVER_SYS_TARGET_IP=10.20.30.50
+    SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
+    SBSDK_DRIVER_SYS_PWWN20=62:FE:FE:FE:FE:FE:FE:10
+    SBSDK_DRIVER_SYS_PWWN21=62:FE:FE:FE:FE:FE:FE:11
+    SBSDK_DRIVER_SYS_PWWN22=62:FE:FE:FE:FE:FE:FE:12
+    SBSDK_DRIVER_SYS_PWWN23=62:FE:FE:FE:FE:FE:FE:13
+    SBSDK_DRIVER_SYS_PWWN24=62:FE:FE:FE:FE:FE:FE:14
+    SBSDK_DRIVER_SYS_PWWN25=62:FE:FE:FE:FE:FE:FE:15
+    SBSDK_DRIVER_SYS_PWWN26=62:FE:FE:FE:FE:FE:FE:16
+
     #Discover the SB SDK simulator storage system
-    echo "***** Creating SB SDK simulator storage system *****"
+    echo "***** Creating SB SDK simulator storage systems *****"
     run discoveredsystem create $SBSDK_DRIVER_SYS_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_IP \
         $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
+
+    run discoveredsystem create $SBSDK_DRIVER_SYS_TARGET_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_TARGET_IP \
+            $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
     run storagedevice discover_all
     #The sleep allows discovery to complete, so that the subsequent commands
     #to add the system ports to the specified network completes successfully.
@@ -6137,6 +6160,14 @@ sbsdk_setup()
     run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN15
     run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN16
 
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN20
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN21
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN22
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN23
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN24
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN25
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN26
+
     #Define a virtual pool
     echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
     run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \
@@ -6150,6 +6181,23 @@ sbsdk_setup()
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+
+    #Define a remote replication virtual pool
+    echo "***** Creating remote replication virtual pool $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME *****"
+    run cos create block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME true     \
+                     --description 'SBSDK-sanity-rr-virtual-pool' \
+                     --protocols FC                            \
+                     --numpaths 2                              \
+                     --provisionType 'Thin'                    \
+                     --neighborhoods $NH                       \
+                     --max_snapshots 1                         \
+                     --max_mirrors 1                           \
+                     --expandable false                        \
+                     --remote_replication "${NH}:${SBSDK_DRIVER_SYS_VPOOL_NAME}"
+    run cos allow $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME block $TENANT
+    run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
 
     echo "***** Completed setup for SB SDK sanity tests *****"
 }
@@ -6173,6 +6221,10 @@ sbsdk_tests()
     #Create a volume
     echo "***** Creating volume $VOLUME_NAME *****"
     run volume create $VOLUME_NAME $PROJECT $NH $SBSDK_DRIVER_SYS_VPOOL_NAME $BLK_SIZE
+
+    echo "***** Creating volume ${VOLUME_NAME}_RR *****"
+    run volume create ${VOLUME_NAME}_RR $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
+                   --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
 
     #Create a host
     echo "***** Creating host $HOST_NAME *****"

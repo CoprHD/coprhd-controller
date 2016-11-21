@@ -16,29 +16,30 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import java.net.URI;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
+
 @XmlRootElement(name = "orchestration_workflow_list")
 public class OrchestrationWorkflowList {
     
-    private List<URI> workflows;
+    private List<NamedRelatedResourceRep> workflows;
     
     public OrchestrationWorkflowList() {}
     
-    public OrchestrationWorkflowList(List<URI> workflows) {
+    public OrchestrationWorkflowList(List<NamedRelatedResourceRep> workflows) {
         this.workflows = workflows;
     }
 
     @XmlElement(name = "workflows")
-    public List<URI> getWorkflows() {
+    public List<NamedRelatedResourceRep> getWorkflows() {
         return workflows;
     }
 
-    public void setWorkflows(List<URI> workflows) {
+    public void setWorkflows(final List<NamedRelatedResourceRep> workflows) {
         this.workflows = workflows;
     }
     

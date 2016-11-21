@@ -17,6 +17,7 @@
 package com.emc.sa.model.dao;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -46,6 +47,19 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
     
     public Iterator<OrchestrationWorkflow> findSummaries(final List<URI> ids) {
         return client.findAllFields(clazz, ids, SUMMARY_FIELDS); 
+    }
+    
+    public List<NamedElement> findAllNames() {
+        final List<URI> ids = client.findAllIds(clazz);
+        final Iterator<OrchestrationWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
+        final List<NamedElement> results = new ArrayList<NamedElement>();
+        
+        while(it.hasNext()) {
+            final OrchestrationWorkflow element = it.next();
+            results.add(NamedElement.createElement(element.getId(), element.getLabel()));
+        }
+        
+        return results;
     }
 
 }

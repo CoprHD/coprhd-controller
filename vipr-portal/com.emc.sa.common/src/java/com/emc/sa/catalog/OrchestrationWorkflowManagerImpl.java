@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 
 
@@ -52,8 +53,8 @@ public class OrchestrationWorkflowManagerImpl implements
     }
     
     @Override
-    public List<URI> list() {
-        return client.orchestrationWorkflows().findAllIds();
+    public List<NamedElement> list() {
+        return client.orchestrationWorkflows().findAllNames();
     }
 
     @Override

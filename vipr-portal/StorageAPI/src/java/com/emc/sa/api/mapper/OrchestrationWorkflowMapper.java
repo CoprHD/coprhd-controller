@@ -17,13 +17,17 @@
 package com.emc.sa.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.io.IOException;
-import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowBulkRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
@@ -58,8 +62,12 @@ public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkfl
         return to;
     }
     
-    public static OrchestrationWorkflowList mapList(List<URI> fromList) {
-        return new OrchestrationWorkflowList(fromList);
+    public static OrchestrationWorkflowList mapList(List<NamedElement> fromList) {
+        List<NamedRelatedResourceRep> resources = new ArrayList<NamedRelatedResourceRep>();
+        for(NamedElement element : fromList) {
+            resources.add(toNamedRelatedResource(ResourceTypeEnum.ORCHESTRATION_WORKFLOW, element.getId(), element.getName()));
+        }
+        return new OrchestrationWorkflowList(resources);
     }
     
     public static OrchestrationWorkflowBulkRep mapBulk(List<OrchestrationWorkflow> workflows) {

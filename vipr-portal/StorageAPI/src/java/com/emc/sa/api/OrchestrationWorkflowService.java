@@ -42,6 +42,7 @@ import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -68,7 +69,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrchestrationWorkflowList getWorkflows() {
-        List<URI> elements = orchestrationWorkflowManager.list();
+        List<NamedElement> elements = orchestrationWorkflowManager.list();
         return mapList(elements);
     }
     

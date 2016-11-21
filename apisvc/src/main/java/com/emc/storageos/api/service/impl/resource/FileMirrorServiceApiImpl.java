@@ -352,9 +352,24 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             sourceFileShare.getMirrorfsTargets().add(targetFileShare.getId().toString());
 
             targetFileShare.setParentFileShare(new NamedURI(sourceFileShare.getId(), sourceFileShare.getLabel()));
+            setMirrorFileShareConfigAttributes(sourceFileShare, targetFileShare);
             _dbClient.updateObject(sourceFileShare);
             _dbClient.updateObject(targetFileShare);
         }
+    }
+
+    /**
+     * Sets the initial configuration values for file replicas
+     * 
+     * @param sourceFileShare
+     * @param targetFileShare
+     */
+    private void setMirrorFileShareConfigAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
+
+        // Set the directory quota values.
+        targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
+        targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
+        targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
     }
 
     /**

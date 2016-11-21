@@ -648,7 +648,9 @@ public class ControllerServiceImpl implements ControllerService {
             if (type.getIsNative() == null ||type.getIsNative() == true) {
                 continue;
             }
-            result.add(it.next());
+            if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
+                result.add(it.next());
+            }
         }
         return result;
     }

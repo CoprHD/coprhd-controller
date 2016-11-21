@@ -1116,7 +1116,7 @@ vmax2_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1171,7 +1171,7 @@ vmax3_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -2282,7 +2282,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020"
+    # failure_injections="failure_004:failure_024"
 
     for failure in ${failure_injections}
     do

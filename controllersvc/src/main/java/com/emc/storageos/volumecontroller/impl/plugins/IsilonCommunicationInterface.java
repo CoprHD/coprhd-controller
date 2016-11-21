@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -79,6 +80,7 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -588,6 +590,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoverAll(accessProfile);
         }
     }
+    
+    
 
     public void discoverAll(AccessProfile accessProfile) throws BaseCollectionException {
         URI storageSystemId = null;
@@ -3300,5 +3304,40 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         }
         return null;
+    }
+    
+    
+    public void getAllMirrorPolices(StorageSystem storageSystem,
+            List<IsilonSyncPolicy> isilonMirorPolices) {
+    	String resumeToken = null;
+    	List<? extends IsilonSyncPolicy> isilonPolices = null;
+    	URI storageSystemId = storageSystem.getId();
+    	
+    	try {
+            _log.info("getAllMirrorPolices for storage system {} - start", storageSystemId);
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+            
+            do {
+            	isilonPolices =  isilonApi.listReplicationPolices(resumeToken);
+            	isilonMirorPolices.addAll(isilonPolices);
+            	
+
+            } while (resumeToken != null);
+            _log.info("discoverd All mirror polices for {} ", storageSystem.getLabel());
+            resumeToken = null;
+            
+    	} catch (IsilonException ie) {
+            _log.error("getAllMirrorPolices failed. Storage system: {}", storageSystemId, ie);
+            @SuppressWarnings("deprecation")
+			IsilonCollectionException ice = new IsilonCollectionException("getAllMirrorPolices failed. Storage system: " + storageSystemId);
+            ice.initCause(ie);
+            throw ice;
+        } catch (Exception e) {
+            _log.error("getAllMirrorPolices failed. Storage system: {}", storageSystemId, e);
+            @SuppressWarnings("deprecation")
+			IsilonCollectionException ice = new IsilonCollectionException("getAllMirrorPolices failed. Storage system: " + storageSystemId);
+            ice.initCause(e);
+            throw ice;
+        }
     }
 }

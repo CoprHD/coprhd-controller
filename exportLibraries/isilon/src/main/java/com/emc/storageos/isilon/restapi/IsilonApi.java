@@ -76,6 +76,7 @@ public class IsilonApi {
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
     private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_SYNCIQ_REPLICATION_POLICES = URI.create("/platform/1/sync/policies");
     private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
     private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
     private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
@@ -1974,6 +1975,9 @@ public class IsilonApi {
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
     }
+    
+        
+   
 
     /**
      * Get Target Replication Policy information from the Isilon array
@@ -2071,6 +2075,18 @@ public class IsilonApi {
     public IsilonList<IsilonSyncPolicyReport> getTargetReplicationPolicyReports(String policyName) throws IsilonException {
         URI uri = URI.create(URI_TARGET_REPLICATION_POLICY_REPORTS.toString() + policyName);
         return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
+    }
+    
+    
+    /**
+     * List all polices
+     * 
+     * @return IsilonList of IsilonSyncPolicy objects
+     * @throws IsilonException
+     */
+    public List<? extends IsilonSyncPolicy> listReplicationPolices(String resumeToken) throws IsilonException {
+    	IsilonList<IsilonSyncPolicy> mirrorPolices = list(_baseUrl.resolve(URI_SYNCIQ_REPLICATION_POLICES), "policies", IsilonSyncPolicy.class, resumeToken);
+    	return mirrorPolices.getList();
     }
 
     private String getURIWithZoneName(String id, String zoneName) {

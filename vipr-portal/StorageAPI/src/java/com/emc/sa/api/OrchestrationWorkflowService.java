@@ -77,7 +77,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrchestrationWorkflowRestRep getWorkflow(@PathParam("id") final URI id) {
-        return map(getOEWorkflow(id));
+        return map(getOrchestrationWorkflow(id));
     }
     
     @POST
@@ -101,7 +101,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     public OrchestrationWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final OrchestrationWorkflowUpdateParam workflow) {  
         final OrchestrationWorkflow updated;
         try {
-            updated = WorkflowHelper.update(getOEWorkflow(id), workflow.getDocument()); 
+            updated = WorkflowHelper.update(getOrchestrationWorkflow(id), workflow.getDocument()); 
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error serializing workflow", e);
         }
@@ -113,7 +113,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
-        orchestrationWorkflowManager.delete(getOEWorkflow(id));
+        orchestrationWorkflowManager.delete(getOrchestrationWorkflow(id));
         
         return Response.ok().build();
     }
@@ -160,7 +160,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
         return new OrchestrationWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance(), filter));
     }
     
-    private OrchestrationWorkflow getOEWorkflow(final URI id) {
+    private OrchestrationWorkflow getOrchestrationWorkflow(final URI id) {
         OrchestrationWorkflow workflow = queryResource(id);
 
         ArgValidator.checkEntityNotNull(workflow, id, true);

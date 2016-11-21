@@ -37,7 +37,7 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
 
 
     @Name(NAME)
-    @AlternateId("OEWorkflowNameIndex")
+    @AlternateId("OrchestrationWorkflowNameIndex")
     public String getName() {
         return name;
     }

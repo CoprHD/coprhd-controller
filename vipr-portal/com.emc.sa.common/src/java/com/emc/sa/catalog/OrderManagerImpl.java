@@ -7,21 +7,20 @@ package com.emc.sa.catalog;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
-import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.uimodels.*;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.vipr.model.catalog.OrderRestRep;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -50,7 +49,7 @@ import com.google.common.collect.Maps;
 @Component
 public class OrderManagerImpl implements OrderManager {
 
-    private static final Logger log = Logger.getLogger(OrderManagerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
 
     @Autowired
     private ModelClient client;
@@ -412,7 +411,44 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
-    public void deleteOrder(Order order) {
+    public void deleteOrder(URI orderId) {
+        Order order = getOrderById(orderId);
+        log.info("lbyh0 order={}", order);
+
+        ArgValidator.checkEntity(order, orderId, true);
+
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
+        }
+
+        log.info("lbyh0: orderID={}", orderId);
+
+        List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
+        log.info("lbyh0: approvalRequests={}", approvalRequests);
+        client.delete(approvalRequests);
+
+        List<OrderParameter> orderParameters = getOrderParameters(orderId);
+        log.info("lbyh0: orderParameters={}", orderParameters);
+        client.delete(orderParameters);
+
+        URI executionStateId = order.getExecutionStateId();
+        ExecutionState state = client.getModelClient().findById(ExecutionState.class, executionStateId);
+
+        StringSet logIds = state.getLogIds();
+        log.info("lbyh0 logIds={}", logIds);
+        for (String logId : logIds) {
+            URI id = null;
+            try {
+                id = new URI(logId);
+            }catch(URISyntaxException e) {
+                log.error("lbyh0 e=",e);
+                continue;
+            }
+            ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
+            client.delete(log);
+        }
+        client.delete(state);
+
         client.delete(order);
     }
 

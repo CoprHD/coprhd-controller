@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.PostConstruct;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -41,18 +40,11 @@ import com.emc.sa.engine.scheduler.SchedulerDataManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
-import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
-import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -465,7 +457,8 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            orderManager.deleteOrder(order);
+            //orderManager.deleteOrder(order);
+            orderManager.deleteOrder(order.getId());
         }
 
         return Response.ok().build();
@@ -728,14 +721,22 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deactivateOrder(@PathParam("id") URI id) throws DatabaseException {
+        log.info("lbyh0: id={}", id);
+
         Order order = queryResource(id);
+        log.info("lbyh0 order={}", order);
+
+        /*
         ArgValidator.checkEntity(order, id, true);
 
         if (order.getScheduledEventId()!=null) {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
+        */
 
-        orderManager.deleteOrder(order);
+        log.info("lbyh0");
+        //orderManager.deleteOrder(order);
+        orderManager.deleteOrder(id);
 
         auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());
 

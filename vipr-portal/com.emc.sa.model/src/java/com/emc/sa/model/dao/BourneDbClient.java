@@ -313,9 +313,12 @@ public class BourneDbClient implements DBClientWrapper {
 
     @Override
     public <T extends DataObject> void delete(List<T> models) throws DataAccessException {
+        /*
         for (T model : models) {
             delete(model);
         }
+        */
+        getDbClient().markForDeletion(models);
     }
 
     public void setDbClient(DbClient dbClient) {

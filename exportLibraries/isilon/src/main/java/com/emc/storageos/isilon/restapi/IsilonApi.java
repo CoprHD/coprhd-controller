@@ -1446,9 +1446,11 @@ public class IsilonApi {
             fspath = fspath.substring(1);// remove '/' prefix
             fspath = URLEncoder.encode(fspath, "UTF-8");
             fspath = fspath.concat("?acl");// add suffix ?acl
+
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
     }
 

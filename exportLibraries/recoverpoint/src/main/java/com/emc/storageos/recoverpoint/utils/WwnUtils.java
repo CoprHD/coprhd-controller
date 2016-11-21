@@ -119,7 +119,7 @@ public class WwnUtils {
      * @return true if it's fairly valid
      */
     public static boolean isValidEndpoint(String wwnString) {
-        if (wwnString.length() < 16) {
+        if (wwnString != null && wwnString.length() < 16) {
             return false;
         }
 
@@ -128,11 +128,10 @@ public class WwnUtils {
                 .compile("^([0-9a-fA-F:])*");
 
         Matcher matcher = pattern.matcher(wwnString);
-        boolean found = false;
         while (matcher.find()) {
-            found = true;
+            return true;
         }
-        return found;
+        return false;
     }
 
 }

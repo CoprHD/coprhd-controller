@@ -1059,7 +1059,7 @@ public class TenantsService extends TaggedResource {
         host.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
         _dbClient.createObject(host);
         recordTenantResourceOperation(OperationTypeEnum.CREATE_HOST, tid, host);
-        return hostService.doDiscoverHost(host);
+        return hostService.doDiscoverHost(host, null);
     }
 
     /**

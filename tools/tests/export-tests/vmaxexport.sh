@@ -1583,6 +1583,85 @@ test_30() {
     runcmd hosts delete $HOST5
 }
 
+# Export Test 34
+#
+# Consistent Cluster HLU
+#
+#Greenfield:
+# CLUSTER initially with 2 hosts (HOST1 and HOST2)
+# Step-1: Export 2 volumes to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
+# Step-3: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
+# Step-4: Delete the private volume from HOST1 exported in step-2
+# Step-5: Remove HOST3 from cluster
+# Step-6: Remove one shared volume from cluster exported in Step-1
+# Step-7: Export new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU. Also HLU should be same as that was assigned in step-2
+# Step-8: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-9: Export new volume to the cluster. Result: All hosts in the cluster including new host sees the volume with same HLU
+# Step-10: Export a volume to the cluster by specifying HLU. Result: All hosts in the cluster sees the volume with specified HLU
+# Step-11: Export a volume to subset of hosts in cluster (exclusive export to HOST1 and HOST2). Result: HLU assigned should be same for both the hosts
+#
+# EG1:  CLUSTER (HOST1, HOST2, HOST3)
+# EG2:  HOST1
+# EG3:  HOST2
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+# HOST2
+#
+test_34() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 34 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 34 Begins - Consistent HLU"
+    expname=${EXPORT_GROUP_NAME}t31
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 -x- 6 2 1,2
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST1}"
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 3
+    runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-4 --hosts "${HOST2}"
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 3
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} gone
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST3}"
+    verify_export ${expname}1 -x- 4 2 1,2
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+    verify_export ${expname}1 -x- 4 1 1
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+    verify_export ${expname}1 -x- 4 2 1,2
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-5"
+    verify_export ${expname}1 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST2} 2 1 4
+# TODO specify HLU in request
+    runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-6"
+    verify_export ${expname}1 -x- 6 4 1,2,3,5
+    verify_export ${expname}3 ${HOST2} 2 1 4
+# TODO Step-11
+    echo ""
+
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 -x- gone
+    verify_export ${expname}3 ${HOST2} 2 1 4
+    runcmd export_group delete $PROJECT/${expname}3
+    verify_export ${expname}1 -x- gone
+    verify_export ${expname}3 ${HOST2} gone
+}
+
 # We will verify the ability to set and get Initiator aliases.
 # The pre-requisites are to have the IG already created on the Array with the required initiator in it.
 #
@@ -1726,6 +1805,7 @@ test_27;
 test_28;
 test_29;
 test_30;
+test_34;
 aliastest;
 cleanup;
 finish

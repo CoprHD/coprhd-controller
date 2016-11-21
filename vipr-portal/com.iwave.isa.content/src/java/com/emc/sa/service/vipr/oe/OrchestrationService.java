@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.EvaluationContext;
@@ -42,6 +44,8 @@ import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.tasks.OeTaskResult;
+import com.emc.sa.service.vipr.oe.tasks.RunAnsible;
 import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -140,14 +144,14 @@ public class OrchestrationService extends ViPRService {
             String result = null;
 
             StepType type = StepType.fromString(step.getType());
-            Primitive primitive = PrimitiveHelper.get(step.getOperation());
-            if( null == primitive) {
-                //TODO fail workflow
-                throw new IllegalStateException("Primitive not found: " + step.getOperation());
-            }
             switch (type) {
                 case VIPR_REST: {
                     ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName: " + step.getOperation() + inputPerStep.get(step.getId()));
+            	    Primitive primitive = PrimitiveHelper.get(step.getOperation());
+                    if( null == primitive) {
+                    	//TODO fail workflow
+                	throw new IllegalStateException("Primitive not found: " + step.getOperation());
+            	    }
                     result = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive)(primitive), getClient().getRestClient(), inputPerStep.get(step.getId())));
 
                     break;
@@ -158,7 +162,9 @@ public class OrchestrationService extends ViPRService {
                 }
                 case ANSIBLE: {
                     ExecutionUtils.currentContext().logInfo("Running Ansible Step");
-                    result = ViPRExecutionUtils.execute(new RunAnsible((String)params.get("name"), inputPerStep.get(step.getStepId())));
+                    OeTaskResult res = ViPRExecutionUtils.execute(new RunAnsible((String)params.get("name"), inputPerStep.get(step.getId())));
+
+		    result = res.getOut();
                     break;
                 }
                 default:
@@ -359,7 +365,7 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             String value = output.get(key);
-	    if (step.getType().equals(StepType.ANSIBLE.toString())
+	    if (step.getType().equals(StepType.ANSIBLE.toString()))
                 out.put(key, evaluateAnsibleOut(result, key));
 	    else 
             	out.put(key, evaluateValue(result, value));

@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * Created by sonalisahu on 10/21/16.
  */
-public class RunAnsible  extends ViPRExecutionTask<String> {
+public class RunAnsible  extends ViPRExecutionTask<OeTaskResult> {
 private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
     private String name;
     private Map<String, List<String>> input;
@@ -28,7 +28,7 @@ private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsibl
     }
 
     @Override
-    public String executeTask() throws Exception {
+    public OeTaskResult executeTask() throws Exception {
 
         //ansible-playbook -i "localhost" release.yml --extra-vars "version=1.23.45 other_variable=foo"
 
@@ -41,20 +41,15 @@ private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsibl
         //CommandOutput result = exec.executeCommand(new Command("ansible-playbook -i " + "" + name+".yml" + "--extra-vars " + extra_vars));
         ExecutionUtils.currentContext().logInfo("Done Executing Ansible WF Step. Operation:" + name);
 
-        AnsibleResult res = new AnsibleResult();
-        res.setResult(
-        result.getExitValue(),
-        result.getStdOutput(),
-        result.getStdError());
+        OeTaskResult res= new OeTaskResult();
+        res.setReturnCode(result.getExitValue());
+        res.setOut(result.getStdOutput());
+        res.setErr(result.getStdError());
 
-        SuccessCriteria o = new SuccessCriteria();
-        o.setReturnCode(response.getStatus());
-
-        return result.getStdOutput();
+        return res;
     }
 
-    private String makeExtraArg(Map<String, List<String>> input) throws Exception
-  {
+    private String makeExtraArg(Map<String, List<String>> input) throws Exception {
         String extra_vars = "\"";
         Set s = input.keySet();
 

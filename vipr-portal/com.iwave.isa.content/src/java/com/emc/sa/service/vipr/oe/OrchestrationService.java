@@ -334,6 +334,24 @@ public class OrchestrationService extends ViPRService {
         return true;
 
     }
+    private List<String> evaluateAnsibleOut(String result, String key) throws Exception
+    {
+        final List<String> out = new ArrayList<String>();
+
+        final JsonNode arrNode = new ObjectMapper().readTree(result).get(key);
+
+        if (arrNode.isNull())
+            throw new IllegalStateException("Could not parse the output" + key);
+
+        if (arrNode.isArray()) {
+            for (final JsonNode objNode : arrNode) {
+                logger.info("output val is:{}", objNode);
+                out.add(objNode.toString());
+            }
+        }
+
+        return out;
+    }
     
 
     /**
@@ -359,7 +377,10 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             String value = output.get(key);
-            out.put(key, evaluateValue(result, value));
+	    if (step.getType().equals(StepType.ANSIBLE.toString())
+                out.put(key, evaluateAnsibleOut(result, key));
+	    else 
+            	out.put(key, evaluateValue(result, value));
         }
 
         outputPerStep.put(step.getStepId(), out);

@@ -47,7 +47,10 @@ private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsibl
         result.getStdOutput(),
         result.getStdError());
 
-        return Integer.toString(result.getExitValue());
+        SuccessCriteria o = new SuccessCriteria();
+        o.setReturnCode(response.getStatus());
+
+        return result.getStdOutput();
     }
 
     private String makeExtraArg(Map<String, List<String>> input) throws Exception
@@ -81,25 +84,4 @@ private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsibl
             this.err = err;               
         }       
     }
-
-    public static class AnsibleTask extends LinuxExecutionTask<Void> {
-        private AnsibleCommand command;
-
-        public AnsibleTask(final AnsibleCommand command) {
-            this.command = command;
-        }
-        @Override
-        public void execute() {
-            executeCommand(command);
-        }
-    }
-
-    public static class AnsibleCommand extends LinuxCommand {
-        public AnsibleCommand(final String name) {
-            setCommand("ansible-playbook");
-            addArgument(name);
-            setRunAsRoot(true);
-        }
-    }
-
 }

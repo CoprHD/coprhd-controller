@@ -2974,10 +2974,10 @@
         value : "", 
     },
     {
-        key : "artificial_failure_counter",
-        label : "internal failure counter",
-        description : "Used in conjunction with artificial_failure to count the occurrences of a particular invoked failure.  Internal Option Only.",
-        type : "uint32",
+        key : "artificial_failure_counter_reset",
+        label : "internal failure counter reset",
+        description : "Used in conjunction with artificial_failure to reset the occurrence count of a particular invoked failure.  Internal Option Only.",
+        type : "boolean",
         userConfigurable : false,
         userMutable : true,
         hidden : true,
@@ -2986,7 +2986,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "0",
+        value : "true",
     },
     {
         key : "controller_file_operations_lock_timeout",

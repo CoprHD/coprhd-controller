@@ -67,7 +67,9 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         IS_SNAP_SHOT("Snapshot"),
         IS_THINLY_PROVISIONED("isThinlyProvisioned"),
         IS_INGESTABLE("IsIngestable"),
-        IS_FILESYSTEM_EXPORTED("isFileSystemExported");
+        IS_FILESYSTEM_EXPORTED("isFileSystemExported"),
+    	IS_LOCAL_MIRROR("localMirror"),
+        REMOTE_MIRRORING("remoteMirror");
 
         private String _charactersticsKey;
 
@@ -104,7 +106,18 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         NAME("FSName"),
         PATH("FSPath"),
         NAS("NasUri"),
-        MOUNT_PATH("FSMountPath");
+        MOUNT_PATH("FSMountPath"),
+    	
+    	// mirror related attributes
+        MIRRORS("mirrors"),
+        SYNC_STATE("syncState"),
+        SYNC_TYPE("syncType"),
+        // for remote replication to identify the source and target
+        MIRROR_UNMANAGED_TARGET_FILESYSTEMS("mirrorUnManagedTargetFileSystems"),
+        MIRROR_MANAGED_TARGET_FILESYSTEMS("mirrorManagedTargetFileSystems"),
+        MIRROR_UNMANAGED_SOURCE_FILESYSTEMS("mirrorUnManagedSourceFileSystem"),
+        MIRROR_MANAGED_SOURCE_FILESYSTEMS("mirrorManagedSourceFileSystem");
+    	
         private String _infoKey;
 
         SupportedFileSystemInformation(String infoKey) {

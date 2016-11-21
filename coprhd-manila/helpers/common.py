@@ -24,17 +24,32 @@ from requests.exceptions import SSLError
 from requests.exceptions import ConnectionError
 from requests.exceptions import TooManyRedirects
 from requests.exceptions import Timeout
-import cookielib
+try:
+    import cookielib as cookie_lib
+except ImportError:
+    import http.cookiejar as cookie_lib
+
+
+
 import xml.dom.minidom
 import getpass
 from xml.etree import ElementTree
 from threading import Timer
 
-from urihelper import singletonURIHelperInstance
+from manila.share.drivers.coprhd.helpers.urihelper import singletonURIHelperInstance
+
+
+import oslo_serialization
+from oslo_utils import timeutils
+from oslo_utils import units
+import requests
+from requests import exceptions
+import six
 
 from manila import exception
 from manila.i18n import _
 from manila.share.drivers.coprhd.helpers import urihelper
+
 
 
 PROD_NAME = 'storageos'
@@ -46,6 +61,9 @@ TIMEOUT_SEC = 20  # 20 SECONDS
 OBJCTRL_INSECURE_PORT = '9010'
 OBJCTRL_PORT = '4443'
 IS_TASK_TIMEOUT = False
+
+global AUTH_TOKEN
+AUTH_TOKEN = None
 
 
 def _decode_list(data):
@@ -115,227 +133,146 @@ def xml_decode(rsp):
     return o
 
 
-def service_json_request(ip_addr, port, http_method, uri, body, token=None,
-                         xml=False, contenttype='application/json',
-                         filename=None, customheaders=None):
-    '''
-    Used to make an HTTP request and get the response.
-    The message body is encoded in JSON format.
-    Parameters:
-        ip_addr: IP address or host name of the server
-        port: port number of the server on which it
+def service_json_request(ip_addr, port, http_method, uri, body,
+                         contenttype='application/json', customheaders=None):
+    """Used to make an HTTP request and get the response.
+
+    The message body is encoded in JSON format
+
+    :param ip_addr: IP address or host name of the server
+    :param port: port number of the server on which it
             is listening to HTTP requests
-        http_method: one of GET, POST, PUT, DELETE
-        uri: the request URI
-        body: the request payload
-    Returns:
-        a tuple of two elements: (response body, response headers)
-    Throws: SOSError in case of HTTP errors with err_code 3
-    '''
-    global COOKIE
+    :param http_method: one of GET, POST, PUT, DELETE
+    :param uri: the request URI
+    :param body: the request payload
+    :returns: a tuple of two elements: (response body, response headers)
+    :raises: CoprHdError in case of HTTP errors with err_code 3
+    """
 
     SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
 
-    if (xml):
-        headers = {'Content-Type': contenttype,
-                   'ACCEPT': 'application/xml, application/octet-stream',
-                   'X-EMC-REST-CLIENT': 'TRUE'}
-    else:
-        headers = {'Content-Type': contenttype,
-                   'ACCEPT': 'application/json, application/octet-stream',
-                   'X-EMC-REST-CLIENT': 'TRUE'}
+    headers = {'Content-Type': contenttype,
+               'ACCEPT': 'application/json, application/octet-stream',
+               'X-EMC-REST-CLIENT': 'TRUE'}
 
-    if(customheaders):
+    if customheaders:
         headers.update(customheaders)
 
-    if (token):
-        if ('?' in uri):
-            uri += '&requestToken=' + token
-        else:
-            uri += '?requestToken=' + token
-
     try:
-
-        cookiefile = COOKIE
-        form_cookiefile = None
-        if (cookiefile is None):
-            install_dir = getenv('VIPR_CLI_INSTALL_DIR')
-            if (install_dir is None):
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               "VIPR_CLI_INSTALL_DIR is not set." +
-                               " Please execute viprcli.profile\n")
-            if sys.platform.startswith('linux'):
-                parentshellpid = os.getppid()
-                if (parentshellpid is not None):
-                    form_cookiefile = install_dir + '/cookie/' + \
-                        str(parentshellpid)
-                else:
-                    form_cookiefile = install_dir + '/cookie/cookiefile'
-            elif sys.platform.startswith('win'):
-                form_cookiefile = install_dir + '\\cookie\\cookiefile'
-            else:
-                form_cookiefile = install_dir + '/cookie/cookiefile'
-        if (form_cookiefile):
-            cookiefile = form_cookiefile
-            if (not os.path.exists(cookiefile)):
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               cookiefile + " : Cookie not found :" +
-                               " Please authenticate again")
-            fd = open(cookiefile, 'r')
-            if (fd):
-                fd_content = fd.readline().rstrip()
-                if(fd_content):
-                    cookiefile = fd_content
-                else:
-                    raise SOSError(SOSError.NOT_FOUND_ERR,
-                                   cookiefile + " : Failed to retrive" +
-                                   " the cookie file")
-            else:
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               cookiefile + " : read failure\n")
-        #cli support for api version
         protocol = "https://"
-        if(str(port) == '8080'):
-            protocol = "http://"        
-        url = protocol + ip_addr + ":" + str(port) + uri
+        if port == 8080:
+            protocol = "http://"
+        url = protocol + ip_addr + ":" + six.text_type(port) + uri
 
-        cookiejar = cookielib.LWPCookieJar()
-        if (cookiefile):
-            if (not os.path.exists(cookiefile)):
-                raise SOSError(SOSError.NOT_FOUND_ERR, cookiefile + " : " +
-                               "Cookie not found : Please authenticate again")
-            if (not os.path.isfile(cookiefile)):
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               cookiefile + " : Not a cookie file")
-            # cookiejar.load(cookiefile, ignore_discard=True,
-            # ignore_expires=True)
-            tokenfile = open(cookiefile)
-            token = tokenfile.read()
-            tokenfile.close()
-        else:
-            raise SOSError(SOSError.NOT_FOUND_ERR,
-                           cookiefile + " : Cookie file not found")
+        cookiejar = cookie_lib.LWPCookieJar()
+        headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
-        headers[SEC_AUTHTOKEN_HEADER] = token
-
-
-        if (http_method == 'GET'):
-            '''when the GET request is specified with a filename, we write
-               the contents of the GET request to the filename. This option
-               generally is used when the contents to be returned are large.
-               So, rather than getting all the data at once we Use
-               stream=True for the purpose of streaming. Stream = True
-               means we can stream data'''
-            if(filename):
-                response = requests.get(url, stream=True, headers=headers,
-                                    verify=False, cookies=cookiejar)
-
-            else:
-                response = requests.get(url, headers=headers, verify=False,
-                                        cookies=cookiejar)
-
-            if(filename):
-                try:
-                    with open(filename, 'wb') as fp:
-                        while(True):
-                            chunk = response.raw.read(100)
-
-                            if not chunk:
-                                break
-                            fp.write(chunk)
-                except IOError as e:
-                    raise SOSError(e.errno, e.strerror)
-
-        elif (http_method == 'POST'):
-            if(filename):
-                with open(filename, "rb") as f:
-                    response = requests.post(url, data=f, headers=headers,
-                                             verify=False, cookies=cookiejar)
-            else:
-                response = requests.post(url, data=body, headers=headers,
-                                         verify=False, cookies=cookiejar)
-        elif (http_method == 'PUT'):
+        if http_method == 'GET':
+            response = requests.get(url, headers=headers, verify=False,
+                                    cookies=cookiejar)
+        elif http_method == 'POST':
+            response = requests.post(url, data=body, headers=headers,
+                                     verify=False, cookies=cookiejar)
+        elif http_method == 'PUT':
             response = requests.put(url, data=body, headers=headers,
                                     verify=False, cookies=cookiejar)
-        elif (http_method == 'DELETE'):
+        elif http_method == 'DELETE':
 
             response = requests.delete(url, headers=headers, verify=False,
                                        cookies=cookiejar)
         else:
-            raise SOSError(SOSError.HTTP_ERR,
-                           "Unknown/Unsupported HTTP method: " + http_method)
+            raise CoprHdError(CoprHdError.HTTP_ERR,
+                              (_("Unknown/Unsupported HTTP method: %s") %
+                               http_method))
 
-        if((response.status_code == requests.codes['ok']) or
-           (response.status_code == 202)):
-                return (response.text, response.headers)
-        else:
-            error_msg = None
-            if(response.status_code == 500):
-                responseText = json_decode(response.text)
-                errorDetails = ""
-                if('details' in responseText):
-                    errorDetails = responseText['details']
-                error_msg = "ViPR internal server error. Error details: " + \
-                    errorDetails
-            elif(response.status_code == 401):
-                error_msg = "Access forbidden: Authentication required"
-            elif(response.status_code == 403):
-                error_msg = ""
-                errorDetails = ""
-                errorDescription = ""
+        if (response.status_code == requests.codes['ok'] or
+                response.status_code == 202):
+            return (response.text, response.headers)
 
-                responseText = json_decode(response.text)
+        error_msg = None
+        if response.status_code == 500:
+            response_text = json_decode(response.text)
+            error_details = ""
+            if 'details' in response_text:
+                error_details = response_text['details']
+            error_msg = (_("CoprHD internal server error. Error details: %s"),
+                         error_details)
+        elif response.status_code == 401:
+            error_msg = _("Access forbidden: Authentication required")
+        elif response.status_code == 403:
+            error_msg = ""
+            error_details = ""
+            error_description = ""
 
-                if('details' in responseText):
-                    errorDetails = responseText['details']
-                    error_msg = error_msg + "Error details: " + errorDetails
-                elif('description' in responseText):
-                    errorDescription = responseText['description']
-                    error_msg = error_msg + "Error description: " + \
-                        errorDescription
-                else:
-                    error_msg = "Access forbidden: You don't have" + \
-                        " sufficient privileges to perform this operation"
+            response_text = json_decode(response.text)
 
-            elif(response.status_code == 404):
-                error_msg = "Requested resource not found"
-            elif(response.status_code == 405):
-                error_msg = str(response.text)
-            elif response.status_code == 503:
-                error_msg = ""
-                errorDetails = ""
-                errorDescription = ""
-
-                responseText = json_decode(response.text)
-
-                if 'code' in responseText:
-                    errorCode = responseText['code']
-                    error_msg = error_msg + "Error " + str(errorCode)
-
-                if 'details' in responseText:
-                    errorDetails = responseText['details']
-                    error_msg = error_msg + ": " + errorDetails
-                elif 'description' in responseText:
-                    errorDescription = responseText['description']
-                    error_msg = error_msg + ": " + errorDescription
-                else:
-                    error_msg = "Service temporarily unavailable: The server" + \
-                                " is temporarily unable to service your request"
+            if 'details' in response_text:
+                error_details = response_text['details']
+                error_msg = (_("%(error_msg)s Error details:"
+                               " %(error_details)s"),
+                             {'error_msg': error_msg,
+                              'error_details': error_details
+                              })
+            elif 'description' in response_text:
+                error_description = response_text['description']
+                error_msg = (_("%(error_msg)s Error description:"
+                               " %(error_description)s"),
+                             {'error_msg': error_msg,
+                              'error_description': error_description
+                              })
             else:
-                error_msg = response.text
-                if isinstance(error_msg, unicode):
-                    error_msg = error_msg.encode('utf-8')
-            raise SOSError(SOSError.HTTP_ERR, "HTTP code: " +
-                           str(response.status_code) +
-                           ", " + response.reason + " [" + error_msg + "]")
+                error_msg = _("Access forbidden: You don't have"
+                              " sufficient privileges to perform this"
+                              " operation")
 
-    except (SOSError, socket.error, SSLError,
-            ConnectionError, TooManyRedirects, Timeout) as e:
-        raise SOSError(SOSError.HTTP_ERR, str(e))
-    # TODO : Either following exception should have proper message or IOError
-    # should just be combined with the above statement
+        elif response.status_code == 404:
+            error_msg = "Requested resource not found"
+        elif response.status_code == 405:
+            error_msg = six.text_type(response.text)
+        elif response.status_code == 503:
+            error_msg = ""
+            error_details = ""
+            error_description = ""
+
+            response_text = json_decode(response.text)
+
+            if 'code' in response_text:
+                errorCode = response_text['code']
+                error_msg = "Error " + six.text_type(errorCode)
+
+            if 'details' in response_text:
+                error_details = response_text['details']
+                error_msg = error_msg + ": " + error_details
+            elif 'description' in response_text:
+                error_description = response_text['description']
+                error_msg = error_msg + ": " + error_description
+            else:
+                error_msg = _("Service temporarily unavailable:"
+                              " The server is temporarily unable to"
+                              " service your request")
+        else:
+            error_msg = response.text
+            if isinstance(error_msg, unicode):
+                error_msg = error_msg.encode('utf-8')
+        raise CoprHdError(CoprHdError.HTTP_ERR,
+                          (_("HTTP code: %(status_code)s"
+                             ", %(reason)s"
+                             " [%(error_msg)s]") % {
+                              'status_code': six.text_type(
+                                  response.status_code),
+                              'reason': six.text_type(
+                                  response.reason),
+                              'error_msg': six.text_type(
+                                  error_msg)
+                          }))
+    except (CoprHdError, socket.error, exceptions.SSLError,
+            exceptions.ConnectionError, exceptions.TooManyRedirects,
+            exceptions.Timeout) as e:
+        raise CoprHdError(CoprHdError.HTTP_ERR, six.text_type(e))
+    # TODO(Ravi) : Either following exception should have proper message or
+    # IOError should just be combined with the above statement
     except IOError as e:
-        raise SOSError(SOSError.HTTP_ERR, str(e))
+        raise CoprHdError(CoprHdError.HTTP_ERR, six.text_type(e))
 
 
 def is_uri(name):
@@ -448,7 +385,7 @@ def get_formatted_time_string(year, month, day, hour, minute):
 
 def to_bytes(in_str):
     """
-    Converts a size to bytes
+s    Converts a size to bytes
     Parameters:
         in_str - a number suffixed with a unit: {number}{unit}
                 units supported:
@@ -802,7 +739,7 @@ def search_by_project_and_name(projectName, componentName, searchUri,
         if(strUri.__contains__("search") and
            strUri.__contains__("?project=") and strUri.__contains__("&name=")):
             # Get the project URI
-            from project import Project
+            from manila.share.drivers.coprhd.helpers.project import Project
             proj_obj = Project(ipAddr, port)
             project_uri = proj_obj.project_query(projectName)
 
@@ -837,7 +774,7 @@ def search_by_project(projectName, resourceSearchUri, ipAddr, port):
         strUri = str(resourceSearchUri)
         if(strUri.__contains__("search") and strUri.__contains__("?project=")):
             # Get the project URI
-            from project import Project
+            from manila.share.drivers.coprhd.helpers.project import Project
             proj_obj = Project(ipAddr, port)
             project_uri = proj_obj.project_query(projectName)
 
@@ -1233,7 +1170,7 @@ class dict2xml(object):
 
 from itertools import groupby
 from xml.dom.minidom import parseString
-from common import dict2xml
+
 
 
 class TableGenerator(object):
@@ -1363,90 +1300,10 @@ class TableGenerator(object):
                 self.width[index] = \
                     len(row[index].replace("\n", "").strip(" ")) + 1
 
-    def s3_hmac_base64_sig(self, method, bucket, objname, uid, secret,
-                           content_type, _headers, parameters_to_sign=None):
-        '''
-        calculate the signature for S3 request
 
-         StringToSign = HTTP-Verb + "\n" +
-         * Content-MD5 + "\n" +
-         * Content-Type + "\n" +
-         * Date + "\n" +
-         * CanonicalizedAmzHeaders +
-         * CanonicalizedResource
-        '''
-        buf = ""
-        # HTTP-Verb
-        buf += method + "\n"
-
-        # Content-MD5, a new line is needed even if it does not exist
-        md5 = self._headers.get('Content-MD5')
-        if md5 is not None:
-            buf += md5
-        buf += "\n"
-
-        # Content-Type, a new line is needed even if it does not exist
-        if content_type is not None:
-            buf += content_type
-        buf += "\n"
-
-        # Date, it should be removed if "x-amz-date" is set
-        if self._headers.get("x-amz-date") is None:
-            date = self._headers.get('Date')
-            if date is not None:
-                buf += date
-        buf += "\n"
-
-        # CanonicalizedAmzHeaders, does not support multiple headers
-        # with same name
-        canonicalizedAmzHeaders = []
-        for header in self._headers.keys():
-            if header.startswith("x-amz-"):
-                canonicalizedAmzHeaders.append(header)
-
-        canonicalizedAmzHeaders.sort()
-
-        for name in canonicalizedAmzHeaders:
-            buf += name + ":" + self._headers[name] + "\n"
-
-        # CanonicalizedResource represents the Amazon S3 resource targeted
-        # by the request.
-        buf += "/"
-        if bucket is not None:
-            buf += bucket
-        if objname is not None:
-            buf += "/" + objname
-
-        if parameters_to_sign is not None:
-            para_names = sorted(parameters_to_sign.keys())
-            separator = '?'
-            for name in para_names:
-                value = parameters_to_sign[name]
-                buf += separator
-                buf += name
-                if value is not None and value != "":
-                    buf += "=" + value
-                separator = '&'
-
-        buf = buf.encode('UTF-8')
-        if BOURNE_DEBUG == '1':
-            print 'message to sign with secret[%s]: %s\n' % (secret, buf)
-        macer = hmac.new(secret.encode('UTF-8'), buf, hashlib.sha1)
-
-        signature = base64.b64encode(macer.digest())
-        if BOURNE_DEBUG == '1':
-            print "calculated signature:" + signature
-
-        # The signature
-        _headers['Authorization'] = 'AWS ' + uid + ':' + signature
-
-        return _headers
-
-    def _computeMD5(self, value):
-        m = hashlib.md5()
-        if value is not None:
-            m.update(value)
-        return m.hexdigest()
+    
+    
+    
     
 class CoprHdError(exception.ShareBackendException):
 
@@ -1482,4 +1339,8 @@ class CoprHDResource(object):
         """
         self.ipaddr = ipaddr
         self.port = port
+
+
+
     
+

@@ -7,16 +7,14 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
-import fileshare
-import tag
-import volume
-import consistencygroup
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
+import manila.share.drivers.coprhd.helpers.fileshare
+import manila.share.drivers.coprhd.helpers.tag
 import json
 import time
 from threading import Timer
-from manila.share.drivers.coprhd.helpers.commoncoprhdapi import SOSError
-from tenant import Tenant
+from manila.share.drivers.coprhd.helpers.common import SOSError
+from manila.share.drivers.coprhd.helpers.tenant import Tenant
 
 
 class Schedulepolicy(object):
@@ -236,7 +234,7 @@ def policy_list(args):
     try:
         res = obj.policy_list(args.tenant)
         if res:
-            from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+            from manila.share.drivers.coprhd.helpers.common import TableGenerator
             TableGenerator(res, ['name']).printTable()
 
     except SOSError as e:

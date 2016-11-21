@@ -25,7 +25,7 @@ from requests import exceptions
 import six
 
 from manila.i18n import _
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi as common
+from manila.share.drivers.coprhd.helpers import common
 
 
 class Authentication(common.CoprHDResource):

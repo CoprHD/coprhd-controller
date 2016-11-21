@@ -8,9 +8,9 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
 import json
-from manila.share.drivers.coprhd.helpers.commoncoprhdapi import SOSError
+from manila.share.drivers.coprhd.helpers.common import SOSError
 import quota
 
 
@@ -279,7 +279,7 @@ class Tenant(object):
                     #cos_uri = obj.objectvpool_query(cos)
 
                 if(project):
-                    from project import Project
+                    from manila.share.drivers.coprhd.helpers.project import Project
                     obj = Project(self.__ipAddr, self.__port)
 
                     qualifiedname = project
@@ -439,7 +439,7 @@ class Tenant(object):
         
         '''
         nsstsystem_uri = None
-        from storagesystem import StorageSystem
+        from manila.share.drivers.coprhd.helpers.storagesystem import StorageSystem
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
@@ -457,7 +457,7 @@ class Tenant(object):
         
         '''
         nsstsystem_uri = None
-        from storagesystem import StorageSystem
+        from manila.share.drivers.coprhd.helpers.storagesystem import StorageSystem
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
@@ -490,7 +490,7 @@ class Tenant(object):
 
         o = commoncoprhdapi.json_decode(s)
 
-        from host import Host
+        from manila.share.drivers.coprhd.helpers.host import Host
         obj = Host(self.__ipAddr, self.__port)
 
         hostsdtls = obj.show(o['host'])
@@ -513,7 +513,7 @@ class Tenant(object):
 
         o = commoncoprhdapi.json_decode(s)
 
-        from cluster import Cluster
+        from manila.share.drivers.coprhd.helpers.cluster import Cluster
         obj = Cluster(self.__ipAddr, self.__port)
 
         dtlslst = obj.cluster_get_details_list(o['cluster'])
@@ -536,7 +536,7 @@ class Tenant(object):
 
         o = commoncoprhdapi.json_decode(s)
 
-        from vcenter import VCenter
+        from manila.share.drivers.coprhd.helpers.vcenter import VCenter
         obj = VCenter(self.__ipAddr, self.__port)
 
         dtlslst = obj.vcenter_get_details_list(o['vcenter'])
@@ -552,7 +552,7 @@ class Tenant(object):
 
         # update quota
         if(quota_enable is not None or quota_gb is not None):
-            from quota import Quota
+            from manila.share.drivers.coprhd.helpers.quota import Quota
             quota_obj = Quota(self.__ipAddr, self.__port)
             quota_obj.update(quota_enable, quota_gb, "tenant", tenant_id)
 
@@ -983,7 +983,7 @@ def tenant_query(args):
 def tenant_list(args):
     obj = Tenant(args.ip, args.port)
 
-    from quota import Quota
+    from manila.share.drivers.coprhd.helpers.quota import Quota
     quota_obj = Quota(args.ip, args.port)
 
     try:
@@ -1010,7 +1010,7 @@ def tenant_list(args):
             if(args.verbose):
                 return commoncoprhdapi.format_json_object(output)
             elif(args.long):
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(
                     output,
                     ['module/name',
@@ -1018,7 +1018,7 @@ def tenant_list(args):
                      'quota_gb',
                      'description']).printTable()
             else:
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(output, ['module/name']).printTable()
     except SOSError as e:
         if(e.err_code == SOSError.NOT_FOUND_ERR):
@@ -1095,7 +1095,7 @@ def get_tenant_hosts(args):
             if(args.verbose):
                 return commoncoprhdapi.format_json_object(res)
             elif(args.long):
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(
                     res,
                     ['name',
@@ -1103,7 +1103,7 @@ def get_tenant_hosts(args):
                      'job_discovery_status',
                      'job_metering_status']).printTable()
             else:
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(res, ['name']).printTable()
 
     except SOSError as e:
@@ -1121,10 +1121,10 @@ def get_tenant_clusters(args):
             if(args.verbose):
                 return commoncoprhdapi.format_json_object(res)
             elif(args.long):
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(res, ['name']).printTable()
             else:
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(res, ['name']).printTable()
 
     except SOSError as e:
@@ -1141,7 +1141,7 @@ def get_tenant_vcenters(args):
             if(args.verbose):
                 return commoncoprhdapi.format_json_object(res)
             elif(args.long):
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(
                     res,
                     ['name',
@@ -1149,7 +1149,7 @@ def get_tenant_vcenters(args):
                      'job_discovery_status',
                      'job_metering_status']).printTable()
             else:
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(res, ['name']).printTable()
 
     except SOSError as e:

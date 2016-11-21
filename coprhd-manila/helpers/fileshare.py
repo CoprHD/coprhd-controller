@@ -9,15 +9,15 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
-import tag
-import json
-import socket
 import commands
-from commoncoprhdapi import SOSError
+import json
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
+import manila.share.drivers.coprhd.helpers.tag as tag
+from manila.share.drivers.coprhd.helpers.common import SOSError
+import manila.share.drivers.coprhd.helpers.schedulepolicy
+import manila.share.drivers.coprhd.helpers.virtualpool
+import socket
 from threading import Timer
-import schedulepolicy
-import virtualpool
 
 
 class Fileshare(object):
@@ -91,7 +91,7 @@ class Fileshare(object):
             List of fileshares uuids in JSON response payload
         '''
 
-        from project import Project
+        from manila.share.drivers.coprhd.helpers.project import Project
 
         proj = Project(self.__ipAddr, self.__port)
         project_uri = proj.project_query(project)
@@ -176,7 +176,7 @@ class Fileshare(object):
             Fileshare details in JSON response payload
         '''
 
-        from project import Project
+        from manila.share.drivers.coprhd.helpers.project import Project
 
         if (commoncoprhdapi.is_uri(name)):
             return name
@@ -237,15 +237,15 @@ class Fileshare(object):
         This function is to ingest given unmanaged filesystems
         into ViPR.
         '''
-        from project import Project
+        from manila.share.drivers.coprhd.helpers.project import Project
         proj_obj = Project(self.__ipAddr, self.__port)
         project_uri = proj_obj.project_query(tenant + "/" + project)
 
-        from virtualpool import VirtualPool
+        from manila.share.drivers.coprhd.helpers.virtualpool import VirtualPool
         vpool_obj = VirtualPool(self.__ipAddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "file")
 
-        from virtualarray import VirtualArray
+        from manila.share.drivers.coprhd.helpers.virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
 
@@ -295,9 +295,9 @@ class Fileshare(object):
             Created task details in JSON response payload
         '''
 
-        from virtualpool import VirtualPool
-        from project import Project
-        from virtualarray import VirtualArray
+        from manila.share.drivers.coprhd.helpers.virtualpool import VirtualPool
+        from manila.share.drivers.coprhd.helpers.project import Project
+        from manila.share.drivers.coprhd.helpers.virtualarray import VirtualArray
 
         vpool_obj = VirtualPool(self.__ipAddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "file")
@@ -796,7 +796,7 @@ class Fileshare(object):
             Fileshare details in JSON response payload
         '''
 
-        from project import Project
+        from manila.share.drivers.coprhd.helpers.project import Project
         if (commoncoprhdapi.is_uri(name)):
             return name
         (pname, label) = commoncoprhdapi.get_parent_child_from_xpath(name)
@@ -1469,7 +1469,7 @@ def fileshare_acl_list(args):
         if ( res == {}):
             print " No ACLs for the share"
         else:
-            from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+            from manila.share.drivers.coprhd.helpers.common import TableGenerator
             TableGenerator(res['acl'], ['errorType','filesystem_id','permission','share_name','user']).printTable() 
         
     except SOSError as e:
@@ -1494,7 +1494,7 @@ def nfs_acl_list(args):
         if ( len(res) == 0 ):
             print " No NFSv4 ACLs for the Filesystem/Subdirectory"
         else:
-            from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+            from manila.share.drivers.coprhd.helpers.common import TableGenerator
             TableGenerator(res['nfs_acl'], ['domain','user','permissions','permission_type','type']).printTable() 
         
     except SOSError as e:
@@ -1704,7 +1704,7 @@ def fileshare_list(args):
                         record["vpool"] = None
 
                 # show a short table
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 if(not args.long):
                     TableGenerator(result, ['name', 'capacity_gb',
                                             'protocols']).printTable()
@@ -1757,14 +1757,14 @@ def fileshare_list_tasks(args):
                 if(args.verbose):
                     return commoncoprhdapi.format_json_object(res)
                 else:
-                    from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                    from manila.share.drivers.coprhd.helpers.common import TableGenerator
                     TableGenerator(res,
                                    ["module/id", "name", "state"]).printTable()
         else:
             res = obj.list_tasks(args.tenant + "/" + args.project)
             if(res and len(res) > 0):
                 if(not args.verbose):
-                    from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                    from manila.share.drivers.coprhd.helpers.common import TableGenerator
                     TableGenerator(res,
                                    ["module/id", "name", "state"]).printTable()
                 else:
@@ -1818,7 +1818,7 @@ def fileshare_tag(args):
 
 def assign_policy(args):
     try:
-        from schedulepolicy import Schedulepolicy
+        from manila.share.drivers.coprhd.helpers.schedulepolicy import Schedulepolicy
         policy = Schedulepolicy(args.ip,
                         args.port).get_policy_from_name(args.polname, args.tenant)
         policyid = policy['id']
@@ -1838,7 +1838,7 @@ def assign_policy(args):
 
 def unassign_policy(args):
     try:
-        from schedulepolicy import Schedulepolicy
+        from manila.share.drivers.coprhd.helpers.schedulepolicy import Schedulepolicy
         policy = Schedulepolicy(args.ip,
                         args.port).get_policy_from_name(args.polname, args.tenant)
         policyid = policy['id']
@@ -1997,7 +1997,7 @@ def continous_copies_refresh(args):
 
 def change_vpool(args):
     obj = Fileshare(args.ip, args.port)
-    from virtualpool import VirtualPool
+    from manila.share.drivers.coprhd.helpers.virtualpool import VirtualPool
     vpool_obj = VirtualPool(args.ip, args.port)
     vpoolid = vpool_obj.vpool_query(args.vpool, "file")
     try:
@@ -2012,7 +2012,7 @@ def change_vpool(args):
 
 def schedule_snapshots_list(args):
     try:
-        from schedulepolicy import Schedulepolicy
+        from manila.share.drivers.coprhd.helpers.schedulepolicy import Schedulepolicy
         policy = Schedulepolicy(args.ip,
                         args.port).get_policy_from_name(args.polname, args.tenant)
         policyid = policy['id']

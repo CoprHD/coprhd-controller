@@ -9,10 +9,10 @@
 # it is provided by or on behalf of EMC.
 
 import json
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
 
-from manila.share.drivers.coprhd.helpers.commoncoprhdapi import SOSError
-from virtualdatacenter import VirtualDatacenter
+from manila.share.drivers.coprhd.helpers.common import SOSError
+from manila.share.drivers.coprhd.helpers.virtualdatacenter import VirtualDatacenter
 
 
 class VirtualArray(object):
@@ -91,7 +91,7 @@ class VirtualArray(object):
         vdcrestapi = None
 
         if(tenant != None):
-            from tenant import Tenant
+            from manila.share.drivers.coprhd.helpers.tenant import Tenant
             tenant_obj = Tenant(self.__ipAddr, self.__port)
             tenanturi = tenant_obj.tenant_query(tenant)
             if(vdcname != None):
@@ -161,7 +161,7 @@ class VirtualArray(object):
         '''
         uri = self.varray_query(varray)
 
-        from tenant import Tenant
+        from manila.share.drivers.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         tenanturi = tenant_obj.tenant_query(tenant)
 
@@ -188,7 +188,7 @@ class VirtualArray(object):
         '''
         uri = self.varray_query(varray)
 
-        from tenant import Tenant
+        from manila.share.drivers.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         tenanturi = tenant_obj.tenant_query(tenant)
 
@@ -293,7 +293,7 @@ class VirtualArray(object):
 
     def list_storageports(self, varrayName, network_connectivity=False):
 
-        from storagesystem import StorageSystem
+        from manila.share.drivers.coprhd.helpers.storagesystem import StorageSystem
         storageSystemObj = StorageSystem(self.__ipAddr, self.__port)
 
         varrayUri = self.varray_query(varrayName)
@@ -405,7 +405,7 @@ def varray_query(args):
 
 def varray_list(args):
     obj = VirtualArray(args.ip, args.port)
-    from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+    from manila.share.drivers.coprhd.helpers.common import TableGenerator
     try:
         uris = obj.varray_list(args.vdcname, args.tenant)
         output = []
@@ -443,14 +443,14 @@ def varray_get_acl(args):
     try:
         res = obj.varray_get_acl(args.name)
         output = res['acl']
-        from tenant import Tenant
+        from manila.share.drivers.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(args.ip, args.port)
 
         for item in output:
             tenantval = tenant_obj.tenant_show(item['tenant'])
             item['tenantname'] = tenantval['name']
 
-        from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+        from manila.share.drivers.coprhd.helpers.common import TableGenerator
         TableGenerator(output, ['tenantname', 'privilege']).printTable()
 
     except SOSError as e:
@@ -475,7 +475,7 @@ def storageport_list(args):
         # Get the URIs of all associated ports
         portList = varray.list_storageports(args.name,
                                             args.network_connectivity)
-        from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+        from manila.share.drivers.coprhd.helpers.common import TableGenerator
         TableGenerator(portList, ['port_name', 'port_group', 'port_network_id',
                                   'transport_type',
                                   'storage_system']).printTable()

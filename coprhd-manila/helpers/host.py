@@ -14,7 +14,7 @@
 #    under the License.
 
 from manila.i18n import _
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi as common
+from manila.share.drivers.coprhd.helpers import common
 from manila.share.drivers.coprhd.helpers import tenant
 
 
@@ -91,3 +91,20 @@ class Host(common.CoprHDResource):
         if inactive:
             return None
         return o
+
+
+class CoprHDResource(object):
+
+    def __init__(self, ipaddr, port):
+        """Constructor: takes IP address and port of the CoprHD instance.
+
+        These are needed to make http requests for REST API
+        """
+        self.ipaddr = ipaddr
+        self.port = port
+
+
+
+
+
+

@@ -12,15 +12,15 @@
 
 # import python system modules
 
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
-from manila.share.drivers.coprhd.helpers.commoncoprhdapi import SOSError
-from virtualdatacenter import VirtualDatacenter
-from virtualarray import VirtualArray
-from storagepool import StoragePool
-from storagesystem import StorageSystem
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
+from manila.share.drivers.coprhd.helpers.common import SOSError
+from manila.share.drivers.coprhd.helpers.virtualdatacenter import VirtualDatacenter
+from manila.share.drivers.coprhd.helpers.virtualarray import VirtualArray
+from manila.share.drivers.coprhd.helpers.storagepool import StoragePool
+from manila.share.drivers.coprhd.helpers.storagesystem import StorageSystem
 import json
-from tenant import Tenant
-import quota
+from manila.share.drivers.coprhd.helpers.tenant import Tenant
+import manila.share.drivers.coprhd.helpers.quota
 import sys
 
 
@@ -71,7 +71,7 @@ class VirtualPool(object):
         vdcrestapi = None
 
         if(tenant != None):
-            from tenant import Tenant
+            from manila.share.drivers.coprhd.helpers.tenant import Tenant
             tenant_obj = Tenant(self.__ipAddr, self.__port)
             tenanturi = tenant_obj.tenant_query(tenant)
             if(vdcname != None):
@@ -811,7 +811,7 @@ class VirtualPool(object):
 
         # update quota
         if(quota_enable is not None or quota_capacity is not None):
-            from quota import Quota
+            from manila.share.drivers.coprhd.helpers.quota import Quota
             quota_obj = Quota(self.__ipAddr, self.__port)
             quota_obj.update(quota_enable, quota_capacity,
                              vpooltype + "_vpool",
@@ -1320,7 +1320,7 @@ def vpool_getpools(args):
                 ssobj = StorageSystem(args.ip, args.port)
                 storagesys = ssobj.show_by_uri(pool['storage_system']['id'])
                 pool['storagesystem_guid'] = storagesys['native_guid']
-            from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+            from manila.share.drivers.coprhd.helpers.common import TableGenerator
             TableGenerator(pools, ['pool_name', 'supported_volume_types',
                                    'operational_status',
                                    'storagesystem_guid']).printTable()
@@ -1340,7 +1340,7 @@ def vpool_refreshpools(args):
                 ssobj = StorageSystem(args.ip, args.port)
                 storagesys = ssobj.show_by_uri(pool['storage_system']['id'])
                 pool['storagesystem_guid'] = storagesys['native_guid']
-            from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+            from manila.share.drivers.coprhd.helpers.common import TableGenerator
             TableGenerator(pools, ['pool_name', 'supported_volume_types',
                                    'operational_status',
                                    'storagesystem_guid']).printTable()
@@ -1408,7 +1408,7 @@ def vpool_remove_tenant(args):
 def vpool_list(args):
     obj = VirtualPool(args.ip, args.port)
 
-    from quota import Quota
+    from manila.share.drivers.coprhd.helpers.quota import Quota
     quota_obj = Quota(args.ip, args.port)
 
     try:
@@ -1443,7 +1443,7 @@ def vpool_list(args):
                     if('ha_varray_vpool' in hatags):
                         hatags = hatags['ha_varray_vpool']
                         if('varray' in hatags):
-                            from virtualarray import VirtualArray
+                            from manila.share.drivers.coprhd.helpers.virtualarray import VirtualArray
                             ha = ha + ':' + VirtualArray(
                                     args.ip,
                                     args.port).varray_show(
@@ -1477,7 +1477,7 @@ def vpool_list(args):
                             if(len(rp) > 0):
                                 rp = rp + ','
                             if('varray' in copy):
-                                from virtualarray import VirtualArray
+                                from manila.share.drivers.coprhd.helpers.virtualarray import VirtualArray
                                 rp = rp + VirtualArray(
                                     args.ip,
                                     args.port).varray_show(
@@ -1500,7 +1500,7 @@ def vpool_list(args):
                             if(len(srdf) > 0):
                                 srdf = srdf + ','
                             if('varray' in copy):
-                                from virtualarray import VirtualArray
+                                from manila.share.drivers.coprhd.helpers.virtualarray import VirtualArray
                                 srdf = srdf + VirtualArray(
                                     args.ip, args.port).varray_show(
                                     copy['varray'])['name']
@@ -1516,7 +1516,7 @@ def vpool_list(args):
             if(args.verbose is True):
                 return commoncoprhdapi.format_json_object(output)
             if(args.long is True):
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(
                     output, [
                         'name', 'module/type', 'protocols',
@@ -1525,7 +1525,7 @@ def vpool_list(args):
                         'quota_current_capacity', 'quota_gb']).printTable()
 
             else:
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(output, ['name', 'module/type',
                                         'protocols']).printTable()
 

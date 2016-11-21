@@ -7,15 +7,15 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
-import fileshare
-import tag
-import volume
-import consistencygroup
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
+import manila.share.drivers.coprhd.helpers.fileshare as fileshare
+import manila.share.drivers.coprhd.helpers.tag as tag
+from manila.share.drivers.coprhd.helpers import volume
+from manila.share.drivers.coprhd.helpers import consistencygroup
 import json
 import time
 from threading import Timer
-from manila.share.drivers.coprhd.helpers.commoncoprhdapi import SOSError
+from manila.share.drivers.coprhd.helpers.common import SOSError
 
 
 class Snapshot(object):
@@ -1177,7 +1177,7 @@ def snapshot_create(args):
                 SOSError.SOS_FAILURE_ERR,
                 "Snapshot: " +
                 args.name +
-                ", Create Failed\n" +
+                ", fshare Failed\n" +
                 e.err_text)
         else:
             commoncoprhdapi.format_err_msg_and_raise(
@@ -1238,7 +1238,7 @@ def snapshot_list(args):
                     if("fs_exports" in record):
                         del record["fs_exports"]
 
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 if(args.long is True):
                     if(storageresType == Snapshot.FILE):
                         TableGenerator(
@@ -1892,7 +1892,7 @@ def snapshot_tasks(args):
         # snapshot name)
         else:
             if(all_tasks and len(all_tasks) > 0):
-                from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+                from manila.share.drivers.coprhd.helpers.common import TableGenerator
                 TableGenerator(
                     all_tasks,
                     ["module/id",
@@ -2023,7 +2023,7 @@ def fileshare_acl_list(args):
         if ( len(res) == 0):
             print " No ACLs for the share"
         else:
-            from manila.share.drivers.coprhd.helpers.commoncoprhdapi import TableGenerator
+            from manila.share.drivers.coprhd.helpers.common import TableGenerator
             TableGenerator(res['acl'], ['errorType','snapshot_id','permission','share_name','user','group']).printTable() 
         
     except SOSError as e:

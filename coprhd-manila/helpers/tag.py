@@ -15,13 +15,13 @@ Contains tagging related methods
 
 import oslo_serialization
 
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi
-from manila.share.drivers.coprhd.helpers.commoncoprhdapi import SOSError
+from manila.share.drivers.coprhd.helpers import common as commoncoprhdapi
+from manila.share.drivers.coprhd.helpers.common import SOSError
 import json
 
 
 from manila.i18n import _
-from manila.share.drivers.coprhd.helpers import commoncoprhdapi as common
+from manila.share.drivers.coprhd.helpers import common
 
 
 class Tag(common.CoprHDResource):

@@ -99,7 +99,9 @@ public enum ResourceTypeEnum {
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
-    ACTIONABLE_EVENT("actionable_event", "/vdc/events");
+    ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
+    ORCHESTRATION_WORKFLOW("orchestration_workflow", "/workflow"),
+    WF_DIRECTORY("wf_directory","/workflow/directory");
 
     private final String type;
     private final String service;

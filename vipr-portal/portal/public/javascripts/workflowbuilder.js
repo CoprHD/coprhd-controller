@@ -796,107 +796,32 @@
                     ]
                   };
 
-    // TODO: Remove this hardcoded JSON and build it using APIs (when available)
-    var rootjson=[
-      {
-        "id": 1,
-        "text": "My Lib",
-        "children": [
-          {
-            "id": 2,
-            "text": "Primitives"
-          },
-          {
-            "id": 3,
-            "text": "Workflows"
-          }
-        ],
-        "type": "root"
-      },
-      {
-        "id": 4,
-        "text": "ViPR Lib",
-        "children": [
-          {
-            "id": 5,
-            "text": "Primitives",
-            "children": [
-                {
-                "text": "Block",
-                "children": [
-                      {
-                        "id": 10,
-                        "text": "Create Volume",
-                        "type": "file",
-                        "li_attr": {"class": "draggable-card"},
-                        "data":dummyStepData
-                      },
-                      {
-                        "id": 11,
-                        "text": "Delete Volume",
-                        "type": "file",
-                        "li_attr": {"class": "draggable-card"}
-                      },
-                      {
-                        "id": 8,
-                        "text": "Export Volume",
-                        "type": "file",
-                        "li_attr": {"class": "draggable-card"}
-                      }
-                    ]
-                },
-                {
-                    "text": "File",
-                    "children": [
-                        {
-                            "id": 7,
-                            "text": "Create filesystem",
-                            "type": "file",
-                            "li_attr": {"class": "draggable-card"}
-                        }
-                    ]
-                },
-                {
-                    "text": "Utility",
-                    "children": [
-                        {
-                            "id": 12,
-                            "text": "Send Email",
-                            "type": "file",
-                            "li_attr": {"class": "draggable-card"}
-                        }
-                    ]
-                }
-            ]
-          },
-          {
-            "id": 6,
-            "text": "Workflows",
-              "children": [
-                        {
-                            "id": 9,
-                            "text": "Create and Export Volume",
-                            "type": "file",
-                            "li_attr": {"class": "draggable-card"}
-                        }
-                    ]
-          }
-        ],
-        "type": "root"
-      }
-    ]
-
-angular.module("portalApp").controller('builderController', function($scope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+angular.module("portalApp").controller('builderController', function($scope, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.workflowTabs = {};
-    initializeJsTree();
 
     function addTab(tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
       $scope.$apply();
     }
 
-    function initializeJsTree(){
+    // -- populate tree data
+    //TODO: get ViPR Library nodes from API (pending)
+    var dirJSON = [
+        {"id":"myLib", "parent":"#","text":"My Library"},
+        {"id":"viprLib","parent":"#","text":"ViPR Library"},
+        {"id":"rest","parent":"viprLib","text":"ViPR REST Primitives"},
+        {"id":"ansible","parent":"viprLib","text":"Ansible Primitives"},
+        {"id":"email","parent":"ansible","text":"Send Email", "type": "file", "li_attr": {"class": "draggable-card"}},
+        {"id":"create","parent":"rest","text":"Create Volume", "type": "file", "li_attr": {"class": "draggable-card"}, "data": dummyStepData},
+        {"id":"export","parent":"rest","text":"Export Volume", "type": "file", "li_attr": {"class": "draggable-card"}}
+    ]
+    $http.get(routes.WF_directories()).then(function (data) {
+        initializeJsTree(dirJSON.concat(data.data))
+    });
+    // --
+
+    function initializeJsTree(dirJSON){
         $(".search-input").keyup(function() {
             var searchString = $(this).val();
             $('#jstree_demo').jstree('search', searchString);
@@ -907,7 +832,7 @@ angular.module("portalApp").controller('builderController', function($scope) { /
                 "animation": 0,
                 "check_callback": true,
                 "themes": {"stripes": false},
-                'data' : rootjson
+                "data": dirJSON
             },
             "types": {
                 "#": {
@@ -995,10 +920,16 @@ angular.module("portalApp").controller('builderController', function($scope) { /
             }
         }).on('ready.jstree', function() {
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
-        }).bind("rename_node.jstree clear_search.jstree search.jstree", function() {
+        }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
         })
     }
+
+    // jstree actions
+    //TODO: do error handling on all actions
+    $('#jstree_demo').on("rename_node.jstree", renameDir);
+    $('#jstree_demo').on("delete_node.jstree", deleteDir);
+    $('#jstree_demo').on("create_node.jstree", createDir);
 
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
@@ -1010,6 +941,38 @@ angular.module("portalApp").controller('builderController', function($scope) { /
         var tabID = "tab_"+node.id;
         addTab(tabID);
     }
+
+    function createDir(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.parent})).then(function (resp) {
+                data.instance.set_id(data.node, resp.data.id);
+            });
+        }
+        else {
+            //TODO: create workflow (API pending)
+            console.log("create workflow pending")
+        }
+    };
+
+    function deleteDir(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_delete({"id": data.node.id}));
+        }
+        else {
+            //TODO: delete workflow (API pending)
+            console.log("delete workflow pending")
+        }
+    };
+
+    function renameDir(event, data) {
+        if ("file" != data.node.type) {
+            $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
+        }
+        else {
+            //TODO: edit workflow (API pending)
+            console.log("edit workflow pending")
+        }
+    };
 })
 
 .controller('tabController', function($element, $scope, $compile) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
@@ -1119,7 +1082,6 @@ angular.module("portalApp").controller('builderController', function($scope) { /
     Functions for managing step data on jsplumb instance
     */
     function dragEndFunc(e) {
-
         //set ID and text within the step element
         //TODO: retrieve stepname from step data when API is available
         var randomIdHash = Math.random().toString(36).substring(7);

@@ -93,6 +93,26 @@ public class HostStorageAPI {
     }
 
     /**
+     * Query to list disks that can be used to contain VMFS datastore extents
+     * 
+     * @param datastore if provided, finds disks that can contain extents for this datastore
+     * @return list of available disks
+     */
+    public List<HostScsiDisk> queryAvailableDisksForVmfs(Datastore datastore) {
+        try {
+            List<HostScsiDisk> scsiDisks = Lists.newArrayList();
+            addItems(scsiDisks, host.getHostDatastoreSystem().queryAvailableDisksForVmfs(datastore), HostScsiDisk.class);
+            return scsiDisks;
+        } catch (InvalidProperty e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
      * Gets the host datastore system for the host.
      * 
      * @return the host datastore system.

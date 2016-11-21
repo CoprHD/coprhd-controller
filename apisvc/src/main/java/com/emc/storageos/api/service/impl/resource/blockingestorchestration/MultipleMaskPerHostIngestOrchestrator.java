@@ -60,7 +60,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
                 }
                 // COP-18184 : Check if the initiators are also matching
                 if (exportMask.getInitiators() != null
-                        && !(Sets.intersection(exportMask.getInitiators(), mask.getKnownInitiatorUris()).isEmpty())) {
+                        && mask.getKnownInitiatorUris().containsAll(exportMask.getInitiators())) {
                     return exportMask;
                 }
             }

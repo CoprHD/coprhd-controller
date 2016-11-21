@@ -1011,6 +1011,26 @@ public class IsilonApi {
     }
 
     /* SmartQuotas */
+    
+    /**
+     * List all smartquotas for given 
+     * 
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSmartQuota> listFileQuotas(String resumeToken) throws IsilonException {
+        URI uri = URI_QUOTAS;
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+        URLBuffer.append("?path=").append("&recurse_path_children=true&type=directory");
+        uri = URI.create(URLBuffer.toString());
+        sLogger.info("get list of smart quotas of type directory for uri {}", uri.toString());
+        uri = _baseUrl.resolve(uri);
+        return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
+    }
+    
+    
 
     /**
      * List all smartquotas

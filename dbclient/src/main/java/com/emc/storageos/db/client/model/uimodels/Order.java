@@ -20,6 +20,7 @@ public class Order extends ModelObject implements TenantDataObject {
     private static final Logger log = LoggerFactory.getLogger(Order.class);
 
     public static final String SUBMITTED_BY_USER_ID = "submittedByUserId";
+    public static final String SUBMITTED = "indexed";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
     public static final String EXECUTION_STATE_ID = "executionStateId";
     public static final String SUMMARY = "summary";

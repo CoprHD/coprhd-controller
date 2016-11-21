@@ -68,6 +68,38 @@ public class OrderServiceJob implements Serializable {
         startTimeInThisRound = in.readLong();
     }
 
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public String getTenandId() {
+        return tenandId;
+    }
+
+    public long getTotal() {
+        return total;
+    }
+
+    public long getnOrdersDeleted() {
+        return nOrdersDeleted;
+    }
+
+    public long getLastCompletedTimeStamp() {
+        return lastCompletedTimeStamp;
+    }
+
+    public long getnOrdersDeletedWithinPeriod() {
+        return nOrdersDeletedWithinPeriod;
+    }
+
+    public long getStartTimeInThisRound() {
+        return startTimeInThisRound;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

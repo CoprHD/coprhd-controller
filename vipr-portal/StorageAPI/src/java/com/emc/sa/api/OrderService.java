@@ -200,7 +200,7 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("Starting oder service job queue");
         try {
             // no job consumer in geoclient
-            queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, new OrderServiceJobConsumer(), new OrderServiceJobSerializer(), 1);
+            queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, new OrderServiceJobConsumer(_dbClient, orderManager), new OrderServiceJobSerializer(), 1);
         } catch (Exception e) {
             log.error("can not startup geosvc job queue", e);
         }

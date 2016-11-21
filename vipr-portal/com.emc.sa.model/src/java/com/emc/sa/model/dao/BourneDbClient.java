@@ -11,7 +11,6 @@ import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,43 +164,6 @@ public class BourneDbClient implements DBClientWrapper {
         AlternateId3ConstraintImpl constraint = new AlternateId3ConstraintImpl(doType.getColumnField(columnField),
                 startTimeInMS, endTimeInMS);
         List<NamedElement> allOrderIds = queryNamedElementsByConstraint(constraint, maxCount);
-        /*
-        List<URI> ids = dbClient.queryByType(StorageOSUserDAO.class, false);
-        boolean found = true;
-        DataObjectType doType = TypeMap.getDoType(Order.class);
-        StorageOSUserDAO user;
-
-        int nNextRead = maxCount;
-        int nRead = 0;
-        long startTimeInMS = startTime.getTime();
-        long endTimeInMS = endTime.getTime();
-
-        for (URI id : ids) {
-            user = dbClient.queryObject(StorageOSUserDAO.class, id);
-            String username = user.getUserName();
-
-            while (found) {
-                AlternateId2ConstraintImpl constraint = new AlternateId2ConstraintImpl(doType.getColumnField(columnField),
-                        username, startTimeInMS, endTimeInMS);
-
-                List<NamedElement> orderIds = queryNamedElementsByConstraint(constraint, nNextRead);
-                LOG.info("lbyc3 nNexRead={}", nNextRead);
-                found = false;
-
-                for (NamedElement orderId : orderIds) {
-                    found = true;
-                    allOrderIds.add(orderId);
-                    nRead++;
-                    if (nRead > maxCount) {
-                        return allOrderIds;
-                    }
-                }
-
-                startTimeInMS = constraint.getLastMatchedTimeStamp();
-                nNextRead = maxCount - nRead;
-            }
-        }
-        */
 
         return allOrderIds;
     }

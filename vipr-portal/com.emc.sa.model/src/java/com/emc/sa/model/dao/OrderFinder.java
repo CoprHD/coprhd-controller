@@ -88,7 +88,7 @@ public class OrderFinder extends TenantModelFinder<Order> {
 
     public List<NamedElement> findIdsByTimeRange(Date startTime, Date endTime, int maxCount) {
         //return client.findAllOrdersByTimeRange(Order.class, "indexed", startTime, endTime, maxCount);
-        return client.findAllOrdersByTimeRange("indexed", startTime, endTime, maxCount);
+        return client.findAllOrdersByTimeRange(Order.SUBMITTED, startTime, endTime, maxCount);
         // return client.findAllOrdersByTimeRange(Order.SUBMITTED_BY_USER_ID, startTime, endTime, maxCount);
     }
 

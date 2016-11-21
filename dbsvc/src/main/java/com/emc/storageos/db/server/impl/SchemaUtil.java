@@ -558,13 +558,13 @@ public class SchemaUtil {
         }
     }
 
-    private Integer getIntProperty(String key, Integer defValue) {
+    private int getIntProperty(String key, int defValue) {
         String strVal = _dbCommonInfo == null ? null : _dbCommonInfo.getProperty(key);
         if (strVal == null) {
             return defValue;
-        } else {
-            return Integer.parseInt(strVal);
         }
+
+        return Integer.parseInt(strVal);
     }
 
     /**
@@ -587,7 +587,7 @@ public class SchemaUtil {
         Cluster cluster = clientContext.getCluster();
 
         // Get default GC grace period for all index CFs in local DB
-        Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
+        int indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, 0);
 
         Iterator<ColumnFamily> it = getCfMap().values().iterator();
         String latestSchemaVersion = null;
@@ -610,7 +610,7 @@ public class SchemaUtil {
             }
 
             // The CF's gc_grace_period will be set if it's an index CF
-            Integer cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : null;
+            int cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : 0;
             // If there's specific configuration particular for this CF, take it.
             cfGcGrace = getIntProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD_PREFIX + cf.getName(), cfGcGrace);
 
@@ -634,9 +634,9 @@ public class SchemaUtil {
                     _log.info("Setting DB GC grace period to {}", gcGrace);
                     cfd.setCompactionStrategy(compactionStrategy)
                             .setGcGraceSeconds(gcGrace);
-                } else if (cfGcGrace != null) {
-                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
-                    cfd.setGcGraceSeconds(cfGcGrace.intValue());
+                } else if (cfGcGrace != 0) {
+                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace);
+                    cfd.setGcGraceSeconds(cfGcGrace);
                 }
                 latestSchemaVersion = addColumnFamily(cfd);
             } else {
@@ -667,9 +667,9 @@ public class SchemaUtil {
                         modified = true;
                     }
                 }
-                else if (cfGcGrace != null && cfd.getGcGraceSeconds() != cfGcGrace.intValue()) {
-                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
-                    cfd.setGcGraceSeconds(cfGcGrace.intValue());
+                else if (cfd.getGcGraceSeconds() != cfGcGrace) {
+                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace);
+                    cfd.setGcGraceSeconds(cfGcGrace);
                     modified = true;
                 }
                 if (modified) {

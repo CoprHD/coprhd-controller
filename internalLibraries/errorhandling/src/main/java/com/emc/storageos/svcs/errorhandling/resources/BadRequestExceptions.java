@@ -3057,6 +3057,15 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException scheduledOrderNotAllowed(String operation);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException orderNotInTenant(URI orderId, String tenantId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException orderWithinOneMonth(URI orderId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException orderCanBeDeleted(URI orderId, String status);
+
     @DeclareServiceCode(ServiceCode.API_MOUNTS_EXIST)
     public BadRequestException cannotDeleteDuetoExistingMounts();
 

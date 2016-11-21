@@ -411,17 +411,40 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
-    public void deleteOrder(URI orderId) {
-        Order order = getOrderById(orderId);
-        log.info("lbyh0 order={}", order);
-
-        ArgValidator.checkEntity(order, orderId, true);
+    public void canBeDeleted(Order order, String tenantId) {
 
         if (order.getScheduledEventId()!=null) {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
 
+        if (!tenantId.isEmpty() && !tenantId.equals(order.getTenant())) {
+            throw APIException.badRequests.orderNotInTenant(order.getId(), tenantId);
+        }
+
+        long now = System.currentTimeMillis();
+
+        long createdTime = order.getCreationTime().getTimeInMillis();
+
+        if (now - createdTime < 30*24*60*60*1000) {
+            throw APIException.badRequests.orderWithinOneMonth(order.getId());
+        }
+
+        OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
+        if (!status.canBeDeleted()) {
+            throw APIException.badRequests.orderCanBeDeleted(order.getId(), status.toString());
+        }
+    }
+
+    public void deleteOrder(URI orderId, String tenantId) {
+
+        Order order = getOrderById(orderId);
+        ArgValidator.checkEntity(order, orderId, true);
+
+        log.info("lbyh0 order={} tid={}", order, tenantId);
+
         log.info("lbyh0: orderID={}", orderId);
+
+        canBeDeleted(order, tenantId);
 
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         log.info("lbyh0: approvalRequests={}", approvalRequests);

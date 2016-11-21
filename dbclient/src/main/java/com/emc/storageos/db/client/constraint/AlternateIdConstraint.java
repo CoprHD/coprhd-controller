@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.constraint;
 import java.net.URI;
 
 import com.emc.storageos.db.client.constraint.impl.AlternateId2ConstraintImpl;
+import com.emc.storageos.db.client.constraint.impl.AlternateId3ConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
@@ -775,10 +776,16 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
 
-        public static AlternateIdConstraint getOrders(String user, long startTimeInMS, long endTimeInMS, boolean markForDelete) {
+        public static AlternateIdConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
             return new AlternateId2ConstraintImpl(field, user, startTimeInMS, endTimeInMS);
+        }
+
+        public static AlternateIdConstraint getOrders(long startTimeInMS, long endTimeInMS) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField(Order.SUBMITTED);
+            return new AlternateId3ConstraintImpl(field, startTimeInMS, endTimeInMS);
         }
     }
 }

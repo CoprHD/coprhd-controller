@@ -31,6 +31,7 @@
 <target name="abdera"                              depends="abdera-1.1.2"/>
 <target name="activation"                          depends="activation-1.1"/>
 <target name="adaptec-firmware"                    depends="adaptec-firmware-1.35-22.17_1"/>
+<target name="adg-icaf"                            depends="adg-icaf-2-3_1"/>
 <target name="adg-dev-tools"                       depends="adg-dev-tools-6-1"/>
 <target name="adg-firstboot"                       depends="adg-firstboot-1.2-1"/>
 <target name="adg-monitor"                         depends="adg-monitor-1-1"/>

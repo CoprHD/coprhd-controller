@@ -1012,9 +1012,10 @@ public class VnxExportOperations implements ExportMaskOperations {
      * @param initiators
      *            [in] - An array Initiator objects, whose representation will
      *            be removed from the array.
+     * @throws Exception 
      */
     private void deleteStorageHWIDs(StorageSystem storage,
-            List<Initiator> initiators) {
+            List<Initiator> initiators) throws Exception {
         if (initiators == null || initiators.isEmpty()) {
             _log.debug("No initiators ...");
             return;
@@ -1022,17 +1023,19 @@ public class VnxExportOperations implements ExportMaskOperations {
         CIMObjectPath hwIdManagementSvc = _cimPath
                 .getStorageHardwareIDManagementService(storage);
         for (Initiator initiator : initiators) {
-            try {
+        	try {    
                 CIMArgument[] createHwIdIn = _helper.getDeleteStorageHardwareIDArgs(storage, initiator);
                 CIMArgument[] createHwIdOut = new CIMArgument[5];
                 _helper.invokeMethod(storage, hwIdManagementSvc,
                         SmisConstants.DELETE_STORAGE_HARDWARE_ID, createHwIdIn,
                         createHwIdOut);
-            } catch (WBEMException e) {
-                _log.error("deleteStorageHWIDs -- WBEMException: " + e.getMessage());
-            } catch (Exception e) {
-                _log.error("deleteStorageHWIDs -- Exception: " + e.getMessage());
-            }
+		    } catch (WBEMException e) {
+		        _log.error("deleteStorageHWIDs -- WBEMException: " + e.getMessage());
+		        throw e;
+		    } catch (Exception e) {
+		        _log.error("deleteStorageHWIDs -- Exception: " + e.getMessage());
+		        throw e;
+		    }
         }
     }
 

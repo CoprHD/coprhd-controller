@@ -2112,7 +2112,12 @@ test_5() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vnx" ]
+    then
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
+    fi
+    
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
     fi
@@ -2143,6 +2148,7 @@ test_5() {
 
       # Delete the export
       fail export_group delete $PROJECT/${expname}1
+      echo ***** before vf ${failure}
 
       # Verify injected failures were hit
       verify_failures ${failure}

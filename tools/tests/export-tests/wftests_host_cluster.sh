@@ -27,9 +27,9 @@ test_host_add_initiator() {
     item=${RANDOM}
     cfs="ExportGroup ExportMask Initiator Network"
     cfs2="ExportGroup ExportMask Initiator"
-    expname=${EXPORT_GROUP_NAME}t1
+    expname=${EXPORT_GROUP_NAME}t2
     
-    export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
+    export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update&1 \
                                failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
     
     mkdir -p results/${item}
@@ -79,13 +79,13 @@ test_host_add_initiator() {
         if [[ $(export_contains $exclusive_export $test_pwwn) ]]; then
             #|| $(export_contains $cluster_export $test_pwwn) ]]; then
             echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
-	    # Report results
-	    incr_fail_count
-	    if [ "${NO_BAILING}" != "1" ]
-	    then
-		report_results ${test_name} ${failure}
-		finish -1
-	    fi
+            
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]; then
+                report_results ${test_name} ${failure}
+                finish -1
+            fi
         else
             # Add initiator to network
             runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
@@ -119,13 +119,13 @@ test_host_add_initiator() {
                 echo "Verified that initiator "${test_pwwn}" has been added to export"
             else
                 echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
-		# Report results
-		incr_fail_count
-		if [ "${NO_BAILING}" != "1" ]
-		then
-		    report_results test_host_add_initiator ${failure}
+		
+		        # Report results
+		        incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]; then
+                    report_results test_host_add_initiator ${failure}
                     finish -1
-		fi
+                fi
             fi
         fi
 
@@ -142,8 +142,8 @@ test_host_add_initiator() {
         # Validate that nothing was left behind
         validate_db 1 4 ${cfs}
 
-	# Report results
-	report_results ${test_name} ${failure}
+	   # Report results
+	   report_results ${test_name} ${failure}
     done
 }
 

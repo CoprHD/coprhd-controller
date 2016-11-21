@@ -60,6 +60,10 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_009 = "failure_009_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
+
+    /**
+     * Counter for the number of failure injection occurrences.
+     */
     private static int FAILURE_COUNTER = 0;
 
     private static volatile String _beanName;
@@ -83,18 +87,21 @@ public final class InvokeTestFailure {
      *            key from above
      */
     public static void internalOnlyInvokeTestFailure(String failureKey) {
-        // Increment the failure counter
-        incrementFailureCounter();
-
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
         log("Failure injection key coordinator property: " + invokeArtificialFailure);
 
-        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))
-                && canInvokeFailure()) {
-            log("Injecting failure: " + failureKey);
-            throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
+        // If the property has been specified to reset the counter, then do so now.
+        resetCounter();
+
+        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
+            // Increment the failure occurrence counter.
+            FAILURE_COUNTER++;
+            if (canInvokeFailure()) {
+                log("Injecting failure: " + failureKey + " at failure occurrence: " + FAILURE_COUNTER);
+                throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
+            }
         }
     }
 
@@ -113,21 +120,25 @@ public final class InvokeTestFailure {
         if (failurePointSplit.length == 2) {
             try {
                 failurePoint = Integer.parseInt(failurePointSplit[1]);
-                log("Failure point is: " + failurePointSplit[1]);
             } catch (NumberFormatException e) {
                 // failure point value is not an integer so stick with default
             }
         }
 
+        // If no failure point has been specified (-1) or the specified failure point matches
+        // the failure counter, return true
         return (failurePoint == -1 || failurePoint == FAILURE_COUNTER);
     }
 
     /**
-     * Increment the failure counter property (artificial_failure_counter)
+     * Reset the failure injection occurrence counter.
      */
-    private static void incrementFailureCounter() {
+    private static void resetCounter() {
         Boolean failureCounterReset = Boolean.valueOf(_coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE_COUNTER_RESET));
-        FAILURE_COUNTER = failureCounterReset ? 1 : FAILURE_COUNTER++;
+        if (failureCounterReset) {
+            log("Resetting counter to 0");
+            FAILURE_COUNTER = 0;
+        }
     }
 
     /**

@@ -184,7 +184,6 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                     if (exportMask == null) {
                         _logger.info("\tno mask found");
-                        itr.remove();
                         continue;
                     }
                 }

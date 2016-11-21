@@ -11,7 +11,6 @@ import java.io.IOException;
 import javax.wbem.WBEMException;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.model.property.PropertyInfo;
 
 /**
  * A static class that invokes failures in a controlled manner, giving us the ability to test
@@ -21,7 +20,7 @@ public final class InvokeTestFailure {
     // Controller property for current failure injection
     private static final String ARTIFICIAL_FAILURE = "artificial_failure";
     // Controller property for current failure injection count.
-    private static final String ARTIFICIAL_FAILURE_COUNTER = "artificial_failure_counter";
+    private static final String ARTIFICIAL_FAILURE_COUNTER_RESET = "artificial_failure_counter_reset";
 
     // Different failures
     public static final String ARTIFICIAL_FAILURE_001 = "failure_001_early_in_add_volume_to_mask";
@@ -90,6 +89,8 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
+        log("Failure injection key coordinator property: " + invokeArtificialFailure);
+
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))
                 && canInvokeFailure()) {
             log("Injecting failure: " + failureKey);
@@ -112,31 +113,21 @@ public final class InvokeTestFailure {
         if (failurePointSplit.length == 2) {
             try {
                 failurePoint = Integer.parseInt(failurePointSplit[1]);
+                log("Failure point is: " + failurePointSplit[1]);
             } catch (NumberFormatException e) {
                 // failure point value is not an integer so stick with default
             }
         }
 
-        return (failurePoint == -1 || failurePoint == getFailureCounter());
-    }
-
-    /**
-     * Get the failure counter property (artificial_failure_counter).
-     *
-     * @return the current failure count
-     */
-    private static int getFailureCounter() {
-        String failureCounter = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE_COUNTER);
-        return Integer.parseInt(failureCounter);
+        return (failurePoint == -1 || failurePoint == FAILURE_COUNTER);
     }
 
     /**
      * Increment the failure counter property (artificial_failure_counter)
      */
     private static void incrementFailureCounter() {
-        int failureCounter = getFailureCounter() + 1;
-        PropertyInfo propertyInfo = _coordinator.getPropertyInfo();
-        propertyInfo.getProperties().put(ARTIFICIAL_FAILURE_COUNTER, String.valueOf(failureCounter));
+        Boolean failureCounterReset = Boolean.valueOf(_coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE_COUNTER_RESET));
+        FAILURE_COUNTER = failureCounterReset ? 1 : FAILURE_COUNTER++;
     }
 
     /**

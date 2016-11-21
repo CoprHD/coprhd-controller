@@ -81,7 +81,7 @@ public class IndexCleaner {
         // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
         removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList) listToClean, true);
 
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     public void removeColumnAndIndex(RowMutator mutator, DataObjectType doType, RemovedColumnsList listToClean) {
@@ -100,7 +100,7 @@ public class IndexCleaner {
             }
         }
 
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList,
@@ -156,7 +156,7 @@ public class IndexCleaner {
                 field.getIndex().setIndexCF(currentIndexCF);
             }
         }
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     /**

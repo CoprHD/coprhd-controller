@@ -102,6 +102,22 @@ elif [ ${SS} = "xtremio" ]; then
     XIO_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
+elif [ ${SS} = "snapvx" ]; then
+    SNAPVX_QUICK_PARAM=${4:-'noquick'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+
+    if [ ${SNAPVX_QUICK_PARAM} = "quick" ]; then
+        QUICK=1
+    fi
+elif [ ${SS} = "srdf" ]; then
+    SRDF_QUICK_PARAM=${4:-'noquick'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+
+    if [ ${SRDF_QUICK_PARAM} = "quick" ]; then
+        QUICK=1
+    fi
 elif [ ${SS} = "vdc" ]; then
     VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
     VDC_ENDPOINT_B=${4:-$VDC_DEFAULT_ENDPOINT}
@@ -420,7 +436,7 @@ COS_UNITYBLOCK_CG=cosunity_cg
 COS_ARRAYAFFINITY=cos_arrayaffinity
 COS_ARRAYAFFINITY_VMAX=cos_arrayaffinity_vmax
 COS_ARRAYAFFINITY_VNX=cos_arrayaffinity_vnx
-HOST_ARRAYAFFINITY=arrayaffinity
+HOST_ARRAYAFFINITY=$hostbase
 HOST_ARRAYAFFINITY_FQDN=${HOST_ARRAYAFFINITY}.lss.emc.com
 HOST_ARRAYAFFINITY_URI=""
 
@@ -1737,14 +1753,32 @@ srdf_setup()
 
 srdf_setup_once()
 {
-    srdf_network_setup
+    if [ "$SRDF_QUICK_PARAM" = "quick" ]; then
+        secho "Test with simulator"
 
-    SRDF_PROJECT=$(srdf_generate_rdfg_name)
-    # create RDF group first, SRDF_PROJECT may be changed in the call
-    srdf_create_rdfg
-    srdf_sleep
-    # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
-    ssleep 300
+        SRDF_SLEEPING_SECONDS=1
+        SRDF_PROJECT=SRDF$(shuf -i 1-29 -n 1)
+        V3_SRDF_VARRAY=nh
+
+	SRDF_V3_VMAXA_SMIS_IP=${VMAX3_SIMULATOR_SMIS_IP}
+	SRDF_V3_VMAXA_SMIS_PORT=${VMAX3_SIMULATOR_SMIS_PORT}
+	SRDF_V3_VMAXA_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
+	SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
+	SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
+
+	project_setup
+	zone_setup
+    else
+        srdf_network_setup
+
+        secho "Executing SRDF group setup"
+        SRDF_PROJECT=$(srdf_generate_rdfg_name)
+        # create RDF group first, SRDF_PROJECT may be changed in the call
+        srdf_create_rdfg
+        srdf_sleep
+        # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
+        ssleep 300
+    fi
 
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
@@ -1754,14 +1788,15 @@ srdf_setup_once()
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
-    smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+
+    if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
+        smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
+        run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+    fi
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
     # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
-    smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
 
     run storagedevice discover_all --ignore_error
     #discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
@@ -1771,12 +1806,13 @@ srdf_setup_once()
 }
 
 srdf_network_setup() {
+    secho "SRDF network setup"
+
     # Do once
     nsys=`networksystem list | wc -l`
     [ "$nsys" -gt 0 ] && return;
 
     #Discover the Brocade SAN switch.
-    secho "SRDF network setup"
     #brocade_setup_once
 
     run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
@@ -1907,17 +1943,19 @@ srdf_common_setup() {
     #zone_setup - for CDP use NH as the protection neighborhood as well
     echo 'Adding endpoints to transport zone'
     # TODO: Try to get rid of this; these should be in the network already.
-    for storageport in ${SRDF_VMAXA_STORAGEPORTS}
-    do 
-      run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
-    done
-    echo 'Done adding endpoints to network'
-    run transportzone assign ${SRDF_VMAXB_VSAN} $NH
-    for storageport in ${SRDF_VMAXB_STORAGEPORTS}
-    do 
-      run transportzone add ${NH}/${SRDF_VMAXB_VSAN} ${storageport}
-    done
-    echo 'Done adding endpoints to network'
+    if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
+        for storageport in ${SRDF_VMAXA_STORAGEPORTS}
+        do
+          run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
+        done
+        echo 'Done adding endpoints to network'
+        run transportzone assign ${SRDF_VMAXB_VSAN} $NH
+        for storageport in ${SRDF_VMAXB_STORAGEPORTS}
+        do
+          run transportzone add ${NH}/${SRDF_VMAXB_VSAN} ${storageport}
+        done
+        echo 'Done adding endpoints to network'
+    fi
 
     srdf_v3_varray_setup
     # srdf_cos_setup
@@ -2013,7 +2051,7 @@ srdf_v3_cos_setup()
     
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
     run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
-	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' true \
+	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' false \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -2025,8 +2063,7 @@ srdf_v3_cos_setup()
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
-    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
-	
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT
 	
 	## ASYNCHRONOUS
 	
@@ -2113,9 +2150,10 @@ srdf_v3_cos_change()
    echo "Created volume, now sleeping..."
    srdf_sleep
    echo "Changing cos..."
+
    # Workaround for COP-25718, remove the cos update once it is fixed
-   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched true
-   run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+   run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
 
    run volume change_cos $SRDF_PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
    echo "Changed cos"
@@ -2123,8 +2161,6 @@ srdf_v3_cos_change()
    echo "Deleting volume"
    run volume delete $SRDF_PROJECT/${srdfvolumecc} --wait
    run_noundo blockconsistencygroup delete $cg
-   # Workaround for COP-25718, remove the cos update once it is fixed
-   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched false
 }
 
 srdf_cos_change_meta()
@@ -2182,6 +2218,10 @@ srdf_basic_active_test()
    srdfvolume="${SRDF_VOLUME}_active"
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
+   # rediscover storage systems for RDF group mode getting updated
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
+
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
@@ -2189,7 +2229,7 @@ srdf_basic_active_test()
 
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
-   storagedevice discover_all --ignore_error
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
    run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
@@ -2207,10 +2247,7 @@ srdf_tests()
    echo 'About to run basic SRDF active test'
    sleep 60
    srdf_basic_active_test
-   echo 'About to run V3 SRDF cos change test'
-   sleep 60
-   srdf_v3_cos_change
-   
+
    echo 'About to run basic SRDF async test'
    sleep 60
    srdf_basic_async_test
@@ -2219,14 +2256,21 @@ srdf_tests()
    srdf_basic_sync_test
    
    echo 'About to run SRDF cos change test'
-   sleep 60
    #srdf_cos_change
    # echo 'About to run SRDF cos change test for meta volume'
    # sleep 60
    # srdf_cos_change_meta
 
-   echo 'About to remove RDF group using symcli'
-   srdf_run_symrdf removegrp
+   echo 'About to run V3 SRDF cos change test'
+   sleep 60
+   srdf_v3_cos_change
+
+   if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
+       echo 'About to remove RDF group using symcli'
+       sleep 60
+       srdf_run_symrdf removegrp
+   fi
+
    echo 'Done Running SRDF tests'
 }
 
@@ -4271,19 +4315,19 @@ recoverpoint_auto_snapshot_cleanup_test()
         fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
 
         secho 'Creating RP bookmark'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap}2 --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray} | grep inactive | grep false       
 
         # do a restore before swap to show that the lock is removed after restore
         secho 'Performing restore of RP bookmark'
-        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
         sleep 10
 
         secho 'Performing swap operation to verify auto snapshot cleanup'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
         secho 'Verifying that RP bookmark was removed after swap'
-        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
 
         secho 'Performing swap back'
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
@@ -9432,39 +9476,41 @@ blockconsistencygroup_update_tests()
 
     cg2=$3
     cg2_vpool=$4
+    vnx_vol=vnx-vol${RANDOM}
+    vmax_vol=vmax-vol${RANDOM}
 
-    run volume create vnx-vol $PROJECT $NH cosvnxb 1GB
-    run volume create vmax-vol $PROJECT $NH cosvmaxb 1GB
+    run volume create ${vnx_vol} $PROJECT $NH cosvnxb 1GB
+    run volume create ${vmax_vol} $PROJECT $NH cosvmaxb 1GB
 
     blockconsistencygroup create $PROJECT $cg1
     blockconsistencygroup create $PROJECT $cg2
 
     secho "Trying to update CG that is not on array"
-    blockconsistencygroup update $cg1 --add $PROJECT/vnx-vol
-    blockconsistencygroup update $cg2 --add $PROJECT/vmax-vol
+    blockconsistencygroup update $cg1 --add $PROJECT/${vnx_vol}
+    blockconsistencygroup update $cg2 --add $PROJECT/${vmax_vol}
 
     secho "Creating volumes and adding them to the CG"
-    run volume create vnx-vol-cg $PROJECT $NH $cg1_vpool 1GB --count=2 --consistencyGroup=$cg1
-    run volume create vmax-vol-cg $PROJECT $NH $cg2_vpool 1GB --count=2 --consistencyGroup=$cg2
+    run volume create ${vnx_vol}-cg $PROJECT $NH $cg1_vpool 1GB --count=2 --consistencyGroup=$cg1
+    run volume create ${vmax_vol}-cg $PROJECT $NH $cg2_vpool 1GB --count=2 --consistencyGroup=$cg2
 
     blockconsistencygroup show $cg1
     blockconsistencygroup show $cg2
 
     secho "Creating volumes to update"
-    run volume create vnx-update $PROJECT $NH $cg1_vpool 1GB --count=3
-    run volume create vmax-update $PROJECT $NH $cg2_vpool 1GB --count=3
+    run volume create ${vnx_vol}-update $PROJECT $NH $cg1_vpool 1GB --count=3
+    run volume create ${vmax_vol}-update $PROJECT $NH $cg2_vpool 1GB --count=3
 
     secho "Adding volumes to CG"
-    run blockconsistencygroup update $cg1 --add $PROJECT/vnx-update-1,$PROJECT/vnx-update-2,$PROJECT/vnx-update-3
-    run blockconsistencygroup update $cg2 --add $PROJECT/vmax-update-1,$PROJECT/vmax-update-2,$PROJECT/vmax-update-3
+    run blockconsistencygroup update $cg1 --add $PROJECT/${vnx_vol}-update-1,$PROJECT/${vnx_vol}-update-2,$PROJECT/${vnx_vol}-update-3
+    run blockconsistencygroup update $cg2 --add $PROJECT/${vmax_vol}-update-1,$PROJECT/${vmax_vol}-update-2,$PROJECT/${vmax_vol}-update-3
 
     secho "Remove volumes from CG"
-    run blockconsistencygroup update $cg1 --remove $PROJECT/vnx-update-1
-    run blockconsistencygroup update $cg2 --remove $PROJECT/vmax-update-1
+    run blockconsistencygroup update $cg1 --remove $PROJECT/${vnx_vol}-update-1
+    run blockconsistencygroup update $cg2 --remove $PROJECT/${vmax_vol}-update-1
 
     secho "Add and Remove volumes from CG"
-    run blockconsistencygroup update $cg1 --remove $PROJECT/vnx-update-2 --add $PROJECT/vnx-update-3
-    run blockconsistencygroup update $cg2 --remove $PROJECT/vmax-update-2 --add $PROJECT/vmax-update-3
+    run blockconsistencygroup update $cg1 --remove $PROJECT/${vnx_vol}-update-2 --add $PROJECT/${vnx_vol}-update-3
+    run blockconsistencygroup update $cg2 --remove $PROJECT/${vmax_vol}-update-2 --add $PROJECT/${vmax_vol}-update-3
 
     secho "Cleaning up after CG update tests"
     volume delete $PROJECT --project --wait
@@ -11156,6 +11202,7 @@ _failure() {
     echo "***"                                                   >&2
     date
     run_undo_commands
+    task check_for_pending 
     save_token_file
     exit 1
 }
@@ -11445,6 +11492,7 @@ application_sim_vpool_setup()
         run cos update block $APP_VPOOL_VMAX2_VPLEX_DIST --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_VPLEX_DIST block $TENANT
 
+        # Create CoS for VMAX2 RP target
         run cos create block $APP_VPOOL_VMAX2_BLOCK_RPTGT               \
             --description 'Consistency-Group-Block-rp-tgt-VMAX2-CoS' false   \
                             --protocols FC        \
@@ -11456,6 +11504,7 @@ application_sim_vpool_setup()
         run cos update block $APP_VPOOL_VMAX2_BLOCK_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID2
         run cos allow $APP_VPOOL_VMAX2_BLOCK_RPTGT block $TENANT
 
+        # Create CoS for VMAX2 + RP block
         run cos create block $APP_VPOOL_VMAX2_BLOCK_RPSRC               \
             --description 'Consistency-Group-Block-rp-src-VMAX2-CoS' false   \
                             --protocols FC        \
@@ -11471,6 +11520,60 @@ application_sim_vpool_setup()
 
         run cos update block $APP_VPOOL_VMAX2_BLOCK_RPSRC --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_BLOCK_RPSRC block $TENANT
+
+        # Create CoS for VMAX2 + vplex local RP target
+        run cos create block $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT \
+            --description 'Consistency-Group-Block-VMAX2-VPLEX-local-rptgt-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY3        \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID3
+        run cos allow $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT block $TENANT
+
+        # Create CoS for VMAX2 + RP + vplex local
+        run cos create block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL \
+            --description 'Consistency-Group-Block-VMAX2-RP-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency	\
+                            --protectionCoS $APP_VARRAY3':'$APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+                            #--neighborhoods $APP_VARRAY2        \
+                            #--protectionCoS $APP_VARRAY1':'$APP_VPOOL_VMAX2_VPLEX_LOCAL':min' \
+        #run cos update block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID2
+        run cos update block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL block $TENANT
+
+        # Create CoS for VMAX2 + metropoint
+        run cos create block $APP_VPOOL_VMAX2_METROPOINT \
+            --description 'Consistency-Group-Block-VMAX2-Metropoint-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_distributed \
+                            --haNeighborhood $APP_VARRAY2 \
+                            --haCos $APP_VPOOL_VMAX2_HA \
+                            --multiVolumeConsistency	\
+                            --protectionCoS $APP_VARRAY3':'$APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+        run cos update block $APP_VPOOL_VMAX2_METROPOINT --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_METROPOINT block $TENANT
 
     fi
 
@@ -11552,6 +11655,7 @@ application_setup()
         APPLICATION_VNX1_NATIVEGUID=$APP_SIMULATOR_VNX_NATIVEGUID
         APPLICATION_VMAX2_NATIVEGUID1=$APP_SIMULATOR_VMAX2_NATIVEGUID1
         APPLICATION_VMAX2_NATIVEGUID2=$APP_SIMULATOR_VMAX2_NATIVEGUID2
+        APPLICATION_VMAX2_NATIVEGUID3=$APP_SIMULATOR_VMAX2_NATIVEGUID3
         APPLICATION_VMAX3_NATIVEGUID1=$APP_SIMULATOR_VMAX3_NATIVEGUID1
         APPLICATION_VMAX3_NATIVEGUID2=$APP_SIMULATOR_VMAX3_NATIVEGUID2
         recoverpoint_simulator_varsetup
@@ -12020,6 +12124,50 @@ application_tests()
             secho "completed running block rp tests"
             APP_RESTORE_SUPPORTED=1
         fi
+        if [ $APPLICATION_TEST_RP_VPLEX_LOCAL -eq 1 ]; then
+            secho "running rp vplex local tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_RP_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            # issue is RP never sees the CG come back to active after adding rsets backafter retore
+            APP_RESTORE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running rp vplex local tests"
+            APP_RESTORE_SUPPORTED=1
+        fi
+        if [ $APPLICATION_TEST_RP_METROPOINT -eq 1 ]; then
+            secho "running metropoint vplex  tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_METROPOINT
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            # issue is RP never sees the CG come back to active after adding rsets backafter retore
+            APP_RESTORE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running metropoint tests"
+            APP_RESTORE_SUPPORTED=1
+        fi
     fi
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
         APPLICATION_CLONE_SUPPORTED=1
@@ -12193,7 +12341,7 @@ vplexsnap_tests()
 snapvx_vpool_setup()
 {
     secho "Creating snapvx virtual pools"
-    run cos create block $COS_VMAX3BLOCK_FC true \
+    run cos create block $COS_VMAX3BLOCK_FC false \
 	--description 'Virtual-Pool-for-VMAX3-block-FC' \
                       --protocols FC \
                       --numpaths 2 \
@@ -12202,6 +12350,8 @@ snapvx_vpool_setup()
                       --provisionType 'Thin' \
 			 --neighborhoods $NH \
                          --multiVolumeConsistency
+
+    run cos update block $COS_VMAX3BLOCK_FC --storage ${VMAX3_NATIVEGUID}
 }
 
 snapvx_setup_once()
@@ -12244,6 +12394,16 @@ snapvx_setup_once()
 snapvx_setup()
 {
     secho "Executing snapvx setup"
+    if [ "$SNAPVX_QUICK_PARAM" = "quick" ]; then
+        echo "Test with simulator"
+        VMAX3_SMIS_IP=${VMAX3_SIMULATOR_SMIS_IP}
+        VMAX3_SMIS_PORT=${VMAX3_SIMULATOR_SMIS_PORT}
+        VMAX3_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
+        VMAX3_SN=${VMAX3_SIMULATOR_SN}
+        VMAX3_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
+        VMAX3_PORTS_A=${VMAX3_SIMULATOR_PORTS_A}
+    fi
+
     snapvx_setup_once
     cos allow $COS_VMAX3BLOCK_FC block $TENANT
 }
@@ -13235,4 +13395,8 @@ if [ $WS_SETUP_MODE -eq 1 ] ; then
     output_conf
 fi
 
+# check for pending before completing succesful sanity run
+task check_for_pending --fail
+
 _success
+

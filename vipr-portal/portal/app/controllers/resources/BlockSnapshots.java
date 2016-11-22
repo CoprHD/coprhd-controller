@@ -14,8 +14,10 @@ import java.util.Map;
 import models.datatable.BlockSnapshotsDataTable;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 import play.data.binding.As;
+import play.i18n.Messages;
 import play.mvc.With;
 import plugin.StorageOsPlugin;
 import util.BourneUtil;
@@ -47,11 +49,6 @@ public class BlockSnapshots extends ResourceController {
     public static void snapshots(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockSnapshotsDataTable);
-        
-        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        String val = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS);
-        renderArgs.put(Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS, Integer.parseInt(val));
-        
         addReferenceData();
         render();
     }
@@ -63,7 +60,16 @@ public class BlockSnapshots extends ResourceController {
             projectId = getActiveProjectId();
         }
         List<BlockSnapshotsDataTable.BlockSnapshot> blockSnapshots = BlockSnapshotsDataTable.fetch(uri(projectId));
-        renderJSON(DataTablesSupport.createJSON(blockSnapshots, params));
+        
+        // check snapshot limits
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        int limit = NumberUtils.toInt(coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS));
+        String message = null;
+        if (blockSnapshots.size() * 90 >= limit * 100) {
+            message = Messages.get("dataTable.resourceLimitAlert",  limit);
+        }
+        
+        renderJSON(DataTablesSupport.createJSON(blockSnapshots, params, message));
     }
 
     public static void snapshotDetails(String snapshotId) {

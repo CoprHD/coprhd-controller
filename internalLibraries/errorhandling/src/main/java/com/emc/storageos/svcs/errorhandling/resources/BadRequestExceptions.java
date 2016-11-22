@@ -3125,4 +3125,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException reachSnapshotLimitPerProject(final String projectName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidParameterWwnBadFormat(String wwn);
 }

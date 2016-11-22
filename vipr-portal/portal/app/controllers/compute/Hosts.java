@@ -19,6 +19,7 @@ import models.datatable.HostDataTable;
 import models.datatable.HostDataTable.HostInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 import play.data.binding.As;
 import play.data.validation.MaxSize;
@@ -79,11 +80,6 @@ public class Hosts extends ViprResourceController {
     public static void list() {
         TenantSelector.addRenderArgs();
         renderArgs.put("dataTable", new HostDataTable());
-        
-        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        String val = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_TENANT_HOSTS);
-        renderArgs.put(Constants.RESOURCE_LIMIT_TENANT_HOSTS, Integer.parseInt(val));
-        
         render();
     }
 
@@ -98,7 +94,16 @@ public class Hosts extends ViprResourceController {
         for (HostRestRep host : hosts) {
             hostInfos.add(new HostInfo(host, clusterMap, vcenterDataCenters));
         }
-        renderJSON(DataTablesSupport.createJSON(hostInfos, params));
+        
+        // check snapshot limits
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        int limit = NumberUtils.toInt(coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_TENANT_HOSTS));
+        String message = null;
+        if (hostInfos.size() * 90 >= limit * 100) {
+            message = Messages.get("dataTable.resourceLimitAlert",  limit);
+        }
+        
+        renderJSON(DataTablesSupport.createJSON(hostInfos, params, message));
     }
 
     public static void itemsJson(@As(",") String[] ids) {

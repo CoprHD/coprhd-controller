@@ -22,20 +22,24 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+/**
+ * Utilities to check resource limit defined in support matrix. Going beyond predefined limit may degrade the system performance
+ */
 public class ResourceLimitCheckUtils {
     private final static Logger log = LoggerFactory.getLogger(ResourceLimitCheckUtils.class);
     
     private static String PROJECT = "project";
+    private static int USE_RATE_WARNING = 90;
+    private static int USE_RATE_ERROR = 100;
     
-    public static int USE_RATE_WARNING = 90;
-    public static int USE_RATE_ERROR = 100;
-    
+    private ResourceLimitCheckUtils() {
+    }
+
     public static void validateVolumeLimitPerProject(Project project, DbClient dbClient, CoordinatorClient coordinator) {
         boolean underLimit = checkLimits(Volume.class, PROJECT, project.getId(), Constants.RESOURCE_LIMIT_PROJECT_VOLUMES, dbClient, coordinator);
         if (!underLimit){

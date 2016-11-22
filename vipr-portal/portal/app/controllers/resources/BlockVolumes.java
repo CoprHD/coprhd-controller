@@ -19,6 +19,7 @@ import java.util.Set;
 import models.datatable.BlockVolumesDataTable;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 import play.data.binding.As;
 import play.i18n.Messages;
@@ -82,18 +83,21 @@ public class BlockVolumes extends ResourceController {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
         renderArgs.put("filterOptions", FILTER_OPTIONS);
-        
-        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        String val = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES);
-        renderArgs.put(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES, Integer.parseInt(val));
-        
         addReferenceData();
         render();
     }
 
     public static void volumesJson(String projectId, String applicationId) {
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
-        renderJSON(DataTablesSupport.createJSON(volumes, params));
+        
+        // check volume limits
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        int limit = NumberUtils.toInt(coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES));
+        String message = null;
+        if (volumes.size() * 90 >= limit * 100) {
+            message = Messages.get("dataTable.resourceLimitAlert",  limit);
+        }
+        renderJSON(DataTablesSupport.createJSON(volumes, params, message));
     }
 
     public static void volumeDetails(String volumeId) {

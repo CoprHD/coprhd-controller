@@ -608,7 +608,7 @@ public class ControllerServiceImpl implements ControllerService {
         }
 
         // init externalBlockStorageDevice instance
-        ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(ExternalBlockStorageDevice.BEAN_NAME);
+        ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
         // key: storage system type name, value: driver instance
         Map<String, AbstractStorageDriver> blockDeviceDrivers = blockDevice.getDrivers();
         // key: main class name, value: driver instance

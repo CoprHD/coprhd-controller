@@ -88,7 +88,6 @@ import com.google.common.base.Strings;
  */
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
-    public static final String BEAN_NAME = "externalBlockStorageDevice";
     private static Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
     // Storage drivers for block  devices
     private Map<String, AbstractStorageDriver> drivers;

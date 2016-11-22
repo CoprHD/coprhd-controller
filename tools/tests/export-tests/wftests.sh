@@ -1091,7 +1091,7 @@ unity_setup()
 vmax2_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=5888
+    VMAX_SMIS_PORT=5988
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=false
@@ -1797,24 +1797,24 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    if [ "${SS}" = "vnx" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    # failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
 
     for failure in ${failure_injections}
     do
@@ -1907,7 +1907,7 @@ test_2() {
     snap_db 1 ${cfs}
 
     # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "${TENANT}/${CLUSTER}"
 
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
@@ -1948,12 +1948,12 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
     fi
 
-    if [ "${SS}" = "vnx" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
@@ -2418,7 +2418,7 @@ test_8() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_before_device_delete, failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+    failure_injections="failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
 
     for failure in ${failure_injections}
     do

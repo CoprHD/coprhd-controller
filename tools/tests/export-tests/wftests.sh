@@ -677,10 +677,10 @@ VPOOL_BASE=vpool
 VPOOL_FAST=${VPOOL_BASE}-fast
 
 BASENUM=${BASENUM:=$RANDOM}
-VOLNAME=dutestexp${BASENUM}
+VOLNAME=wftest${BASENUM}
 EXPORT_GROUP_NAME=export${BASENUM}
-HOST1=host1export${BASENUM}
-HOST2=host2export${BASENUM}
+HOST1=wfhost1export${BASENUM}
+HOST2=wfhost2export${BASENUM}
 CLUSTER=cl${BASENUM}
 
 # Allow for a way to easily use different hardware
@@ -893,7 +893,7 @@ prerun_setup() {
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutestexp${BASENUM}
+       VOLNAME=wftest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
        HOST1=host1export${BASENUM}
        HOST2=host2export${BASENUM}
@@ -1022,7 +1022,6 @@ vnx_setup() {
 	run storagedevice delete ${id}
     done
 
-    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
@@ -1033,15 +1032,22 @@ vnx_setup() {
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    # Chose thick because we need a thick pool for VNX metas
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
-	--provisionType 'Thin'			        \
+	--provisionType 'Thick'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    if [ "${SIM}" = "1" ]
+    then
+	# Remove the thin pool that doesn't support metas on the VNX simulator
+	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
+    else
+	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    fi
 }
 
 unity_setup()
@@ -1851,6 +1857,124 @@ test_1() {
     done
 }
 
+# Test 8 (volume create with metas)
+#
+# Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_8() {
+    echot "Test 8 Begins"
+
+    if [ "${SIM}" != "1" ];
+    then
+	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
+	return;
+    fi
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+    fi
+
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement \
+                                    failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                                    failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+	meta_size=20000GB
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
+	meta_size=20000GB
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements"
+
+    for failure in ${failure_injections}
+    do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask"
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
+
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_8 ${failure}
+    done
+}
+
 # Basic export test for vcenter cluster
 #
 # Currently only runs on simulator
@@ -2529,7 +2653,7 @@ test_end=7
 # If there's a last parameter, take that
 # as the name of the test to run
 # To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
-# ./dutest.sh sanity.conf vplex local test_7+
+# ./wftest.sh sanity.conf vplex local test_7+
 if [ "$1" = "hosts" ]
 then
    secho Request to run ${HOST_TEST_CASES}

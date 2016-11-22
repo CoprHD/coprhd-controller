@@ -9,29 +9,16 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
 import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.security.AbstractSecuredWebServer;
 import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.authentication.StorageOSUserRepository;
 import com.emc.storageos.security.validator.Validator;
-import com.emc.storageos.services.util.StorageDriverManager;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 
 /**
  * Provisioning service default implementation
  */
 public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements ProvisioningService {
-    private static final Logger log = LoggerFactory.getLogger(ProvisioningServiceImpl.class);
 
     @Autowired
     private CoordinatorClient _coordinator;
@@ -62,22 +49,6 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
         if (keystoneProvider != null && keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
              _openStackSynchronizationTask.start(_openStackSynchronizationTask.getTaskInterval(keystoneProvider));
         }
-    }
-
-    private List<StorageSystemType> listNonNativeTypes() {
-        List<StorageSystemType> result = new ArrayList<StorageSystemType>();
-        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
-        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-        while (it.hasNext()) {
-            StorageSystemType type = it.next();
-            if (type.getIsNative() == null ||type.getIsNative() == true) {
-                continue;
-            }
-            if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
-                result.add(it.next());
-            }
-        }
-        return result;
     }
 
     private void initValidator() {

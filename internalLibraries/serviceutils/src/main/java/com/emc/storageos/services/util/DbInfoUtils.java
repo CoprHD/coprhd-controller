@@ -1,0 +1,65 @@
+package com.emc.storageos.services.util;
+
+
+
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
+import com.emc.storageos.coordinator.common.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import java.io.File;
+import java.util.Date;
+
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+/**
+ * utils to check db/geodb related info
+ */
+public class DbInfoUtils {
+    private static final Logger _log = LoggerFactory.getLogger(DbInfoUtils.class);
+    // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
+    // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.
+    public static final long MAX_SERVICE_OUTAGE_TIME = 4 * TimeUtils.DAYS;
+    /**
+     * Check offline event info to see if dbsvc/geodbsvc on this node could get started
+     */
+    public static void checkDBOfflineInfo(CoordinatorClient _coordinator, String serviceName ,String dbDir, boolean enableAlert) {
+
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
+                serviceName);
+        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
+
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
+        Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
+        long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
+
+        File localDbDir = new File(dbDir);
+        Date lastModified = FileUtils.getLastModified(localDbDir);
+        boolean isDirEmpty =  lastModified == null || localDbDir.list().length == 0;
+        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : lastModified.getTime();
+
+        _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
+        long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;
+        if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
+            String errMsg = String.format("We detect database files on local disk are more than %s days older " +
+                    "than last time it was seen in the cluster. It may bring stale data into the database, " +
+                    "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
+                    "Please contact with EMC support engineer for solution.", diffTime/TimeUtils.DAYS);
+            if (enableAlert) AlertsLogger.getAlertsLogger().error(errMsg);
+            throw new java.lang.IllegalStateException(errMsg);
+        }
+
+        Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
+        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
+                    "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
+                    "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
+            if (enableAlert) AlertsLogger.getAlertsLogger().error(errMsg);
+            throw new java.lang.IllegalStateException(errMsg);
+        }
+    }
+}

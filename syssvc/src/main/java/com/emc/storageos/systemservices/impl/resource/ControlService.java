@@ -15,13 +15,16 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.services.util.DbInfoUtils;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
-import org.eclipse.jetty.util.log.Log;
+import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +53,7 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
+import org.springframework.jms.IllegalStateException;
 
 /**
  * Control service is used to
@@ -386,6 +390,56 @@ public class ControlService {
         recoveryManager.poweroff();
         return Response.status(Response.Status.ACCEPTED).build(); // Return the accepted status code
     }
+
+    @GET
+    @Path("cluster/recovery/precheck-status")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public RecoveryPrecheckStatus recoveryPrecheck () {
+        RecoveryPrecheckStatus recoveryPrecheckStatus = new RecoveryPrecheckStatus();
+        DrUtil drUtil = new DrUtil();
+        if (drUtil.isMultisite()) {
+            recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.VAPP_IN_DR_OR_GEO);
+            return recoveryPrecheckStatus;
+        }
+        ArrayList<String> nodeList = _coordinator.getAllNodeIds();
+        ArrayList<String> unvaliableNodeList = new ArrayList<>();
+        for (String nodeId : nodeList) {
+            try {
+                DbOfflineStatus dbOfflineStatus = SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(SysClientFactory.URI_GET_DB_OFFLINE_STATUS,
+                        DbOfflineStatus.class, null);
+                if (dbOfflineStatus.getOutageTimeExceeded()) {
+                    unvaliableNodeList.add(nodeId);
+                }
+            } catch (SysClientException e) {
+                recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.NODE_UNREACHABLE);
+                return recoveryPrecheckStatus;
+            }
+        }
+        if (!unvaliableNodeList.isEmpty()) {
+            if (unvaliableNodeList.size() < (nodeList.size()/2+1)) { /*corrupted nodes is less than quorum nodes*/
+                recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.RECOVERY_NEEDED);
+            }else {
+                recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.CORRUPTED_NODE_COUNT_MORE_THAN_QUORUM);
+            }
+            recoveryPrecheckStatus.setUnavailables(unvaliableNodeList);
+        } else {
+            recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.ALL_GOOD);
+        }
+        return recoveryPrecheckStatus;
+    }
+
+     @GET
+     @Path("internal/node/dbsvc-offline-status")
+     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+     public DbOfflineStatus checkDbOfflineTime() {
+         _log.info("Check db offline time");
+         try {
+             DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), "dbsvc" , "/data/db", false);
+         }catch (IllegalStateException e){
+             return new DbOfflineStatus(true);
+         }
+         return new DbOfflineStatus(false);
+     }
 
     /**
      * Internal call to power off current cluster for DR. Use trusted HMAC key to authenticate.

@@ -11,12 +11,14 @@ import static com.emc.vipr.client.system.impl.PathConstants.CLUSER_IP_RECONFIG_S
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSER_IP_RECONFIG_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSTER_DB_HEALTH_STATUS_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSTER_NODE_RECOVERY_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.CLUSTER_RECOVERY_PRECHECK_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_POWER_OFF_CLUSTER_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_REBOOT_NODE_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_RESTART_URL;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
@@ -181,7 +183,7 @@ public class Control {
      */
     public RecoveryStatus getRecoveryStatus() {
         RecoveryStatus status = null;
-        UriBuilder builder = client.uriBuilder(CLUSTER_NODE_RECOVERY_URL);
+        UriBuilder builder = client.uriBuilder(CLUSTER_RECOVERY_PRECHECK_URL);
 
         try {
             status = client.getURI(RecoveryStatus.class, builder.build());
@@ -191,6 +193,18 @@ public class Control {
         }
 
         return status;
+    }
+
+    /**
+     * Gets status of vapp node recovery precheck.
+     * <p>
+     * API Call: GET /cluster/recovery/precheck-status
+     *
+     * @return The Recovery precheck Status
+     */
+    public RecoveryPrecheckStatus getRecoveryPrecheckStatus() {
+        UriBuilder builder = client.uriBuilder(CLUSTER_RECOVERY_PRECHECK_URL);
+        return  client.getURI(RecoveryPrecheckStatus.class, builder.build());
     }
 
     /**

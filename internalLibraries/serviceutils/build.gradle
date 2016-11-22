@@ -1,5 +1,6 @@
 dependencies {
     compile project(":errorhandling"),
+            project(":coordinatorsvc"),
             library(guava),
             library(log4j),
             library(slf4j),
@@ -12,4 +13,9 @@ dependencies {
             library(json_sanitizer),
             library(jsoup),
             library(jmdns)
+}
+task nrScripts(type: Copy) {
+    from "src/scripts"
+    into "${buildDir}/bin"
+    fileMode = 0755
 }

@@ -90,6 +90,30 @@ public class MailHandler {
         getMailHelper().sendMailMessage(to, title, content);
     }
 
+    public void sendDbsvcOfflineMail(String nodeId, String serviceName, long offlineDays, boolean nodeRecoveryRequired) {
+        String to = getMailAddressOfUser("root");
+        if (to == null || to.isEmpty()) {
+            log.warn("Can't send mail alert, no email address for root user");
+            return;
+        }
+        Map<String, String> params = Maps.newHashMap();
+        params.put("nodeId", nodeId);
+        params.put("serviceName",serviceName);
+        params.put("offlineDays", Long.toString(offlineDays));
+        if (nodeRecoveryRequired) params.put("url",coordinator.getPropertyInfo().getProperty("NETWORK_VIP"));
+        String titile = String.format("ATTENTION - DataBase service(%s) of %s has been down for %s days",
+                nodeId, serviceName, offlineDays);
+
+        String content;
+        if (nodeRecoveryRequired){
+            content = MailHelper.readTemplate("DbsvcOfflineFivedaysEmail.html");
+        }else {
+            content = MailHelper.readTemplate("DbsvcOfflineEmail.html");
+        }
+        content = MailHelper.parseTemplate(params, content);
+        getMailHelper().sendMailMessage(to, titile, content);
+    }
+
     private MailHelper getMailHelper() {
         if (mailHelper == null) {
             mailHelper = new MailHelper(coordinator);

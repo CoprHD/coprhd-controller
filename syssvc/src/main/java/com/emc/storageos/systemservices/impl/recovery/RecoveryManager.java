@@ -80,12 +80,8 @@ public class RecoveryManager implements Runnable {
      * Initialize recovery manager
      */
     public void init() {
-        if (!isVMwareVapp()) {
             startRecoveryLeaderSelector();
             addRecoveryStatusListener();
-        } else {
-            log.info("No need to init for node recovery in VMware vApp environment");
-        } 
     }
 
     /**
@@ -96,6 +92,10 @@ public class RecoveryManager implements Runnable {
         while (isLeader.get()) {
             try {
                 checkRecoveryStatus();
+                if(isVMwareVapp()) {
+
+                    /*Executed shell here*/
+                }
                 checkClusterStatus();
                 runNodeRecovery();
             } catch (Exception e) {
@@ -231,11 +231,15 @@ public class RecoveryManager implements Runnable {
             lock = getRecoveryLock();
 
             setRecoveryStatus(RecoveryStatus.Status.PREPARING);
-            startMulticastService();
+            if (!isVMwareVapp()) {
+                startMulticastService();
+            }
 
             setRecoveryStatus(RecoveryStatus.Status.REPAIRING);
             runDbRepair();
-
+            if (isVMwareVapp()) {
+                /*execute shell here to start service*/
+            }
             setRecoveryStatus(RecoveryStatus.Status.SYNCING);
             waitDbsvcStarted();
 

@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import jobs.MinorityNodeRecoveryJob;
 import jobs.RebootNodeJob;
 import jobs.RestartServiceJob;
@@ -133,6 +135,19 @@ public class SystemHealth extends Controller {
             renderArgs.put("endTime", endTime);
         }
         render(dbstatus);
+    }
+
+    public static void vappNodeRecoveryPrecheck() {
+        ViPRSystemClient client = BourneUtil.getSysClient();
+        RecoveryPrecheckStatus recoveryPrecheckStatus =client.control().getRecoveryPrecheckStatus();
+        if (recoveryPrecheckStatus.getStatus().equals(RecoveryPrecheckStatus.Status.RECOVERY_NEEDED)){
+
+        }
+
+
+
+
+
     }
 
     public static void nodeRecovery() {

@@ -35,6 +35,14 @@ public class OEClient {
         this.client = client;
     }
 
+    public ViPRCatalogClient2 getParent() {
+        return parent;
+    }
+
+    public RestClient getClient() {
+        return client;
+    }
+
     public PrimitiveList getPrimitives() {
         UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
         return client.getURI(PrimitiveList.class, builder.build());

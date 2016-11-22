@@ -895,8 +895,8 @@ prerun_setup() {
        echo "Volumes were found!  Base number is: ${BASENUM}"
        VOLNAME=wftest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
-       HOST1=host1export${BASENUM}
-       HOST2=host2export${BASENUM}
+       HOST1=wfhost1export${BASENUM}
+       HOST2=wfhost2export${BASENUM}
        CLUSTER=cl${BASENUM}
 
        sstype=${SS:0:3}

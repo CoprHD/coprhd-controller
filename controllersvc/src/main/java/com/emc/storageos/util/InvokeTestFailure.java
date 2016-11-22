@@ -17,8 +17,10 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
  * rollback and other workflow anomalies in a repeatable and automated way.
  */
 public final class InvokeTestFailure {
-    // Controller property
+    // Controller property for current failure injection
     private static final String ARTIFICIAL_FAILURE = "artificial_failure";
+    // Controller property for current failure injection count.
+    private static final String ARTIFICIAL_FAILURE_COUNTER_RESET = "artificial_failure_counter_reset";
 
     // Different failures
     public static final String ARTIFICIAL_FAILURE_001 = "failure_001_early_in_add_volume_to_mask";
@@ -46,18 +48,23 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_023 = "failure_023_VNXeStorageDevice_CreateVolume_after_async_job";
     public static final String ARTIFICIAL_FAILURE_024 = "failure_024_Export_zone_removeInitiator_before_delete";
     public static final String ARTIFICIAL_FAILURE_025 = "failure_025_Export_zone_removeInitiator_after_delete";
-        
+
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_001 = "failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_002 = "failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_003 = "failure_003_host_export_ComputeSystemControllerImpl.deleteExportGroup_before_delete";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_004 = "failure_004_host_export_ComputeSystemControllerImpl.deleteExportGroup_after_delete";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_VERIFY_DATASTORE_005 = "failure_005_host_export_ComputeSystemControllerImpl.verifyDatastore_after_verify";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_006 = "failure_006_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_unmount";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_007 = "failure_007_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_detach";    
+    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_007 = "failure_007_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_detach";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_008 = "failure_008_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator";
     public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_009 = "failure_009_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
+
+    /**
+     * Counter for the number of failure injection occurrences.
+     */
+    private static int FAILURE_COUNTER = 0;
 
     private static volatile String _beanName;
 
@@ -75,22 +82,68 @@ public final class InvokeTestFailure {
      * Invoke a failure if the artificial_failure variable is set.
      * This is an internal-only setting that allows testers and automated suites to inject a failure
      * into a workflow step at key locations to test rollback and Task states.
-     * 
+     *
      * @param failureKey
      *            key from above
      */
     public static void internalOnlyInvokeTestFailure(String failureKey) {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
+
+        log("Failure injection key coordinator property: " + invokeArtificialFailure);
+
+        // If the property has been specified to reset the counter, then do so now.
+        resetCounter();
+
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
-            log("Injecting failure: " + failureKey);
-            throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
+            // Increment the failure occurrence counter.
+            FAILURE_COUNTER++;
+            if (canInvokeFailure()) {
+                log("Injecting failure: " + failureKey + " at failure occurrence: " + FAILURE_COUNTER);
+                throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
+            }
+        }
+    }
+
+    /**
+     * Checks to see if we can invoke the injection failure. If no failure point is set, the injected
+     * failure will always be invoked. If a failure point is set, the injected failure will only
+     * be invoked if the failure count matches the failure point.
+     *
+     * @return true if the injection failure can be invoked, false otherwise.
+     */
+    private static boolean canInvokeFailure() {
+        String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
+        String[] failurePointSplit = invokeArtificialFailure.split("&");
+        int failurePoint = -1;
+
+        if (failurePointSplit.length == 2) {
+            try {
+                failurePoint = Integer.parseInt(failurePointSplit[1]);
+            } catch (NumberFormatException e) {
+                // failure point value is not an integer so stick with default
+            }
+        }
+
+        // If no failure point has been specified (-1) or the specified failure point matches
+        // the failure counter, return true
+        return (failurePoint == -1 || failurePoint == FAILURE_COUNTER);
+    }
+
+    /**
+     * Reset the failure injection occurrence counter.
+     */
+    private static void resetCounter() {
+        Boolean failureCounterReset = Boolean.valueOf(_coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE_COUNTER_RESET));
+        if (failureCounterReset) {
+            log("Resetting counter to 0");
+            FAILURE_COUNTER = 0;
         }
     }
 
     /**
      * Invoke a failure associated with an SmisCommand, return a WEBMException similar to a bad connection.
-     * 
+     *
      * @param failureKey
      *            key from above
      * @throws WBEMException
@@ -103,7 +156,7 @@ public final class InvokeTestFailure {
         if (!invokeArtificialFailure.contains("invokeMethod")) {
             return;
         }
-        
+
         // Extract the method name from the system property
         String failOnMethodName = invokeArtificialFailure.substring(ARTIFICIAL_FAILURE_015.length());
         String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
@@ -116,7 +169,7 @@ public final class InvokeTestFailure {
 
     /**
      * Local logging, needed for debug on failure detection.
-     * 
+     *
      * @param msg
      *            error message
      */

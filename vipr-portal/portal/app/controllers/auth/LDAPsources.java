@@ -674,7 +674,7 @@ public class LDAPsources extends ViprResourceController {
                 Logger.info("it is new");
                 return create();
             } else {
-                Logger.info("it is new");
+                Logger.info("it not is new");
                 return update();
             }
         }
@@ -699,8 +699,8 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setOidcBaseUrl(this.oidcBaseUrl);
-            Logger.info("oidc is %s", this.oidcBaseUrl);
 
+            Logger.info("oidc is %s", this.oidcBaseUrl);
 
             return AuthnProviderUtils.update(this.id, param);
         }

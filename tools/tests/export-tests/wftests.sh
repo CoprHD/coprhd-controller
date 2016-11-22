@@ -2418,7 +2418,7 @@ test_8() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
+    # failure_injections="failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
 
     for failure in ${failure_injections}
     do

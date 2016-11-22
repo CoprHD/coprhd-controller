@@ -27,10 +27,10 @@ import javax.ws.rs.core.UriBuilder;
  * Client for OE APIs - primitives, workflows
  */
 public class OEClient {
-    protected final ViPRCatalogClient2 parent;
-    protected final RestClient client;
+    private final ViPRCatalogClient2 parent;
+    private final RestClient client;
 
-    public OEClient(ViPRCatalogClient2 parent, RestClient client) {
+    public OEClient(final ViPRCatalogClient2 parent, final RestClient client) {
         this.parent = parent;
         this.client = client;
     }

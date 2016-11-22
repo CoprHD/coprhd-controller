@@ -167,18 +167,18 @@ public class WorkflowBuilder extends Controller {
             if (null == primitiveList) {
                 return;
             }
-            Node node;
-            String primitiveName;
-            String parent;
             for (PrimitiveRestRep primitiveRestRep : primitiveList.getPrimitives()) {
-                primitiveName = primitiveRestRep.getName();
+                String parent;
+                String primitiveName = primitiveRestRep.getName();
                 Primitive primitive = PrimitiveHelper.get(primitiveName);
-                // Default grouping: "ViPR Library"
-                parent = VIPR_LIBRARY_ROOT;
                 if (primitive instanceof ViPRPrimitive) {
                     parent = VIPR_PRIMITIVE_ROOT;
                 }
-                node = new Node(primitive.getClass().getSimpleName(), primitiveRestRep.getFriendlyName(), parent, NODE_TYPE_FILE);
+                else {
+                    // Default grouping: "ViPR Library"
+                    parent = VIPR_LIBRARY_ROOT;
+                }
+                Node node = new Node(primitive.getClass().getSimpleName(), primitiveRestRep.getFriendlyName(), parent, NODE_TYPE_FILE);
                 node.data = primitiveRestRep;
                 topLevelNodes.add(node);
             }

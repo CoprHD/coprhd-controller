@@ -354,6 +354,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                     if (status[1] == ActiveRepairService.Status.SESSION_FAILED.ordinal()) {
                         _log.info("Repair cmd={} failed", status[0]);
                         _success = false;
+                        repairRangeDone = true;
+                        finished.signal();
                     } else if (status[1] == ActiveRepairService.Status.FINISHED.ordinal() ||
                     		(_aborted && status[1] == ActiveRepairService.Status.SESSION_SUCCESS.ordinal())) {
                         _log.info("Repair cmd={} finished", status[0]);

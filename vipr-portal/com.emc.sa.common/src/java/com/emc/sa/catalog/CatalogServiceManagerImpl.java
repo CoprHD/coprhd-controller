@@ -16,6 +16,7 @@
  */
 package com.emc.sa.catalog;import static com.emc.storageos.db.client.URIUtil.uri;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ServiceIdPredicate;
+import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
@@ -380,7 +382,11 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             throw new IllegalStateException("Multiple workflows with the name " + workflowName);
         }
         
-        return results.get(0).getSteps();
+        try {
+            return WorkflowHelper.toWorkflowDocumentJson(results.get(0));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to deserialize workflow document " + workflowName, e);
+        }
     }
 
 }

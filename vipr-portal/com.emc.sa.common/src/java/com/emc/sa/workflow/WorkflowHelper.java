@@ -84,6 +84,10 @@ public final class WorkflowHelper {
         return MAPPER.readValue(workflow, OrchestrationWorkflowDocument.class);
     }
     
+    public static String toWorkflowDocumentJson( OrchestrationWorkflow workflow) throws JsonGenerationException, JsonMappingException, JsonParseException, IOException {
+        return MAPPER.writeValueAsString(toWorkflowDocument(workflow));
+    }
+    
     private static List<OrchestrationWorkflowDocument.Step> toDocumentSteps(final String steps) throws JsonParseException, JsonMappingException, IOException {
         return steps == null ? null :  MAPPER.readValue(steps, MAPPER.getTypeFactory().constructCollectionType(List.class, OrchestrationWorkflowDocument.Step.class));
     }

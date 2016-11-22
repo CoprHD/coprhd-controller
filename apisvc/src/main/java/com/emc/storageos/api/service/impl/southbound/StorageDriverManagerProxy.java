@@ -62,6 +62,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
             String driverName = type.getDriverName();
             if (type.getIsSmiProvider()) {
                 storageProvidersMap.put(driverName, typeName);
+                log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
                 continue;
             }
             storageSystemsMap.put(driverName, typeName);
@@ -75,7 +76,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 blockSystems.add(typeName);
             }
-            log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instancce", typeName);
+            log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
         }
     }
 

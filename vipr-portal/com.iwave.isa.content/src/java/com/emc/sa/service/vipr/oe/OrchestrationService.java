@@ -197,7 +197,7 @@ public class OrchestrationService extends ViPRService {
         else if (step.getSuccessCriteria() == null)
             return evaluateDefaultValue(step, result.getReturnCode());
         else
-            return findStatus(step.getSuccessCriteria(), result.getOut());
+            return findStatus(step.getSuccessCriteria(), result);
     }
 
     private String getNext(final boolean status, final OrchestrationTaskResult result, final Step step) {
@@ -472,17 +472,19 @@ public class OrchestrationService extends ViPRService {
      * Note: and, or cannot be part of lvalue or rvalue
      *
      * @param successCriteria
-     * @param result
+     * @param res
      * @return
      */
-    private boolean findStatus(String successCriteria, final String result) {
+    private boolean findStatus(String successCriteria, final OrchestrationTaskResult res) {
         try {
 
             if (successCriteria == null)
                 return true;
 
-            if (successCriteria != null && result == null)
+            if (successCriteria != null && res == null)
                 return false;
+
+            String result = res.getOut();
 
             SuccessCriteria sc = new SuccessCriteria();
             ExpressionParser parser = new SpelExpressionParser();
@@ -498,6 +500,7 @@ public class OrchestrationService extends ViPRService {
                 if (statement.startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
                     Expression e2 = parser.parseExpression(statement);
 
+                    sc.setReturnCode(res.getReturnCode());
                     boolean val = e2.getValue(con2, Boolean.class);
                     logger.info("Evaluated value for errorCode or returnCode is:{}", val);
 

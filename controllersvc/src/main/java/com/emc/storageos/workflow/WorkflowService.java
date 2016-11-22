@@ -619,9 +619,12 @@ public class WorkflowService implements WorkflowController {
                 // Persist the updated step state
                 persistWorkflowStep(workflow, step);
 
-                // Test mechanism to invoke a failure. No-op on production systems.
+                // This try/catch block is a debug facility to allow for testing of full rollback of workflows
+                // given a set system property "artificial_failure" -> "failure_004".
+                // This will change the current (and final) step of the workflow to failure and will cause
+                // rollback to occur. It currently doesn't not treat child or parent workflows any different.
                 try {
-                    if (workflow.allStatesTerminal()) {
+                    if (workflow.allStatesTerminal() && !workflow.isRollbackState()) {
                         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_004);
                     }
                 } catch (NullPointerException npe) {

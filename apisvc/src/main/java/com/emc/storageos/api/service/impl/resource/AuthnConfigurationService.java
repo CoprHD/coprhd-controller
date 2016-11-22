@@ -476,9 +476,29 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             return updateKeystoneProvider(id, param, provider, validateP);
+        } if (ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
+                return updateOidcProvider(id, param, provider);
         } else {
             return updateAdOrLDAPProvider(id, allow, param, provider, validateP, wasAlreadyDisabled);
         }
+    }
+
+    private AuthnProviderRestRep updateOidcProvider(URI id, AuthnUpdateParam param, AuthnProvider provider) {
+
+        provider.setOidcBaseUrl(param.getOidcBaseUrl());
+        provider.setLabel(param.getLabel());
+        provider.setDescription(param.getDescription());
+        provider.setDisable(param.getDisable());
+
+        provider = buildOIDCParameters(provider);
+
+        _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
+        persistProfileAndNotifyChange(provider, true);
+
+        auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
+                provider.toString(), provider.getId().toString());
+
+        return map(provider);
     }
 
     /**
@@ -1274,7 +1294,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         checkIfUpdateLDAPGroupPropertiesSupported(param);
 
-        validateAuthnProviderParam(param, provider, server_urls, domains, group_whitelist_values, null);
+        validateAuthnProviderParam(param, provider, server_urls, domains, group_whitelist_values, param.getOidcBaseUrl());
     }
 
     /**

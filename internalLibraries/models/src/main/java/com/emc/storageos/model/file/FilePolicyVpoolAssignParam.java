@@ -5,6 +5,7 @@
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
+import java.net.URI;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -17,7 +18,11 @@ public class FilePolicyVpoolAssignParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private boolean assigntoAll;
-    private Set<String> assigntoVpools;
+    private Set<URI> assigntoVpools;
+
+    public FilePolicyVpoolAssignParam() {
+        super();
+    }
 
     @XmlElement(name = "assign_to_all")
     public boolean isAssigntoAll() {
@@ -30,11 +35,11 @@ public class FilePolicyVpoolAssignParam implements Serializable {
 
     @XmlElementWrapper(name = "assign_to_vpools", required = true)
     @XmlElement(name = "vpool")
-    public Set<String> getAssigntoVpools() {
+    public Set<URI> getAssigntoVpools() {
         return this.assigntoVpools;
     }
 
-    public void setAssigntoVpools(Set<String> assigntoVpools) {
+    public void setAssigntoVpools(Set<URI> assigntoVpools) {
         this.assigntoVpools = assigntoVpools;
     }
 

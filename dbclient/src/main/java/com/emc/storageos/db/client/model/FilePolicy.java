@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
 import java.util.Set;
 
 /**
@@ -21,6 +22,9 @@ public class FilePolicy extends DataObject {
 
     // Name of the policy
     private String filePolicyName;
+
+    // Description of the policy
+    private String filePolicyDescription;
 
     // Level at which policy has to be applied..
     private String applyAt;
@@ -57,6 +61,12 @@ public class FilePolicy extends DataObject {
 
     // File Replication copy type
     private String fileReplicationCopyMode;
+
+    // File Policy associated Virtual Pool - this is being used for project and file system policy
+    private URI policyVpool;
+
+    // File Policy associated Project - this is being used for file system policy
+    private URI policyProject;
 
     public static enum FileReplicationType {
         LOCAL, REMOTE;
@@ -120,6 +130,16 @@ public class FilePolicy extends DataObject {
     public void setFilePolicyName(String filePolicyName) {
         this.filePolicyName = filePolicyName;
         setChanged("filePolicyName");
+    }
+
+    @Name("filePolicyDescription")
+    public String getFilePolicyDescription() {
+        return this.filePolicyDescription;
+    }
+
+    public void setFilePolicyDescription(String filePolicyDescription) {
+        this.filePolicyDescription = filePolicyDescription;
+        setChanged("filePolicyDescription");
     }
 
     @Name("applyAt")
@@ -222,4 +242,23 @@ public class FilePolicy extends DataObject {
         setChanged("assignedResources");
     }
 
+    @Name("policyVpool")
+    public URI getPolicyVpool() {
+        return this.policyVpool;
+    }
+
+    public void setPolicyVpool(URI policyVpool) {
+        this.policyVpool = policyVpool;
+        setChanged("policyVpool");
+    }
+
+    @Name("policyProject")
+    public URI getPolicyProject() {
+        return this.policyProject;
+    }
+
+    public void setPolicyProject(URI policyProject) {
+        this.policyProject = policyProject;
+        setChanged("policyProject");
+    }
 }

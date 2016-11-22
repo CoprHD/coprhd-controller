@@ -119,10 +119,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Replication attributes.
     // Replication type { Local or Remote}
     private String fileReplicationType;
-    // File Replication RPO value
-    private Long _frRpoValue;
-    // File Replication RPO type
-    private String _frRpoType;
+
     // File Replication RPO type
     private String _fileReplicationCopyMode;
 
@@ -133,7 +130,52 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private StringMap _fileRemoteCopySettings;
 
     // File Policy Feature---temporary----------
-    private Set<String> supportedFileProtection;
+    private boolean fileSnapshotSupported;
+    private boolean fileReplicationSupported;
+    private boolean filePolicyAtProjectLevel;
+    private boolean filePolicyAtFSLevel;
+    private Long _frRpoValue;
+    private String _frRpoType;
+
+    @Name("fileSnapshotSupported")
+    public boolean isFileSnapshotSupported() {
+        return fileSnapshotSupported;
+    }
+
+    public void setFileSnapshotSupported(boolean fileSnapshotSupported) {
+        this.fileSnapshotSupported = fileSnapshotSupported;
+        setChanged("fileSnapshotSupported");
+    }
+
+    @Name("fileReplicationSupported")
+    public boolean isFileReplicationSupported() {
+        return fileReplicationSupported;
+    }
+
+    public void setFileReplicationSupported(boolean fileReplicationSupported) {
+        this.fileReplicationSupported = fileReplicationSupported;
+        setChanged("fileReplicationSupported");
+    }
+
+    @Name("filePolicyAtProjectLevel")
+    public boolean isFilePolicyAtProjectLevel() {
+        return filePolicyAtProjectLevel;
+    }
+
+    public void setFilePolicyAtProjectLevel(boolean filePolicyAtProjectLevel) {
+        this.filePolicyAtProjectLevel = filePolicyAtProjectLevel;
+        setChanged("filePolicyAtProjectLevel");
+    }
+
+    @Name("filePolicyAtFSLevel")
+    public boolean isFilePolicyAtFSLevel() {
+        return filePolicyAtFSLevel;
+    }
+
+    public void setFilePolicyAtFSLevel(boolean filePolicyAtFSLevel) {
+        this.filePolicyAtFSLevel = filePolicyAtFSLevel;
+        setChanged("filePolicyAtFSLevel");
+    }
 
     public static enum FileReplicationType {
         LOCAL, REMOTE, NONE;
@@ -1579,14 +1621,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             this.dedupCapable = dedupCapable;
         }
         setChanged("dedupCapable");
-    }
-
-    public Set<String> getSupportedFileProtection() {
-        return supportedFileProtection;
-    }
-
-    public void setSupportedFileProtection(Set<String> supportedFileProtection) {
-        this.supportedFileProtection = supportedFileProtection;
     }
 
 }

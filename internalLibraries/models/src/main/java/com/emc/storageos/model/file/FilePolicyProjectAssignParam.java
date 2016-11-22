@@ -19,7 +19,11 @@ public class FilePolicyProjectAssignParam implements Serializable {
     private static final long serialVersionUID = 1L;
     private boolean assigntoAll;
     private URI vpool;
-    private Set<String> assignToProjects;
+    private Set<URI> assignToProjects;
+
+    public FilePolicyProjectAssignParam() {
+        super();
+    }
 
     @XmlElement(name = "vpool", required = true)
     public URI getVpool() {
@@ -41,11 +45,11 @@ public class FilePolicyProjectAssignParam implements Serializable {
 
     @XmlElementWrapper(name = "assign_to_projects", required = true)
     @XmlElement(name = "project")
-    public Set<String> getAssigntoProjects() {
+    public Set<URI> getAssigntoProjects() {
         return this.assignToProjects;
     }
 
-    public void setAssigntoProjects(Set<String> assignToProjects) {
+    public void setAssigntoProjects(Set<URI> assignToProjects) {
         this.assignToProjects = assignToProjects;
     }
 

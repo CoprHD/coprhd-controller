@@ -15,16 +15,23 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "assign_file_policy")
 public class FilePolicyAssignParam implements Serializable {
 
+    public FilePolicyAssignParam() {
+        super();
+    }
+
     private static final long serialVersionUID = 1L;
 
     // Level at which policy has to be applied..
     private String applyAt;
 
-    // Assigned vpools
+    // Vpool assignment parameters.
     private FilePolicyVpoolAssignParam vpoolAssignParams;
 
-    // Assigned projects
+    // Project assignment parameters.
     private FilePolicyProjectAssignParam projectAssignParams;
+
+    // File System assignment parameters.
+    private FilePolicyFileSystemAssignParam fileSystemAssignParams;
 
     @XmlElement(required = true, name = "apply_at")
     public String getApplyAt() {
@@ -51,6 +58,15 @@ public class FilePolicyAssignParam implements Serializable {
 
     public void setProjectAssignParams(FilePolicyProjectAssignParam projectAssignParams) {
         this.projectAssignParams = projectAssignParams;
+    }
+
+    @XmlElement(name = "filesystem_assign_param")
+    public FilePolicyFileSystemAssignParam getFileSystemAssignParams() {
+        return this.fileSystemAssignParams;
+    }
+
+    public void setFileSystemAssignParams(FilePolicyFileSystemAssignParam fileSystemAssignParams) {
+        this.fileSystemAssignParams = fileSystemAssignParams;
     }
 
 }

@@ -23,6 +23,9 @@ public class FilePolicyParam implements Serializable {
     // Name of the policy
     private String policyName;
 
+    // Description of the policy
+    private String policyDescription;
+
     // Replication related parameters
     private FileReplicationPolicyParam replicationPolicyParams;
 
@@ -48,6 +51,15 @@ public class FilePolicyParam implements Serializable {
 
     public void setPolicyName(String policyName) {
         this.policyName = policyName;
+    }
+
+    @XmlElement(name = "policy_description")
+    public String getPolicyDescription() {
+        return this.policyDescription;
+    }
+
+    public void setPolicyDescription(String policyDescription) {
+        this.policyDescription = policyDescription;
     }
 
     @XmlElement(name = "replication_params")

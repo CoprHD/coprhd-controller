@@ -15,8 +15,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.FilePolicyService;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.FileSnapshotPolicyExpireParam;
@@ -187,4 +189,26 @@ public class FilePolicyServiceUtils {
         return false;
     }
 
+    /**
+     * Check if the vpool supports provided policy type
+     * 
+     * @param filepolicy
+     * @param virtualPool
+     * @return
+     */
+    public static boolean validateVpoolSupportPolicyType(FilePolicy filepolicy, VirtualPool virtualPool) {
+        FilePolicyType policyType = FilePolicyType.valueOf(filepolicy.getFilePolicyType());
+        switch (policyType) {
+            case file_snapshot:
+                if (virtualPool.isFileSnapshotSupported()) {
+                    return true;
+                }
+            case file_replication:
+                if (virtualPool.isFileReplicationSupported()) {
+                    return true;
+                }
+            default:
+                return false;
+        }
+    }
 }

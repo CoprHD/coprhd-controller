@@ -3128,4 +3128,7 @@ public interface BadRequestExceptions {
    
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileReplicationPolicyParam(final String policyName, final String errorMsg);
+  
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFilePolicyAssignParam(final String policyName, final String errorMsg);
 }

@@ -16,6 +16,7 @@
  */
 package com.emc.vipr.client;
 
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -37,5 +38,10 @@ public class OEClient {
     public PrimitiveList getPrimitives() {
         UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
         return client.getURI(PrimitiveList.class, builder.build());
+    }
+
+    public OrchestrationWorkflowList getWorkflows() {
+        UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
+        return client.getURI(OrchestrationWorkflowList.class, builder.build());
     }
 }

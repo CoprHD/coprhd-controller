@@ -16,6 +16,8 @@
  */
 package controllers.catalog;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.vipr.model.catalog.WFBulkRep;
@@ -29,7 +31,9 @@ import play.mvc.With;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static util.BourneUtil.getCatalogClient;
 
@@ -78,24 +82,39 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void getWFDirectories() {
+        // GET workflow ids and names
+        Map<URI, String> oeId2NameMap = new HashMap<URI, String>();
+        OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient().oePrimitives().getWorkflows();
+        if (null != orchestrationWorkflowList && null != orchestrationWorkflowList.getWorkflows()) {
+            for (NamedRelatedResourceRep o : orchestrationWorkflowList.getWorkflows()) {
+                oeId2NameMap.put(o.getId(), o.getName());
+            }
+        }
+
+        // get workflow directories and prepare nodes
         WFBulkRep wfBulkRep = getCatalogClient().wfDirectories().getAll();
         List<Node> topLevelNodes = new ArrayList<Node>();
         Node node;
+        String nodeParent;
         for (WFDirectoryRestRep wfDirectoryRestRep: wfBulkRep.getWfDirectories()) {
-            node = new Node();
-            node.id= wfDirectoryRestRep.getId().toString();
-            node.text = wfDirectoryRestRep.getName();
-
             if ( null == wfDirectoryRestRep.getParent()) {
-                node.parentID = MY_LIBRARY_ROOT;
+                nodeParent = MY_LIBRARY_ROOT;
             }
             else {
-                node.parentID=wfDirectoryRestRep.getParent().getId().toString();
+                nodeParent = wfDirectoryRestRep.getParent().getId().toString();
+            }
+            node = new Node(wfDirectoryRestRep.getId().toString(), wfDirectoryRestRep.getName(), nodeParent);
+
+            // add workflows that are under this node
+            if (null != wfDirectoryRestRep.getWorkflows()) {
+                for (URI u : wfDirectoryRestRep.getWorkflows()) {
+                    topLevelNodes.add(new Node(u.toString(), oeId2NameMap.get(u), node.id, NODE_TYPE_FILE));
+                }
             }
             topLevelNodes.add(node);
         }
 
-        // Get primitives data
+        // Get primitives data and prepare nodes
         addPrimitives(topLevelNodes);
 
         renderJSON(topLevelNodes);
@@ -143,6 +162,9 @@ public class WorkflowBuilder extends Controller {
     private static void addPrimitives(List<Node> topLevelNodes) {
         try {
             PrimitiveList primitiveList = getCatalogClient().oePrimitives().getPrimitives();
+            if (null == primitiveList) {
+                return;
+            }
             Node node;
             String primitiveName, primitiveClassName;
             String parent;

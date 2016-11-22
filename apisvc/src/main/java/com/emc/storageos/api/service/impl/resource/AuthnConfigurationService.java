@@ -1274,7 +1274,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         checkIfUpdateLDAPGroupPropertiesSupported(param);
 
-        validateAuthnProviderParam(param, provider, server_urls, domains, group_whitelist_values, null);
+        validateAuthnProviderParam(param, provider, server_urls, domains, group_whitelist_values, param.getOidcBaseUrl());
     }
 
     /**

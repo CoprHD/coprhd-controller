@@ -255,6 +255,7 @@ public class LDAPsources extends ViprResourceController {
     }
 
     private static void save(AuthnProviderForm authnProvider) {
+        Logger.info("form is %s, %s", ((OIDCAuthnProviderForm) authnProvider).name, ((OIDCAuthnProviderForm) authnProvider).oidcBaseUrl);
         authnProvider.validate("ldapSources");
         if (Validation.hasErrors()) {
             Common.handleError();
@@ -650,6 +651,7 @@ public class LDAPsources extends ViprResourceController {
 
         public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
             this.id = stringId(authnProvider);
+            Logger.info("form id is %s, %s", authnProvider.getId(), this.id);
             this.name = authnProvider.getName();
             this.mode = authnProvider.getMode();
             this.description = authnProvider.getDescription();
@@ -691,19 +693,16 @@ public class LDAPsources extends ViprResourceController {
 
         private AuthnProviderRestRep update() {
             AuthnUpdateParam param = new AuthnUpdateParam();
-            AuthnProviderRestRep provider = AuthnProviderUtils.getAuthnProvider(this.id);
 
             param.setLabel(this.name);
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
+            param.setOidcBaseUrl(this.oidcBaseUrl);
+            Logger.info("oidc is %s", this.oidcBaseUrl);
 
-            param.setDomainChanges(getDomainChanges(provider));
+
             return AuthnProviderUtils.update(this.id, param);
-        }
-
-        private DomainChanges getDomainChanges(AuthnProviderRestRep provider) {
-            return null;
         }
 
         @Override

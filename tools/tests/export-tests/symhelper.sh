@@ -240,7 +240,7 @@ verify_export() {
 
     num_inits=`grep "WWN.*:" ${TMPFILE1} | wc -l`
     num_luns=`perl -nle 'print $1 if(m#(\S+)\s+\S+\s+Not Visible\s+#);' ${TMPFILE1} | sort -u | wc -l`
-    hlus= ( `perl -nle 'print $1 if(m#\S+\s+\S+\s+Not Visible\s+(\S+)+\s#);' ${TMPFILE1} | sort -u` )
+    hlus=( `perl -nle 'print $1 if(m#\S+\s+\S+\s+Not Visible\s+(\S+)+\s#);' ${TMPFILE1} | sort -u` )
     failed=false
 
     if [ "${num_inits}" != "${NUM_INITIATORS}" ]; then
@@ -266,7 +266,7 @@ verify_export() {
     if [ "${HLUS}" != "none" ]; then
         hlu_arr=(${HLUS//,/ })
         if [  "${hlus[*]}" != "${hlu_arr[*]}" ]; then
-            echo -e "\e[91mERROR\e[0m: Export group hlus: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+            echo -e "\e[91mERROR\e[0m: Export group HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
             echo -e "\e[91mERROR\e[0m: Masking view dump:"
             grep "Masking View Name" ${TMPFILE1}
             grep "Group Name" ${TMPFILE1}
@@ -281,7 +281,7 @@ verify_export() {
     fi
 
     if [ "${HLUS}" != "none" ]; then
-        echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns with hlus $4"
+        echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns with HLUs $4"
     else
         echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns"
     fi

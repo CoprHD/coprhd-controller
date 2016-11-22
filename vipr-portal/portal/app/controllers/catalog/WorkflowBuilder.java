@@ -23,8 +23,11 @@ import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+
 import com.google.gson.annotations.SerializedName;
+
 import controllers.Common;
+
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -178,7 +181,6 @@ public class WorkflowBuilder extends Controller {
                     parent = VIPR_PRIMITIVE_ROOT;
                 }
                 node = new Node(primitiveClassName, primitive.getFriendlyName(), parent, NODE_TYPE_FILE);
-
                 node.data = primitive;
                 topLevelNodes.add(node);
             }

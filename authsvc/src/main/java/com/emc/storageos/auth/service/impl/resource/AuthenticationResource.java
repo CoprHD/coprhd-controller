@@ -105,9 +105,6 @@ public class AuthenticationResource {
     @Autowired
     private CoordinatorClient coordinator;
 
-    // TODO
-    private String oidcProviderAddr = "lglw7227.lss.emc.com:58080/SSO";
-
     static {
         _cacheControl = new CacheControl();
         _cacheControl.setNoCache(true);

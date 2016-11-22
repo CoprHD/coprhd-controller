@@ -178,7 +178,6 @@ public class LDAPsources extends ViprResourceController {
     }
 
     public static void create(String authsource) {
-        Logger.info("Get request for creating provider in mode %s", authsource);
         if (authsource == null) {
             authsource = AuthSourceType.ad.name();
         }
@@ -206,7 +205,6 @@ public class LDAPsources extends ViprResourceController {
 
     private static void edit(AuthnProviderRestRep authnProvider) {
         String mode = authnProvider.getMode();
-        Logger.info("The provider's mode is %s, id is %s", mode, authnProvider.getId());
 
         if (mode.equals(AuthnConfigurationService.AuthModeType.oidc.name())) {
             editOidcForm(new OIDCAuthnProviderForm(authnProvider));
@@ -255,7 +253,6 @@ public class LDAPsources extends ViprResourceController {
     }
 
     private static void save(AuthnProviderForm authnProvider) {
-        Logger.info("form is %s, %s", ((OIDCAuthnProviderForm) authnProvider).name, ((OIDCAuthnProviderForm) authnProvider).oidcBaseUrl);
         authnProvider.validate("ldapSources");
         if (Validation.hasErrors()) {
             Common.handleError();
@@ -651,14 +648,12 @@ public class LDAPsources extends ViprResourceController {
 
         public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
             this.id = stringId(authnProvider);
-            Logger.info("form id is %s, %s", authnProvider.getId(), this.id);
             this.name = authnProvider.getName();
             this.mode = authnProvider.getMode();
             this.description = authnProvider.getDescription();
             this.disable = authnProvider.getDisable();
 
             this.oidcBaseUrl = authnProvider.getOidcBaseUrl();
-            Logger.info("oidc base url is %s", this.oidcBaseUrl);
             this.oidcAuthUrl = authnProvider.getOidcAuthorizeUrl();
             this.oidcTokenUrl = authnProvider.getOidcTokenUrl();
         }
@@ -669,12 +664,9 @@ public class LDAPsources extends ViprResourceController {
 
         @Override
         AuthnProviderRestRep save() {
-            Logger.info("id is %s", this.id);
             if (isNew()) {
-                Logger.info("it is new");
                 return create();
             } else {
-                Logger.info("it not is new");
                 return update();
             }
         }
@@ -699,8 +691,6 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setOidcBaseUrl(this.oidcBaseUrl);
-
-            Logger.info("oidc is %s", this.oidcBaseUrl);
 
             return AuthnProviderUtils.update(this.id, param);
         }

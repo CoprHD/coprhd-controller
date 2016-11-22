@@ -32,8 +32,8 @@ public final class OrchestrationServiceConstants {
     //SuccessCriteria Constants
     public static final String RETURN_CODE = "returnCode";
     public static final String TASK = "task";
+
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
-    public static final String VIPR_REST_URI = "{scheme}://{endPoint}:{port}{path}";
 
     public enum restMethods {
         GET, POST, PUT, DELETE;
@@ -44,7 +44,7 @@ public final class OrchestrationServiceConstants {
     public static final String ANSIBLE_LOCAL_BIN = "/usr/bin/ansible-playbook ";
     public static final String DATA_PATH = "/data/";
     public static final String EXTRA_VARS = "--extra-vars ";
-    public static final String UNTAR = "tar -zxvf";
+    public static final String UNTAR = "tar -zxvf ";
 
     public enum InputType {
         FROM_USER("InputFromUser"),

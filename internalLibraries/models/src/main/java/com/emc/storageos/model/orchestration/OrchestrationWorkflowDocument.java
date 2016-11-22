@@ -161,7 +161,7 @@ public class OrchestrationWorkflowDocument {
         private String operation;
         private String description;
         private String type;
-        private String path;
+        private String ansiblePackage;
         private Map<String, Input> input;
         private Map<String, String> output;
         private StepAttribute attributes;
@@ -200,13 +200,13 @@ public class OrchestrationWorkflowDocument {
             this.type = type;
         }
 
-        @XmlElement(name = "path")
-        public String getPath() {
-            return path;
+        @XmlElement(name = "ansiblePackage")
+        public String getAnsiblePackage() {
+            return ansiblePackage;
         }
 
-        public void setPath(String path) {
-            this.path = path;
+        public void setAnsiblePackage(String ansiblePackage) {
+            this.ansiblePackage = ansiblePackage;
         }
 
         @XmlElement(name = "input")

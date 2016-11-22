@@ -1,33 +1,33 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
-import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.OrchestrationService;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import com.emc.storageos.services.util.Exec;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.LoggerFactory;
+
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.services.util.Exec;
+
 public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
 
-    private final OrchestrationWorkflowDocument.Step step;
+    private final Step step;
     private final Map<String, List<String>> input;
 
-    public RunAnsible(final OrchestrationWorkflowDocument.Step step, final Map<String, List<String>> input)
+    public RunAnsible(final Step step, final Map<String, List<String>> input)
     {
         this.step = step;
         this.input = input;
     }
 
-    //ansible-playbook -i "localhost" release.yml --extra-vars "version=1.23.45 other_variable=foo"
     @Override
     public OrchestrationTaskResult executeTask() throws Exception {
 
@@ -42,14 +42,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
                 result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+step.getOperation());
                 break;
             case LOCAL_ANSIBLE:
-                result = UntarPackage(step.getPath());
+                result = UntarPackage(step.getAnsiblePackage());
                 if (result.execFailed()) {
-                    ExecutionUtils.currentContext().logInfo("Failed to Untar package: %s", step.getPath());
+                    logger.error("Failed to Untar package: %s", step.getAnsiblePackage());
 
                     return null;
                 }
 
-                result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+step.getPath()+"/"+step.getOperation());
+                result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+
+                        FilenameUtils.removeExtension(step.getAnsiblePackage())+"/"+step.getOperation());
                 break;
             case REMOTE_ANSIBLE:
                 break;
@@ -61,11 +62,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         ExecutionUtils.currentContext().logInfo("Done Executing Ansible Workflow Step:{}", step.getId());
 
-        if (result == null) {
-            ExecutionUtils.currentContext().logInfo("Failed to Execute playbook %s", "");
-
+        if (result == null)
             return null;
-        }
 
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
@@ -86,7 +84,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
-    private String makeExtraArg(Map<String, List<String>> input) throws Exception {
+    /**
+     * Ansible extra Argument format:
+     * --extra_vars "key1=value1 key2=value2"
+     *
+     * @param input
+     * @return
+     * @throws Exception
+     */
+    private String makeExtraArg(final Map<String, List<String>> input) throws Exception {
         String extra_vars = "\"";
         Set s = input.keySet();
 
@@ -95,11 +101,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         {
             String key = it.next().toString();
             String value = input.get(key).get(0);
-            logger.info("key:{} value:{}", key, value);
             extra_vars = extra_vars + key + "=" +value;
         }
         extra_vars = extra_vars + "\"";
-        logger.info("extra vars:{}", extra_vars);
+        logger.debug("extra vars:{}", extra_vars);
 
         return extra_vars;
     }

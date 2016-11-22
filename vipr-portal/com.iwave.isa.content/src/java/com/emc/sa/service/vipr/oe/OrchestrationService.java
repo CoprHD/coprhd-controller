@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
+
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -45,6 +45,7 @@ import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
 import com.emc.sa.service.vipr.oe.tasks.RunAnsible;
 import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
@@ -61,7 +62,7 @@ import com.google.gson.Gson;
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
-    private Map<String, Object> params = new HashMap<String, Object>();
+    private Map<String, Object> params;
     private String oeOrderJson;
 
     @Autowired
@@ -82,10 +83,6 @@ public class OrchestrationService extends ViPRService {
 
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-
-        // validate input params to insure service will run
-        params.put("name", "/data/hello.yml");
-        params.put("arg1", "Mozart");
 
     }
 
@@ -119,7 +116,7 @@ public class OrchestrationService extends ViPRService {
         }
         
         final OrchestrationWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
-        
+
         ExecutionUtils.currentContext().logInfo("Orchestration Engine Running workflow:{} Description:{}",
                 obj.getName(), obj.getDescription());
 
@@ -384,7 +381,8 @@ public class OrchestrationService extends ViPRService {
 
     private boolean isAnsible(final Step step)
     {
-        if (step.getType().equals(StepType.LOCAL_ANSIBLE) || step.getType().equals(StepType.REMOTE_ANSIBLE))
+        if (step.getType().equals(StepType.LOCAL_ANSIBLE) || step.getType().equals(StepType.REMOTE_ANSIBLE) ||
+                step.getType().equals(StepType.SHELL_SCRIPT))
             return true;
 
         return false;

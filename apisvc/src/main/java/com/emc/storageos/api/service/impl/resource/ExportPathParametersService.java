@@ -10,12 +10,14 @@ import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -34,10 +36,15 @@ import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
 
+@Path("/block/export-path-parameters")
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ExportPathParametersService extends TaggedResource {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
@@ -47,7 +54,8 @@ public class ExportPathParametersService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public ExportPathParametersRestRep createExportPathParameters(ExportPathParameters param) throws DatabaseException {
+    public ExportPathParametersRestRep createExportPathParameters(ExportPathParameters param, 
+            @DefaultValue("false") @QueryParam("is-port-group") boolean isPortGroup) throws DatabaseException {
 
         // Make path param name and port group flag as mandatory field
         ArgValidator.checkFieldNotEmpty(param.getName(), EXPORT_PATH_PARAM_NAME);
@@ -78,7 +86,7 @@ public class ExportPathParametersService extends TaggedResource {
             }
         }
 
-        ExportPathParams exportPathParams = prepareExportPathParams(param);
+        ExportPathParams exportPathParams = prepareExportPathParams(param,isPortGroup);
 
         _dbClient.createObject(exportPathParams);
         _log.info("Export Path Paramters {} created successfully", exportPathParams);
@@ -204,7 +212,7 @@ public class ExportPathParametersService extends TaggedResource {
         return restRep;
     }
 
-    private ExportPathParams prepareExportPathParams(ExportPathParameters param) {
+    private ExportPathParams prepareExportPathParams(ExportPathParameters param, boolean isPortGroup) {
         ExportPathParams params = new ExportPathParams();
         params.setId(URIUtil.createId(ExportPathParams.class));
         params.setLabel(param.getName());

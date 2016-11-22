@@ -182,29 +182,25 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         Set<Integer> newHostUsedHlus = new HashSet<Integer>();
         List<String> conflictVolumes = Lists.newArrayList();
         if (exportGroup.forCluster()) {
-            String hostStr = exportGroup.getHosts().iterator().next();
-            Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
-            List<URI> clusterInitiators = null;
-            if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                _log.info("Host {} is part of Cluster", host.getHostName());
-                // get all the hosts' initiators for this cluster
-                clusterInitiators = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-            }
-            clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
-            newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
+            if (exportGroup.getClusters().iterator().hasNext()) {
+                URI clusterURI = URI.create(exportGroup.getClusters().iterator().next());
 
-            //newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
-            newHostUsedHlus.retainAll(clusterUsedHlus);
-            if (exportGroup.getVolumes() != null) {
-                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-                    Integer hlu = Integer.valueOf(entry.getValue());
-                    if (newHostUsedHlus.contains(hlu)) {
-                        conflictVolumes.add(entry.getKey());
+                List<URI> clusterInitiators = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
+                clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+                newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
+                // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+                newHostUsedHlus.retainAll(clusterUsedHlus);
+                if (!newHostUsedHlus.isEmpty()) {
+                    if (exportGroup.getVolumes() != null) {
+                        for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                            Integer hlu = Integer.valueOf(entry.getValue());
+                            if (newHostUsedHlus.contains(hlu)) {
+                                conflictVolumes.add(entry.getKey());
+                            }
+                        }
                     }
+                    throw XtremIOApiException.exceptions.hluViolation(newHostUsedHlus, conflictVolumes);
                 }
-            }
-            if (!newHostUsedHlus.isEmpty()) {
-                throw XtremIOApiException.exceptions.hluViolation(newHostUsedHlus, conflictVolumes);
             }
         }
     }

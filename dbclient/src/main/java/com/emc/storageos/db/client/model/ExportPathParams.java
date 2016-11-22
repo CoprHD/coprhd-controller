@@ -35,6 +35,11 @@ public class ExportPathParams extends DataObject {
     // PathsPerInitiator is set to 0 which means determine by array type.
     // MaxInitiatorsPerPort will be set to 1 which means ports are not shared by Initiators.
     static public final ExportPathParams defaultParams = new ExportPathParams(4, 0, 0);
+    
+    private String description;
+    private Boolean portGroupFlagSet;
+    
+
 
     static public ExportPathParams getDefaultParams() {
         return defaultParams;
@@ -153,6 +158,26 @@ public class ExportPathParams extends DataObject {
 
     public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
+    }
+    
+    @Name("portGroupFlagSet")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+        setChanged("description");
+    }
+
+    @Name("portGroupFlagSet")
+    public Boolean isPortGroupFlagSet() {
+        return portGroupFlagSet;
+    }
+
+    public void setPortGroupFlag(Boolean portGroupFlagSet) {
+        this.portGroupFlagSet = portGroupFlagSet;
+        setChanged("portGroupFlagSet");
     }
 
 }

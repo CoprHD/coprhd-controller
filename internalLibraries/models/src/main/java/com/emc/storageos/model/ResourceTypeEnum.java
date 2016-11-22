@@ -99,6 +99,7 @@ public enum ResourceTypeEnum {
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
+    EXPORT_PATH_PARAMETERS("export_path_parameters","/block/export-path-parameters"),
     ACTIONABLE_EVENT("actionable_event", "/vdc/events");
 
     private final String type;

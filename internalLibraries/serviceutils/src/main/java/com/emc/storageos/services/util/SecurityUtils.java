@@ -66,7 +66,7 @@ public class SecurityUtils {
     /**
      * Removes any potential XSS threats from the value without damaging file path string.
      *
-     * Allow strict set of legal path characters [a-zA-Z0-9.\\/_\-:]
+     * Jsoup clean will remove any HTML tags or attributes which should not be allowed within this property
      *
      * @param value data to be cleaned
      * @return cleaned data
@@ -75,8 +75,7 @@ public class SecurityUtils {
         if (value == null) {
             return null;
         }
-        String regex = "[^a-zA-Z0-9.\\\\/_\\-:]";
-        value = value.replaceAll(regex, "");
+        value = Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
 
         return value;
     }

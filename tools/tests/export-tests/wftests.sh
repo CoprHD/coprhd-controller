@@ -885,7 +885,7 @@ prerun_setup() {
     project list --tenant emcworld > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	echo "Seeing if there's an existing base of volumes"
-	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
 	BASENUM=""
     fi

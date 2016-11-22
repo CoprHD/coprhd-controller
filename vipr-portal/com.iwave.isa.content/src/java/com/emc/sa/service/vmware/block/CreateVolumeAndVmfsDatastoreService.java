@@ -115,14 +115,14 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
             ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
         }
 
+        createBlockVolumeHelpers.get(0).exportVolumes(volumes);
+
         int index = 0;
         for (String datastoreName : datastoreNames) {
             BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumes.get(index));
             datastoreVolumeMap.put(datastoreName, volume);
             index++;
         }
-
-        createBlockVolumeHelpers.get(0).exportVolumes(volumes);
 
         connectAndInitializeHost();
 

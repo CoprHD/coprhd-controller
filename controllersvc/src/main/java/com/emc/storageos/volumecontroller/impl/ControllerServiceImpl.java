@@ -590,6 +590,7 @@ public class ControllerServiceImpl implements ControllerService {
             String driverName = type.getDriverName();
             if (type.getIsSmiProvider()) {
                 driverManager.getStorageProvidersMap().put(driverName, typeName);
+                _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
                 continue;
             }
             driverManager.getStorageSystemsMap().put(driverName, typeName);
@@ -603,10 +604,10 @@ public class ControllerServiceImpl implements ControllerService {
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 driverManager.getBlockSystems().add(typeName);
             }
-            _log.info("Driver info for storage system type {} has been set into storageDriverManager instancce", typeName);
+            _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
 
-        // init externalBlockStorageDevice instance and externaldevice instance
+        // init externalBlockStorageDevice instance
         ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(ExternalBlockStorageDevice.BEAN_NAME);
         // key: storage system type name, value: driver instance
         Map<String, AbstractStorageDriver> blockDeviceDrivers = blockDevice.getDrivers();

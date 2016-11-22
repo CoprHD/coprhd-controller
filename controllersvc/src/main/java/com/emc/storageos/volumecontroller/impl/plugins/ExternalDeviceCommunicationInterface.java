@@ -71,7 +71,6 @@ import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 public class ExternalDeviceCommunicationInterface extends
         ExtendedCommunicationInterfaceImpl {
 
-    public static final String BEAN_NAME = "externaldevice";
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);

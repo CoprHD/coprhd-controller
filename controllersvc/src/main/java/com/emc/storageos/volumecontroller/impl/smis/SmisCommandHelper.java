@@ -43,8 +43,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -105,6 +103,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+
+import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -339,10 +339,11 @@ public class SmisCommandHelper implements SmisConstants {
         }
         JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this);
         long startTime = System.currentTimeMillis();
+        int sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(SYNC_WRAPPER_TIME_OUT);
         while (true) {
             JobPollResult result = job.poll(jobContext, SYNC_WRAPPER_WAIT);
             if (!result.isJobInTerminalState()) {
-                if (System.currentTimeMillis() - startTime > SYNC_WRAPPER_TIME_OUT) {
+                if (System.currentTimeMillis() - startTime > sync_wrapper_time_out) {
                     throw new SmisException(
                             "Timed out waiting on smis job to complete after " +
                                     (System.currentTimeMillis() - startTime) + " milliseconds");

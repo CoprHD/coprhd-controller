@@ -1098,7 +1098,9 @@ public class DbClientImpl implements DbClient {
      *            object to print stack
      */
     private <T> void printPersistedObject(T obj) {
-        if (obj instanceof DataObject) {
+        final String filterClasses[] = { "Workflow", "WorkflowStep", "WorkflowStepData", "Task" };
+        ArrayList<String> filterList = new ArrayList<>(Arrays.asList(filterClasses));
+        if (obj instanceof DataObject && !filterList.contains(obj.getClass().getSimpleName())) {
             DataObject dobj = (DataObject)obj;
 
             StackTraceElement[] elements = Thread.currentThread().getStackTrace();

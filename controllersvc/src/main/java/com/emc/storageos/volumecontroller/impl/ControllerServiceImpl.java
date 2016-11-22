@@ -649,7 +649,7 @@ public class ControllerServiceImpl implements ControllerService {
                 continue;
             }
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
-                result.add(it.next());
+                result.add(type);
             }
         }
         return result;

@@ -30,7 +30,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 /**
  * Utilities to check resource limit defined in support matrix. Going beyond predefined limit may degrade the system performance
  */
-public class ResourceLimitCheckUtils {
+public final class ResourceLimitCheckUtils {
     private final static Logger log = LoggerFactory.getLogger(ResourceLimitCheckUtils.class);
     
     private static String PROJECT = "project";

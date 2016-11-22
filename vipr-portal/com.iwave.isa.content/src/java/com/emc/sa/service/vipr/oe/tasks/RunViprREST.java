@@ -37,7 +37,7 @@ import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 
-public class RunViprREST extends ViPRExecutionTask<String> {
+public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
 
@@ -52,9 +52,8 @@ public class RunViprREST extends ViPRExecutionTask<String> {
     }
 
     @Override
-    public String executeTask() throws Exception {
+    public OrchestrationTaskResult executeTask() throws Exception {
 
-        final String result;
         final String requestBody;
 
         final String templatePath = primitive.path();
@@ -71,14 +70,14 @@ public class RunViprREST extends ViPRExecutionTask<String> {
 
         ExecutionUtils.currentContext().logInfo(String.format("Started Executing REST API with uri: %s and POST Body: %s ", path, requestBody));
 
-        result = makeRestCall(path, requestBody, method);
+        OrchestrationTaskResult result = makeRestCall(path, requestBody, method);
 
         ExecutionUtils.currentContext().logInfo(String.format("Done Executing REST Step. REST result: %s", result));
 
         return result;
     }
 
-    private String makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
+    private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
 
         final ClientResponse response;
         OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
@@ -101,19 +100,21 @@ public class RunViprREST extends ViPRExecutionTask<String> {
 		        throw new IllegalStateException("Invalid REST method type" + method);
         }
 
-        SuccessCriteria o = new SuccessCriteria();
-        o.setReturnCode(response.getStatus());
+        if (response == null)
+            return null;
+
         logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
 
         String responseString = null;
         try {
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
-        } catch (IOException e) {
-            error("Error getting response from Orchestration Engine for: " + path +
-                    " :: " + e.getMessage());
+        } catch (final IOException e) {
+            logger.info("Unable to get response from rest");
+
+            return null;
         }
 
-        return responseString;
+        return new OrchestrationTaskResult(responseString, responseString, response.getStatus());
     }
 
 

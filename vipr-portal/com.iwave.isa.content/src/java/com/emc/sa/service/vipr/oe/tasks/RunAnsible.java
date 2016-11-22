@@ -1,52 +1,89 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.linux.tasks.LinuxExecutionTask;
+import com.emc.sa.service.vipr.oe.OrchestrationService;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.services.util.Exec;
-import com.iwave.ext.command.CommandOutput;
-import com.iwave.ext.linux.command.LinuxCommand;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Created by sonalisahu on 10/21/16.
- */
-public class RunAnsible  extends ViPRExecutionTask<OeTaskResult> {
-private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
-    private String name;
-    private Map<String, List<String>> input;
+public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
-    public RunAnsible(final String name, final Map<String, List<String>> input)
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
+
+    private final OrchestrationWorkflowDocument.Step step;
+    private final Map<String, List<String>> input;
+
+    public RunAnsible(final OrchestrationWorkflowDocument.Step step, final Map<String, List<String>> input)
     {
-        this.name = name;
+        this.step = step;
         this.input = input;
     }
 
+    //ansible-playbook -i "localhost" release.yml --extra-vars "version=1.23.45 other_variable=foo"
     @Override
-    public OeTaskResult executeTask() throws Exception {
+    public OrchestrationTaskResult executeTask() throws Exception {
 
-        //ansible-playbook -i "localhost" release.yml --extra-vars "version=1.23.45 other_variable=foo"
+        ExecutionUtils.currentContext().logInfo("Starting Ansible Workflow step:{} of type:{}", step.getId(), step.getType());
 
-        ExecutionUtils.currentContext().logInfo("Starting Ansible WF Step. Operation:" + name);
+        final String extra_vars = makeExtraArg(input);
 
-	String extra_vars = makeExtraArg(input);
-        String[] cmds = { "/usr/bin/ansible-playbook", name };
-        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
+        Exec.Result result = null;
+        switch (type) {
+            case SHELL_SCRIPT:
+                result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+step.getOperation());
+                break;
+            case LOCAL_ANSIBLE:
+                result = UntarPackage(step.getPath());
+                if (result.execFailed()) {
+                    ExecutionUtils.currentContext().logInfo("Failed to Untar package: %s", step.getPath());
 
-        //CommandOutput result = exec.executeCommand(new Command("ansible-playbook -i " + "" + name+".yml" + "--extra-vars " + extra_vars));
-        ExecutionUtils.currentContext().logInfo("Done Executing Ansible WF Step. Operation:" + name);
+                    return null;
+                }
 
-        OeTaskResult res= new OeTaskResult();
-        res.setReturnCode(result.getExitValue());
-        res.setOut(result.getStdOutput());
-        res.setErr(result.getStdError());
+                result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+step.getPath()+"/"+step.getOperation());
+                break;
+            case REMOTE_ANSIBLE:
+                break;
+            default:
+                logger.error("Ansible Operation type:{} not supported", type);
 
-        return res;
+                throw new IllegalStateException("Unsupported Operation");
+        }
+
+        ExecutionUtils.currentContext().logInfo("Done Executing Ansible Workflow Step:{}", step.getId());
+
+        if (result == null) {
+            ExecutionUtils.currentContext().logInfo("Failed to Execute playbook %s", "");
+
+            return null;
+        }
+
+        return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
+    }
+
+    private Exec.Result executeCmd(final String path, final String extra_vars) {
+        final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, path,
+                         OrchestrationServiceConstants.EXTRA_VARS + extra_vars};
+
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+    }
+
+    private Exec.Result UntarPackage(final String tarFile) throws IOException
+    {
+        //TODO Get packge from ViPR DB
+        final String[] cmds = {OrchestrationServiceConstants.UNTAR, tarFile , "-c",
+                            OrchestrationServiceConstants.DATA_PATH+tarFile};
+
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
     private String makeExtraArg(Map<String, List<String>> input) throws Exception {
@@ -65,18 +102,5 @@ private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsibl
         logger.info("extra vars:{}", extra_vars);
 
         return extra_vars;
-    }
-    
-    public static class AnsibleResult {
-        
-        private int exitValue;
-        private String out;
-        private String err;
-        
-        public void setResult(int exitValue, String out, String err) {
-            this.exitValue = exitValue;
-            this.out = out;
-            this.err = err;               
-        }       
     }
 }

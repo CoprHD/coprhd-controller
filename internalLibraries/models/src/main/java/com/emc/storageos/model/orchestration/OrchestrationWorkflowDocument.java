@@ -161,6 +161,7 @@ public class OrchestrationWorkflowDocument {
         private String operation;
         private String description;
         private String type;
+        private String path;
         private Map<String, Input> input;
         private Map<String, String> output;
         private StepAttribute attributes;
@@ -198,7 +199,16 @@ public class OrchestrationWorkflowDocument {
         public void setType(String type) {
             this.type = type;
         }
-        
+
+        @XmlElement(name = "path")
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
+        }
+
         @XmlElement(name = "input")
         public Map<String, Input> getInput() {
             return input;

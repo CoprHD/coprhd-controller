@@ -20,6 +20,9 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
+import com.emc.storageos.model.orchestration.internal.Primitive;
+import com.emc.storageos.model.orchestration.internal.PrimitiveHelper;
+import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -49,10 +52,6 @@ public class WorkflowBuilder extends Controller {
     private static final String VIPR_LIBRARY_ROOT = "viprLib";
     private static final String VIPR_PRIMITIVE_ROOT = "viprrest";
     private static final String NODE_TYPE_FILE = "file";
-    private static final List<String> PRIMITIVE_CLASS_NAMES = new ArrayList<String>(){{
-        add("RestPrimitive");
-        add("LocalAnsible");
-        }};
 
     public static void view() {
         render();
@@ -169,19 +168,18 @@ public class WorkflowBuilder extends Controller {
                 return;
             }
             Node node;
-            String primitiveName, primitiveClassName;
+            String primitiveName;
             String parent;
-            for (PrimitiveRestRep primitive : primitiveList.getPrimitives()) {
-                primitiveName = primitive.getName();
-                primitiveClassName = primitiveName.substring(primitiveName.lastIndexOf('.') + 1);
+            for (PrimitiveRestRep primitiveRestRep : primitiveList.getPrimitives()) {
+                primitiveName = primitiveRestRep.getName();
+                Primitive primitive = PrimitiveHelper.get(primitiveName);
                 // Default grouping: "ViPR Library"
                 parent = VIPR_LIBRARY_ROOT;
-                // For primitives other than ansible and rest grouping is " ViPR REST Primitives"
-                if (!PRIMITIVE_CLASS_NAMES.contains(primitiveClassName)) {
+                if (primitive instanceof ViPRPrimitive) {
                     parent = VIPR_PRIMITIVE_ROOT;
                 }
-                node = new Node(primitiveClassName, primitive.getFriendlyName(), parent, NODE_TYPE_FILE);
-                node.data = primitive;
+                node = new Node(primitive.getClass().getSimpleName(), primitiveRestRep.getFriendlyName(), parent, NODE_TYPE_FILE);
+                node.data = primitiveRestRep;
                 topLevelNodes.add(node);
             }
         }

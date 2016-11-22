@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -422,26 +423,51 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String successMessage = null;
         String opName = null;
         TaskCompleter completer = null;
-
-        if (URIUtil.isType(uri, FileShare.class)) {
-            completer = new FileWorkflowCompleter(uri, opId);
-            fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = String.format("Creating NFS export for file system : %s", uri);
-            successMessage = String.format("Creating NFS export for file system : %s finished succesfully.", uri);
-            opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
-
-        } else {
-            completer = new FileSnapshotWorkflowCompleter(uri, opId);
-            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = String.format("Creating NFS export for file system snapshot : %s", uri);
-            successMessage = String.format("Creating NFS export for file system snapshot : %s finished succesfully.", uri);
-            opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
-        }
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME, false, opId, completer);
             String exportStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, exports };
-            _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep, stepDescription, storage, args);
+            if (URIUtil.isType(uri, FileShare.class)) {
+                completer = new FileWorkflowCompleter(uri, opId);
+                fileObj = s_dbClient.queryObject(FileShare.class, uri);
+
+                // First, export the source fs
+                stepDescription = String.format("Creating NFS export for file system : %s", uri);
+                successMessage = String.format("Creating NFS export for file system : %s finished succesfully.", uri);
+                opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
+                String waitFor = _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep,
+                        stepDescription, storage, args);
+
+                // Second, get the targets if any
+                StringSet targetFileShares = ((FileShare) fileObj).getMirrorfsTargets();
+                if (targetFileShares != null) {
+                    // set all the exports to read only
+                    List<FileShareExport> roExports = new ArrayList<FileShareExport>();
+                    for (FileShareExport export : exports) {
+                        FileExport roExport = export.getFileExport();
+                        roExport.setPermissions("ro");
+                        roExports.add(new FileShareExport(roExport));
+                    }
+                    // create read only exports for each of the targets
+                    for (String targetFS : targetFileShares) {
+                        stepDescription = String.format("Creating NFS export for file system : %s", targetFS);
+                        successMessage = String.format("Creating NFS export for file system : %s finished succesfully.", targetFS);
+                        FileShare fs = s_dbClient.queryObject(FileShare.class, URIUtil.uri(targetFS));
+                        args = new Object[] { fs.getStorageDevice(), fs.getId(), roExports };
+                        waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILESYSTEM_EXPORT_METHOD, null,
+                                stepDescription, fs.getStorageDevice(), args);
+                    }
+                }
+            } else {
+                completer = new FileSnapshotWorkflowCompleter(uri, opId);
+                fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+                stepDescription = String.format("Creating NFS export for file system snapshot : %s", uri);
+                successMessage = String.format("Creating NFS export for file system snapshot : %s finished succesfully.", uri);
+                opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
+                _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep, stepDescription, storage,
+                        args);
+
+            }
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("Creating NFS export for file system/snapshot : %s failed", uri), ex);
@@ -1613,7 +1639,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());

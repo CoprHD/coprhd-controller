@@ -55,45 +55,12 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
     public synchronized void start() throws Exception {
         initValidator();
         initServer();
-        initStorageDriverManager();
         _server.start();
         _svcBeacon.start();
         // Launch OpenStack synchronization task if Keystone Authentication Provider exists.
         AuthnProvider keystoneProvider = _openStackSynchronizationTask.getKeystoneProvider();
         if (keystoneProvider != null && keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
              _openStackSynchronizationTask.start(_openStackSynchronizationTask.getTaskInterval(keystoneProvider));
-        }
-    }
-
-    private void initStorageDriverManager() {
-        ApplicationContext context = StorageDriverManager.getApplicationContext();
-        if (context == null) {
-            log.warn("ApplicationContext of StorageDriverManager instance is not set");
-            return;
-        }
-        StorageDriverManager driverManager = (StorageDriverManager) context.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
-
-        List<StorageSystemType> types = listNonNativeTypes();
-
-        for (StorageSystemType type : types) {
-            String typeName = type.getStorageTypeName();
-            String driverName = type.getDriverName();
-            if (type.getIsSmiProvider()) {
-                driverManager.getStorageProvidersMap().put(driverName, typeName);
-                continue;
-            }
-            driverManager.getStorageSystemsMap().put(driverName, typeName);
-            if (type.getManagedBy() != null) {
-                driverManager.getProviderManaged().add(typeName);
-            } else {
-                driverManager.getDirectlyManaged().add(typeName);
-            }
-            if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.FILE.toString())) {
-                driverManager.getFileSystems().add(typeName);
-            } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
-                driverManager.getBlockSystems().add(typeName);
-            }
-            log.info("Driver info for storage system type {} has been set into storageDriverManager instancce", typeName);
         }
     }
 

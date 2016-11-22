@@ -7,7 +7,7 @@
         if (table.host.dataTable.getDataTable() != null) {
             var limit = ${resource_limit_tenant_hosts};
             if (table.host.dataTable.needResourceLimitAlert(limit)){
-                $('#resourceLimitAlert').text(Messages.get('resources.resourceLimitAlert', limit));
+                $('#resourceLimitAlert').text(Messages.get('resources.host.resourceLimitAlert', limit));
        		    $('#resourceLimitAlert').show();
             }
         }

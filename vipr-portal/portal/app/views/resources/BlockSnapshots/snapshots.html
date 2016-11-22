@@ -19,7 +19,7 @@
         if (table.snapshots.dataTable.getDataTable() != null) {
             var limit = ${resource_limit_project_snapshots};
             if (table.snapshots.dataTable.needResourceLimitAlert(limit)){
-                $('#resourceLimitAlert').text(Messages.get('resources.resourceLimitAlert', limit));
+                $('#resourceLimitAlert').text(Messages.get('resources.snapshot.resourceLimitAlert', limit));
        		    $('#resourceLimitAlert').show();
             }
         }

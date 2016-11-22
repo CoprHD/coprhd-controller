@@ -80,6 +80,9 @@ public class Hosts extends ViprResourceController {
     public static void list() {
         TenantSelector.addRenderArgs();
         renderArgs.put("dataTable", new HostDataTable());
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        String limit = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_TENANT_HOSTS);
+        renderArgs.put(Constants.RESOURCE_LIMIT_TENANT_HOSTS, limit);
         render();
     }
 
@@ -94,16 +97,7 @@ public class Hosts extends ViprResourceController {
         for (HostRestRep host : hosts) {
             hostInfos.add(new HostInfo(host, clusterMap, vcenterDataCenters));
         }
-        
-        // check snapshot limits
-        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        int limit = NumberUtils.toInt(coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_TENANT_HOSTS));
-        String message = null;
-        if (hostInfos.size() * 90 >= limit * 100) {
-            message = Messages.get("dataTable.resourceLimitAlert",  limit);
-        }
-        
-        renderJSON(DataTablesSupport.createJSON(hostInfos, params, message));
+        renderJSON(DataTablesSupport.createJSON(hostInfos, params));
     }
 
     public static void itemsJson(@As(",") String[] ids) {

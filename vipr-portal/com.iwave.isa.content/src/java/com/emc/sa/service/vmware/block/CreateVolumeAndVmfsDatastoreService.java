@@ -107,26 +107,26 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
                     ExecutionUtils.getMessage("CreateVolumeAndVmfsDatastoreService.datastore.volume.mismatch"));
         }
 
-        int index = 0;
-        List<URI> volumesToExport = Lists.newArrayList();
         Map<String, BlockObjectRestRep> datastoreVolumeMap = Maps.newHashMap();
-        for (String datastoreName : datastoreNames) {
-            List<URI> volumes = createBlockVolumeHelpers.get(index).createVolumes(createBlockVolumeHelpers.get(index).getComputeResource());
-            volumesToExport.addAll(volumes);
-            if (volumes.isEmpty()) {
-                ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
-            }
 
-            if (!volumes.isEmpty()) {
-                BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumes.get(0));
-                datastoreVolumeMap.put(datastoreName, volume);
-            }
+        List<URI> volumes = BlockStorageUtils.createMultipleVolumes(createBlockVolumeHelpers);
+
+        if (volumes.isEmpty()) {
+            ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
+        }
+
+        int index = 0;
+        for (String datastoreName : datastoreNames) {
+            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumes.get(index));
+            datastoreVolumeMap.put(datastoreName, volume);
             index++;
         }
 
-        createBlockVolumeHelpers.get(0).exportVolumes(volumesToExport);
+        createBlockVolumeHelpers.get(0).exportVolumes(volumes);
 
         connectAndInitializeHost();
+
+        vmware.refreshStorage(host, cluster);
 
         for (Entry<String, BlockObjectRestRep> t : datastoreVolumeMap.entrySet()) {
             Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, t.getValue(), t.getKey());
@@ -134,8 +134,6 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
             vmware.setStorageIOControl(datastore, storageIOControl);
         }
 
-        // Refresh the storage on all hosts in the cluster after creating the datastores
-        vmware.refreshStorage(host, cluster);
         vmware.disconnect();
     }
 }

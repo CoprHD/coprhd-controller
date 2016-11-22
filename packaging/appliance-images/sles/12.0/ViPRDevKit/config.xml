@@ -11,7 +11,7 @@
     <profile name="base" description="ADG default"/>
   </profiles>
   <preferences>
-    <version>__VERSION__</version>
+    <version>0.0.0</version>
     <packagemanager>zypper</packagemanager>
     <bootsplash-theme>SLES</bootsplash-theme>
     <bootloader-theme>SLES</bootloader-theme>
@@ -20,6 +20,8 @@
     <keytable>us.map.gz</keytable>
     <timezone>US + Canada/Eastern Time</timezone>
     <hwclock>utc</hwclock>
+</preferences>
+<preferences profiles="appliance">
     <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=1 boot=/dev/sda1">
       <systemdisk name="systemVG">
         <volume name="swap" size="6144"/>
@@ -117,8 +119,8 @@
     <package name="openssh"/>
     <package name="pam-modules"/>
     <package name="parted"/>
-	<package name="pciutils"/>
-	<package name="pciutils-ids"/>
+    <package name="pciutils"/>
+    <package name="pciutils-ids"/>
     <package name="perl-Config-Crontab"/>
     <package name="perl-IO-Socket-INET6"/>
     <package name="perl-XML-Writer"/>

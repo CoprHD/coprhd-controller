@@ -374,7 +374,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     public String getWorkflowDocument(String workflowName) {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
-        List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(workflowName);
+        final List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(workflowName);
         if(null == results || results.isEmpty()) {
             return null;
         }
@@ -384,7 +384,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
         
         try {
             return WorkflowHelper.toWorkflowDocumentJson(results.get(0));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Failed to deserialize workflow document " + workflowName, e);
         }
     }

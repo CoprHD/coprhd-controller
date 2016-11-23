@@ -239,6 +239,7 @@ public class ExportPathParametersService extends TaggedResource {
         ExportPathParams params = new ExportPathParams();
         params.setId(URIUtil.createId(ExportPathParams.class));
         params.setLabel(param.getName());
+        params.setDescription(param.getDescription());
         params.setMaxPaths(param.getMaxPaths());
         params.setMinPaths(param.getMinPaths());
         params.setPathsPerInitiator(param.getPathsPerInitiator());
@@ -263,6 +264,10 @@ public class ExportPathParametersService extends TaggedResource {
         if (param.getName() != null) {
             params.setLabel(param.getName());
         }
+        if (param.getDescription() != null) {
+            params.setDescription(param.getDescription());
+        }
+        
         if (param.getMaxPaths() != null) {
             params.setMaxPaths(param.getMaxPaths());
         }

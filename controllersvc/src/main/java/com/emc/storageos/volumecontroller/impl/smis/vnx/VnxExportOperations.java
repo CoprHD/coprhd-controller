@@ -152,6 +152,8 @@ public class VnxExportOperations implements ExportMaskOperations {
             CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage,
                     exportMaskURI, volumeURIHLUs, null, targetURIList, taskCompleter);
             if (protocolControllers != null) {
+                ExportOperationContext.insertContextOperation(taskCompleter, VnxExportOperationContext.OPERATION_CREATE_STORAGE_GROUP,
+                        exportMaskURI);
                 _log.debug("createExportMask succeeded.");
                 for (CIMObjectPath protocolController : protocolControllers) {
                     _helper.setProtocolControllerNativeId(exportMaskURI, protocolController);
@@ -164,8 +166,6 @@ public class VnxExportOperations implements ExportMaskOperations {
                 ExportMaskOperationsHelper.populateDeviceNumberFromProtocolControllers(_dbClient, cimConnection, exportMaskURI,
                         volumeURIHLUs, protocolControllers, taskCompleter);
                 modifyClarPrivileges(storage, initiatorList);
-                ExportOperationContext.insertContextOperation(taskCompleter, VnxExportOperationContext.OPERATION_CREATE_STORAGE_GROUP,
-                        exportMaskURI);
                 taskCompleter.ready(_dbClient);
             } else {
                 _log.debug("createExportMask failed. No protocol controller created.");
@@ -676,6 +676,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                             hlu = -1;
                                         }
                                         exportMask.addVolume(volume.getId(), hlu);
+                                        exportMask.removeFromExistingVolumes(volume);
                                     }
                                 }
                             }

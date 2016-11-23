@@ -42,7 +42,7 @@ import com.emc.vipr.client.Tasks;
 public class CreateBlockSnapshotService extends ViPRService {
 
     @Param(PROJECT)
-    public URI project;
+    protected URI project;
     
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;

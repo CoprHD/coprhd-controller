@@ -16,10 +16,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.engine.ExecutionContext;
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
-import com.emc.storageos.coordinator.client.model.Constants;
 
 public class CreateBlockVolumeHelper {
     @Param(VIRTUAL_POOL)

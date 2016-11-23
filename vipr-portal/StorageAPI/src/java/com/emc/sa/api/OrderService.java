@@ -398,7 +398,7 @@ public class OrderService extends CatalogTaggedResourceService {
         OrchestrationWorkflowDocument doc = null;
         try {
             doc = workflowServiceDescriptor.getWorkflowDocument(service.getBaseService());
-            descriptor = workflowServiceDescriptor.getDescriptor(service.getLabel());
+            descriptor = workflowServiceDescriptor.getDescriptor(service.getBaseService());
             log.info("Got doc");
         }
         catch (Exception e) {

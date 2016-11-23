@@ -157,9 +157,9 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      *            the service ID.
      * @return the service descriptor, or null.
      */
-    private ServiceDescriptor getServiceDescriptor(String serviceId, String serviceName) {
+    private ServiceDescriptor getServiceDescriptor(String serviceId) {
         try {
-            ServiceDescriptor serviceDescriptor = workflowServiceDescriptor.getDescriptor(serviceName);
+            ServiceDescriptor serviceDescriptor = workflowServiceDescriptor.getDescriptor(serviceId);
             if (null != serviceDescriptor) {
                 return serviceDescriptor;
             }
@@ -179,7 +179,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      * @return the service descriptor, or null.
      */
     private ServiceDescriptor getServiceDescriptor(CatalogService service) {
-        return getServiceDescriptor(service.getBaseService(), service.getLabel());
+        return getServiceDescriptor(service.getBaseService());
     }
 
     /**
@@ -410,7 +410,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     private void validateParam(CatalogServiceCommonParam input, CatalogService existing) {
 
-        ServiceDescriptor descriptor = workflowServiceDescriptor.getDescriptor(input.getName());
+        ServiceDescriptor descriptor = workflowServiceDescriptor.getDescriptor(input.getBaseService());
         if (null == descriptor) {
             descriptor = catalogServiceManager.getServiceDescriptor(input.getBaseService());
         }

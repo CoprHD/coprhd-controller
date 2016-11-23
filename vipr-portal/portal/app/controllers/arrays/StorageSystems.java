@@ -127,6 +127,7 @@ public class StorageSystems extends ViprResourceController {
     private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String GUIDE_COMPLETED_STEP = "completedSteps";
     private static final String SMIS_VMAX = "StorageSystemType.STORAGE_PROVIDER.vmax";
+    // key: storage system type, value: storage provider type
     private static Map<String, String> nonNativeSystemProviderMap = new HashMap<String, String>();
 
     private static void buildSouthBoundTypeMap() {

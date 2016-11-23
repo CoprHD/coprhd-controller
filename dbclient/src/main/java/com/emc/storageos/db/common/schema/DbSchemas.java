@@ -9,15 +9,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.google.common.base.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.common.schema.DbSchema.IndexCFKey;
+import com.google.common.base.Objects;
 
 @XmlRootElement(name = "dbschemas")
 public class DbSchemas {
@@ -85,5 +88,26 @@ public class DbSchemas {
         }
 
         return schemaDuplicateColumns;
+    }
+    
+    public boolean hasDuplicatedIndexNames() {
+        for (DbSchema dbSchema : schemas) {
+            if (dbSchema.hasDuplicateIndexCFNames()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public Map<String, Map<IndexCFKey, List<ColumnField>>> getDuplicatedIndexNames() {
+        Map<String, Map<IndexCFKey, List<ColumnField>>> duplicateIndexCFByClass = new TreeMap<String, Map<IndexCFKey, List<ColumnField>>>();
+        
+        for (DbSchema dbSchema : schemas) {
+            if (dbSchema.hasDuplicateIndexCFNames()) {
+                duplicateIndexCFByClass.put(dbSchema.getModelClass().getName(), dbSchema.getDuplicateIndexCFNames());
+            }
+        }
+        
+        return duplicateIndexCFByClass;
     }
 }

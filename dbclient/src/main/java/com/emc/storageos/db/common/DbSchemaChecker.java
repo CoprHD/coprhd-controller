@@ -25,6 +25,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.common.DbMigrationCallbackChecker.MigrationCallbackDiff;
 import com.emc.storageos.db.common.diff.DbSchemasDiff;
@@ -32,6 +33,7 @@ import com.emc.storageos.db.common.schema.AnnotationType;
 import com.emc.storageos.db.common.schema.DbSchema;
 import com.emc.storageos.db.common.schema.DbSchemas;
 import com.emc.storageos.db.common.schema.FieldInfo;
+import com.emc.storageos.db.common.schema.DbSchema.IndexCFKey;
 
 public class DbSchemaChecker {
     private final static Logger log = LoggerFactory.getLogger(DbSchemaChecker.class);
@@ -144,6 +146,12 @@ public class DbSchemaChecker {
             dumpDuplicateColumns(schemaDuplicateFields);
             System.exit(-1);
         }
+        
+        if (currentSchemas.hasDuplicatedIndexNames()) {
+            Map<String, Map<IndexCFKey, List<ColumnField>>> duplicateIndexCFs = currentSchemas.getDuplicatedIndexNames();
+            dumpDuplicatedIndexCFNames(duplicateIndexCFs);
+            System.exit(-1);
+        }
 
         log.info("Check db schemas of the packages: {}\nagainst schema file: {}", pkgs,
                 schemaFile);
@@ -245,6 +253,23 @@ public class DbSchemaChecker {
         }
 
         log.error("It is not allowed to map more than one object fields to single column");
+    }
+    
+    private static void dumpDuplicatedIndexCFNames(Map<String, Map<IndexCFKey, List<ColumnField>>> duplicateIndexCFs) {
+        String fieldFormat = "Fields(%s): {}";
+        for (Map.Entry<String, Map<IndexCFKey, List<ColumnField>>> entry : duplicateIndexCFs.entrySet()) {
+            log.warn("More than one fields are mapped to same index CF in data object {}", entry.getKey());
+            for (Map.Entry<IndexCFKey, List<ColumnField>> indexEntry : entry.getValue().entrySet()) {
+                log.warn("Index: {}", indexEntry.getKey());
+                StringBuilder buffer = new StringBuilder();
+                for (ColumnField field : indexEntry.getValue()) {
+                    buffer.append(field.getName()).append("[").
+                        append(field.getPropertyDescriptor().getPropertyType().getSimpleName()).append("], ");
+                }
+                log.warn(String.format(fieldFormat, indexEntry.getValue().size(), buffer.toString()));
+            }
+        }
+        log.warn("Totally {} data object contain duplicated index CF names", duplicateIndexCFs.size());
     }
 
     public static String marshalSchemasDiff(DbSchemasDiff diff) {

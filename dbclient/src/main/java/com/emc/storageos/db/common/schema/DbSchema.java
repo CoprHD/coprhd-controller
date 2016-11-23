@@ -10,9 +10,12 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -24,8 +27,12 @@ import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.impl.AggregateDbIndex;
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.DataObject;
 
 public class DbSchema implements SchemaObject {
     private static final Logger log = LoggerFactory.getLogger(DbSchema.class);
@@ -39,6 +46,9 @@ public class DbSchema implements SchemaObject {
     private String name;
     private List<FieldInfo> fields = new ArrayList<FieldInfo>();
     private Annotations annotations;
+    private Map<IndexCFKey, List<ColumnField>> indexColumnsMap;
+    private boolean hasDuplicateIndexCFNames;
+    private Class clazz;
 
     public DbSchema() {
     }
@@ -48,6 +58,8 @@ public class DbSchema implements SchemaObject {
     }
 
     public DbSchema(Class clazz, DbSchemaScannerInterceptor scannerInterceptor) {
+        this.clazz = clazz;
+        
         runtimeType = new RuntimeType();
         runtimeType.setCfClass(clazz);
 
@@ -76,6 +88,29 @@ public class DbSchema implements SchemaObject {
         }
 
         annotations = new Annotations(runtimeType, clazz.getDeclaredAnnotations(), this, scannerInterceptor);
+        
+        indexColumnsMap = new HashMap<IndexCFKey, List<ColumnField>>();
+        
+        if (DataObject.class.isAssignableFrom(clazz)) {
+            DataObjectType doType = TypeMap.getDoType(clazz);
+            for (ColumnField field : doType.getColumnFields()) {
+                if (field.getIndex() == null) {
+                    continue;
+                }
+                
+                if (field.getIndex() instanceof AggregateDbIndex) {
+                    continue;
+                }
+                
+                IndexCFKey indexCfKey = new IndexCFKey(field.getIndex().getClass().getSimpleName(), field.getIndexCF().getName());
+                if (!indexColumnsMap.containsKey(indexCfKey)) {
+                    indexColumnsMap.put(indexCfKey, new ArrayList<ColumnField>());
+                }
+                
+                indexColumnsMap.get(indexCfKey).add(field);
+                hasDuplicateIndexCFNames |= indexColumnsMap.get(indexCfKey).size() > 1;
+            }
+        }
     }
 
     @XmlAttribute
@@ -174,5 +209,72 @@ public class DbSchema implements SchemaObject {
             }
         }
         return duplicateFields;
+    }
+    
+    public boolean hasDuplicateIndexCFNames() {
+        return hasDuplicateIndexCFNames;
+    }
+    
+    public Map<IndexCFKey, List<ColumnField>> getDuplicateIndexCFNames() {
+        Map<IndexCFKey, List<ColumnField>> result = new HashMap<IndexCFKey, List<ColumnField>>();
+        for (Entry<IndexCFKey, List<ColumnField>> entry : indexColumnsMap.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        
+        return result;
+    }
+    
+    public Class getModelClass() {
+        return this.clazz;
+    }
+    
+    public static class IndexCFKey {
+        private String index;
+        private String cf;
+        
+        public IndexCFKey(String index, String cf) {
+            super();
+            this.index = index;
+            this.cf = cf;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((cf == null) ? 0 : cf.hashCode());
+            result = prime * result + ((index == null) ? 0 : index.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            IndexCFKey other = (IndexCFKey) obj;
+            
+            if (cf == null) {
+                if (other.cf != null)
+                    return false;
+            } else if (!cf.equals(other.cf))
+                return false;
+            if (index == null) {
+                if (other.index != null)
+                    return false;
+            } else if (!index.equals(other.index))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "Index Type=" + index + ", Index CF=" + cf;
+        }
     }
 }

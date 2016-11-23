@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
@@ -775,6 +776,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
+        }
+        
+        public static AlternateIdConstraint getPathParamsByPortGroupConstraint(Boolean flag ) {
+            DataObjectType doType = TypeMap.getDoType(ExportPathParams.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("portGroupFlagSet"), flag.toString());
         }
     }
 }

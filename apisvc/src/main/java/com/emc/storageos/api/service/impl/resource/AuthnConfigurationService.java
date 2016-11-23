@@ -94,14 +94,6 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
-    private static String AUTH_KIND = "auth";
-    private static String AUTH_ID = "auth";
-    private static String AUTHMODE_KEY = "authmode";
-    private static String AUTH_LOCK_NAME = "auth_lock";
-
-    public enum AuthModeType {
-        oidc, normal;
-    }
 
     @Autowired
     private TenantsService _tenantsService;
@@ -279,8 +271,6 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
 
-        notifyAuthModeChanged();
-
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
 
@@ -322,43 +312,6 @@ public class AuthnConfigurationService extends TaggedResource {
         if ( !providers.isEmpty() ) {
             throw APIException.badRequests.NonOidcProviderAlreadyPresent();
         }
-    }
-
-    private void notifyAuthModeChanged() {
-        String authMode = computeAuthModeFromDb();
-
-        try {
-            getConfigUtil().write(null, AUTH_KIND, AUTH_ID, AUTHMODE_KEY, authMode, AUTH_LOCK_NAME);
-        } catch (Exception e) {
-            // Failure is allowed here and there will be periodical query to db
-            _log.warn("Fail to notify authmode change via zk", e);
-        }
-    }
-
-    private ConfigurationUtil getConfigUtil() {
-        if (configUtil == null) {
-            configUtil = new ConfigurationUtil(_coordinator);
-        }
-        return configUtil;
-    }
-
-    /**
-     * auth mode is oidc if one oidc provider exists, else it's normal mode
-     * @return
-     */
-    private String computeAuthModeFromDb() {
-        String authMode = AuthModeType.normal.name();
-
-        List<AuthnProvider> providers = getProvidersFromDb();
-
-        for (AuthnProvider provider : providers) {
-            if (provider.getMode().equals(ProvidersType.oidc.name())) {
-                authMode = AuthModeType.oidc.name();
-                break;
-            }
-        }
-
-        return authMode;
     }
 
     private AuthnProvider buildOIDCParameters(AuthnProvider provider) {
@@ -1050,8 +1003,6 @@ public class AuthnConfigurationService extends TaggedResource {
         }
         _dbClient.removeObject(provider);
         notifyChange();
-
-        notifyAuthModeChanged();
 
         // TODO - record event
 

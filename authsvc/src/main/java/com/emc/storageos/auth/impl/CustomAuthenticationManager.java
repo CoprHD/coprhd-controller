@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.security.authentication.AuthUtil;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.security.exceptions.SecurityException;
@@ -248,6 +249,19 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         _tokenManager.deleteAllTokensForUser(username, true);
         // failed to refresh
         throw APIException.badRequests.principalSearchFailed(username);
+    }
+
+    @Override
+    public AuthUtil.AuthMode currentAuthenticationMode() {
+        AuthUtil.AuthMode authMode = AuthUtil.AuthMode.normal;
+        for (AuthenticationProvider ap : _authNProviders.getAuthenticationProviders()) {
+            if (ap.getProviderConfig().getMode().equals(AuthUtil.AuthMode.oidc.name())) {
+                authMode =  AuthUtil.AuthMode.oidc;
+                break;
+            }
+        }
+        _log.info("Current authentication mode is {}", authMode.name());
+        return authMode;
     }
 
     protected List<AuthenticationProvider> getAuthenticationProviders() {

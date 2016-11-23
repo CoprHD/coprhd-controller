@@ -25,6 +25,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.password.PasswordChangeParam;
 import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.security.authentication.AuthUtil;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
@@ -324,9 +325,23 @@ public class AuthenticationResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("login")
     public Response getLoginToken(@Context HttpServletRequest httpRequest,
-            @Context HttpServletResponse servletResponse,
-            @QueryParam("service") String service)
-            throws IOException {
+                                  @Context HttpServletResponse servletResponse,
+                                  @QueryParam("service") String service) throws IOException {
+        if ( isLocalLogin( httpRequest) ) {
+            return apiLogin(httpRequest, servletResponse, service);
+        }
+
+        if ( _authManager.currentAuthenticationMode().equals(AuthUtil.AuthMode.oidc) ) {
+            return oidcAuthRequest(service);
+        } else {
+            return apiLogin(httpRequest, servletResponse, service);
+        }
+    }
+
+    private Response apiLogin(HttpServletRequest httpRequest,
+                             HttpServletResponse servletResponse,
+                             String service) throws IOException {
+
         String clientIP = _invLoginManager.getClientIP(httpRequest);
         isClientIPBlocked(clientIP);
         boolean setCookie = RequestProcessingUtils.isRequestingQueryParam(httpRequest, RequestProcessingUtils.REQUESTING_COOKIES);
@@ -392,18 +407,38 @@ public class AuthenticationResource {
      *            authentication
      * @return form login page if the user is not authenticated.
      *         OK status otherwise
-     * @throws UnsupportedEncodingException
      * @prereq none
      * @throws IOException
      */
     @GET
     @Produces({ MediaType.TEXT_HTML })
     @Path("formlogin")
-    public Response getFormLogin(@Context HttpServletRequest httpRequest,
-            @Context HttpServletResponse servletResponse,
-            @QueryParam("service") String service,
-            @QueryParam("src") String source)
-            throws UnsupportedEncodingException, IOException {
+    public Response uiLogin(@Context HttpServletRequest httpRequest,
+                            @Context HttpServletResponse servletResponse,
+                            @QueryParam("service") String service,
+                            @QueryParam("src") String source) throws IOException {
+
+        if ( isLocalLogin( httpRequest) ) {
+            return uiFormLogin(httpRequest, servletResponse, service, source);
+        }
+
+        if ( _authManager.currentAuthenticationMode().equals(AuthUtil.AuthMode.oidc) ) {
+            return oidcAuthRequest(service);
+        } else {
+            return uiFormLogin(httpRequest, servletResponse, service, source);
+        }
+    }
+
+    private boolean isLocalLogin(HttpServletRequest httpRequest) {
+        String localParam = httpRequest.getParameter("local");
+        return localParam != null; // could be empty
+    }
+
+    private Response uiFormLogin(HttpServletRequest httpRequest,
+                                HttpServletResponse servletResponse,
+                                String service,
+                                String source) throws IOException {
+
         String loginError = null;
         try {
             LoginStatus loginStatus = tryLogin(httpRequest, service, true, servletResponse, true);
@@ -1250,10 +1285,9 @@ public class AuthenticationResource {
 
     @GET
     @Path("/oidcauth")
-    public Response oidcAuthRequest(@QueryParam("resource_uri") String resourceURI) {
+    public Response oidcAuthRequest(@QueryParam("service") String resourceURI) {
 
         OIDCAuthenticationManager authMgr = ((CustomAuthenticationManager) _authManager).getOIDCAuthManager();
-        authMgr.verifyAuthModeForOIDC();
 
         try {
             URI oidcAuthEndpoint = authMgr.buildAuthenticationRequestInURI(resourceURI);

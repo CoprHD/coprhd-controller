@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.security.authentication.AuthUtil;
 import org.apache.commons.httpclient.Credentials;
 
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
@@ -95,4 +96,10 @@ public interface AuthenticationManager {
      */
     public void refreshUser(String username) throws SecurityException,
             BadRequestException;
+
+    /**
+     * Get current authentication mode
+     * @return Either oidc or legacy
+     */
+    AuthUtil.AuthMode currentAuthenticationMode();
 }

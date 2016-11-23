@@ -7,7 +7,6 @@ package controllers.security;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import controllers.deadbolt.Deadbolt;
-import jobs.vipr.AuthModeBootstrap;
 import models.security.UserInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
@@ -17,7 +16,6 @@ import play.cache.Cache;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Util;
-import util.AuthSourceType;
 import util.BourneUtil;
 import util.MessagesUtils;
 
@@ -301,14 +299,14 @@ public class Security extends Controller {
             String base = request.getBase();
             String path = "GET".equalsIgnoreCase(request.method) ? request.url : Play.ctxPath + "/";
             String service = base + path;
-            redirectToAuthPage(service);
+            redirectToAuthPage(service, false);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @Util
-    public static void redirectToAuthPage(String service) {
+    public static void redirectToAuthPage(String service, boolean local) {
         if (Security.isApiRequest()) {
             // Redirecting to the apisvc login page will fail in most browsers due to the same origin policy.
             // Return a 401 and let the client handle it.
@@ -319,6 +317,9 @@ public class Security extends Controller {
                 String encodedService = URLEncoder.encode(service, "UTF-8");
                 String authSvcPort = Play.configuration.getProperty("authsvc.port");
                 String url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, encodedService);
+                if (local) {
+                    url = url + "&local";
+                }
                 Logger.debug("No cookie detected. Redirecting to login page %s", url);
                 redirect(url);
             } catch (Exception e) {
@@ -363,10 +364,5 @@ public class Security extends Controller {
     @Util
     private static void removeResponseCookie(String name) {
         response.setCookie(name, "", null, "/", 0, true, true);
-    }
-
-    @Util
-    public static AuthModeType authMode() {
-        return AuthModeType.valueOf( (String) Cache.get(AUTH_MODE_CACHE_KEY) );
     }
 }

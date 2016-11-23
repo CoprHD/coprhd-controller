@@ -115,6 +115,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
             ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
         }
 
+        // use one of the helpers to export all volumes to the host or cluster
         createBlockVolumeHelpers.get(0).exportVolumes(volumes);
 
         int index = 0;

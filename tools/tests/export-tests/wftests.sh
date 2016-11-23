@@ -677,10 +677,10 @@ VPOOL_BASE=vpool
 VPOOL_FAST=${VPOOL_BASE}-fast
 
 BASENUM=${BASENUM:=$RANDOM}
-VOLNAME=dutestexp${BASENUM}
+VOLNAME=wftest${BASENUM}
 EXPORT_GROUP_NAME=export${BASENUM}
-HOST1=host1export${BASENUM}
-HOST2=host2export${BASENUM}
+HOST1=wfhost1export${BASENUM}
+HOST2=wfhost2export${BASENUM}
 CLUSTER=cl${BASENUM}
 
 # Allow for a way to easily use different hardware
@@ -867,6 +867,9 @@ login() {
 }
 
 prerun_setup() {		
+    # Reset system properties
+    reset_system_props
+
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -885,7 +888,7 @@ prerun_setup() {
     project list --tenant emcworld > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	echo "Seeing if there's an existing base of volumes"
-	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
 	BASENUM=""
     fi
@@ -893,10 +896,10 @@ prerun_setup() {
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutestexp${BASENUM}
+       VOLNAME=wftest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
-       HOST1=host1export${BASENUM}
-       HOST2=host2export${BASENUM}
+       HOST1=wfhost1export${BASENUM}
+       HOST2=wfhost2export${BASENUM}
        CLUSTER=cl${BASENUM}
 
        sstype=${SS:0:3}
@@ -975,14 +978,23 @@ get_device_id() {
     fi
 }
 
-# Reset all of the system properties so settings are back to normal
+# Set all properties the way we expect them to be before we start the entire suite
+# We don't expect individual tests to change these, or at least if they do, we expect
+# the test to change it back.
 reset_system_props() {
+    reset_system_props_pre_test
     set_suspend_on_class_method "none"
     set_suspend_on_error false
-    set_artificial_failure "none"
     set_validation_check true
     set_validation_refresh true
     set_controller_cs_discovery_refresh_interval 60
+    set_controller_discovery_refresh_interval 5
+}
+
+# Reset all of the system properties so settings are back to normal that are changed 
+# during the tests themselves.
+reset_system_props_pre_test() {
+    set_artificial_failure "none"
 }
 
 # Clean zones from previous tests, verify no zones are on the switch
@@ -1023,7 +1035,6 @@ vnx_setup() {
 	run storagedevice delete ${id}
     done
 
-    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
@@ -1034,15 +1045,22 @@ vnx_setup() {
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    # Chose thick because we need a thick pool for VNX metas
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
-	--provisionType 'Thin'			        \
+	--provisionType 'Thick'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    if [ "${SIM}" = "1" ]
+    then
+	# Remove the thin pool that doesn't support metas on the VNX simulator
+	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
+    else
+	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    fi
 }
 
 unity_setup()
@@ -1071,13 +1089,13 @@ unity_setup()
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
-vmax3_sim_setup() {
+vmax2_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=5889
+    VMAX_SMIS_PORT=5988
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
-    VMAX_SMIS_SSL=true
+    VMAX_SMIS_SSL=false
     VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
@@ -1086,7 +1104,7 @@ vmax2_setup() {
     SMISPASS=0
 
     if [ "${SIM}" = "1" ]; then
-	vmax3_sim_setup
+	vmax2_sim_setup
     fi
  
     # do this only once
@@ -1117,7 +1135,7 @@ vmax2_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1172,7 +1190,7 @@ vmax3_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1668,6 +1686,10 @@ set_controller_cs_discovery_refresh_interval() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
 }
 
+set_controller_discovery_refresh_interval() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_discovery_refresh_interval $1
+}
+
 # Verify no masks
 #
 # Makes sure there are no masks on the array before running tests
@@ -1776,24 +1798,24 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    if [ "${SS}" = "vnx" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    # failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
 
     for failure in ${failure_injections}
     do
@@ -1886,7 +1908,7 @@ test_2() {
     snap_db 1 ${cfs}
 
     # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "${TENANT}/${CLUSTER}"
 
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
@@ -1927,12 +1949,12 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
     fi
 
-    if [ "${SS}" = "vnx" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
@@ -2291,7 +2313,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020"
+    # failure_injections="failure_004:failure_024"
 
     for failure in ${failure_injections}
     do
@@ -2343,6 +2365,130 @@ test_7() {
 
       # Report results
       report_results test_7 ${failure}
+    done
+}
+
+# Test 8 (volume create with metas)
+#
+# Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_8() {
+    echot "Test 8 Begins"
+
+    if [ "${SIM}" != "1" ];
+    then
+	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
+	return;
+    fi
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+    fi
+
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement \
+                                    failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                                    failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+	meta_size=20000GB
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
+	meta_size=20000GB
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
+
+    for failure in ${failure_injections}
+    do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask"
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+
+      # run discovery to ensure we have enough space for the upcoming allocation
+      runcmd storagedevice discover_all
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
+
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      # run discovery to ensure we have enough space for the upcoming allocation
+      runcmd storagedevice discover_all
+
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_8 ${failure}
     done
 }
 
@@ -2556,17 +2702,17 @@ test_end=7
 # If there's a last parameter, take that
 # as the name of the test to run
 # To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
-# ./dutest.sh sanity.conf vplex local test_7+
+# ./wftest.sh sanity.conf vplex local test_7+
 if [ "$1" = "hosts" ]
 then
    secho Request to run ${HOST_TEST_CASES}
    for t in ${HOST_TEST_CASES}
    do
       secho Run $
-      reset_system_props
+      reset_system_props_pre_test
       prerun_tests
       $t
-      reset_system_props
+      reset_system_props_pre_test
    done
 elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
@@ -2574,10 +2720,10 @@ then
    for t in $*
    do
       secho Run $t
-      reset_system_props
+      reset_system_props_pre_test
       prerun_tests
       $t
-      reset_system_props
+      reset_system_props_pre_test
    done
 else
    if [ "${1:(-1)}" = "+" ]
@@ -2589,10 +2735,10 @@ else
    # Passing tests:
    while [ ${num} -le ${test_end} ]; 
    do
-     reset_system_props
+     reset_system_props_pre_test
      prerun_tests
      test_${num}
-     reset_system_props
+     reset_system_props_pre_test
      num=`expr ${num} + 1`
    done
 fi

@@ -75,9 +75,8 @@ public class SecurityUtils {
         if (value == null) {
             return null;
         }
-        value = Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
+        return Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
 
-        return value;
     }
 
     /**

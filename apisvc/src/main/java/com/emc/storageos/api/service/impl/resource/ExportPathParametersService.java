@@ -218,6 +218,7 @@ public class ExportPathParametersService extends TaggedResource {
         restRep.setMinPaths(exportPathParams.getMinPaths());
         restRep.setMaxInitiatorsPerPort(exportPathParams.getMaxInitiatorsPerPort());
         restRep.setPathsPerInitiator(exportPathParams.getPathsPerInitiator());
+        restRep.setDescription(exportPathParams.getDescription());
         StringSet exportPathParamSet = exportPathParams.getStoragePorts();
         List<URI> portUris = Lists.newArrayList();
         for (String uriString : exportPathParamSet) {

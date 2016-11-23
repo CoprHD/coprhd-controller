@@ -451,11 +451,14 @@ public class OrderManagerImpl implements OrderManager {
 
         log.info("lbyh0: orderID={}", orderId);
 
-        try {
+        //try {
             canBeDeleted(order, tenantId);
+        /*
         }catch(Throwable e) {
             log.error("lbyjj e=",e);
+
         }
+        */
 
         log.info("lbyj7");
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);

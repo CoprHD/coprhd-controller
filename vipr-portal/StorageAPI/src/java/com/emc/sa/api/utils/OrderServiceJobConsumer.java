@@ -75,6 +75,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
             }
 
             if (!error) {
+                log.info("lbyh9: remove order job from the queue");
                 callback.itemProcessed();
             }
         }catch (Exception e) {

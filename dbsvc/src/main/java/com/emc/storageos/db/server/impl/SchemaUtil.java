@@ -558,7 +558,7 @@ public class SchemaUtil {
         }
     }
 
-    private int getIntProperty(String key, int defValue) {
+    private Integer getIntProperty(String key, Integer defValue) {
         String strVal = _dbCommonInfo == null ? null : _dbCommonInfo.getProperty(key);
         if (strVal == null) {
             return defValue;
@@ -587,7 +587,7 @@ public class SchemaUtil {
         Cluster cluster = clientContext.getCluster();
 
         // Get default GC grace period for all index CFs in local DB
-        int indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, 0);
+        Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
 
         Iterator<ColumnFamily> it = getCfMap().values().iterator();
         String latestSchemaVersion = null;
@@ -610,7 +610,7 @@ public class SchemaUtil {
             }
 
             // The CF's gc_grace_period will be set if it's an index CF
-            int cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : 0;
+            Integer cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : null;
             // If there's specific configuration particular for this CF, take it.
             cfGcGrace = getIntProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD_PREFIX + cf.getName(), cfGcGrace);
 

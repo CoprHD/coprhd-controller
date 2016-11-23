@@ -1099,7 +1099,7 @@ public class StorageSystems extends ViprResourceController {
             setSecondaryParameters();
             buildSouthBoundTypeMap();
             if (isNew()) {
-                if (isStorageProviderManaged() || isSouthBoundProviderManaged()) {
+                if (isStorageProviderManaged()) {
                     return createStorageProvider();
                 } else {
                     return create();
@@ -1219,12 +1219,8 @@ public class StorageSystems extends ViprResourceController {
                     StringUtils.trimToEmpty(confirm));
         }
 
-        private boolean isSouthBoundProviderManaged() {
-            return nonNativeSystemProviderMap.containsKey(type);
-        }
-
         private boolean isStorageProviderManaged() {
-            return StorageSystemTypes.isStorageProvider(type);
+            return StorageSystemTypes.isStorageProvider(type) || nonNativeSystemProviderMap.containsKey(type);
         }
 
         private boolean isVnxFile() {

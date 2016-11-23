@@ -25,6 +25,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.db.client.URIUtil.asString;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.text.ParseException;
@@ -50,6 +51,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.sa.catalog.WorkflowDirectoryManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -152,6 +157,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
 
     @Autowired
     private EncryptionProvider encryptionProvider;
@@ -384,25 +392,53 @@ public class OrderService extends CatalogTaggedResourceService {
                     asString(createParam.getCatalogService()));
         }
 
-        ServiceDescriptor descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), service.getBaseService());
+        ServiceDescriptor descriptor = null;
+
+        // Get workflow descriptor
+        OrchestrationWorkflowDocument doc = null;
+        try {
+            doc = workflowServiceDescriptor.getWorkflowDocument(service.getBaseService());
+            descriptor = workflowServiceDescriptor.getDescriptor(service.getLabel());
+            log.info("Got doc");
+        }
+        catch (Exception e) {
+            log.error("hey got error", e);
+        }
+
+
+        if (null == descriptor) {
+            descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), service.getBaseService());
+        }
         if (descriptor == null) {
             throw APIException.badRequests.orderServiceDescriptorNotFound(
                     service.getBaseService());
         }
 
-        if(service.getWorkflowName() != null ) {
+        /*if(service.getWorkflowName() != null ) {
             final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getWorkflowName());
             if( null == workflowDocument ) {
                 throw APIException.badRequests.workflowNotFound(service.getWorkflowName());
             }
             createParam.setWorkflowDocument(workflowDocument);
-        }
+
+        }*/
         
         Order order = createNewObject(tenantId, createParam);
 
         addLockedFields(service.getId(), descriptor, createParam);
 
         validateParameters(descriptor, createParam.getParameters(), service.getMaxSize());
+
+        try {
+            if (doc != null) {
+                log.info("Preparing workflow doc order");
+                createParam.setWorkflowDocument(prepareWorkflowDocument(doc, createParam));
+                log.info(createParam.getWorkflowDocument());
+            }
+        }
+        catch (Exception e){
+            log.error("error in preparing wf doc",e);
+        }
 
         List<OrderParameter> orderParams = createOrderParameters(order, createParam, encryptionProvider);
 
@@ -428,6 +464,33 @@ public class OrderService extends CatalogTaggedResourceService {
                 }
             }
         }
+
+    }
+
+    private String prepareWorkflowDocument(OrchestrationWorkflowDocument orchestrationWorkflowDocument, OrderCreateParam createParam) throws IOException{
+        for (OrchestrationWorkflowDocument.Step step : orchestrationWorkflowDocument.getSteps()) {
+            if (null == step.getInput()) {
+                continue;
+            }
+            for(Map.Entry<String, OrchestrationWorkflowDocument.Input> inputEntry: step.getInput().entrySet()) {
+                OrchestrationWorkflowDocument.Input wfInput = inputEntry.getValue();
+                if ("InputFromUser".equals(wfInput.getType())) {
+                    String inputName = inputEntry.getKey();
+                    Parameter parameter = createParam.findParameterByLabel(inputName);
+                    if (null != parameter) {
+                        wfInput.setValue(parameter.getValue());
+                    }
+                }
+                else if("AssetOption".equals(wfInput.getType())) {
+                    String inputName = inputEntry.getKey();
+                    Parameter parameter = createParam.findParameterByLabel(inputName);
+                    if (null != parameter) {
+                        wfInput.setDefaultValue(parameter.getValue());
+                    }
+                }
+            }
+        }
+        return WorkflowHelper.toStepsJson(orchestrationWorkflowDocument.getSteps());
 
     }
 

@@ -41,6 +41,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.sa.catalog.OrchestrationWorkflowManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CatalogServiceFilter;
@@ -100,6 +102,12 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @Autowired
     private ServiceDescriptors serviceDescriptors;
 
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
+    @Autowired
+    private OrchestrationWorkflowManager orchestrationWorkflowManager;
+
     private CatalogConfigUtils catalogConfigUtils;
 
     public void setCatalogConfigUtils(CatalogConfigUtils catalogConfigUtils) {
@@ -149,9 +157,15 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      *            the service ID.
      * @return the service descriptor, or null.
      */
-    private ServiceDescriptor getServiceDescriptor(String serviceId) {
+    private ServiceDescriptor getServiceDescriptor(String serviceId, String serviceName) {
         try {
-            return serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
+            ServiceDescriptor serviceDescriptor = workflowServiceDescriptor.getDescriptor(serviceName);
+            if (null != serviceDescriptor) {
+                return serviceDescriptor;
+            }
+            else {
+                return serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
+            }
         } catch (IllegalStateException e) {
             return null;
         }
@@ -165,7 +179,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      * @return the service descriptor, or null.
      */
     private ServiceDescriptor getServiceDescriptor(CatalogService service) {
-        return getServiceDescriptor(service.getBaseService());
+        return getServiceDescriptor(service.getBaseService(), service.getLabel());
     }
 
     /**
@@ -396,8 +410,10 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     private void validateParam(CatalogServiceCommonParam input, CatalogService existing) {
 
-        ServiceDescriptor descriptor =
-                catalogServiceManager.getServiceDescriptor(input.getBaseService());
+        ServiceDescriptor descriptor = workflowServiceDescriptor.getDescriptor(input.getName());
+        if (null == descriptor) {
+            descriptor = catalogServiceManager.getServiceDescriptor(input.getBaseService());
+        }
 
         if (descriptor == null) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());

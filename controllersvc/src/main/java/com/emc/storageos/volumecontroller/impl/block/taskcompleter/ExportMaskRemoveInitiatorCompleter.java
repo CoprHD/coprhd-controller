@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.workflow.WorkflowService;
 
 public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskRemoveInitiatorCompleter.class);
@@ -42,6 +43,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
             if (exportMask != null) {
                 List<Initiator> initiators =
                         dbClient.queryObject(Initiator.class, _initiatorURIs);
+                List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
                 exportMask.removeInitiators(initiators);
                 exportMask.removeFromUserCreatedInitiators(initiators);
                 if (exportMask.getInitiators() == null ||
@@ -50,7 +52,6 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                     dbClient.markForDeletion(exportMask);
                     dbClient.updateObject(exportGroup);
                 } else {
-                    List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
                     if (targetPorts != null && !targetPorts.isEmpty()) {
                         for (URI targetPort : targetPorts) {
                             exportMask.removeTarget(targetPort);
@@ -77,9 +78,11 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
-            if (exportMask != null && Operation.isTerminalState(status)) {
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(getOpId());
+            if (exportMask != null && (status == Operation.Status.ready || isRollback)) {
                 List<Initiator> initiators =
                         dbClient.queryObject(Initiator.class, _initiatorURIs);
+                List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
                 exportMask.removeInitiators(initiators);
                 exportMask.removeFromUserCreatedInitiators(initiators);
                 if (exportMask.getInitiators() == null ||
@@ -88,7 +91,6 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                     dbClient.markForDeletion(exportMask);
                     dbClient.updateObject(exportGroup);
                 } else {
-                    List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
                     if (targetPorts != null && !targetPorts.isEmpty()) {
                         for (URI targetPort : targetPorts) {
                             exportMask.removeTarget(targetPort);

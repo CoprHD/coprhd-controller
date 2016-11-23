@@ -1049,6 +1049,7 @@ vnx_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
+	--multiVolumeConsistency \
 	--provisionType 'Thick'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
@@ -1081,6 +1082,7 @@ unity_setup()
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 1				            \
+	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
@@ -1134,6 +1136,7 @@ vmax2_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
+	--multiVolumeConsistency \
 	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -1189,6 +1192,7 @@ vmax3_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
+	--multiVolumeConsistency \
 	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -1728,7 +1732,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = "  > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null"  > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -1811,10 +1815,10 @@ test_1() {
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    # failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
 
     for failure in ${failure_injections}
     do
@@ -1881,47 +1885,136 @@ test_1() {
     done
 }
 
-# Basic export test for vcenter cluster
+# Test 1
 #
-# Currently only runs on simulator
+# Test creating a volume in a CG and verify the DB is in an expected state after it fails due to injected failure at end of workflow
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
 #
 test_2() {
-    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-    echot "Test 2 Export VCenter Cluster test"
-    expname=${EXPORT_GROUP_NAME}t2
-    item=${RANDOM}
-    cfs="ExportGroup ExportMask"
-    mkdir -p results/${item}
-    reset_counts
+    echot "Test 2 Begins"
 
-    if [ "${SIM}" = "0" ]; then
-	secho "This test is only supported on simulated platforms at this time.  Bypassing"
-	# Report results
-	report_results test_2 none
-	return
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    verify_export ${expname}1 ${HOST1} gone
+    if [ "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
 
-    # Perform any DB validation in here
-    snap_db 1 ${cfs}
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
 
-    # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "${TENANT}/${CLUSTER}"
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
-    # Remove the shared export
-    runcmd export_group delete ${PROJECT}/${expname}1
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
 
-    # Snap the DB again
-    snap_db 2 ${cfs}
+    for failure in ${failure_injections}
+    do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 2 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
 
-    # Validate nothing was left behind
-    validate_db 1 2 ${cfs}
+      # Create a new CG
+      randval=${RANDOM}
+      CGNAME=wf-test2-cg-${randval}
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
-    verify_export ${expname}1 ${HOST1} gone
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
 
-    # Report results
-    report_results test_2 ${failure}
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Should be able to delete the CG and recreate it.
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Re-create the consistency group
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
+
+      # Perform any DB validation in here
+      snap_db 4 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 3 4 ${cfs}
+
+      runcmd blockconsistencygroup delete ${CGNAME}
+    
+      # Report results
+      report_results test_2 ${failure}
+    done
 }
 
 # Test 3

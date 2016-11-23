@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.AuthnProvider;
 
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
+import com.emc.storageos.security.authentication.AuthUtil;
 import models.SearchScopes;
 import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
@@ -206,7 +207,7 @@ public class LDAPsources extends ViprResourceController {
     private static void edit(AuthnProviderRestRep authnProvider) {
         String mode = authnProvider.getMode();
 
-        if (mode.equals(AuthnConfigurationService.AuthModeType.oidc.name())) {
+        if (mode.equals(AuthUtil.AuthMode.oidc.name())) {
             editOidcForm(new OIDCAuthnProviderForm(authnProvider));
         } else {
             editLdapForm(new LDAPsourcesForm(authnProvider));

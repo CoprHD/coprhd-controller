@@ -24,7 +24,7 @@ public class LocalLogin extends Controller {
                 Security.noCookies();
             }
             String service = String.format("https://%s", request.domain);
-            Security.redirectToAuthPage(service);
+            Security.redirectToAuthPage(service, true);
         } else { // to main page if already logged in
             String url = String.format("https://%s", request.domain);
             redirect(url);

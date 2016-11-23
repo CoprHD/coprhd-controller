@@ -171,6 +171,7 @@ public class ExportPathParams extends DataObject {
     }
 
     @Name("portGroupFlag")
+    @AlternateId("portGroupFlag")
     public Boolean getPortGroupFlag() {
         return portGroupFlag;
     }

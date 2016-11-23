@@ -778,7 +778,7 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
         
-        public static AlternateIdConstraint getPathParamsByPortGroupConstraint(Boolean flag ) {
+        public static AlternateIdConstraint getPathParamsByPortGroupConstraint(Boolean flag) {
             DataObjectType doType = TypeMap.getDoType(ExportPathParams.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("portGroupFlag"), flag.toString());
         }

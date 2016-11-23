@@ -5,7 +5,6 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
-import java.util.Set;
 
 /**
  * 
@@ -30,7 +29,7 @@ public class FilePolicy extends DataObject {
     private String applyAt;
 
     // Assigned resources for which policy is being applied
-    private Set<String> assignedResources;
+    private StringSet assignedResources;
 
     // Tenants who will have access to this policy
     private StringSet accessTenants;
@@ -67,6 +66,13 @@ public class FilePolicy extends DataObject {
 
     // File Policy associated Project - this is being used for file system policy
     private URI policyProject;
+
+    /**
+     * TRUE means: if policy has to be applied on all file system coming under specified vpool/project, at the time of
+     * provisioning.
+     * FALSE means : policy has to applied on the specific file system chosen at the time of provisioning..
+     */
+    private Boolean applyToAllFS;
 
     public static enum FileReplicationType {
         LOCAL, REMOTE;
@@ -233,11 +239,11 @@ public class FilePolicy extends DataObject {
     }
 
     @Name("assignedResources")
-    public Set<String> getAssignedResources() {
+    public StringSet getAssignedResources() {
         return this.assignedResources;
     }
 
-    public void setAssignedResources(Set<String> assignedResources) {
+    public void setAssignedResources(StringSet assignedResources) {
         this.assignedResources = assignedResources;
         setChanged("assignedResources");
     }
@@ -260,5 +266,15 @@ public class FilePolicy extends DataObject {
     public void setPolicyProject(URI policyProject) {
         this.policyProject = policyProject;
         setChanged("policyProject");
+    }
+
+    @Name("applyToAllFS")
+    public Boolean isApplyToAllFS() {
+        return this.applyToAllFS;
+    }
+
+    public void setApplyToAllFS(Boolean applyToAllFS) {
+        this.applyToAllFS = applyToAllFS;
+        setChanged("applyToAllFS");
     }
 }

@@ -129,11 +129,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
 
-    // File Policy Feature---temporary----------
-    private boolean fileSnapshotSupported;
-    private boolean fileReplicationSupported;
-    private boolean filePolicyAtProjectLevel;
-    private boolean filePolicyAtFSLevel;
+    // File Policy Feature---temporary setting them true
+    private Boolean fileSnapshotSupported = true;
+    private Boolean fileReplicationSupported = true;
+    private Boolean filePolicyAtProjectLevel = true;
+    private Boolean filePolicyAtFSLevel = true;
     private Long _frRpoValue;
     private String _frRpoType;
 
@@ -142,7 +142,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return fileSnapshotSupported;
     }
 
-    public void setFileSnapshotSupported(boolean fileSnapshotSupported) {
+    public void setFileSnapshotSupported(Boolean fileSnapshotSupported) {
         this.fileSnapshotSupported = fileSnapshotSupported;
         setChanged("fileSnapshotSupported");
     }
@@ -152,7 +152,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return fileReplicationSupported;
     }
 
-    public void setFileReplicationSupported(boolean fileReplicationSupported) {
+    public void setFileReplicationSupported(Boolean fileReplicationSupported) {
         this.fileReplicationSupported = fileReplicationSupported;
         setChanged("fileReplicationSupported");
     }
@@ -162,7 +162,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return filePolicyAtProjectLevel;
     }
 
-    public void setFilePolicyAtProjectLevel(boolean filePolicyAtProjectLevel) {
+    public void setFilePolicyAtProjectLevel(Boolean filePolicyAtProjectLevel) {
         this.filePolicyAtProjectLevel = filePolicyAtProjectLevel;
         setChanged("filePolicyAtProjectLevel");
     }
@@ -172,7 +172,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return filePolicyAtFSLevel;
     }
 
-    public void setFilePolicyAtFSLevel(boolean filePolicyAtFSLevel) {
+    public void setFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
         this.filePolicyAtFSLevel = filePolicyAtFSLevel;
         setChanged("filePolicyAtFSLevel");
     }

@@ -805,7 +805,6 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExportMasksByPortGroup(String portGroupId) {
             DataObjectType doType = TypeMap.getDoType(ExportMask.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("portGroup"), portGroupId);
-
         }
     }
 }

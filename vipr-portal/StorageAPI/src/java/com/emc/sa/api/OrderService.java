@@ -392,19 +392,17 @@ public class OrderService extends CatalogTaggedResourceService {
                     asString(createParam.getCatalogService()));
         }
 
-        ServiceDescriptor descriptor = null;
-
-        // Get workflow descriptor
-        OrchestrationWorkflowDocument doc = null;
-        try {
-            doc = workflowServiceDescriptor.getWorkflowDocument(service.getBaseService());
-            descriptor = workflowServiceDescriptor.getDescriptor(service.getBaseService());
-            log.info("Got doc");
+        ServiceDescriptor descriptor;
+        //--Check if there is workflow descriptor
+        descriptor = workflowServiceDescriptor.getDescriptor(service.getBaseService());
+        if (null != descriptor) {
+            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getBaseService());
+            if( null == workflowDocument ) {
+                throw APIException.badRequests.workflowNotFound(service.getBaseService());
+            }
+            createParam.setWorkflowDocument(workflowDocument);
         }
-        catch (Exception e) {
-            log.error("hey got error", e);
-        }
-
+        //--
 
         if (null == descriptor) {
             descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), service.getBaseService());
@@ -414,31 +412,11 @@ public class OrderService extends CatalogTaggedResourceService {
                     service.getBaseService());
         }
 
-        /*if(service.getWorkflowName() != null ) {
-            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getWorkflowName());
-            if( null == workflowDocument ) {
-                throw APIException.badRequests.workflowNotFound(service.getWorkflowName());
-            }
-            createParam.setWorkflowDocument(workflowDocument);
-
-        }*/
-        
         Order order = createNewObject(tenantId, createParam);
 
         addLockedFields(service.getId(), descriptor, createParam);
 
         validateParameters(descriptor, createParam.getParameters(), service.getMaxSize());
-
-        try {
-            if (doc != null) {
-                log.info("Preparing workflow doc order");
-                createParam.setWorkflowDocument(prepareWorkflowDocument(doc, createParam));
-                log.info(createParam.getWorkflowDocument());
-            }
-        }
-        catch (Exception e){
-            log.error("error in preparing wf doc",e);
-        }
 
         List<OrderParameter> orderParams = createOrderParameters(order, createParam, encryptionProvider);
 

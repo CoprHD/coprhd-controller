@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -44,19 +43,6 @@ public class WorkflowServiceDescriptor {
         }
         return mapWorkflowToServiceDescriptor(results.get(0));
     }
-
-    public OrchestrationWorkflowDocument getWorkflowDocument(String serviceId) throws IOException {
-        List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(serviceId);
-        if(null == results || results.isEmpty()) {
-            return null;
-        }
-        if(results.size() > 1) {
-            throw new IllegalStateException("Multiple workflows with the name " + serviceId);
-        }
-        return WorkflowHelper.toWorkflowDocument(results.get(0));
-    }
-
-
 
     public Collection<ServiceDescriptor> listDescriptors() {
         log.info("createServiceDescriptorForWF start");

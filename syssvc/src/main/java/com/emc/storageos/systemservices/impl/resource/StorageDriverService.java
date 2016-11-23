@@ -611,7 +611,7 @@ public class StorageDriverService {
         if (!isValidMetaType(metaType)) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed("meta_type field value is not valid");
         }
-        metaData.setMetaType(metaType);
+        metaData.setMetaType(metaType.toUpperCase());
         // check enable_ssl
         String enableSslStr = props.getProperty(ENABLE_SSL);
         if (StringUtils.isNotEmpty(enableSslStr)) {

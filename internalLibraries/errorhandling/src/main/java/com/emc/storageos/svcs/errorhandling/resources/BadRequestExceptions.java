@@ -3064,7 +3064,7 @@ public interface BadRequestExceptions {
     public BadRequestException orderWithinOneMonth(URI orderId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException orderCanBeDeleted(URI orderId, String status);
+    public BadRequestException orderCanNotBeDeleted(URI orderId, String status);
 
     @DeclareServiceCode(ServiceCode.API_MOUNTS_EXIST)
     public BadRequestException cannotDeleteDuetoExistingMounts();

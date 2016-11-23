@@ -458,7 +458,7 @@ public class OrderService extends CatalogTaggedResourceService {
             client.save(order);
         } else {
             //orderManager.deleteOrder(order);
-            orderManager.deleteOrder(order.getId());
+            orderManager.deleteOrder(order.getId(), "");
         }
 
         return Response.ok().build();
@@ -650,7 +650,7 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
-     * Deactivates the order
+rrrrrrrrrrrrrrrrrrrrrrrrrrrr
      *
      * @brief Deactivate Order
      * @return OK if deactivation completed successfully
@@ -668,8 +668,8 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenandID, user.getName()});
 
         long now = System.currentTimeMillis();
-        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
-        long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime);
+        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime)*1000;
+        long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime)*1000;
 
         OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tenandID);
         try {
@@ -736,7 +736,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
         log.info("lbyh0");
         //orderManager.deleteOrder(order);
-        orderManager.deleteOrder(id);
+        orderManager.deleteOrder(id, "");
 
         auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());
 

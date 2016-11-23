@@ -78,11 +78,14 @@ import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Constraint for querying a record by alias
  */
 public interface AlternateIdConstraint extends Constraint {
+    final Logger log = LoggerFactory.getLogger(AlternateIdConstraint.class);
     /**
      * Factory for creating alternate ID constraint
      */
@@ -783,8 +786,11 @@ public interface AlternateIdConstraint extends Constraint {
         }
 
         public static AlternateIdConstraint getOrders(long startTimeInMS, long endTimeInMS) {
+            log.info("lbyhh0");
             DataObjectType doType = TypeMap.getDoType(Order.class);
+            log.info("lbyhh1");
             ColumnField field = doType.getColumnField(Order.SUBMITTED);
+            log.info("lbyhh2 field={}", field);
             return new AlternateId3ConstraintImpl(field, startTimeInMS, endTimeInMS);
         }
     }

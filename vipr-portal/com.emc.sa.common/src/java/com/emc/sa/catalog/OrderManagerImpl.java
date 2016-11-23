@@ -412,27 +412,34 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public void canBeDeleted(Order order, String tenantId) {
+        log.info("lbyj0");
 
         if (order.getScheduledEventId()!=null) {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
 
+        log.info("lbyj1");
         if (!tenantId.isEmpty() && !tenantId.equals(order.getTenant())) {
             throw APIException.badRequests.orderNotInTenant(order.getId(), tenantId);
         }
 
+        log.info("lbyj2");
         long now = System.currentTimeMillis();
 
+        log.info("lbyj3");
         long createdTime = order.getCreationTime().getTimeInMillis();
 
+        log.info("lbyj4");
         if (now - createdTime < 30*24*60*60*1000) {
             throw APIException.badRequests.orderWithinOneMonth(order.getId());
         }
 
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
+        log.info("lbyj5 status={}", status);
         if (!status.canBeDeleted()) {
-            throw APIException.badRequests.orderCanBeDeleted(order.getId(), status.toString());
+            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
         }
+        log.info("lbyj6");
     }
 
     public void deleteOrder(URI orderId, String tenantId) {
@@ -444,8 +451,13 @@ public class OrderManagerImpl implements OrderManager {
 
         log.info("lbyh0: orderID={}", orderId);
 
-        canBeDeleted(order, tenantId);
+        try {
+            canBeDeleted(order, tenantId);
+        }catch(Throwable e) {
+            log.error("lbyjj e=",e);
+        }
 
+        log.info("lbyj7");
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         log.info("lbyh0: approvalRequests={}", approvalRequests);
         client.delete(approvalRequests);

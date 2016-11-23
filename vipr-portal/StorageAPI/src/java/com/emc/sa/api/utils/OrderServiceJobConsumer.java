@@ -41,8 +41,9 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
 
         log.info("The job job={} callback={}", job, callback);
 
-        long startTime = job.getStartTime();
-        long endTime = job.getEndTime();
+        try {
+            long startTime = job.getStartTime();
+            long endTime = job.getEndTime();
 
         /*
         long now = System.currentTimeMillis();
@@ -53,26 +54,32 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
         }
         */
 
-        boolean error = false;
-        String tid = job.getTenandId();
-        AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(startTime, endTime);
-        NamedElementQueryResultList ids = new NamedElementQueryResultList();
-        dbClient.queryByConstraint(constraint, ids);
-        for (NamedElementQueryResultList.NamedElement namedID : ids) {
-            URI id = namedID.getId();
-            try {
-                orderManager.deleteOrder(id, tid);
-            }catch (BadRequestException e) {
-                //TODO: change to debug level
-                log.error("lbyh failed to delete order {} e=", id, e);
-            }catch (Exception e) {
-                log.error("lbyh1: failed to delete order={} e=", id, e);
-                error = true;
+            boolean error = false;
+            String tid = job.getTenandId();
+            log.info("lbyh tid={}", tid);
+            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(startTime, endTime);
+            NamedElementQueryResultList ids = new NamedElementQueryResultList();
+            dbClient.queryByConstraint(constraint, ids);
+            for (NamedElementQueryResultList.NamedElement namedID : ids) {
+                URI id = namedID.getId();
+                log.info("lbyh id={}", id);
+                try {
+                    orderManager.deleteOrder(id, tid);
+                } catch (BadRequestException e) {
+                    //TODO: change to debug level
+                    log.error("lbyh failed to delete order {} e=", id, e);
+                } catch (Exception e) {
+                    log.error("lbyh1: failed to delete order={} e=", id, e);
+                    error = true;
+                }
             }
-        }
 
-        if (!error) {
-            callback.itemProcessed();
+            if (!error) {
+                callback.itemProcessed();
+            }
+        }catch (Exception e) {
+            log.info("lbyhhh e=",e);
+            throw e;
         }
     }
 }

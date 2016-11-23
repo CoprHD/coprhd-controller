@@ -37,20 +37,21 @@
   	function checkVolumeLimits() {
         //Do nothing if dataTable is not created
         if (table.volumes.dataTable.getDataTable() != null) {
-            var limit = ${resource_limit_project_snapshots};
+            var limit = ${resource_limit_project_volumes};
             if (table.volumes.dataTable.needResourceLimitAlert(limit)){
                 $('#resourceLimitAlert').text(Messages.get('resources.volume.resourceLimitAlert', limit));
        		    $('#resourceLimitAlert').show();
             }
         }
     }
-  	table.volumes.dataTable.setDrawCallback(checkVolumeLimits);
-    
+  	
     function reloadVolumesbyFilter() {
     	var filterSelected = $('#filter option:selected').val();
     	reloadVolumes(filterSelected);
     }
+    
     table.volumes.dataTable.setDrawCallback(disableSRDFSource);
+    table.volumes.dataTable.setDrawCallback(checkVolumeLimits);
     
     $(document).ready(function() {
     	$('#application').on('change', function() {reloadVolumes("Application");});

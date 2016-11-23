@@ -7,12 +7,18 @@ package com.emc.sa.service.vipr.block;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionContext;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeParams;
 import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeTable;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.google.common.collect.Lists;
 
 @Service("CreateVolume")
@@ -26,6 +32,10 @@ public class CreateVolumeService extends ViPRService {
     
     protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
+    @Override
+    public void precheck() {
+        BlockStorageUtils.checkVolumeLimit(getClient(), volumeParams.project);
+    }
     
     @Override
     public void init() throws Exception {

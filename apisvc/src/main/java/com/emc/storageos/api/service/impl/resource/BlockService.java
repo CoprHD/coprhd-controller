@@ -57,7 +57,6 @@ import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
-import com.emc.storageos.api.service.impl.resource.utils.ResourceLimitCheckUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -1001,9 +1000,6 @@ public class BlockService extends TaskResourceService {
         if (!NullColumnValueGetter.isNullURI(computeURI)) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
-
-        // check volume limit per project
-        ResourceLimitCheckUtils.validateVolumeLimitPerProject(project, _dbClient, _coordinator);
         
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
@@ -2370,9 +2366,6 @@ public class BlockService extends TaskResourceService {
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
                 snapshotType, snapshotName, getFullCopyManager());
 
-        // check snapshot limit per project
-        ResourceLimitCheckUtils.validateBlockSnapshotLimitPerProject(requestedVolume.getProject().getURI(), _dbClient, _coordinator);
-        
         // Create the snapshots for the volume(s) being snapped and
         // initialize the task list.
         String taskId = UUID.randomUUID().toString();

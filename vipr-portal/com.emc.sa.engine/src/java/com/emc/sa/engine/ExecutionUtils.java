@@ -197,7 +197,7 @@ public class ExecutionUtils {
     public static void fail(String taskNameKey, Object detailArg, Object... messageArgs) {
         fail(taskNameKey, new Object[] { detailArg }, messageArgs);
     }
-
+    
     public static void fail(String taskNameKey, Exception exception, Object[] detailArgs, Object... messageArgs) {
         execute(new FailTask(taskNameKey, exception, detailArgs, messageArgs));
     }

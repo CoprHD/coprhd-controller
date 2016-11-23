@@ -169,4 +169,5 @@ public interface Constants {
     public static final String RESOURCE_LIMIT_PROJECT_VOLUMES = "resource_limit_project_volumes";
     public static final String RESOURCE_LIMIT_PROJECT_SNAPSHOTS = "resource_limit_project_snapshots";
     public static final String RESOURCE_LIMIT_TENANT_HOSTS = "resource_limit_tenant_hosts";
+    public static final float RESOURCE_LIMIT_ALERT_RATE = 0.9f;
 }

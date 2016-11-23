@@ -7,6 +7,7 @@ package com.emc.storageos.exceptions;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Map;
 
 import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
@@ -508,4 +509,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);
 }

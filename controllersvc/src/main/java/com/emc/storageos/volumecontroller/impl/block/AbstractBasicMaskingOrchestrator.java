@@ -45,7 +45,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -175,19 +174,20 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     /**
      * Validate consistent lun violation
      * 
-     */
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param newInitiatorURIs the host initiators to be added to the export group
+     **/
     public void validateHLUForLunViolations(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
 
-        Set<Integer> clusterUsedHlus = new HashSet<Integer>();
-        Set<Integer> newHostUsedHlus = new HashSet<Integer>();
-        List<String> conflictVolumes = Lists.newArrayList();
+        Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         if (exportGroup.forCluster()) {
             if (exportGroup.getClusters().iterator().hasNext()) {
                 URI clusterURI = URI.create(exportGroup.getClusters().iterator().next());
 
                 List<URI> clusterInitiators = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
-                clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
-                newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
+                Set<Integer> clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+                Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
                 // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
                 newHostUsedHlus.retainAll(clusterUsedHlus);
                 if (!newHostUsedHlus.isEmpty()) {
@@ -195,11 +195,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
                             Integer hlu = Integer.valueOf(entry.getValue());
                             if (newHostUsedHlus.contains(hlu)) {
-                                conflictVolumes.add(entry.getKey());
+                                volumeHluPair.put(entry.getKey(), hlu);
                             }
                         }
                     }
-                    throw XtremIOApiException.exceptions.hluViolation(newHostUsedHlus, conflictVolumes);
+                    throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
                 }
             }
         }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.model.block.export;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,6 +25,9 @@ public class ExportPathParametersList {
     }
 
     public List<NamedRelatedResourceRep> getPathParamsList() {
+        if (pathParamsList == null) {
+            pathParamsList = new ArrayList<NamedRelatedResourceRep>();
+        }
         return pathParamsList;
     }
 

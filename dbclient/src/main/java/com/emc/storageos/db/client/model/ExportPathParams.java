@@ -37,7 +37,7 @@ public class ExportPathParams extends DataObject {
     static public final ExportPathParams defaultParams = new ExportPathParams(4, 0, 0);
     
     private String description;
-    private Boolean portGroupFlagSet;
+    private Boolean portGroupFlag;
     
 
 
@@ -160,7 +160,7 @@ public class ExportPathParams extends DataObject {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
     
-    @Name("portGroupFlagSet")
+    @Name("description")
     public String getDescription() {
         return description;
     }
@@ -170,14 +170,14 @@ public class ExportPathParams extends DataObject {
         setChanged("description");
     }
 
-    @Name("portGroupFlagSet")
-    public Boolean isPortGroupFlagSet() {
-        return portGroupFlagSet;
+    @Name("portGroupFlag")
+    public Boolean getPortGroupFlag() {
+        return portGroupFlag;
     }
 
     public void setPortGroupFlag(Boolean portGroupFlagSet) {
-        this.portGroupFlagSet = portGroupFlagSet;
-        setChanged("portGroupFlagSet");
+        this.portGroupFlag = portGroupFlagSet;
+        setChanged("portGroupFlag");
     }
 
 }

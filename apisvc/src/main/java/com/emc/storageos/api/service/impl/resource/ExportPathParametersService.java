@@ -37,7 +37,6 @@ import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
 import com.emc.storageos.model.block.export.ExportPathParametersList;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
-import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
@@ -253,19 +252,29 @@ public class ExportPathParametersService extends TaggedResource {
 
     private ExportPathParams updateExportPathParams(ExportPathParameters param, URI id) {
         ExportPathParams params = queryResource(id);
-        params.setLabel(param.getName());
-        params.setMaxPaths(param.getMaxPaths());
-        params.setMinPaths(param.getMinPaths());
-        params.setPathsPerInitiator(param.getPathsPerInitiator());
+        if (param.getName() != null) {
+            params.setLabel(param.getName());
+        }
+        if (param.getMaxPaths() != null) {
+            params.setMaxPaths(param.getMaxPaths());
+        }
+        if (param.getMinPaths() != null) {
+            params.setMinPaths(param.getMinPaths());
+        }
+        if (param.getPathsPerInitiator() != null) {
+            params.setPathsPerInitiator(param.getPathsPerInitiator());
+        }
         if (param.getMaxInitiatorsPerPort() != null) {
             params.setMaxInitiatorsPerPort(param.getMaxInitiatorsPerPort());
         }
         List<URI> portUris = param.getStoragePorts();
         StringSet exportPathParamSet = new StringSet();
-        for (URI uri : portUris) {
-            exportPathParamSet.add(URIUtil.asString(uri));
+        if (portUris != null) {
+            for (URI uri : portUris) {
+                exportPathParamSet.add(URIUtil.asString(uri));
+            }
+            params.setStoragePorts(exportPathParamSet);
         }
-        params.setStoragePorts(exportPathParamSet);
 
         return params;
     }

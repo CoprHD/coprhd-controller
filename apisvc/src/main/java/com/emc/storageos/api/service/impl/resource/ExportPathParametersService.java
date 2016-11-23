@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
@@ -25,13 +27,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.functions.MapExportPathParams;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
+import com.emc.storageos.model.block.export.ExportPathParametersList;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
@@ -96,6 +102,24 @@ public class ExportPathParametersService extends TaggedResource {
         return map(pathParams);
 
     }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
+    public ExportPathParametersList getAllExportPathParameters(@DefaultValue("false") @QueryParam("is-port-group") boolean isPortGroup) {
+        
+        NamedElementQueryResultList resultSetList = new NamedElementQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getPathParamsByPortGroupConstraint(isPortGroup), resultSetList);
+        
+        ExportPathParametersList pathParamsList = new ExportPathParametersList();
+        for (NamedElementQueryResultList.NamedElement el : resultSetList) {
+            pathParamsList.getPathParamsList().add(
+                    toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_PARAMETERS, el.getId(), el.getName()));
+        }
+        return pathParamsList;
+
+    }
+
 
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -216,11 +240,14 @@ public class ExportPathParametersService extends TaggedResource {
         }
         List<URI> portUris = param.getStoragePorts();
         StringSet exportPathParamSet = new StringSet();
-        for (URI uri : portUris) {
-            exportPathParamSet.add(URIUtil.asString(uri));
+        if (portUris != null) {
+            for (URI uri : portUris) {
+                exportPathParamSet.add(URIUtil.asString(uri));
+            }
+            params.setStoragePorts(exportPathParamSet);
         }
-        params.setStoragePorts(exportPathParamSet);
-
+        
+        params.setPortGroupFlag(isPortGroup);
         return params;
     }
 

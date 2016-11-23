@@ -634,9 +634,9 @@ public class SchemaUtil {
                     _log.info("Setting DB GC grace period to {}", gcGrace);
                     cfd.setCompactionStrategy(compactionStrategy)
                             .setGcGraceSeconds(gcGrace);
-                } else if (cfGcGrace != 0) {
-                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace);
-                    cfd.setGcGraceSeconds(cfGcGrace);
+                } else if (cfGcGrace != null) {
+                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
+                    cfd.setGcGraceSeconds(cfGcGrace.intValue());
                 }
                 latestSchemaVersion = addColumnFamily(cfd);
             } else {
@@ -667,9 +667,9 @@ public class SchemaUtil {
                         modified = true;
                     }
                 }
-                else if (cfd.getGcGraceSeconds() != cfGcGrace) {
-                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace);
-                    cfd.setGcGraceSeconds(cfGcGrace);
+                else if (cfGcGrace != null && cfd.getGcGraceSeconds() != cfGcGrace) {
+                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
+                    cfd.setGcGraceSeconds(cfGcGrace.intValue());
                     modified = true;
                 }
                 if (modified) {

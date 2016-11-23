@@ -676,6 +676,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                             hlu = -1;
                                         }
                                         exportMask.addVolume(volume.getId(), hlu);
+                                        exportMask.removeFromExistingVolumes(volume);
                                     }
                                 }
                             }

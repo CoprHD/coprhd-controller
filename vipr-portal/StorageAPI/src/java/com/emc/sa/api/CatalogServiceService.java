@@ -405,10 +405,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     private void validateParam(CatalogServiceCommonParam input, CatalogService existing) {
 
-        ServiceDescriptor descriptor = workflowServiceDescriptor.getDescriptor(input.getBaseService());
-        if (null == descriptor) {
-            descriptor = catalogServiceManager.getServiceDescriptor(input.getBaseService());
-        }
+        ServiceDescriptor descriptor = getServiceDescriptor(input.getBaseService());
 
         if (descriptor == null) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());

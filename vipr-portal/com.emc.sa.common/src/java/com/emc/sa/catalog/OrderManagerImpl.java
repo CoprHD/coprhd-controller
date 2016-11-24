@@ -115,11 +115,7 @@ public class OrderManagerImpl implements OrderManager {
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
-        ServiceDescriptor serviceDescriptor = workflowServiceDescriptor.getDescriptor(catalogService.getBaseService());
-        if (serviceDescriptor == null ) {
-            serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), catalogService.getBaseService());
-        }
-
+        ServiceDescriptor serviceDescriptor = ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, catalogService.getBaseService());
 
         order.setOrderNumber(getNextOrderNumber());
         order.setSummary(catalogService.getTitle());

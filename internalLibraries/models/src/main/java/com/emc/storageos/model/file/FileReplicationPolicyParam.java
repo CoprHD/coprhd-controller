@@ -18,8 +18,7 @@ public class FileReplicationPolicyParam implements Serializable {
 
     private String replicationType;
     private String replicationCopyMode;
-    private Boolean replicateConfiguration = false;
-    private FilePolicyScheduleParams policySchedule;
+    private boolean replicateConfiguration = false;
 
     public FileReplicationPolicyParam() {
 
@@ -45,11 +44,12 @@ public class FileReplicationPolicyParam implements Serializable {
 
     /**
      * Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback.
-     * Default value is False.
+     * Default value is False
      * 
+     * @return
      */
     @XmlElement(name = "replicate_configuration")
-    public boolean isReplicateConfiguration() {
+    public boolean getReplicateConfiguration() {
         return this.replicateConfiguration;
     }
 
@@ -57,12 +57,4 @@ public class FileReplicationPolicyParam implements Serializable {
         this.replicateConfiguration = replicateConfiguration;
     }
 
-    @XmlElement(name = "policy_schedule")
-    public FilePolicyScheduleParams getPolicySchedule() {
-        return this.policySchedule;
-    }
-
-    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
-        this.policySchedule = policySchedule;
-    }
 }

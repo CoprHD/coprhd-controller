@@ -27,6 +27,11 @@ public class FileSnapshotPolicyExpireParam implements Serializable {
     // Snapshot expire after this value
     private int expireValue;
 
+    /**
+     * Snapshot expire type e.g hours, days, weeks, months or never
+     * 
+     * @return
+     */
     @XmlElement(required = true, name = "expire_type")
     public String getExpireType() {
         return this.expireType;
@@ -36,6 +41,11 @@ public class FileSnapshotPolicyExpireParam implements Serializable {
         this.expireType = expireType;
     }
 
+    /**
+     * Snapshot expire after this value
+     * 
+     * @return
+     */
     @XmlElement(name = "expire_value")
     public int getExpireValue() {
         return this.expireValue;

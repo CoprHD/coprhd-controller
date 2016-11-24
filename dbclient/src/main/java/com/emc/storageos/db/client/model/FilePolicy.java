@@ -62,10 +62,7 @@ public class FilePolicy extends DataObject {
     private String fileReplicationCopyMode;
 
     // File Policy associated Virtual Pool - this is being used for project and file system policy
-    private URI policyVpool;
-
-    // File Policy associated Project - this is being used for file system policy
-    private URI policyProject;
+    private URI filePolicyVpool;
 
     /**
      * TRUE means: if policy has to be applied on all file system coming under specified vpool/project, at the time of
@@ -248,26 +245,6 @@ public class FilePolicy extends DataObject {
         setChanged("assignedResources");
     }
 
-    @Name("policyVpool")
-    public URI getPolicyVpool() {
-        return this.policyVpool;
-    }
-
-    public void setPolicyVpool(URI policyVpool) {
-        this.policyVpool = policyVpool;
-        setChanged("policyVpool");
-    }
-
-    @Name("policyProject")
-    public URI getPolicyProject() {
-        return this.policyProject;
-    }
-
-    public void setPolicyProject(URI policyProject) {
-        this.policyProject = policyProject;
-        setChanged("policyProject");
-    }
-
     @Name("applyToAllFS")
     public Boolean isApplyToAllFS() {
         return this.applyToAllFS;
@@ -276,5 +253,15 @@ public class FilePolicy extends DataObject {
     public void setApplyToAllFS(Boolean applyToAllFS) {
         this.applyToAllFS = applyToAllFS;
         setChanged("applyToAllFS");
+    }
+
+    @Name("filePolicyVpool")
+    public URI getFilePolicyVpool() {
+        return this.filePolicyVpool;
+    }
+
+    public void setFilePolicyVpool(URI filePolicyVpool) {
+        this.filePolicyVpool = filePolicyVpool;
+        setChanged("filePolicyVpool");
     }
 }

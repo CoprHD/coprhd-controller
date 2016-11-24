@@ -14,8 +14,8 @@ import javax.xml.bind.annotation.XmlElement;
 public class FileSnapshotPolicyParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    // snapshot policy schedule parameters..
-    private FilePolicyScheduleParams policySchedule;
+
+    private String snapshotNamePattern;
 
     // Snapshot expire parameters like type and value..
     private FileSnapshotPolicyExpireParam snapshotExpireParams;
@@ -24,15 +24,20 @@ public class FileSnapshotPolicyParam implements Serializable {
 
     }
 
-    @XmlElement(name = "policy_schedule")
-    public FilePolicyScheduleParams getPolicySchedule() {
-        return this.policySchedule;
+    @XmlElement(name = "snapshot_name_pattern")
+    public String getSnapshotNamePattern() {
+        return this.snapshotNamePattern;
     }
 
-    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
-        this.policySchedule = policySchedule;
+    public void setSnapshotNamePattern(String snapshotNamePattern) {
+        this.snapshotNamePattern = snapshotNamePattern;
     }
 
+    /**
+     * Snapshot expire parameters like type and value..
+     * 
+     * @return
+     */
     @XmlElement(name = "snapshot_expire_params")
     public FileSnapshotPolicyExpireParam getSnapshotExpireParams() {
         return this.snapshotExpireParams;

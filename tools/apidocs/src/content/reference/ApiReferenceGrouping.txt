@@ -10,6 +10,7 @@ BlockSnapshotSessionService
 FileService
 FileSnapshotService
 FileQuotaDirectoryService
+FilePolicyService
 
 =Object Service
 BucketService

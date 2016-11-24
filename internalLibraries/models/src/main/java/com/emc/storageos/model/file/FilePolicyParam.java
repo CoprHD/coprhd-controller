@@ -26,6 +26,9 @@ public class FilePolicyParam implements Serializable {
     // Description of the policy
     private String policyDescription;
 
+    // Policy schedule
+    private FilePolicyScheduleParams policySchedule;
+
     // Replication related parameters
     private FileReplicationPolicyParam replicationPolicyParams;
 
@@ -35,6 +38,11 @@ public class FilePolicyParam implements Serializable {
     public FilePolicyParam() {
     }
 
+    /**
+     * Type of the policy
+     * 
+     * @return
+     */
     @XmlElement(required = true, name = "policy_type")
     public String getPolicyType() {
         return this.policyType;
@@ -44,6 +52,11 @@ public class FilePolicyParam implements Serializable {
         this.policyType = policyType;
     }
 
+    /**
+     * Name of the policy
+     * 
+     * @return
+     */
     @XmlElement(required = true, name = "policy_name")
     public String getPolicyName() {
         return this.policyName;
@@ -60,6 +73,15 @@ public class FilePolicyParam implements Serializable {
 
     public void setPolicyDescription(String policyDescription) {
         this.policyDescription = policyDescription;
+    }
+
+    @XmlElement(name = "policy_schedule")
+    public FilePolicyScheduleParams getPolicySchedule() {
+        return this.policySchedule;
+    }
+
+    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
+        this.policySchedule = policySchedule;
     }
 
     @XmlElement(name = "replication_params")

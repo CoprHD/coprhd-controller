@@ -17,7 +17,6 @@ public class FilePolicyFileSystemAssignParam implements Serializable {
     private static final long serialVersionUID = 1L;
     private boolean assigntoAll;
     private URI vpool;
-    private URI project;
 
     public FilePolicyFileSystemAssignParam() {
         super();
@@ -31,21 +30,12 @@ public class FilePolicyFileSystemAssignParam implements Serializable {
      * @return
      */
     @XmlElement(name = "assign_to_all")
-    public boolean isAssigntoAll() {
+    public boolean getAssigntoAll() {
         return this.assigntoAll;
     }
 
     public void setAssigntoAll(boolean assigntoAll) {
         this.assigntoAll = assigntoAll;
-    }
-
-    @XmlElement(name = "project", required = true)
-    public URI getProject() {
-        return this.project;
-    }
-
-    public void setProject(URI project) {
-        this.project = project;
     }
 
     @XmlElement(name = "vpool", required = true)

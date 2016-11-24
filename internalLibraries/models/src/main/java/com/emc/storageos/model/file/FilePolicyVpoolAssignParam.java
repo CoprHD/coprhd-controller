@@ -25,7 +25,7 @@ public class FilePolicyVpoolAssignParam implements Serializable {
     }
 
     @XmlElement(name = "assign_to_all")
-    public boolean isAssigntoAll() {
+    public boolean getAssigntoAll() {
         return this.assigntoAll;
     }
 

@@ -449,18 +449,8 @@ public class OrderManagerImpl implements OrderManager {
 
         log.info("lbyh0 order={} tid={}", order, tenantId);
 
-        log.info("lbyh0: orderID={}", orderId);
+        canBeDeleted(order, tenantId);
 
-        //try {
-            canBeDeleted(order, tenantId);
-        /*
-        }catch(Throwable e) {
-            log.error("lbyjj e=",e);
-
-        }
-        */
-
-        log.info("lbyj7");
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         log.info("lbyh0: approvalRequests={}", approvalRequests);
         client.delete(approvalRequests);

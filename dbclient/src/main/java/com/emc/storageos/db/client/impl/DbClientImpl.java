@@ -989,11 +989,9 @@ public class DbClientImpl implements DbClient {
     		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
     	}
 
-    	_log.info("lby startId={} pageCount={}", startId, maxCount);
         constraintImpl.setStartId(startId);
 
         constraintImpl.setPageCount(maxCount);
-        // constraintImpl.setMaxCount(maxCount);
 
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);

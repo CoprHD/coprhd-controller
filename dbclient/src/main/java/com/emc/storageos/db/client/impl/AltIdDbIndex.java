@@ -28,7 +28,7 @@ public class AltIdDbIndex extends DbIndex<IndexColumnName> {
             String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
-            _log.warn("Empty string in altenate id field: {}", fieldName);
+            _log.warn("Empty string in alternate id field: {}", fieldName);
             return false;
         }
 
@@ -36,7 +36,6 @@ public class AltIdDbIndex extends DbIndex<IndexColumnName> {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        _log.info("lbyf: class={} rowKey={}, ttl={}", className, recordKey, ttl);
         IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);

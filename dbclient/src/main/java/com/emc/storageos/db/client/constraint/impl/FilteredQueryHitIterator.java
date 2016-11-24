@@ -6,12 +6,13 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.util.NoSuchElementException;
 
-import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
-import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.query.RowQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.query.RowQuery;
+
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 
 /**
  * QueryHitIterator with a filter based on column name
@@ -19,11 +20,9 @@ import org.slf4j.LoggerFactory;
 public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         extends QueryHitIterator<T1, T2> {
     private static final Logger log = LoggerFactory.getLogger(FilteredQueryHitIterator.class);
-    //private Column<IndexColumnName> _current;
     private Column<T2> _current;
     protected boolean stop = false;
 
-    //public FilteredQueryHitIterator(RowQuery<String, IndexColumnName> query) {
     public FilteredQueryHitIterator(RowQuery<String, T2> query) {
         super(query);
     }
@@ -66,7 +65,6 @@ public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColu
 
     @Override
     public boolean hasNext() {
-        // log.info("lbyb0: stop={} _current={} stack=", stop, _current, new Throwable());
         return (stop == false) && (_current != null);
     }
 
@@ -86,6 +84,5 @@ public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColu
      * @param column
      * @return true if filter likes column, false otherwise
      */
-    //public abstract boolean filter(Column<IndexColumnName> column);
     public abstract boolean filter(Column<T2> column);
 }

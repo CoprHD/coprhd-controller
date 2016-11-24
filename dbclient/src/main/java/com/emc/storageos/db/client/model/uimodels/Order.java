@@ -123,13 +123,11 @@ public class Order extends ModelObject implements TenantDataObject {
     }
 
     public void setOrderStatus(String status) {
-        //log.info("lbyuuu: status={} id={} stack=", status, _id, new Throwable());
         this.orderStatus = status;
         setChanged(ORDER_STATUS);
     }
 
-    // @AlternateId("UserToOrders")
-    @ClassNameTimeSeries("UserToOrders4")
+    @ClassNameTimeSeries("UserToOrdersByTimeStamp")
     @Name(SUBMITTED_BY_USER_ID)
     public String getSubmittedByUserId() {
         return submittedByUserId;
@@ -204,8 +202,7 @@ public class Order extends ModelObject implements TenantDataObject {
      * @return
      */
     @Name("indexed")
-    //@DecommissionedIndex("timeseriesIndex")
-    @TimeSeriesAlternateId("timeseriesIndex3")
+    @TimeSeriesAlternateId("AllOrdersByTimeStamp")
     public Boolean getIndexed() {
         return indexed;
     }

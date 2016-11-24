@@ -1024,7 +1024,7 @@ public class SchemaUtil {
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         final String cfname = def.getName();
-        _log.info("lbye0: Admding CF: {} stack=", cfname, new Throwable());
+        _log.info("Admding CF: {} stack=", cfname, new Throwable());
         try {
             return pool.executeWithFailover(
                     new AbstractOperationImpl<String>(

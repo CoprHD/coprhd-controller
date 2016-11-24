@@ -792,16 +792,6 @@ rrrrrrrrrrrrrrrrrrrrrrrrrrrr
         Order order = queryResource(id);
         log.info("lbyh0 order={}", order);
 
-        /*
-        ArgValidator.checkEntity(order, id, true);
-
-        if (order.getScheduledEventId()!=null) {
-            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
-        }
-        */
-
-        log.info("lbyh0");
-        //orderManager.deleteOrder(order);
         orderManager.deleteOrder(id, "");
 
         auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());

@@ -92,7 +92,7 @@ public final class WorkflowHelper {
         return steps == null ? null :  MAPPER.readValue(steps, MAPPER.getTypeFactory().constructCollectionType(List.class, OrchestrationWorkflowDocument.Step.class));
     }
     
-    public static String toStepsJson(final List<OrchestrationWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
+    private static String toStepsJson(final List<OrchestrationWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
         return MAPPER.writeValueAsString(steps);
     }
 }

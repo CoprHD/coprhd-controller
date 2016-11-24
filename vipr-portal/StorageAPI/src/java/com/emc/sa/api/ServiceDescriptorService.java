@@ -16,7 +16,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.sa.catalog.WorkflowDirectoryManager;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +47,7 @@ public class ServiceDescriptorService extends CatalogResourceService {
 
     /**
      * List service descriptors
-     * G
+     *
      * @prereq none
      * @brief List service descriptors
      * @return List of service descriptors
@@ -81,19 +81,7 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{serviceId}")
     public ServiceDescriptorRestRep getServiceDescriptor(@PathParam("serviceId") String serviceId) {
-        log.info(serviceId);
-        ServiceDescriptor descriptor;
-        // Adding  workflows (TODO: add only published)
-        descriptor = workflowServiceDescriptor.getDescriptor(serviceId);
-        //List<ServiceDescriptor> wfDescriptors = createServiceDescriptorForWF(serviceId);
-        if (null != descriptor) {
-            log.info("found wf descriptor for given service");
-            //descriptor = wfDescriptors.get(0);
-        }
-        else {
-            log.info("wf descriptor not found");
-            descriptor = this.serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
-        }
+        ServiceDescriptor descriptor = ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, serviceId);
         return map(descriptor);
     }
 }

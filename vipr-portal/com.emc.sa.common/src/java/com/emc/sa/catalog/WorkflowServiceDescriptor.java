@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.emc.sa.catalog;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
@@ -12,18 +28,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Created by balak1 on 11/22/2016.
+ * Service Descriptor for Workflow services
  */
 @Component
 public class WorkflowServiceDescriptor {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowServiceDescriptor.class);
+    private static final String INPUT_FROM_USER_INPUT_TYPE = "InputFromUser";
+    private static final String ASSET_INPUT_TYPE = "AssetOption";
+    private static final String INPUT_FROM_USER_FIELD_TYPE = "text";
+    private static final String ORCHESTRATION_SERVICE_CATEGORY = "Orchestration Services";
+
 
     @PostConstruct
     public void init() {
@@ -34,89 +56,77 @@ public class WorkflowServiceDescriptor {
     private OrchestrationWorkflowManager orchestrationWorkflowManager;
 
     public ServiceDescriptor getDescriptor(String serviceName) {
+        log.debug("Getting workflow descriptor for {}", serviceName);
         List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
         if(null == results || results.isEmpty()) {
             return null;
         }
         if(results.size() > 1) {
-            throw new IllegalStateException("Multiple workflows with the name " + serviceName);
+            throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
         return mapWorkflowToServiceDescriptor(results.get(0));
     }
 
     public Collection<ServiceDescriptor> listDescriptors() {
-        log.info("createServiceDescriptorForWF start");
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
         List<NamedElement> oeElements = orchestrationWorkflowManager.list();
-        //List<URI> oeWorkflowIDs = _dbClient.queryByType(OrchestrationWorkflow.class, true);
-
-        OrchestrationWorkflow oeWorkflow;
-        for(NamedElement oeElement: oeElements) {
-            oeWorkflow = orchestrationWorkflowManager.getById(oeElement.getId());
-            wfServiceDescriptors.add(mapWorkflowToServiceDescriptor(oeWorkflow));
+        if (null != oeElements) {
+            OrchestrationWorkflow oeWorkflow;
+            for(NamedElement oeElement: oeElements) {
+                oeWorkflow = orchestrationWorkflowManager.getById(oeElement.getId());
+                wfServiceDescriptors.add(mapWorkflowToServiceDescriptor(oeWorkflow));
+            }
         }
 
-        log.info("createServiceDescriptorForWF end");
         return wfServiceDescriptors;
     }
 
     private ServiceDescriptor mapWorkflowToServiceDescriptor(OrchestrationWorkflow from) {
         ServiceDescriptor to = new ServiceDescriptor();
         try {
-            log.info(from.getSteps());
-            //final ObjectMapper MAPPER = new ObjectMapper();
-            //MAPPER.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
             OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
-            //MAPPER.readValue(from.getSteps(), OrchestrationWorkflowDocument.class);
-            to.setCategory("OrchestrationServices");
+            to.setCategory(ORCHESTRATION_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);
             to.setServiceId(wfDocument.getName());
             to.setTitle(wfDocument.getName());
-            //to.setRoles(null);
+            to.setWorkflowId(wfDocument.getName());
 
-            ServiceField serviceField = new ServiceField();
-
-            String inputName;
-            OrchestrationWorkflowDocument.Input wfInput;
             for (OrchestrationWorkflowDocument.Step step : wfDocument.getSteps()) {
                 if (null != step.getInput()) {
                     for(Map.Entry<String, OrchestrationWorkflowDocument.Input> inputEntry: step.getInput().entrySet()) {
-                        wfInput = inputEntry.getValue();
-                        if ("InputFromUser".equals(wfInput.getType())) {
-                            serviceField = new ServiceField();
-                            inputName = inputEntry.getKey();
-                            serviceField.setDescription(wfInput.getFriendlyName());
-                            serviceField.setLabel(wfInput.getFriendlyName());
-                            serviceField.setName(inputName);
-                            serviceField.setRequired(wfInput.getRequired());
-                            serviceField.setInitialValue(wfInput.getDefaultValue());
-                            serviceField.setLockable(true);
-                            serviceField.setType("text");
-                            to.getItems().put(inputName, serviceField);
+                        OrchestrationWorkflowDocument.Input wfInput = inputEntry.getValue();
+                        String wfInputType = null;
+                        // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
+                        if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
+                            wfInputType = INPUT_FROM_USER_FIELD_TYPE;
                         }
-                        else if ("AssetOption".equals(wfInput.getType())) {
-                            serviceField = new ServiceField();
-                            inputName = inputEntry.getKey();
+                        else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
+                            wfInputType = wfInput.getValue();
+                        }
+                        if (null != wfInputType) {
+                            ServiceField serviceField = new ServiceField();
+                            String inputName = inputEntry.getKey();
+                            //TODO: change this to get description
                             serviceField.setDescription(wfInput.getFriendlyName());
                             serviceField.setLabel(wfInput.getFriendlyName());
                             serviceField.setName(inputName);
                             serviceField.setRequired(wfInput.getRequired());
                             serviceField.setInitialValue(wfInput.getDefaultValue());
+                            // Setting all fields as lockable
                             serviceField.setLockable(true);
-                            serviceField.setType(wfInput.getValue());
+                            serviceField.setType(wfInputType);
                             to.getItems().put(inputName, serviceField);
                         }
                     }
                 }
-
             }
         }
-        catch (Exception e) {
-            //TODO
-            log.error("Hey! got an exception", e);
+        catch (IOException io) {
+            log.error("Error deserializing workflow", io);
+            throw new IllegalStateException(String.format("Error deserializing workflow %s", from.getName()));
         }
-        log.info("mapping done");
+        log.debug("Mapped workflow service descriptor for {}", from.getName());
         return to;
     }
 }

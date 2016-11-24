@@ -43,6 +43,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.sa.catalog.OrchestrationWorkflowManager;
 import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CatalogServiceFilter;
@@ -159,13 +160,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      */
     private ServiceDescriptor getServiceDescriptor(String serviceId) {
         try {
-            ServiceDescriptor serviceDescriptor = workflowServiceDescriptor.getDescriptor(serviceId);
-            if (null != serviceDescriptor) {
-                return serviceDescriptor;
-            }
-            else {
-                return serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
-            }
+            return ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, serviceId);
         } catch (IllegalStateException e) {
             return null;
         }

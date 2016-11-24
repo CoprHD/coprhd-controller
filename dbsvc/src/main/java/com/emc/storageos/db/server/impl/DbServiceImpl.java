@@ -6,7 +6,7 @@
 package com.emc.storageos.db.server.impl;
 
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
-import static com.emc.storageos.services.util.DbInfoUtils.checkDBOfflineInfo;
+import static com.emc.storageos.security.dbInfo.DbInfoUtils.checkDBOfflineInfo;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

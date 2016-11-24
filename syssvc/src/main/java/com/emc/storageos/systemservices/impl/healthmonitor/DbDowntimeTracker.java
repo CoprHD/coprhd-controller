@@ -8,8 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.emc.storageos.services.util.AlertsLogger;
-import com.emc.storageos.services.util.DbInfoUtils;
-import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.security.dbInfo.DbInfoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

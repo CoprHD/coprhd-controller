@@ -16,7 +16,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.services.util.DbInfoUtils;
+import com.emc.storageos.security.dbInfo.DbInfoUtils;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;

@@ -122,17 +122,20 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         getDevice(cs.getSystemType()).discoverComputeSystem(cs.getId());
     }
 
+    //TODO Add JavaDoc comments for all public methods across all Compute controller classes
     @Override
     public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
         log.info("createHost");
 
         Host host = _dbClient.queryObject(Host.class, hostId);
+        //TODO check for null -- host, ce, etc.
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
         ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
         VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
 
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
+        
         TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
         getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
     }
@@ -145,12 +148,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        //TODO check for null ce
         URI computeElementId = ce.getId();
         log.info("sptId:" + ce.getSptId());
 
         if (ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
+            //TODO check template not null
             log.info("is updating:" + template.getUpdating());
             if (template.getUpdating()) {
 
@@ -162,6 +167,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         null);
 
                 // Set host to boot from lan
+                //TODO investigate -- why is there no rollback for this step?
 
                 waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
                         "Set the host to boot from LAN", waitFor, cs.getId(), cs
@@ -181,7 +187,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         } else {
             log.error("sptId is null!");
         }
+        
 
+        
+        //TODO remove commented code
+        
         // waitFor = workflow.createStep(PRE_OS_INSTALL_POWER_DOWN_STEP, "power down compute element", waitFor,
         // cs.getId(),
         // cs.getSystemType(), this.getClass(),
@@ -216,10 +226,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
+        //TODO check for ce not null
 
         if (ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
+            //TODO check for template not null
             if (template.getUpdating()) {
                 waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
                         "Rebind host to service profile template after OS install", waitFor, cs.getId(), cs
@@ -292,6 +304,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
+    //TODO check if we can convert any of these internal methods to private (in the interface as well as here)
     @Override
     public void setSanBootTarget(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId, boolean waitForServerRestart)
             throws InternalException {
@@ -399,6 +412,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
 
             rebindHostToTemplate(cs.getId(), hostId);
+            //TODO check if rebind succeeded, and if not, mark rollback as failed
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
@@ -420,6 +434,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             computeSystem = _dbClient.queryObject(ComputeSystem.class, hostId);
 
             rebindHostToTemplate(computeSystemId, hostId);
+            //TODO process the return value, and mark step as failed in case of error
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -450,7 +465,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             WorkflowStepCompleter.stepExecuting(stepId);
 
             computeSystem = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
+            //TODO check for computeSystem not null
 
+            //TODO split in into two parts -- one to get previous map, the next to do network
+            //     configuration. Second step can return success or failure.
             Map<String, Boolean> vlanMap = prepareOsInstallNetwork(computeSystemId, computeElementId);
             _workflowService.storeStepData(stepId, vlanMap);
 
@@ -544,6 +562,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
              * created in ViPR. If it was computeElement property of the host
              * would have been set.
              */
+        	//TODO log a message (info level)
             return waitFor;
         }
 
@@ -552,6 +571,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
 
+            //TODO add rollback steps for both these workflows
             waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
                     "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId), null,
@@ -586,6 +606,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
 
+            //TODO add rollback steps for these workflow steps
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
                             "deactiveComputeSystemHost", cs.getId(), hostId),

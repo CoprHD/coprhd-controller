@@ -399,6 +399,7 @@ public class UcsComputeDevice implements ComputeDevice {
         return sptDn;
     }
 
+    //TODO change all these 'void' methods to boolean -- process the return from UCSM and return success / failure
     @Override
     public void rebindHostToTemplate(URI computeSystemId, URI hostId) throws InternalException {
         LOGGER.info("rebindHostToTemplate");
@@ -417,7 +418,9 @@ public class UcsComputeDevice implements ComputeDevice {
                     URL ucsmURL = getUcsmURL(cs);
                     ucsmService.bindSPToTemplate(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), sp.getDn(), template.getLabel());
                 }
+                // TODO add an else clause and return failure
             }
+            //TODO add an 'else' clause and return failure
         } catch (Exception e) {
             LOGGER.error("Unable to bind service profile to template due to a exception", e);
             throw ComputeSystemControllerException.exceptions.bindHostToTemplateFailed(host != null ? host.getId()

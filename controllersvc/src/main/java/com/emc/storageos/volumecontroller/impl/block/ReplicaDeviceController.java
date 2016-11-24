@@ -597,6 +597,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
         snapshot.setReplicationGroupInstance(repGroupName);
         snapshot.setStorageController(volume.getStorageController());
+        snapshot.setSystemType(volume.getSystemType());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
@@ -635,6 +636,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setLabel(volume.getLabel() + "-" + repGroupName);
         clone.setPool(volume.getPool());
         clone.setStorageController(volume.getStorageController());
+        clone.setSystemType(volume.getSystemType());
         clone.setProject(new NamedURI(volume.getProject().getURI(), clone.getLabel()));
         clone.setTenant(new NamedURI(volume.getTenant().getURI(), clone.getLabel()));
         clone.setVirtualPool(volume.getVirtualPool());
@@ -741,6 +743,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
+        createdMirror.setSystemType(volume.getSystemType());
         createdMirror.setVirtualArray(volume.getVirtualArray());
         createdMirror.setProtocol(new StringSet());
         createdMirror.getProtocol().addAll(volume.getProtocol());

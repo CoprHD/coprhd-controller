@@ -33,9 +33,11 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
@@ -173,6 +175,40 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateRelinkSnapshotSessionTargets(srcSideBackendVolume, tgtSnapSession, project, snapshotURIs, uriInfo);
+            
+            // If the targets to be re-linked are in replication groups, then all targets 
+            // in the group will be re-linked. So, we need to find all snapshots that will
+            // be re-linked. First make sure we only have a single snapshot per replication
+            // group so we don't process any twice.
+            List<URI> filteredSnapshotURIs = new ArrayList<URI>();
+            if (tgtSnapSession.hasConsistencyGroup()
+                    && NullColumnValueGetter.isNotNullValue(tgtSnapSession.getReplicationGroupInstance())) {
+                filteredSnapshotURIs.addAll(ControllerUtils.ensureOneSnapshotPerReplicationGroup(snapshotURIs, _dbClient));
+            } else {
+                filteredSnapshotURIs.addAll(snapshotURIs); 
+            }
+
+            List<BlockSnapshot> allSnapshots = new ArrayList<BlockSnapshot>();
+            for (URI snapshotURI : snapshotURIs) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient));
+            }
+            
+            // Since it is possible to expose a VPLEX backend snapshot as a VPLEX volume,
+            // it is possible that a linked target being re-linked has been exposed as a 
+            // VPLEX volume. If that is the case, then what this essentially amounts to
+            // is that the linked target is being restored with the data from the target 
+            // session. As such, the same restrictions for restoring a snapshot session apply
+            // here, but not for the snapshot session source objects, and instead for the
+            // VPLEX volumes built on top of the linked targets.
+            List<Volume> vplexVolumesBuiltOnSnapshots = VPlexUtil.getVPlexVolumesBuiltOnSnapshots(allSnapshots, _dbClient);
+            for (Volume vplexVolumesBuiltOnSnapshot : vplexVolumesBuiltOnSnapshots) {
+                // Check for pending tasks on the VPLEX source volume.
+                checkForPendingTasks(vplexVolumesBuiltOnSnapshot, vplexVolumesBuiltOnSnapshot.getTenant().getURI());
+
+                // Verify no active mirrors on the VPLEX volume.
+                verifyActiveMirrors(vplexVolumesBuiltOnSnapshot);
+            }
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.
@@ -184,15 +220,20 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession TgtSnapSession,
+    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
             List<URI> snapshotURIs, String taskId) {
+        // Because the source is a VPLEX volume, it is possible that the targets being
+        // re-linked have VPLEX volumes built on top of them. Because the target is
+        // being re-linked, that data on the target will change. This means we may have
+        // to perform operations on the VPLEX volume to ensure it recognizes that the
+        // data has been changed.
         if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
-            // Get the platform specific implementation for the source side
-            // backend storage system and call the relink method.
+            // Invoke VLPEX controller.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
-            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
-            snapSessionImpl.relinkTargetVolumesToSnapshotSession(srcSideBackendVolume, TgtSnapSession, snapshotURIs, taskId);
+            URI vplexURI = vplexVolume.getStorageController();
+            VPlexController controller = getController(VPlexController.class,
+                    DiscoveredDataObject.Type.vplex.toString());
+            controller.relinkTargetsToSnapshotSession(vplexURI, tgtSnapSession.getId(), snapshotURIs, taskId);
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.
@@ -318,8 +359,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // snapshot. This means we have to perform operations on the VPLEX volume to ensure it
         // recognizes that the data has been changed.
         if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
-            // Get the platform specific implementation for the source side
-            // backend storage system and call the validation routine.
+            // Invoke VLPEX controller.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
             URI vplexURI = vplexVolume.getStorageController();
             VPlexController controller = getController(VPlexController.class,

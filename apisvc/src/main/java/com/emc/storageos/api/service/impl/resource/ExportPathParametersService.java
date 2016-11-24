@@ -37,6 +37,8 @@ import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
 import com.emc.storageos.model.block.export.ExportPathParametersList;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
+import com.emc.storageos.model.block.export.ExportPathUpdateParams;
+import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
@@ -101,15 +103,15 @@ public class ExportPathParametersService extends TaggedResource {
         return map(pathParams);
 
     }
-    
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public ExportPathParametersList getAllExportPathParameters(@DefaultValue("false") @QueryParam("is-port-group") boolean isPortGroup) {
-        
+
         NamedElementQueryResultList resultSetList = new NamedElementQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getPathParamsByPortGroupConstraint(isPortGroup), resultSetList);
-        
+
         ExportPathParametersList pathParamsList = new ExportPathParametersList();
         for (NamedElementQueryResultList.NamedElement el : resultSetList) {
             pathParamsList.getPathParamsList().add(
@@ -119,37 +121,15 @@ public class ExportPathParametersService extends TaggedResource {
 
     }
 
-
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response updateExportPathParameters(@PathParam("id") URI id, ExportPathParameters param) throws DatabaseException {
+    public Response updateExportPathParameters(@PathParam("id") URI id, ExportPathUpdateParams param) throws DatabaseException {
         ArgValidator.checkFieldUriType(id, ExportPathParams.class, "id");
-
-        if (!rangeCheck(param.getMaxPaths(), 1, 65535)) {
-            _log.error("Failed to create export path params due to Max Path not in the range");
-            throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Max Path not in the range");
-        }
-
-        if (!rangeCheck(param.getMinPaths(), 1, 65535)) {
-            _log.error("Failed to create export path params due to Min Path not in the range");
-            throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Min Path not in the range");
-        }
-
-        if (!rangeCheck(param.getPathsPerInitiator(), 1, 65535)) {
-            _log.error("Failed to create export path params due to Path Per Initiator not in the range");
-            throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Path Per Initiator not in the range");
-        }
-        if (param.getMaxInitiatorsPerPort() != null) {
-            if (!rangeCheck(param.getMaxInitiatorsPerPort(), 1, 65535)) {
-                _log.error("Failed to create export path params due to Initiators Per Port not in the range");
-                throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Initiators Per Port not in the range");
-            }
-        }
         ExportPathParams exportPathParams = updateExportPathParams(param, id);
-        _log.info("Export Path Parameters {} update started", exportPathParams.getLabel());
+
         _dbClient.updateObject(exportPathParams);
         _log.info("Export Path Paramters {} updated successfully", exportPathParams);
 
@@ -247,40 +227,69 @@ public class ExportPathParametersService extends TaggedResource {
             }
             params.setStoragePorts(exportPathParamSet);
         }
-        
+
         params.setPortGroupFlag(isPortGroup);
         return params;
     }
 
-    private ExportPathParams updateExportPathParams(ExportPathParameters param, URI id) {
+    private ExportPathParams updateExportPathParams(ExportPathUpdateParams param, URI id) {
         ExportPathParams params = queryResource(id);
+
+        _log.info("Export Path Parameters {} update started", params.getLabel());
         if (param.getName() != null) {
             params.setLabel(param.getName());
         }
         if (param.getDescription() != null) {
             params.setDescription(param.getDescription());
         }
-        
+
         if (param.getMaxPaths() != null) {
+            if (!rangeCheck(param.getMaxPaths(), 1, 65535)) {
+                _log.error("Failed to create export path params due to Max Path not in the range");
+                throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Max Path not in the range");
+            }
             params.setMaxPaths(param.getMaxPaths());
         }
         if (param.getMinPaths() != null) {
+            if (!rangeCheck(param.getMinPaths(), 1, 65535)) {
+                _log.error("Failed to create export path params due to Min Path not in the range");
+                throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Min Path not in the range");
+            }
             params.setMinPaths(param.getMinPaths());
         }
         if (param.getPathsPerInitiator() != null) {
+            if (!rangeCheck(param.getPathsPerInitiator(), 1, 65535)) {
+                _log.error("Failed to create export path params due to Path Per Initiator not in the range");
+                throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Path Per Initiator not in the range");
+            }
             params.setPathsPerInitiator(param.getPathsPerInitiator());
         }
         if (param.getMaxInitiatorsPerPort() != null) {
+            if (!rangeCheck(param.getMaxInitiatorsPerPort(), 1, 65535)) {
+                _log.error("Failed to create export path params due to Initiators Per Port not in the range");
+                throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Initiators Per Port not in the range");
+            }
             params.setMaxInitiatorsPerPort(param.getMaxInitiatorsPerPort());
         }
-        List<URI> portUris = param.getStoragePorts();
+
+        StoragePorts portsToAdd = param.getPortsToAdd();
+        StoragePorts portsToRemove = param.getPortsToRemove();
+
         StringSet exportPathParamSet = new StringSet();
-        if (portUris != null) {
-            for (URI uri : portUris) {
-                exportPathParamSet.add(URIUtil.asString(uri));
-            }
-            params.setStoragePorts(exportPathParamSet);
+
+        StringSet setToAdd = new StringSet();
+        StringSet setToRemove = new StringSet();
+        List<URI> addList = portsToAdd.getStoragePorts();
+        List<URI> removeList = portsToRemove.getStoragePorts();
+        for (URI portToBeAdded : addList) {
+            setToAdd.add(portToBeAdded.toString());
         }
+        for (URI portToBeRemoved : removeList) {
+            setToRemove.add(portToBeRemoved.toString());
+        }
+
+        params.getStoragePorts().addAll(setToAdd);
+        params.getStoragePorts().removeAll(setToRemove);
 
         return params;
     }

@@ -18,6 +18,7 @@
                 <prop key="DB_CASSANDRA_INDEX_GC_GRACE_PERIOD">432000</prop>
                 <!-- Per CF GC grace period settings -->
                 <prop key="DB_CASSANDRA_GC_GRACE_PERIOD_Volume">432000</prop>
+                <prop key="DB_CASSANDRA_GC_GRACE_PERIOD_StorageSystem">432000</prop>
             </props>
         </property>
     </bean>

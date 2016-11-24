@@ -765,8 +765,8 @@ CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.configType.HostResourceMaximumNumberOfArrays=Maximum Number Of Arrays That Resources Can be Placed For A Host/Cluster
 CustomConfigs.configType.IsilonPathCustomization=File System Directory Path
-CustomConfigs.no_dir.description=Do not use any Directory.A forward slash must follow after this. Example: {no_dir}/ 
-CustomConfigs.dir_name.description=A System Access Zone Directory Name must follow after this. Example: {dir_name}MyOrg
+CustomConfigs.no_dir.description=Do not use any directory. Example: {dir_name}={no_dir} 
+CustomConfigs.dir_name.description=A directory is used for system access zone namespace. Example: {dir_name}=MyOrg
 CustomConfigs.configType.IsilonSystemAccessZoneNameSpace=System Access Zone Directory
 CustomConfigs.configType.IsilonUnmanagedFileSystemLocations=Unmanaged File System Locations
 CustomConfigs.scopeType.global=Global

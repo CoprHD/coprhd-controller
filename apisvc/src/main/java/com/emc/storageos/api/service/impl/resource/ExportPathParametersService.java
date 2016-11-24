@@ -114,8 +114,12 @@ public class ExportPathParametersService extends TaggedResource {
 
         ExportPathParametersList pathParamsList = new ExportPathParametersList();
         for (NamedElementQueryResultList.NamedElement el : resultSetList) {
-            pathParamsList.getPathParamsList().add(
-                    toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_PARAMETERS, el.getId(), el.getName()));
+            ExportPathParams pathParams = _dbClient.queryObject(ExportPathParams.class, el.getId());
+            if (pathParams != null && !pathParams.getInactive()) {
+                pathParamsList.getPathParamsList().add(
+                        toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_PARAMETERS, el.getId(), el.getName()));
+            }
+            
         }
         return pathParamsList;
 
@@ -272,13 +276,21 @@ public class ExportPathParametersService extends TaggedResource {
             params.setMaxInitiatorsPerPort(param.getMaxInitiatorsPerPort());
         }
 
-        StoragePorts portsToAdd = param.getPortsToAdd();
-        StoragePorts portsToRemove = param.getPortsToRemove();
+        StoragePorts portsToAdd = new StoragePorts();
+        if (param.getPortsToAdd() != null) {
+            portsToAdd = param.getPortsToAdd();
+        }
+        StoragePorts portsToRemove = new StoragePorts();
+        if (param.getPortsToRemove() != null) {
+            portsToRemove = param.getPortsToRemove();
+        }
 
         StringSet setToAdd = new StringSet();
         StringSet setToRemove = new StringSet();
+
         List<URI> addList = portsToAdd.getStoragePorts();
         List<URI> removeList = portsToRemove.getStoragePorts();
+
         for (URI portToBeAdded : addList) {
             setToAdd.add(portToBeAdded.toString());
         }

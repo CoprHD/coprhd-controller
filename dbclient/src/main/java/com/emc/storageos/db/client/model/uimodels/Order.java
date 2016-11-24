@@ -129,7 +129,7 @@ public class Order extends ModelObject implements TenantDataObject {
     }
 
     // @AlternateId("UserToOrders")
-    @AlternateId2("UserToOrders4")
+    @ClassNameTimeSeries("UserToOrders4")
     @Name(SUBMITTED_BY_USER_ID)
     public String getSubmittedByUserId() {
         return submittedByUserId;
@@ -205,7 +205,7 @@ public class Order extends ModelObject implements TenantDataObject {
      */
     @Name("indexed")
     //@DecommissionedIndex("timeseriesIndex")
-    @AlternateId3("timeseriesIndex3")
+    @TimeSeriesAlternateId("timeseriesIndex3")
     public Boolean getIndexed() {
         return indexed;
     }

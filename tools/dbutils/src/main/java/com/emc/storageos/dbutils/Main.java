@@ -31,7 +31,6 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,7 +192,7 @@ public class Main {
     static class MigrationQueryHitIterator extends QueryHitIterator<URI, IndexColumnName> {
         Keyspace keyspace;
         AlternateIdConstraintImpl constraint;
-        ColumnFamily<String, IndexColumnName2> cf;
+        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> cf;
         MutationBatch mutationBatch;
         int pageCount;
 
@@ -202,7 +201,7 @@ public class Main {
 
             keyspace = ks;
             constraint = c;
-            cf = new ColumnFamily<String, IndexColumnName2>("UserToOrders4", StringSerializer.get(), IndexColumnNameSerializer2.get());
+            cf = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>("UserToOrders4", StringSerializer.get(), ClassNameTimeSeriesSerializer.get());
             mutationBatch = ks.prepareMutationBatch();
             pageCount = constraint.getPageCount();
         }
@@ -214,7 +213,7 @@ public class Main {
                 URI id = URI.create(column.getName().getTwo());
                 // long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
 
-                IndexColumnName2 col = new IndexColumnName2(column.getName().getOne(), id.toString(),column.getName().getTimeUUID());
+                ClassNameTimeSeriesIndexColumnName col = new ClassNameTimeSeriesIndexColumnName(column.getName().getOne(), id.toString(),column.getName().getTimeUUID());
                 mutationBatch.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
                 if ( n % pageCount == 0) {
                     mutationBatch.execute(); // commit

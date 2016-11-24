@@ -1,5 +1,6 @@
 package com.emc.storageos.db.client.constraint.impl;
 
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -13,17 +14,16 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.IndexColumnName2;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer2;
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
 import com.emc.storageos.db.client.model.DataObject;
 
 /**
  * Alternate ID constraint implementation
  */
-public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2> implements AlternateIdConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AlternateId2ConstraintImpl.class);
+public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameTimeSeriesIndexColumnName> implements AlternateIdConstraint {
+    private static final Logger log = LoggerFactory.getLogger(ClassNameTimeSeriesConstraintImpl.class);
 
-    private final ColumnFamily<String, IndexColumnName2> _altIdCf;
+    private final ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
     private long startTimeMicros;
@@ -32,9 +32,9 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
 
     private Keyspace _keyspace;
 
-    public AlternateId2ConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS) {
+    public ClassNameTimeSeriesConstraintImpl(ColumnField field, String altId, long startTimeInMS, long endTimeInMS) {
         super(field, altId);
-        indexSerializer = IndexColumnNameSerializer2.get();
+        indexSerializer = ClassNameTimeSeriesSerializer.get();
 
         _altIdCf = field.getIndexCF();
         _altId = altId;
@@ -58,20 +58,14 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName2> genQuery() {
+    protected RowQuery<String, ClassNameTimeSeriesIndexColumnName> genQuery() {
         log.info("cf={} key={}", _altIdCf.getName(), _altId);
         log.info("prefix={} startime= {} endtime= {}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
-        try {
-            log.info("keyspace={}", _keyspace.describeKeyspace().getName());
-        }catch (Exception e) {
-            log.error("lbymm9 e=",e);
-        }
 
-        RowQuery<String, IndexColumnName2> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                .withColumnRange(IndexColumnNameSerializer2.get().buildRange()
+        RowQuery<String, ClassNameTimeSeriesIndexColumnName> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
+                .withColumnRange(ClassNameTimeSeriesSerializer.get().buildRange()
                         .withPrefix(_entryType.getSimpleName())
-                        // .withPrefix(Boolean.FALSE.toString())
                         .greaterThan(startTimeMicros)
                         .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
@@ -91,43 +85,13 @@ public class AlternateId2ConstraintImpl extends ConstraintImpl<IndexColumnName2>
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName2> col) {
+    protected URI getURI(Column<ClassNameTimeSeriesIndexColumnName> col) {
         return URI.create(col.getName().getThree());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName2> column) {
-        //log.info("lbymm0 markForDelete={} stack=", markForDelete, new Throwable());
-        /*
-        log.info("lbymm0 markForDelete={} ", markForDelete);
-        if (markForDelete) {
-            matchedCount++;
-
-            log.info("lbymm1");
-            if (markForDelete) {
-                mutationBatch = _keyspace.prepareMutationBatch();
-            }
-
-            IndexColumnName2 columnName = column.getName();
-            IndexColumnName2 col = new IndexColumnName2(columnName.getOne(), columnName.getTwo(), true, columnName.getTimeInMicros());
-            mutationBatch.withRow(_altIdCf, _altId).deleteColumn(columnName);
-            mutationBatch.withRow(_altIdCf, _altId).putEmptyColumn(col, null);
-
-            //if ( matchedCount % pageCount == 0) {
-                try {
-                    log.info("lbymm2");
-                    mutationBatch.execute(); // commit
-                    log.info("lbymm3");
-                }catch (ConnectionException e) {
-                    log.error("Failed to update key={} column={} e=", _altId, columnName, e);
-                    throw new RuntimeException(e);
-                }
-                mutationBatch = _keyspace.prepareMutationBatch();
-            log.info("lbymm4");
-            // }
-        }
-        */
-        log.info("lbydd1");
+    protected <T> T createQueryHit(final QueryResult<T> result, Column<ClassNameTimeSeriesIndexColumnName> column) {
+        log.info("lby: createQueryHit");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }

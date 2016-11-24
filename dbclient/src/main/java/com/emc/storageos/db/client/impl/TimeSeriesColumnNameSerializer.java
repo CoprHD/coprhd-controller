@@ -5,19 +5,16 @@ import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 /**
  * Created by brian on 16-11-16.
  */
-public class IndexColumnNameSerializer3 extends AnnotatedCompositeSerializer<IndexColumnName3> {
-    private static final IndexColumnNameSerializer3 instance = new IndexColumnNameSerializer3();
+public class TimeSeriesColumnNameSerializer extends AnnotatedCompositeSerializer<TimeSeriesIndexColumnName> {
+    private static final TimeSeriesColumnNameSerializer instance = new TimeSeriesColumnNameSerializer();
     private static final String COMPARATOR_NAME =
-            //"org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.TimeUUIDType,"+
-            //"org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.TimestampType,"+
-            //"org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.LongType,"+
             "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.LongType,"+ // timestamp
                     "org.apache.cassandra.db.marshal.UTF8Type," +    // username
                     "org.apache.cassandra.db.marshal.UTF8Type," +    // object ID
                     "org.apache.cassandra.db.marshal.UTF8Type," +    //
                     "org.apache.cassandra.db.marshal.TimeUUIDType)";
 
-    public static IndexColumnNameSerializer3 get() {
+    public static TimeSeriesColumnNameSerializer get() {
         return instance;
     }
 
@@ -25,7 +22,7 @@ public class IndexColumnNameSerializer3 extends AnnotatedCompositeSerializer<Ind
         return COMPARATOR_NAME;
     }
 
-    public IndexColumnNameSerializer3() {
-        super(IndexColumnName3.class);
+    public TimeSeriesColumnNameSerializer() {
+        super(TimeSeriesIndexColumnName.class);
     }
 }

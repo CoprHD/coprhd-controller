@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @UpgradeAllowed(migrationCallback = AddIndexMigrationCallback.class)
-public @interface AlternateId2 {
+public @interface ClassNameTimeSeries {
     String value() default "";
 }
 

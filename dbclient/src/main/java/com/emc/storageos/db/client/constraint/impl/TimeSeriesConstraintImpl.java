@@ -17,10 +17,10 @@ import java.net.URI;
 /**
  * Alternate ID constraint implementation
  */
-public class AlternateId3ConstraintImpl extends ConstraintImpl<IndexColumnName3> implements AlternateIdConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AlternateId3ConstraintImpl.class);
+public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColumnName> implements AlternateIdConstraint {
+    private static final Logger log = LoggerFactory.getLogger(TimeSeriesConstraintImpl.class);
 
-    private final ColumnFamily<String, IndexColumnName3> indexCF;
+    private final ColumnFamily<String, TimeSeriesIndexColumnName> indexCF;
     private final Class<? extends DataObject> entryType;
     private long startTimeMicros;
     private long endTimeMicros;
@@ -28,9 +28,9 @@ public class AlternateId3ConstraintImpl extends ConstraintImpl<IndexColumnName3>
 
     private Keyspace _keyspace;
 
-    public AlternateId3ConstraintImpl(ColumnField field, long startTimeInMS, long endTimeInMS) {
+    public TimeSeriesConstraintImpl(ColumnField field, long startTimeInMS, long endTimeInMS) {
         super(field);
-        indexSerializer = IndexColumnNameSerializer3.get();
+        indexSerializer = TimeSeriesColumnNameSerializer.get();
 
         indexCF = field.getIndexCF();
         entryType = field.getDataObjectType();
@@ -54,18 +54,14 @@ public class AlternateId3ConstraintImpl extends ConstraintImpl<IndexColumnName3>
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName3> genQuery() {
+    protected RowQuery<String, TimeSeriesIndexColumnName> genQuery() {
         log.info("cf={} key={}", indexCF.getName(), entryType.getSimpleName());
         log.info("startime= {} endtime= {}", startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
-        try {
-            log.info("keyspace={}", _keyspace.describeKeyspace().getName());
-        }catch (Exception e) {
-            log.error("lbymm9 e=",e);
-        }
 
-        RowQuery<String, IndexColumnName3> query = _keyspace.prepareQuery(indexCF).getKey(entryType.getSimpleName())
-                .withColumnRange(IndexColumnNameSerializer3.get().buildRange()
+        RowQuery<String, TimeSeriesIndexColumnName> query = _keyspace.prepareQuery(indexCF)
+                .getKey(entryType.getSimpleName())
+                .withColumnRange(TimeSeriesColumnNameSerializer.get().buildRange()
                         .greaterThan(startTimeMicros)
                         .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
@@ -85,12 +81,12 @@ public class AlternateId3ConstraintImpl extends ConstraintImpl<IndexColumnName3>
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName3> col) {
+    protected URI getURI(Column<TimeSeriesIndexColumnName> col) {
         return URI.create(col.getName().getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName3> column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, Column<TimeSeriesIndexColumnName> column) {
         log.info("lbyg1");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));

@@ -8,7 +8,6 @@ package com.emc.storageos.db.server.impl;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -54,8 +53,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -67,7 +64,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VdcVersion;
@@ -79,7 +75,6 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
-import com.google.common.collect.Lists;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -600,10 +595,10 @@ public class SchemaUtil {
                     comparator = CompositeColumnNameSerializer.getComparatorName();
                 } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer) {
                     comparator = IndexColumnNameSerializer.getComparatorName();
-                } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer2) {
-                    comparator = IndexColumnNameSerializer2.getComparatorName();
-                } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer3) {
-                    comparator = IndexColumnNameSerializer3.getComparatorName();
+                } else if (cf.getColumnSerializer() instanceof ClassNameTimeSeriesSerializer) {
+                    comparator = ClassNameTimeSeriesSerializer.getComparatorName();
+                } else if (cf.getColumnSerializer() instanceof TimeSeriesColumnNameSerializer) {
+                    comparator = TimeSeriesColumnNameSerializer.getComparatorName();
                 } else {
                     throw new IllegalArgumentException();
                 }

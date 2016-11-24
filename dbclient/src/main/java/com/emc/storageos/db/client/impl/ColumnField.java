@@ -671,8 +671,8 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         Annotation[] annotations = readMethod.getAnnotations();
 
         ColumnFamily<String, IndexColumnName> indexCF = null;
-        ColumnFamily<String, IndexColumnName2> indexCF2 = null;
-        ColumnFamily<String, IndexColumnName3> indexCF3 = null;
+        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> indexCF2 = null;
+        ColumnFamily<String, TimeSeriesIndexColumnName> indexCF3 = null;
         int minPrefixChars;
 
         boolean isLazyLoadable = false;
@@ -728,14 +728,14 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((AlternateId) a).value(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
                 _index = new AltIdDbIndex(indexCF);
-            } else if (a instanceof AlternateId2) {
-                indexCF2 = new ColumnFamily<String, IndexColumnName2>(((AlternateId2) a).value(), StringSerializer.get(),
-                        IndexColumnNameSerializer2.get());
-                _index = new AltIdDbIndex2(indexCF2);
-            } else if (a instanceof AlternateId3) {
-                indexCF3 = new ColumnFamily<String, IndexColumnName3>(((AlternateId3) a).value(), StringSerializer.get(),
-                        IndexColumnNameSerializer3.get());
-                _index = new AltIdDbIndex3(indexCF3);
+            } else if (a instanceof ClassNameTimeSeries) {
+                indexCF2 = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(((ClassNameTimeSeries) a).value(), StringSerializer.get(),
+                        ClassNameTimeSeriesSerializer.get());
+                _index = new ClassNameTimeSeriesDBIndex(indexCF2);
+            } else if (a instanceof TimeSeriesAlternateId) {
+                indexCF3 = new ColumnFamily<String, TimeSeriesIndexColumnName>(((TimeSeriesAlternateId) a).value(), StringSerializer.get(),
+                        TimeSeriesColumnNameSerializer.get());
+                _index = new TimeSeriesDbIndex(indexCF3);
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());

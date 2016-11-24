@@ -57,7 +57,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         }
 
         // TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
-        if (this instanceof TimeConstraintImpl || this instanceof  AlternateId2ConstraintImpl ) {
+        if (this instanceof TimeConstraintImpl || this instanceof ClassNameTimeSeriesConstraintImpl) {
             return;
         }
 

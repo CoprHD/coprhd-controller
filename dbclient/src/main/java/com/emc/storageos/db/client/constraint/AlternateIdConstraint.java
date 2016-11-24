@@ -7,8 +7,8 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.constraint.impl.AlternateId2ConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.AlternateId3ConstraintImpl;
+import com.emc.storageos.db.client.constraint.impl.ClassNameTimeSeriesConstraintImpl;
+import com.emc.storageos.db.client.constraint.impl.TimeSeriesConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
@@ -787,16 +787,13 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
-            return new AlternateId2ConstraintImpl(field, user, startTimeInMS, endTimeInMS);
+            return new ClassNameTimeSeriesConstraintImpl(field, user, startTimeInMS, endTimeInMS);
         }
 
         public static AlternateIdConstraint getOrders(long startTimeInMS, long endTimeInMS) {
-            log.info("lbyhh0");
             DataObjectType doType = TypeMap.getDoType(Order.class);
-            log.info("lbyhh1");
             ColumnField field = doType.getColumnField(Order.SUBMITTED);
-            log.info("lbyhh2 field={}", field);
-            return new AlternateId3ConstraintImpl(field, startTimeInMS, endTimeInMS);
+            return new TimeSeriesConstraintImpl(field, startTimeInMS, endTimeInMS);
         }
     }
 }

@@ -6,17 +6,17 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 import java.util.UUID;
 
 /**
- * Composite column name for all index entries
+ * Created by brian on 16-11-16.
  */
-public class IndexColumnName2 implements CompositeIndexColumnName {
+public class TimeSeriesIndexColumnName implements CompositeIndexColumnName {
     private @Component(ordinal = 0)
-    String className;
-
-    private @Component(ordinal = 1)
     long timeInMicros;
 
+    private @Component(ordinal = 1)
+    String two;
+
     private @Component(ordinal = 2)
-    String id;
+    String three;
 
     private @Component(ordinal = 3)
     String four;
@@ -25,41 +25,36 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
     UUID timeUUID;
 
     // used by serialize/deserialize
-    public IndexColumnName2() {
+    public TimeSeriesIndexColumnName() {
     }
 
-    public IndexColumnName2(String className, String id, UUID timeUUID) {
-        this(-1, className, id, "", timeUUID);
+    public TimeSeriesIndexColumnName(String two, UUID timeUUID) {
+        this(-1, two, "", "", timeUUID);
     }
 
-    /*
-    public IndexColumnName2(String className, String id, boolean inactive, long timestamp) {
-        this(className, id, inactive, "", timestamp);
-    }
-    */
 
-    public IndexColumnName2(long timestamp, String className, String id, String four, UUID timeUUID) {
+    public TimeSeriesIndexColumnName(long timestamp, String two, String three, String four, UUID timeUUID) {
         this.timeInMicros = timestamp < 0 ? TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID): timestamp;
 
-        this.id = id;
-        this.className = className;
+        this.two = two;
+        this.three = three;
         this.four=four;
         this.timeUUID = timeUUID;
     }
 
     @Override
     public String getOne() {
-        return className;
-    }
-
-    @Override
-    public String getTwo() {
         return Long.toString(timeInMicros);
     }
 
     @Override
+    public String getTwo() {
+        return two;
+    }
+
+    @Override
     public String getThree() {
-        return id;
+        return three;
     }
 
     @Override
@@ -81,9 +76,9 @@ public class IndexColumnName2 implements CompositeIndexColumnName {
         StringBuilder builder = new StringBuilder(Long.toString(timeInMicros));
 
         builder.append(":")
-                .append(className)
+                .append(two)
                 .append(":")
-                .append(id)
+                .append(three)
                 .append(":")
                 .append(four)
                 .append(":")

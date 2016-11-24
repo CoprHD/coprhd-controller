@@ -11,6 +11,6 @@ import java.lang.annotation.*;
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @UpgradeAllowed(migrationCallback = AddIndexMigrationCallback.class)
-public @interface AlternateId3 {
+public @interface TimeSeriesAlternateId {
     String value() default "";
 }

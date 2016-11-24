@@ -106,11 +106,11 @@ public class ExternalDeviceCommunicationInterface extends
     }    
 
     private void initDrivers() {
-        if (initialized == true) {
+        if (initialized) {
             return;
         }
         synchronized (internalInitLock) {
-            if (initialized == true) {
+            if (initialized) {
                 return;
             }
             List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
@@ -118,7 +118,7 @@ public class ExternalDeviceCommunicationInterface extends
             Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
             while (it.hasNext()) {
                 StorageSystemType type = it.next();
-                if (type.getIsNative() == null ||type.getIsNative() == true) {
+                if (type.getIsNative() == null ||type.getIsNative()) {
                     continue;
                 }
                 if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {

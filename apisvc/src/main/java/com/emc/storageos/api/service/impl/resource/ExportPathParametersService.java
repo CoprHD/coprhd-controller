@@ -275,8 +275,6 @@ public class ExportPathParametersService extends TaggedResource {
         StoragePorts portsToAdd = param.getPortsToAdd();
         StoragePorts portsToRemove = param.getPortsToRemove();
 
-        StringSet exportPathParamSet = new StringSet();
-
         StringSet setToAdd = new StringSet();
         StringSet setToRemove = new StringSet();
         List<URI> addList = portsToAdd.getStoragePorts();

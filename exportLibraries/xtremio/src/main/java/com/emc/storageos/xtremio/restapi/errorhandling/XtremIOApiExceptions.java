@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.xtremio.restapi.errorhandling;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Set;
-
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -50,7 +46,4 @@ public interface XtremIOApiExceptions {
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     XtremIOApiException hluRetrievalFailed(final String message, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException hluViolation(Set<Integer> hlu, List<String> volumeIds);
 }

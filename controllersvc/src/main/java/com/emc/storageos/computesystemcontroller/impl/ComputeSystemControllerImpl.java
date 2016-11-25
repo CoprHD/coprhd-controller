@@ -1006,6 +1006,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
                     removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
 
+            // No code should be added following the call to the block controller to preserve rollback integrity
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             // Clean up any pending tasks

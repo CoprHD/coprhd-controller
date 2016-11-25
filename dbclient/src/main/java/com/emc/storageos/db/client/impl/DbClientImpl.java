@@ -997,15 +997,6 @@ public class DbClientImpl implements DbClient {
         constraint.execute(result);
     }
 
-    /*
-    @Override
-    public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, int maxCount) {
-        ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
-        constraintImpl.setMaxCount(maxCount);
-        queryByConstraint(constraint, result, null, maxCount);
-    }
-    */
-
     // This is used to count the number of volumes or fileshares in a storagepool,
     // and the number of volumes or fileshares in a storage system
     @Override

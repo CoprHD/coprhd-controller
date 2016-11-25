@@ -979,9 +979,7 @@ public class HostService extends TaskResourceService {
         host.setId(URIUtil.createId(Host.class));
         host.setTenant(tenant.getId());
         populateHostData(host, param);
-        boolean updateTaskStatus = true;
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            updateTaskStatus = false;
             if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
@@ -995,7 +993,7 @@ public class HostService extends TaskResourceService {
         _dbClient.createObject(host);
         auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
 
-        return doDiscoverHost(host, null, updateTaskStatus);
+        return doDiscoverHost(host, null, true);
     }
 
     /**

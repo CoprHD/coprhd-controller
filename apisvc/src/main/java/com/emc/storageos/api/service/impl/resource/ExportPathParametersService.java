@@ -107,7 +107,7 @@ public class ExportPathParametersService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public ExportPathParametersList getAllExportPathParameters(@DefaultValue("false") @QueryParam("is-port-group") boolean isPortGroup) {
+    public ExportPathParametersList getExportPathParametersList(@DefaultValue("false") @QueryParam("is-port-group") boolean isPortGroup) {
 
         NamedElementQueryResultList resultSetList = new NamedElementQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getPathParamsByPortGroupConstraint(isPortGroup), resultSetList);
@@ -119,7 +119,7 @@ public class ExportPathParametersService extends TaggedResource {
                 pathParamsList.getPathParamsList().add(
                         toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_PARAMETERS, el.getId(), el.getName()));
             }
-            
+
         }
         return pathParamsList;
 
@@ -277,20 +277,26 @@ public class ExportPathParametersService extends TaggedResource {
         }
 
         StoragePorts portsToAdd = new StoragePorts();
+        StoragePorts portsToRemove = new StoragePorts();
+        List<URI> addList = Lists.newArrayList();
+        List<URI> removeList = Lists.newArrayList();
+
         if (param.getPortsToAdd() != null) {
             portsToAdd = param.getPortsToAdd();
         }
-        StoragePorts portsToRemove = new StoragePorts();
+
         if (param.getPortsToRemove() != null) {
             portsToRemove = param.getPortsToRemove();
+        }
+        if (portsToAdd.getStoragePorts() != null) {
+            addList = portsToAdd.getStoragePorts();
+        }
+        if (portsToRemove.getStoragePorts() != null) {
+            removeList = portsToRemove.getStoragePorts();
         }
 
         StringSet setToAdd = new StringSet();
         StringSet setToRemove = new StringSet();
-
-        List<URI> addList = portsToAdd.getStoragePorts();
-        List<URI> removeList = portsToRemove.getStoragePorts();
-
         for (URI portToBeAdded : addList) {
             setToAdd.add(portToBeAdded.toString());
         }

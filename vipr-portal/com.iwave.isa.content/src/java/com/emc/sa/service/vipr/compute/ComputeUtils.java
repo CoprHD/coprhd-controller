@@ -58,6 +58,8 @@ public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
 
+    //TODO investigate which of these methods can be made private
+    
     public static List<Host> createHosts(URI cluster, URI vcp, List<String> hostNamesIn,
             URI varray) throws Exception {
 

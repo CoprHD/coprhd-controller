@@ -110,6 +110,8 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.empty.cluster.exists"));
         }
 
+        //TODO convert hostnames to lower case here before proceeding
+        // and also inform it to the user
         if ((cluster != null) && !hostNames.containsAll(hostNamesInCluster)) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }

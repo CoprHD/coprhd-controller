@@ -290,8 +290,10 @@ public class HostService extends TaskResourceService {
                 taskId, ResourceOperationTypeEnum.UPDATE_HOST);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
+        boolean updateTaskStatus = true;
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
+            updateTaskStatus = false;
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -334,7 +336,7 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
-        return doDiscoverHost(host, taskId);
+        return doDiscoverHost(host, taskId, updateTaskStatus);
     }
 
     /**
@@ -354,7 +356,7 @@ public class HostService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Host.class, "id");
         Host host = queryObject(Host.class, id, true);
 
-        return doDiscoverHost(host, null);
+        return doDiscoverHost(host, null, true);
     }
 
     /**
@@ -362,10 +364,10 @@ public class HostService extends TaskResourceService {
      * 
      * @param host {@link Host} The Host to be discovered.
      * @param taskId {@link String} taskId for the host discovery. as new taskId is generated if null passed.
-     *
+     * @param updateTaskStatus if true, mark the task status as completed for non-discovered host
      * @return the task used to track the discovery job
      */
-    protected TaskResourceRep doDiscoverHost(Host host, String taskId) {
+    protected TaskResourceRep doDiscoverHost(Host host, String taskId, boolean updateTaskStatus) {
         if (taskId == null) {
             taskId = UUID.randomUUID().toString();
         }
@@ -386,7 +388,9 @@ public class HostService extends TaskResourceService {
             // if not discoverable, manually create a ready task
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.DISCOVER_HOST);
-            op.ready("Host is not discoverable");
+            if (updateTaskStatus) {
+                op.ready("Host is not discoverable");
+            }
             _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
             return toTask(host, taskId, op);
         }
@@ -970,13 +974,14 @@ public class HostService extends TaskResourceService {
      *            the input parameter containing the host attributes
      * @return an instance of {@link Host}
      */
-    protected Host createNewHost(TenantOrg tenant, HostParam param) {
+    protected TaskResourceRep createNewHost(TenantOrg tenant, HostParam param) {
         Host host = new Host();
         host.setId(URIUtil.createId(Host.class));
         host.setTenant(tenant.getId());
         populateHostData(host, param);
+        boolean updateTaskStatus = true;
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+            updateTaskStatus = false;
             if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
@@ -986,7 +991,11 @@ public class HostService extends TaskResourceService {
             }
         }
 
-        return host;
+        host.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+        _dbClient.createObject(host);
+        auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
+
+        return doDiscoverHost(host, null, updateTaskStatus);
     }
 
     /**
@@ -1290,11 +1299,7 @@ public class HostService extends TaskResourceService {
         validateHostData(createParam, tid, null, validateConnection);
 
         // Create the host
-        Host host = createNewHost(tenant, createParam);
-        host.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.createObject(host);
-        auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
-        return doDiscoverHost(host, null);
+        return createNewHost(tenant, createParam);
     }
 
     /**

@@ -1569,12 +1569,19 @@ public class HDSExportOperations implements ExportMaskOperations {
                                                 .keySet())));
 
             }
+            
             if (null == exportMask.getDeviceDataMap()
                     || exportMask.getDeviceDataMap().isEmpty()) {
                 exportMask.addDeviceDataMap(deviceDataMapEntries);
+                log.info("export mask device map empty  {}",exportMask.toString());
+                log.info("deviceDataMapEntries new value  {}",deviceDataMapEntries.toString());
             } else {
-                exportMask.replaceDeviceDataMapEntries(deviceDataMapEntries);
+                //exportMask.replaceDeviceDataMapEntries(deviceDataMapEntries);
+                exportMask.addDeviceDataMap(deviceDataMapEntries);
+                log.info("export mask info  when device map is getting updated  {}",exportMask.toString());
+                log.info("deviceDataMapEntries updated value  {}",deviceDataMapEntries.toString());
             }
+
         }
 
         log.info(builder.toString());

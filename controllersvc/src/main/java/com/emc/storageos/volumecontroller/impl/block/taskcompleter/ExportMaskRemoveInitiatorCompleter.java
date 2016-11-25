@@ -7,16 +7,21 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
@@ -85,19 +90,25 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                 List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
                 exportMask.removeInitiators(initiators);
                 exportMask.removeFromUserCreatedInitiators(initiators);
+                if (exportMask.getExistingInitiators() != null &&
+                        exportMask.getExistingInitiators().isEmpty()){
+                	exportMask.setExistingInitiators(null);
+                }
                 if (exportMask.getInitiators() == null ||
                         exportMask.getInitiators().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
                     dbClient.markForDeletion(exportMask);
                     dbClient.updateObject(exportGroup);
-                } else {
-                    if (targetPorts != null && !targetPorts.isEmpty()) {
-                        for (URI targetPort : targetPorts) {
-                            exportMask.removeTarget(targetPort);
-                        }
-                    }
-                    dbClient.updateObject(exportMask);
-                }
+                } 
+				if (targetPorts != null && !targetPorts.isEmpty()) {
+					for (URI targetPort : targetPorts) {
+						exportMask.removeTarget(targetPort);
+					}
+				}
+				
+				removeUnusedTargets(exportMask);
+				dbClient.updateObject(exportMask);
+                
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                         getId().toString(), getOpId(), status.name()));
@@ -110,8 +121,29 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
         	super.complete(dbClient, status, coded);
         }
     }
+    /*
+     * Remove unused storage Ports from export mask
+     */
+	private void removeUnusedTargets(ExportMask exportMask) {
+		StringSet initiators = exportMask.getInitiators();
+		StringSetMap zoningMap = exportMask.getZoningMap();
+		Set<String> zonedTarget = new HashSet<String>();
+		for (String initiator : initiators) {
+			zonedTarget.addAll(zoningMap.get(initiator));
+		}
+		Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
+		if (!targets.removeAll(zonedTarget)) {
+			for (String zonedPort : zonedTarget) {
+				exportMask.addTarget(URIUtil.uri(zonedPort));
+			}
+		}
+		for (String targetPort : targets) {
+			exportMask.removeTarget(URIUtil.uri(targetPort));
+		}
 
-    public boolean removeInitiator(URI initiator) {
+	}
+
+	public boolean removeInitiator(URI initiator) {
         return _initiatorURIs.remove(initiator);
     }
 }

@@ -390,6 +390,8 @@ public class HostService extends TaskResourceService {
             op.setResourceType(ResourceOperationTypeEnum.DISCOVER_HOST);
             if (updateTaskStatus) {
                 op.ready("Host is not discoverable");
+            } else {
+                op.pending();
             }
             _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
             return toTask(host, taskId, op);

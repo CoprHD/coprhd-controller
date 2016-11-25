@@ -50,7 +50,7 @@ test_host_add_initiator() {
     verify_export ${exclusive_export} ${HOST1} gone
     verify_export ${cluster_export} ${CLUSTER} gone
     
-    failure_injections="${common_failure_injections}"
+    failure_injections="${common_failure_injections} ${export_failure_injections}"
     
     # Run the exclusive export group create command
     runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}

@@ -24,7 +24,13 @@ public class FileReplicationPolicyParam implements Serializable {
 
     }
 
-    @XmlElement(name = "replicationType")
+    /**
+     * File Replication type
+     * Valid values are: LOCAL, REMOTE
+     * 
+     * @return
+     */
+    @XmlElement(name = "replicatio_type")
     public String getReplicationType() {
         return this.replicationType;
     }
@@ -33,7 +39,13 @@ public class FileReplicationPolicyParam implements Serializable {
         this.replicationType = replicationType;
     }
 
-    @XmlElement(name = "replicationCopyMode")
+    /**
+     * File Replication copy type
+     * Valid values are: SYNC, ASYNC
+     * 
+     * @return
+     */
+    @XmlElement(name = "replication_copy_mode")
     public String getReplicationCopyMode() {
         return this.replicationCopyMode;
     }

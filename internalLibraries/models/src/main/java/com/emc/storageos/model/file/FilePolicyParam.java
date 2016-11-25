@@ -35,11 +35,15 @@ public class FilePolicyParam implements Serializable {
     // Snapshot related parameters..
     private FileSnapshotPolicyParam snapshotPolicyPrams;
 
+    //
+    private boolean isAccessToTenants;
+
     public FilePolicyParam() {
     }
 
     /**
-     * Type of the policy
+     * Type of the policy,
+     * valid values are : file_snapshot, file_replication, file_quota
      * 
      * @return
      */
@@ -100,6 +104,15 @@ public class FilePolicyParam implements Serializable {
 
     public void setSnapshotPolicyPrams(FileSnapshotPolicyParam snapshotPolicyPrams) {
         this.snapshotPolicyPrams = snapshotPolicyPrams;
+    }
+
+    @XmlElement(name = "is_access_to_tenants")
+    public boolean getAccessToTenants() {
+        return this.isAccessToTenants;
+    }
+
+    public void setAccessToTenants(boolean isAccessToTenants) {
+        this.isAccessToTenants = isAccessToTenants;
     }
 
 }

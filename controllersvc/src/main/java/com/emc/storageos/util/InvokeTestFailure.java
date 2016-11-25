@@ -10,6 +10,9 @@ import java.io.IOException;
 
 import javax.wbem.WBEMException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 
 /**
@@ -17,6 +20,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
  * rollback and other workflow anomalies in a repeatable and automated way.
  */
 public final class InvokeTestFailure {
+    private static final Logger _log = LoggerFactory.getLogger(InvokeTestFailure.class);
+
     // Controller property for current failure injection
     private static final String ARTIFICIAL_FAILURE = "artificial_failure";
     // Controller property for current failure injection count.
@@ -90,8 +95,12 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
-        log("Failure injection key coordinator property: " + invokeArtificialFailure);
+        // Check for basic scenarios where you don't want to run this code at all and get out quickly.
+        if (invokeArtificialFailure == null || invokeArtificialFailure.isEmpty() || invokeArtificialFailure.equals("none")) {
+            return;
+        }
 
+        log("Failure injection key coordinator property: " + invokeArtificialFailure);
         // If the property has been specified to reset the counter, then do so now.
         resetCounter();
 
@@ -175,6 +184,7 @@ public final class InvokeTestFailure {
      */
     public static void log(String msg) {
         try {
+            _log.info(msg);
             String logFileName = "/opt/storageos/logs/invoke-test-failure.log";
             File logFile = new File(logFileName);
             if (!logFile.exists()) {
@@ -190,5 +200,21 @@ public final class InvokeTestFailure {
             // It's OK if we can't log this.
         }
 
+    }
+
+    /**
+     * Overrides the sync wait time out value so invocation failures don't take 200 minutes.
+     * 
+     * @param syncWrapperTimeOut 200 minutes, default.
+     * @return an override value in seconds if the failure invocation is set.
+     */
+    public static int internalOnlyOverrideSyncWrapperTimeOut(int syncWrapperTimeOut) {
+        final String failureKey = ARTIFICIAL_FAILURE_015 + "GetCompositeElements";
+        String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
+        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
+            log("Resetting sync wait time to 15 seconds");
+            return 15;
+        }
+        return syncWrapperTimeOut;
     }
 }

@@ -64,17 +64,14 @@ public class InitiatorCompleter extends ComputeSystemCompleter {
                     }
 
                     break;
-                case ready:
+                default:
+                    dbClient.ready(Initiator.class, this.getId(), getOpId());
                     // If this completer is part of a remove initiator operation and the operation
                     // is successful, we want to remove the initiator. The initiator should only
                     // be removed if it is no longer in use.
                     if (op == InitiatorOperation.REMOVE) {
                         removeInitiator(id, dbClient);
                     }
-
-                    break;
-                default:
-                    dbClient.ready(Initiator.class, this.getId(), getOpId());
             }
         }
     }

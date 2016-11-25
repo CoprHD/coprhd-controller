@@ -304,8 +304,11 @@ public class ExportPathParametersService extends TaggedResource {
             setToRemove.add(portToBeRemoved.toString());
         }
 
-        params.getStoragePorts().addAll(setToAdd);
-        params.getStoragePorts().removeAll(setToRemove);
+        StringSet portsTobeUpdate = params.getStoragePorts();
+        portsTobeUpdate.addAll(setToAdd);
+        portsTobeUpdate.removeAll(setToRemove);
+        
+        params.setStoragePorts(portsTobeUpdate);
 
         return params;
     }

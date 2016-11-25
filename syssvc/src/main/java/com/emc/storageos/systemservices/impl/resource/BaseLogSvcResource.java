@@ -81,6 +81,7 @@ public abstract class BaseLogSvcResource {
      * @throws APIException When the passed end time comes before the
      *             passed start time.
      */
+    /*
     protected void validateTimestamps(Date startTime, Date endTime) {
         if ((startTime != null) && (endTime != null)) {
             if (endTime.before(startTime)) {
@@ -88,6 +89,7 @@ public abstract class BaseLogSvcResource {
             }
         }
     }
+    */
 
     /**
      * Verifies a valid severity level is passed in the request and returns the

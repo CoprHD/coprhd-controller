@@ -459,8 +459,7 @@ public class OrderManagerImpl implements OrderManager {
         log.info("lbyh0: orderParameters={}", orderParameters);
         client.delete(orderParameters);
 
-        URI executionStateId = order.getExecutionStateId();
-        ExecutionState state = client.getModelClient().findById(ExecutionState.class, executionStateId);
+        ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
 
         StringSet logIds = state.getLogIds();
         log.info("lbyh0 logIds={}", logIds);
@@ -475,6 +474,12 @@ public class OrderManagerImpl implements OrderManager {
             ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
             client.delete(log);
         }
+
+        List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
+        for (ExecutionTaskLog taskLog: logs) {
+            client.delete(taskLog);
+        }
+
         client.delete(state);
 
         client.delete(order);

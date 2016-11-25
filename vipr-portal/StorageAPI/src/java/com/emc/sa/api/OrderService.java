@@ -586,8 +586,8 @@ public class OrderService extends CatalogTaggedResourceService {
         // Validate the passed start and end times are valid.
         Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
         Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
-        // validateTimestamps(startTime, endTime);
-        // log.info("Validated requested time window");
+        TimeUtils.validateTimestamps(startTime, endTime);
+        log.info("Validated requested time window");
 
         // Setting default start time to yesterday
         if (startTime == null) {

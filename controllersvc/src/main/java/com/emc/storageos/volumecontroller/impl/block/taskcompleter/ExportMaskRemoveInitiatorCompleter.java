@@ -94,20 +94,19 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                         exportMask.getExistingInitiators().isEmpty()){
                 	exportMask.setExistingInitiators(null);
                 }
-                if (exportMask.getInitiators() == null ||
-                        exportMask.getInitiators().isEmpty()) {
-                    exportGroup.removeExportMask(exportMask.getId());
-                    dbClient.markForDeletion(exportMask);
-                    dbClient.updateObject(exportGroup);
-                } 
-				if (targetPorts != null && !targetPorts.isEmpty()) {
-					for (URI targetPort : targetPorts) {
-						exportMask.removeTarget(targetPort);
+				if (exportMask.getInitiators() == null || exportMask.getInitiators().isEmpty()) {
+					exportGroup.removeExportMask(exportMask.getId());
+					dbClient.markForDeletion(exportMask);
+					dbClient.updateObject(exportGroup);
+				} else {
+					if (targetPorts != null && !targetPorts.isEmpty()) {
+						for (URI targetPort : targetPorts) {
+							exportMask.removeTarget(targetPort);
+						}
 					}
+					removeUnusedTargets(exportMask);
+					dbClient.updateObject(exportMask);
 				}
-				
-				removeUnusedTargets(exportMask);
-				dbClient.updateObject(exportMask);
                 
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",

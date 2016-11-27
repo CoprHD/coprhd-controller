@@ -180,7 +180,7 @@ public class OrchestrationService extends ViPRService {
 	        next = getNext(isSuccess, res, step);
 
             if (next == null) {
-                ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrieve next step:{} ", step.getId());
+                ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrieve next step:%s ", step.getId());
 
                 throw new IllegalStateException("Failed to retrieve Next Step");
             }
@@ -381,8 +381,8 @@ public class OrchestrationService extends ViPRService {
 
     private boolean isAnsible(final Step step)
     {
-        if (step.getType().equals(StepType.LOCAL_ANSIBLE) || step.getType().equals(StepType.REMOTE_ANSIBLE) ||
-                step.getType().equals(StepType.SHELL_SCRIPT))
+        if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
+                || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
             return true;
 
         return false;

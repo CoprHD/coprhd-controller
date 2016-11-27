@@ -50,26 +50,28 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         ExecutionUtils.currentContext().logInfo("Starting Ansible Workflow step:{} of type:{}", step.getId(), step.getType());
 
-        final String extra_vars = makeExtraArg(input);
+        final String extraVars = makeExtraArg(input);
 
         final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
-        Exec.Result result = null;
+        final Exec.Result result;
         switch (type) {
             case SHELL_SCRIPT:
-                result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+step.getOperation());
+                result = executeCmd(OrchestrationServiceConstants.DATA_PATH+step.getOperation(), extraVars);
                 break;
             case LOCAL_ANSIBLE:
-                result = UntarPackage(step.getAnsiblePackage());
-                if (result.execFailed()) {
+                final Exec.Result result1 = UntarPackage(step.getAnsiblePackage());
+                if (result1.execFailed()) {
                     logger.error("Failed to Untar package: %s", step.getAnsiblePackage());
 
                     return null;
                 }
 
-                result = executeCmd(extra_vars, OrchestrationServiceConstants.DATA_PATH+
-                        FilenameUtils.removeExtension(step.getAnsiblePackage())+"/"+step.getOperation());
+                result = executeCmd(OrchestrationServiceConstants.DATA_PATH+
+                        FilenameUtils.removeExtension(step.getAnsiblePackage())+"/"+step.getOperation(), extraVars);
                 break;
             case REMOTE_ANSIBLE:
+                //TODO impl remote exec
+                result = executeCmd(null, null);;
                 break;
             default:
                 logger.error("Ansible Operation type:{} not supported", type);

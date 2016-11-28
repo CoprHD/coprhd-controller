@@ -18,8 +18,10 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.LoggerFactory;
@@ -46,7 +48,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     @Override
     public OrchestrationTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("Starting Ansible Workflow step:{} of type:{}", step.getId(), step.getType());
+        ExecutionUtils.currentContext().logInfo("Executing Ansible Step:" + step.getId() + step.getType());
 
         final String extraVars = makeExtraArg(input);
 
@@ -57,15 +59,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
                 result = executeCmd(OrchestrationServiceConstants.DATA_PATH+step.getOperation(), extraVars);
                 break;
             case LOCAL_ANSIBLE:
-                final Exec.Result result1 = UntarPackage(step.getAnsiblePackage());
+                final Exec.Result result1 = UntarPackage(step.getOperation());
                 if (result1.execFailed()) {
-                    logger.error("Failed to Untar package: %s", step.getAnsiblePackage());
+                    logger.error("Failed to Untar package: %s", step.getOperation());
 
                     return null;
                 }
 
                 result = executeCmd(OrchestrationServiceConstants.DATA_PATH+
-                        FilenameUtils.removeExtension(step.getAnsiblePackage())+"/"+step.getOperation(), extraVars);
+                        FilenameUtils.removeExtension(step.getOperation())+"/"+"helloworld.yml", extraVars);
                 break;
             case REMOTE_ANSIBLE:
                 //TODO impl remote exec
@@ -79,15 +81,17 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         ExecutionUtils.currentContext().logInfo("Done Executing Ansible Workflow Step:{}", step.getId());
 
-        if (result == null)
+        if (result == null) 
             return null;
+
+	logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     private Exec.Result executeCmd(final String path, final String extra_vars) {
         final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, path,
-                         OrchestrationServiceConstants.EXTRA_VARS + extra_vars};
+                         OrchestrationServiceConstants.EXTRA_VARS, extra_vars};
 
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
@@ -95,8 +99,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private Exec.Result UntarPackage(final String tarFile) throws IOException
     {
         //TODO Get packge from ViPR DB
-        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, tarFile,
-                                "-c", OrchestrationServiceConstants.DATA_PATH+tarFile};
+        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.DATA_PATH+tarFile,
+                                "-C", OrchestrationServiceConstants.DATA_PATH};
 
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
@@ -111,24 +115,12 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
      */
     private String makeExtraArg(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder("\"");
-        input.forEach((key, value) -> sb.append(key).append("=").append(value));
+        for (Map.Entry<String, List<String>> e : input.entrySet()) 
+            sb.append(e.getKey()).append("=").append(e.getValue().get(0)).append(" ");
 
-        logger.info("Extra vars:{}:{}", sb.toString(), sb);
+        sb.append("\"");
+        logger.info("extra vars:{}", sb.toString());
 
         return sb.toString();
-        /*String extra_vars = "\"";
-        Set s = input.keySet();
-
-        Iterator it = s.iterator();
-        while(it.hasNext())
-        {
-            String key = it.next().toString();
-            String value = input.get(key).get(0);
-            extra_vars = extra_vars + key + "=" +value;
-        }
-        extra_vars = extra_vars + "\"";
-        logger.debug("extra vars:{}", extra_vars);
-
-        return extra_vars;*/
     }
 }

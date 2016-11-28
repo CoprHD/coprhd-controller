@@ -1818,7 +1818,8 @@ test_34() {
     verify_export ${expname}3 ${HOST2} 2 1 3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-7+88"
-    verify_export ${expname}1 -x- 6 5 0,1,2,4,88
+    # 88 in decimal, 58 in Hex
+    verify_export ${expname}1 -x- 6 5 0,1,2,4,58
     verify_export ${expname}3 ${HOST2} 2 1 3
 
     runcmd export_group delete $PROJECT/${expname}1
@@ -2016,13 +2017,14 @@ test_36() {
     verify_export ${expname}3 ${HOST2} 2 1 3
     verify_export ${expname}4 ${HOST3} 2 1 1
 
-    runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-7+90"
-    verify_export ${expname}2 -x- 6 5 0,2,4,5,90
+    runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-7+88"
+    # 88 in decimal, 58 in Hex
+    verify_export ${expname}2 -x- 6 5 0,2,4,5,58
     verify_export ${expname}3 ${HOST2} 2 1 3
     verify_export ${expname}4 ${HOST3} 2 1 1
 
     runcmd export_group update ${PROJECT}/${expname}4 --addVols ${PROJECT}/${VOLNAME}-8
-    verify_export ${expname}2 -x- 6 5 0,2,4,5,90
+    verify_export ${expname}2 -x- 6 5 0,2,4,5,58
     verify_export ${expname}3 ${HOST2} 2 1 3
     verify_export ${expname}4 ${HOST3} 2 2 1,6
 

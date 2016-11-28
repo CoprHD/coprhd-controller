@@ -66,10 +66,8 @@ public class BlockSnapshots extends ResourceController {
             flash.error(MessagesUtils.get(UNKNOWN, snapshotId));
             snapshots(null);
         }
-
-        AffectedResources.BlockSnapshotSessionDetails sessionDetails = null;
-        if(sessionId!=null) {
-            sessionDetails = new AffectedResources.BlockSnapshotSessionDetails(uri(sessionId));
+	if (!StringUtils.isEmpty(sessionId) {	
+        	AffectedResources.BlockSnapshotSessionDetails sessionDetails = new AffectedResources.BlockSnapshotSessionDetails(uri(sessionId));
         }
         AffectedResources.VolumeDetails volume = new AffectedResources.VolumeDetails(blockSnapshot.volume.getId());
 

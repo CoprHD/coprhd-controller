@@ -44,7 +44,8 @@ public final class OrchestrationServiceConstants {
     public static final String ANSIBLE_LOCAL_BIN = "/usr/bin/ansible-playbook";
     public static final String DATA_PATH = "/data/";
     public static final String EXTRA_VARS = "--extra-vars";
-    public static final String UNTAR = "tar -zxvf ";
+    public static final String UNTAR = "tar";
+    public static final String UNTAR_OPTION = "-zxvf";
 
     public enum InputType {
         FROM_USER("InputFromUser"),

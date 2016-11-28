@@ -18,10 +18,8 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.LoggerFactory;
@@ -97,8 +95,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private Exec.Result UntarPackage(final String tarFile) throws IOException
     {
         //TODO Get packge from ViPR DB
-        final String[] cmds = {OrchestrationServiceConstants.UNTAR, tarFile , "-c",
-                            OrchestrationServiceConstants.DATA_PATH+tarFile};
+        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, tarFile,
+                                "-c", OrchestrationServiceConstants.DATA_PATH+tarFile};
 
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
@@ -112,7 +110,13 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
      * @throws Exception
      */
     private String makeExtraArg(final Map<String, List<String>> input) throws Exception {
-        String extra_vars = "\"";
+        final StringBuilder sb = new StringBuilder("\"");
+        input.forEach((key, value) -> sb.append(key).append("=").append(value));
+
+        logger.info("Extra vars:{}:{}", sb.toString(), sb);
+
+        return sb.toString();
+        /*String extra_vars = "\"";
         Set s = input.keySet();
 
         Iterator it = s.iterator();
@@ -125,6 +129,6 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         extra_vars = extra_vars + "\"";
         logger.debug("extra vars:{}", extra_vars);
 
-        return extra_vars;
+        return extra_vars;*/
     }
 }

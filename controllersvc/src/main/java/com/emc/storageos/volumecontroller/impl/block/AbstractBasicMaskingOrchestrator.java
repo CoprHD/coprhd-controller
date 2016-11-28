@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -168,6 +169,40 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             usedHlus.addAll(hostUsedHlus);
         }
         return usedHlus;
+    }
+
+    /**
+     * Validate consistent lun violation
+     * 
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param newInitiatorURIs the host initiators to be added to the export group
+     **/
+    public void validateHLUForLunViolations(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+
+        Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        if (exportGroup.forCluster()) {
+            if (exportGroup.getClusters().iterator().hasNext()) {
+                URI clusterURI = URI.create(exportGroup.getClusters().iterator().next());
+
+                List<URI> clusterInitiators = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
+                Set<Integer> clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+                Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
+                // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+                newHostUsedHlus.retainAll(clusterUsedHlus);
+                if (!newHostUsedHlus.isEmpty()) {
+                    if (exportGroup.getVolumes() != null) {
+                        for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                            Integer hlu = Integer.valueOf(entry.getValue());
+                            if (newHostUsedHlus.contains(hlu)) {
+                                volumeHluPair.put(entry.getKey(), hlu);
+                            }
+                        }
+                    }
+                    throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+                }
+            }
+        }
     }
 
     /**

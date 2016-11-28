@@ -1735,7 +1735,7 @@ check_for_tasks()
 }
 
 # Consistent Cluster HLU tests
-eg_consistent_hlu_test() {
+consistent_hlu_test() {
     test_34;
     test_35;
     test_36;
@@ -1817,7 +1817,7 @@ test_34() {
     verify_export ${expname}1 -x- 6 4 0,1,2,4
     verify_export ${expname}3 ${HOST2} 2 1 3
 
-    runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-7|88"
+    runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-7+88"
     verify_export ${expname}1 -x- 6 5 0,1,2,4,88
     verify_export ${expname}3 ${HOST2} 2 1 3
 
@@ -1946,7 +1946,7 @@ test_35() {
 # Step-9: Export a volume to HOST3 (exclusive). Result: HLU could be anything as the host is not in cluster.
 # Step-10: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 # Step-11: Export 2 new volumes to the cluster. Result: All hosts in the cluster including new host sees the volume with same HLU
-# Step-12: Export new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU
+# Step-12: Export new volume to the cluster by specifying HLU. Result: All hosts in the cluster sees the volume with the specified HLU
 # Step-13: Export new volume to HOST3 that is added to cluster (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
 #
 # EG1:  HOST1
@@ -2016,25 +2016,25 @@ test_36() {
     verify_export ${expname}3 ${HOST2} 2 1 3
     verify_export ${expname}4 ${HOST3} 2 1 1
 
-    runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-7"
-    verify_export ${expname}2 -x- 6 5 0,2,4,5,6
+    runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-7+90"
+    verify_export ${expname}2 -x- 6 5 0,2,4,5,90
     verify_export ${expname}3 ${HOST2} 2 1 3
     verify_export ${expname}4 ${HOST3} 2 1 1
 
     runcmd export_group update ${PROJECT}/${expname}4 --addVols ${PROJECT}/${VOLNAME}-8
-    verify_export ${expname}2 -x- 6 5 0,2,4,5,6
+    verify_export ${expname}2 -x- 6 5 0,2,4,5,90
     verify_export ${expname}3 ${HOST2} 2 1 3
-    verify_export ${expname}4 ${HOST3} 2 2 1,7
+    verify_export ${expname}4 ${HOST3} 2 2 1,6
 
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
     verify_export ${expname}3 ${HOST2} 2 1 3
-    verify_export ${expname}4 ${HOST3} 2 2 1,7
+    verify_export ${expname}4 ${HOST3} 2 2 1,6
 
     runcmd export_group delete $PROJECT/${expname}3
     verify_export ${expname}2 -x- gone
     verify_export ${expname}3 ${HOST2} gone
-    verify_export ${expname}4 ${HOST3} 2 2 1,7
+    verify_export ${expname}4 ${HOST3} 2 2 1,6
 
     runcmd export_group delete $PROJECT/${expname}4
     verify_export ${expname}2 -x- gone
@@ -2169,7 +2169,7 @@ test_29;
 test_30;
 aliastest;
 eg_update_concurrency_test;
-eg_consistent_hlu_test;
+consistent_hlu_test;
 cleanup;
 finish
 

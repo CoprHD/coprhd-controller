@@ -334,6 +334,7 @@ public class DbObjectMapper {
         
         to.setId(from.getId());
         to.setName(from.getLabel());
+        to.setDescription(from.getDescription());
         if(from.getMaxPaths() != null){
             to.setMaxPaths(from.getMaxPaths());
         }

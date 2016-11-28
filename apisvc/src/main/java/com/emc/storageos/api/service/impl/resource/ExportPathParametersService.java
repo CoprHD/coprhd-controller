@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
@@ -39,6 +40,7 @@ import com.emc.storageos.model.block.export.ExportPathParametersList;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
 import com.emc.storageos.model.block.export.ExportPathUpdateParams;
 import com.emc.storageos.model.block.export.StoragePorts;
+import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
@@ -151,6 +153,23 @@ public class ExportPathParametersService extends TaggedResource {
         _dbClient.markForDeletion(exportPathParams);
         _log.info("Export Path Paramters {} deleted successfully", exportPathParams.getLabel());
         return Response.ok().build();
+    }
+    
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public ExportPathParametersBulkRep getBulkResources(BulkIdParam param) {
+        return (ExportPathParametersBulkRep) super.getBulkResources(param);
+    }
+    
+    @GET
+    @Path("/bulk")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public BulkIdParam getBulkIds() {
+        return super.getBulkIds();
     }
 
     @Override

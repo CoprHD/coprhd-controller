@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -47,9 +48,10 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 /**
  * @author jainm15
  */
-@Path("/file/filePolicies")
+@Path("/file/file-policies")
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.TENANT_ADMIN })
 public class FilePolicyService extends TaskResourceService {
+
     private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
 
     protected static final String EVENT_SERVICE_SOURCE = "FilePolicyService";
@@ -109,6 +111,21 @@ public class FilePolicyService extends TaskResourceService {
         } else if (param.getPolicyType().equals(FilePolicyType.file_snapshot.name())) {
             return createFileSnapshotPolicy(param);
         }
+        return null;
+    }
+
+    @GET
+    @Path("/{id}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    public FilePolicyCreateResp getFilePolicy(@PathParam("id") URI id) {
+
+        _log.info("Request recieved to get the file policy of id: {}", id);
+
+        ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
+        FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
+        ArgValidator.checkEntity(filepolicy, id, true);
+
         return null;
     }
 

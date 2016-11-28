@@ -40,7 +40,6 @@ import com.emc.storageos.model.block.export.ExportPathParametersList;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
 import com.emc.storageos.model.block.export.ExportPathUpdateParams;
 import com.emc.storageos.model.block.export.StoragePorts;
-import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
@@ -207,6 +206,12 @@ public class ExportPathParametersService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.EXPORT_PATH_PARAMETERS;
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<ExportPathParams> getResourceClass() {
+        return ExportPathParams.class;
     }
 
     private boolean rangeCheck(Integer value, Integer min, Integer max) {

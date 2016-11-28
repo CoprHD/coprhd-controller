@@ -172,7 +172,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     /**
-     * Validate consistent lun violation
+     * Validates if there is a HLU conflict between cluster volumes and the host volumes.
      * 
      * @param storage the storage
      * @param exportGroup the export group
@@ -182,6 +182,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         if (exportGroup.forCluster()) {
+            // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
             if (exportGroup.getClusters().iterator().hasNext()) {
                 URI clusterURI = URI.create(exportGroup.getClusters().iterator().next());
 
@@ -191,6 +192,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
                 newHostUsedHlus.retainAll(clusterUsedHlus);
                 if (!newHostUsedHlus.isEmpty()) {
+                    _log.info("Conflicting HLUs: {}", newHostUsedHlus);
                     if (exportGroup.getVolumes() != null) {
                         for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
                             Integer hlu = Integer.valueOf(entry.getValue());

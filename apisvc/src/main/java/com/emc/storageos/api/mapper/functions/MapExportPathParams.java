@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.mapper.functions;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
@@ -28,8 +29,8 @@ public class MapExportPathParams implements Function<ExportPathParams, ExportPat
     }
 
     @Override
-    public ExportPathParametersRestRep apply(ExportPathParams input) {
-        return null;
+    public ExportPathParametersRestRep apply(ExportPathParams resource) {
+        return DbObjectMapper.map(resource);
     }
 
 }

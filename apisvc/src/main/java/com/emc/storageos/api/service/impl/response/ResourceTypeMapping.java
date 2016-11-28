@@ -82,6 +82,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
 import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
+import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_PATH_PARAMETERS;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -154,6 +155,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.db.client.model.ExportPathParams;
 
 import static com.emc.storageos.model.ResourceTypeEnum.*;
 
@@ -232,6 +234,7 @@ public class ResourceTypeMapping {
         classMapping.put(CATALOG_IMAGE, CatalogImage.class);
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
+        classMapping.put(EXPORT_PATH_PARAMETERS, ExportPathParams.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

@@ -8360,8 +8360,11 @@ class Bourne:
         parms = {
         	'cluster' : clusterURI
         }
-        
-        return self.api('PUT', URI_HOST.format(uri), parms);
+  
+        o =  self.api('PUT', URI_HOST.format(uri), parms)
+        self.assert_is_dict(o)         
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s) 
 
     def host_list(self, tenant):
         uri = self.__tenant_id_from_label(tenant)
@@ -8402,12 +8405,16 @@ class Bourne:
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_HOST.format(uri)))
 
     def initiator_show_tasks(self, uri):
-	uri_initiator_task = URI_INITIATORS + '/tasks'
-	return self.api('GET', uri_initiator_task.format(uri))
+        uri_initiator_task = URI_INITIATORS + '/tasks'
+        return self.api('GET', uri_initiator_task.format(uri))
 
     def initiator_show_task(self, uri, task):
-	uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
-	return self.api('GET', uri_initiator_task.format(uri, task))
+        uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
+        return self.api('GET', uri_initiator_task.format(uri, task))
+    
+    def host_show_task(self, uri, task):
+        uri_host_task = URI_HOST + '/tasks/{1}'
+        return self.api('GET', uri_host_task.format(uri, task))
 
     #
     # Actionable Events

@@ -774,8 +774,8 @@ test_cluster_remove_host() {
     do
         secho "Running cluster_remove_host with failure scenario: ${failure}..."
         
-	TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-	reset_counts
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
         column_family="Volume ExportGroup ExportMask"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
@@ -833,13 +833,13 @@ test_cluster_remove_host() {
         if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
             # Fail, hosts and initiators should have been added to the export group
             echo "+++ FAIL - Some hosts and host initiators were not found on the export group...fail."
-	    # Report results
-	    incr_fail_count
-	    if [ "${NO_BAILING}" != "1" ]
-	    then
-		report_results ${test_name} ${failure}
-		exit 1
-	    fi
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
         else
             echo "+++ SUCCESS - All hosts and host initiators present on export group"   
         fi
@@ -848,7 +848,7 @@ test_cluster_remove_host() {
         set_artificial_failure ${failure}
         
         # Try and remove host from cluster, this should fail
-        runcmd hosts update $host1 --cluster null        
+        fail hosts update $host1 --cluster null
         
         # Rerun the command with no failures
         set_artificial_failure none 
@@ -865,16 +865,28 @@ test_cluster_remove_host() {
         if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
             # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
             echo "+++ FAIL - Expected host and host initiators were not removed from the export group."
-	    # Report results
-	    incr_fail_count
-	    if [ "${NO_BAILING}" != "1" ]
-	    then
-		report_results ${test_name} ${failure}
-		exit 1
-	    fi
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
         else
             echo "+++ SUCCESS - Expected host and host initiators removed from export group" 
         fi               
+                  
+        # Cleanup    
+        runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
+        runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume2}                         
+        runcmd export_group delete ${PROJECT}/${exportgroup1}    
+        sleep 5
+        runcmd initiator delete ${host1}/${init1}
+        runcmd initiator delete ${host1}/${init2}
+        runcmd initiator delete ${host2}/${init3}
+        runcmd initiator delete ${host2}/${init4}
+        runcmd hosts delete ${host1}
+        runcmd hosts delete ${host2}
         
         # Snap DB
         snap_db 2 ${column_family}
@@ -882,7 +894,11 @@ test_cluster_remove_host() {
         # Validate DB
         validate_db 1 2 ${column_family}
 
-	# Report results
-	report_results ${test_name} ${failure}
+        # Report results
+    	report_results ${test_name} ${failure}
     done
+    
+     # Cleanup volumes
+    runcmd volume delete ${PROJECT}/${volume1} --wait
+    runcmd volume delete ${PROJECT}/${volume2} --wait 
 }

@@ -8,6 +8,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.security.authorization.PermissionsKey;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import java.net.URI;
 import java.util.Date;
@@ -43,9 +44,11 @@ public interface DBClientWrapper {
                                                                        long startTime, long endTime, int maxCount)
             throws DataAccessException;
 
-    public <T extends DataObject> List<NamedElement> findByAlternateId2(Class<T> clazz, String columnField, String value,
-                                                                       long startTime, long endTime, int maxCount)
-            throws DataAccessException;
+    //public <T extends DataObject> List<NamedElement> findOrdersByAlternateId(Class<T> clazz, String columnField, String value,
+    public List<NamedElement> findOrdersByAlternateId(String columnField, String value, long startTime, long endTime,
+                                                      int maxCount) throws DataAccessException;
+
+    public long getOrderCount(String userId, String value, long startTime, long endTime) throws DataAccessException;
 
     //public <T extends DataObject> List<NamedElement> findAllOrdersByTimeRange(Class<T> clazz, String columnField, Date startTime,
     public List<NamedElement> findAllOrdersByTimeRange(String columnField, Date startTime, Date endTime, int maxCount)

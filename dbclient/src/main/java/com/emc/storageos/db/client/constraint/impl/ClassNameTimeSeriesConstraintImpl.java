@@ -73,10 +73,11 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
         return query;
     }
 
-    public int count() throws ConnectionException {
+    public long count() throws ConnectionException {
         try {
-            OperationResult<Integer> countResult = _keyspace.prepareQuery(_altIdCf).getKey(_altId).getCount().execute();
-            int count = countResult.getResult();
+            //OperationResult<Integer> countResult = _keyspace.prepareQuery(_altIdCf).getKey(_altId).getCount().execute();
+            OperationResult<Integer> countResult = genQuery().getCount().execute();
+            long count = countResult.getResult();
             return count;
         }catch (ConnectionException e) {
             log.error("Failed to get count e=", e);

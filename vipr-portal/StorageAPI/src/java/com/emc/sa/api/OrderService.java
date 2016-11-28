@@ -626,37 +626,50 @@ public class OrderService extends CatalogTaggedResourceService {
      * Gets the list of orders within a time range for current user
      *
      * @brief List Orders
-     * @param startTime
-     * @param endTime
-     * @param maxCount The max number this API returns
+     * @param startTimeStr
+     * @param endTimeStr
+     * @param maxCount The max number of orders this API returns
      * @return a list of orders
      * @throws DatabaseException when a DB error occurs
      */
     @GET
-    @Path("/myorders")
+    //@Path("/myorders")
+    @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderBulkRep getUserOrders2(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
-                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
-                                   @DefaultValue("6000") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
+    public OrderBulkRep getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+                               @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
+                               @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
             throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();
 
         log.info("lby0:starTime={} endTime={} maxCount={} user={}",
-                new Object[] {startTime, endTime, maxCount, user.getName()});
-
+                new Object[] {startTimeStr, endTimeStr, maxCount, user.getName()});
+        /*
         long now = System.currentTimeMillis();
         long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
         long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime);
+        */
         int max = Integer.parseInt(maxCount);
 
-        /* query first 6000 records sorted by timestamp
-        */
-        //startTimeInMacros = Long.parseLong("1477903108065");
-        // endTimeInMacros = Long.parseLong("1477903327078");
-        // */
-        log.info("lby00 start={} end={} max={}", startTimeInMacros, endTimeInMacros, max);
-        List<Order> orders = orderManager.getUserOrders(user,startTimeInMacros, endTimeInMacros, max);
+        Date startTime = new Date(0);
+        if (!startTimeStr.isEmpty()) {
+            startTime = TimeUtils.getDateTimestamp(startTimeStr);
+        }
+
+        Date endTime = new Date(); // now by default
+
+        if (!endTimeStr.isEmpty()) {
+            endTime = TimeUtils.getDateTimestamp(endTimeStr);
+        }
+
+        TimeUtils.validateTimestamps(startTime, endTime);
+
+        long startTimeInMS= startTime.getTime();
+        long endTimeInMS = endTime.getTime();
+
+        log.info("lby00 start={} end={} max={}", startTimeInMS, endTimeInMS, max);
+        List<Order> orders = orderManager.getUserOrders(user, startTimeInMS, endTimeInMS, max);
         log.info("lby0 done0");
 
         List<OrderRestRep> list = toOrders(orders, user);
@@ -680,12 +693,57 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
+     * Gets the number of orders within a time range for current user
+     *
+     * @brief Get number of orders created by current user
+     * @param startTimeStr
+     * @param endTimeStr
+     * @return  number of orders
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("/count")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public long getUserOrderCount(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+                                      @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr)
+            throws DatabaseException {
+
+        StorageOSUser user = getUserFromContext();
+
+        log.info("lbyb0:starTime={} endTime={} maxCount={} user={}",
+                new Object[] {startTimeStr, endTimeStr, user.getName()});
+
+        Date startTime = new Date(0);
+        if (!startTimeStr.isEmpty()) {
+            startTime = TimeUtils.getDateTimestamp(startTimeStr);
+        }
+
+        Date endTime = new Date(); // now by default
+
+        if (!endTimeStr.isEmpty()) {
+            endTime = TimeUtils.getDateTimestamp(endTimeStr);
+        }
+
+        TimeUtils.validateTimestamps(startTime, endTime);
+
+        long startTimeInMS= startTime.getTime();
+        long endTimeInMS = endTime.getTime();
+
+        log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
+        long count = orderManager.getOrderCount(user, startTimeInMS, endTimeInMS);
+        log.info("lbyb0 done0");
+
+        return count;
+    }
+
+    /**
      * Gets the list of orders for current user
      *
      * @brief List Orders
      * @return a list of orders
      * @throws DatabaseException when a DB error occurs
      */
+    /*
     @GET
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -698,6 +756,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
         return list;
     }
+    */
 
     private Order getOrderById(URI id, boolean checkInactive) {
         Order order = orderManager.getOrderById(id);
@@ -716,7 +775,6 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
-rrrrrrrrrrrrrrrrrrrrrrrrrrrr
      *
      * @brief Deactivate Order
      * @return OK if deactivation completed successfully

@@ -13,4 +13,5 @@ public class SearchConstants {
     public static final String START_TIME_PARAM = "startTime";
     public static final String END_TIME_PARAM = "endTime";
     public static final String ORDER_MAX_COUNT = "maxCount";
+    public static final String ORDER_COUNT_ONLY= "countOnly";
 }

@@ -28,6 +28,8 @@ public interface OrderManager {
 
     public List<Order> getUserOrders(StorageOSUser user, long startTime, long endTime, int maxCount);
 
+    public long getOrderCount(StorageOSUser user, long startTime, long endTime);
+
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus);
 
     public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount);

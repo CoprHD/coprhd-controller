@@ -11,7 +11,9 @@ import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
+import com.emc.storageos.db.client.model.ClassNameTimeSeries;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,19 +134,38 @@ public class BourneDbClient implements DBClientWrapper {
         return queryNamedElementsByConstraint(constraint, maxCount);
     }
 
-    public <T extends DataObject> List<NamedElement> findByAlternateId2(Class<T> clazz, String columnField, String value,
-                                                                       long startTime, long endTime, int maxCount)
+    @Override
+    public List<NamedElement> findOrdersByAlternateId(String columnField, String userId,
+                                                      long startTime, long endTime, int maxCount)
             throws DataAccessException {
 
-        LOG.info("lbyb1: findByAlternateId2(class={}, columnField={}, value={}, maxCount={})",
-                new Object[] { clazz, columnField, value, maxCount});
+        LOG.info("lbyb1: findOrdersByAlternateId(columnField={}, userId={}, maxCount={})",
+                new Object[] { columnField, userId, maxCount});
 
-        DataObjectType doType = TypeMap.getDoType(clazz);
+        DataObjectType doType = TypeMap.getDoType(Order.class);
 
-        AlternateIdConstraint constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(columnField), value,
-                startTime, endTime);
+        AlternateIdConstraint constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(columnField),
+                userId, startTime, endTime);
 
         return queryNamedElementsByConstraint(constraint, maxCount);
+    }
+
+    @Override
+    public long getOrderCount(String userId, String fieldName, long startTime, long endTime) {
+
+        LOG.info("lbyb2: getOrderCount(userId={} cf={}, startTime={}, endTime={})",
+                new Object[] {userId, fieldName, startTime, endTime});
+
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+
+        ClassNameTimeSeriesConstraintImpl constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(fieldName),
+                userId, startTime, endTime);
+
+        try {
+            return constraint.count();
+        }catch (ConnectionException e) {
+            throw new DataAccessException(e);
+        }
     }
 
     @Override

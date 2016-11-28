@@ -26,17 +26,14 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
                       String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
-            _log.warn("Empty string in alternate id field: {}", fieldName);
+            _log.warn("Empty string in {} id field: {}", this.getClass().getSimpleName(), fieldName);
             return false;
         }
 
-        String rowKey = className;
-
-        ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
+        ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, className);
 
         _log.info("lbytt0: add indexKey={} key={}", className, recordKey);
 
-        //ClassNameTimeSeriesIndexColumnName indexEntry = new ClassNameTimeSeriesIndexColumnName(className, recordKey, mutator.getTimeUUID());
         TimeSeriesIndexColumnName indexEntry = new TimeSeriesIndexColumnName(recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);

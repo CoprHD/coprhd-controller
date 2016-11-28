@@ -68,18 +68,24 @@ public class InMemoryDbClient implements DBClientWrapper {
     }
 
     @Override
-    public <T extends DataObject> List<NamedElement> findByAlternateId2(Class<T> clazz, String columnField, String value,
-                                                                       long startTime, long endTime, int maxCount)
+    public List<NamedElement> findOrdersByAlternateId(String columnField, String value, long startTime, long endTime,
+                                                      int maxCount)
             throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
-        for (URI modelId : findAllIds(clazz)) {
-            T model = findById(clazz, modelId);
-            Object o = getColumnField(model, columnField);
+        for (URI modelId : findAllIds(Order.class)) {
+            Order order = findById(Order.class, modelId);
+            Object o = getColumnField(order, columnField);
             if (ObjectUtils.equals(o, value)) {
-                results.add(createNamedElement(model));
+                results.add(createNamedElement(order));
             }
         }
         return results;
+    }
+
+    @Override
+    public long getOrderCount(String userId, String fieldName, long startTime, long endTime) {
+        //TODO:
+        return 0;
     }
 
     @Override

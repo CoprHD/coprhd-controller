@@ -4,10 +4,13 @@
  */
 package com.emc.sa.model.dao;
 
+import java.net.ConnectException;
 import java.net.URI;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import org.apache.commons.lang.StringUtils;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -70,20 +73,32 @@ public class OrderFinder extends TenantModelFinder<Order> {
         return findByIds(toURIs(orderIds));
     }
 
-    public List<Order> findByUserId(String userId, long startTime, long endTime, int maxCount) {
-        List<NamedElement> orderIds = findIdsByUserId(userId, startTime, endTime, maxCount);
+    public List<Order> findOrdersByUserId(String userId, long startTime, long endTime, int maxCount) {
+        List<NamedElement> orderIds = findOrderIdsByUserId(userId, startTime, endTime, maxCount);
         return findByIds(toURIs(orderIds));
     }
 
-    public List<NamedElement> findIdsByUserId(String userId, long startTime, long endTime, int maxCount) {
+    public List<NamedElement> findOrderIdsByUserId(String userId, long startTime, long endTime, int maxCount) {
         if (StringUtils.isBlank(userId)) {
             return Lists.newArrayList();
         }
 
 
-        List<NamedElement> orderIds = client.findByAlternateId2(Order.class, Order.SUBMITTED_BY_USER_ID, userId,
-                startTime, endTime, maxCount);
+        List<NamedElement> orderIds = client.findOrdersByAlternateId(Order.SUBMITTED_BY_USER_ID, userId, startTime,
+                endTime, maxCount);
+
         return orderIds;
+    }
+
+    public long getOrdersCount(String userId, long startTime, long endTime) {
+        if (StringUtils.isBlank(userId)) {
+            return 0;
+        }
+
+
+        long count = client.getOrderCount(Order.SUBMITTED_BY_USER_ID, userId, startTime, endTime);
+
+        return count;
     }
 
     public List<NamedElement> findIdsByTimeRange(Date startTime, Date endTime, int maxCount) {

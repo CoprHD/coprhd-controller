@@ -9,9 +9,9 @@ public class TimeSeriesColumnNameSerializer extends AnnotatedCompositeSerializer
     private static final TimeSeriesColumnNameSerializer instance = new TimeSeriesColumnNameSerializer();
     private static final String COMPARATOR_NAME =
             "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.LongType,"+ // timestamp
-                    "org.apache.cassandra.db.marshal.UTF8Type," +    // username
                     "org.apache.cassandra.db.marshal.UTF8Type," +    // object ID
-                    "org.apache.cassandra.db.marshal.UTF8Type," +    //
+                    "org.apache.cassandra.db.marshal.UTF8Type," +
+                    "org.apache.cassandra.db.marshal.UTF8Type," +
                     "org.apache.cassandra.db.marshal.TimeUUIDType)";
 
     public static TimeSeriesColumnNameSerializer get() {

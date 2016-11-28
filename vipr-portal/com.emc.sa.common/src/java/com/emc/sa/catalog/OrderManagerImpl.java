@@ -490,7 +490,11 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public List<Order> getUserOrders(StorageOSUser user, long startTime, long endTime, int maxCount) {
-        return client.orders().findByUserId(user.getUserName(), startTime, endTime, maxCount);
+        return client.orders().findOrdersByUserId(user.getUserName(), startTime, endTime, maxCount);
+    }
+
+    public long getOrderCount(StorageOSUser user, long startTime, long endTime) {
+        return client.orders().getOrdersCount(user.getUserName(), startTime, endTime);
     }
 
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus) {

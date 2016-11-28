@@ -833,12 +833,26 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId,
             URI vCenterDataCenterId) {
         for (URI hostId : hostIds) {
+
+            URI oldClusterId = NullColumnValueGetter.getNullURI();
+            URI oldvCenterDataCenterId = NullColumnValueGetter.getNullURI();
+
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            if (host != null) {
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    oldClusterId = host.getCluster();
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+                    oldvCenterDataCenterId = host.getVcenterDataCenter();
+                }
+            }
+
             waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
                     String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
                     hostId, hostId.toString(),
                     this.getClass(),
                     updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId, vCenterDataCenterId),
-                    rollbackMethodNullMethod(), null);
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, oldClusterId, oldvCenterDataCenterId), null);
         }
         return waitFor;
     }
@@ -1006,6 +1020,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
                     removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
 
+            // No code should be added following the call to the block controller to preserve rollback integrity
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             // Clean up any pending tasks

@@ -95,14 +95,13 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
+        // If the property has been specified to reset the counter, then do so now.
+        resetCounter();
+
         // Check for basic scenarios where you don't want to run this code at all and get out quickly.
         if (invokeArtificialFailure == null || invokeArtificialFailure.isEmpty() || invokeArtificialFailure.equals("none")) {
             return;
         }
-
-        log("Failure injection key coordinator property: " + invokeArtificialFailure);
-        // If the property has been specified to reset the counter, then do so now.
-        resetCounter();
 
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
             // Increment the failure occurrence counter.
@@ -204,7 +203,7 @@ public final class InvokeTestFailure {
 
     /**
      * Overrides the sync wait time out value so invocation failures don't take 200 minutes.
-     * 
+     *
      * @param syncWrapperTimeOut 200 minutes, default.
      * @return an override value in seconds if the failure invocation is set.
      */

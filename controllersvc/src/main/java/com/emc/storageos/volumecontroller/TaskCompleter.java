@@ -542,9 +542,9 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * clears all tasks by querying all tasks with the task id
      */
-    private void clearAllTasks(DbClient _dbClient, Operation.Status status, ServiceCoded serviceCoded) {
+    private void clearAllTasks(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         if (_opId != null) {
-            List<Task> tasksForTaskId = TaskUtils.findTasksForRequestId(_dbClient, _opId);
+            List<Task> tasksForTaskId = TaskUtils.findTasksForRequestId(dbClient, _opId);
             Map<Class<? extends DataObject>, List<URI>> resourceMap = new HashMap<Class<? extends DataObject>, List<URI>>();
             for (Task task : tasksForTaskId) {
                 if (!task.getCompletedFlag()) {
@@ -559,7 +559,7 @@ public abstract class TaskCompleter implements Serializable {
 
             for (Entry<Class<? extends DataObject>, List<URI>> entry : resourceMap.entrySet()) {
                 // if error, ready
-                setStatus(entry.getKey(), entry.getValue(), _dbClient, status, serviceCoded != null ? serviceCoded
+                setStatus(entry.getKey(), entry.getValue(), dbClient, status, serviceCoded != null ? serviceCoded
                         : DeviceControllerException.errors.unforeseen(), null);
             }
         }

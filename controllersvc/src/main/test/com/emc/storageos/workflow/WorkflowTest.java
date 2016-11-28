@@ -1048,7 +1048,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         printLog(String.format("task %s state %s", taskId, state));
         assertTrue(duplicateTaskException);
 
-        // no that the running workflow is complete, it should be ok to re-use the task id
+        // now that the running workflow is complete, it should be ok to re-use the task id
         boolean taskIsAvailable = true;
         try {
             @SuppressWarnings("unused")

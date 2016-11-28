@@ -130,7 +130,6 @@ import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
@@ -254,7 +253,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String IMPORT_COPY_STEP = "importCopy";
     private static final String VOLUME_FORGET_STEP = "forgetVolumes";
     private static final String ZONING_STEP = "zoning";
-    private static final String REMOVE_INITIATOR_STEP = "removeInitiator";
     private static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VPLEX_VOLUME_STEP = "restoreVPlexVolume";
     private static final String INVALIDATE_CACHE_STEP = "invalidateCache";
@@ -265,7 +263,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String WAIT_ON_REBUILD_STEP = "waitOnRebuild";
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
-    private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
     private static final String RELINK_SNAPSHOT_SESSION_TARGET_STEP = "RelinkSnapshotSessionTarget";
@@ -274,10 +271,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
     private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
-    private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
-    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
-    private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
-    private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
     private static final String VALIDATE_VPLEX_VOLUME_STEP = "validateVPlexVolumeStep";
 
@@ -304,7 +297,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPAND_VOLUME_NATIVELY_METHOD_NAME = "expandVolumeNatively";
     private static final String EXPAND_VIRTUAL_VOLUME_METHOD_NAME = "expandVirtualVolume";
     private static final String EXPANSION_MIGRATION_METHOD_NAME = "migrateVolumeForExpansion";
-    private static final String SET_CG_PROPERTIES_METHOD_NAME = "setCGProperties";
     private static final String FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String IMPORT_COPY_METHOD_NAME = "importCopy";
     private static final String FORGET_VOLUMES_METHOD_NAME = "forgetVolumes";
@@ -317,7 +309,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ATTACH_MIRROR_METHOD_NAME = "attachMirror";
     private static final String RESTORE_RESYNC_RB_METHOD_NAME = "rollbackRestoreResync";
     private static final String EXPORT_MASK_DELETE_METHOD_NAME = "exportMaskDelete";
-    private static final String EXPORT_MASK_CREATE_METHOD_NAME = "exportMaskCreate";
     private static final String WAIT_ON_REBUILD_METHOD_NAME = "waitOnRebuild";
     private static final String RESTORE_FROM_FC_METHOD_NAME = "restoreFromFullCopy";
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
@@ -331,8 +322,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String CANCEL_MIGRATION_METHOD_NAME = "cancelMigrationStep";
     private static final String DELETE_MIGRATION_METHOD_NAME = "deleteMigrationStep";
     private static final String RESTORE_SNAP_SESSION_METHOD_NAME = "restoreSnapshotSession";
-    private static final String REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME = "removeFromConsistencyGroup";
-    private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
     private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String VALIDATE_VPLEX_VOLUME_METHOD = "validateVPlexVolume";

@@ -21,11 +21,13 @@ import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -40,6 +42,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TypedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -319,6 +322,37 @@ public class DbObjectMapper {
         }
         if (from.getSnapshotExpireTime() != null) {
             to.setSnapshotExpireTime(from.getSnapshotExpireTime());
+        }
+        return to;
+    }
+    
+    public static ExportPathParametersRestRep map(ExportPathParams from) {
+        if (from == null) {
+            return null;
+        }
+        ExportPathParametersRestRep to = new ExportPathParametersRestRep();
+        
+        to.setId(from.getId());
+        to.setName(from.getLabel());
+        if(from.getMaxPaths() != null){
+            to.setMaxPaths(from.getMaxPaths());
+        }
+        if(from.getMinPaths() != null){
+            to.setMinPaths(from.getMinPaths());
+        }
+        if(from.getMaxInitiatorsPerPort() != null){
+            to.setMaxInitiatorsPerPort(from.getMaxInitiatorsPerPort());
+        }
+        if(from.getPathsPerInitiator() != null){
+            to.setPathsPerInitiator(from.getPathsPerInitiator());
+        }
+        if(from.getStoragePorts() != null){
+            StringSet ports = from.getStoragePorts();
+            List<URI> portUris = Lists.newArrayList();
+            for(String port:ports){
+                portUris.add(URIUtil.uri(port));
+            }
+            to.setStoragePorts(portUris);
         }
         return to;
     }

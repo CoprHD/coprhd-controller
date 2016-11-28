@@ -26,7 +26,11 @@ import java.util.Locale;
  */
 public class ServiceDescriptorUtil {
 
-    public static ServiceDescriptor getServiceDescriptorByName(ServiceDescriptors serviceDescriptors, WorkflowServiceDescriptor workflowServiceDescriptor, String serviceName) {
+    private ServiceDescriptorUtil() {
+
+    }
+
+    public static ServiceDescriptor getServiceDescriptorByName(final ServiceDescriptors serviceDescriptors, final WorkflowServiceDescriptor workflowServiceDescriptor, final String serviceName) {
         ServiceDescriptor descriptor;
         try {
             descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), serviceName);

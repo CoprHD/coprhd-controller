@@ -126,7 +126,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     // The RP constant, used in controller, device type, virtual pool, etc.
     public static final String _RP = "rp";
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("installationId")
     public String getInstallationId() {
         return _installationId;

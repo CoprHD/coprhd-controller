@@ -62,7 +62,7 @@ public class StoragePoolSetting extends DiscoveredDataObject {
      * *
      **********************************************/
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("poolsettingID")
     public String getPoolsettingID() {
         return _poolsettingID;
@@ -178,7 +178,7 @@ public class StoragePoolSetting extends DiscoveredDataObject {
         setChanged("storagePool");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "RelationIndex1", type = StoragePool.class)
     @Name("storagePool")
     public URI getStoragePool() {
         return _storagePool;
@@ -189,7 +189,7 @@ public class StoragePoolSetting extends DiscoveredDataObject {
         setChanged("storageSystem");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex2", type = StorageSystem.class)
     @Name("storageSystem")
     public URI getStorageSystem() {
         return _storageSystem;

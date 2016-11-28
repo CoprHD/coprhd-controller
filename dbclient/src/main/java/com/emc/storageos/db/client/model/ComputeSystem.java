@@ -62,7 +62,7 @@ public class ComputeSystem extends DiscoveredSystemObject {
         setChanged("password");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("ipAddress")
     public String getIpAddress() {
         return _ipAddress;

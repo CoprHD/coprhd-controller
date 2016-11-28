@@ -65,7 +65,7 @@ public class Vcenter extends DiscoveredComputeSystemWithAcls {
      * 
      * @return the vcenter management IP address
      */
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("ipAddress")
     public String getIpAddress() {
         return _ipAddress;

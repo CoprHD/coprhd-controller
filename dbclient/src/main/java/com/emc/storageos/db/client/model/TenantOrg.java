@@ -68,7 +68,7 @@ public class TenantOrg extends DataObject {
     }
 
     @Name("userMappings")
-    @PermissionsIndex("PermissionsIndex")
+    @PermissionsIndex("PermissionsIndex1")
     public StringSetMap getUserMappings() {
         return _userMappings;
     }
@@ -91,7 +91,7 @@ public class TenantOrg extends DataObject {
         }
     }
 
-    @PermissionsIndex("PermissionsIndex")
+    @PermissionsIndex("PermissionsIndex2")
     @Name("role-assignment")
     public StringSetMap getRoleAssignments() {
         if (_roleAssignments == null) {

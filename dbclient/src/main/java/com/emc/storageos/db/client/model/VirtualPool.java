@@ -452,7 +452,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
     };
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("type")
     public String getType() {
         return _type;
@@ -846,7 +846,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("standbyJournalVpool");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("mirrorVirtualPool")
     public String getMirrorVirtualPool() {
         return _mirrorVirtualPool;

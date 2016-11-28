@@ -242,7 +242,7 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("project");
     }
 
-    @NamedRelationIndex(cf = "NamedRelation", type = ProtectionSet.class)
+    @NamedRelationIndex(cf = "NamedRelation1", type = ProtectionSet.class)
     @Name("protectionSet")
     public NamedURI getProtectionSet() {
         return _protectionSet;
@@ -255,7 +255,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     @Override
     @XmlTransient
-    @NamedRelationIndex(cf = "NamedRelation")
+    @NamedRelationIndex(cf = "NamedRelation2")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;
@@ -299,7 +299,7 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("thinlyProvisioned");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
+    @RelationIndex(cf = "RelationIndex4", type = VirtualPool.class)
     @Name("virtualPool")
     public URI getVirtualPool() {
         return _virtualPool;
@@ -310,7 +310,7 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("virtualPool");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "RelationIndex5", type = StoragePool.class)
     @Name("pool")
     public URI getPool() {
         return _pool;
@@ -415,7 +415,7 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     @Name("personality")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex5")
     public String getPersonality() {
         return _personality;
     }
@@ -790,7 +790,7 @@ public class Volume extends BlockObject implements ProjectResource {
        return checkPersonality(personality.name());
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex4")
     @Name("fullCopySetName")
     public String getFullCopySetName() {
         return fullCopySetName;

@@ -146,7 +146,7 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
     }
 
     @Name("policyName")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     public String getPolicyName() {
         return _policyName;
     }

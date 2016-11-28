@@ -70,7 +70,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // There can be multiple array replication groups within a CG.
     private String _sessionSetName;
 
-    @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
+    @RelationIndex(cf = "RelationIndex1", type = BlockConsistencyGroup.class)
     @Name("consistencyGroup")
     public URI getConsistencyGroup() {
         return consistencyGroup;
@@ -81,7 +81,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("consistencyGroup");
     }
 
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = BlockObject.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex1", type = BlockObject.class)
     @Name("parent")
     @Override
     public NamedURI getParent() {
@@ -99,7 +99,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     }
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex2", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -110,7 +110,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("project");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex2", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageController() {
         return _storageController;
@@ -133,7 +133,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("linkedTargets");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("sessionLabel")
     public String getSessionLabel() {
         return _sessionLabel;
@@ -155,7 +155,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("sessionInstance");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("replicationGroupInstance")
     public String getReplicationGroupInstance() {
         return _replicationGroupInstance;
@@ -166,7 +166,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("replicationGroupInstance");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex3")
     @Name("sessionSetName")
     public String getSessionSetName() {
         return _sessionSetName;

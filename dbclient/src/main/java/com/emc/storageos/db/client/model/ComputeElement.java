@@ -55,7 +55,7 @@ public class ComputeElement extends DiscoveredSystemObject {
         setChanged("numOfCores");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("uuid")
     public String getUuid() {
         return _uuid;

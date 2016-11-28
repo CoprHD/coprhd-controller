@@ -18,7 +18,7 @@ public class BlockMirror extends Volume {
 
     public static String MIRROR_SYNC_TYPE = "6";
 
-    @NamedRelationIndex(cf = "NamedRelation", type = Volume.class)
+    @NamedRelationIndex(cf = "NamedRelation3", type = Volume.class)
     @Name("source")
     public NamedURI getSource() {
         return _source;

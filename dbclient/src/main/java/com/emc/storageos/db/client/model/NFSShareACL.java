@@ -20,7 +20,7 @@ public class NFSShareACL extends FileACL {
     protected URI fileSystemId;
     protected URI snapshotId;
 
-    @RelationIndex(cf = "RelationIndex", type = Snapshot.class)
+    @RelationIndex(cf = "RelationIndex1", type = Snapshot.class)
     @Name("snapshotId")
     public URI getSnapshotId() {
         return snapshotId;
@@ -32,7 +32,7 @@ public class NFSShareACL extends FileACL {
         setChanged("snapshotId");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = FileShare.class)
+    @RelationIndex(cf = "RelationIndex2", type = FileShare.class)
     @Name("fileSystemId")
     public URI getFileSystemId() {
         return fileSystemId;

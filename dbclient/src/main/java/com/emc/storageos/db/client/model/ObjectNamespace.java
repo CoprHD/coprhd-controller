@@ -80,7 +80,7 @@ public class ObjectNamespace extends DiscoveredDataObject {
         setChanged("mapped");
     }
     
-    @RelationIndex(cf = "RelationIndex", type = TenantOrg.class)
+    @RelationIndex(cf = "RelationIndex1", type = TenantOrg.class)
     @Name("tenant")
     public URI getTenant() {
         return _tenant;
@@ -91,7 +91,7 @@ public class ObjectNamespace extends DiscoveredDataObject {
         setChanged("tenant");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex2", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;

@@ -82,7 +82,7 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
         setChanged(APPROVED_BY);
     }
 
-    @RelationIndex(cf = "RelationIndex", type = Order.class)
+    @RelationIndex(cf = "RelationIndex1", type = Order.class)
     @Name(ORDER_ID)
     public URI getOrderId() {
         return orderId;
@@ -93,7 +93,7 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
         setChanged(ORDER_ID);
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)
+    @RelationIndex(cf = "RelationIndex2", type = ScheduledEvent.class)
     @Name(SCHEDULED_EVENT_ID)
     public URI getScheduledEventId() {
         return scheduledEventId;

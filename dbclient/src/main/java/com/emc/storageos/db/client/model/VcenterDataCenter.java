@@ -22,7 +22,7 @@ public class VcenterDataCenter extends AbstractTenantResource {
      * 
      * @return the VcenterDataCenter parent vcenter.
      */
-    @RelationIndex(cf = "RelationIndex", type = Vcenter.class)
+    @RelationIndex(cf = "RelationIndex1", type = Vcenter.class)
     @Name("vcenter")
     public URI getVcenter() {
         return _vcenter;

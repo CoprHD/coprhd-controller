@@ -218,7 +218,7 @@ public class StorageSystem extends DiscoveredSystemObject {
      * AlternateIDIndex - serialNumber,smisProviderIP* RelationIndex - VirtualArray *
      ************************************************/
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("serialNumber")
     public String getSerialNumber() {
         return _serialNumber;
@@ -311,7 +311,7 @@ public class StorageSystem extends DiscoveredSystemObject {
         setChanged("varray");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("smisProviderIP")
     public String getSmisProviderIP() {
         return _smisProviderIP;
@@ -523,7 +523,7 @@ public class StorageSystem extends DiscoveredSystemObject {
      * @return
      */
     @Name("mgmtAccessPoint")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex3")
     public String getMgmtAccessPoint() {
         return _mgmtAccessPoint;
     }

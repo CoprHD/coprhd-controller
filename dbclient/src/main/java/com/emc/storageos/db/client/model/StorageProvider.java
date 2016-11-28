@@ -379,7 +379,7 @@ public class StorageProvider extends DataObject {
      */
 
     @Name("providerID")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     public String getProviderID() {
         return _providerID;
     }
@@ -397,7 +397,7 @@ public class StorageProvider extends DataObject {
 
     @EnumType(InterfaceType.class)
     @Name("interfaceType")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     public String getInterfaceType() {
         return _interfaceType;
     }

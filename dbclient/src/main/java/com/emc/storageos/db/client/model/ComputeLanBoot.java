@@ -34,7 +34,7 @@ public class ComputeLanBoot extends DiscoveredSystemObject {
         setChanged("prot");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ComputeBootDef.class)
+    @RelationIndex(cf = "RelationIndex1", type = ComputeBootDef.class)
     @Name("computeBootDef")
     public URI getComputeBootDef() {
         return computeBootDef;
@@ -45,7 +45,7 @@ public class ComputeLanBoot extends DiscoveredSystemObject {
         setChanged("computeBootDef");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ComputeBootPolicy.class)
+    @RelationIndex(cf = "RelationIndex2", type = ComputeBootPolicy.class)
     @Name("computeBootPolicy")
     public URI getComputeBootPolicy() {
         return computeBootPolicy;

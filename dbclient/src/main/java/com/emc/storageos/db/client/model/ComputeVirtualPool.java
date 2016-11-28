@@ -265,7 +265,7 @@ public class ComputeVirtualPool extends DataObjectWithACLs implements GeoVisible
         setChanged("maxHbas");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "ComputeRelationIndex1", type = VirtualArray.class)
     @IndexByKey
     @Name("virtualArrays")
     public StringSet getVirtualArrays() {
@@ -314,7 +314,7 @@ public class ComputeVirtualPool extends DataObjectWithACLs implements GeoVisible
         setChanged("useMatchedElements");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = UCSServiceProfileTemplate.class)
+    @RelationIndex(cf = "ComputeRelationIndex2", type = UCSServiceProfileTemplate.class)
     @IndexByKey
     @Name("serviceProfileTemplates")
     public StringSet getServiceProfileTemplates() {

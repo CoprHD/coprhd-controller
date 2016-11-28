@@ -47,7 +47,7 @@ public class DecommissionedResource extends DataObject {
     }
 
     @Name("nativeGuid")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     public String getNativeGuid() {
         return _nativeGuid;
     }
@@ -58,7 +58,7 @@ public class DecommissionedResource extends DataObject {
     }
 
     @Name("decommissionedId")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     public URI getDecommissionedId() {
         return _decommissionedId;
     }

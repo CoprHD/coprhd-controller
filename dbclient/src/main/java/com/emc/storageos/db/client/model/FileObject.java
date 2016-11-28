@@ -53,7 +53,7 @@ public abstract class FileObject extends DataObject {
      * @return
      */
     @Name("path")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     public String getPath() {
         return _path;
     }

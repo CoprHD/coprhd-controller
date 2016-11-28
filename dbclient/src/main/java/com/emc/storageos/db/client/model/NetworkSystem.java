@@ -112,7 +112,7 @@ public class NetworkSystem extends DiscoveredSystemObject {
         setChanged("password");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("smisProviderIP")
     public String getSmisProviderIP() {
         return _smisProviderIP;

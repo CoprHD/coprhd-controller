@@ -13,7 +13,7 @@ public class CifsShareACL extends ShareACL {
     protected URI snapshotId;
     protected String opType;
 
-    @RelationIndex(cf = "RelationIndex", type = Snapshot.class)
+    @RelationIndex(cf = "RelationIndex1", type = Snapshot.class)
     @Name("snapshotId")
     public URI getSnapshotId() {
         return snapshotId;
@@ -25,7 +25,7 @@ public class CifsShareACL extends ShareACL {
         setChanged("snapshotId");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = FileShare.class)
+    @RelationIndex(cf = "RelationIndex2", type = FileShare.class)
     @Name("fileSystemId")
     public URI getFileSystemId() {
         return fileSystemId;

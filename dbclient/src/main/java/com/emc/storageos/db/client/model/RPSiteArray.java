@@ -34,7 +34,7 @@ public class RPSiteArray extends DataObject {
     private String _arraySerialNumber;
 
     @XmlElement
-    @RelationIndex(cf = "RelationIndex", type = ProtectionSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = ProtectionSystem.class)
     @Name("rpProtectionSystem")
     public URI getRpProtectionSystem() {
         return _rpProtectionSystem;
@@ -46,7 +46,7 @@ public class RPSiteArray extends DataObject {
     }
 
     @XmlElement
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex2", type = StorageSystem.class)
     @Name("storageSystem")
     public URI getStorageSystem() {
         return _storageSystem;

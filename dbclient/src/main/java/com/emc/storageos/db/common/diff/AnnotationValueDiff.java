@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.NamedRelationIndex;
+import com.emc.storageos.db.client.model.PermissionsIndex;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.common.schema.AnnotationValue;
 
@@ -34,6 +36,9 @@ public class AnnotationValueDiff extends Diff {
         valueCT = PrimitiveChangeTracker.newInstance(src.getValue(), tgt.getValue(), tgt);
 
         if ((RelationIndex.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("cf"))
+                || (NamedRelationIndex.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("cf"))
+                || (PermissionsIndex.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value"))
+                || (PermissionsIndex.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value"))
                 || (AlternateId.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value"))) {
             isCfValueOfRelationIndex = true;
             if (valueCT != null && valueCT.isChanged()) {

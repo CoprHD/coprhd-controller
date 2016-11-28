@@ -205,7 +205,7 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("personality")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     public String getPersonality() {
         return _personality;
     }
@@ -218,7 +218,7 @@ public class FileShare extends FileObject implements ProjectResource {
     // getter and setter
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelation1", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -230,7 +230,7 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelation")
+    @NamedRelationIndex(cf = "NamedRelation2")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;
@@ -241,9 +241,9 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("tenant");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "RelationIndex1", type = VirtualArray.class)
     @Name("varray")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex3")
     public URI getVirtualArray() {
         return _virtualArray;
     }
@@ -279,7 +279,7 @@ public class FileShare extends FileObject implements ProjectResource {
         }
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
+    @RelationIndex(cf = "RelationIndex2", type = VirtualPool.class)
     @Name("virtualPool")
     public URI getVirtualPool() {
         return _virtualPool;
@@ -310,7 +310,7 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("dataProtection");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex3", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;
@@ -321,7 +321,7 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("storageDevice");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "RelationIndex4", type = StoragePool.class)
     @Name("pool")
     public URI getPool() {
         return _pool;
@@ -342,7 +342,7 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("nativeId");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex4")
     @Name("nativeGuid")
     public String getNativeGuid() {
         return _nativeGuid;

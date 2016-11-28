@@ -186,13 +186,13 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         setChanged("storageDevice");
     }
 
-    @RelationIndex(cf = "UnManagedFileSystemRelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "UnManagedFileSystemRelationIndex1", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageSystemUri() {
         return _storageSystemUri;
     }
 
-    @RelationIndex(cf = "UnManagedFileSystemRelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "UnManagedFileSystemRelationIndex2", type = StoragePool.class)
     @Name("storagePool")
     public URI getStoragePoolUri() {
         return storagePoolUri;

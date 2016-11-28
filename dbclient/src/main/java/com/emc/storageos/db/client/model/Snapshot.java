@@ -41,7 +41,7 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
         setChanged("timestamp");
     }
 
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = FileShare.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex1", type = FileShare.class)
     @Name("parent")
     public NamedURI getParent() {
         return _parent;
@@ -66,7 +66,7 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
         setChanged("nativeId");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("nativeGuid")
     public String getNativeGuid() {
         return _nativeGuid;
@@ -77,7 +77,7 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
         setChanged("nativeGuid");
     }
 
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex2", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;

@@ -50,7 +50,7 @@ public class ProtectionSet extends DataObject {
     }
 
     @XmlElement
-    @RelationIndex(cf = "RelationIndex", type = ProtectionSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = ProtectionSystem.class)
     @Name("protectionSystem")
     public URI getProtectionSystem() {
         return _protectionSystem;
@@ -61,7 +61,7 @@ public class ProtectionSet extends DataObject {
         setChanged("protectionSystem");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("protectionId")
     public String getProtectionId() {
         return _protectionId;
@@ -92,7 +92,7 @@ public class ProtectionSet extends DataObject {
         setChanged("protectionStatus");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = Project.class)
+    @RelationIndex(cf = "RelationIndex2", type = Project.class)
     @Name("project")
     public URI getProject() {
         return _project;
@@ -113,7 +113,7 @@ public class ProtectionSet extends DataObject {
         setChanged("subtaskMap");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("nativeGuid")
     public String getNativeGuid() {
         return _nativeGuid;

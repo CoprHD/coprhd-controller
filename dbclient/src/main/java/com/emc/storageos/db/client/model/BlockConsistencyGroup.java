@@ -108,7 +108,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         setChanged("nativeId");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageController() {
         return _storageController;
@@ -120,7 +120,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     @Name("varray")
-    @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "RelationIndex2", type = VirtualArray.class)
     public URI getVirtualArray() {
         return _virtualArray;
     }
@@ -132,7 +132,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     @Override
     @Name("project")
-    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelation1", type = Project.class)
     public NamedURI getProject() {
         return _project;
     }
@@ -143,7 +143,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelation")
+    @NamedRelationIndex(cf = "NamedRelation2")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;

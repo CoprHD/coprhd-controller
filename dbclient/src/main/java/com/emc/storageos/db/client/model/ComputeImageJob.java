@@ -30,7 +30,7 @@ public class ComputeImageJob extends DataObject {
         CREATED, SUCCESS, FAILED, TIMEDOUT
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeImageServer.class)
+    @RelationIndex(cf = "ComputeRelationIndex1", type = ComputeImageServer.class)
     @Name("computeImageServerId")
     public URI getComputeImageServerId() {
         return computeImageServerId;
@@ -41,7 +41,7 @@ public class ComputeImageJob extends DataObject {
         setChanged("computeImageServerId");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeImage.class)
+    @RelationIndex(cf = "ComputeRelationIndex2", type = ComputeImage.class)
     @Name("computeImageId")
     public URI getComputeImageId() {
         return computeImageId;
@@ -52,7 +52,7 @@ public class ComputeImageJob extends DataObject {
         setChanged("computeImageId");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = Host.class)
+    @RelationIndex(cf = "ComputeRelationIndex3", type = Host.class)
     @Name("hostId")
     public URI getHostId() {
         return hostId;

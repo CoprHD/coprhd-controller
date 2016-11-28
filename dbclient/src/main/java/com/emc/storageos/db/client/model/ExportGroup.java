@@ -55,7 +55,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
     public static final String LUN_UNASSIGNED_STR = Integer.toHexString(LUN_UNASSIGNED);
     public static final String LUN_UNASSIGNED_DECIMAL_STR = Integer.toString(LUN_UNASSIGNED);
 
-    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelation1", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -77,7 +77,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
         setChanged("varray");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = Volume.class)
+    @RelationIndex(cf = "RelationIndex1", type = Volume.class)
     @IndexByKey
     @Name("volumes")
     public StringMap getVolumes() {
@@ -140,7 +140,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
         }
     }
 
-    @RelationIndex(cf = "RelationIndex", type = BlockSnapshot.class)
+    @RelationIndex(cf = "RelationIndex2", type = BlockSnapshot.class)
     @IndexByKey
     @Name("snapshots")
     public StringSet getSnapshots() {
@@ -334,7 +334,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
         }
     }
 
-    @NamedRelationIndex(cf = "NamedRelation")
+    @NamedRelationIndex(cf = "NamedRelation2")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;
@@ -349,7 +349,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
         return _exportMasks != null && _exportMasks.contains(id.toString());
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ExportMask.class)
+    @RelationIndex(cf = "RelationIndex3", type = ExportMask.class)
     @IndexByKey
     @Name("exportMasks")
     public StringSet getExportMasks() {

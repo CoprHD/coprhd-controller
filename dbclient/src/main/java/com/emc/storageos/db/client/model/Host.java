@@ -124,7 +124,7 @@ public class Host extends AbstractComputeSystem {
      * @return the short or fully qualified host name
      */
     @Name("hostName")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     public String getHostName() {
         return _hostName;
     }
@@ -164,7 +164,7 @@ public class Host extends AbstractComputeSystem {
      * 
      * @return the cluster name when the host is in a cluster.
      */
-    @RelationIndex(cf = "RelationIndex", type = Cluster.class)
+    @RelationIndex(cf = "RelationIndex1", type = Cluster.class)
     @Name("cluster")
     public URI getCluster() {
         return _cluster;
@@ -250,7 +250,7 @@ public class Host extends AbstractComputeSystem {
      * 
      * @return null
      */
-    @RelationIndex(cf = "RelationIndex", type = Project.class)
+    @RelationIndex(cf = "RelationIndex2", type = Project.class)
     @Name("project")
     public URI getProject() {
         return _project;
@@ -291,7 +291,7 @@ public class Host extends AbstractComputeSystem {
      * 
      * @return the name of the data center in vcenter where this host resides
      */
-    @RelationIndex(cf = "RelationIndex", type = VcenterDataCenter.class)
+    @RelationIndex(cf = "RelationIndex3", type = VcenterDataCenter.class)
     @Name("vcenterDataCenter")
     public URI getVcenterDataCenter() {
         return _vcenterDataCenter;
@@ -307,7 +307,7 @@ public class Host extends AbstractComputeSystem {
         setChanged("vcenterDataCenter");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ComputeElement.class)
+    @RelationIndex(cf = "RelationIndex4", type = ComputeElement.class)
     @Name("computeElement")
     public URI getComputeElement() {
         return _computeElement;
@@ -337,7 +337,7 @@ public class Host extends AbstractComputeSystem {
         Windows, HPUX, Linux, Esx, AIX, AIXVIO, SUNVCS, No_OS, Other
     }
 
-    @RelationIndex(cf = "RelationIndex", type = Volume.class)
+    @RelationIndex(cf = "RelationIndex5", type = Volume.class)
     @Name("bootVolumeId")
     public URI getBootVolumeId() {
         return bootVolumeId;
@@ -348,7 +348,7 @@ public class Host extends AbstractComputeSystem {
         setChanged("bootVolumeId");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ComputeVirtualPool.class)
+    @RelationIndex(cf = "RelationIndex6", type = ComputeVirtualPool.class)
     @Name("computeVirtualPoolId")
     public URI getComputeVirtualPoolId() {
         return computeVirtualPoolId;
@@ -359,7 +359,7 @@ public class Host extends AbstractComputeSystem {
         setChanged("computeVirtualPoolId");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("uuid")
     public String getUuid() {
         return uuid;

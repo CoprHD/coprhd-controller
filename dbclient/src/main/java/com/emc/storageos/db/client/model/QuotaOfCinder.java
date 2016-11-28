@@ -43,7 +43,7 @@ public class QuotaOfCinder extends DataObject {
         setChanged("volumeLimit");
 	}
 
-	@RelationIndex(cf = "RelationIndex", type = Project.class)
+	@RelationIndex(cf = "RelationIndex1", type = Project.class)
     @Name("project")
     public URI getProject() {
         return project;
@@ -54,7 +54,7 @@ public class QuotaOfCinder extends DataObject {
         setChanged("project");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
+    @RelationIndex(cf = "RelationIndex2", type = VirtualPool.class)
     @Name("vpool")
     public URI getVpool() {
         return vpool;

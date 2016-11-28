@@ -21,7 +21,7 @@ public class ComputeElementHBA extends DiscoveredDataObject {
     private String _vsanId;
     private String _templateName;
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeElement.class)
+    @RelationIndex(cf = "ComputeRelationIndex1", type = ComputeElement.class)
     @Name("computeElement")
     public URI getComputeElement() {
         return _computeElement;
@@ -32,7 +32,7 @@ public class ComputeElementHBA extends DiscoveredDataObject {
         setChanged("computeElement");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = Host.class)
+    @RelationIndex(cf = "ComputeRelationIndex2", type = Host.class)
     @Name("host")
     public URI getHost() {
         return _host;
@@ -43,7 +43,7 @@ public class ComputeElementHBA extends DiscoveredDataObject {
         setChanged("host");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = UCSServiceProfileTemplate.class)
+    @RelationIndex(cf = "ComputeRelationIndex3", type = UCSServiceProfileTemplate.class)
     @Name("serviceProfileTemplate")
     public URI getServiceProfileTemplate() {
         return this._serviceProfileTemplate;

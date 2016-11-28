@@ -48,7 +48,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     @Name("maskingViewPath")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     public String getMaskingViewPath() {
         return _maskingViewPath;
     }
@@ -59,7 +59,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     @Name("maskName")
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     public String getMaskName() {
         return _maskName;
     }

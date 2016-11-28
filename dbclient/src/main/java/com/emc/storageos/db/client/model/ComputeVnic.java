@@ -22,7 +22,7 @@ public class ComputeVnic extends DataObject {
     private StringSet vlans;
     private String nativeVlan;
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeElement.class)
+    @RelationIndex(cf = "ComputeRelationIndex1", type = ComputeElement.class)
     @Name("computeElement")
     public URI getComputeElement() {
         return _computeElement;
@@ -33,7 +33,7 @@ public class ComputeVnic extends DataObject {
         setChanged("computeElement");
     }
 
-    @RelationIndex(cf = "ComputeRelationIndex", type = UCSServiceProfileTemplate.class)
+    @RelationIndex(cf = "ComputeRelationIndex2", type = UCSServiceProfileTemplate.class)
     @Name("serviceProfileTemplate")
     public URI getServiceProfileTemplate() {
         return this._serviceProfileTemplate;

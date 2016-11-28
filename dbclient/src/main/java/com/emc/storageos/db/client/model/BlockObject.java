@@ -87,7 +87,7 @@ public abstract class BlockObject extends DataObject {
         super();
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex2", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageController() {
         return _storageController;
@@ -98,7 +98,7 @@ public abstract class BlockObject extends DataObject {
         setChanged("storageDevice");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ProtectionSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = ProtectionSystem.class)
     @Name("protectionDevice")
     public URI getProtectionController() {
         return _protectionController;
@@ -109,7 +109,7 @@ public abstract class BlockObject extends DataObject {
         setChanged("protectionDevice");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("nativeId")
     public String getNativeId() {
         return _nativeId;
@@ -120,7 +120,7 @@ public abstract class BlockObject extends DataObject {
         setChanged("nativeId");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("nativeGuid")
     public String getNativeGuid() {
         return _nativeGuid;
@@ -185,7 +185,7 @@ public abstract class BlockObject extends DataObject {
     }
 
     @Name("varray")
-    @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "RelationIndex3", type = VirtualArray.class)
     public URI getVirtualArray() {
         return _virtualArray;
     }
@@ -225,7 +225,7 @@ public abstract class BlockObject extends DataObject {
         setChanged("refreshRequired");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex3")
     @Name("replicationGroupInstance")
     public String getReplicationGroupInstance() {
         return _replicationGroupInstance;

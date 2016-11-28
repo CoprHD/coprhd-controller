@@ -21,7 +21,7 @@ public class StoragePoolCapabilities extends DiscoveredDataObject {
         setChanged("storageSystem");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = StorageSystem.class)
     @Name("storageSystem")
     public URI getStorageSystem() {
         return _storageSystem;
@@ -32,7 +32,7 @@ public class StoragePoolCapabilities extends DiscoveredDataObject {
         setChanged("storagePool");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "RelationIndex2", type = StoragePool.class)
     @Name("storagePool")
     public URI getStoragePool() {
         return _storagePool;
@@ -43,7 +43,7 @@ public class StoragePoolCapabilities extends DiscoveredDataObject {
         setChanged("poolcapabilitiesID");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("poolcapabilitiesID")
     public String getPoolCapabilitiesID() {
         return _poolcapabilitiesID;

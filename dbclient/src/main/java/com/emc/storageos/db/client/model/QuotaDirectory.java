@@ -54,7 +54,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         return FileShare.class;
     }
 
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = FileShare.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex1", type = FileShare.class)
     @Name("parent")
     public NamedURI getParent() {
         return _parent;
@@ -78,7 +78,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     }
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex2", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -99,7 +99,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         setChanged("nativeId");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex2")
     @Name("nativeGuid")
     public String getNativeGuid() {
         return _nativeGuid;

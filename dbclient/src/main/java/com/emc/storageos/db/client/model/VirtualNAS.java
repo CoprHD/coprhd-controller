@@ -92,7 +92,7 @@ public class VirtualNAS extends NASServer {
         setChanged("vNasState");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = PhysicalNAS.class)
+    @RelationIndex(cf = "RelationIndex1", type = PhysicalNAS.class)
     @Name("parentNasUri")
     public URI getParentNasUri() {
         return parentNasUri;

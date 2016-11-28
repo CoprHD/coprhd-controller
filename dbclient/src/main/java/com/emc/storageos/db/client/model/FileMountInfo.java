@@ -19,7 +19,7 @@ public class FileMountInfo extends DataObject {
     private String securityType;
     private String fsType;
 
-    @RelationIndex(cf = "RelationIndex", type = Host.class)
+    @RelationIndex(cf = "RelationIndex1", type = Host.class)
     @Name("hostId")
     public URI getHostId() {
         return hostId;
@@ -30,7 +30,7 @@ public class FileMountInfo extends DataObject {
         setChanged("hostId");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = FileShare.class)
+    @RelationIndex(cf = "RelationIndex2", type = FileShare.class)
     @Name("fileSystemId")
     public URI getFsId() {
         return fileSystemId;

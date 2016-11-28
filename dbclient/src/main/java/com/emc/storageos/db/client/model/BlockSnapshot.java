@@ -111,7 +111,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     };
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = Volume.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex1", type = Volume.class)
     @Name("parent")
     public NamedURI getParent() {
         return _parent;
@@ -137,7 +137,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("newVolumeNativeId");
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex4")
     @Name("snapsetLabel")
     public String getSnapsetLabel() {
         return _snapsetLabel;
@@ -149,7 +149,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     }
 
     @Override
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelationIndex2", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -304,7 +304,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     }
 
     @XmlElement
-    @RelationIndex(cf = "RelationIndex", type = ProtectionSet.class)
+    @RelationIndex(cf = "RelationIndex4", type = ProtectionSet.class)
     @Name("protectionSet")
     public URI getProtectionSet() {
         return _protectionSet;

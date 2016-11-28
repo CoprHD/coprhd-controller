@@ -27,7 +27,7 @@ public class Cluster extends AbstractTenantResource {
      * 
      * @return the data center in vcenter where this cluster resides
      */
-    @RelationIndex(cf = "RelationIndex", type = VcenterDataCenter.class)
+    @RelationIndex(cf = "RelationIndex1", type = VcenterDataCenter.class)
     @Name("vcenterDataCenter")
     public URI getVcenterDataCenter() {
         return _vcenterDataCenter;
@@ -54,7 +54,7 @@ public class Cluster extends AbstractTenantResource {
      * 
      * @return null
      */
-    @RelationIndex(cf = "RelationIndex", type = Project.class)
+    @RelationIndex(cf = "RelationIndex2", type = Project.class)
     @Name("project")
     public URI getProject() {
         return _project;

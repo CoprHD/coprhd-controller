@@ -13,7 +13,7 @@ public class ComputeBootDef extends DiscoveredSystemObject {
     private URI serviceProfileTemplate;
     private Boolean enforceVnicVhbaNames;
 
-    @RelationIndex(cf = "RelationIndex", type = ComputeSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = ComputeSystem.class)
     @Name("computeSystem")
     public URI getComputeSystem() {
         return computeSystem;
@@ -34,7 +34,7 @@ public class ComputeBootDef extends DiscoveredSystemObject {
         setChanged("enforceVnicVhbaNames");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = UCSServiceProfileTemplate.class)
+    @RelationIndex(cf = "RelationIndex2", type = UCSServiceProfileTemplate.class)
     @Name("serviceProfileTemplate")
     public URI getServiceProfileTemplate() {
         return serviceProfileTemplate;

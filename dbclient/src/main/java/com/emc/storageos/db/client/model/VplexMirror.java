@@ -46,7 +46,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
     // thin or thick mirror type
     Boolean _thinlyProvisioned = false;
 
-    @NamedRelationIndex(cf = "NamedRelation", type = Volume.class)
+    @NamedRelationIndex(cf = "NamedRelation1", type = Volume.class)
     @Name("source")
     public NamedURI getSource() {
         return _source;
@@ -57,7 +57,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         setChanged("source");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageController() {
         return _storageController;
@@ -68,7 +68,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         setChanged("storageDevice");
     }
 
-    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelation2", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -80,7 +80,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
     }
 
     @XmlTransient
-    @NamedRelationIndex(cf = "NamedRelation")
+    @NamedRelationIndex(cf = "NamedRelation3")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;
@@ -101,7 +101,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         setChanged("capacity");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
+    @RelationIndex(cf = "RelationIndex2", type = VirtualPool.class)
     @Name("virtualPool")
     public URI getVirtualPool() {
         return _virtualPool;
@@ -157,7 +157,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
     }
 
     @Name("varray")
-    @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "RelationIndex3", type = VirtualArray.class)
     public URI getVirtualArray() {
         return _virtualArray;
     }

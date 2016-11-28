@@ -254,13 +254,13 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         setChanged("storageDevice");
     }
 
-    @RelationIndex(cf = "UnManagedVolumeRelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "UnManagedVolumeRelationIndex1", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageSystemUri() {
         return _storageSystemUri;
     }
 
-    @RelationIndex(cf = "UnManagedVolumeRelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "UnManagedVolumeRelationIndex2", type = StoragePool.class)
     @Name("storagePool")
     public URI getStoragePoolUri() {
         return storagePoolUri;

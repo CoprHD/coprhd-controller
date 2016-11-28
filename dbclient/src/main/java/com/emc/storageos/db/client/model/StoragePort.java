@@ -142,7 +142,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         return _ipAddress;
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("portNetworkId")
     public String getPortNetworkId() {
         return _portNetworkId;
@@ -174,7 +174,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         setChanged("network");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex1", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;
@@ -230,7 +230,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         setChanged("storageHADomain");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageHADomain.class)
+    @RelationIndex(cf = "RelationIndex2", type = StorageHADomain.class)
     @Name("storageHADomain")
     public URI getStorageHADomain() {
         return _storageHADomain;

@@ -59,7 +59,7 @@ public class Network extends DiscoveredDataObject {
 
     private String _registrationStatus = RegistrationStatus.REGISTERED.toString();
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "RelationIndex1", type = VirtualArray.class)
     @Name("varray")
     @Deprecated
     public URI getVirtualArray() {
@@ -109,7 +109,7 @@ public class Network extends DiscoveredDataObject {
         setChanged("discovered");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = NetworkSystem.class, deactivateIfEmpty = true)
+    @RelationIndex(cf = "RelationIndex2", type = NetworkSystem.class, deactivateIfEmpty = true)
     @IndexByKey
     @Name("networkSystems")
     public StringSet getNetworkSystems() {
@@ -299,7 +299,7 @@ public class Network extends DiscoveredDataObject {
         return new Boolean(value);
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex1")
     @Name("nativeId")
     public String getNativeId() {
         return _nativeId;
@@ -333,7 +333,7 @@ public class Network extends DiscoveredDataObject {
         return RegistrationStatus.REGISTERED.name().equals(_registrationStatus);
     }
 
-    @RelationIndex(cf = "RelationIndex", type = Network.class, deactivateIfEmpty = false)
+    @RelationIndex(cf = "RelationIndex3", type = Network.class, deactivateIfEmpty = false)
     @IndexByKey
     @Name("routedNetworks")
     public StringSet getRoutedNetworks() {

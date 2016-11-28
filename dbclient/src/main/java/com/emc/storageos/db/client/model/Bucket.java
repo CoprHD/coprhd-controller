@@ -46,7 +46,7 @@ public class Bucket extends DataObject implements ProjectResource {
     // version of the bucket created. Used by vipr developers only.
     private String version;
 
-    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @NamedRelationIndex(cf = "NamedRelation1", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
@@ -58,7 +58,7 @@ public class Bucket extends DataObject implements ProjectResource {
     }
 
     @XmlTransient
-    @NamedRelationIndex(cf = "NamedRelation")
+    @NamedRelationIndex(cf = "NamedRelation2")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;
@@ -90,7 +90,7 @@ public class Bucket extends DataObject implements ProjectResource {
         setChanged("hardQuota");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
+    @RelationIndex(cf = "RelationIndex1", type = VirtualPool.class)
     @Name("virtualPool")
     public URI getVirtualPool() {
         return _virtualPool;
@@ -101,7 +101,7 @@ public class Bucket extends DataObject implements ProjectResource {
         setChanged("virtualPool");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StoragePool.class)
+    @RelationIndex(cf = "RelationIndex2", type = StoragePool.class)
     @Name("pool")
     public URI getPool() {
         return _pool;
@@ -112,7 +112,7 @@ public class Bucket extends DataObject implements ProjectResource {
         setChanged("pool");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RelationIndex3", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;
@@ -123,7 +123,7 @@ public class Bucket extends DataObject implements ProjectResource {
         setChanged("storageDevice");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
+    @RelationIndex(cf = "RelationIndex4", type = VirtualArray.class)
     @Name("varray")
     public URI getVirtualArray() {
         return _virtualArray;

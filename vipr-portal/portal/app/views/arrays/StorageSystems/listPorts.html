@@ -33,6 +33,8 @@
 	    #{Form.button name:'button.setDR', icon:'ok', submit:'tagAsDR', data:['enabled':'selected']/}
 	    #{Form.button name:'button.unsetDR', icon:'remove', submit:'unTagAsDR', data:['enabled':'selected']/}
     #{/if}
+                  data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/}
+    #{Form.button name:'button.portGroups', class:'primary', submit:'portGroupForm'/}               
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 #{DataTable.expandHtml @metricDetails(':id'), table:'storageArrayPorts'/}
@@ -41,6 +43,7 @@
 #{DataTable.formAction @deregisterPorts(), id:'deregisterForm', table:'storageArrayPorts', fields:formFields/}
 #{DataTable.formAction @untagAsDRPorts(), id:'unTagAsDR', table:'storageArrayPorts', fields:formFields/}
 #{DataTable.formAction @tagAsDRPorts(), id:'tagAsDR', table:'storageArrayPorts', fields:formFields/}
+#{DataTable.formAction @portGroups(storageSystem.id), id:'portGroupForm', table:'storageArrayPorts', fields:formFields/}
 
 <script type="text/javascript">
 function renderStorageArrayPortEditLink(o, val) {

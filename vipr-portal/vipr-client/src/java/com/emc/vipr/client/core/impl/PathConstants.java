@@ -212,4 +212,8 @@ public class PathConstants {
     public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
     public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
     public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
+
+    public static final String EXPORT_PATH_PARAMS_URL = "/block/export-path-parameters";
+    public static final String EXPORT_PATH_PARAMS_BY_ID_URL = "/block/export-path-parameters/{id}";
+
 }

@@ -5174,3 +5174,11 @@ wfBuilder.tab.home.message=Create new workflow in custom library and/or edit
 wfBuilder.operation.save.success=Operation saved successfully
 wfBuilder.operation.edit.success=Operation edited successfully
 wfBuilder.import.workflow.success=Imported successfully
+gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
+gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
+gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide
+#port group
+StorageSystems.portGroup.title=Port Groups
+protGroups.description=Description
+protGroups.name=Name
+button.portGroups=Port Groups

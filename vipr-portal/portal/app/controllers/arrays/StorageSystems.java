@@ -59,6 +59,7 @@ import models.PoolTypes;
 import models.RegistrationStatus;
 import models.StorageProviderTypes;
 import models.StorageSystemTypes;
+import models.datatable.ExportPathParamsDataTable;
 import models.datatable.StoragePoolDataTable;
 import models.datatable.StoragePoolDataTable.StoragePoolInfo;
 import models.datatable.StoragePortDataTable;
@@ -67,6 +68,9 @@ import models.datatable.StorageSystemDataTable;
 import models.datatable.StorageSystemDataTable.StorageSystemInfo;
 import models.datatable.VirtualNasServerDataTable;
 import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
+
+import org.apache.commons.lang.StringUtils;
+
 import play.data.binding.As;
 import play.data.validation.Max;
 import play.data.validation.MaxSize;
@@ -86,6 +90,39 @@ import util.TenantUtils;
 import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
+
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
+import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.pools.StoragePoolUpdate;
+import com.emc.storageos.model.ports.StoragePortRequestParam;
+import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.ports.StoragePortUpdate;
+import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.project.VirtualNasParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
+import com.emc.storageos.model.smis.StorageProviderRestRep;
+import com.emc.storageos.model.systems.StorageSystemRequestParam;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
+import com.emc.storageos.model.valid.Endpoint;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.vipr.client.Task;
+import com.google.common.collect.Lists;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import controllers.Common;
+import controllers.arrays.StorageProviders.StorageProviderForm;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.tenant.SchedulePolicies.SchedulePolicyForm;
+import controllers.util.FlashException;
+import controllers.util.Models;
+import controllers.util.ViprResourceController;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -685,6 +722,61 @@ public class StorageSystems extends ViprResourceController {
         }
         render(vNas);
     }
+    
+    public static void portGroups(String id) {
+        addReferenceData();
+
+        StorageSystemRestRep storageSystem = StorageSystemUtils
+                .getStorageSystem(id);
+        ExportPathParamsDataTable dataTable = new ExportPathParamsDataTable();
+        renderArgs.put("dataTable", dataTable);
+        renderArgs.put("storageSystemId", id);
+        renderArgs.put("storageSystemName", storageSystem.getName());
+        render("@listPortGroups", storageSystem, dataTable);
+    }
+
+    public static void portGroupsJson(String storageId) {
+        List<ExportPathParamsDataTable.ExportPathParamsModel> results = Lists.newArrayList();
+        List<ExportPathParametersRestRep> portGroups = getViprClient().exportPathParameters().getPortGroups();
+
+        for (ExportPathParametersRestRep portGroup : portGroups) {
+            results.add(new ExportPathParamsDataTable.ExportPathParamsModel(portGroup.getId(), portGroup.getName(), portGroup
+                    .getDescription()));
+        }
+        renderArgs.put("storageId", storageId);
+        renderJSON(DataTablesSupport.createJSON(results, params));
+    }
+    
+    @FlashException(value = "portGroups", keep = true)
+    public static void addPortGroup() {
+        PortGroupForm portGroup = new PortGroupForm();
+        render("@editPortGroup", portGroup);
+    }
+    
+    @FlashException(value = "portGroups", keep = true)
+    public static void editPortGroup(String id) {
+        ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(id));
+        if (exportPathParametersRestRep != null) {
+            PortGroupForm portGroupForm = new PortGroupForm().form(exportPathParametersRestRep);
+            render(portGroupForm);
+        }
+        else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
+
+    }
+    @FlashException("portGroups")
+    public static void deletePortGroup(@As(",") String[] ids) {
+        if (ids != null && ids.length > 0) {
+            for (String id : ids) {
+                getViprClient().exportPathParameters().delete(uri(id));
+            }
+            flash.success(MessagesUtils.get("exportPathParameters.deleted"));
+        }
+        list();
+    }
+
 
     public static void editPool(String id, String poolId) {
         StoragePoolRestRep storagePool = StoragePoolUtils
@@ -1389,6 +1481,48 @@ public class StorageSystems extends ViprResourceController {
             if (StorageSystemTypes.isIsilon((storageSystem.getSystemType()))) {
                 alterColumns("isDRPort").setVisible(true);
             }
+        }
+    }
+    
+    public static class PortGroupForm {
+        public String name;
+        public String description;
+        public Integer maxPaths;
+        public Integer pathsPerInitiator;
+        public Integer minPaths;
+        public List<URI> storagePorts;
+        public Integer maxInitiatorsPerPort;
+
+        //this portion has to be removed
+        public ExportPathParameters createExportPathParams() {
+            ExportPathParameters pathParam = new ExportPathParameters();
+            pathParam.setName(name.trim());
+            pathParam.setDescription(description.trim());
+            pathParam.setMaxPaths(maxPaths);
+            pathParam.setMinPaths(minPaths);
+            pathParam.setPathsPerInitiator(pathsPerInitiator);
+            pathParam.setMaxInitiatorsPerPort(maxInitiatorsPerPort);
+
+            pathParam.setStoragePorts(storagePorts);
+            return pathParam;
+        }
+        
+        public PortGroupForm form(ExportPathParametersRestRep restRep){
+            this.name = restRep.getName();
+            this.description = restRep.getDescription();
+            this.maxPaths = restRep.getMaxPaths();
+            this.minPaths = restRep.getMinPaths();
+            this.pathsPerInitiator = restRep.getPathsPerInitiator();
+            this.maxInitiatorsPerPort = restRep.getMaxInitiatorsPerPort();
+            this.storagePorts = restRep.getStoragePorts();
+            
+            return this;
+        }
+
+        public void validate(String formName) {
+            Validation.required(formName + ".name", name);
+            Validation.required(formName + ".description", description);
+            Validation.required(formName + ".storagePorts", storagePorts);
         }
     }
 }

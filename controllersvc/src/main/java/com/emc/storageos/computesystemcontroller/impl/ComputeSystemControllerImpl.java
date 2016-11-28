@@ -684,7 +684,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         deleteExportGroupMethod(export.getId()),
-                        null, null);
+                        rollbackMethodNullMethod(), null);
             } else {
                 newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                         String.format("Updating export group %s", export.getId()), newWaitFor,

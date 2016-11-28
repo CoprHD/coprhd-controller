@@ -77,6 +77,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -1431,7 +1432,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_004);
         } catch (Exception ex) {
             _log.error("Exception occured while deleting export group {}", exportGroup, ex);
-            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+            // Clean up any pending tasks
+            ExportTaskCompleter taskCompleter = new ExportDeleteCompleter(exportGroup, false, stepId);;
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+            // Fail the step
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));        
         }
     }
 

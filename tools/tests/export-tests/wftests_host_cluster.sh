@@ -851,6 +851,10 @@ test_cluster_remove_host() {
             hosts update $host1 --cluster null
             fail hosts update $host2 --cluster null
         
+            # Zzzzzz
+            secho "Sleeping for 10"
+            sleep 10
+        
             # Rerun the command with no failures
             set_artificial_failure none 
             hosts update $host2 --cluster null

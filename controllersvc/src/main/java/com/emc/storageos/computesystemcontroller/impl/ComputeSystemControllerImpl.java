@@ -477,11 +477,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 vCenterDataCenterId = cluster.getVcenterDataCenter();
             }
 
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
+
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
-
-            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
 
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
@@ -504,10 +504,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
-
             waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
                     vCenterDataCenterId);
+
+            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {

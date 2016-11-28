@@ -212,10 +212,10 @@ public abstract class ViPRService extends AbstractExecutionService {
     /**
      * Add newly created replica for given volume/CG  to db and keep records for applying retention policy
      * 
-     * @param volumeOrCGId
+     * @param sourceId
      * @param tasks
      */
-    protected <T extends DataObjectRestRep> void addRetainedReplicas(URI volumeOrCGId, List< Task<T> > tasks) {
+    protected <T extends DataObjectRestRep> void addRetainedReplicas(URI sourceId, List< Task<T> > tasks) {
         if (!isRetentionRequired()) {
             return;
         }
@@ -226,26 +226,44 @@ public abstract class ViPRService extends AbstractExecutionService {
         ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
         RetainedReplica retention = new RetainedReplica();
         retention.setScheduledEventId(event.getId());
-        retention.setResourceId(volumeOrCGId);
+        retention.setResourceId(sourceId);
         StringSet retainedResource = new StringSet();
         retention.setAssociatedReplicaIds(retainedResource);
         
         for (Task<? extends DataObjectRestRep> task : tasks) {
             URI resourceId = task.getResourceId();
-            if (resourceId != null && !volumeOrCGId.equals(resourceId) && !URIUtil.getModelClass(resourceId).equals(BlockConsistencyGroup.class)) {
+            if (resourceId != null && !sourceId.equals(resourceId)) {
+                info("Add %s to retained replica", resourceId.toString());
                 retainedResource.add(resourceId.toString());
             }
 
             if (task.getAssociatedResources() != null
                     && !task.getAssociatedResources().isEmpty()) {
                 for (URI id : ResourceUtils.refIds(task.getAssociatedResources())) {
-                    if (volumeOrCGId.equals(id) || URIUtil.getModelClass(resourceId).equals(BlockConsistencyGroup.class)) {
+                    if (sourceId.equals(id)) {
                         continue;
                     }
+                    info("Add %s to retained replica", id.toString());
                     retainedResource.add(id.toString());
                 }
             }
         }
+
+        modelClient.save(retention);
+    }
+    
+    protected <T extends DataObjectRestRep> void addRetainedReplicas(URI sourceId, String replicaName) {
+        if (!isRetentionRequired()) {
+            return;
+        }
+        
+        ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
+        RetainedReplica retention = new RetainedReplica();
+        retention.setScheduledEventId(event.getId());
+        retention.setResourceId(sourceId);
+        StringSet retainedResource = new StringSet();
+        retention.setAssociatedReplicaIds(retainedResource);
+        retainedResource.add(replicaName);
 
         modelClient.save(retention);
     }

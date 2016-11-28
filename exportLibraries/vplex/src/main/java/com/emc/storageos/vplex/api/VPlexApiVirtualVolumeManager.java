@@ -147,9 +147,13 @@ public class VPlexApiVirtualVolumeManager {
             if (isDistributed) {
                 // Create and find the distributed device using the local devices.
                 String distributedDeviceName = createDistributedDevice(localDevices, winningClusterId);
+                s_logger.info("Created distributed device on local devices");
                 VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                         .findDistributedDevice(distributedDeviceName, true);
-                s_logger.info("Created distributed device on local devices");
+                if (distDeviceInfo == null) {
+                    s_logger.error("Distributed device {} was successfully created but not returned by the VPLEX system", distributedDeviceName); 
+                    throw VPlexApiException.exceptions.failedGettingDistributedDevice(distributedDeviceName);
+                }
                 distDeviceInfo.setLocalDeviceInfo(localDevices);
                 clusterId = distDeviceInfo.getClusterId();
                 deviceName = distDeviceInfo.getName();
@@ -2300,28 +2304,6 @@ public class VPlexApiVirtualVolumeManager {
             }
             String mirrorDevicePath = mirrorDeviceInfo.getPath();
 
-            String originalDeviceName = ddName;
-            boolean rename = false;
-            if (ddName.length() > VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR) {
-                // COP-17337 : If device length is greater than 47 character then VPLEX does not
-                // allow attaching mirror. This is mostly going to be the case for the
-                // distributed volume with XIO back-end on both legs
-                // Temporarily rename the device to 47 characters and then attach mirror
-                try {
-                    rename = true;
-                    ddName = ddName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
-                    s_logger.info("Renaming device name from {} to {} temporarily to be able to attach mirror as its longer than 47 "
-                            + " characters and VPLEX expects it to be 47 characters or less to be able to attach mirror.",
-                            originalDeviceName, ddName);
-                    ddInfo = renameVPlexResource(ddInfo, ddName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} longer than 47 character to {} to be able to attach mirror back.",
-                            originalDeviceName, ddName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDevice(originalDeviceName, ddName, ex);
-                }
-            }
-
             // Reattach this local device to the distributed device.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
                     VPlexApiConstants.URI_DEVICE_ATTACH_MIRROR);
@@ -2374,16 +2356,6 @@ public class VPlexApiVirtualVolumeManager {
                     if (response != null) {
                         response.close();
                     }
-                }
-            }
-            if (rename) {
-                try {
-                    s_logger.info("Renaming device {} back to original name {} ", ddName, originalDeviceName);
-                    renameVPlexResource(ddInfo, originalDeviceName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} back to original name {} ", ddName, originalDeviceName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDeviceBackToOriginalName(originalDeviceName, ddName, ex);
                 }
             }
         } catch (VPlexApiException vae) {

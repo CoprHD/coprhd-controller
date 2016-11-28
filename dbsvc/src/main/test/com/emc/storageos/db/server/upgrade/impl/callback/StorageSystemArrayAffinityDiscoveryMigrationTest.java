@@ -32,7 +32,7 @@ public class StorageSystemArrayAffinityDiscoveryMigrationTest extends DbSimpleMi
 
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("3.0", new ArrayList<BaseCustomMigrationCallback>() {
+        customMigrationCallbacks.put("3.1", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 2L;
             {
                 add(new StorageSystemArrayAffinityDiscoveryMigration());
@@ -44,7 +44,7 @@ public class StorageSystemArrayAffinityDiscoveryMigrationTest extends DbSimpleMi
 
     @Override
     protected String getSourceVersion() {
-        return "3.0";
+        return "3.1";
     }
 
     @Override

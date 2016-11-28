@@ -19,27 +19,25 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidator {
 
     private static final Logger log = LoggerFactory.getLogger(XtremIOExportMaskInitiatorsValidator.class);
 
-    private final Collection<Initiator> initiators;
-
     private ArrayListMultimap<String, Initiator> initiatorToIGMap;
     private ArrayListMultimap<String, Initiator> knownInitiatorToIGMap;
-    private final boolean errorOnMismatch = true;
 
-    public XtremIOExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask, Collection<Initiator> expectedInitiators) {
+    public XtremIOExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask) {
         super(storage, exportMask);
-        this.initiators = expectedInitiators;
     }
 
     public void setInitiatorToIGMap(ArrayListMultimap<String, Initiator> initiatorToIGMap) {
@@ -74,6 +72,12 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                 knownInitiatorToIGMap = ArrayListMultimap.create();
             }
 
+            // Don't validate against backing masks or RP
+            if (ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+                log.info("validation against backing mask for VPLEX or RP is disabled.");
+                return true;
+            }
+
             List<Initiator> knownInitiatorsInIGs = new ArrayList<Initiator>();
             List<String> allInitiatorsInIGs = new ArrayList<String>();
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
@@ -96,7 +100,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 Set<String> differences = Sets.difference(Sets.newHashSet(allInitiatorsInIGs), Sets.newHashSet(knownInitiatorNames));
                 for (String diff : differences) {
-                    getLogger().logDiff(exportMask.getId().toString(), "initiators", NO_MATCH, diff);
+                    getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, diff);
                 }
 
                 checkForErrors();
@@ -115,7 +119,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                         break;
                     }
                 }
-                Collection<String> knownInitiators = Collections2.transform(initiatorsInIG,
+                Collection<String> knownInitiators = Collections2.transform(Lists.newArrayList(initiatorsInIG),
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
                         CommonTransformerFunctions.fctnInitiatorToPortName());
@@ -143,13 +147,13 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                     knownInitiators.removeAll(listToIgnore);
 
                     for (String knownInitiator : knownInitiators) {
-                        getLogger().logDiff(exportMask.getId().toString(), "initiators", NO_MATCH, knownInitiator);
+                        getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, knownInitiator);
                     }
                 }
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask initiators: " + ex.getMessage(), ex);
-            if (getConfig().validationEnabled()) {
+            if (getConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask initiators: " + ex.getMessage());
             }

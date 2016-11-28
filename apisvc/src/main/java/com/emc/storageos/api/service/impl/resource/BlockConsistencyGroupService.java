@@ -51,6 +51,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -123,6 +124,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -558,7 +560,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // Set snapshot type.
             String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
             // Validate the snapshot request.
-            String snapshotName = param.getName();
+            String snapshotName = TimeUtils.formatDateForCurrent(param.getName());
             blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());
             // Set the create inactive flag.
             final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
@@ -698,6 +700,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 clazz);
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));
+        
+        List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(consistencyGroupId, _dbClient);
+        
+        // if any of the source volumes are in an application, replica management must be done via the application
+        for (Volume srcVol : volumes) {
+            if (srcVol.getApplication(_dbClient) != null) {
+                return new SnapshotList();
+            }
+        }
 
         SnapshotList list = new SnapshotList();
         List<URI> snapshotsURIs = new ArrayList<URI>();
@@ -1326,8 +1337,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // For replicas, check replica count with volume count in CG
         StorageSystem cgStorageSystem = null;
 
+       
+        //Throw exception if the operation is attempted on volumes that are in RP CG.
+        if (consistencyGroup.isRPProtectedCG()) {
+        	throw APIException.badRequests.operationNotAllowedOnRPVolumes();    
+        }
+        
         // if consistency group is not created yet, then get the storage system from the block object to be added
-        // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
+        // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)        
         if ((!consistencyGroup.created() || NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController()))
                 && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
             BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));
@@ -2015,6 +2032,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+        
+        // if any of the source volumes are in an application, replica management must be done via the application
+        for (Volume srcVol : cgVolumes) {
+            if (srcVol.getApplication(_dbClient) != null) {
+                return new NamedVolumesList();
+            }
+        }
 
         // Cycle over the volumes in the consistency group and
         // get the full copies for each volume in the group.
@@ -2319,6 +2343,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupMustBeRPProtected(consistencyGroupId);
         }
 
+        if (op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()) && !NullColumnValueGetter.isNullURI(consistencyGroupId)) {
+            ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, consistencyGroupId);
+        }
+
         // Catch any attempts to use an invalid access mode
         if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
                 !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {
@@ -2506,7 +2534,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
             // Get a list of CG volumes.
-            List<Volume> volumeList = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(consistencyGroup, _dbClient, null);
+            List<Volume> volumeList = null;
+            if (consistencyGroup.checkForType(Types.RP)) {
+                volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+            } else {
+                volumeList = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(consistencyGroup, _dbClient, null);
+            }
 
             if (volumeList == null || volumeList.isEmpty()) {
                 throw APIException.badRequests.consistencyGroupContainsNoVolumes(consistencyGroup.getId());

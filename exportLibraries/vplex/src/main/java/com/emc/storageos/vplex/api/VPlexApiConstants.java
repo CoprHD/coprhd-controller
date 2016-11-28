@@ -309,6 +309,8 @@ public class VPlexApiConstants {
     // Cluster ids
     public static final String CLUSTER_1_ID = "1";
     public static final String CLUSTER_2_ID = "2";
+    public static final Integer VPLEX_LOCAL_ASSEMBLY_COUNT = 1;
+    public static final Integer VPLEX_METRO_ASSEMBLY_COUNT = 2;
 
     // Rule set names
     public static final String CLUSTER_1_DETACHES = "cluster-1-detaches";
@@ -344,4 +346,8 @@ public class VPlexApiConstants {
     // used to indicate the device collapse command should just use the
     // given path instead of trying to locate a device component
     public static final String COLLAPSE_BY_PATH = "collapse-by-path";
+    
+    // Constants used when renaming a resource fails.
+    public static final int RENAME_RESOURCE_MAX_TRIES = 10;
+    public static final int RENAME_RESOURCE_SLEEP_TIME_MS = 2000;    
 }

@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public abstract class ExportTaskCompleter extends TaskCompleter {
 
@@ -144,19 +146,16 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
      */
     protected boolean hasActiveMasks(DbClient dbClient, ExportGroup exportGroup) {
 
-        if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
-            for (String maskUri : exportGroup.getExportMasks()) {
-                ExportMask exportMask = dbClient.queryObject(ExportMask.class, URI.create(maskUri));
-                if (exportMask != null && !exportMask.getInactive()) {
-                    _logger.info("this ExportGroup has active masks: " + exportGroup.getGeneratedName());
-                    return true;
-                }
+    	List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);    	
+        for (ExportMask exportMask : exportMasks) {
+            if (exportMask != null && !exportMask.getInactive()) {
+                _logger.info("this ExportGroup has active masks: " + exportGroup.getGeneratedName());
+                return true;
             }
-        }
+        }       
 
         _logger.info("this ExportGroup does not have any remaining active masks: "
                 + exportGroup.getGeneratedName());
         return false;
     }
-
 }

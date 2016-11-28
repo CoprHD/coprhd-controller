@@ -31,6 +31,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -295,7 +296,7 @@ public class BlockServiceUtils {
                 if (volume.getApplication(dbClient) != null) {
                     // Returns true, if any backendSystemTypes are in the supported set for applications
                     return !Collections.disjoint(applicationSupported, backendSystemTypes);
-                } else {
+                } else if (!Volume.checkForRP(dbClient, volume.getId())) {
                     // Returns true, for VPLEX&VMAX scenarios
                     return backendSystemTypes.contains(Type.vmax);
                 }
@@ -416,8 +417,19 @@ public class BlockServiceUtils {
         // array snapshot.
         String modifiedRequestedName = ResourceOnlyNameGenerator.removeSpecialCharsForName(
                 requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
-                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        List<BlockSnapshotSession> snapSessions = null;
+        Volume sourceVolume = null;
+        if (URIUtil.isType(sourceURI, Volume.class)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+        }
+        if (sourceVolume != null && NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance())) {
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(sourceVolume.getConsistencyGroup()));
+        } else {
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        }
         for (BlockSnapshotSession snapSession : snapSessions) {
             if (modifiedRequestedName.equals(snapSession.getSessionLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);
@@ -755,18 +767,18 @@ public class BlockServiceUtils {
                     String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
         }
     }
-   
-   /**
-    * Check if a unity volume could be add or removed from unity consistency group. for Unity, if the unity CG has snapshot, volumes could
-    * not be added or removed. 
-    * 
-    * @param rgName  Unity consistency group name
-    * @param volume  Unity volume to be added or removed 
-    * @param dbClient 
-    * @param isAdd   If the volume is for add
-    * @return true if the volume could be added or removed
-    */
-   public static boolean checkUnityVolumeCanBeAddedOrRemovedToCG(String rgName, Volume volume, DbClient dbClient, boolean isAdd) {
+
+    /**
+     * Check if a unity volume could be add or removed from unity consistency group. for Unity, if the unity CG has snapshot, volumes could
+     * not be added or removed.
+     * 
+     * @param rgName Unity consistency group name
+     * @param volume Unity volume to be added or removed
+     * @param dbClient
+     * @param isAdd If the volume is for add
+     * @return true if the volume could be added or removed
+     */
+    public static boolean checkUnityVolumeCanBeAddedOrRemovedToCG(String rgName, Volume volume, DbClient dbClient, boolean isAdd) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         if (storage != null) {
             if (storage.deviceIsType(Type.unity)) {
@@ -791,34 +803,34 @@ public class BlockServiceUtils {
                         return false;
                     }
                 }
-            } 
+            }
         }
         return true;
-   }
-   
-   /**
-    * Get volume's block snapshots, whose technologyType attributes is NATIVE
-    * 
-    * @param volumeUri The volume URI
-    * @param dbClient
-    * @return The list of block snapshot for the given volume.
-    */
-   public static List<BlockSnapshot> getVolumeNativeSnapshots(URI volumeUri, DbClient dbClient) {
-       List<BlockSnapshot> result = new ArrayList<BlockSnapshot>();
-       URIQueryResultList snapshotURIs = new URIQueryResultList();
-       dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-               volumeUri), snapshotURIs);
-       Iterator<URI> it = snapshotURIs.iterator();
-       while (it.hasNext()) {
-           URI snapUri = it.next();
-           BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapUri);
-           if (snapshot != null && !snapshot.getInactive() &&
-                   BlockSnapshot.TechnologyType.NATIVE.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
-               result.add(snapshot);               
-           }
-          
-       }
-       return result;
-   }
-   
+    }
+
+    /**
+     * Get volume's block snapshots, whose technologyType attributes is NATIVE
+     * 
+     * @param volumeUri The volume URI
+     * @param dbClient
+     * @return The list of block snapshot for the given volume.
+     */
+    public static List<BlockSnapshot> getVolumeNativeSnapshots(URI volumeUri, DbClient dbClient) {
+        List<BlockSnapshot> result = new ArrayList<BlockSnapshot>();
+        URIQueryResultList snapshotURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                volumeUri), snapshotURIs);
+        Iterator<URI> it = snapshotURIs.iterator();
+        while (it.hasNext()) {
+            URI snapUri = it.next();
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapUri);
+            if (snapshot != null && !snapshot.getInactive() &&
+                    BlockSnapshot.TechnologyType.NATIVE.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+                result.add(snapshot);
+            }
+
+        }
+        return result;
+    }
+
 }

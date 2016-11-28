@@ -140,6 +140,7 @@ URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
+URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
 
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
@@ -183,7 +184,7 @@ URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
 URI_BLOCK_SNAPSHOTS_EXPOSE      = URI_BLOCK_SNAPSHOTS + '/expose'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
-URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
+URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME_LIST   + '/vpool-change'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
 URI_VOLUMES_SEARCH              = URI_VOLUME_LIST     + '/search'
 URI_VOLUMES_SEARCH_PROJECT      = URI_VOLUMES_SEARCH  + '?project={0}'
@@ -1457,7 +1458,7 @@ class Bourne:
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect):
+		   auto_cross_connect, placement_policy, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1483,6 +1484,8 @@ class Bourne:
             parms['paths_per_initiator'] = pathsperinitiator
         if (systemtype):
             parms['system_type'] = systemtype
+	if (compressionEnabled):
+	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1510,6 +1513,9 @@ class Bourne:
             
         if (long_term_retention):
             parms['long_term_retention'] = long_term_retention;
+
+        if (type == 'block' and placement_policy):
+            parms['placement_policy'] = placement_policy;
 
         if (max_snapshots or max_mirrors or protectionCoS or srdf):
             cos_protection_params = dict()
@@ -1616,7 +1622,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   system_type, srdf):
+                   system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1632,6 +1638,9 @@ class Bourne:
 
         if (numpaths):
             parms['num_paths'] = numpaths
+
+	if (compressionEnabled):
+   	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1736,7 +1745,7 @@ class Bourne:
     # Assign pools to CoS or change the max snapshots/mirrors values
     # Note that you can either do pool assignments or snapshot/mirror changes at a time
     #
-    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops):
+    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy):
         params = dict()
         if (pooladds or poolrems):
             poolassignments = dict();
@@ -1777,6 +1786,9 @@ class Bourne:
             
         if (host_io_limit_iops):
             params['host_io_limit_iops'] = host_io_limit_iops
+
+        if (type == 'block' and placement_policy):
+            params['placement_policy'] = placement_policy;
             
         return self.api('PUT', URI_VPOOL_INSTANCE.format(type, cosuri), params)
 
@@ -3610,6 +3622,9 @@ class Bourne:
     def task_list(self):
         return self.api('GET', URI_TASK_LIST)
 
+    def task_list_system(self):
+        return self.api('GET', URI_TASK_LIST_SYSTEM)
+
     def task_show(self, uri):
         return self.api('GET', URI_TASK_GET.format(uri))
 
@@ -3698,7 +3713,7 @@ class Bourne:
             'vpool' :  cos,
             'size' : size,
             'count' : count,
-	    'consistency_group' : consistencyGroup,
+            'consistency_group' : consistencyGroup,
         }        
 
         print "ADD JOURNAL Params = ", parms
@@ -3776,15 +3791,33 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uri, cos_uri, cg_uri):
-        parms = {
-            'vpool' : cos_uri,
-            'consistency_group' : cg_uri
-        }
-        tr = self.api('PUT', URI_VOLUME_CHANGE_VPOOL.format(uri), parms, {})
+    def volume_change_cos(self, uris, cos_uri, cg_uri, suspend):
+        dosuspend='false'
+        if (suspend):
+            dosuspend=suspend
 
-        self.assert_is_dict(tr)
-        result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+        ids = []
+        if (type(uris) is list):
+            for u in uris:
+                ids.append(u)
+        else:
+            ids.append(uris)
+        
+        params = {}
+        params['volumes'] = ids
+        params['vpool'] = cos_uri
+        params['consistency_group'] = cg_uri
+        params['migration_suspend_before_commit'] = dosuspend
+        params['migration_suspend_before_delete_source'] = dosuspend
+        
+        posturi = URI_VOLUME_CHANGE_VPOOL
+        resp = self.api('POST', posturi, params, {})
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
         return result
 
     def volume_change_cos_matches(self, uri):

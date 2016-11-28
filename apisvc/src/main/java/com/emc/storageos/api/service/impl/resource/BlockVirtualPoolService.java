@@ -113,7 +113,7 @@ import com.google.common.base.Function;
 public class BlockVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
-    private static final String NONE = "none";
+    private static final String NONE = "NONE";
 
     /**
      * Returns all potential virtual pools, which supported the given virtual pool change operation
@@ -445,6 +445,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
 
             vpool.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
+        } else {
+            if (vpool.getArrayInfo() == null) {
+                vpool.setArrayInfo(new StringSetMap());
+                vpool.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, NONE);
+            }
         }
 
         if (null != param.getRaidLevelChanges()) {
@@ -469,6 +474,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
             }
         }
+        
+        if (null != param.getCompressionEnabled()) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
 
         vpool.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
 
@@ -476,6 +485,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
+        } else {
+            vpool.setDriveType(NONE);
         }
 
         validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator());
@@ -1489,9 +1500,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
-        if (!arrayInfo.isEmpty()) {
-            vpool.addArrayInfoDetails(arrayInfo);
+        if (arrayInfo.isEmpty()) {
+            arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, NONE);
         }
+        
+        vpool.addArrayInfoDetails(arrayInfo);
 
         if (param.getProtection() != null) {
             if (param.getProtection().getContinuousCopies() != null) {
@@ -1741,8 +1754,13 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (null != param.getAutoTieringPolicyName() && !param.getAutoTieringPolicyName().isEmpty()) {
             vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
         }
+        if (param.getCompressionEnabled() != null) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
+        } else {
+            vpool.setDriveType(NONE);
         }
 
         // Set the min/max paths an paths per initiator

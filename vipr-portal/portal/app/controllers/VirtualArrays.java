@@ -12,12 +12,12 @@ import static controllers.Common.getUserMessage;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import jobs.vipr.TenantsCall;
@@ -106,13 +106,12 @@ public class VirtualArrays extends ViprResourceController {
     private static final String SUFFIX_ALL_FLASH = "F";
 
     private static final String ALL_FLASH_VARRAY = "va-all-flash";
-    private static final String VMAX_FLASH_VARRAY = "va-vmax-all-flash";
-    private static final String XTREMIO_FLASH_VARRAY = "va-xtremio";
-    private static final String UNITY_FLASH_VARRAY = "va-unity-all-flash";
     private static final String VARRAY_PREFIX = "va-";
+    private static final String VARRAY_POSTFIX = "-auto-";
 
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
+    private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String VARRAYS = "varrays";
 
@@ -173,7 +172,7 @@ public class VirtualArrays extends ViprResourceController {
 						}
                         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                             String modelType = storageSystem.getModel();
-                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                                 ids.add(storageSystem.getId().toString());
                             }
                         }
@@ -222,9 +221,9 @@ public class VirtualArrays extends ViprResourceController {
 
 						for (VirtualArrayRestRep availVarray : availVarrays) {
 							if (StringUtils.equals(availVarray.getName(), vArrayName)) {
-								Random rand = new Random();
-								int randprefix = rand.nextInt(100);
-								vArrayName = vArrayName + randprefix;
+								Calendar localCalendar = Calendar.getInstance();
+								long currTime = localCalendar.getTimeInMillis() / 1000; // Made time in seconds for name length
+								vArrayName = vArrayName + VARRAY_POSTFIX + currTime;
 								break;
 							}
 						}
@@ -322,7 +321,7 @@ public class VirtualArrays extends ViprResourceController {
 			}
             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                 String modelType = storageSystem.getModel();
-                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                     ids.add(storageSystem.getId().toString());
                 }
             }
@@ -336,9 +335,9 @@ public class VirtualArrays extends ViprResourceController {
 		List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
 		for (VirtualArrayRestRep availVarray : availVarrays) {
 			if (StringUtils.equals(availVarray.getName(), vArrayName)) {
-				Random rand = new Random();
-				int randprefix = rand.nextInt(100);
-				vArrayName = vArrayName + randprefix;
+				Calendar localCalendar = Calendar.getInstance();
+				long currTime = localCalendar.getTimeInMillis() / 1000; // Made time in seconds for name length
+				vArrayName = vArrayName + VARRAY_POSTFIX + currTime;
 				break;
 			}
 		}
@@ -390,6 +389,15 @@ public class VirtualArrays extends ViprResourceController {
      *            the virtual array form.
      */
     private static void edit(VirtualArrayForm virtualArray) {
+    	// Check edit of virtual array is called when guide is visible
+       	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
+       	String isGuideAdd = null;
+       	if (jobject != null && jobject.get(GUIDE_VISIBLE) != null) {
+       		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+       	}
+       	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
+       		renderArgs.put(GUIDE_VISIBLE, isGuideAdd);
+       	}
         Map<Boolean, String> autoSanZoningOptions = Maps.newHashMap();
         autoSanZoningOptions.put(Boolean.TRUE, Messages.get("virtualArray.autoSanZoning.true"));
         autoSanZoningOptions.put(Boolean.FALSE, Messages.get("virtualArray.autoSanZoning.false"));
@@ -955,26 +963,40 @@ public class VirtualArrays extends ViprResourceController {
     }
 
     public static void getDisconnectedStorage(@As(",") String[] ids) {
-        List<VirtualArrayRestRep> virtualarrays = VirtualArrayUtils.getVirtualArrays();
         Set<String> connectedstoragesystems = new HashSet<String>();
         Set<String> disConnectedstoragesystems = new HashSet<String>();
-        for (VirtualArrayRestRep virtualarray:virtualarrays) {
-            for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(virtualarray.getId().toString())) {
-                connectedstoragesystems.add(storageSystem.getId().toString());
-            }
-        }
-        for (String id:ids) {
-            StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
-            if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
-                //ignore for now
-                continue;
-            }
-            if (!connectedstoragesystems.contains(id)){
-                disConnectedstoragesystems.add(storageSystem.getName());
-            }
-        }
-        renderJSON(disConnectedstoragesystems);
-    }
+
+		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+		if (dataObject != null) {
+			JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+			if (varrays != null) {
+				for (Object virtualarray : varrays) {
+					JsonObject varrayobject = (JsonObject) virtualarray;
+					String varrayid = varrayobject.get("id").getAsString();
+                    VirtualArrayRestRep virtualArrayRestRep = VirtualArrayUtils.getVirtualArray(varrayid);
+                    if (virtualArrayRestRep == null || virtualArrayRestRep.getInactive()) {
+                        // ignore for now
+                        continue;
+                    }
+					for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(varrayid)) {
+						connectedstoragesystems.add(storageSystem.getId().toString());
+					}
+				}
+			}
+		}
+
+		for (String id : ids) {
+			StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
+			if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+				// ignore for now
+				continue;
+			}
+			if (!connectedstoragesystems.contains(id)) {
+				disConnectedstoragesystems.add(storageSystem.getName());
+			}
+		}
+		renderJSON(disConnectedstoragesystems);
+	}
 
     /**
      * Adds all ports of the given storage systems to the virtual array.

@@ -232,7 +232,10 @@ public class PasswordUtils {
         }
 
         try {
-            siteScopeprops = coordinator.getTargetInfo(coordinator.getSiteId(), PropertyInfoExt.class).getProperties();
+            PropertyInfo targetInfo = coordinator.getTargetInfo(coordinator.getSiteId(), PropertyInfoExt.class);
+            if (targetInfo != null) {
+                siteScopeprops = targetInfo.getProperties();
+            }
         } catch (Exception e) {
             _log.info("Fail to get the site information ", e);
         }

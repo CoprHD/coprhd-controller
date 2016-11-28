@@ -147,6 +147,7 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
         createdSnap.setParent(new NamedURI(blockObj.getId(), label));
         createdSnap.setLabel(label);
         createdSnap.setStorageController(blockObj.getStorageController());
+        createdSnap.setSystemType(blockObj.getSystemType());
         createdSnap.setVirtualArray(blockObj.getVirtualArray());
         createdSnap.setProtocol(new StringSet());
         createdSnap.getProtocol().addAll(blockObj.getProtocol());

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -369,26 +370,49 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
 
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device, exportMask);
-            // Determine if we're deleting the last volume.
+
+            // Determine if we're deleting the last volume in the mask.
+            StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) {
-                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            List<URI> passedVolumesInMask = new ArrayList<>(volumes);
+            if (maskVolumesMap != null) {
+                remainingVolumes.addAll(maskVolumesMap.keySet());
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
+                
+                // Remove any volumes from the volume list that are no longer
+                // in the export mask. When a failure occurs removing a backend
+                // volume from a mask, the rollback method will try and remove it
+                // again. However, in the case of a distributed volume, one side
+                // may have succeeded, so we will try and remove it again. Previously,
+                // this was not a problem. However, new validation exists at the
+                // block level that checks to make sure the volume to remove is
+                // actually in the mask, which now causes a failure when you remove
+                // it a second time. So, we check here and remove any volumes that
+                // are not in the mask to handle this condition.
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                    passedVolumesInMask.remove(volume);
+                }
             }
-            // If it is last volume and there are no existing initiators
-            // or existing volumes, delete the ExportMask.
+            
+            // None of the volumes is in the export mask, so we are done.
+            if (passedVolumesInMask.isEmpty()) {
+                _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            
+            // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && !exportMask.hasAnyExistingVolumes()
-                    && !exportMask.hasAnyExistingInitiators()){
-                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
+                    && !exportMask.hasAnyExistingVolumes()){
+                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                     initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 }
-                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
+                device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);

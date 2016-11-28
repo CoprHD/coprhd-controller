@@ -4,13 +4,15 @@
  */
 package com.emc.vipr.model.catalog;
 
+import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-public class OrderCommonParam {
+public class OrderCommonParam implements Serializable {
+    static final long serialVersionUID = 2016081709567510155L;
 
     /**
      * Parameters to an order

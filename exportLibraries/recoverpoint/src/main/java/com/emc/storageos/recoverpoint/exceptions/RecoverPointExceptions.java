@@ -83,6 +83,10 @@ public interface RecoverPointExceptions {
     public RecoverPointException failedToEnableCopy(final String cgCopyName, final String cgName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToEnableDirectAccessForCopy(final String cgCopyName, final String cgName, final Throwable cause,
+            String state);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToDisableCopy(final String cgCopyName, final String cgName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
@@ -339,4 +343,19 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToGetCopyAccessStateProtectionSystemMismatch(final URI volume, final URI protectionSystem);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException waitForInvalidCopyState(final String state);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException unableToPerformValidation(final String errMsg);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException imageAccessModeNotSupported(final String imageAccessMode);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException protectionOperationNotSupported(final String operation);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failoverWrongTargetSpecified();
 }

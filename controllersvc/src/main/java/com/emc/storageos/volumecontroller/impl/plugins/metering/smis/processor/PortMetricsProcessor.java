@@ -605,6 +605,9 @@ public class PortMetricsProcessor {
                     // The metrics are not valid for this array. Log it and return 50.0%.
                     _log.info(String.format("Port metrics not valid for array %s (%s), using 50.0 percent for array metric",
                             storageDevice.getLabel(), storageSystemURI.toString()));
+                    // clear the previous value
+                    storageDevice.setAveragePortMetrics(-1.0);
+                    _dbClient.updateObject(storageDevice);
                     return 50.0;
                 }
 
@@ -636,6 +639,9 @@ public class PortMetricsProcessor {
                     // The metrics are not valid for this array. Log it and return 50.0%.
                     _log.info(String.format("CPU usage metrics not valid for array %s (%s), using 50.0 percent for array metric",
                             storageDevice.getLabel(), storageSystemURI.toString()));
+                    // clear the previous value
+                    storageDevice.setAveragePortMetrics(-1.0);
+                    _dbClient.updateObject(storageDevice);
                     return 50.0;
                 }
 
@@ -1491,10 +1497,11 @@ public class PortMetricsProcessor {
     /**
      * Compute and set each storage pool's average port usage metric. The average port metrics is
      * actually pool's storage system's port metric.
-     * 
+     *
      * @param storagePools
+     * @return storageSystemAvgPortMetricsMap
      */
-    public void computeStoragePoolsAvgPortMetrics(List<StoragePool> storagePools) {
+    public Map<URI, Double> computeStoragePoolsAvgPortMetrics(List<StoragePool> storagePools) {
         Map<URI, Double> storageSystemAvgPortMetricsMap = new HashMap<URI, Double>();
 
         // compute storage system average port metric
@@ -1513,6 +1520,7 @@ public class PortMetricsProcessor {
 
             storagePool.setAvgStorageDevicePortMetrics(storageSystemAvgPortMetricsMap.get(storageSystemURI));
         }
+        return storageSystemAvgPortMetricsMap;
     }
 
     /**

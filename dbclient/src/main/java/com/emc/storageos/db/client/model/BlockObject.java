@@ -6,10 +6,14 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * @author burckb
@@ -61,6 +65,9 @@ public abstract class BlockObject extends DataObject {
 
     // Name reference of replication group that the object belong to.
     private String _replicationGroupInstance;
+
+    // The storage system type this BlockObject belongs to
+    private String _systemType;
 
     @AlternateId("AltIdIndex")
     @Name("wwn")
@@ -229,6 +236,16 @@ public abstract class BlockObject extends DataObject {
         setChanged("replicationGroupInstance");
     }
 
+    @Name("systemType")
+    public String getSystemType() {
+        return _systemType;
+    }
+
+    public void setSystemType(String systemType) {
+        _systemType = systemType;
+        setChanged("systemType");
+    }
+
     /**
      * Utility function that would allow you to retrieve any derived BlockObject
      * based on its URI (e.g, Volume or BlockSnapshot).
@@ -270,6 +287,35 @@ public abstract class BlockObject extends DataObject {
             blockObjects = dbClient.queryObject(BlockMirror.class, blockURIs);
         }
 
+        return blockObjects;
+    }
+
+    /**
+     * Fetch a list of BlockObjects from the database based on their URI.
+     * The list may contain a mixed collection of BlockObject derived URIs and
+     * the resulting list will also contain a mixed collection of BlockObject instances.
+     *
+     * @param dbClient  Database client
+     * @param blockURIs List of URIs for BlockObject derived instances
+     * @return          List of BlockObject instances
+     */
+    public static List<? extends BlockObject> fetchAll(DbClient dbClient, Collection<URI> blockURIs) {
+        List<? extends BlockObject> blockObjects = Lists.newArrayList();
+
+        Map<Class, List<URI>> boTypeToURIs = Maps.newHashMap();
+        for (URI blockURI : blockURIs) {
+            Class modelClass = URIUtil.getModelClass(blockURI);
+
+            if (!boTypeToURIs.containsKey(modelClass)) {
+                boTypeToURIs.put(modelClass, Lists.<URI> newArrayList());
+            }
+            boTypeToURIs.get(modelClass).add(blockURI);
+        }
+
+        for (Map.Entry<Class, List<URI>> entry : boTypeToURIs.entrySet()) {
+            List objects = dbClient.queryObject(entry.getKey(), entry.getValue());
+            blockObjects.addAll(objects);
+        }
         return blockObjects;
     }
 

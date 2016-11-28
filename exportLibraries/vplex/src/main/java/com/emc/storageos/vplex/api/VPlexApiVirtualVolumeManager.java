@@ -92,13 +92,13 @@ public class VPlexApiVirtualVolumeManager {
         } else if ((!isDistributed) && (nativeVolumeInfoList.size() != 1)) {
             throw VPlexApiException.exceptions.oneDevicesRequiredForLocalVolume();
         }
-
-        // Find the storage volumes corresponding to the passed native
-        // volume information, discovery them if required.
+        
         if (null == clusterInfoList) {
             clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
 
+        // Find the storage volumes corresponding to the passed native
+        // volume information, discover them if required.
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(nativeVolumeInfoList,
                 discoveryRequired, clusterInfoList);
 
@@ -147,9 +147,13 @@ public class VPlexApiVirtualVolumeManager {
             if (isDistributed) {
                 // Create and find the distributed device using the local devices.
                 String distributedDeviceName = createDistributedDevice(localDevices, winningClusterId);
+                s_logger.info("Created distributed device on local devices");
                 VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                         .findDistributedDevice(distributedDeviceName, true);
-                s_logger.info("Created distributed device on local devices");
+                if (distDeviceInfo == null) {
+                    s_logger.error("Distributed device {} was successfully created but not returned by the VPLEX system", distributedDeviceName); 
+                    throw VPlexApiException.exceptions.failedGettingDistributedDevice(distributedDeviceName);
+                }
                 distDeviceInfo.setLocalDeviceInfo(localDevices);
                 clusterId = distDeviceInfo.getClusterId();
                 deviceName = distDeviceInfo.getName();
@@ -1797,24 +1801,39 @@ public class VPlexApiVirtualVolumeManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(pathBuilder.toString()));
         s_logger.info("Update name URI is {}", requestURI.toString());
-        ClientResponse response = _vplexApiClient.put(requestURI);
-        String responseStr = response.getEntity(String.class);
-        s_logger.info("Update name response is {}", responseStr);
-        if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
-            if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
-                s_logger.info("Update name is completing asynchronously");
-                _vplexApiClient.waitForCompletion(response);
-                response.close();
-            } else {
-                response.close();
-                String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
-                throw VPlexApiException.exceptions.renameResourceFailureStatus(
-                        String.valueOf(response.getStatus()), cause);
+        
+        // Try and rename the resource. For newly created resources, the VPLEX
+        // database may not be consistent and the VPLEX may return an unexpected 
+        // failure (See COP-24456). A retry of the request is likely to succeed. 
+        int retryCount = 0;
+        while (++retryCount <= VPlexApiConstants.RENAME_RESOURCE_MAX_TRIES) {
+            ClientResponse response = _vplexApiClient.put(requestURI);
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Update name response is {}", responseStr);
+            if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+                if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Update name is completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                    response.close();
+                } else {
+                    response.close();
+                    if (retryCount == VPlexApiConstants.RENAME_RESOURCE_MAX_TRIES) {
+                        String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                        throw VPlexApiException.exceptions.renameResourceFailureStatus(
+                                String.valueOf(response.getStatus()), cause);
+                    } else {
+                        s_logger.info(String.format("Update name for resource %s failed on attempt %d of %d, retrying...",
+                                resourceInfo.getName(), retryCount, VPlexApiConstants.RENAME_RESOURCE_MAX_TRIES));
+                        VPlexApiUtils.pauseThread(VPlexApiConstants.RENAME_RESOURCE_SLEEP_TIME_MS);
+                        continue;
+                    } 
+                }
             }
+            String newPath = resourceInfo.getPath().replaceFirst(resourceInfo.getName(), newName);
+            resourceInfo.setPath(newPath);
+            resourceInfo.setName(newName);
+            break;
         }
-        String newPath = resourceInfo.getPath().replaceFirst(resourceInfo.getName(), newName);
-        resourceInfo.setPath(newPath);
-        resourceInfo.setName(newName);
         return resourceInfo;
     }
 
@@ -2285,28 +2304,6 @@ public class VPlexApiVirtualVolumeManager {
             }
             String mirrorDevicePath = mirrorDeviceInfo.getPath();
 
-            String originalDeviceName = ddName;
-            boolean rename = false;
-            if (ddName.length() > VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR) {
-                // COP-17337 : If device length is greater than 47 character then VPLEX does not
-                // allow attaching mirror. This is mostly going to be the case for the
-                // distributed volume with XIO back-end on both legs
-                // Temporarily rename the device to 47 characters and then attach mirror
-                try {
-                    rename = true;
-                    ddName = ddName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
-                    s_logger.info("Renaming device name from {} to {} temporarily to be able to attach mirror as its longer than 47 "
-                            + " characters and VPLEX expects it to be 47 characters or less to be able to attach mirror.",
-                            originalDeviceName, ddName);
-                    ddInfo = renameVPlexResource(ddInfo, ddName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} longer than 47 character to {} to be able to attach mirror back.",
-                            originalDeviceName, ddName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDevice(originalDeviceName, ddName, ex);
-                }
-            }
-
             // Reattach this local device to the distributed device.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
                     VPlexApiConstants.URI_DEVICE_ATTACH_MIRROR);
@@ -2359,16 +2356,6 @@ public class VPlexApiVirtualVolumeManager {
                     if (response != null) {
                         response.close();
                     }
-                }
-            }
-            if (rename) {
-                try {
-                    s_logger.info("Renaming device {} back to original name {} ", ddName, originalDeviceName);
-                    renameVPlexResource(ddInfo, originalDeviceName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} back to original name {} ", ddName, originalDeviceName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDeviceBackToOriginalName(originalDeviceName, ddName, ex);
                 }
             }
         } catch (VPlexApiException vae) {

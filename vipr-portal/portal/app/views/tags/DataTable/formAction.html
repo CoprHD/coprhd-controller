@@ -1,9 +1,11 @@
 %{
     onSubmit = ""
     if (_confirm) {
+        onSubmit += "var numItems = table.${_table}.dataTable.getSelectedValues().length; selectedEntriesMsg = Messages.get('dataTable.confirmSelected', numItems) ;"
+        
         confirmMsg = _confirm.escapeJavaScript();
         confirmMsg = org.apache.commons.lang.StringEscapeUtils.escapeHtml(confirmMsg);
-        onSubmit += "if (!confirm('${confirmMsg.raw()}')) { return false; } "
+        onSubmit += "if (!confirm('${confirmMsg.raw()}' + ' ' +selectedEntriesMsg)) { return false; } "
     }
     onSubmit += "\$(this.ids).val(table.${_table}.dataTable.getSelectedValues()); "
     onSubmit += "util.onFormSubmitted('#${_id}'); return true;"

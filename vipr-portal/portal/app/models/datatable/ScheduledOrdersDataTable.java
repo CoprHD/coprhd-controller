@@ -4,8 +4,13 @@
  */
 package models.datatable;
 
+import java.net.URI;
+import java.time.ZonedDateTime;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
+import play.Logger;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
 import util.OrderUtils;
@@ -25,7 +30,8 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
         super(Models.currentAdminTenant());
         alterColumn("submittedBy").setVisible(true);
         addColumn("executionWindowId").hidden().setSearchable(false);
-        addColumn("executionWindow");
+        addColumn("actions").setRenderFunction("renderButtonBar");
+        sortAllExcept("actions");
     }
 
     public int getMaxOrders() {
@@ -37,7 +43,7 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
     }
 
     public List<ScheduledOrderInfo> fetchData(DataTableParams params) {
-        List<OrderRestRep> orders = OrderUtils.getScheduledOrders();
+        List<OrderRestRep> orders = OrderUtils.getScheduledOrders(URI.create(Models.currentAdminTenant()));
         if (maxOrders > 0) {
             while (orders.size() > maxOrders) {
                 orders.remove(orders.size() - 1);

@@ -229,6 +229,14 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         
         return requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
     }
+    
+    public boolean isRPProtectedCG() {
+        if (requestedTypes == null || requestedTypes.isEmpty()) {
+            return false;
+        }
+        
+        return requestedTypes.contains(Types.RP.toString());
+    }
 
     public void setRequestedTypes(StringSet requestedTypes) {
         this.requestedTypes = requestedTypes;

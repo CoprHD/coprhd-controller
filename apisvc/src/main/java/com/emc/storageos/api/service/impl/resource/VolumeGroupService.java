@@ -124,6 +124,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -1668,6 +1669,7 @@ public class VolumeGroupService extends TaskResourceService {
         // validate name
         String name = param.getName();
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
+        name = TimeUtils.formatDateForCurrent(name);
 
         // snapsetLabel is normalized in RP, do it here too to avoid potential mismatch
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
@@ -1737,6 +1739,14 @@ public class VolumeGroupService extends TaskResourceService {
          */
         // TODO consider copyOnHaSide from user's request once the underlying implementation supports it.
         List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, false);
+        if (!vmax3Volumes.isEmpty()) {
+            // check snap session name provided is not duplicate
+            VolumeGroupCopySetList sessionSet = getVolumeGroupSnapsetSessionSets(volumeGroup);
+            if (sessionSet.getCopySets().contains(name)) {
+                // duplicate name
+                throw APIException.badRequests.duplicateCopySetName(name, ReplicaTypeEnum.SNAPSHOT_SESSION.toString());
+            }
+        }
 
         // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);
@@ -2333,9 +2343,9 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT_SESSION);
 
         // validate name
-        String name = param.getName();
+        String name = TimeUtils.formatDateForCurrent(param.getName());
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
-
+        
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {
             // original name has special chars only
@@ -3971,23 +3981,6 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Check if the volume is a vplex volume
-     * 
-     * @param volume The volume to be checked
-     * @return true or false
-     */
-    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
-        boolean result = false;
-        URI storageUri = volume.getStorageController();
-        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
-        String systemType = storage.getSystemType();
-        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
-            result = true;
-        }
-        return result;
-    }
-
-    /**
      * Gets all clones for the given set name and volume group.
      * 
      * @param cloneSetName
@@ -4004,7 +3997,7 @@ public class VolumeGroupService extends TaskResourceService {
             while (iter.hasNext()) {
                 Volume vol = iter.next();
                 URI sourceId = getSourceIdForFullCopy(vol);
-                if (sourceId != null) {
+                if (!NullColumnValueGetter.isNullURI(sourceId)) {
                     Volume sourceVol = _dbClient.queryObject(Volume.class, sourceId);
                     if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
                             && sourceVol.getVolumeGroupIds().contains(volumeGroupId.toString())) {

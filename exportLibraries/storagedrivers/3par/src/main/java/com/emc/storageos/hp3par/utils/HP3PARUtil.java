@@ -125,16 +125,15 @@ public class HP3PARUtil {
                         _log.warn("3PARDriver: discoverStoragePorts Invalid port {}", port.getPortName());
                         break;
                 }
-                
-                // loop for port speed as specific query is not supported
-                for (PortStatMembers currStat:portStatResult.getMembers()) {
 
-                    if (currMember.getPortPos().getNode() == currStat.getNode() && 
-                            currMember.getPortPos().getSlot() == currStat.getSlot() && 
-                            currMember.getPortPos().getCardPort() == currStat.getCardPort()) {
-                        port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.MEGA_BYTE);
-                    }
-                }
+
+                for (PortStatMembers currStat:portStatResult.getMembers()) {
+               		if (currMember.getPortPos().getNode() == currStat.getNode() && 
+               			currMember.getPortPos().getSlot() == currStat.getSlot() && 
+               			currMember.getPortPos().getCardPort() == currStat.getCardPort()) {
+                 	    port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.MEGA_BYTE);
+               		}
+               	}
 
                 // grouping with cluster node and slot
                 port.setPortGroup(currMember.getPortPos().getNode().toString());
@@ -159,6 +158,7 @@ public class HP3PARUtil {
                 
                 String id = String.format("%s:%s:%s", currMember.getPortPos().getNode(),
                         currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
+    
                 // Storage object properties
                 port.setNativeId(id);
                 port.setDeviceLabel(port.getPortName());

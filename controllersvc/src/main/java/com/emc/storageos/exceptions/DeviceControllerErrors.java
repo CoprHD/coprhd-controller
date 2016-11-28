@@ -203,7 +203,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError expandFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError volumeReachedMaxExports(final String volume, final int hlu, final Throwable cause);
 
@@ -217,6 +217,9 @@ public interface DeviceControllerErrors {
     public ServiceError updateFileShareCIFSACLsFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError updateFileShareNFSACLFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError createFileSystemSnapshotFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
@@ -226,5 +229,17 @@ public interface DeviceControllerErrors {
     public ServiceError deleteCIFSShareFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError restoreFSFromSnapshotFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deleteFSSnapshotFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deleteShareACLFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError removeVolumeFromMaskFailed(final String volumeURIs);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
 }

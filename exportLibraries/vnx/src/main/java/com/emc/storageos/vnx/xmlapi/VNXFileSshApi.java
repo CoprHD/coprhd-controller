@@ -677,7 +677,7 @@ public class VNXFileSshApi {
             if (dmName == null) {
                 return null;
             }
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_MOUNT_CMD, dmName);
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, dmName);
             // Parse message to get map
             String[] entries = result.getMessage().split("\n");
             for (String entry : entries) {
@@ -715,7 +715,7 @@ public class VNXFileSshApi {
             data.append(vdmName);
 
             // Execute command
-            XMLApiResult result = executeSsh(VNXFileSshApi.SERVER_INFO_CMD, data.toString());
+            XMLApiResult result = executeSshRetry(VNXFileSshApi.SERVER_INFO_CMD, data.toString());
 
             if (result.isCommandSuccess()) {
                 // Parse message to get Interfaces and properties
@@ -761,7 +761,7 @@ public class VNXFileSshApi {
             data.append(" -list ");
 
             // Execute command
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -817,7 +817,7 @@ public class VNXFileSshApi {
             data.append(" -list ");
 
             // Execute command
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -873,7 +873,7 @@ public class VNXFileSshApi {
             data.append(path);
 
             // Execute command
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[ \n]");
@@ -917,7 +917,7 @@ public class VNXFileSshApi {
             data.append(" -list ");
 
             // Execute command
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -977,7 +977,7 @@ public class VNXFileSshApi {
             data.append(" -list ");
 
             // Execute command
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_USER_CMD, data.toString());
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_USER_CMD, data.toString());
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
@@ -1026,7 +1026,7 @@ public class VNXFileSshApi {
             data.append("");
 
             // Execute command
-            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_USER_CMD, data.toString());
+            XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_USER_CMD, data.toString());
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
@@ -1126,7 +1126,7 @@ public class VNXFileSshApi {
             cmd.append(fsName);
 
             // Execute command
-            XMLApiResult fsInfoResult = this.executeSsh(VNXFileSshApi.NAS_FS,
+            XMLApiResult fsInfoResult = this.executeSshRetry(VNXFileSshApi.NAS_FS,
                     cmd.toString());
 
             // Parse message to get file system size properties

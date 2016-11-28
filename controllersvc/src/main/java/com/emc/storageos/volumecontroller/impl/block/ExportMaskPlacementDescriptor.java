@@ -312,6 +312,22 @@ public class ExportMaskPlacementDescriptor {
             // Yep - there are volumes still not placed anywhere
             unplacedVolumes.putAll(tentativelyUnplacedVolumes);
         }
+        
+        // Invalid masks cannot be alternatives.
+        for (URI volumeURI : volumeToAlternativeMasks.keySet()) {
+            Set<URI> altMaskURIs = volumeToAlternativeMasks.get(volumeURI);
+            if (altMaskURIs != null) {
+                altMaskURIs.remove(uri);
+            }
+        }
+        
+        // Also update the equivalent masks map.
+        for (String key : equivalentMasks.keySet()) {
+            Set<URI> eqMaskURIs = equivalentMasks.get(key);
+            if (eqMaskURIs != null) {
+                eqMaskURIs.remove(uri);
+            }
+        }
     }
 
     /**

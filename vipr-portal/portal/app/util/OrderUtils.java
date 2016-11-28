@@ -104,7 +104,6 @@ public class OrderUtils {
     public static void cancelOrder(URI orderId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         catalog.orders().cancelOrder(orderId);
-        ;
     }
 
     public static ExecutionStateRestRep getExecutionState(URI orderId) {

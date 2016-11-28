@@ -514,7 +514,6 @@ public class ExternalDeviceCommunicationInterface extends
 
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
                         pool.setInactive(false);
-                        pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);
                     } else if (pools.size() == 1) {
                         _log.info("Pool {} was previously discovered, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
@@ -533,6 +532,7 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.setOperationalStatus(storagePool.getOperationalStatus());
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
+                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,
@@ -660,6 +660,9 @@ public class ExternalDeviceCommunicationInterface extends
 		// Get the capabilities specified for the storage pool and
 		// process and process deduplication capability if reported by driver
 		List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+        if (capabilities == null) {
+            return;
+        }
 		for (CapabilityInstance capability : capabilities) {
 			// Get the capability definition for the capability.
 			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();

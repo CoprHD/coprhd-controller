@@ -8,8 +8,9 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,11 +18,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
-import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -30,7 +28,6 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -38,6 +35,9 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -79,6 +79,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String CREATE_FILESYSTEM_SNAPSHOT_WF_NAME = "CREATE_FILESYSTEM_SNAPSHOT_WORKFLOW";
     static final String DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME = "DELETE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
     static final String DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME = "DELETE_FILESYSTEM_EXPORT_RULES_WORKFLOW";
+    static final String EXPAND_FILESYSTEM_WF_NAME = "EXPAND_FILESYSTEM_WORFLOW";
+    static final String DELETE_FILESYSTEM_SNAPSHOT_WF_NAME = "DELETE_FILESYSTEM_SNAPSHOT_WORKFLOW";
+    static final String RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME = "RESTORE_FILESYSTEM_SNAPSHOT_WORFLOW";
+    static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
+    static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -86,20 +91,33 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME = "REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WORKFLOW";
     static final String REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME = "REPLICATE_NFS_EXPORT_TO_TARGET_WORFLOW";
     static final String REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME = "REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WORFLOW";
+    static final String REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME = "REPLICATE_NFS_ACLS_TO_TARGET_WORKFLOW";
 
     private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
     private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
     private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
+    private static final String UPDATE_FILESYSTEM_NFS_ACL_METHOD = "updateNFSAcl";
     private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
     private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
     private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
     private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
+    private static final String MODIFY_FILESYSTEM_METHOD = "modifyFS";
     private static final String FAILOVER_FILE_SYSTEM_METHOD = "failoverFileSystem";
     private static final String FAILBACK_FILE_SYSTEM_METHOD = "doFailBackMirrorSessionWF";
+    private static final String REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD = "addStepsToReplicateDirectoryQuotaSettings";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD = "addStepsToReplicateCIFSShares";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD = "addStepsToReplicateNFSExportRules";
+    private static final String REPLICATE_FILESYSTEM_NFS_ACLS_METHOD = "addStepsToReplicateNFSACLs";
+    private static final String RESTORE_FILESYSTEM_SNAPSHOT_METHOD = "restoreFS";
+    private static final String DELETE_FILESYSTEM_SNAPSHOT_METHOD = "delete";
+    private static final String DELETE_FILESYSTEM_SHARE_ACLS_METHOD = "deleteShareACLs";
+    private static final String DELETE_FILESYSTEM_EXPORT_METHOD = "deleteExportRules";
+
+    private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
+    private static final String VERIFY_MOUNT_DEPENDENCIES_METHOD = "verifyMountDependencies";
+    private static final String CHECK_IF_EXPORT_IS_MOUNTED = "CheckIfExportIsMounted";
 
     /*
      * (non-Javadoc)
@@ -171,7 +189,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * (FileShare, FileMirroring). This method is responsible for creating
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
      * 
-     * @param filesystems
+     * @param fs
+     * @param fileDescriptors
      * @param taskId
      * @throws ControllerException
      */
@@ -368,14 +387,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, taskId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Creating CIFS Share : " + smbShare.getName() + " for FileSystem : " + fileObj.getLabel();
-            successMessage = "CIFS Share creation for FileSystem :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating CIFS share for file system : %s, share name: %s ", uri, smbShare.getName());
+            successMessage = String.format("Creating CIFS share for file system : %s, share name: %s finished succesfully.", uri,
+                    smbShare.getName());
             opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SHARE.getName();
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, taskId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Creating CIFS Share : " + smbShare.getName() + " for Snapshot :" + fileObj.getLabel();
-            successMessage = "CIFS Share creation for Snapshot :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating CIFS share for file system snapshot : %s, share name: %s ", uri, smbShare.getName());
+            successMessage = String.format("Creating CIFS share for file system : %s, share name: %s finished succesfully.", uri,
+                    smbShare.getName());
             opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
         }
         try {
@@ -386,7 +407,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not create CIFS share for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Creating CIFS share for file system : %s, share name: %s failed.", uri,
+                    smbShare.getName()), ex);
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -404,15 +426,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Creating NFS Export for File System :" + fileObj.getLabel();
-            successMessage = "NFS Export creation for FileSystem :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating NFS export for file system : %s", uri);
+            successMessage = String.format("Creating NFS export for file system : %s finished succesfully.", uri);
             opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Creating NFS Export for FileSystem Snapshot :" + fileObj.getLabel();
-            successMessage = "NFS Export creation for FileSystem Snapshot :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating NFS export for file system snapshot : %s", uri);
+            successMessage = String.format("Creating NFS export for file system snapshot : %s finished succesfully.", uri);
             opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
         }
         try {
@@ -422,7 +444,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep, stepDescription, storage, args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not create NFS Export for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Creating NFS export for file system/snapshot : %s failed", uri), ex);
             ServiceError serviceError = DeviceControllerException.errors.exportFileShareFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -430,7 +452,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void updateExportRules(URI storage, URI uri, FileExportUpdateParams param, String opId) throws ControllerException {
+    public void updateExportRules(URI storage, URI uri, FileExportUpdateParams param, boolean unmountExport, String opId)
+            throws ControllerException {
         FileObject fileObj = null;
         String stepDescription = null;
         String successMessage = null;
@@ -440,27 +463,42 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Updating File System : " + fileObj.getLabel() + " Export Rules: " + param.toString();
-            successMessage = "File System: " + fileObj.getLabel() + " Export Rule updated successfully";
+            stepDescription = String.format("Updating file system : %s export rules: %s", uri, param.toString());
+            successMessage = String.format("Updating file system : %s export rules: %s finished successfully.", uri, param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Updating FileSystem Snapshot : " + fileObj.getLabel() + " Export Rules: " + param.toString();
-            successMessage = "FileSystem Snapshot : " + fileObj.getLabel() + " Export Rule updated successfully";
+            stepDescription = String.format("Updating file system : %s export rules: %s", uri, param.toString());
+            successMessage = String.format("Updating file system : %s export rules: %s finished successfully.", uri, param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT.getName();
         }
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
-            String exportRuleUpdateStep = workflow.createStepId();
+            String waitFor = null;
+            // Check if the export should be unmounted before deleting
+            if (unmountExport) {
+                // get all the mounts and generate steps for unmounting them
+                List<MountInfo> mountList = _fileDeviceController.getMountedExports(uri, param.getSubDir(), param);
+                for (MountInfo mount : mountList) {
+                    Object[] args = new Object[] { mount.getHostId(), mount.getFsId(), mount.getMountPath() };
+                    waitFor = _fileDeviceController.createMethod(workflow, waitFor, UNMOUNT_FILESYSTEM_EXPORT_METHOD, null,
+                            "Unmounting path:" + mount.getMountPath(), storage, args);
+                }
+            } else if (URIUtil.isType(uri, FileShare.class)) {
+                // Check if the export rule is mounted and throw an error if mounted
+                Object[] args = new Object[] { uri, param };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, VERIFY_MOUNT_DEPENDENCIES_METHOD,
+                        null, "Verifying mount dependencies", storage, args);
+            }
             Object[] args = new Object[] { storage, uri, param };
-            _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep, stepDescription,
+            _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null, stepDescription,
                     storage, args);
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
-            s_logger.error("Could not update NFS Export Rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Updating file system : %s export rules: %s failed.", uri, param.toString()), ex);
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -479,16 +517,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Updating File System : " + fileObj.getLabel() + " CIFS Share: " + shareName + " ACLs " + param.toString();
-            successMessage = "File System: " + fileObj.getLabel() + " CIFS Share ACLs updated successfully";
+            stepDescription = String.format("Updating file system : %s share : %s  ACLs: %s", uri, shareName, param.toString());
+            successMessage = String.format("Updating file system : %s share : %s  ACLs: %s finished successfully.", uri, shareName,
+                    param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Updating FileSystem Snapshot : " + fileObj.getLabel() + " CIFS Share: " + shareName + " ACLs "
-                    + param.toString();
-            successMessage = "File System Snapshot : " + fileObj.getLabel() + " CIFS Share ACLs updated successfully";
+            stepDescription = String.format("Updating file system snapshot : %s share : %s  ACLs: %s", uri, shareName, param.toString());
+            successMessage = String.format("Updating file system snapshot : %s share : %s  ACLs: %s finished successfully.", uri,
+                    shareName,
+                    param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL.getName();
         }
         try {
@@ -500,31 +540,29 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not update CIFS Share ACLs for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(
-                    fileObj.toString(), opName, ex);
+            s_logger.error(String.format("Updating file system : %s share : %s  ACLs: %s failed.", uri, shareName, param.toString()), ex);
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
 
     @Override
     public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId) throws ControllerException {
-        FileShare fileShare = s_dbClient.queryObject(FileShare.class, fsURI);
         // Using VNXeFSSnapshotTaskCompleter as it will serve the purpose..
         VNXeFSSnapshotTaskCompleter completer = new VNXeFSSnapshotTaskCompleter(Snapshot.class, snapshot, opId);
         Workflow workflow = null;
         try {
             workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
             String snapshotFSStep = workflow.createStepId();
-            String stepDescription = "Creating File System Snapshot :" + fileShare.getLabel();
+            String stepDescription = String.format("Creating file system: %s snapshot : %s", fsURI, snapshot);
             Object[] args = new Object[] { storage, snapshot, fsURI };
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_SNAPSHOT_METHOD, snapshotFSStep, stepDescription, storage,
                     args);
-            String successMessage = "File System: " + fileShare.getLabel() + " snapshot " + snapshot.toString() + " created successfully";
+            String successMessage = String.format("Creating file system: %s snapshot : %s finished successfully.", fsURI, snapshot);
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
-            s_logger.error("Could not create snapshot for filesystem: " + fsURI + " " + fileShare.getLabel(), ex);
+            s_logger.error(String.format("Creating file system: %s snapshot : %s failed.", fsURI, snapshot), ex);
             String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(fsURI.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -542,17 +580,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem : " + fileObj.getLabel();
-            successMessage = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem : " + fileObj.getLabel()
-                    + " finished successfully.";
+            stepDescription = String.format("Deleting file system: %s CIFS share: %s ", uri, fileSMBShare.getName());
+            successMessage = String.format("Deleting file system: %s CIFS share: %s finished succesfully.", uri, fileSMBShare.getName());
             opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem Snapshot : " + fileObj.getLabel();
-            successMessage = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem Snapshot : " + fileObj.getLabel()
-                    + " finished successfully.";
+            stepDescription = String.format("Deleting file system snapshot: %s CIFS share: %s ", uri, fileSMBShare.getName());
+            successMessage = String.format("Deleting file system snapshot: %s CIFS share: %s finished succesfully.", uri,
+                    fileSMBShare.getName());
             opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE.getName();
         }
         try {
@@ -563,14 +600,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not delete CIFS Share for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Deleting file system snapshot: %s CIFS share: %s failed.", uri, fileSMBShare.getName()), ex);
             ServiceError serviceError = DeviceControllerException.errors.deleteCIFSShareFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
 
     @Override
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String opId) throws ControllerException {
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String opId)
+            throws ControllerException {
         FileObject fileObj = null;
         String stepDescription = null;
         String successMessage = null;
@@ -580,30 +618,126 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Deleting Export Rules for File System : " + fileObj.getLabel();
-            successMessage = "Deleting Export Rules for File System : " + fileObj.getLabel() + " finished successfully.";
+            stepDescription = String.format("Deleting export rules for file system : %s ", uri);
+            successMessage = String.format("Deleting export rules for file system : %s finished successfully.", uri);
             opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SYSTEM.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Deleting Export Rules for File System Snapshot : " + fileObj.getLabel();
-            successMessage = "Deleting Export Rules for File System Snapshot : " + fileObj.getLabel() + " finished successfully.";
+            stepDescription = String.format("Deleting export rules for file system snapshot : %s ", uri);
+            successMessage = String.format("Deleting export rules for file system snapshot : %s finished successfully.", uri);
             opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT.getName();
         }
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
-            String exportdeleteStep = workflow.createStepId();
+            String waitFor = null;
+            // Check if the export should be unmounted before deleting
+            if (unmountExport) {
+                // get all the mounts and generate steps for unmounting them
+                List<MountInfo> mountList = _fileDeviceController.getAllMountedExports(uri, subDirs, allDirs);
+                for (MountInfo mount : mountList) {
+                    Object[] args = new Object[] { mount.getHostId(), mount.getFsId(), mount.getMountPath() };
+                    waitFor = _fileDeviceController.createMethod(workflow, waitFor, UNMOUNT_FILESYSTEM_EXPORT_METHOD, null,
+                            "Unmounting path:" + mount.getMountPath(), storage, args);
+                }
+            } else if (URIUtil.isType(uri, FileShare.class)) {
+                // Check if the export is mounted and throw an error if mounted
+                Object[] args = new Object[] { uri, subDirs, allDirs };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, CHECK_IF_EXPORT_IS_MOUNTED, null,
+                        "Checking if the export is mounted", storage, args);
+            }
             Object[] args = new Object[] { storage, uri, allDirs, subDirs };
-            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_RULES, exportdeleteStep, stepDescription, storage,
+            _fileDeviceController.createMethod(workflow, waitFor, DELETE_FILESYSTEM_EXPORT_RULES, null, stepDescription, storage,
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not delete export rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Deleting export rules for file system snapshot : %s failed. ", uri), ex);
             ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 
+    }
+
+    @Override
+    public void restoreFS(URI storage, URI fs, URI snapshot, String opId) throws ControllerException {
+        // Using VNXeFSSnapshotTaskCompleter as it will serve the purpose..
+        VNXeFSSnapshotTaskCompleter completer = new VNXeFSSnapshotTaskCompleter(Snapshot.class, snapshot, opId);
+        Workflow workflow = null;
+        try {
+            workflow = this._workflowService.getNewWorkflow(this, RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
+            String restoreFSStep = workflow.createStepId();
+            String stepDescription = String.format("Restoring file System : %s from snapshot: %s", fs, snapshot);
+            Object[] args = new Object[] { storage, fs, snapshot };
+            _fileDeviceController.createMethod(workflow, null, RESTORE_FILESYSTEM_SNAPSHOT_METHOD, restoreFSStep, stepDescription, storage,
+                    args);
+            String successMessage = String.format("Restoring file system : %s from snapshot: %s finished successfully.", fs, snapshot);
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error(String.format("Restoring file system : %s from snapshot: %s failed.", fs, snapshot), ex);
+            String opName = ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT.getName();
+            ServiceError serviceError = DeviceControllerException.errors.restoreFSFromSnapshotFailed(fs.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
+    @Override
+    public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
+            throws ControllerException {
+        Snapshot snap = s_dbClient.queryObject(Snapshot.class, uri);
+        FileSnapshotWorkflowCompleter completer = new FileSnapshotWorkflowCompleter(uri, opId);
+        Workflow workflow = null;
+        try {
+            workflow = this._workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
+            String deleteSnapshotStep = workflow.createStepId();
+            String stepDescription = String.format("Deleting file System : %s snapshot: %s", snap.getParent(), uri);
+            Object[] args = new Object[] { storage, pool, uri, forceDelete, deleteType };
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SNAPSHOT_METHOD, deleteSnapshotStep, stepDescription,
+                    storage, args);
+            String successMessage = String.format("Deleting file System : %s snapshot: %s finished successfully.", snap.getParent(), uri);
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error(String.format("Deleting file System : %s snapshot: %s failed.", snap.getParent(), uri), ex);
+            String opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT.getName();
+            ServiceError serviceError = DeviceControllerException.errors.deleteFSSnapshotFailed(uri.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
+    @Override
+    public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws ControllerException {
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, taskId);
+
+            stepDescription = String.format("Deleting file system : %s share : %s  ACLs", uri, shareName);
+            successMessage = String.format("Deleting file system : %s share : %s ACLs finished successfully", uri, shareName);
+            opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, taskId);
+            stepDescription = String.format("Deleting file system snapshot : %s share: %s ACLs", uri, shareName);
+            successMessage = String.format("Deleting file system snapshot : %s share: %s ACLs: finished successfully", uri, shareName);
+            opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL.getName();
+        }
+        try {
+            Workflow workflow = this._workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME, false, taskId, completer);
+            String shareACLDeleteStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, shareName };
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLDeleteStep, stepDescription,
+                    storage, args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error(String.format("Deleting file system snapshot : %s share: %s ACLs failed.", uri, shareName), ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteShareACLFailed(uri.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
     }
 
     @Override
@@ -619,24 +753,51 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             StorageSystem systemSource = s_dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
 
-            workflow = this._workflowService.getNewWorkflow(this, FAILBACK_FILESYSTEMS_WF_NAME, false, taskId);
+            workflow = this._workflowService.getNewWorkflow(this, FAILBACK_FILESYSTEMS_WF_NAME, false, taskId, completer);
 
             // Failback from Target File System
 
             s_logger.info("Generating steps for Failback Source File System from Target");
             String failbackStep = workflow.createStepId();
-            stepDescription = String.format("Failback To Source File System:  %s from Target File System", sourceFileShare);
+            stepDescription = String.format("Failback to source file System : %s from target system : %s.", sourceFileShare.getName(),
+                    targetFileShare.getName());
             Object[] args = new Object[] { systemSource.getId(), sourceFileShare.getId() };
             String waitForFailback = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
+            stepDescription = String.format(
+                    "Replicating directory quota settings from source file system : %s to file target system : %s",
+                    sourceFileShare.getId(), targetFileShare.getId());
+            Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                    systemSource.getId(), targetFileShare.getId());
+            String replicateDirQuotaSettingsStep = workflow.createStepId();
+            workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                    systemSource.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+
             if (replicateConfiguration) {
+
+                Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
+                Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
+
+                if (!sourceNFSACL.isEmpty() || !targetNFSACL.isEmpty()) {
+
+                    stepDescription = String.format("Replicating NFS ACL from source file system : %s to file target system : %s",
+                            sourceFileShare.getId(), targetFileShare.getId());
+                    Workflow.Method replicateNFSACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_ACLS_METHOD,
+                            systemSource.getId(), targetFileShare.getId());
+                    String replicateNFSACLsStep = workflow.createStepId();
+                    workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                            systemSource.getSystemType(), getClass(), replicateNFSACLsMethod, null, replicateNFSACLsStep);
+                }
+
                 // Replicate NFS export and rules to Target Cluster.
-                FSExportMap nfsExportMap = targetFileShare.getFsExports();
+                FSExportMap targetnfsExportMap = targetFileShare.getFsExports();
+                FSExportMap sourcenfsExportMap = sourceFileShare.getFsExports();
 
-                if (nfsExportMap != null && nfsPort != null) {
-
-                    stepDescription = "Replicating Target File System NFS Exports To Source Cluster";
+                if (!(targetnfsExportMap == null && sourcenfsExportMap == null)) {
+                    // Both source and target export map shouldn't be null
+                    stepDescription = String.format("Replicating NFS exports from target file system : %s to source file system : %s",
+                            targetFileShare.getId(), sourceFileShare.getId());
                     Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
                             systemSource.getId(), targetFileShare.getId(), nfsPort);
                     String replicateNFSExportStep = workflow.createStepId();
@@ -644,7 +805,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     String waitForExport = workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
                             systemSource.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
 
-                    stepDescription = "Replicating Target File System NFS Export Rules To Source Cluster";
+                    stepDescription = String.format("Replicating NFS export rules from target file system : %s to source file system : %s",
+                            targetFileShare.getId(), sourceFileShare.getId());
                     Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
                             systemSource.getId(), targetFileShare.getId());
                     String replicateNFSExportRulesStep = workflow.createStepId();
@@ -654,11 +816,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
                 // Replicate CIFS shares and ACLs from Target File System to Source.
 
-                SMBShareMap smbShareMap = targetFileShare.getSMBFileShares();
+                SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
+                SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
 
-                if (smbShareMap != null && cifsPort != null) {
-
-                    stepDescription = "Replicating Target File System CIFS Shares To Source Cluster";
+                if (!(targetSMBShareMap == null && sourceSMBShareMap == null)) {
+                    // Both source and target share map shouldn't be null
+                    stepDescription = String.format("Replicating CIFS shares from target file system : %s to file source system : %s",
+                            targetFileShare.getId(), sourceFileShare.getId());
                     Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
                             systemSource.getId(), targetFileShare.getId(), cifsPort);
                     String replicateCIFSShareStep = workflow.createStepId();
@@ -667,7 +831,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             systemSource.getSystemType(), getClass(), replicateCIFSShareMethod, null,
                             replicateCIFSShareStep);
 
-                    stepDescription = "Replicating Target File System CIFS Share ACLs To Source Cluster";
+                    stepDescription = String.format("Replicating CIFS share ACLs from target file system : %s to source file system : %s",
+                            targetFileShare.getId(), sourceFileShare.getId());
                     Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
                             systemSource.getId(), targetFileShare.getId());
                     String replicateCIFSShareACLsStep = workflow.createStepId();
@@ -694,6 +859,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         String stepDescription = null;
+        MirrorFileFailoverTaskCompleter failoverCompleter = null;
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
@@ -702,32 +868,64 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
             StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-            workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEMS_WF_NAME, false, taskId);
+            workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEMS_WF_NAME, false, taskId, completer);
 
             // Failover File System to Target
+
             s_logger.info("Generating steps for Failover File System to Target");
             String failoverStep = workflow.createStepId();
-            MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(sourceFileShare.getId(),
-                    targetFileShare.getId(), failoverStep);
+
+            List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
+            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep,
+                    targetFileShare.getStorageDevice());
             stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
+
+            stepDescription = String.format("Failover source file System : %s to target system : %s.", sourceFileShare.getName(),
+                    targetFileShare.getName());
             Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };
             String waitForFailover = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
+            stepDescription = String.format(
+                    "Replicating directory quota settings from source file system : %s to file target system : %s",
+                    sourceFileShare.getId(), targetFileShare.getId());
+            Workflow.Method replicateDirQuotaSettingsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD,
+                    systemTarget.getId(), fsURI);
+            String replicateDirQuotaSettingsStep = workflow.createStepId();
+            workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                    systemTarget.getSystemType(), getClass(), replicateDirQuotaSettingsMethod, null, replicateDirQuotaSettingsStep);
+
             if (replicateConfiguration) {
-                // Replicate CIFS shares and ACLs to Target Cluster.
-                SMBShareMap smbShareMap = sourceFileShare.getSMBFileShares();
 
-                if (smbShareMap != null && cifsPort != null) {
+                Map<String, List<NfsACE>> sourceNFSACL = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
+                Map<String, List<NfsACE>> targetNFSACL = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
 
-                    stepDescription = "Replicating Source File System CIFS Shares To Target Cluster";
+                if (!sourceNFSACL.isEmpty() || !targetNFSACL.isEmpty()) {
+
+                    stepDescription = String.format("Replicating NFS ACL from source file system : %s to file target system : %s",
+                            sourceFileShare.getId(), targetFileShare.getId());
+                    Workflow.Method replicateNFSACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_ACLS_METHOD,
+                            systemTarget.getId(), fsURI);
+                    String replicateNFSACLsStep = workflow.createStepId();
+                    workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                            systemTarget.getSystemType(), getClass(), replicateNFSACLsMethod, null, replicateNFSACLsStep);
+                }
+
+                SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
+                SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
+
+                if (sourceSMBShareMap != null || targetSMBShareMap != null) {
+                    // Both source and target share map shouldn't be null
+                    stepDescription = String.format("Replicating CIFS shares from source file system : %s to target file system : %s",
+                            sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
                             systemTarget.getId(), fsURI, cifsPort);
                     String replicateCIFSShareStep = workflow.createStepId();
                     String waitForShare = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateCIFSShareMethod, null, replicateCIFSShareStep);
 
-                    stepDescription = "Replicating Source File System CIFS Share ACls To Target Cluster";
+                    stepDescription = String.format("Replicating CIFS share ACLs from source file system : %s to file target system : %s",
+                            sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
                             systemTarget.getId(), fsURI);
                     String replicateCIFSShareACLsStep = workflow.createStepId();
@@ -736,18 +934,21 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
 
                 // Replicate NFS export and rules to Target Cluster.
-                FSExportMap nfsExportMap = sourceFileShare.getFsExports();
+                FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
+                FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-                if (nfsExportMap != null && nfsPort != null) {
-
-                    stepDescription = "Replicating Source File System NFS Exports To Target Cluster";
+                if (sourceNFSExportMap != null && targetNFSExportMap != null) {
+                    // Both source and target export map shouldn't be null
+                    stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
+                            sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
                             systemTarget.getId(), fsURI, nfsPort);
                     String replicateNFSExportStep = workflow.createStepId();
                     String waitForExport = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
                             systemTarget.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
 
-                    stepDescription = "Replicating Source File System NFS Export Rules To Target Cluster";
+                    stepDescription = String.format("Replicating NFS export rules from source file system : %s to target file system : %s",
+                            sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
                             systemTarget.getId(), fsURI);
                     String replicateNFSExportRulesStep = workflow.createStepId();
@@ -769,9 +970,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system CIFS shares to target.
      * 
-     * @param systemTarget - URI of target StorageSystem where source CIFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
-     * @param cifsPort -StoragePort, CIFS port of target File System where new shares has to be created.
+     * @param systemTarget
+     *            - URI of target StorageSystem where source CIFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param cifsPort
+     *            -StoragePort, CIFS port of target File System where new shares has to be created.
      * @param taskId
      */
     public void addStepsToReplicateCIFSShares(URI systemTarget, URI fsURI, StoragePort cifsPort, String taskId) {
@@ -789,39 +993,34 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
 
-            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARES_TO_TARGET_WF_NAME, false, taskId);
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARES_TO_TARGET_WF_NAME, false, taskId, completer);
 
             SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
-            List<SMBFileShare> sourceSMBShares = new ArrayList<SMBFileShare>(sourceSMBShareMap.values());
-
             SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
 
-            if (targetSMBShareMap == null) {
-                createCIFSShareOnTarget(workflow, systemTarget, sourceSMBShares, cifsPort, targetFileShare, sourceFileShare);
-            } else {
+            if (sourceSMBShareMap == null && targetSMBShareMap != null) {
+                // source file system don't have any CIFS share but target do have share.
                 List<SMBFileShare> targetSMBShares = new ArrayList<SMBFileShare>(targetSMBShareMap.values());
+                deleteCIFSShareFromTarget(workflow, systemTarget, targetSMBShares, targetFileShare);
 
+            } else if (targetSMBShareMap == null && sourceSMBShareMap != null) {
+                // target file system don't have any CIFS share but source do have share
+                List<SMBFileShare> sourceSMBShares = new ArrayList<SMBFileShare>(sourceSMBShareMap.values());
+                createCIFSShareOnTarget(workflow, systemTarget, sourceSMBShares, cifsPort, targetFileShare, sourceFileShare);
+
+            } else if (targetSMBShareMap != null && sourceSMBShareMap != null) {
+                // both source and target file system do have some shares..
                 List<SMBFileShare> targetSMBSharestoDelete = new ArrayList<SMBFileShare>();
                 List<SMBFileShare> targetSMBSharestoCreate = new ArrayList<SMBFileShare>();
 
-                List<String> sourceSMBSharesNameList = new ArrayList<String>();
-                List<String> targetSMBSharesNameList = new ArrayList<String>();
-
-                for (SMBFileShare sourceSMBShare : sourceSMBShares) {
-                    sourceSMBSharesNameList.add(sourceSMBShare.getName());
-                }
-                for (SMBFileShare targetSMBShare : targetSMBShares) {
-                    targetSMBSharesNameList.add(targetSMBShare.getName());
-                }
-
-                for (SMBFileShare sourceSMBShare : sourceSMBShares) {
-                    if (!targetSMBSharesNameList.contains(sourceSMBShare.getName())) {
-                        targetSMBSharestoCreate.add(sourceSMBShare);
+                for (String sourceSMBSharesName : sourceSMBShareMap.keySet()) {
+                    if (targetSMBShareMap.get(sourceSMBSharesName) == null) {
+                        targetSMBSharestoCreate.add(sourceSMBShareMap.get(sourceSMBSharesName));
                     }
                 }
-                for (SMBFileShare targetSMBShare : targetSMBShares) {
-                    if (!sourceSMBSharesNameList.contains(targetSMBShare.getName())) {
-                        targetSMBSharestoDelete.add(targetSMBShare);
+                for (String targetSMBSharesName : targetSMBShareMap.keySet()) {
+                    if (sourceSMBShareMap.get(targetSMBSharesName) == null) {
+                        targetSMBSharestoDelete.add(targetSMBShareMap.get(targetSMBSharesName));
                     }
                 }
                 if (!targetSMBSharestoCreate.isEmpty()) {
@@ -832,9 +1031,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
             }
             String successMessage = String.format(
-                    "Replicating source File System : %s CIFS Shares to Target System finished successfully",
-                    sourceFileShare.getLabel());
-
+                    "Replicating source File System : %s, CIFS Shares to Target System finished successfully", sourceFileShare.getLabel());
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem CIFS shares: " + fsURI, ex);
@@ -848,8 +1045,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system CIFS ACLs to target system.
      * 
-     * @param systemTarget - URI of target StorageSystem where source CIFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
+     * @param systemTarget
+     *            - URI of target StorageSystem where source CIFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
      * @param taskId
      */
     public void addStepsToReplicateCIFSShareACLs(URI systemTarget, URI fsURI, String taskId) {
@@ -869,101 +1068,71 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
 
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
             SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
-            List<SMBFileShare> sourceSMBShares = new ArrayList<SMBFileShare>(sourceSMBShareMap.values());
 
-            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId);
+            if (sourceSMBShareMap != null) {
+                List<SMBFileShare> sourceSMBShares = new ArrayList<SMBFileShare>(sourceSMBShareMap.values());
 
-            for (SMBFileShare sourceSMBShare : sourceSMBShares) {
-                List<ShareACL> sourceShareACLs = queryShareACLs(sourceSMBShare.getName(), sourceFileShare.getId());
-                List<ShareACL> targetShareACLs = queryShareACLs(sourceSMBShare.getName(), targetFileShare.getId());
+                for (SMBFileShare sourceSMBShare : sourceSMBShares) {
 
-                if (sourceShareACLs != null && !sourceShareACLs.isEmpty()) {
-                    if (targetShareACLs.isEmpty()) {
+                    List<ShareACL> sourceShareACLs = FileOrchestrationUtils.queryShareACLs(sourceSMBShare.getName(),
+                            sourceFileShare.getId(), s_dbClient);
+                    List<ShareACL> targetShareACLs = FileOrchestrationUtils.queryShareACLs(sourceSMBShare.getName(),
+                            targetFileShare.getId(), s_dbClient);
+
+                    if (!sourceShareACLs.isEmpty() && targetShareACLs.isEmpty()) {
+                        // target share doesn't have any ACLs but corresponding share on source does have ACL
                         params = new CifsShareACLUpdateParams();
                         ShareACLs shareACLs = new ShareACLs();
                         shareACLs.setShareACLs(sourceShareACLs);
                         params.setAclsToAdd(shareACLs);
+                        updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
 
-                        String stepDescription = String.format("Replicating Source File System CIFS Share : %s ACLs : %s On Target Cluster",
-                                sourceSMBShare.getName(), params.toString());
-                        String shareACLUpdateStep = workflow.createStepId();
-                        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), sourceSMBShare.getName(), params };
-                        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep,
-                                stepDescription, systemTarget, args);
-                    } else {
+                    } else if (!targetShareACLs.isEmpty() && sourceShareACLs.isEmpty()) {
+                        // source share doesn't have any ACLs but corresponding share on target does have ACL
+                        params = new CifsShareACLUpdateParams();
+                        ShareACLs shareACLs = new ShareACLs();
+                        shareACLs.setShareACLs(targetShareACLs);
+                        params.setAclsToDelete(shareACLs);
+                        updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
 
+                    } else if (!targetShareACLs.isEmpty() && !sourceShareACLs.isEmpty()) {
+                        // both source and target share have some ACL
                         List<ShareACL> shareACLsToAdd = new ArrayList<ShareACL>();
                         List<ShareACL> shareACLsToDelete = new ArrayList<ShareACL>();
                         List<ShareACL> shareACLsToModify = new ArrayList<ShareACL>();
-
-                        List<String> sourceShareACLsNameList = new ArrayList<String>();
-                        List<String> targetShareACLsNameList = new ArrayList<String>();
-
-                        for (ShareACL sourceShareACL : sourceShareACLs) {
-                            if (sourceShareACL.getUser() != null && !sourceShareACL.getUser().isEmpty()) {
-                                sourceShareACLsNameList.add(sourceShareACL.getUser());
-                            } else {
-                                sourceShareACLsNameList.add(sourceShareACL.getGroup());
-                            }
-                        }
-
-                        for (ShareACL targetShareACL : targetShareACLs) {
-                            if (targetShareACL.getUser() != null && !targetShareACL.getUser().isEmpty()) {
-                                targetShareACLsNameList.add(targetShareACL.getUser());
-                            } else {
-                                targetShareACLsNameList.add(targetShareACL.getGroup());
-                            }
-                        }
+                        HashMap<String, ShareACL> sourceShareACLMap = FileOrchestrationUtils.getShareACLMap(sourceShareACLs);
+                        HashMap<String, ShareACL> targetShareACLMap = FileOrchestrationUtils.getShareACLMap(targetShareACLs);
 
                         // ACLs To Add
-                        for (ShareACL sourceShareACL : sourceShareACLs) {
-                            if (sourceShareACL.getUser() != null && !sourceShareACL.getUser().isEmpty()
-                                    && !targetShareACLsNameList.contains(sourceShareACL.getUser())) {
-                                ShareACL shareACL = sourceShareACL;
-                                shareACL.setFileSystemId(targetFileShare.getId());
-                                shareACLsToAdd.add(shareACL);
-
-                            } else if (sourceShareACL.getGroup() != null && !sourceShareACL.getGroup().isEmpty()
-                                    && !targetShareACLsNameList.contains(sourceShareACL.getGroup())) {
-                                ShareACL shareACL = sourceShareACL;
+                        for (String sourceACLName : sourceShareACLMap.keySet()) {
+                            if (targetShareACLMap.get(sourceACLName) == null) {
+                                ShareACL shareACL = sourceShareACLMap.get(sourceACLName);
                                 shareACL.setFileSystemId(targetFileShare.getId());
                                 shareACLsToAdd.add(shareACL);
                             }
                         }
 
                         // ACLs To Delete
-                        for (ShareACL targetShareACL : targetShareACLs) {
-                            if (targetShareACL.getUser() != null && !targetShareACL.getUser().isEmpty()
-                                    && !sourceShareACLsNameList.contains(targetShareACL.getUser())) {
-                                shareACLsToDelete.add(targetShareACL);
-
-                            } else if (targetShareACL.getGroup() != null && !targetShareACL.getGroup().isEmpty()
-                                    && !sourceShareACLsNameList.contains(targetShareACL.getGroup())) {
-                                shareACLsToDelete.add(targetShareACL);
+                        for (String targetACLName : targetShareACLMap.keySet()) {
+                            if (sourceShareACLMap.get(targetACLName) == null) {
+                                shareACLsToDelete.add(targetShareACLMap.get(targetACLName));
                             }
                         }
 
                         // ACLs to Modify
                         targetShareACLs.removeAll(shareACLsToDelete);
                         sourceShareACLs.removeAll(shareACLsToAdd);
-                        for (ShareACL sourceShareACL : sourceShareACLs) {
-                            for (ShareACL targetShareACL : targetShareACLs) {
+                        sourceShareACLMap = FileOrchestrationUtils.getShareACLMap(sourceShareACLs);
+                        targetShareACLMap = FileOrchestrationUtils.getShareACLMap(targetShareACLs);
 
-                                if (targetShareACL.getUser() != null && !targetShareACL.getUser().isEmpty()
-                                        && targetShareACL.getUser().equals(sourceShareACL.getUser())
-                                        && !targetShareACL.getPermission().equals(sourceShareACL.getPermission())) {
-                                    ShareACL shareACL = targetShareACL;
-                                    shareACL.setPermission(sourceShareACL.getPermission());
-                                    shareACLsToModify.add(shareACL);
-
-                                } else if ((targetShareACL.getGroup() != null && !targetShareACL.getGroup().isEmpty())
-                                        && targetShareACL.getGroup().equals(sourceShareACL.getGroup())
-                                        && !targetShareACL.getPermission().equals(sourceShareACL.getPermission())) {
-                                    ShareACL shareACL = targetShareACL;
-                                    shareACL.setPermission(sourceShareACL.getPermission());
-                                    shareACLsToModify.add(shareACL);
-                                }
+                        for (String sourceACLName : sourceShareACLMap.keySet()) {
+                            if (targetShareACLMap.get(sourceACLName) != null && !targetShareACLMap.get(sourceACLName).getPermission()
+                                    .equals(sourceShareACLMap.get(sourceACLName).getPermission())) {
+                                ShareACL shareACL = targetShareACLMap.get(sourceACLName);
+                                shareACL.setPermission(sourceShareACLMap.get(sourceACLName).getPermission());
+                                shareACLsToModify.add(shareACL);
                             }
                         }
 
@@ -985,25 +1154,21 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             params.setAclsToModify(modifyShareACLs);
                         }
 
-                        String stepDescription = String.format(
-                                "Replicating Source File System CIFS Share ACLs On Target Cluster, CIFS Share : %s, ACLs details: %s",
-                                sourceSMBShare.getName(), params.toString());
-                        String shareACLUpdateStep = workflow.createStepId();
-                        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), sourceSMBShare.getName(), params };
-                        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep,
-                                stepDescription, systemTarget, args);
+                        if (params.retrieveAllACLs() != null && !params.retrieveAllACLs().isEmpty()) {
+                            updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
+                        }
                     }
                 }
             }
             String successMessage = String.format(
-                    "Replicating source File System : %s CIFS Shares ACLs to Target System finished successfully",
+                    "Replicating source File System : %s, CIFS Shares ACLs to Target System finished successfully",
                     sourceFileShare.getLabel());
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem CIFS shares ACLs : " + fsURI, ex);
             String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(
                     fsURI.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
@@ -1012,9 +1177,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system NFS export to target.
      * 
-     * @param systemTarget - URI of target StorageSystem where source NFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
-     * @param nfsPort -StoragePort, NFS port of target File System where new export has to be created.
+     * @param systemTarget
+     *            - URI of target StorageSystem where source NFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param nfsPort
+     *            -StoragePort, NFS port of target File System where new export has to be created.
      * @param taskId
      */
     public void addStepsToReplicateNFSExports(URI systemTarget, URI fsURI, StoragePort nfsPort, String taskId) {
@@ -1032,65 +1200,76 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
 
-            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME, false, taskId);
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME, false, taskId, completer);
 
             FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
-            List<FileExport> sourceNFSExports = new ArrayList<FileExport>(sourceNFSExportMap.values());
             FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-            if (targetNFSExportMap == null) {
+            if (targetNFSExportMap == null && sourceNFSExportMap != null) {
+                // No export on target i.e create all source export on target
+                List<FileExport> sourceNFSExports = new ArrayList<FileExport>(sourceNFSExportMap.values());
                 createNFSExportOnTarget(workflow, systemTarget, sourceNFSExports, nfsPort, targetFileShare, sourceFileShare);
 
-            } else {
-
+            } else if (sourceNFSExportMap != null && targetNFSExportMap != null) {
+                // both source and target have some exports
+                List<FileExport> sourceNFSExports = new ArrayList<FileExport>(sourceNFSExportMap.values());
                 List<FileExport> targetNFSExports = new ArrayList<FileExport>(targetNFSExportMap.values());
+
                 List<FileExport> targetNFSExportstoCreate = new ArrayList<FileExport>();
-                List<String> targetNFSExportPaths = new ArrayList<String>();
-                List<String> sourceNFSExportPaths = new ArrayList<String>();
 
-                for (FileExport targetNFSExport : targetNFSExports) {
-                    targetNFSExportPaths.add(targetNFSExport.getPath());
-                }
-
-                for (FileExport sourceNFSExport : sourceNFSExports) {
-                    sourceNFSExportPaths.add(sourceNFSExport.getPath());
-                }
-
-                for (String sourceNFSExportPath : sourceNFSExportPaths) {
-
-                    if (sourceNFSExportPath.equals(sourceFileShare.getPath())
-                            && !targetNFSExportPaths.contains(targetFileShare.getPath())) {
-                        for (FileExport sourceNFSExport : sourceNFSExports) {
-                            if (sourceNFSExport.getPath().equals(sourceNFSExportPath)) {
-                                targetNFSExportstoCreate.add(sourceNFSExport);
-                            }
+                // Creating new map since FSExportMap key contains path+sec+user
+                HashMap<String, FileExport> sourceFileExportMap = FileOrchestrationUtils.getFileExportMap(sourceNFSExports);
+                HashMap<String, FileExport> targetFileExportMap = FileOrchestrationUtils.getFileExportMap(targetNFSExports);
+                String waitFor = null;
+                // Check for export to create on target
+                for (String exportPath : sourceFileExportMap.keySet()) {
+                    if (exportPath.equals(sourceFileShare.getPath())) {
+                        if (targetFileExportMap.get(targetFileShare.getPath()) == null) {
+                            targetNFSExportstoCreate.add(sourceFileExportMap.get(exportPath));
                         }
-
-                    } else if (!sourceNFSExportPath.equals(sourceFileShare.getPath())) {
+                    } else {
                         ArrayList<String> subdirName = new ArrayList<String>();
-                        subdirName.add(sourceNFSExportPath.split(sourceFileShare.getPath())[1]);
-                        if (!targetNFSExportPaths.contains(targetFileShare.getPath() + subdirName.get(0))) {
-                            for (FileExport sourceNFSExport : sourceNFSExports) {
-                                if (sourceNFSExport.getPath().equals(sourceNFSExportPath)) {
-                                    targetNFSExportstoCreate.add(sourceNFSExport);
-                                }
-                            }
+                        subdirName.add(exportPath.split(sourceFileShare.getPath())[1]);
+                        if (targetFileExportMap.get(targetFileShare.getPath() + subdirName.get(0)) == null) {
+                            targetNFSExportstoCreate.add(sourceFileExportMap.get(exportPath));
                         }
                     }
                 }
-
                 if (!targetNFSExportstoCreate.isEmpty()) {
-                    createNFSExportOnTarget(workflow, systemTarget, targetNFSExportstoCreate, nfsPort, targetFileShare, sourceFileShare);
+                    waitFor = createNFSExportOnTarget(workflow, systemTarget, targetNFSExportstoCreate, nfsPort, targetFileShare,
+                            sourceFileShare);
+                }
+
+                // Check for export to delete on target
+                for (String exportPath : targetFileExportMap.keySet()) {
+
+                    String stepDescription = String.format("deleting NFS export : %s", exportPath);
+                    String exportdeletionStep = workflow.createStepId();
+                    if (exportPath.equals(targetFileShare.getPath())) {
+                        if (sourceFileExportMap.get(sourceFileShare.getPath()) == null) {
+                            Object[] args = new Object[] { systemTarget, targetFileShare.getId(), false, null };
+                            waitFor = _fileDeviceController.createMethod(workflow, waitFor, DELETE_FILESYSTEM_EXPORT_METHOD,
+                                    exportdeletionStep, stepDescription, systemTarget, args);
+                        }
+                    } else {
+                        ArrayList<String> subdirName = new ArrayList<String>();
+                        subdirName.add(exportPath.split(targetFileShare.getPath())[1]);
+                        if (sourceFileExportMap.get(sourceFileShare.getPath() + subdirName.get(0)) == null) {
+                            Object[] args = new Object[] { systemTarget, targetFileShare.getId(), false, subdirName.get(0).substring(1) };
+                            waitFor = _fileDeviceController.createMethod(workflow, waitFor, DELETE_FILESYSTEM_EXPORT_METHOD,
+                                    exportdeletionStep, stepDescription, systemTarget, args);
+                        }
+                    }
                 }
             }
             String successMessage = String.format(
-                    "Replicating source File System : %s NFS Exports to Target System finished successfully", sourceFileShare.getLabel());
+                    "Replicating source File System : %s NFS Exports to Target System finished successfully", sourceFileShare.getId());
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem NFS Exports : " + fsURI, ex);
             String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
                     fsURI.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
@@ -1099,17 +1278,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system NFS export Rules to target.
      * 
-     * @param systemTarget - URI of target StorageSystem where source NFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
+     * @param systemTarget
+     *            - URI of target StorageSystem where source NFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
      * @param taskId
      */
     public void addStepsToReplicateNFSExportRules(URI systemTarget, URI fsURI, String taskId) {
         s_logger.info("Generating steps for Replicating NFS export rules to Target Cluster");
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
-        List<ExportRule> exportRulesToAdd = new ArrayList<ExportRule>();
-        List<ExportRule> exportRulesToModify = new ArrayList<ExportRule>();
-        List<ExportRule> exportRulesToDelete = new ArrayList<ExportRule>();
         FileShare targetFileShare = null;
         try {
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
@@ -1121,152 +1299,121 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
 
-            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId);
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId, completer);
 
-            List<ExportRule> sourceExportRules = queryFSExportRules(sourceFileShare);
-            List<ExportRule> targetExportRules = queryFSExportRules(targetFileShare);
+            FSExportMap sourceFSExportMap = sourceFileShare.getFsExports();
+            FSExportMap targetFSExportMap = targetFileShare.getFsExports();
 
-            // Export Rule To Add
-            for (ExportRule sourceExportRule : sourceExportRules) {
-                boolean isSecFlvPresentOnTarget = false;
-                if (sourceExportRule.getExportPath().equals(sourceFileShare.getPath())) {
-                    // Not the sub directory Export Rule
-                    for (ExportRule targetExportRule : targetExportRules) {
-                        if (targetExportRule.getExportPath().equals(targetFileShare.getPath()) &&
-                                targetExportRule.getSecFlavor().equals(sourceExportRule.getSecFlavor())) {
-                            isSecFlvPresentOnTarget = true;
-                        }
-                    }
-                    if (!isSecFlvPresentOnTarget) {
-                        ExportRule exportRule = new ExportRule();
-                        exportRule.setFsID(targetFileShare.getId());
-                        exportRule.setExportPath(targetFileShare.getPath());
-                        exportRule.setAnon(sourceExportRule.getAnon());
-                        exportRule.setReadOnlyHosts(sourceExportRule.getReadOnlyHosts());
-                        exportRule.setRootHosts(sourceExportRule.getRootHosts());
-                        exportRule.setReadWriteHosts(sourceExportRule.getReadWriteHosts());
-                        exportRule.setSecFlavor(sourceExportRule.getSecFlavor());
-                        exportRulesToAdd.add(exportRule);
-                    }
+            if (sourceFSExportMap == null && targetFSExportMap != null) {
+                // There are no export rule on source but there are on target!!
+                List<ExportRule> exportRulesToDelete;
+                HashMap<String, List<ExportRule>> targetExportRuleMap = FileOrchestrationUtils.getFSExportRuleMap(targetFileShare,
+                        s_dbClient);
+                for (String exportPath : targetExportRuleMap.keySet()) {
+                    FileExportUpdateParams params = new FileExportUpdateParams();
 
-                } else {
-                    // Sub directory Export Rule
-                    for (ExportRule targetExportRule : targetExportRules) {
-                        if (!targetExportRule.getExportPath().equals(targetFileShare.getPath()) &&
-                                targetExportRule.getSecFlavor().equals(sourceExportRule.getSecFlavor())) {
-                            isSecFlvPresentOnTarget = true;
-                        }
+                    if (exportPath.equals(targetFileShare.getPath())) {
+                        // File system export rules....
+                        exportRulesToDelete = targetExportRuleMap.get(targetFileShare.getPath());
+
+                    } else {
+                        // Sub directory export rules....
+                        String subDir = exportPath.split(targetFileShare.getPath())[1];
+                        exportRulesToDelete = targetExportRuleMap.get(targetFileShare.getPath() + subDir);
+                        params.setSubDir(subDir.substring(1));
                     }
-                    if (!isSecFlvPresentOnTarget) {
-                        ExportRule exportRule = new ExportRule();
-                        exportRule.setFsID(targetFileShare.getId());
-                        ArrayList<String> subdirName = new ArrayList<String>();
-                        subdirName.add(sourceExportRule.getExportPath().split(sourceFileShare.getPath())[1]);
-                        exportRule.setExportPath(targetFileShare.getPath() + subdirName.get(0));
-                        exportRule.setAnon(sourceExportRule.getAnon());
-                        exportRule.setReadOnlyHosts(sourceExportRule.getReadOnlyHosts());
-                        exportRule.setRootHosts(sourceExportRule.getRootHosts());
-                        exportRule.setReadWriteHosts(sourceExportRule.getReadWriteHosts());
-                        exportRule.setSecFlavor(sourceExportRule.getSecFlavor());
-                        exportRulesToAdd.add(exportRule);
-                    }
+                    ExportRules deleteExportRules = new ExportRules();
+                    deleteExportRules.setExportRules(exportRulesToDelete);
+                    params.setExportRulesToDelete(deleteExportRules);
+                    updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
                 }
-            }
 
-            // Export Rule To Delete
-            for (ExportRule targetExportRule : targetExportRules) {
-                boolean isSecFlvPresentOnSource = false;
-                if (targetExportRule.getExportPath().equals(targetFileShare.getPath())) {
-                    // Not the sub directory Export Rule
-                    for (ExportRule sourceExportRule : sourceExportRules) {
-                        if (sourceExportRule.getExportPath().equals(sourceFileShare.getPath()) &&
-                                sourceExportRule.getSecFlavor().equals(targetExportRule.getSecFlavor())) {
-                            isSecFlvPresentOnSource = true;
+            } else if (targetFSExportMap != null && sourceFSExportMap != null) {
+                // Both source and target have export rules!!
+                HashMap<String, List<ExportRule>> sourceExportRuleMap = FileOrchestrationUtils.getFSExportRuleMap(sourceFileShare,
+                        s_dbClient);
+                HashMap<String, List<ExportRule>> targetExportRuleMap = FileOrchestrationUtils.getFSExportRuleMap(targetFileShare,
+                        s_dbClient);
+
+                for (String exportPath : sourceExportRuleMap.keySet()) {
+
+                    FileExportUpdateParams params = new FileExportUpdateParams();
+                    List<ExportRule> exportRulesToAdd = new ArrayList<ExportRule>();
+                    List<ExportRule> exportRulesToDelete = new ArrayList<ExportRule>();
+                    List<ExportRule> exportRulesToModify = new ArrayList<ExportRule>();
+                    List<ExportRule> sourceExportRules;
+                    List<ExportRule> targetExportRules;
+                    HashMap<String, ExportRule> srcExportRuleSecFlvMap;
+                    HashMap<String, ExportRule> trgtExportRuleSecFlvMap;
+
+                    if (exportPath.equals(sourceFileShare.getPath())) {
+                        // File system export rules....
+                        sourceExportRules = sourceExportRuleMap.get(exportPath);
+                        targetExportRules = targetExportRuleMap.get(targetFileShare.getPath());
+
+                    } else {
+                        // Sub directory export rules....
+                        sourceExportRules = sourceExportRuleMap.get(exportPath);
+                        String subDir = exportPath.split(sourceFileShare.getPath())[1];
+                        targetExportRules = targetExportRuleMap.get(targetFileShare.getPath() + subDir);
+                        params.setSubDir(subDir.substring(1));
+                    }
+                    if (sourceExportRules != null && targetExportRules != null) {
+                        srcExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(sourceExportRules);
+                        trgtExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(targetExportRules);
+
+                        FileOrchestrationUtils.checkForExportRuleToAdd(sourceFileShare, targetFileShare, srcExportRuleSecFlvMap,
+                                trgtExportRuleSecFlvMap, exportRulesToAdd);
+
+                        FileOrchestrationUtils.checkForExportRuleToDelete(srcExportRuleSecFlvMap, trgtExportRuleSecFlvMap,
+                                exportRulesToDelete);
+
+                        sourceExportRules.removeAll(exportRulesToAdd);
+                        targetExportRules.removeAll(exportRulesToDelete);
+                        srcExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(sourceExportRules);
+                        trgtExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(targetExportRules);
+
+                        FileOrchestrationUtils.checkForExportRuleToModify(srcExportRuleSecFlvMap, trgtExportRuleSecFlvMap,
+                                exportRulesToModify);
+
+                        if (!exportRulesToAdd.isEmpty()) {
+                            ExportRules addExportRules = new ExportRules();
+                            addExportRules.setExportRules(exportRulesToAdd);
+                            params.setExportRulesToAdd(addExportRules);
                         }
-                    }
-                    if (!isSecFlvPresentOnSource) {
-                        exportRulesToDelete.add(targetExportRule);
-                    }
-
-                } else {
-                    // Sub directory Export Rule
-                    for (ExportRule sourceExportRule : sourceExportRules) {
-                        if (!sourceExportRule.getExportPath().equals(sourceFileShare.getPath()) &&
-                                sourceExportRule.getSecFlavor().equals(targetExportRule.getSecFlavor())) {
-                            isSecFlvPresentOnSource = true;
+                        if (!exportRulesToDelete.isEmpty()) {
+                            ExportRules deleteExportRules = new ExportRules();
+                            deleteExportRules.setExportRules(exportRulesToDelete);
+                            params.setExportRulesToDelete(deleteExportRules);
                         }
-                    }
-                    if (!isSecFlvPresentOnSource) {
-                        exportRulesToDelete.add(targetExportRule);
-                    }
-                }
-            }
-
-            // Export Rule To Modify
-            sourceExportRules.removeAll(exportRulesToAdd);
-            targetExportRules.removeAll(exportRulesToDelete);
-
-            for (ExportRule sourceExportRule : sourceExportRules) {
-                if (sourceExportRule.getExportPath().equals(sourceFileShare.getPath())) {
-                    // Not the sub directory Export Rule
-                    for (ExportRule targetExportRule : targetExportRules) {
-                        if (targetExportRule.getExportPath().equals(targetFileShare.getPath()) &&
-                                targetExportRule.getSecFlavor().equals(sourceExportRule.getSecFlavor())) {
-                            checkForExportRuleToModify(sourceExportRule, targetExportRule, exportRulesToModify);
+                        if (!exportRulesToModify.isEmpty()) {
+                            ExportRules modifyExportRules = new ExportRules();
+                            modifyExportRules.setExportRules(exportRulesToModify);
+                            params.setExportRulesToModify(modifyExportRules);
                         }
-                    }
-                } else {
-                    // Sub directory Export Rule
-                    for (ExportRule targetExportRule : targetExportRules) {
-                        if (!targetExportRule.getExportPath().equals(targetFileShare.getPath()) &&
-                                targetExportRule.getSecFlavor().equals(sourceExportRule.getSecFlavor())) {
-                            checkForExportRuleToModify(sourceExportRule, targetExportRule, exportRulesToModify);
+
+                        if (params.retrieveAllExports() != null && !params.retrieveAllExports().isEmpty()) {
+                            updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
                         }
                     }
                 }
             }
-
-            FileExportUpdateParams params = new FileExportUpdateParams();
-
-            if (!exportRulesToAdd.isEmpty()) {
-                ExportRules addExportRules = new ExportRules();
-                addExportRules.setExportRules(exportRulesToAdd);
-                params.setExportRulesToAdd(addExportRules);
-            }
-            if (!exportRulesToDelete.isEmpty()) {
-                ExportRules deleteExportRules = new ExportRules();
-                deleteExportRules.setExportRules(exportRulesToDelete);
-                params.setExportRulesToDelete(deleteExportRules);
-            }
-            if (!exportRulesToModify.isEmpty()) {
-                ExportRules modifyExportRules = new ExportRules();
-                modifyExportRules.setExportRules(exportRulesToModify);
-                params.setExportRulesToModify(modifyExportRules);
-            }
-
-            String stepDescription = String.format("Replicating Source File System Export Rules On Target Cluster : %s", params.toString());
-            String exportRuleUpdateStep = workflow.createStepId();
-            Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
-            _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
-                    stepDescription, systemTarget, args);
-
             String successMessage = String.format(
-                    "Replicating source File System : %s NFS Exports Rules to Target System finished successfully",
+                    "Replicating source File System : %s, NFS Exports Rules to Target System finished successfully",
                     sourceFileShare.getLabel());
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem NFS Exports Rules : " + fsURI, ex);
             String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
-                    fsURI.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(fsURI.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }
 
-    private static void createNFSExportOnTarget(Workflow workflow, URI systemTarget, List<FileExport> nfsExportsToCreate,
+    private static String createNFSExportOnTarget(Workflow workflow, URI systemTarget, List<FileExport> nfsExportsToCreate,
             StoragePort nfsPort, FileShare targetFileShare, FileShare sourceFileShare) {
-
+        String waitFor = null;
         for (FileExport nfsExport : nfsExportsToCreate) {
 
             FileShareExport fileNFSExport = new FileShareExport(nfsExport.getClients(), nfsExport.getSecurityType(),
@@ -1282,40 +1429,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 fileNFSExport.setMountPath(targetFileShare.getMountPath());
                 fileNFSExport.setPath(targetFileShare.getMountPath());
             }
-            String stepDescription = String.format("Replicating Source File System NFS Export : %s To Target Cluster",
-                    nfsExport.getMountPath());
+            String stepDescription = String.format("creating NFS export : %s", fileNFSExport.getMountPath());
             String exportCreationStep = workflow.createStepId();
             Object[] args = new Object[] { systemTarget, targetFileShare.getId(), Arrays.asList(fileNFSExport) };
-            _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportCreationStep, stepDescription,
-                    systemTarget, args);
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILESYSTEM_EXPORT_METHOD, exportCreationStep,
+                    stepDescription, systemTarget, args);
         }
-    }
-
-    private static List<ShareACL> queryShareACLs(String shareName, URI fs) {
-
-        List<ShareACL> aclList = new ArrayList<ShareACL>();
-        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fs);
-        List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(s_dbClient, CifsShareACL.class,
-                containmentConstraint);
-
-        if (shareAclList != null) {
-            Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
-            while (shareAclIter.hasNext()) {
-
-                CifsShareACL dbShareAcl = shareAclIter.next();
-                if (shareName.equals(dbShareAcl.getShareName())) {
-                    ShareACL acl = new ShareACL();
-                    acl.setShareName(shareName);
-                    acl.setDomain(dbShareAcl.getDomain());
-                    acl.setUser(dbShareAcl.getUser());
-                    acl.setGroup(dbShareAcl.getGroup());
-                    acl.setPermission(dbShareAcl.getPermission());
-                    acl.setFileSystemId(fs);
-                    aclList.add(acl);
-                }
-            }
-        }
-        return aclList;
+        return waitFor;
     }
 
     private static void createCIFSShareOnTarget(Workflow workflow, URI systemTarget, List<SMBFileShare> smbShares, StoragePort cifsPort,
@@ -1331,8 +1451,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 fileSMBShare.setPath(targetFileShare.getPath());
             }
             String shareCreationStep = workflow.createStepId();
-            String stepDescription = String.format("Creating Source File System CIFS Share : %s on Target System.",
-                    fileSMBShare.getName());
+            String stepDescription = String.format("creating CIFS Share : %s, path : %s", fileSMBShare.getName(),
+                    fileSMBShare.getPath());
             Object[] args = new Object[] { systemTarget, targetFileShare.getId(), fileSMBShare };
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_SHARE_METHOD, shareCreationStep, stepDescription,
                     systemTarget, args);
@@ -1343,7 +1463,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FileShare targetFileShare) {
         for (SMBFileShare smbShare : smbShares) {
             FileSMBShare fileSMBShare = new FileSMBShare(smbShare);
-            String stepDescription = "Deleting Target File System CIFS Share: " + fileSMBShare.getName();
+            String stepDescription = String.format("deleting CIFS share : %s, path : %s", fileSMBShare.getName(), fileSMBShare.getPath());
             String sharedeleteStep = workflow.createStepId();
             Object[] args = new Object[] { systemTarget, targetFileShare.getId(), fileSMBShare };
             _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SHARE_METHOD, sharedeleteStep,
@@ -1351,63 +1471,239 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
-    private static List<ExportRule> queryFSExportRules(FileShare fs) {
-        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
-        List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(s_dbClient, FileExportRule.class,
-                containmentConstraint);
-        List<ExportRule> exportRules = new ArrayList<ExportRule>();
-
-        for (FileExportRule fileExportRule : fileExportRules) {
-            ExportRule exportRule = new ExportRule();
-            exportRule.setAnon(fileExportRule.getAnon());
-            exportRule.setExportPath(fileExportRule.getExportPath());
-            exportRule.setFsID(fileExportRule.getFileSystemId());
-            exportRule.setMountPoint(fileExportRule.getMountPoint());
-            exportRule.setReadOnlyHosts(fileExportRule.getReadOnlyHosts());
-            exportRule.setReadWriteHosts(fileExportRule.getReadWriteHosts());
-            exportRule.setRootHosts(fileExportRule.getRootHosts());
-            exportRule.setSecFlavor(fileExportRule.getSecFlavor());
-            exportRule.setSnapShotID(fileExportRule.getSnapshotId());
-            exportRule.setDeviceExportId(fileExportRule.getDeviceExportId());
-            exportRules.add(exportRule);
-        }
-        return exportRules;
+    private static void updateCIFSShareACLOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
+            SMBFileShare sourceSMBShare, CifsShareACLUpdateParams params) {
+        String stepDescription = String.format(
+                "updating CIFS share : %s, ACLs : %s", sourceSMBShare.getName(), params.toString());
+        String shareACLUpdateStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), sourceSMBShare.getName(), params };
+        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep,
+                stepDescription, systemTarget, args);
     }
 
-    private static void checkForExportRuleToModify(ExportRule sourceExportRule, ExportRule targetExportRule,
-            List<ExportRule> exportRulesToModify) {
-        boolean isExportRuleToModify = false;
+    private static void updateFSExportRulesOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare, String exportPath,
+            FileExportUpdateParams params) {
+        String stepDescription = String.format("updating NFS export rules for path : %s, %s", exportPath, params.toString());
+        String exportRuleUpdateStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
+        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
+                stepDescription, systemTarget, args);
+    }
 
-        if (sourceExportRule.getReadWriteHosts() == null && targetExportRule.getReadWriteHosts() == null) {
-            // Both Source and Target export rule don't have any read-write host...
-        } else if ((sourceExportRule.getReadWriteHosts() == null && targetExportRule.getReadWriteHosts() != null)
-                || (!sourceExportRule.getReadWriteHosts().equals(targetExportRule.getReadWriteHosts()))) {
-            isExportRuleToModify = true;
-            targetExportRule.setReadWriteHosts(sourceExportRule.getReadWriteHosts());
-        }
+    private static void updateNFSACLOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
+            FileNfsACLUpdateParams params) {
 
-        if (sourceExportRule.getReadOnlyHosts() == null && targetExportRule.getReadOnlyHosts() == null) {
-            // Both Source and Target export rule don't have any read-only host...
-        } else if ((sourceExportRule.getReadOnlyHosts() == null && targetExportRule.getReadOnlyHosts() != null)
-                || (!sourceExportRule.getReadOnlyHosts().equals(targetExportRule.getReadOnlyHosts()))) {
-            isExportRuleToModify = true;
-            targetExportRule.setReadOnlyHosts(sourceExportRule.getReadOnlyHosts());
-        }
+        String stepDescription = String.format(
+                "Updating NFS ACL of file system: %s", targetFileShare.getName(), params.toString());
+        String updateNFSACLStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
+        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_NFS_ACL_METHOD, updateNFSACLStep,
+                stepDescription, systemTarget, args);
+    }
 
-        if (sourceExportRule.getRootHosts() == null && targetExportRule.getRootHosts() == null) {
-            // Both Source and Target export rule don't have any root host...
-        } else if ((sourceExportRule.getRootHosts() == null && targetExportRule.getRootHosts() != null)
-                || (!sourceExportRule.getRootHosts().equals(targetExportRule.getRootHosts()))) {
-            isExportRuleToModify = true;
-            targetExportRule.setRootHosts(sourceExportRule.getRootHosts());
-        }
+    /**
+     * Child workflow for replicating source file system NFS ACL to target system.
+     * 
+     * @param systemTarget
+     *            - URI of target StorageSystem where source CIFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param taskId
+     */
+    public void addStepsToReplicateNFSACLs(URI systemTarget, URI fsURI, String taskId) {
+        s_logger.info("Generating steps for Replicating NFS ACLs to Target Cluster");
+        FileNfsACLUpdateParams params = null;
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileShare targetFileShare = null;
+        Workflow workflow = null;
+        try {
 
-        if (sourceExportRule.getAnon() != null && !sourceExportRule.getAnon().equals(targetExportRule.getAnon())) {
-            isExportRuleToModify = true;
-            targetExportRule.setAnon(sourceExportRule.getAnon());
-        }
-        if (isExportRuleToModify) {
-            exportRulesToModify.add(targetExportRule);
+            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                List<String> targetfileUris = new ArrayList<String>();
+                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            } else {
+                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+            }
+
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
+
+            Map<String, List<NfsACE>> sourceFSACLMap = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
+            Map<String, List<NfsACE>> targetFSACLMap = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
+
+            if (!sourceFSACLMap.isEmpty() && targetFSACLMap.isEmpty()) {
+                // target share doesn't have any ACLs but corresponding share on source does have ACL
+                s_logger.info("Target NFS doesn't have any ACL but corresponding NFS on source does have ACL.");
+                for (String fsPath : sourceFSACLMap.keySet()) {
+                    List<NfsACE> aclToAdd = null;
+                    params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, sourceFileShare);
+                    aclToAdd = sourceFSACLMap.get(fsPath);
+                    params.setAcesToAdd(aclToAdd);
+                    s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
+                    updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                }
+            } else if (!targetFSACLMap.isEmpty() && sourceFSACLMap.isEmpty()) {
+                s_logger.info("Source NFS doesn't have any ACL but corresponding NFS on target has ACL.");
+                for (String fsPath : targetFSACLMap.keySet()) {
+                    List<NfsACE> aclToDelete = null;
+                    params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, targetFileShare);
+                    aclToDelete = targetFSACLMap.get(fsPath);
+                    params.setAcesToDelete(aclToDelete);
+                    s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
+                    updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                }
+            } else if (!sourceFSACLMap.isEmpty() && !targetFSACLMap.isEmpty()) {
+                // both source and target FS have some ACL
+                for (String sourceFSACLPath : sourceFSACLMap.keySet()) {
+
+                    List<NfsACE> aclToAdd = new ArrayList<NfsACE>();
+                    List<NfsACE> aclToDelete = new ArrayList<NfsACE>();
+                    List<NfsACE> aclToModify = new ArrayList<NfsACE>();
+
+                    // Segregate source and target NFS ACL
+                    params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(sourceFSACLPath, sourceFileShare);
+                    List<NfsACE> sourceNFSACL = sourceFSACLMap.get(sourceFSACLPath);
+                    if (sourceNFSACL == null) {
+                        sourceNFSACL = new ArrayList<NfsACE>();
+                    }
+                    String subDir = params.getSubDir();
+                    String targetFSACLPath = targetFileShare.getPath();
+                    if (subDir != null) {
+                        targetFSACLPath += "/" + subDir;
+                    }
+                    List<NfsACE> targetNFSACL = targetFSACLMap.get(targetFSACLPath);
+
+                    if (targetNFSACL == null) {
+                        targetNFSACL = new ArrayList<NfsACE>();
+                    }
+
+                    HashMap<String, NfsACE> sourceUserToNFSACLMap = FileOrchestrationUtils
+                            .getUserToNFSACEMap(sourceNFSACL);
+
+                    HashMap<String, NfsACE> targetUserToNFSACLMap = FileOrchestrationUtils
+                            .getUserToNFSACEMap(targetNFSACL);
+
+                    // ACL To Add
+                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
+                        if (targetUserToNFSACLMap.get(sourceACEUser) == null) {
+                            NfsACE nfsACE = sourceUserToNFSACLMap.get(sourceACEUser);
+                            aclToAdd.add(nfsACE);
+                        }
+                    }
+
+                    // ACL To Delete
+                    for (String targetACEUser : targetUserToNFSACLMap.keySet()) {
+                        if (sourceUserToNFSACLMap.get(targetACEUser) == null) {
+                            aclToDelete.add(targetUserToNFSACLMap.get(targetACEUser));
+                        }
+                    }
+
+                    // ACL to Modify
+                    targetNFSACL.removeAll(aclToDelete);
+                    sourceNFSACL.removeAll(aclToAdd);
+
+                    sourceUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(sourceNFSACL);
+                    targetUserToNFSACLMap = FileOrchestrationUtils.getUserToNFSACEMap(targetNFSACL);
+
+                    for (String sourceACEUser : sourceUserToNFSACLMap.keySet()) {
+
+                        NfsACE targetACE = targetUserToNFSACLMap.get(sourceACEUser);
+                        NfsACE sourceACE = sourceUserToNFSACLMap.get(sourceACEUser);
+
+                        if (targetACE != null &&
+                                (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+
+                            targetACE.setPermissions(sourceACE.getPermissions());
+                            targetACE.setPermissionType(sourceACE.getPermissionType());
+                            aclToModify.add(targetACE);
+                        }
+                    }
+
+                    if (!aclToAdd.isEmpty()) {
+                        params.setAcesToAdd(aclToAdd);
+                    }
+                    if (!aclToDelete.isEmpty()) {
+                        params.setAcesToDelete(aclToDelete);
+                    }
+                    if (!aclToModify.isEmpty()) {
+                        params.setAcesToModify(aclToModify);
+                    }
+
+                    if (!params.retrieveAllACL().isEmpty()) {
+                        s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
+                        updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                    }
+                }
+            }
+
+            String successMessage = String.format(
+                    "Replicating source file system : %s, NFS ACL to target file system finished successfully",
+                    sourceFileShare.getLabel());
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not replicate source filesystem NFS ACL : " + fsURI, ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareNFSACLFailed(
+                    fsURI.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
         }
     }
+
+    private static void updateTargetFileSystem(Workflow workflow, URI systemTarget, FileShare targetFileShare) {
+
+        String stepDescription = String.format(
+                "Updating target file system: %s with new directory quota settings.", targetFileShare.getName());
+        String updateQuotaDirStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, targetFileShare.getPool(), targetFileShare.getId() };
+        _fileDeviceController.createMethod(workflow, null, MODIFY_FILESYSTEM_METHOD, updateQuotaDirStep,
+                stepDescription, systemTarget, args);
+    }
+
+    /**
+     * Child workflow for replicating source file system directory quota settings to target system.
+     * 
+     * @param systemTarget
+     *            - URI of target StorageSystem where source quota directory settings have to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param taskId
+     */
+    public void addStepsToReplicateDirectoryQuotaSettings(URI systemTarget, URI fsURI, String taskId) {
+        s_logger.info("Generating steps for replicating directory quota settings to target cluster.");
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
+        FileShare targetFileShare = null;
+        Workflow workflow = null;
+        try {
+
+            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+            if (sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                List<String> targetfileUris = new ArrayList<String>();
+                targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+                targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            } else {
+                targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
+            }
+            targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
+            targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
+            targetFileShare.setNotificationLimit(sourceFileShare.getNotificationLimit());
+            s_dbClient.updateObject(targetFileShare);
+
+            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME, false, taskId, completer);
+            updateTargetFileSystem(workflow, systemTarget, targetFileShare);
+            String successMessage = String.format(
+                    "Replicating source file system : %s, directory quota settings to target file system finished successfully.",
+                    sourceFileShare.getLabel());
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not replicate source filesystem directory quota settings: " + fsURI, ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.unableToUpdateFileSystem(opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
 }

@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowService;
 
@@ -611,6 +612,7 @@ public class BlockStorageDeviceTest {
             volume.setLabel(LABEL_PREFIX + i);
             volume.setCapacity(17298180736L); // which capacity to set?
             volume.setStorageController(_storageSystem.getId());
+            volume.setSystemType(_storageSystem.getSystemType());
             volume.setPool(_storagePool.getId());
             volume.setVirtualPool(URIUtil.createId(VirtualPool.class));
             volume.setProject(new NamedURI(_project.getId(), volume.getLabel()));
@@ -669,10 +671,10 @@ public class BlockStorageDeviceTest {
             _dbClient.createObject(exportGroup);
         }
 
-        StringSet masks = exportGroup.getExportMasks();
-        if (masks == null) {
+        List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+        if (masks.isEmpty()) {
             exportGroup.addExportMask(getExportMask().getId());
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
         }
 
         return exportGroup;
@@ -688,7 +690,7 @@ public class BlockStorageDeviceTest {
             ExportMask mask = iter.next();
             mask.setMaskName("host2278");
             mask.setStorageDevice(_storageSystem.getId());
-            _dbClient.persistObject(mask);
+            _dbClient.updateObject(mask);
             return mask;
         }
 
@@ -805,6 +807,7 @@ public class BlockStorageDeviceTest {
             snapshot.setInactive(false);
             snapshot.setLabel(LABEL_PREFIX + "_snap_" + 1);
             snapshot.setStorageController(_storageSystem.getId());
+            snapshot.setSystemType(_storageSystem.getSystemType());
             snapshot.setProject(new NamedURI(_project.getId(), snapshot
                     .getLabel()));
             snapshot.setParent(new NamedURI(getVolumes(_storageSystem).get(0)

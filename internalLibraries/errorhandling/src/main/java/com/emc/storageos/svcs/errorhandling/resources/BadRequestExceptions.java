@@ -1067,6 +1067,9 @@ public interface BadRequestExceptions {
     public BadRequestException parameterValueIsNotValid(final String parameterName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName,final String validCharacters);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterValueCannotBeUpdated(final String parameterName,
             final String reason);
 
@@ -1415,6 +1418,15 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedPlacementPolicy(final String placementPolicy);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException arrayAffinityPlacementPolicyNotAllowedForSystemType(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException arrayAffinityPlacementPolicyNotAllowedForHighAvailability();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateVirtualPoolOnlyAllowedToChange();
@@ -2244,7 +2256,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolNotAllCGVolumes();
-
+        
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolVolumeIsNotInCG();
 
@@ -2562,6 +2574,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotAllowedOnRPVolumes();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationOnlyAllowedOnActiveSite();
@@ -3033,6 +3048,18 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException schduleInfoInvalid(final String field);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException scheduleInfoNotAllowedWithSnapshotSessionTarget();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException scheduleInfoNotMatchWithExecutionWindow(final String field);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException scheduledOrderNotAllowed(String operation);
+
     @DeclareServiceCode(ServiceCode.API_MOUNTS_EXIST)
     public BadRequestException cannotDeleteDuetoExistingMounts();
 
@@ -3059,10 +3086,40 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidGroupOfInitiators(URI exportGroupURI, String nameList);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantExposeExportedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantExportSnapshotExposedAsVPLEXVolume(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotPerformOperationWithExportedBookmarks(final URI snapshotId, final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConsistencyGroup();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidVolumeName(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportGroupContainsMountedVolumesInvalidParam();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportGroupContainsMountedVolumes(final URI exportGroup, final String volumes);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotExecuteOperationWhilePendingOrFailedEvent(final String string);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException deactivateRPTargetNotSupported(final String string);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotAddProtectionWhenSnapshotsExist(final String volumeLabel);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidParameterWwnBadFormat(String wwn);
 }

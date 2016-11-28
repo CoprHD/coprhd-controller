@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.file;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.FileShare;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,8 +21,8 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileResyncTaskCompleter.class);
 
-    public MirrorFileResyncTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFileResyncTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
 
     }
 
@@ -50,9 +51,14 @@ public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected MirrorStatus getFileMirrorStatusForSuccess() {
-        setMirrorSyncStatus(MirrorStatus.SYNCHRONIZED);
-        return getMirrorSyncStatus();
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        if(fs.getStorageDevice().equals(getStorageUri())) {
+        	 _log.info("resync op is success - fs name {} and mirror state {}", fs.getName(), fs.getMirrorStatus());
+            return fs.getMirrorStatus();
+        } else {
+        	_log.info("resync op is success - fs name {} and mirror state {}", MirrorStatus.SYNCHRONIZED.name());
+            return MirrorStatus.SYNCHRONIZED.name();
+        }
     }
 
 }

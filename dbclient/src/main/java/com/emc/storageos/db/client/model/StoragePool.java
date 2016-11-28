@@ -83,6 +83,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
 
     private Boolean autoTieringEnabled;
 
+    private Boolean compressionEnabled;
+
     // used in finding out whether or not the pool is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
 
@@ -745,6 +747,16 @@ public class StoragePool extends VirtualArrayTaggedResource {
     @Name("autoTieringEnabled")
     public Boolean getAutoTieringEnabled() {
         return this.autoTieringEnabled == null ? false : autoTieringEnabled;
+    }
+
+    public void setCompressionEnabled(final Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
+        setChanged("compressionEnabled");
+    }
+
+    @Name("compressionEnabled")
+    public Boolean getCompressionEnabled() {
+        return this.compressionEnabled == null ? false : compressionEnabled;
     }
 
     @Name("avgStorageDevicePortMetrics")

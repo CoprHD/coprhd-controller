@@ -13,8 +13,11 @@ import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateCloneOfApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateCloneOfApplication")
@@ -38,8 +41,39 @@ public class CreateCloneOfApplicationService extends ViPRService {
 
         List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
+        checkAndPurgeObsoleteClones(applicationId);
+        String cloneName = TimeUtils.formatDateForCurrent(name);
         Tasks<? extends DataObjectRestRep> tasks = execute(
-                new CreateCloneOfApplication(applicationId, name, volumeIds));
+                new CreateCloneOfApplication(applicationId, cloneName, volumeIds));
         addAffectedResources(tasks);
+        
+        addRetainedReplicas(applicationId, cloneName);
+    }
+    
+    /**
+     * Check retention policy and delete obsolete snapshots if necessary
+     * 
+     * @param applicationId - application id
+     */
+    private void checkAndPurgeObsoleteClones(URI applicationId) {
+        if (!isRetentionRequired()) {
+            return;
+        }
+        List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
+        for (RetainedReplica replica : replicas) {
+            for (String replicaName: replica.getAssociatedReplicaIds()) {
+                info("Delete clones %s since it exceeds max number of clones allowed", replicaName);
+                removeApplicationFullCopy(applicationId, replicaName, subGroups);
+            }
+            getModelClient().delete(replica);
+        }
+    }
+    
+    private void removeApplicationFullCopy(URI applicationId, String name, List<String> subGroups) {
+        List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, name,
+                subGroups);
+        List<URI> allFullCopyIds = BlockStorageUtils.getAllFullCopyVolumes(applicationId, name, subGroups);
+        BlockStorageUtils.detachFullCopies(fullCopyIds);
+        BlockStorageUtils.removeBlockResources(allFullCopyIds, VolumeDeleteTypeEnum.FULL);
     }
 }

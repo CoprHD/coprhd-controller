@@ -671,8 +671,9 @@ public class AuthnConfigurationService extends TaggedResource {
             authn.setServerUrls(ssOld);
         }
 
-        if (param.getMode().equals(AuthnProvider.ProvidersType.keystone.toString()) &&
-            param.getTenantsSynchronizationOptionsChanges() != null) {
+        if (param.getMode() != null
+                && param.getMode().equals(AuthnProvider.ProvidersType.keystone.toString())
+                && param.getTenantsSynchronizationOptionsChanges() != null) {
             StringSet oldOptions = authn.getTenantsSynchronizationOptions();
             if (oldOptions == null) {
                 oldOptions = new StringSet();

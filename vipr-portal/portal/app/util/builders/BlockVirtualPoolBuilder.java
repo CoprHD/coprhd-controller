@@ -84,6 +84,11 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return this;
     }
 
+    public BlockVirtualPoolBuilder setCompressionEnabled(boolean compressionEnabled) {
+        virtualPool.setCompressionEnabled(compressionEnabled);
+        return this;
+    }
+
     public BlockVirtualPoolBuilder setDriveType(String driveType) {
         virtualPool.setDriveType(StringUtils.defaultIfEmpty(driveType, DriveTypes.NONE));
         return this;

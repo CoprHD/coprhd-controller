@@ -6,10 +6,11 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
 /**
@@ -35,12 +37,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     private static final String EXPORT_UPDATE_FAILED_MSG = "Failed to update ExportGroup %s";
     private Map<URI, Integer> _addedBlockObjects = new HashMap<URI, Integer>();
     private Map<URI, Integer> _removedBlockObjects = new HashMap<URI, Integer>();
-    private List<URI> _addedInitiators = new ArrayList<URI>();
-    private List<URI> _removedInitiators = new ArrayList<URI>();
-    private List<URI> _addedHosts = new ArrayList<URI>();
-    private List<URI> _removedHosts = new ArrayList<URI>();
-    private List<URI> _addedClusters = new ArrayList<URI>();
-    private List<URI> _removedClusters = new ArrayList<URI>();
+    private Set<URI> _addedInitiators = new HashSet<>();
+    private Set<URI> _removedInitiators = new HashSet<>();
+    private Set<URI> _addedHosts = new HashSet<>();
+    private Set<URI> _removedHosts = new HashSet<>();
+    private Set<URI> _addedClusters = new HashSet<>();
+    private Set<URI> _removedClusters = new HashSet<>();
 
     /**
      * Constructor for export updates.
@@ -60,9 +62,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             URI egUri,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators,
-            List<URI> addedHosts, List<URI> removedHosts,
-            List<URI> addedClusters, List<URI> removedClusters,
+            Set<URI> addedInitiators, Set<URI> removedInitiators,
+            Set<URI> addedHosts, Set<URI> removedHosts,
+            Set<URI> addedClusters, Set<URI> removedClusters,
             String task) {
         super(ExportGroup.class, egUri, task);
         _addedBlockObjects = addedBlockObjects;
@@ -103,15 +105,21 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             // update the export group data if the job completes successfully
             if (status.equals(Operation.Status.ready)) {
-                updateExportGroup(exportGroup);
+                updateExportGroup(exportGroup, dbClient);
             }
             dbClient.updateObject(exportGroup);
+            
+            ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
+
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
+            
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -130,11 +138,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      * Update the export group data.
      * 
      * @param exportGroup the export group to be updated.
+     * @param dbClient {@link DbClient}
      */
-    private void updateExportGroup(ExportGroup exportGroup) {
-        // TODO
-        // Consider removing clusters when all their hosts are removed
-        // and removing hosts when all their initiators are removed.
+    private void updateExportGroup(ExportGroup exportGroup, DbClient dbClient) {
         if (_addedInitiators != null) {
             exportGroup.addInitiators(_addedInitiators);
         }
@@ -167,4 +173,5 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
     }
+
 }

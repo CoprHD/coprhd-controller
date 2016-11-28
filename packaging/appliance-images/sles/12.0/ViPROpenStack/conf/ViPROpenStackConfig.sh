@@ -148,7 +148,7 @@ LogMessage "INFO" "Generating random token number"
 randNumber=$($opensslExec rand -hex 10);
 
 LogMessage "INFO" "Modifying the keystone.conf file"
-$sedExec -i '/^\[DEFAULT\]/,/^\[assignment\]/{s/\#admin_token = ADMIN/admin_token = '$randNumber'/}' $keystoneConfFile
+$sedExec -i '/^\[DEFAULT\]/,/^\[assignment\]/{s/\#admin_token = <None>/admin_token = '$randNumber'/}' $keystoneConfFile
 if [ $? -ne 0 ]; then
   LogMessage "ERROR" "Failed to update the random token number in keystone.conf"
 fi

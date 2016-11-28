@@ -264,7 +264,7 @@ def consistency_group_snapshot_session_delete(args):
     bourne.connect(args.ip)
     session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
     start = time.time()
-    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri)
+    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri, args.vipronly)
     total = time.time() - start
     print "Delete snapshot session completed in", "{0:.2f}".format(total), "seconds."
     if (state == 'ready'):
@@ -459,6 +459,7 @@ snapshotSessionCreate.add_argument('--target_copymode', help = 'The copy mode fo
 # consistency group delete name [--ip ipaddr]
 snapshotSessionDelete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 snapshotSessionDelete.add_argument('name', help = 'The name of the snapshot session as group_name/session_name.')
+snapshotSessionDelete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
 
 # consistency group link_targets name [--ip ipaddr]
 snapshotSessionLinkTargets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

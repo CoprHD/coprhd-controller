@@ -58,6 +58,7 @@ public class VirtualPoolMapper {
         BlockVirtualPoolRestRep to = new BlockVirtualPoolRestRep();
         to.setDriveType(from.getDriveType());
         to.setAutoTieringPolicyName(from.getAutoTierPolicyName());
+        to.setCompressionEnabled(from.getCompressionEnabled());
         to.setThinVolumePreAllocationPercentage(from.getThinVolumePreAllocationPercentage());
         to.setExpandable(from.getExpandable());
         to.setFastExpansion(from.getFastExpansion());
@@ -167,13 +168,16 @@ public class VirtualPoolMapper {
             protection.getRecoverPoint().setCopies(new HashSet<VirtualPoolProtectionVirtualArraySettingsParam>());
             for (Map.Entry<URI, VpoolProtectionVarraySettings> setting : protectionSettings.entrySet()) {
                 VirtualPoolProtectionVirtualArraySettingsParam copy = new VirtualPoolProtectionVirtualArraySettingsParam();
-                copy.setVpool(setting.getValue().getVirtualPool());
-                copy.setVarray(setting.getKey());
-                copy.setCopyPolicy(new ProtectionCopyPolicy());
-                copy.getCopyPolicy().setJournalSize(setting.getValue().getJournalSize());
-                copy.getCopyPolicy().setJournalVarray(setting.getValue().getJournalVarray());
-                copy.getCopyPolicy().setJournalVpool(setting.getValue().getJournalVpool());
-                protection.getRecoverPoint().getCopies().add(copy);
+                VpoolProtectionVarraySettings value = setting.getValue();
+                if (value != null) {
+                    copy.setVpool(setting.getValue().getVirtualPool());
+                    copy.setVarray(setting.getKey());
+                    copy.setCopyPolicy(new ProtectionCopyPolicy());
+                    copy.getCopyPolicy().setJournalSize(setting.getValue().getJournalSize());
+                    copy.getCopyPolicy().setJournalVarray(setting.getValue().getJournalVarray());
+                    copy.getCopyPolicy().setJournalVpool(setting.getValue().getJournalVpool());
+                    protection.getRecoverPoint().getCopies().add(copy);
+                }
             }
         }
 

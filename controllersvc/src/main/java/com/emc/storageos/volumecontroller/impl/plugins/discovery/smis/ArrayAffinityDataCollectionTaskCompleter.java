@@ -9,9 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -19,15 +16,11 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 
 public class ArrayAffinityDataCollectionTaskCompleter extends DataCollectionTaskCompleter {
     private static final long serialVersionUID = 7659532197486432647L;
-    private static final Logger _log = LoggerFactory
-            .getLogger(ArrayAffinityDataCollectionTaskCompleter.class);
     private String _jobType;
-    private boolean _isScheduled = false;
 
-    public ArrayAffinityDataCollectionTaskCompleter(Class clazz, List<URI> systemIds, String opId, String jobType, boolean isScheduled) {
+    public ArrayAffinityDataCollectionTaskCompleter(Class clazz, List<URI> systemIds, String opId, String jobType) {
         super(clazz, systemIds, opId);
         _jobType = jobType;
-        _isScheduled = isScheduled;
     }
 
     public String getJobType() {
@@ -54,10 +47,6 @@ public class ArrayAffinityDataCollectionTaskCompleter extends DataCollectionTask
 
     @Override
     final public void setNextRunTime(DbClient dbClient, long time) {
-        if (!_isScheduled) {
-            return;
-        }
-
         Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, getIds());
         List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
         while (systems.hasNext()) {
@@ -76,10 +65,6 @@ public class ArrayAffinityDataCollectionTaskCompleter extends DataCollectionTask
 
     @Override
     final public void setLastTime(DbClient dbClient, long time) {
-        if (!_isScheduled) {
-            return;
-        }
-
         Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, getIds());
         List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
         while (systems.hasNext()) {
@@ -98,10 +83,6 @@ public class ArrayAffinityDataCollectionTaskCompleter extends DataCollectionTask
 
     @Override
     final public void setSuccessTime(DbClient dbClient, long time) {
-        if (!_isScheduled) {
-            return;
-        }
-
         Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, getIds());
         List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
         while (systems.hasNext()) {

@@ -235,4 +235,7 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException validationFailedRPIngestionMissingVolume(String volumeID, String cgName);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException invalidExportConfiguration(String errorDetails);
 }

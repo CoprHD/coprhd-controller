@@ -85,8 +85,4 @@ public class ClusterUtils {
     public static Task<ClusterRestRep> deactivate(URI hostId, boolean detachStorage) {
         return getViprClient().clusters().deactivate(hostId, detachStorage);
     }
-
-    public static Task<ClusterRestRep> detachStorage(URI clusterId) {
-        return getViprClient().clusters().detachStorage(clusterId);
-    }
 }

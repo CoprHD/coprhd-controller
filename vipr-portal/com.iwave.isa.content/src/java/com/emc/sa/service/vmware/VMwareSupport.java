@@ -30,12 +30,14 @@ import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vmware.block.tasks.AttachScsiDisk;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.DetachLunsFromHost;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
 import com.emc.sa.service.vmware.block.tasks.FindLunsBackingDatastore;
+import com.emc.sa.service.vmware.block.tasks.MountDatastore;
 import com.emc.sa.service.vmware.block.tasks.RefreshStorage;
 import com.emc.sa.service.vmware.block.tasks.SetMultipathPolicy;
 import com.emc.sa.service.vmware.block.tasks.SetStorageIOControl;
@@ -184,7 +186,7 @@ public class VMwareSupport {
      */
     public Datastore createVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, String datastoreName) {
-        HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
         Datastore datastore = execute(new CreateVmfsDatastore(host, disk, datastoreName));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastoreName);
@@ -229,10 +231,12 @@ public class VMwareSupport {
 
     public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
         execute(new DetachLunsFromHost(host, disks));
+        addRollback(new AttachScsiDisk(host, disks));
     }
 
     public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
         execute(new UnmountVmfsDatastore(host, datastore));
+        addRollback(new MountDatastore(host, datastore));
     }
 
     /**
@@ -267,7 +271,7 @@ public class VMwareSupport {
      */
     public void extendVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, Datastore datastore) {
-        HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
         execute(new ExtendVmfsDatastore(host, disk, datastore));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastore.getName());
@@ -574,13 +578,27 @@ public class VMwareSupport {
      * @return the disk for the volume.
      */
     public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
+        return findScsiDisk(host, cluster, volume, false);
+    }
+
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host the host system
+     * @param cluster if specified, find disk on all hosts in the cluster
+     * @param volume the volume to find
+     * @param availableDiskOnly if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     * @return the disk for the volume
+     */
+    public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume,
+            boolean availableDiskOnly) {
         // Ensure that the volume has a WWN set or we won't be able to find the disk
         if (StringUtils.isBlank(volume.getWwn())) {
             String volumeId = ResourceUtils.stringId(volume);
             String volumeName = ResourceUtils.name(volume);
             ExecutionUtils.fail("failTask.VMwareSupport.findLun", new Object[] { volumeId }, new Object[] { volumeName });
         }
-        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
+        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume, availableDiskOnly));
 
         // Find the volume on all other hosts in the cluster
         if (cluster != null) {
@@ -594,7 +612,7 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume));
+                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly));
                 disks.put(otherHost, otherDisk);
             }
         }

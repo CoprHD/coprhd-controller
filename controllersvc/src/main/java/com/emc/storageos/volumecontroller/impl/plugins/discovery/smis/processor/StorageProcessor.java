@@ -21,6 +21,7 @@ import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -44,6 +46,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.google.common.base.Splitter;
 
 public abstract class StorageProcessor extends PoolProcessor {
@@ -82,7 +85,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     private static final String SLO = "SLO";
     private static final String WORKLOAD = "Workload";
 
-    protected static final String USGAE_UNRESTRICTED = "2";
+    protected static final String USAGE_UNRESTRICTED = "2";
     protected static final String USAGE_DELTA_REPLICA_TARGET = "12";
     protected static final String USGAE_LOCAL_REPLICA_SOURCE = "6";
     protected static final String USAGE_LOCAL_REPLICA_TARGET = "8";
@@ -102,7 +105,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected static final String EIGHT = "8";
 
     protected static final String DEPENDENT = "Dependent";
-
+    
     /**
      * get UnManaged Volume Object path
      * 
@@ -718,5 +721,12 @@ public abstract class StorageProcessor extends PoolProcessor {
             _logger.error("Not able to find the sync elements for volume {}", volumeInstance.getObjectPath());
         }
         return syncObject;
+    }
+
+    protected boolean updateSupportedCopyMode(String copyMode) {
+        return null == copyMode
+                || SupportedCopyModes.UNKNOWN.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ALL.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ADAPTIVECOPY.toString().equalsIgnoreCase(copyMode);
     }
 }

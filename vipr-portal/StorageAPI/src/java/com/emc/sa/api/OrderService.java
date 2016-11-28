@@ -49,8 +49,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.sa.catalog.WorkflowServiceDescriptor;
-import com.emc.sa.catalog.ServiceDescriptorUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -62,6 +60,8 @@ import com.emc.sa.api.mapper.OrderMapper;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogServiceManager;
 import com.emc.sa.catalog.OrderManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;

@@ -113,8 +113,10 @@ public class WorkflowServiceDescriptor {
                             serviceField.setName(inputName);
                             serviceField.setRequired(wfInput.getRequired());
                             serviceField.setInitialValue(wfInput.getDefaultValue());
-                            // Setting all fields as lockable
-                            serviceField.setLockable(true);
+                            // Setting all unlocked fields as lockable
+                            if (!wfInput.getLocked()) {
+                                serviceField.setLockable(true);
+                            }
                             serviceField.setType(wfInputType);
                             to.getItems().put(inputName, serviceField);
                         }

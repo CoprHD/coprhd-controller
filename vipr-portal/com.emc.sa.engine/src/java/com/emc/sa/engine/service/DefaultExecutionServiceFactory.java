@@ -7,8 +7,7 @@ package com.emc.sa.engine.service;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.catalog.OrchestrationWorkflowManager;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+
 import org.apache.commons.lang.UnhandledException;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
@@ -18,6 +17,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.catalog.OrchestrationWorkflowManager;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.collect.Maps;
@@ -74,12 +75,10 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
 
     private boolean isWorkflowService(String serviceName) {
         List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
-        if (null != results && results.size() > 0) {
+        if (null != results && !results.isEmpty()) {
             return true;
         }
-        else {
-            return false;
-        }
+        return false;
     }
 
     protected ExecutionService newInstance(Class<? extends ExecutionService> serviceClass, String serviceName) {

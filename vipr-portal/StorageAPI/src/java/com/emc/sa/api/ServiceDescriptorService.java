@@ -16,12 +16,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.sa.catalog.ServiceDescriptorUtil;
-import com.emc.sa.catalog.WorkflowServiceDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.catalog.ServiceDescriptorUtil;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.storageos.security.authorization.ACL;
@@ -38,7 +36,6 @@ import com.google.common.collect.Lists;
 @Path("/catalog/service-descriptors")
 public class ServiceDescriptorService extends CatalogResourceService {
 
-    private static final Logger log = LoggerFactory.getLogger(ServiceDescriptorService.class);
     @Autowired
     private ServiceDescriptors serviceDescriptors;
 

@@ -41,9 +41,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.sa.catalog.OrchestrationWorkflowManager;
-import com.emc.sa.catalog.WorkflowServiceDescriptor;
-import com.emc.sa.catalog.ServiceDescriptorUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CatalogServiceFilter;
@@ -52,6 +49,8 @@ import com.emc.sa.api.utils.CatalogConfigUtils;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogCategoryManager;
 import com.emc.sa.catalog.CatalogServiceManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -105,9 +104,6 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     @Autowired
     private WorkflowServiceDescriptor workflowServiceDescriptor;
-
-    @Autowired
-    private OrchestrationWorkflowManager orchestrationWorkflowManager;
 
     private CatalogConfigUtils catalogConfigUtils;
 

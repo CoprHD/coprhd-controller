@@ -11,10 +11,11 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.valid.Range;
 
 @XmlRootElement(name = "path_param")
-public class ExportPathParametersRestRep {
+public class ExportPathParametersRestRep extends DataObjectRestRep{
 
     private URI id;
     private String name;

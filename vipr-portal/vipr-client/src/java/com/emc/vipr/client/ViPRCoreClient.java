@@ -28,6 +28,7 @@ import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
 import com.emc.vipr.client.core.Events;
+import com.emc.vipr.client.core.ExportPathParameters;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -42,6 +43,7 @@ import com.emc.vipr.client.core.Networks;
 import com.emc.vipr.client.core.ObjectBuckets;
 import com.emc.vipr.client.core.ObjectNamespaces;
 import com.emc.vipr.client.core.ObjectVirtualPools;
+import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
@@ -68,7 +70,6 @@ import com.emc.vipr.client.core.VirtualDataCenter;
 import com.emc.vipr.client.core.VirtualDataCenters;
 import com.emc.vipr.client.core.VirtualNasServers;
 import com.emc.vipr.client.core.Workflows;
-import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.IPsec;
 
@@ -429,5 +430,9 @@ public class ViPRCoreClient {
 
     public StorageSystemType storageSystemType() {
         return new StorageSystemType(client);
+    }
+    
+    public ExportPathParameters exportPathParameters(){
+        return new ExportPathParameters(this, client);
     }
 }

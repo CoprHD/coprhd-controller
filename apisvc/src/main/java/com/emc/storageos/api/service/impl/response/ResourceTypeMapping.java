@@ -88,6 +88,9 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WF_DIRECTORY;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
+import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
+import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_PATH_PARAMETERS;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -166,6 +169,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.db.client.model.ExportPathParams;
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory
@@ -249,6 +253,7 @@ public class ResourceTypeMapping {
         classMapping.put(CUSTOM_SERVICES_PRIMITIVES, CustomServicesPrimitiveModel.class);
         classMapping.put(CUSTOM_SERVICES_PRIMITIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
+        classMapping.put(EXPORT_PATH_PARAMETERS, ExportPathParams.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
                 .entrySet()) {

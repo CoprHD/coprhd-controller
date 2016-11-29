@@ -77,7 +77,6 @@ public class ExternalDeviceCommunicationInterface extends
     private Map<String, AbstractStorageDriver> drivers;
     // Indicate if driver info has been fetched from db and merged into drivers member
     private boolean initialized = false;
-    private Object internalInitLock = new Object();
     
     // The common capability definitions supported by the SB SDK.
     private Map<String, CapabilityDefinition> capabilityDefinitions;
@@ -109,40 +108,36 @@ public class ExternalDeviceCommunicationInterface extends
         if (initialized) {
             return;
         }
-        synchronized (internalInitLock) {
-            if (initialized) {
-                return;
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (type.getIsNative() == null ||type.getIsNative()) {
+                continue;
             }
-            List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
-            Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-            Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
-            while (it.hasNext()) {
-                StorageSystemType type = it.next();
-                if (type.getIsNative() == null ||type.getIsNative()) {
-                    continue;
-                }
-                if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
-                    continue;
-                }
-                String typeName = type.getStorageTypeName();
-                String className = type.getDriverClassName();
-                // provider and managed system should use the same driver instance
-                if (cachedDriverInstances.containsKey(className)) {
-                    drivers.put(typeName, cachedDriverInstances.get(className));
-                    _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
-                    continue;
-                }
-                String mainClassName = type.getDriverClassName();
-                try {
-                    AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
-                    drivers.put(typeName, driverInstance);
-                    cachedDriverInstances.put(className, driverInstance);
-                    _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
-                } catch (Exception e) {
-                    _log.error("Error happened when instantiating class {}", mainClassName);
-                }
+            if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                continue;
+            }
+            String typeName = type.getStorageTypeName();
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                drivers.put(typeName, cachedDriverInstances.get(className));
+                _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                drivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+                _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName);
             }
         }
+        initialized = true;
     }
 
     /**
@@ -159,8 +154,11 @@ public class ExternalDeviceCommunicationInterface extends
             // init driver
             AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
-                _log.info("No driver entry defined for device type: {} . ", driverType);
-                return null;
+                initDrivers();
+                if (driver == null) {
+                    _log.info("No driver entry defined for device type: {} . ", driverType);
+                    return null;
+                }
             }
             init(driver);
             discoveryDrivers.put(driverType, driver);
@@ -183,7 +181,6 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
-        initDrivers();
         // todo
         _log.info("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         _log.info("Collect statistic information for external device of type {} is not supported", accessProfile.getSystemType());
@@ -192,7 +189,6 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
-        initDrivers();
         // Initialize driver instance for storage provider,
         // call driver to scan the provider to get list of managed storage systems,
         // update the system with this information.
@@ -292,7 +288,6 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-        initDrivers();
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
         AbstractStorageDriver driver = getDriver(deviceType);
@@ -363,7 +358,6 @@ public class ExternalDeviceCommunicationInterface extends
     }
 
     public void discoverUnManagedBlockObjects(AbstractStorageDriver driver, AccessProfile accessProfile) {
-        initDrivers();
         String detailedStatusMessage;
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());

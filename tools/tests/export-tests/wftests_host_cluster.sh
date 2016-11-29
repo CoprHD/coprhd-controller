@@ -502,9 +502,8 @@ test_move_clustered_host_to_another_cluster() {
         
         
         # Move host1 into cluster2
-        runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
-        sleep 60
-        
+        runcmd hosts update $host1 --cluster ${TENANT}/${cluster2} 
+ 
         # Failure checks go here.
         # 1. Host still belongs to old cluster
         # 2. Initiators not moved over

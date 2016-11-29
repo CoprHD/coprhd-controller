@@ -26,6 +26,9 @@ import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.core.search.SearchBuilder;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ws.rs.core.UriBuilder;
 
 /**
@@ -38,6 +41,7 @@ import javax.ws.rs.core.UriBuilder;
  */
 public abstract class AbstractResources<T extends DataObjectRestRep> implements Resources<T> {
 
+    Logger log = LoggerFactory.getLogger(AbstractResources.class);
     protected final RestClient client;
     protected final Class<T> resourceClass;
     protected final String baseUrl;
@@ -576,15 +580,25 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * @return the list of resources.
      */
     public List<SearchResultResourceRep> performSearch(Map<String, Object> params) {
+        log.info("========= search url is {}", getSearchUrl());
+
         UriBuilder builder = client.uriBuilder(getSearchUrl());
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             builder.queryParam(entry.getKey(), entry.getValue());
         }
+        log.info("========= URL is {}", builder.build());
+
         SearchResults searchResults = client.getURI(SearchResults.class, builder.build());
         List<SearchResultResourceRep> results = searchResults.getResource();
         if (results == null) {
             results = new ArrayList<SearchResultResourceRep>();
         }
+
+        log.info("========= Printing Search results");
+        for (SearchResultResourceRep r : results) {
+            log.info("rid is: {}", r.getId());
+        }
+        log.info("========= Printing Search results done");
         return results;
     }
 }

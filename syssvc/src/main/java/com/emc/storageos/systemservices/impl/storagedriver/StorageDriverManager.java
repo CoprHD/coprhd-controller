@@ -344,6 +344,7 @@ public class StorageDriverManager {
                     Site activeSite = drUtil.getActiveSite();
                     endPoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT, activeSite.getVipEndPoint(),
                             service.getEndpoint().getPort()));
+                    log.info("Endpoint has been substituted, new endpoint is: {}", endPoint.toString());
                 }
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
                 log.info("Prepare to download driver file {} from uri {}", driver, uri);

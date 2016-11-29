@@ -667,7 +667,7 @@ public class StorageDriverService {
             SiteState siteState = site.getState();
             if (!siteState.equals(SiteState.ACTIVE) && !siteState.equals(SiteState.STANDBY_SYNCED)) {
                 throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Site %s is in %s state,not synced", site.getName(), siteState));
+                        String.format("Site %s is in %s state,not active or synced", site.getName(), siteState));
             }
 
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());

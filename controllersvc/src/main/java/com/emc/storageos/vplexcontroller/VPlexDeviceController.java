@@ -2435,6 +2435,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
                 if (assignments != null && !assignments.isEmpty()) {
                     // Update zoningMap if there are new assignments
+                    // TODO - this is concerning -- exportMask object will be updated
                     exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
                             exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
@@ -2508,6 +2509,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoning Map with these new assignments
+                // TODO - this is concerning -- exportMask object will be updated
                 viprExportMask = ExportUtils.updateZoningMap(_dbClient, viprExportMask, assignments,
                         exportMasksToUpdateOnDeviceWithStoragePorts);
             }
@@ -2624,6 +2626,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 inits, sharedVplexExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
         if (assignments != null && !assignments.isEmpty()) {
             // Update zoningMap if there are new assignments
+            // TODO - this is concerning -- exportMask object will be updated
             sharedVplexExportMask = ExportUtils.updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
                     exportMasksToUpdateOnDeviceWithStoragePorts);
         }
@@ -3432,7 +3435,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
 
-            _log.info("attempting to fail if failure_001_early_in_add_volume_to_mask is set");
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
 
             // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just
@@ -3538,7 +3540,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // TODO - update export mask; probably move to a completer
             _dbClient.updateObject(exportMask);
 
-            _log.info("attempting to fail if failure_002_late_in_add_volume_to_mask is set");
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);
@@ -3684,6 +3685,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     hasSteps = true;
 
                     if (!existingVolumes) {
+                        // TODO add exception here
                         // create workflow and steps to remove zones and initiators
                         String completerStepId = workflow.createStepId();
                         ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
@@ -4342,7 +4344,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             updateExportMask = true;
                         }
 
-                        _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
                         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
 
                         // because these are now managed initiators, remove from existing initiators if present.

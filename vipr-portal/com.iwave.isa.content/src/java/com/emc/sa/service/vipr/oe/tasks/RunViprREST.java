@@ -33,7 +33,7 @@ import com.emc.sa.service.vipr.oe.OrchestrationService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.oe.SuccessCriteria;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
+import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 

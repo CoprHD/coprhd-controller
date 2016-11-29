@@ -14,9 +14,12 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.output;
 
 import javax.xml.bind.annotation.XmlElement;
+
+import com.emc.storageos.primitives.Parameter;
+import com.emc.storageos.primitives.Parameter.ParameterType;
 
 /**
  * Class that represents a simple output parameter

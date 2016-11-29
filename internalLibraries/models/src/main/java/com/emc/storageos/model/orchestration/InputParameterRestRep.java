@@ -20,14 +20,12 @@ import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
-
 public class InputParameterRestRep {
 
     private String name;
     private boolean required;
     private List<String> defaultValue;
-    private ParameterType type;
+    private String type;
     
     @XmlElement(name = "name")
     public String getName() {
@@ -57,11 +55,11 @@ public class InputParameterRestRep {
     }
 
     @XmlElement(name = "type")
-    public ParameterType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ParameterType type) {
+    public void setType(final String type) {
         this.type = type;
     }
 }

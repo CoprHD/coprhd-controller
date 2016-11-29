@@ -14,51 +14,53 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.output;
 
 import java.util.Arrays;
 import java.util.List;
 
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.InputColumn;
+import com.emc.storageos.primitives.Parameter;
+import com.emc.storageos.primitives.Parameter.ParameterType;
 
 /**
- * Input parameter type that represents a table of input parameters
+ * Class that represents a table of output parameters
  */
-public class TableInputParameter extends InputParameter {
+public class TableOutputParameter extends OutputParameter {
 
-    private final List<InputColumn<?, ?>> columns;
+    private final List<BasicOutputParameter> columns;
 
-    public TableInputParameter(String name, InputColumn<?, ?>[] columns) {
+    public TableOutputParameter(String name, BasicOutputParameter[] columns) {
         super(name);
         this.columns = Arrays.asList(columns);
     }
 
     @Override 
-    public ParameterType getType() {
-        return ParameterType.TABLE;
-    }
-
-    public List<InputColumn<?, ?>> getColumns() {
-        return columns;
-    }
-
-    @Override 
-    public boolean isBasicInputParameter() {
+    public boolean isBasicOutputParameter() {
         return false;
     }
-
+    
     @Override 
-    public BasicInputParameter<?> asBasicInputParameter() {
+    public BasicOutputParameter asBasicOutputParameter() {
         return null;
     }
 
     @Override 
-    public boolean isTableInputParameter() {
+    public boolean isTableOutputParameter() {
         return true;
     }
 
     @Override 
-    public TableInputParameter asTableInputParameter() {
+    public TableOutputParameter asTableOutputParameter() {
         return this;
     }
+    
+    @Override 
+    public ParameterType getType() {
+        return ParameterType.TABLE;
+    }
+
+    public List<BasicOutputParameter> getColumns() {
+        return columns;
+    }
+
 }

@@ -14,50 +14,53 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.input;
 
 import java.util.Arrays;
 import java.util.List;
 
+import com.emc.storageos.primitives.Parameter;
+import com.emc.storageos.primitives.Parameter.ParameterType;
+import com.emc.storageos.primitives.input.BasicInputParameter.InputColumn;
+
 /**
- * Class that represents a table of output parameters
+ * Input parameter type that represents a table of input parameters
  */
-public class TableOutputParameter extends OutputParameter {
+public class TableInputParameter extends InputParameter {
 
-    private final List<BasicOutputParameter> columns;
+    private final List<InputColumn<?, ?>> columns;
 
-    public TableOutputParameter(String name, BasicOutputParameter[] columns) {
+    public TableInputParameter(String name, InputColumn<?, ?>[] columns) {
         super(name);
         this.columns = Arrays.asList(columns);
     }
 
     @Override 
-    public boolean isBasicOutputParameter() {
-        return false;
-    }
-    
-    @Override 
-    public BasicOutputParameter asBasicOutputParameter() {
-        return null;
-    }
-
-    @Override 
-    public boolean isTableOutputParameter() {
-        return true;
-    }
-
-    @Override 
-    public TableOutputParameter asTableOutputParameter() {
-        return this;
-    }
-    
-    @Override 
     public ParameterType getType() {
         return ParameterType.TABLE;
     }
 
-    public List<BasicOutputParameter> getColumns() {
+    public List<InputColumn<?, ?>> getColumns() {
         return columns;
     }
 
+    @Override 
+    public boolean isBasicInputParameter() {
+        return false;
+    }
+
+    @Override 
+    public BasicInputParameter<?> asBasicInputParameter() {
+        return null;
+    }
+
+    @Override 
+    public boolean isTableInputParameter() {
+        return true;
+    }
+
+    @Override 
+    public TableInputParameter asTableInputParameter() {
+        return this;
+    }
 }

@@ -14,16 +14,19 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.samples;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.IntegerParameter;
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.NameValueListParameter;
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.StringParameter;
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.URIParameter;
-import com.emc.storageos.model.orchestration.internal.BasicOutputParameter.NameValueListOutputParameter;
-import com.emc.storageos.model.orchestration.internal.BasicOutputParameter.StringOutputParameter;
+import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.IntegerParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.NameValueListParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.URIParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListOutputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter.StringOutputParameter;
 
 /**
  * Class to contains the meta data for a generic rest call primitive

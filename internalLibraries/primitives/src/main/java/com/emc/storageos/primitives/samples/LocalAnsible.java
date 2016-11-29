@@ -14,12 +14,15 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.samples;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.StringParameter;
-import com.emc.storageos.model.orchestration.internal.BasicOutputParameter.NameValueListOutputParameter;
+import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListOutputParameter;
 
 /**
  * Class that represents primitive meta data for an ansible script 

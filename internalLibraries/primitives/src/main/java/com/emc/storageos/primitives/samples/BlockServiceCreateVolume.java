@@ -14,14 +14,19 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.samples;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.IntegerParameter;
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.StringParameter;
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.URIParameter;
-import com.emc.storageos.model.orchestration.internal.BasicOutputParameter.StringOutputParameter;
+import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.IntegerParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.URIParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+import com.emc.storageos.primitives.output.TableOutputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter.StringOutputParameter;
 
 /**
  *  TODO remove this once primitive generation is done.  This is a 

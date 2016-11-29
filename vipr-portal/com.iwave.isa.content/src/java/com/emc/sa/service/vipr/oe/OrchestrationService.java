@@ -49,9 +49,9 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.StepAttribute;
-import com.emc.storageos.model.orchestration.internal.Primitive;
-import com.emc.storageos.model.orchestration.internal.PrimitiveHelper;
-import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
+import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.PrimitiveHelper;
+import com.emc.storageos.primitives.ViPRPrimitive;
 import com.google.gson.Gson;
 
 @Service("OrchestrationService")

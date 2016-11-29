@@ -14,7 +14,9 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.output;
+
+import com.emc.storageos.primitives.Parameter;
 
 /**
  * Base class that represents an output parameter

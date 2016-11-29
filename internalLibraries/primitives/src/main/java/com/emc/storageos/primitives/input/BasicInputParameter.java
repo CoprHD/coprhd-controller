@@ -14,13 +14,16 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.input;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
+
+import com.emc.storageos.primitives.Parameter;
+import com.emc.storageos.primitives.Parameter.ParameterType;
 
 /**
  * Class that represents the meta data for an simple input parameter
@@ -106,7 +109,20 @@ public abstract class BasicInputParameter<T> extends InputParameter {
             return ParameterType.URI;
         }
     }
-    
+
+    public static class BooleanParameter extends  BasicInputParameter<Boolean> {
+        
+        public BooleanParameter(final String name, final boolean required, final Boolean defaultValue) {
+            super(name, required, defaultValue);
+        }
+        
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.BOOLEAN;
+        }
+    }
+
     public static class NameValueListParameter extends BasicInputParameter<Map<String, String>> {
 
         public NameValueListParameter(String name, boolean required,

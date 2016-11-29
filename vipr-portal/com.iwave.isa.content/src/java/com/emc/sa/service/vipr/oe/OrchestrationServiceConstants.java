@@ -48,8 +48,6 @@ public final class OrchestrationServiceConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
-    public static final String CHMOD = "/bin/chmod";
-    public static final String PERMISSION = "744";
 
     public enum InputType {
         FROM_USER("InputFromUser"),

@@ -18,10 +18,8 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.LoggerFactory;
@@ -39,8 +37,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private final Step step;
     private final Map<String, List<String>> input;
 
-    public RunAnsible(final Step step, final Map<String, List<String>> input)
-    {
+    public RunAnsible(final Step step, final Map<String, List<String>> input) {
         this.step = step;
         this.input = input;
     }
@@ -49,7 +46,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     public OrchestrationTaskResult executeTask() throws Exception {
 
         ExecutionUtils.currentContext().logInfo("Executing Ansible Step:" + step.getId() + step.getType());
-	//TODO Get playbook/package from DB
+        //TODO Get playbook/package from DB
 
         final String extraVars = makeExtraArg(input);
 
@@ -57,22 +54,22 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final Exec.Result result;
         switch (type) {
             case SHELL_SCRIPT:
-                result = executeCmd(OrchestrationServiceConstants.DATA_PATH+step.getOperation(), extraVars);
-		cleanUp(step.getOperation(), false);
+                result = executeCmd(OrchestrationServiceConstants.DATA_PATH + step.getOperation(), extraVars);
+                cleanUp(step.getOperation(), false);
                 break;
             case LOCAL_ANSIBLE:
                 final Exec.Result untarResult = untarPackage(step.getOperation());
-                if (!untarResult.exitedNormally()) 
+                if (!untarResult.exitedNormally())
                     logger.error("Failed to Untar package. Error:{}", untarResult.getStdError());
 
-		//TODO Hard coded the playbook name. Get it from primitive
-                result = executeCmd(OrchestrationServiceConstants.DATA_PATH+
-                        FilenameUtils.removeExtension(step.getOperation())+"/"+"helloworld.yml", extraVars);
-		cleanUp(step.getOperation(), true);
+                //TODO Hard coded the playbook name. Get it from primitive
+                result = executeCmd(OrchestrationServiceConstants.DATA_PATH +
+                        FilenameUtils.removeExtension(step.getOperation()) + "/" + "helloworld.yml", extraVars);
+                cleanUp(step.getOperation(), true);
                 break;
             case REMOTE_ANSIBLE:
                 //TODO impl remote exec
-                result = executeCmd(null, null);;
+                result = executeCmd(null, null);
                 break;
             default:
                 logger.error("Ansible Operation type:{} not supported", type);
@@ -82,27 +79,27 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         ExecutionUtils.currentContext().logInfo("Done Executing Ansible Workflow Step:{}", step.getId());
 
-        if (result == null) 
+        if (result == null)
             return null;
 
-	logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
+        logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     private Exec.Result executeCmd(final String path, final String extraVars) {
         final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, path,
-                         OrchestrationServiceConstants.EXTRA_VARS, extraVars};
+                OrchestrationServiceConstants.EXTRA_VARS, extraVars};
 
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {
-        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.DATA_PATH+tarFile,
-                                "-C", OrchestrationServiceConstants.DATA_PATH};
+        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.DATA_PATH + tarFile,
+                "-C", OrchestrationServiceConstants.DATA_PATH};
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
 
-	logger.info("Ansible Execution untar result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
+        logger.info("Ansible Execution untar result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
         return result;
     }
@@ -117,7 +114,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
      */
     private String makeExtraArg(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder("\"");
-        for (Map.Entry<String, List<String>> e : input.entrySet()) 
+        for (Map.Entry<String, List<String>> e : input.entrySet())
             sb.append(e.getKey()).append("=").append(e.getValue().get(0)).append(" ");
 
         sb.append("\"");
@@ -127,13 +124,13 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result cleanUp(final String path, final boolean isTar) {
-        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH+path};
+        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH + path};
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (isTar) {
-            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH+
-                                                                    FilenameUtils.removeExtension(path)};
-    	if (!Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, rmDir).exitedNormally())
-		logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));
+            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH +
+                    FilenameUtils.removeExtension(path)};
+            if (!Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, rmDir).exitedNormally())
+                logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));
         }
 
         if (!result.exitedNormally())
@@ -142,3 +139,4 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return result;
     }
 }
+

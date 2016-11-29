@@ -308,7 +308,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DETACH_MIRROR_METHOD_NAME = "detachMirror";
     private static final String ATTACH_MIRROR_METHOD_NAME = "attachMirror";
     private static final String RESTORE_RESYNC_RB_METHOD_NAME = "rollbackRestoreResync";
-    private static final String EXPORT_MASK_DELETE_METHOD_NAME = "exportMaskDelete";
     private static final String WAIT_ON_REBUILD_METHOD_NAME = "waitOnRebuild";
     private static final String RESTORE_FROM_FC_METHOD_NAME = "restoreFromFullCopy";
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
@@ -1776,37 +1775,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
 
-    /**
-     * Method to assemble to find or create VPLEX storage views (export masks) workflow for the given
-     * ExportGroup, Initiators, and Volume Map.
-     *
-     * @param storageURI
-     *            The URI of the storage system
-     * @param exportGroupURI
-     *            The URI of the export group
-     * @param volumeMap
-     *            Volume-lun map to be part of the export mask
-     * @param initiatorURIs
-     *            List of initiator URIs to be added to the export mask
-     * @param token
-     *            The workflow token
-     * @throws ControllerException
-     */
-    public void exportMaskCreate(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap,
-            List<URI> initiatorURIs, String token) throws ControllerException {
-        try {
-            WorkflowStepCompleter.stepExecuting(token);
-            exportGroupCreate(storageURI, exportGroupURI, initiatorURIs, volumeMap, token);
-        } catch (VPlexApiException vae) {
-            WorkflowStepCompleter.stepFailed(token, vae);
-            throw vae;
-        } catch (Exception e) {
-            DeviceControllerException exception = DeviceControllerException.exceptions.exportGroupCreateFailed(e);
-            WorkflowStepCompleter.stepFailed(token, exception);
-            throw exception;
-        }
-    }
-
     /*
      * (non-Javadoc)
      *
@@ -1894,6 +1862,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
                 exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
                 // TODO - update export group; probably move to a completer
+                // ANALYSIS - i think this exportgroup update is harmless, only way around would be to change ExportCreateCompleter
                 _dbClient.updateObject(exportGroup);
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
@@ -2163,6 +2132,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         // TODO - update export group; probably move to a completer
+        // ANALYSIS --- i think this can just be removed (other places update, no changes in scope) 
         _dbClient.updateObject(exportGroup);
 
         _log.info("updating zoning if necessary for both new and updated export masks");
@@ -2422,7 +2392,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create zoningMap for the matched initiators and storagePorts
             _networkDeviceController.updateZoningMap(exportGroup, exportMask, false);
 
-            // TODO - create export mask; probably move to a completer
+            // TODO - create export mask; probably move persistence to a completer
             _dbClient.createObject(exportMask);
             
             if (!initsToAdd.isEmpty()) {
@@ -2435,7 +2405,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
                 if (assignments != null && !assignments.isEmpty()) {
                     // Update zoningMap if there are new assignments
-                    // TODO - this is concerning -- exportMask object will be updated
                     exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
                             exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
@@ -3493,6 +3462,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Add volumes to exportmask, so that rollback works in case of any errors
             exportMask.addVolumes(volumesToAdd);
             // TODO - update export mask; probably move to a completer
+            // looks like this is probably part of ExportMaskAddVolumeCompleter?
             _dbClient.updateObject(exportMask);
 
             // If duplicate HLU are found then return, completer is set to error above
@@ -3538,6 +3508,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             // TODO - update export mask; probably move to a completer
+            // looks like this is probably part of ExportMaskAddVolumeCompleter?
             _dbClient.updateObject(exportMask);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
@@ -3730,6 +3701,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                         			exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
                     hasSteps = true;
+                    // TODO probably add exception/override here, 
+                    // this is remove volumes operation triggering storage view delete
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
@@ -5026,9 +4999,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         if (removeAllInits) {
             _log.info("all initiators are being removed...");
 
-            // TODO probably add exception/override here, 
-            // this is remove initiators operation triggering remove volumes.
-
             if (exportMask.getUserAddedVolumes() != null && !exportMask.getUserAddedVolumes().isEmpty()) {
 
                 StringMap volumes = exportMask.getUserAddedVolumes();
@@ -5096,6 +5066,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 } else {
                     _log.info("creating a remove volumes workflow step with " + exportMask.getMaskName()
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumes.values()));
+
+                    // TODO probably add exception/override here, 
+                    // this is remove initiators operation triggering remove volumes.
 
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
                             exportMask, volumeURIList);
@@ -5266,10 +5239,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (!lockAcquired) {
                         throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                     }
-
-                    // TODO probably add exception/override here, 
-                    // this is remove ports operation triggering remove initiators.
-
                     client.removeInitiatorsFromStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfo);
                 } finally {
                     if (lockAcquired) {
@@ -11118,113 +11087,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             WorkflowStepCompleter.stepSucceded(stepId);
         }
-    }
-
-    /**
-     * This method deletes the export mask and remove it from export group as part of rollback.
-     *
-     * @param vplex
-     *            URI of the VPLex storage system
-     * @param exportGroupURI
-     *            URI of the exportGroup
-     * @param initiatorURIs
-     *            URIs of the initiators
-     * @param opId
-     *            The worflow opId
-     * @throws ControllerException
-     */
-    public void exportMaskDelete(URI vplex, URI exportGroupURI, List<URI> initiatorURIs, String opId)
-            throws ControllerException {
-        _log.info("Entering exportMaskDelete, opId: " + opId);
-        WorkflowStepCompleter.stepExecuting(opId);
-        Set<ExportMask> exportMasks = new HashSet<ExportMask>();
-        try {
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplex, _dbClient);
-
-            // sort initiators in a host to initiator map
-            Map<URI, List<Initiator>> hostInitiatorMap = VPlexUtil.makeHostInitiatorsMap(initiatorURIs, _dbClient);
-
-            // Get export masks for the initiators
-            exportMasks = getExportMasksByHost(exportGroupURI, hostInitiatorMap, vplex);
-
-            _log.info("Attempting to delete ExportMask " + exportMasks
-                    + " on VPLEX " + vplexSystem.getLabel());
-
-            if (exportMasks.isEmpty()) {
-                _log.info("there are no export masks to delete, so we're done.");
-                WorkflowStepCompleter.stepSucceded(opId);
-                return;
-            } else {
-                for (ExportMask exportMask : exportMasks) {
-                    // TODO - mark for deletion; probably move to a completer
-                    _dbClient.markForDeletion(exportMask);
-                    _log.info("updating ExportGroups containing this ExportMask");
-                    List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-                    for (ExportGroup exGroup : exportGroups) {
-                        _log.info("Removing mask from ExportGroup " + exGroup.getGeneratedName());
-                        exGroup.removeExportMask(exportMask.getId());
-                        // TODO - update export group; probably move to a completer
-                        _dbClient.updateObject(exGroup);
-                    }
-                }
-                return;
-            }
-
-        } catch (Exception ex) {
-            _log.error("Exception deleting ExportMask: " + ex.getMessage());
-            StringBuffer exportMaskNames = new StringBuffer();
-            if (!exportMasks.isEmpty()) {
-                for (ExportMask exportMask : exportMasks) {
-                    if (exportMaskNames.length() == 0) {
-                        exportMaskNames.append(exportMask.getMaskName());
-                    } else {
-                        exportMaskNames.append(" ,").append(exportMask.getMaskName());
-                    }
-                }
-            }
-            ServiceError serviceError = VPlexApiException.errors.exportMaskDeleteFailed(exportMaskNames.toString(), ex);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
-        }
-    }
-
-    /**
-     * This method returns export mask for the host.
-     *
-     * @param exportGroupURI
-     *            URI of the export group.
-     * @param hostInitiatorMap
-     *            Map of host to initiators
-     * @param vplex
-     *            URI of the VPlex storage system
-     * @return Set of Export Masks
-     */
-    private Set<ExportMask> getExportMasksByHost(URI exportGroupURI, Map<URI, List<Initiator>> hostInitiatorMap, URI vplex) {
-        ExportGroup exportGroup = getDataObject(ExportGroup.class, exportGroupURI, _dbClient);
-        Set<ExportMask> deviceFilteredMasks = new HashSet<ExportMask>();
-        if (exportGroup != null) {            
-            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-
-            // look at each host
-            for (URI hostUri : hostInitiatorMap.keySet()) {
-                _log.info("looking at host URI: " + hostUri);
-
-                List<Initiator> inits = hostInitiatorMap.get(hostUri);
-                _log.info("this host contains these initiators: " + inits);
-
-                _log.info("attempting to locate an existing ExportMask for this host's initiators");
-
-                for (ExportMask mask : exportMasks) {
-                    if (mask != null && mask.getStorageDevice().equals(vplex)) {
-                        for (Initiator intiator : inits) {
-                            if (mask.hasInitiator(intiator.getId().toString())) {
-                                deviceFilteredMasks.add(mask);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return deviceFilteredMasks;
     }
 
     /**

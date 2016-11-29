@@ -367,6 +367,7 @@ public class ExportMaskUtils {
         dbClient.createObject(exportMask);
 
         exportGroup.addExportMask(exportMask.getId());
+        // TODO - this is a problem for idempotency
         dbClient.updateObject(exportGroup);
 
         return exportMask;

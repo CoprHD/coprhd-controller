@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toLink;
+import static com.emc.storageos.api.mapper.FilePolicyMapper.map;
 
 import java.net.URI;
 import java.util.EnumSet;
@@ -26,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
@@ -39,6 +39,7 @@ import com.emc.storageos.model.file.FilePolicyAssignParam;
 import com.emc.storageos.model.file.FilePolicyAssignResp;
 import com.emc.storageos.model.file.FilePolicyCreateResp;
 import com.emc.storageos.model.file.FilePolicyParam;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -70,14 +71,15 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     @Override
-    protected DataObject queryResource(URI id) {
-        // TODO Auto-generated method stub
-        return null;
+    protected FilePolicy queryResource(URI id) {
+        ArgValidator.checkUri(id);
+        FilePolicy filePolicy = _permissionsHelper.getObjectById(id, FilePolicy.class);
+        ArgValidator.checkEntityNotNull(filePolicy, id, isIdEmbeddedInURL(id));
+        return filePolicy;
     }
 
     @Override
     protected URI getTenantOwner(URI id) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -118,15 +120,13 @@ public class FilePolicyService extends TaskResourceService {
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
-    public FilePolicyCreateResp getFilePolicy(@PathParam("id") URI id) {
+    public FilePolicyRestRep getFilePolicy(@PathParam("id") URI id) {
 
         _log.info("Request recieved to get the file policy of id: {}", id);
-
-        ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
-        FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
+        FilePolicy filepolicy = queryResource(id);
         ArgValidator.checkEntity(filepolicy, id, true);
 
-        return null;
+        return map(filepolicy);
     }
 
     @PUT

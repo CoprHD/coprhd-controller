@@ -30,7 +30,7 @@ public class FileReplicationPolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(name = "replicatio_type")
+    @XmlElement(name = "replication_type")
     public String getReplicationType() {
         return this.replicationType;
     }

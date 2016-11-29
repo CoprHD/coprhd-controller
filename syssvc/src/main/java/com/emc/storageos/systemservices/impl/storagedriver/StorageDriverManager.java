@@ -327,24 +327,23 @@ public class StorageDriverManager {
         for (String driver : drivers) {
             File driverFile = new File(TMP_DIR + driver);
             try {
-                URI endPoint = getSyncedNode(driver);
-                if (endPoint == null) {
-                    // should not happen
-                    log.error("Can't find node that hold driver file: {}", driver);
-                    continue;
-                }
-                if (drUtil.isStandby()) { // need to wait active site all
-                                          // finished, and substitute endPoint
-                                          // to active vip
+                URI endPoint = null;
+                if (drUtil.isActiveSite()) {
+                    endPoint = getSyncedNode(driver);
+                } else {
                     while (!hasActiveSiteFinishDownload(driver)) {
                         log.info("Sleep 5 seconds to wait active site finish downloading driver {}", driver);
-                        waiter.sleep(5000); // sleep 5 seconds to retry
+                        waiter.sleep(5000);
                     }
-                    // modify endpoint
                     Site activeSite = drUtil.getActiveSite();
                     endPoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT, activeSite.getVipEndPoint(),
                             service.getEndpoint().getPort()));
                     log.info("Endpoint has been substituted, new endpoint is: {}", endPoint.toString());
+                }
+                if (endPoint == null) {
+                    // should not happen
+                    log.error("Can't find node that hold driver file: {}", driver);
+                    continue;
                 }
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
                 log.info("Prepare to download driver file {} from uri {}", driver, uri);

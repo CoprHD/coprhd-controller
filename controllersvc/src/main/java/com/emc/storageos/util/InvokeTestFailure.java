@@ -53,16 +53,14 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_023 = "failure_023_VNXeStorageDevice_CreateVolume_after_async_job";
     public static final String ARTIFICIAL_FAILURE_024 = "failure_024_Export_zone_removeInitiator_before_delete";
     public static final String ARTIFICIAL_FAILURE_025 = "failure_025_Export_zone_removeInitiator_after_delete";
-
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_001 = "failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_002 = "failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_003 = "failure_003_host_export_ComputeSystemControllerImpl.deleteExportGroup_before_delete";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_004 = "failure_004_host_export_ComputeSystemControllerImpl.deleteExportGroup_after_delete";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_VERIFY_DATASTORE_005 = "failure_005_host_export_ComputeSystemControllerImpl.verifyDatastore_after_verify";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_006 = "failure_006_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_unmount";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_007 = "failure_007_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_detach";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_008 = "failure_008_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator";
-    public static final String ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_009 = "failure_009_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter";
+    public static final String ARTIFICIAL_FAILURE_026 = "failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update";
+    public static final String ARTIFICIAL_FAILURE_027 = "failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete";
+    public static final String ARTIFICIAL_FAILURE_028 = "failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete";
+    public static final String ARTIFICIAL_FAILURE_029 = "failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify";
+    public static final String ARTIFICIAL_FAILURE_030 = "failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount";
+    public static final String ARTIFICIAL_FAILURE_031 = "failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach";
+    public static final String ARTIFICIAL_FAILURE_032 = "failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator";
+    public static final String ARTIFICIAL_FAILURE_033 = "failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

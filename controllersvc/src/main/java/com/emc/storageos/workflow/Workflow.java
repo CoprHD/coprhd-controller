@@ -879,7 +879,7 @@ public class Workflow implements Serializable {
                     if (rootCauseStatus == null) {
                         rootCauseStatus = status;
                     }
-                    // we want to record the root cause error. If the date of the current stepId is earlier than the
+                    // We want to record the root cause error. If the date of the current stepId is earlier than the
                     // last one we stored, then we want to store the earliest one. This will give us the root cause
                     // error.
                     if ((state != StepState.ERROR) || (state == StepState.ERROR && !rootCauseStatus.endTime.before(status.endTime))) {
@@ -896,8 +896,7 @@ public class Workflow implements Serializable {
                     }
                     // 1. If we've already found any ERROR state step, then that took precedence.
                     // 2. Otherwise, if we've already seen a SUSPENDED step, but the current step is earlier than ours,
-                    // than
-                    // we want the earlier step.
+                    // then we want the earlier step.
                     // 3. Otherwise we already have the earliest SUSPENDED step error code, so use that.
                     if (state != StepState.ERROR && ((state == StepState.SUSPENDED_ERROR || state == StepState.SUSPENDED_NO_ERROR)
                             && !rootCauseStatus.endTime.before(status.endTime))) {
@@ -917,7 +916,7 @@ public class Workflow implements Serializable {
                             && !rootCauseStatus.endTime.before(status.endTime)) {
                         state = status.state;
                         rootCauseStatus = status;
-                    }
+                    } // Don't add cancelled steps to the additional Errors
                     break;
                 case SUCCESS:
                 default:

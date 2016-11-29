@@ -1603,6 +1603,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isControlNodesDriversSynced(StorageDriversInfo target, Map<Service, StorageDriversInfo> infos) {
+        if (target == null) {
+            target = new StorageDriversInfo();
+        }
         Set<String> targetDrivers = target.getInstalledDrivers();
         for (Entry<Service, StorageDriversInfo> info : infos.entrySet()) {
             String nodeName = info.getKey().getId();

@@ -1016,12 +1016,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _dbClient.updateObject(exportGroupObject);
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_EXPORT_001);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_026);
 
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
                     removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
-
-            // No code should be added following the call to the block controller to preserve rollback integrity
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             // Clean up any pending tasks
@@ -1232,8 +1230,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_VERIFY_DATASTORE_005);
-
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_029);
+            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1294,9 +1292,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
                     // Test mechanism to invoke a failure. No-op on production systems.
-                    InvokeTestFailure
-                            .internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_006);
-
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
+                    
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
@@ -1306,8 +1303,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     storageAPI.refreshStorage();
 
                     // Test mechanism to invoke a failure. No-op on production systems.
-                    InvokeTestFailure
-                            .internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UNMOUNT_AND_DETACH_007);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_031);
                 }
             }
 
@@ -1424,12 +1420,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_003);
-
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_027);
+            
             blockController.exportGroupDelete(exportGroup, stepId);
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_DELETE_EXPORT_004);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_028);
         } catch (Exception ex) {
             _log.error("Exception occured while deleting export group {}", exportGroup, ex);
             // Clean up any pending tasks
@@ -1542,13 +1538,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_008);
-
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_032);
+            
             ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_HOST_CLUSTER_UPDATE_HOST_CLUSTER_REFS_009);
-
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_033);
+            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error("Exception occured while updating host and initiator cluster references {} - {}", hostId, clusterId, ex);

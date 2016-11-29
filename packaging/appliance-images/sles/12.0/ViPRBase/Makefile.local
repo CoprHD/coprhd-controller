@@ -23,7 +23,7 @@ createAppliance:
 	${CREATE_APPLIANCE_TOOL} ${CONF} ${JOB} -l -c -p appliance
 
 bless:
-	${CREATE_APPLIANCE_TOOL} -b ${CONF} ${JOB}
+	${CREATE_APPLIANCE_TOOL} ${CONF} ${JOB} -b
 
 clean:
 	rm -rf config.sh ViPRBase.list

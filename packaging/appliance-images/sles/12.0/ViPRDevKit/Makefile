@@ -20,7 +20,7 @@ createAppliance:
 	${ICAF_TOOL} ${CONF} ${JOB} -l -c -p appliance[vmx,tbz]
 	
 bless:
-	${ICAF_TOOL} -b ${CONF} ${JOB}
+	${ICAF_TOOL} ${CONF} ${JOB} -b
 
 clean:
 	rm -rf config.sh ViPRDevKit.list

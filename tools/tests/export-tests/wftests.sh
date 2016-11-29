@@ -1516,6 +1516,7 @@ xio_setup() {
 	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+        --multiVolumeConsistency        \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}

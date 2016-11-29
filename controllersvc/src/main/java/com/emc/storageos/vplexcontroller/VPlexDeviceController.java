@@ -3685,7 +3685,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     hasSteps = true;
 
                     if (!existingVolumes) {
-                        // TODO add exception here
+                        // TODO probably add exception/override here, 
+                        // this is remove volumes operation triggering initiator removal
                         // create workflow and steps to remove zones and initiators
                         String completerStepId = workflow.createStepId();
                         ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
@@ -4795,6 +4796,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
         if (removeAllInits && !exportMask.hasAnyExistingInitiators() && !otherExportGroupsPresent && !exportMask.hasAnyExistingVolumes()) {
+            // TODO probably add exception/override here, 
+            // this is remove initiators operation triggering delete storage view
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -4860,6 +4863,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         List<NetworkZoningParam> zoningParams = 
                         	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                         			exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
+
+                        // TODO probably add exception/override here, 
+                        // this is remove initiators operation triggering remove volumes.
+                        // also, the comment wording is a concern, seems hackish
 
                         // just doing a direct call to VplexApiClient here because enabling
                         // single StorageView volume remove would require a change to the
@@ -5018,6 +5025,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // remove all the volumes added by ViPR to the storage view as well.
         if (removeAllInits) {
             _log.info("all initiators are being removed...");
+
+            // TODO probably add exception/override here, 
+            // this is remove initiators operation triggering remove volumes.
 
             if (exportMask.getUserAddedVolumes() != null && !exportMask.getUserAddedVolumes().isEmpty()) {
 
@@ -5256,6 +5266,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (!lockAcquired) {
                         throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                     }
+
+                    // TODO probably add exception/override here, 
+                    // this is remove ports operation triggering remove initiators.
+
                     client.removeInitiatorsFromStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfo);
                 } finally {
                     if (lockAcquired) {
@@ -5449,48 +5463,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         return lastStep;
-    }
-
-    /**
-     *
-     * @param exportGroup
-     * @param volumeMap
-     * @return
-     */
-    private Map<URI, Integer> createVolumeMap(URI storageSystemURI, ExportGroup exportGroup,
-            Map<URI, Volume> volumeMap) {
-        Map<URI, Integer> volumeLunIdMap = new HashMap<URI, Integer>();
-        Iterator<URI> volumeIter = volumeMap.keySet().iterator();
-        while (volumeIter.hasNext()) {
-            URI volumeURI = volumeIter.next();
-            Volume volume = volumeMap.get(volumeURI);
-            if (volume.getStorageController().toString().equals(storageSystemURI.toString())) {
-                volumeLunIdMap.put(volumeURI, ExportGroup.LUN_UNASSIGNED);
-                exportGroup.addVolume(volumeURI, ExportGroup.LUN_UNASSIGNED);
-            }
-        }
-        return volumeLunIdMap;
-    }
-
-    /**
-     * Returns a list of Initiator URIs in the ExportGroup
-     *
-     * @param exportGroup
-     * @return
-     */
-    private List<URI> getInitiators(ExportGroup exportGroup) {
-        List<URI> initiatorURIs = new ArrayList<URI>();
-        if (exportGroup.hasInitiators()) {
-            for (String initiator : exportGroup.getInitiators()) {
-                try {
-                    URI initiatorURI = new URI(initiator);
-                    initiatorURIs.add(initiatorURI);
-                } catch (URISyntaxException ex) {
-                    _log.error("Bad URI syntax: " + initiator);
-                }
-            }
-        }
-        return initiatorURIs;
     }
 
     /**
@@ -11146,47 +11118,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             WorkflowStepCompleter.stepSucceded(stepId);
         }
-    }
-
-    // /**
-    // * This method generate steps to create ExportMask for each host based on the initiators
-    // * provided
-    // *
-    // * @param workflow the main workflow
-    // * @param wfGroupId the workflow group Id, if any
-    // * @param waitFor the id of a step on which this workflow has to wait, if any
-    // * @param storage Storage system URI
-    // * @param export Export Group URI
-    // * @param volumeMap Volume-lun map to be part of the export mask
-    // * @param initiatorURIs List of newly added initiator URIs
-    // * @throws WorkflowException
-    // */
-    // private String generateExportMaskCreateWorkflow(Workflow workflow, String wfGroupId,
-    // String waitFor, URI storage,
-    // URI export,
-    // Map<URI, Integer> volumeMap,
-    // List<URI> initiatorURIs)
-    // throws WorkflowException {
-    // DiscoveredSystemObject storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-    //
-    // Workflow.Method method =
-    // exportMaskCreateMethod(storage, export, volumeMap, initiatorURIs);
-    //
-    // Workflow.Method rollback =
-    // exportMaskDeleteMethod(storage, export, initiatorURIs);
-    //
-    // if (wfGroupId == null) {
-    // wfGroupId = method.getClass().getSimpleName();
-    // }
-    // return workflow.createStep(wfGroupId, String.format("Creating export on storage array %s (%s)",
-    // storageSystem.getNativeGuid(), storage.toString()),
-    // waitFor, NullColumnValueGetter.getNullURI(),
-    // storageSystem.getSystemType(), this.getClass(), method,
-    // rollback, null);
-    // }
-
-    private Workflow.Method exportMaskDeleteMethod(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs) {
-        return new Workflow.Method(EXPORT_MASK_DELETE_METHOD_NAME, storageURI, exportGroupURI, initiatorURIs);
     }
 
     /**

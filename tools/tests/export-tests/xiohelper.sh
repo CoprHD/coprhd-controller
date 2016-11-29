@@ -64,6 +64,7 @@ verify_export() {
     IG_PATTERN=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
+	HLUS=$4
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
 
@@ -88,6 +89,7 @@ verify_export() {
 
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
     num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
+	hlus=`grep -Po '(?<=hostLunNumber:":")[^"]*' ${TMPFILE1}`
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -102,13 +104,23 @@ verify_export() {
 	failed=true
     fi
 
+	if [ ${hlus} -ne ${HLUS} ]
+	then
+		hlu_arr=(${HLUS//,/ })
+		if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
+		then
+			echo -e "\e[91mERROR\e[0m: Export group hlus: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+			failed=true
+		fi
+	fi
+
     if [ "${failed}" = "true" ]
 	then
 	exit 1;
     fi
 
-    echo "PASSED: Initiator group '$1' contained $2 initiators and $3 luns"
-    exit 0;
+	echo "PASSED: Initiator group '$1' contained $2 initiators and $3 luns with $4 hlus";
+	exit 0;
 }
 
 # Check to see if this is an operational request or a verification of export request

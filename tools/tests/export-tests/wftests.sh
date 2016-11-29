@@ -2476,13 +2476,20 @@ test_7() {
 test_8() {
     echot "Test 8 Begins"
 
-    if [ "${SIM}" != "1" ];
+    if [ "${SIM}" != "1" ]
     then
 	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
 	return;
     fi
 
+    if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
+    then
+	echo "Test case only executes for vmax2 and vnx."
+	return;
+    fi
+
     common_failure_injections="failure_004_final_step_in_workflow_complete"
+    meta_size=240GB
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2492,20 +2499,18 @@ test_8() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement \
                                     failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                     failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
-	meta_size=20000GB
     fi
 
     if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
-	meta_size=20000GB
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

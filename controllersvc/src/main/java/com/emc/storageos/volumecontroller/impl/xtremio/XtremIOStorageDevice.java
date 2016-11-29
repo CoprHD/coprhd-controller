@@ -171,14 +171,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     }
 
                     // If the volume is a recoverpoint protected volume, the capacity has already been
-                    // adjusted in the RPBlockServiceApiImpl class therefore there is no need to adjust it here.
-                    // If it is not, add 1 MB extra to make up the missing bytes due to divide by 1024
-                    int amountToAdjustCapacity = 1;
-                    if (Volume.checkForProtectedVplexBackendVolume(dbClient, volume) || volume.checkForRp()) {
-                        amountToAdjustCapacity = 0;
-                    }
-
-                    Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024) + amountToAdjustCapacity);
+                    // adjusted (1 MB added) in the RPBlockServiceApiImpl class therefore there is no need to adjust it here.
+                    Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024));
                     String capacityInMBStr = String.valueOf(capacityInMB).concat("m");
                     _log.info("Sending create volume request with name: {}, size: {}",
                             volume.getLabel(), capacityInMBStr);

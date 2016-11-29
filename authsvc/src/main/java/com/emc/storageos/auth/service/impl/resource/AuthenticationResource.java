@@ -24,14 +24,12 @@ import com.emc.storageos.auth.impl.CustomAuthenticationManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.password.PasswordChangeParam;
-import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.authentication.AuthUtil;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
 import com.emc.storageos.services.util.SecurityUtils;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExceptions;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -328,19 +326,19 @@ public class AuthenticationResource {
                                   @Context HttpServletResponse servletResponse,
                                   @QueryParam("service") String service) throws IOException {
         if ( isLocalLogin( httpRequest) ) {
-            return apiLogin(httpRequest, servletResponse, service);
+            return apiLoginWithCredential(httpRequest, servletResponse, service);
         }
 
         if ( _authManager.currentAuthenticationMode().equals(AuthUtil.AuthMode.oidc) ) {
-            return oidcAuthRequest(service);
+            return oidcLogin(service);
         } else {
-            return apiLogin(httpRequest, servletResponse, service);
+            return apiLoginWithCredential(httpRequest, servletResponse, service);
         }
     }
 
-    private Response apiLogin(HttpServletRequest httpRequest,
-                             HttpServletResponse servletResponse,
-                             String service) throws IOException {
+    private Response apiLoginWithCredential(HttpServletRequest httpRequest,
+                                            HttpServletResponse servletResponse,
+                                            String service) throws IOException {
 
         String clientIP = _invLoginManager.getClientIP(httpRequest);
         isClientIPBlocked(clientIP);
@@ -423,7 +421,7 @@ public class AuthenticationResource {
         }
 
         if ( _authManager.currentAuthenticationMode().equals(AuthUtil.AuthMode.oidc) ) {
-            return oidcAuthRequest(service);
+            return oidcLogin(service);
         } else {
             return uiFormLogin(httpRequest, servletResponse, service, source);
         }
@@ -1283,9 +1281,7 @@ public class AuthenticationResource {
         return URI.create(newService);
     }
 
-    @GET
-    @Path("/oidcauth")
-    public Response oidcAuthRequest(@QueryParam("service") String resourceURI) {
+    public Response oidcLogin(String resourceURI) {
 
         OIDCAuthenticationManager authMgr = ((CustomAuthenticationManager) _authManager).getOIDCAuthManager();
 

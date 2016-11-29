@@ -494,15 +494,15 @@ test_move_clustered_host_to_another_cluster() {
         
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
             secho "Running happy path test for move clustered host to another cluster..."
+            # Move host1 into cluster2
+            runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
         else    
             secho "Running move clustered host to another cluster with failure scenario: ${failure}..."
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
+            fail hosts update $host1 --cluster ${TENANT}/${cluster2}
         fi
         
-        
-        # Move host1 into cluster2
-        runcmd hosts update $host1 --cluster ${TENANT}/${cluster2} 
  
         # Failure checks go here.
         # 1. Host still belongs to old cluster

@@ -49,6 +49,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     public OrchestrationTaskResult executeTask() throws Exception {
 
         ExecutionUtils.currentContext().logInfo("Executing Ansible Step:" + step.getId() + step.getType());
+	//TODO Get playbook/package from DB
 
         final String extraVars = makeExtraArg(input);
 
@@ -57,17 +58,17 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         switch (type) {
             case SHELL_SCRIPT:
                 result = executeCmd(OrchestrationServiceConstants.DATA_PATH+step.getOperation(), extraVars);
+		cleanUp(step.getOperation(), false);
                 break;
             case LOCAL_ANSIBLE:
-                final Exec.Result result1 = UntarPackage(step.getOperation());
-                if (result1.execFailed()) {
-                    logger.error("Failed to Untar package: %s", step.getOperation());
+                final Exec.Result untarResult = untarPackage(step.getOperation());
+                if (!untarResult.exitedNormally()) 
+                    logger.error("Failed to Untar package. Error:{}", untarResult.getStdError());
 
-                    return null;
-                }
-
+		//TODO Hard coded the playbook name. Get it from primitive
                 result = executeCmd(OrchestrationServiceConstants.DATA_PATH+
                         FilenameUtils.removeExtension(step.getOperation())+"/"+"helloworld.yml", extraVars);
+		cleanUp(step.getOperation(), true);
                 break;
             case REMOTE_ANSIBLE:
                 //TODO impl remote exec
@@ -89,20 +90,21 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
-    private Exec.Result executeCmd(final String path, final String extra_vars) {
+    private Exec.Result executeCmd(final String path, final String extraVars) {
         final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, path,
-                         OrchestrationServiceConstants.EXTRA_VARS, extra_vars};
+                         OrchestrationServiceConstants.EXTRA_VARS, extraVars};
 
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
-    private Exec.Result UntarPackage(final String tarFile) throws IOException
-    {
-        //TODO Get packge from ViPR DB
+    private Exec.Result untarPackage(final String tarFile) throws IOException {
         final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.DATA_PATH+tarFile,
                                 "-C", OrchestrationServiceConstants.DATA_PATH};
+        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
 
-        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+	logger.info("Ansible Execution untar result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
+
+        return result;
     }
 
     /**
@@ -122,5 +124,21 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         logger.info("extra vars:{}", sb.toString());
 
         return sb.toString();
+    }
+
+    private Exec.Result cleanUp(final String path, final boolean isTar) {
+        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH+path};
+        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        if (isTar) {
+            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH+
+                                                                    FilenameUtils.removeExtension(path)};
+    	if (!Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, rmDir).exitedNormally())
+		logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));
+        }
+
+        if (!result.exitedNormally())
+            logger.error("Failed to cleanup:{} error:{}", path, result.getStdError());
+
+        return result;
     }
 }

@@ -21,7 +21,6 @@ public class FilePolicyMapper {
 
         DbObjectMapper.mapDataObjectFields(from, resp);
 
-        resp.setId(from.getId());
         resp.setName(from.getFilePolicyName());
         resp.setDescription(from.getFilePolicyDescription());
 

@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller.impl;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -2593,5 +2594,77 @@ public class NetworkDeviceController implements NetworkController {
                     + ex.getMessage());
         }
         return alwaysRefresh;
+    }
+    
+    /**
+     * Adds paths to the export mask.
+     * 
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param newPaths - new paths to be added
+     * @return
+     */
+    public Workflow.Method zoneExportAddPathsMethod(URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> newPaths) {
+        return new Workflow.Method("zoneExportAddPaths", exportGroupURI, exportMaskURI, newPaths);
+    }
+
+    /**
+     * Handle zoning for adding new paths to export mask.
+     * 
+     * @param exportGroup -- Used for the zone references.
+     * @param exportMaskURI - ExportMap URI
+     * @param newPaths - new paths to be added
+     * @param token Workflow step id
+     * @return true if success, false otherwise
+     * @throws ControllerException
+     */
+    public boolean zoneExportAddPaths(URI exportGroupURI,
+            URI exportMaskURI,
+            Map<URI, List<URI>> newPaths,
+            String token) throws ControllerException {
+        NetworkFCContext context = new NetworkFCContext();
+        boolean status = false;
+        ExportGroup exportGroup = _dbClient
+                .queryObject(ExportGroup.class, exportGroupURI);
+        _log.info(String.format("Entering zoneExportAddInitiators for ExportGroup: %s (%s)",
+                exportGroup.getLabel(), exportGroup.getId()));
+        try {
+            if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
+                return true;
+            }
+
+            // get existing zones on the switch
+            Map<String, List<Zone>> zonesMap = getExistingZonesMap(Arrays.asList(exportMaskURI), token);
+
+            // Compute zones that are required.
+            List<NetworkFCZoneInfo> zoneInfos =
+                    _networkScheduler.getZoningTargetsForPaths(exportGroup, exportMaskURI, newPaths, zonesMap, _dbClient);
+            context.getZoneInfos().addAll(zoneInfos);
+            logZones(zoneInfos);
+
+            // If there are no zones to do, we were successful.
+            if (context.getZoneInfos().isEmpty()) {
+                WorkflowStepCompleter.stepSucceded(token);
+                return true;
+            }
+
+            // Now call addZones to add all the required zones.
+            BiosCommandResult result = addRemoveZones(exportGroup.getId(),
+                    context.getZoneInfos(), false);
+            status = result.isCommandSuccess();
+            // Save our zone infos in case we want to rollback.
+            WorkflowService.getInstance().storeStepData(token, context);
+
+            // Update the workflow state.
+            completeWorkflowState(token, "zoneExportAddInitiators", result);
+
+            return status;
+        } catch (Exception ex) {
+            _log.error("Exception zoning add initiators", ex);
+            ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddInitiatorsFailed(
+                    ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(token, svcError);
+            return status;
+        }
     }
 }

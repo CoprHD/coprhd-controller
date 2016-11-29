@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -48,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolAutoTieringPolicyChangeTaskCompleter;
@@ -1003,5 +1005,57 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         }
         return systemToVolumeMap;
+    }
+    
+    @Override
+    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, Map<URI, List<URI>> addedPaths, 
+            Map<URI, List<URI>> removedPaths, ExportPathParams exportPathParam, boolean waitForApproval, 
+            String opId) throws ControllerException {
+        _log.info("Received request to reallocate ports. Creating master workflow.");
+        ExportPortRebalanceCompleter taskCompleter = new ExportPortRebalanceCompleter(systemURI, exportGroupURI, opId, 
+                exportPathParam);
+        Workflow workflow = null;
+        try {
+            workflow = _wfUtils.newWorkflow("port rebalance", false, opId);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (exportGroup == null || exportGroup.getExportMasks() == null) {
+                _log.info("No export group or export mask");
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, systemURI);
+            if (exportMasks == null || exportMasks.isEmpty()) {
+                _log.info(String.format("No export mask found for this system %s", systemURI));
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            // Acquire all necessary locks for the workflow:
+            // For each export group lock initiator's hosts and storage array keys.
+            List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
+                    _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
+                    StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), systemURI);
+            boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
+                    workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+            if (!acquiredLocks) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        "ExportPortRebalance: " + exportGroup.getLabel());
+            }
+
+            _wfUtils.generatePortRebalanceWorkflow(workflow, "portRebalance", null, systemURI, exportGroup.getId(),
+                        addedPaths, removedPaths, waitForApproval);
+            
+
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The updateVolumePathParams workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all storage systems successfully.");
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception ex) {
+            _log.error("Unexpected exception: ", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }
     }
 }

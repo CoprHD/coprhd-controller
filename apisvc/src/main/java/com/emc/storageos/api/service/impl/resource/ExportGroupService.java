@@ -111,8 +111,11 @@ import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPortAllocateParam;
+import com.emc.storageos.model.block.export.ExportPortRebalanceParam;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.block.export.InitiatorParam;
+import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
 import com.emc.storageos.model.block.export.PortAllocatePreviewRestRep;
 import com.emc.storageos.model.block.export.VolumeParam;
@@ -3364,4 +3367,67 @@ public class ExportGroupService extends TaskResourceService {
         }
     }
     
+    
+    /**
+     * Rebalance ports
+     *  
+     * @param id The export group id
+     * @param param The parameters including addedPaths, removedPaths, storage system URI, exportPathParameters, 
+     *                  and waitBeforeRemovePaths
+     * @return The pending task
+     * @throws ControllerException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/port-rebalance")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep portRebalance(@PathParam("id") URI id, ExportPortRebalanceParam param)
+            throws ControllerException {
+         // Basic validation of ExportGroup and update request
+        ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
+        if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
+            throw BadRequestException.badRequests.deletionInProgress(
+                    exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
+        }
+        validateExportGroupNoPendingEvents(exportGroup);
+        
+        //TODO more validation needed here to make sure paths are valid
+        
+        String task = UUID.randomUUID().toString();
+        Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_GROUP_PORT_REBALANCE);
+
+        // persist the export group to the database
+        _dbClient.updateObject(exportGroup);
+        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
+                exportGroup.getLabel(), exportGroup.getId().toString(),
+                exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
+
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+        BlockExportController exportController = getExportController();
+        _log.info("Submitting export group update request.");
+        Map<URI, List<URI>> addedPaths = convertInitiatorPathParamToMap(param.getAddedPaths());
+        Map<URI, List<URI>> removedPaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
+        ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
+        exportController.exportGroupPortRebalance(param.getStorageSystem(), id, addedPaths, removedPaths, 
+                pathParam, param.getWaitBeforeRemovePaths(), task);
+        return taskRes;
+    }
+    
+    /**
+     * Convert input InititaorPathParam to a map of initiator URI to list of storage ports URI
+     * 
+     * @param paths
+     * @return
+     */
+    private Map<URI, List<URI>> convertInitiatorPathParamToMap(List<InitiatorPathParam> paths) {
+        Map<URI, List<URI>> result = null;
+        if (paths != null && !paths.isEmpty()) {
+            result = new HashMap<URI, List<URI>>();
+            for (InitiatorPathParam path : paths) {
+                result.put(path.getInitiator(), path.getStoragePorts());
+            }
+        }
+        return result;
+    }
 }

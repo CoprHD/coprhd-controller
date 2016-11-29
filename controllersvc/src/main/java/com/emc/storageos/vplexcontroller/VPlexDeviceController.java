@@ -13359,4 +13359,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
     }
+    
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroup, Map<URI, List<URI>> addedpaths,
+            Map<URI, List<URI>> removedPaths, boolean waitForApproval, String token) throws Exception
+    {
+        
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
+        
+    }
 }

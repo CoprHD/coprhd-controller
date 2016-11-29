@@ -60,6 +60,7 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportGroupRemoveVolumesCleanupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
@@ -94,6 +95,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     public static final String EXPORT_GROUP_UPDATE_ZONING_MAP = "update-zoning-map";
     public static final String IGNORE_TASK = "ignore";
     public static final String UNASSOCIATED = "UNASSOCIATED";
+    public static final String EXPORT_GROUP_ADD_PATHS_TASK = "export-group-add-paths-task";
+    public static final String EXPORT_GROUP_REMOVE_PATHS_TASk = "export-group-remove-paths-task";
 
     protected DbClient _dbClient;
     protected static volatile BlockStorageScheduler _blockScheduler;
@@ -2614,5 +2617,40 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             }
         }
         return resourceMaskMap;
+    }
+    
+    /**
+     * Create add paths to export mask workflow step 
+     * 
+     * @param workflow
+     * @param storage - storage system
+     * @param exportGroupURI - export group uri
+     * @param exportMaskURI - export mask uri
+     * @param newPaths - new paths to be added
+     * @param previousStep - previous step that this step will wait for
+     * @return - the created step
+     * @throws Exception
+     */
+    public String generateAddPathsMaskingStep(Workflow workflow, StorageSystem storage, URI exportGroupURI, URI exportMaskURI,
+            Map<URI, List<URI>> newPaths, String previousStep) throws Exception {
+        
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, 
+                maskingStep, newPaths);
+
+        Workflow.Method executeMethod = new Workflow.Method(
+                "doExportGroupAddPaths", storage.getId(), exportGroupURI, exportMaskURI,
+                newPaths, exportTaskCompleter);
+
+        Workflow.Method rollbackMethod = new Workflow.Method(
+                "rollbackExportGroupAddPaths",
+                storage.getId(), exportGroupURI, exportMaskURI, newPaths, maskingStep);
+
+        maskingStep = workflow.createStep(EXPORT_GROUP_ADD_PATHS_TASK,
+                String.format("Adding paths to export mask %s", exportMaskURI.toString()),
+                previousStep, storage.getId(), storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, executeMethod,
+                rollbackMethod, maskingStep);
+        return maskingStep;
     }
 }

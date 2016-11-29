@@ -27,6 +27,8 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -1479,4 +1481,47 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroup, Map<URI, List<URI>> addedpaths,
+            Map<URI, List<URI>> removedPaths, boolean waitForApproval, String token) throws Exception
+    {
+        
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
+        
+    }
+    
+    /**
+     * Get new paths that need to be added by comparing the zoning map in the exportMask
+     *  
+     * @param exportMask 
+     * @param existingAndNewPaths -- include existing and new paths
+     * @return
+     */
+    protected Map<URI, List<URI>> getNewPaths(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        if (existingAndNewPaths == null || existingAndNewPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : existingAndNewPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            List<URI> ports = entry.getValue();
+            List<URI> newPorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (!targets.contains(port.toString())) {
+                        newPorts.add(port);
+                    }
+                }
+                if (!newPorts.isEmpty()) {
+                    result.put(initiator, newPorts);
+                }
+            } else {
+                result.put(initiator, ports);
+            }
+        }
+        return result;
+    }
 }

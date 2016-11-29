@@ -517,4 +517,31 @@ public class ExportWorkflowUtils {
     private Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method("rollbackMethodNull");
     }
+    
+    /**
+     * Generates a Workflow Step to rebalance ports in a storage system for a specific Export Group.
+     * 
+     * @param workflow - Workflow in which to add the step
+     * @param wfGroupId - String pointing to the group id of the step
+     * @param waitFor - Wait on this step/group to complete in the workflow before execution
+     * @param storageURI - Storage system URI
+     * @param exportGroupURI - Export group URI
+     * @param addedPaths - Paths going to be added or retained
+     * @param removedPath - Paths going to be removed
+     * @param waitForApproval - If waiting for approval before remove paths
+     * @return - Step id
+     * @throws ControllerException
+     */
+    public String generatePortRebalanceWorkflow(Workflow workflow, String wfGroupId, String waitFor,
+            URI storageURI, URI exportGroupURI, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPath,
+            boolean waitForApproval) throws ControllerException {
+        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+
+        Workflow.Method method = ExportWorkflowEntryPoints.portRebalanceMethod(
+                storageURI, exportGroupURI, addedPaths, removedPath, waitForApproval);
+        return newWorkflowStep(workflow, wfGroupId,
+                String.format("Port rebalance on storage array %s for exportGroup %s storage system %s",
+                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), storageURI.toString()),
+                storageSystem, method, null, waitFor);
+    }
 }

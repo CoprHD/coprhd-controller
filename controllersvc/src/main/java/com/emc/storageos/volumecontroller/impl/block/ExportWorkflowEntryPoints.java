@@ -116,6 +116,12 @@ public class ExportWorkflowEntryPoints implements Controller {
         return new Workflow.Method("changeAutoTieringPolicy",
                 storageURI, volumeURIs, newVpoolURI, rollback);
     }
+    
+    public static Workflow.Method portRebalanceMethod(URI storageURI, URI exportGroup, 
+            Map<URI, List<URI>>addedPaths, Map<URI, List<URI>> removedPaths, boolean isWaitForApproval) {
+        return new Workflow.Method("portRebalance", storageURI, exportGroup, addedPaths, 
+                removedPaths, isWaitForApproval);
+    }
 
     // ====================== Methods to call Masking Orchestrator
     // ======================
@@ -366,5 +372,25 @@ public class ExportWorkflowEntryPoints implements Controller {
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+    
+    public void portRebalance(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>addedPaths, 
+            Map<URI, List<URI>>removedPaths, boolean isWaitForApproval, String token)
+                    throws ControllerException {
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            final String workflowKey = "portRebalance";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.portRebalance(storageURI, exportGroup, addedPaths, removedPaths, isWaitForApproval, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions
+                    .exportGroupChangePathParams(e);
+            WorkflowStepCompleter.stepFailed(token, exception);
+        }
     }
 }

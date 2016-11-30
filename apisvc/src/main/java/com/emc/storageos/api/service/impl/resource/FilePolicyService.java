@@ -5,10 +5,12 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toLink;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.FilePolicyMapper.map;
 
 import java.net.URI;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -25,7 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.api.mapper.functions.MapFilePolicy;
 import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
+import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
@@ -34,9 +38,14 @@ import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.file.policy.*;
-
+import com.emc.storageos.model.file.FilePolicyAssignParam;
+import com.emc.storageos.model.file.FilePolicyAssignResp;
+import com.emc.storageos.model.file.FilePolicyCreateResp;
+import com.emc.storageos.model.file.FilePolicyParam;
+import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
+import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -83,8 +92,43 @@ public class FilePolicyService extends TaskResourceService {
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        // TODO Auto-generated method stub
-        return null;
+        return ResourceTypeEnum.FILE_POLICY;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected Class<FilePolicy> getResourceClass() {
+        return FilePolicy.class;
+    }
+
+    @Override
+    public FilePolicyBulkRep queryBulkResourceReps(List<URI> ids) {
+        Iterator<FilePolicy> _dbIterator = _dbClient.queryIterativeObjects(
+                getResourceClass(), ids);
+        return new FilePolicyBulkRep(BulkList.wrapping(_dbIterator,
+                MapFilePolicy.getInstance()));
+    }
+
+    @Override
+    public FilePolicyBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+        verifySystemAdmin();
+        return queryBulkResourceReps(ids);
+    }
+
+    /**
+     * Retrieve resource representations based on input ids.
+     * 
+     * @param param POST data containing the id list.
+     * @brief List of file policies of given ids.
+     * @return list of representations.
+     */
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public FilePolicyBulkRep getBulkResources(BulkIdParam param) {
+        return (FilePolicyBulkRep) super.getBulkResources(param);
     }
 
     @POST
@@ -114,6 +158,35 @@ public class FilePolicyService extends TaskResourceService {
         return null;
     }
 
+    /**
+     * Gets the ids and self links of all file policies.
+     * 
+     * @brief List file policies
+     * @return A list of file policy reference specifying the ids and self links.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    public FilePolicyListRestRep getVirtualNasServers() {
+
+        FilePolicyListRestRep filePolicyList = new FilePolicyListRestRep();
+        List<URI> ids = _dbClient.queryByType(FilePolicy.class, true);
+        for (URI id : ids) {
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, id);
+            if (filePolicy != null) {
+                filePolicyList.add(toNamedRelatedResource(filePolicy, filePolicy.getFilePolicyName()));
+            }
+        }
+
+        return filePolicyList;
+    }
+
+    /**
+     * Get details of a file policy.
+     * 
+     * @param id the file file policy id.
+     * @return File policy information.
+     */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

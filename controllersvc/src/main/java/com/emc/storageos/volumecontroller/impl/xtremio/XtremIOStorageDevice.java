@@ -43,6 +43,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -170,9 +171,18 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         _log.info("Retrying volume creation with label {}", tempLabel);
                     }
 
-                    // If the volume is a recoverpoint protected volume, the capacity has already been
+                    // If the XIO device will be on HA side of VPLEX, add 1 MB extra to make it larger than the source side device (VMAX3)
+                    // If it is a recoverpoint protected volume, the capacity has already been
                     // adjusted (1 MB added) in the RPBlockServiceApiImpl class therefore there is no need to adjust it here.
-                    Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024));
+                    int amountToAdjustCapacity = 0;
+                    Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volume);
+                    if (vplexVolume != null) {
+                        Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, dbClient, false);
+                        if (haVolume != null && haVolume.getId().equals(volume.getId())) {
+                            amountToAdjustCapacity = 1;
+                        }
+                    }
+                    Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024) + amountToAdjustCapacity);
                     String capacityInMBStr = String.valueOf(capacityInMB).concat("m");
                     _log.info("Sending create volume request with name: {}, size: {}",
                             volume.getLabel(), capacityInMBStr);

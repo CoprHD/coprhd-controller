@@ -157,7 +157,7 @@ public class DbConsistencyChecker {
 
         DbCheckerFileWriter.close();
 
-        String msg = String.format("\nFinish to check DataObject records index: totally checked %d data CFs, "
+        String msg = String.format("Finish to check DataObject records index: totally checked %d data CFs, "
                 + "%d corrupted rows found.\n", resumeDataCfs.size(), checkResult.getTotal());
 
         helper.logMessage(checkResult.toString(), false, toConsole);
@@ -195,7 +195,7 @@ public class DbConsistencyChecker {
 
         DbCheckerFileWriter.close();
 
-        String msg = String.format("\nFinish to check INDEX records: totally checked %d indices " +
+        String msg = String.format("Finish to check INDEX records: totally checked %d indices " +
                 "and %d corrupted rows found.\n", resumeIdxCfs.size(), checkResult.getTotal());
 
         helper.logMessage(checkResult.toString(), false, toConsole);

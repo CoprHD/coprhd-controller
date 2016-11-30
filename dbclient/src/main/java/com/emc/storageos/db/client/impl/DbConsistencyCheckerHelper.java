@@ -47,6 +47,7 @@ public class DbConsistencyCheckerHelper {
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
+    private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
@@ -617,15 +618,15 @@ public class DbConsistencyCheckerHelper {
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
     	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
     }
-    
-    private Map<Long, String> querySchemaVersions() {
+
+    protected Map<Long, String> querySchemaVersions() {
         Map<Long, String> result = new TreeMap<Long, String>();
         ColumnFamily<String, String> CF_STANDARD1 =
                 new ColumnFamily<String, String>("SchemaRecord",
                         StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
         try {
             OperationResult<CqlResult<String, String>> queryResult = dbClient.getLocalContext().getKeyspace().prepareQuery(CF_STANDARD1)
-                    .withCql("SELECT key, writetime(value) FROM \"SchemaRecord\";")
+                    .withCql(CQL_QUERY_SCHEMA_VERSION_TIMESTAMP)
                     .execute();
             for (Row<String, String> row : queryResult.getResult().getRows()) {
                 result.put(row.getColumns().getColumnByIndex(1).getLongValue(), row.getColumns().getColumnByIndex(0).getStringValue());
@@ -637,7 +638,7 @@ public class DbConsistencyCheckerHelper {
         return result;
     }
     
-    private String findDataCreatedInWhichDBVersion(long createTime) {
+    protected String findDataCreatedInWhichDBVersion(long createTime) {
         //small data set, no need to binary search
         long selectKey = 0;
         for (Entry<Long, String> entry : schemaVersionsTime.entrySet()) {

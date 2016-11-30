@@ -344,6 +344,7 @@ URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/init
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
 URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/port-allocate-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/port-rebalance' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -5223,6 +5224,19 @@ class Bourne:
 	    print str(parms)
         o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
         return o
+
+    def export_group_rebalance(self, groupId, parms):
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
+	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+	except:
+	    print o
+        return (o, s)
 
     #
     # block snapshot

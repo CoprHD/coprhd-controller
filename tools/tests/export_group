@@ -100,14 +100,28 @@ def export_group_realloc(args):
         print rep
         return
     print "Added or Retained Paths: "
+    added_paths = []
     for path in addedpaths:
+        added_path = dict();
+        added_path['initiator'] = path['initiator']['id']
+        added_ports = []
         for port in path['storage_ports']:
             print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+            added_ports.append(port['id'])
+        added_path['storage_ports'] = added_ports
+        added_paths.append(added_path)   
     removedPaths=rep['removed_paths']
+    removed_paths = []
     print "Removed Paths: "
     for path in removedPaths:
+        removed_path = dict()
+        removed_path['initiator'] = path['initiator']['id']
+        removed_ports = []
         for port in path['storage_ports']:
             print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+            removed_ports.append(port['id'])
+        removed_path['storage_ports'] = removed_ports
+        removed_paths.append(removed_path)
     affectedEGs=rep['affected_export_groups']
     print "Other affected Export Groups:"
     for eg in affectedEGs:
@@ -116,6 +130,24 @@ def export_group_realloc(args):
         projid=egdb['project']['id'];
         project=bourne.project_show(projid);
         print project['name'], "/", eg['name']
+    if args.go:
+        print "Executing..."
+        gopayload=dict()
+        gopayload['storage_system'] = storageId
+        gopayload['path_parameters'] = path_param
+        gopayload['added_paths'] = added_paths
+        gopayload['removed_paths'] = removed_paths
+        if args.wait:
+            gopayload['wait_before_remove_paths'] = 'true';
+        else:
+            gopayload['wait_before_remove_paths'] = 'false';
+        print gopayload
+        (o, s) = bourne.export_group_rebalance(groupId, gopayload) 
+        if (s['state'] == 'ready'):
+	    print 'Export group updated with id ' + s['resource']['id']
+        elif (s['state'] != 'suspended_no_error'):
+	    print 'Export group update failed.'
+	    sys.exit(1);
 
 def export_group_delete(args):
     bourne.connect(args.ip)
@@ -257,6 +289,8 @@ realloc.add_argument('--minpath', help = 'minimum number storage paths')
 realloc.add_argument('--pathsperinit', help = 'paths per initiator')
 realloc.add_argument('--ports', help = 'storage ports for export')
 realloc.add_argument('--useexisting', help = 'use the existing paths')
+realloc.add_argument('--go', help = 'execute the rebalance command')
+realloc.add_argument('--wait', help = 'wait before removing paths')
 
 # export_group delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

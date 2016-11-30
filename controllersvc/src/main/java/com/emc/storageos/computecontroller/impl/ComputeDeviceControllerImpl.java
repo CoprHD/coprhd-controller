@@ -676,6 +676,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         return waitFor;
     }
 
+    //TODO change the name to 'deleteBootVolume'
     public void deleteBlockVolume(URI hostId, String stepId) {
 
         log.info("deleteBlockVolume");
@@ -703,6 +704,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     }
                 }
 
+                //TODO check for volumedescriptor not empty, and then only proceed
                 String task = UUID.randomUUID().toString();
 
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task,
@@ -717,6 +719,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     // Mark this workflow as created/executed so we don't do it again on retry/resume
                     WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
 
+                    //TODO investigate how to time out the task or cancel the task
                     while (true) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                         volume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
@@ -731,6 +734,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                                                 .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(), host
                                                         .getId().toASCIIString(), host.getBootVolumeId().toASCIIString(),
                                                         volume.getOpStatus().get(task).getMessage()));
+                                //TODO should this be 'step failed'?
                                 WorkflowStepCompleter.stepSucceded(stepId);
                                 return;
                             case pending:
@@ -744,6 +748,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 /**
                  * Nothing to do... No-op it
                  */
+            	//TODO log 'info' message saying 'host not found' or 'no boot volume for host'
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
@@ -839,6 +844,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
+            
+            //TODO investigate how to time out or cancel the task -- otherwise it runs forever
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, host.getVcenterDataCenter());
@@ -850,6 +857,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         return;
                     case error:
                         log.info("vCenter update request failed - Best effort only so consider success");
+                        //TODO change this to mark the workflow step failed
                         WorkflowStepCompleter.stepSucceded(stepId); // Only best effort
                         return;
                     case pending:
@@ -887,6 +895,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param datacenterId
      * @param stepId
      */
+    //TODO verify whether this really throws an exception
+    // seems like we throw an exception, and catch it again, and throw another exception
+    //  logic is somewhat difficult to understand
     public void checkClusterVms(URI clusterId, URI datacenterId, String stepId) {
         log.info("checkClusterVms {} {}", clusterId, datacenterId);
         Cluster cluster = null;
@@ -981,11 +992,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             if (host.getComputeElement() == null) {
                 // NO-OP
+            	//TODO log a message
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             } else {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                //TODO check for computeElement not to be null
                 if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
+                	//TODO log a message 'no service profile for this blade', and mark it as failed???
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
                 }

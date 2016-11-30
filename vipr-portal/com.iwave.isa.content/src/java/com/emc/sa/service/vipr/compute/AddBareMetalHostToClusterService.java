@@ -110,6 +110,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
+        //TODO Can we add a check to see if the blades and the templates match?
+        // e.g. the blades can be from multiple UCS clusters
 
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
@@ -135,6 +137,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
         ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+        //TODO after this step, verify the boot volumes for all hosts
+        //   and deactivate the hosts where boot volumes are not properly set 
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

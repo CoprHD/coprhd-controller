@@ -155,9 +155,11 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
+                    .autoPaginate(true)
                     .withColumnRange(new RangeBuilder().setLimit(pageCount).build());
         } else {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
+                    .autoPaginate(true)
                     .withColumnRange(
                             CompositeColumnNameSerializer.get().buildRange()
                                     .greaterThanEquals(value.toString())

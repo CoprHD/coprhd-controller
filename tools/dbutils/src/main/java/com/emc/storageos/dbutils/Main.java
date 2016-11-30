@@ -345,13 +345,16 @@ public class Main {
             constraint.setKeyspace(ks);
             RowQuery<String, IndexColumnName> query = constraint.genQuery();
 
+            /*
             ColumnFamily<String, CompositeColumnName> orderCF = new ColumnFamily<String, CompositeColumnName>("Order",
                     StringSerializer.get(), CompositeColumnNameSerializer.get());
 
 
             ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery = ks.prepareQuery(orderCF);
+            */
 
-            MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, dataCFQuery);
+            //MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, dataCFQuery);
+            MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, null);
 
             iterator.prime();
 

@@ -469,11 +469,11 @@ public class StorageDriverService {
                 return;
             } else if (newVersion < oldVersion) {
                 throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(String.format(
-                        "new version (%s) should be biger than the old one (%s)", oldVersionStr, newVersionStr));
+                        "new version (%s) should be biger than the old one (%s)", newVersionStr, oldVersionStr));
             }
         }
         throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(String.format(
-                "new version (%s) should be biger than the old one (%s)", oldVersionStr, newVersionStr));
+                "new version (%s) should be biger than the old one (%s)", newVersionStr, oldVersionStr));
     }
 
     private void precheckForMetaData(StorageDriverMetaData metaData, boolean upgrade, boolean force) {

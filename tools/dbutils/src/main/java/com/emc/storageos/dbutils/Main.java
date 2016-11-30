@@ -14,23 +14,29 @@ import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
+import com.emc.storageos.db.client.constraint.impl.*;
 import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.RangeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -228,6 +234,7 @@ public class Main {
         }
     }
 
+
     private static void migrateMyOrderIndexes() throws ConnectionException {
         long start = System.currentTimeMillis();
 
@@ -258,6 +265,106 @@ public class Main {
         System.exit(1);
     }
 
+    static class MigrationAllOrderHitIterator extends QueryHitIterator<URI, IndexColumnName> {
+        Keyspace keyspace;
+        TimeConstraintImpl constraint;
+        ColumnFamily<String, TimeSeriesIndexColumnName> cf;
+        ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery;
+        MutationBatch mutationBatch;
+        int pageCount;
+
+        MigrationAllOrderHitIterator(Keyspace ks, TimeConstraintImpl c, RowQuery<String, IndexColumnName> query,
+                                     ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery)  {
+            super(query);
+
+            this.dataCFQuery = dataCFQuery;
+
+            keyspace = ks;
+            constraint = c;
+
+            cf = new ColumnFamily<String, TimeSeriesIndexColumnName>("AllOrdersByTimeStamp", StringSerializer.get(),
+                    TimeSeriesColumnNameSerializer.get());
+
+            mutationBatch = ks.prepareMutationBatch();
+            pageCount = constraint.getPageCount();
+        }
+
+        @Override
+        protected URI createQueryHit(Column<IndexColumnName> column) {
+            try {
+                log.info("lbybb1 stack=", new Throwable());
+                n++;
+                URI id = URI.create(column.getName().getTwo());
+                log.info("lbybb2 id={}", id);
+
+                Order order = _client._dbClient.queryObject(Order.class, id);
+                String indexKey = order.getTenant();
+                log.info("lbybb3 indexKey={}", indexKey);
+                /*
+                RowQuery<String, CompositeColumnName> rowQuery = dataCFQuery.getKey(id.toString()).withColumnRange(
+                        CompositeColumnNameSerializer.get().buildRange()
+                                .greaterThanEquals("tenant")
+                                .lessThanEquals("tenant")
+                                .limit(1));
+                ColumnList<CompositeColumnName> result2 = rowQuery.execute().getResult();
+                Collection<CompositeColumnName> r = result2.getColumnNames();
+                CompositeColumnName col2 = r.iterator().next();
+                String tid = result2.getStringValue(col2,"lby");
+
+                String indexKey = tid;
+                */
+                log.info("lbybb3 indexKey={}", indexKey);
+
+                TimeSeriesIndexColumnName col = new TimeSeriesIndexColumnName("Order", id.toString(),column.getName().getTimeUUID());
+                mutationBatch.withRow(cf, indexKey).putEmptyColumn(col, null);
+
+                if ( n % pageCount == 0) {
+                    mutationBatch.execute(); // commit
+                    mutationBatch = keyspace.prepareMutationBatch();
+                }
+
+                return id;
+            }catch (Throwable e) {
+                log.info("e=",e);
+            }
+            return null;
+        }
+    }
+    private static void migrateAllOrderIndexes() throws ConnectionException {
+        long start = System.currentTimeMillis();
+
+        log.info("lbybb0");
+        try {
+            //final AlternateIdConstraintImpl constraint = new AlternateIdConstraintImpl("UserToOrders", "root", Order.class, 0, 0);
+            final TimeConstraintImpl constraint = new TimeConstraintImpl("timeseriesIndex", "Order", true);
+            constraint.setPageCount(10000);
+            Keyspace ks = _client._dbClient.getLocalKeyspace();
+            constraint.setKeyspace(ks);
+
+            ColumnFamily<String, CompositeColumnName> orderCF = new ColumnFamily<String, CompositeColumnName>("Order",
+                    StringSerializer.get(), CompositeColumnNameSerializer.get());
+
+            RowQuery<String, IndexColumnName> query = constraint.genQuery();
+
+            ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery = ks.prepareQuery(orderCF);
+
+            MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, dataCFQuery);
+
+            iterator.prime();
+
+            while (iterator.hasNext()) {
+                iterator.next();
+            }
+
+            iterator.mutationBatch.execute();
+
+            long end = System.currentTimeMillis();
+            System.out.println("Read "+n+" : "+ (end - start));
+        }catch (Throwable e) {
+            log.error("e=", e);
+        }
+        System.exit(1);
+    }
     private static void queryMyOrderIndexes(){
         System.out.println("start...");
         long start = System.currentTimeMillis();
@@ -396,7 +503,9 @@ public class Main {
             _client.init();
 
             // migrateMyOrderIndexes();
+            migrateAllOrderIndexes();
 
+            /*
             List<URI> ids = new ArrayList();
             URI uri = new URI("urn:storageos:Order:b1c0eaca-725f-416d-aa6a-9cfcefa4f8f9:vdc1");
             ids.add(uri);
@@ -415,6 +524,7 @@ public class Main {
             if (!orders.isEmpty()) {
                 log.info("lby3 order={}", orders.get(0));
             }
+            */
 
             System.exit(1);
 

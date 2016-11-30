@@ -10,13 +10,13 @@ import java.util.UUID;
  */
 public class TimeSeriesIndexColumnName implements CompositeIndexColumnName {
     private @Component(ordinal = 0)
-    long timeInMicros;
+    String className;
 
     private @Component(ordinal = 1)
-    String two;
+    long timeInMicros;
 
     private @Component(ordinal = 2)
-    String three;
+    String id;
 
     private @Component(ordinal = 3)
     String four;
@@ -28,33 +28,32 @@ public class TimeSeriesIndexColumnName implements CompositeIndexColumnName {
     public TimeSeriesIndexColumnName() {
     }
 
-    public TimeSeriesIndexColumnName(String two, UUID timeUUID) {
-        this(-1, two, "", "", timeUUID);
+    public TimeSeriesIndexColumnName(String className, String id, UUID timeUUID) {
+        this(className, -1, id, "", timeUUID);
     }
 
 
-    public TimeSeriesIndexColumnName(long timestamp, String two, String three, String four, UUID timeUUID) {
+    public TimeSeriesIndexColumnName(String className, long timestamp, String id, String four, UUID timeUUID) {
+        this.className = className;
         this.timeInMicros = timestamp < 0 ? TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID): timestamp;
-
-        this.two = two;
-        this.three = three;
+        this.id = id;
         this.four=four;
         this.timeUUID = timeUUID;
     }
 
     @Override
     public String getOne() {
-        return Long.toString(timeInMicros);
+        return className;
     }
 
     @Override
     public String getTwo() {
-        return two;
+        return Long.toString(timeInMicros);
     }
 
     @Override
     public String getThree() {
-        return three;
+        return id;
     }
 
     @Override
@@ -73,12 +72,12 @@ public class TimeSeriesIndexColumnName implements CompositeIndexColumnName {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(Long.toString(timeInMicros));
+        StringBuilder builder = new StringBuilder(className);
 
         builder.append(":")
-                .append(two)
+                .append(Long.toString(timeInMicros))
                 .append(":")
-                .append(three)
+                .append(id)
                 .append(":")
                 .append(four)
                 .append(":")

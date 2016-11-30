@@ -13,6 +13,7 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -54,6 +55,21 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
         this.endTimeMicros = endTimeMillis * MILLIS_TO_MICROS;
         this.value = value;
         this.entityType = clazz;
+    }
+
+    public TimeConstraintImpl(String cfName, String key, boolean value) {
+        this.cf = new ColumnFamily<String, IndexColumnName>(cfName, StringSerializer.get(),
+                IndexColumnNameSerializer.get());;
+        indexSerializer = IndexColumnNameSerializer.get();
+
+        rowKey = key;
+        this.startTimeMicros = 0;
+        this.endTimeMicros = System.currentTimeMillis()*MILLIS_TO_MICROS;
+        this.value = value;
+    }
+
+    public String getIndexKey() {
+        return rowKey;
     }
 
     /**
@@ -135,7 +151,7 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
+    public RowQuery<String, IndexColumnName> genQuery() {
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
             query = keyspace.prepareQuery(cf).getKey(rowKey)

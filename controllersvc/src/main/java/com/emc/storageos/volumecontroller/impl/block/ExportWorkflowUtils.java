@@ -526,6 +526,7 @@ public class ExportWorkflowUtils {
      * @param waitFor - Wait on this step/group to complete in the workflow before execution
      * @param storageURI - Storage system URI
      * @param exportGroupURI - Export group URI
+     * @param exportMaskURI -- URI of the Export Mask
      * @param addedPaths - Paths going to be added or retained
      * @param removedPath - Paths going to be removed
      * @param waitForApproval - If waiting for approval before remove paths
@@ -533,12 +534,13 @@ public class ExportWorkflowUtils {
      * @throws ControllerException
      */
     public String generatePortRebalanceWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPath,
+            URI storageURI, URI exportGroupURI, URI exportMaskURI, 
+            Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPath,
             boolean waitForApproval) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.portRebalanceMethod(
-                storageURI, exportGroupURI, addedPaths, removedPath, waitForApproval);
+                storageURI, exportGroupURI, exportMaskURI, addedPaths, removedPath, waitForApproval);
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Port rebalance on storage array %s for exportGroup %s storage system %s",
                         storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), storageURI.toString()),

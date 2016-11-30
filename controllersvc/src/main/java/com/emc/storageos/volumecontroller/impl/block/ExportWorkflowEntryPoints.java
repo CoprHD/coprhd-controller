@@ -117,9 +117,9 @@ public class ExportWorkflowEntryPoints implements Controller {
                 storageURI, volumeURIs, newVpoolURI, rollback);
     }
     
-    public static Workflow.Method portRebalanceMethod(URI storageURI, URI exportGroup, 
+    public static Workflow.Method portRebalanceMethod(URI storageURI, URI exportGroup, URI exportMask,
             Map<URI, List<URI>>addedPaths, Map<URI, List<URI>> removedPaths, boolean isWaitForApproval) {
-        return new Workflow.Method("portRebalance", storageURI, exportGroup, addedPaths, 
+        return new Workflow.Method("portRebalance", storageURI, exportGroup, exportMask, addedPaths, 
                 removedPaths, isWaitForApproval);
     }
 
@@ -383,7 +383,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.portRebalance(storageURI, exportGroup, addedPaths, removedPaths, isWaitForApproval, token);
+                orchestrator.portRebalance(storageURI, exportGroup, exportMask, addedPaths, removedPaths, isWaitForApproval, token);
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
             }

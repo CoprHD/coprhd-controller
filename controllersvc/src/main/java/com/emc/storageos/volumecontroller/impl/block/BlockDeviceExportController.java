@@ -1041,9 +1041,11 @@ public class BlockDeviceExportController implements BlockExportController {
                         "ExportPortRebalance: " + exportGroup.getLabel());
             }
 
+            // Iterate through the export masks, processing them
+            for (ExportMask exportMask : exportMasks) {
             _wfUtils.generatePortRebalanceWorkflow(workflow, "portRebalance", null, systemURI, exportGroup.getId(),
-                        addedPaths, removedPaths, waitForApproval);
-            
+                        exportMask.getId(), addedPaths, removedPaths, waitForApproval);
+            }
 
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateVolumePathParams workflow has {} steps. Starting the workflow.",

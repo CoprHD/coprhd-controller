@@ -136,12 +136,13 @@ public interface MaskingOrchestrator {
      * @param workflow - Workflow
      * @param storageSystem - StorageSystem URI
      * @param exportGroup - ExportGroup URI the port rebalance will happen
+     * @param exportMask -- ExportMask URI which will be adjusted
      * @param addedpaths - Paths going to be added
      * @param removedPaths - Paths going to removed
      * @param waitForApproval - If wait for approval before removing the paths
      * @param token - Operation token for completer
      * @throws Exception
      */
-    public void portRebalance(URI storageSystem, URI exportGroup, Map<URI, List<URI>> addedpaths,
+    public void portRebalance(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> addedpaths,
             Map<URI, List<URI>> removedPaths, boolean waitForApproval, String token) throws Exception;
 }

@@ -137,6 +137,6 @@ public class BlockExportControllerImpl implements BlockExportController {
     @Override
     public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException {
-        blockRMI("exportGroupPortReallocate", systemURI, addedPaths, removedPaths, exportPathParam, waitForApproval, opId);
+        blockRMI("exportGroupPortRebalance", systemURI, exportGroupURI, addedPaths, removedPaths, exportPathParam, waitForApproval, opId);
     }
 }

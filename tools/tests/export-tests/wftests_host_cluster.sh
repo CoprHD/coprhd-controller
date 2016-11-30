@@ -30,7 +30,7 @@ test_host_add_initiator() {
     expname=${EXPORT_GROUP_NAME}t1
     
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    export_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    export_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
     
     mkdir -p results/${item}
     
@@ -241,14 +241,14 @@ test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
 
-    common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
+    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
 
 
     failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
     # Create volume
     random_number=${RANDOM}    
@@ -543,10 +543,9 @@ test_move_non_clustered_host_to_cluster() {
     TEST_OUTPUT_FILE=test_output_${RANDOM}.log
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    export_failure_injections="failure_008_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
-                               failure_009_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
-                               failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
+    export_failure_injections="failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
+                               failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                               failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
   
 
     fake_pwwn1=`randwwn`
@@ -669,20 +668,16 @@ test_cluster_remove_host() {
     test_name="test_cluster_remove_host"
     echot "Test cluster_remove_host Begins"
 
-    common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                                failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update \
-                                failure_003_host_export_ComputeSystemControllerImpl.deleteExportGroup_before_delete \ 
-                                failure_004_host_export_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
-                                failure_005_host_export_ComputeSystemControllerImpl.verifyDatastore_after_verify \
-                                failure_006_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
-                                failure_007_host_export_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
-                                failure_008_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
-                                failure_009_host_export_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
+    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \                                
+                                failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \ 
+                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \                                
+                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
 
     #failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    failure_injections="failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
 
     # Create volumes
     random_number=${RANDOM}        
@@ -767,41 +762,70 @@ test_cluster_remove_host() {
                                
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
+                        
+        if [[ "${failure}" == *"deleteExportGroup"* ]]; then
+            # Delete export group
+            secho "Delete export group path..."
+            
+            # Try and remove both hosts from cluster, first should pass and second should fail
+            secho "SLEEPING 30"
+            sleep 30
+            hosts update $host1 --cluster null
+            secho "SLEEPING 30"
+            sleep 30
+            fail hosts update $host2 --cluster null
         
-        # Try and remove host from cluster, this should fail
-        fail hosts update $host1 --cluster null
-        
-        # Rerun the command with no failures
-        set_artificial_failure none 
-        runcmd hosts update $host1 --cluster null
-                                        
-        # Zzzzzz
-        sleep 5
-        
-        # Ensure that initiator 1 and 2 and host1 have been removed
-        foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
-        foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
-        foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
-        
-        if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
-            # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
-            echo "+++ FAIL - Expected host and host initiators were not removed from the export group."
-            # Report results
-            incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                exit 1
-            fi
+            # Rerun the command with no failures
+            set_artificial_failure none 
+            runcmd hosts update $host2 --cluster null
+            
+            # Zzzzzz
+            sleep 5
+            
+            # Ensure that export group has been removed
+            fail export_group show $PROJECT/${exportgroup1}
+                        
         else
-            echo "+++ SUCCESS - Expected host and host initiators removed from export group" 
-        fi               
-                  
-        # Cleanup    
-        runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
-        runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume2}                         
-        runcmd export_group delete ${PROJECT}/${exportgroup1}    
-        sleep 5
+            # Update export group
+            secho "Update export group path..."
+            
+            # Try and remove one host from cluster, this should fail
+            fail hosts update $host1 --cluster null
+        
+            # Rerun the command with no failures
+            set_artificial_failure none 
+            runcmd hosts update $host1 --cluster null
+            
+            # Zzzzzz
+            sleep 5
+            
+            # Ensure that initiator 1 and 2 and host1 have been removed
+            foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
+            foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
+            foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
+            
+            if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
+                # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
+                echo "+++ FAIL - Expected host and host initiators were not removed from the export group."
+                # Report results
+                incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]
+                then
+                    report_results ${test_name} ${failure}
+                    exit 1
+                fi
+            else
+                echo "+++ SUCCESS - Expected host and host initiators removed from export group" 
+            fi 
+            
+            # Cleanup export group  
+            runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
+            runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume2}                         
+            runcmd export_group delete ${PROJECT}/${exportgroup1}    
+        fi    
+        
+        # Cleanup all
+        runcmd cluster delete ${TENANT}/${cluster1}
         runcmd initiator delete ${host1}/${init1}
         runcmd initiator delete ${host1}/${init2}
         runcmd initiator delete ${host2}/${init3}

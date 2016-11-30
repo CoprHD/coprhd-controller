@@ -1294,8 +1294,7 @@ public class NetworkScheduler {
     }
     
     /**
-     * Returns a list of zoning targets for multiple export masks each adding their own
-     * list of initiators.
+     * Returns a list of zoning targets for adding paths to the export mask.
      * 
      * @param exportGroup ExportGroup
      * @param exportMaskURI export mask URI
@@ -1335,9 +1334,9 @@ public class NetworkScheduler {
     }
     
     /**
-     * This is called when ExportGroupService adds initiators.
+     * This is called when ExportGroupService adds paths.
      * Creates list of NetworkFabricInfo structures for zoning each volume
-     * to the newly added Initiator.
+     * to the newly added paths
      * 
      * @param exportGroup - The ExportGroup structure.
      * @param varrayUri - The URI of the virtual array, this can be the export group's

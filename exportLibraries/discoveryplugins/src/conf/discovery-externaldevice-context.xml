@@ -27,7 +27,7 @@
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
                 <entry key="providersystem" value-ref="storageDriverSimulator"/>
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
-                <entry key="hp3par" value-ref="hp3Par"/>
+                <!--entry key="hp3par" value-ref="hp3Par"/-->
                 <entry key="dellscprovider" value-ref="dellsc"/>
                 <entry key="dellscsystem" value-ref="dellsc"/>
             </map>
@@ -40,7 +40,7 @@
         </property>
     </bean>
     
-    <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
+    <!--bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init"-->
     </bean>
     <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
     </bean>

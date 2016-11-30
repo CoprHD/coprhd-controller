@@ -28,7 +28,9 @@ addProjects(
 	"exportLibraries/ceph",
         "exportLibraries/xiv",
 	"exportLibraries/storagedrivers/storagedriversimulator",    
-        "exportLibraries/storagedrivers/3par",
+        // This change should not be merged to master, change back before merging
+        // Comment 3par out to get a vipr that doesnot support 3par natively, to test sb driver with 3par driver
+        //"exportLibraries/storagedrivers/3par",
 	"exportLibraries/storagedrivers/dellsc",
         "geodbsvc",
         "geosvc",

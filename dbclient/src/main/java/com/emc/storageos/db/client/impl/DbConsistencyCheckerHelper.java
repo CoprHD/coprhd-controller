@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +32,14 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
+import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
@@ -46,12 +50,14 @@ public class DbConsistencyCheckerHelper {
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
-
+    private Map<Long, String> schemaVersionsTime;
+    
     public DbConsistencyCheckerHelper() {
     }
 
     public DbConsistencyCheckerHelper(DbClientImpl dbClient) {
         this.dbClient = dbClient;
+        schemaVersionsTime = querySchemaVersions();
     }
 
     /**
@@ -107,8 +113,7 @@ public class DbConsistencyCheckerHelper {
      * @return the number of corrupted data
      * @throws ConnectionException
      */
-    public int checkCFIndices(DataObjectType doType, boolean toConsole) throws ConnectionException {
-        int dirtyCount = 0;
+    public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         Class objClass = doType.getDataObjectClass();
         _log.info("Check Data Object CF {}", objClass);
 
@@ -120,7 +125,7 @@ public class DbConsistencyCheckerHelper {
         }
 
         if (indexedFields.isEmpty()) {
-            return dirtyCount;
+            return;
         }
 
         Keyspace keyspace = dbClient.getKeyspace(objClass);
@@ -162,11 +167,13 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
-                    dirtyCount++;
+                    long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+                    String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                    checkResult.increaseByVersion(dbVersion);
                     logMessage(String.format(
-                            "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                            "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
                             indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
-                            indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                            indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey, dbVersion),
                             true, toConsole);
                     DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
                             String.format("id:%s, cfName:%s", objRow.getKey(),
@@ -174,8 +181,6 @@ public class DbConsistencyCheckerHelper {
                 }
             }
         }
-
-        return dirtyCount;
     }
 
     /**
@@ -185,9 +190,7 @@ public class DbConsistencyCheckerHelper {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    public int checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole) throws ConnectionException {
-        int corruptRowCount = 0;
-
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {}", indexCFName);
@@ -233,15 +236,13 @@ public class DbConsistencyCheckerHelper {
             }
             
             if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
-                corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+                processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
             }
             
         }
 
         // Detect whether the DataObject CFs have the records
-        corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
-
-        return corruptRowCount;
+        processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
     }
 
     private int getObjsSize(Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) {
@@ -257,9 +258,8 @@ public class DbConsistencyCheckerHelper {
     /*
      * We need to process index objects in batch to avoid occupy too many memory
      * */
-    private int processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
-            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) throws ConnectionException {
-        int corruptRowCount = 0;
+    private void processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
+            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
 
@@ -271,12 +271,14 @@ public class DbConsistencyCheckerHelper {
                 if (row.getColumns().isEmpty()) { // Only support all the columns have been removed now
                     List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
                     for (IndexEntry idxEntry : idxEntries) {
-                        corruptRowCount++;
+                        long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(idxEntry.getColumnName().getTimeUUID());
+                        String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                        checkResult.increaseByVersion(dbVersion);
                         logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
-                                + "but the related object record(%s, id: %s) is missing.",
+                                + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                                objCf.getName(), row.getKey()), true, toConsole);
+                                objCf.getName(), row.getKey(), dbVersion), true, toConsole);
                         UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
                                 String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
@@ -290,7 +292,6 @@ public class DbConsistencyCheckerHelper {
             }
         }
         objsToCheck.clear();
-        return corruptRowCount;
     }
 
     public Map<String, IndexAndCf> getAllIndices() {
@@ -615,5 +616,68 @@ public class DbConsistencyCheckerHelper {
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
     	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
+    }
+    
+    private Map<Long, String> querySchemaVersions() {
+        Map<Long, String> result = new TreeMap<Long, String>();
+        ColumnFamily<String, String> CF_STANDARD1 =
+                new ColumnFamily<String, String>("SchemaRecord",
+                        StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
+        try {
+            OperationResult<CqlResult<String, String>> queryResult = dbClient.getLocalContext().getKeyspace().prepareQuery(CF_STANDARD1)
+                    .withCql("SELECT key, writetime(value) FROM \"SchemaRecord\";")
+                    .execute();
+            for (Row<String, String> row : queryResult.getResult().getRows()) {
+                result.put(row.getColumns().getColumnByIndex(1).getLongValue(), row.getColumns().getColumnByIndex(0).getStringValue());
+            }
+        } catch (ConnectionException e) {
+            _log.error("Failed to query schema versions", e);
+        }
+        
+        return result;
+    }
+    
+    private String findDataCreatedInWhichDBVersion(long createTime) {
+        //small data set, no need to binary search
+        long selectKey = 0;
+        for (Entry<Long, String> entry : schemaVersionsTime.entrySet()) {
+            if (createTime >= entry.getKey()) {
+                selectKey = entry.getKey();
+            }
+        }
+        
+        return selectKey == 0 ? "Unknown" : schemaVersionsTime.get(selectKey);
+    }
+    
+    public static class CheckResult {
+        private int total;
+        private Map<String, Integer> countOfVersion = new HashMap<String, Integer>();
+        
+        public int getTotal() {
+            return total;
+        }
+
+        public Map<String, Integer> getCountOfVersion() {
+            return countOfVersion;
+        }
+
+        public void increaseByVersion(String version) {
+            if (!countOfVersion.containsKey(version)) {
+                countOfVersion.put(version, 0);
+            }
+            
+            countOfVersion.put(version, countOfVersion.get(version) + 1);
+            this.total++;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("Corrupted row by version: ");
+            for (Entry<String, Integer> entry : countOfVersion.entrySet()) {
+                builder.append(entry.getKey()).append("(").append(entry.getValue()).append(")\t");
+            }
+            return builder.toString();
+        }
     }
 }

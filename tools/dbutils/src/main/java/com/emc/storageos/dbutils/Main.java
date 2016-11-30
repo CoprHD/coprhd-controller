@@ -302,7 +302,6 @@ public class Main {
                 String indexKey = order.getTenant();
                 log.info("lbybb3 indexKey={}", indexKey);
                 */
-                /*
                 RowQuery<String, CompositeColumnName> rowQuery = dataCFQuery.getKey(id.toString()).withColumnRange(
                         CompositeColumnNameSerializer.get().buildRange()
                                 .greaterThanEquals("tenant")
@@ -314,8 +313,7 @@ public class Main {
                 String tid = result2.getStringValue(col2,"lby");
 
                 String indexKey = tid;
-                */
-                /*
+
                 log.info("lbybb3 indexKey={}", indexKey);
 
                 TimeSeriesIndexColumnName col = new TimeSeriesIndexColumnName("Order", id.toString(),column.getName().getTimeUUID());
@@ -325,7 +323,6 @@ public class Main {
                     mutationBatch.execute(); // commit
                     mutationBatch = keyspace.prepareMutationBatch();
                 }
-                */
 
                 return id;
             }catch (Throwable e) {
@@ -345,16 +342,14 @@ public class Main {
             constraint.setKeyspace(ks);
             RowQuery<String, IndexColumnName> query = constraint.genQuery();
 
-            /*
             ColumnFamily<String, CompositeColumnName> orderCF = new ColumnFamily<String, CompositeColumnName>("Order",
                     StringSerializer.get(), CompositeColumnNameSerializer.get());
 
 
             ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery = ks.prepareQuery(orderCF);
-            */
 
-            //MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, dataCFQuery);
-            MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, null);
+            MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, dataCFQuery);
+            // MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, null);
 
             iterator.prime();
 

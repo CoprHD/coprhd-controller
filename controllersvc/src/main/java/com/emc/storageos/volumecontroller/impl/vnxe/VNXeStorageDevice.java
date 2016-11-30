@@ -2609,4 +2609,16 @@ public class VNXeStorageDevice extends VNXeOperations
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void doExportAddPaths(StorageSystem storage, ExportMask exportMask, Map<URI, List<URI>>addedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportRemovePaths(StorageSystem storage, ExportMask exportMask, Map<URI, List<URI>>removedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

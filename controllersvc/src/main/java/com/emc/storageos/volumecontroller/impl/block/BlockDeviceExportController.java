@@ -1040,10 +1040,17 @@ public class BlockDeviceExportController implements BlockExportController {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                         "ExportPortRebalance: " + exportGroup.getLabel());
             }
-
-            _wfUtils.generatePortRebalanceWorkflow(workflow, "portRebalance", null, systemURI, exportGroup.getId(),
-                        addedPaths, removedPaths, waitForApproval);
             
+            String step = null;
+            for (ExportMask mask : exportMasks) {
+                if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
+                    _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
+                            mask.getId().toString()));
+                    continue;
+                }
+                step = _wfUtils.generatePortRebalanceWorkflow(workflow, "portRebalance", step, systemURI, exportGroup.getId(),
+                        mask.getId(), addedPaths, removedPaths, waitForApproval);
+            }
 
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateVolumePathParams workflow has {} steps. Starting the workflow.",

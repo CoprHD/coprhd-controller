@@ -2626,7 +2626,7 @@ public class NetworkDeviceController implements NetworkController {
         boolean status = false;
         ExportGroup exportGroup = _dbClient
                 .queryObject(ExportGroup.class, exportGroupURI);
-        _log.info(String.format("Entering zoneExportAddInitiators for ExportGroup: %s (%s)",
+        _log.info(String.format("Entering zoneExportAddPaths for ExportGroup: %s (%s)",
                 exportGroup.getLabel(), exportGroup.getId()));
         try {
             if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
@@ -2656,7 +2656,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportAddInitiators", result);
+            completeWorkflowState(token, "zoneExportAddPaths", result);
 
             return status;
         } catch (Exception ex) {

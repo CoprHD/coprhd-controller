@@ -1482,30 +1482,76 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     @Override
-    public void portRebalance(URI storageSystem, URI exportGroup, Map<URI, List<URI>> addedpaths,
-            Map<URI, List<URI>> removedPaths, boolean waitForApproval, String token) throws Exception
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> addedPaths,
+            Map<URI, List<URI>> removedPaths, boolean waitBeforeRemovePaths, String token) throws Exception
     {
-        
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(
+                    MaskingWorkflowEntryPoints.getInstance(),
+                    "exportPortRebalance", true, token);
+                        
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
+                    storageSystem);
+
+            _log.info(String.format("Export port rebalance for exportGroup %s  exportMask %s",
+                    exportGroupURI.toString(), exportMaskURI.toString()));
+
+            Map<URI, List<URI>> newPaths = getNewPathsForExportMask(exportMask, addedPaths);
+            String stepId = null;
+            if (newPaths != null && !newPaths.isEmpty()) {
+                stepId = generateZoningAddPathWorkflow(workflow, exportGroupURI, exportMaskURI, newPaths, stepId);
+                stepId = generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        newPaths, stepId);
+            }
+            
+            Map<URI, List<URI>> removePaths = getRemovePathsForExportMask(exportMask, removedPaths);
+            if (removePaths != null && !removePaths.isEmpty()) {
+                stepId = generateZoningRemovePathsWorkflow(workflow, waitBeforeRemovePaths, exportGroupURI, 
+                        exportMaskURI, removePaths, stepId);
+                stepId = generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        removePaths, stepId);
+            }
+            
+
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The changePathParams workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+
+        } catch (Exception ex) {
+            _log.error("ExportGroup port rebalance failed.", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }       
         
     }
     
     /**
-     * Get new paths that need to be added by comparing the zoning map in the exportMask
+     * Get new paths that need to be added to the export mask, by comparing the zoning map in the exportMask, 
+     * and making sure the initiators in the new path belong to the exportMask.
      *  
      * @param exportMask 
-     * @param existingAndNewPaths -- include existing and new paths
+     * @param existingAndNewPaths -- include existing and new paths for all export masks belonging to the same export group
      * @return
      */
-    protected Map<URI, List<URI>> getNewPaths(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
+    protected Map<URI, List<URI>> getNewPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
         StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
         if (existingAndNewPaths == null || existingAndNewPaths.isEmpty()) {
             return result;
         }
         for (Map.Entry<URI, List<URI>> entry : existingAndNewPaths.entrySet()) {
             URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
+                continue;
+            }
             List<URI> ports = entry.getValue();
             List<URI> newPorts = new ArrayList<URI> ();
             StringSet targets = zoningMap.get(initiator.toString());
@@ -1521,6 +1567,44 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             } else {
                 result.put(initiator, ports);
             }
+        }
+        return result;
+    }
+    
+    /**
+     * Get the remove path list for the exportMask in the given removedPaths.
+     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
+     * 
+     * @param exportMask 
+     * @param removedPaths - The list paths. some of them may not belong to the export mask.
+     * @return - The list of paths are going to be removed from the export mask.
+     */
+    protected Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (removedPaths == null || removedPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> removePorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (targets.contains(port.toString())) {
+                        removePorts.add(port);
+                    }
+                }
+                if (!removePorts.isEmpty()) {
+                    result.put(initiator, removePorts);
+                }
+            } 
         }
         return result;
     }

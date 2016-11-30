@@ -1,0 +1,374 @@
+package com.emc.storageos.model.file.policy;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
+
+@XmlRootElement(name = "file_policy")
+public class FilePolicyRestRep extends DataObjectRestRep {
+
+    private String type;
+
+    private String description;
+
+    private Boolean hasAccessToTenants;
+
+    private Boolean appliedToAllFileSystems;
+
+    private String appliedAt;
+
+    private RelatedResourceRep vpool;
+
+    private ScheduleRestRep schedule;
+
+    private ReplicationSettingsRestRep replicationSettings;
+
+    private SnapshotSettingsRestRep snapshotSettings;
+
+    @XmlElement(name = "schedule")
+    public ScheduleRestRep getSchedule() {
+        return schedule;
+    }
+
+    @XmlElement(name = "replication_settings")
+    public ReplicationSettingsRestRep getReplicationSettings() {
+        return replicationSettings;
+    }
+
+    @XmlElement(name = "snapshot_settings")
+    public SnapshotSettingsRestRep getSnapshotSettings() {
+        return snapshotSettings;
+    }
+
+    @XmlElement(name = "has_access_to_tenants")
+    public Boolean getHasAccessToTenants() {
+        return hasAccessToTenants;
+    }
+
+    @XmlElement(name = "applied_to_all_filesystems")
+    public Boolean getAppliedToAllFileSystems() {
+        return appliedToAllFileSystems;
+    }
+
+    @XmlElement(name = "vpool")
+    public RelatedResourceRep getVpool() {
+        return vpool;
+    }
+
+    @XmlElement(name = "applied_at")
+    public String getAppliedAt() {
+        return appliedAt;
+    }
+
+    public void setAppliedAt(String appliedAt) {
+        this.appliedAt = appliedAt;
+    }
+
+    public void setVpool(RelatedResourceRep vpool) {
+        this.vpool = vpool;
+    }
+
+    public void setAppliedToAllFileSystems(Boolean appliedToAllFileSystems) {
+        this.appliedToAllFileSystems = appliedToAllFileSystems;
+    }
+
+    public void setHasAccessToTenants(Boolean hasAccessToTenants) {
+        this.hasAccessToTenants = hasAccessToTenants;
+    }
+
+    public void setSnapshotSettings(SnapshotSettingsRestRep snapshotSettings) {
+        this.snapshotSettings = snapshotSettings;
+    }
+
+    public void setReplicationSettings(ReplicationSettingsRestRep replicationSettings) {
+        this.replicationSettings = replicationSettings;
+    }
+
+    public void setSchedule(ScheduleRestRep schedule) {
+        this.schedule = schedule;
+    }
+
+    @XmlElement(name = "name")
+    public String getType() {
+        return type;
+    }
+
+    @XmlElement(name = "description")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("FilePolicyRestRep [");
+        if (type != null) {
+            builder.append("type=");
+            builder.append(type);
+            builder.append(", ");
+        }
+        if (description != null) {
+            builder.append("description=");
+            builder.append(description);
+            builder.append(", ");
+        }
+        if (hasAccessToTenants != null) {
+            builder.append("hasAccessToTenants=");
+            builder.append(hasAccessToTenants);
+            builder.append(", ");
+        }
+        if (appliedToAllFileSystems != null) {
+            builder.append("appliedToAllFileSystems=");
+            builder.append(appliedToAllFileSystems);
+            builder.append(", ");
+        }
+        if (appliedAt != null) {
+            builder.append("appliedAt=");
+            builder.append(appliedAt);
+            builder.append(", ");
+        }
+        if (vpool != null) {
+            builder.append("vpool=");
+            builder.append(vpool);
+            builder.append(", ");
+        }
+        if (schedule != null) {
+            builder.append("schedule=");
+            builder.append(schedule);
+            builder.append(", ");
+        }
+        if (replicationSettings != null) {
+            builder.append("replicationSettings=");
+            builder.append(replicationSettings);
+            builder.append(", ");
+        }
+        if (snapshotSettings != null) {
+            builder.append("snapshotSettings=");
+            builder.append(snapshotSettings);
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    @XmlRootElement(name = "file_policy_schedule")
+    public static class ScheduleRestRep {
+
+        private String frequency;
+
+        // Policy run on every
+        private Long repeat;
+
+        // Time when policy run
+        private String time;
+
+        // Day of week when policy run
+        private String dayOfWeek;
+
+        // Day of month when policy run
+        private Long dayOfMonth;
+
+        @XmlElement(name = "frequency")
+        public String getFrequency() {
+            return frequency;
+        }
+
+        @XmlElement(name = "repeat_every")
+        public Long getRepeat() {
+            return repeat;
+        }
+
+        @XmlElement(name = "time")
+        public String getTime() {
+            return time;
+        }
+
+        @XmlElement(name = "day_of_week")
+        public String getDayOfWeek() {
+            return dayOfWeek;
+        }
+
+        @XmlElement(name = "day_of_month")
+        public Long getDayOfMonth() {
+            return dayOfMonth;
+        }
+
+        public void setFrequency(String frequency) {
+            this.frequency = frequency;
+        }
+
+        public void setRepeat(Long repeat) {
+            this.repeat = repeat;
+        }
+
+        public void setTime(String time) {
+            this.time = time;
+        }
+
+        public void setDayOfWeek(String dayOfWeek) {
+            this.dayOfWeek = dayOfWeek;
+        }
+
+        public void setDayOfMonth(Long dayOfMonth) {
+            this.dayOfMonth = dayOfMonth;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("ScheduleRestRep [");
+            if (frequency != null) {
+                builder.append("frequency=");
+                builder.append(frequency);
+                builder.append(", ");
+            }
+            if (repeat != null) {
+                builder.append("repeat=");
+                builder.append(repeat);
+                builder.append(", ");
+            }
+            if (time != null) {
+                builder.append("time=");
+                builder.append(time);
+                builder.append(", ");
+            }
+            if (dayOfWeek != null) {
+                builder.append("dayOfWeek=");
+                builder.append(dayOfWeek);
+                builder.append(", ");
+            }
+            if (dayOfMonth != null) {
+                builder.append("dayOfMonth=");
+                builder.append(dayOfMonth);
+            }
+            builder.append("]");
+            return builder.toString();
+        }
+
+    }
+
+    @XmlRootElement(name = "replication_settings")
+    public static class ReplicationSettingsRestRep {
+
+        private String type;
+        private String mode;
+        private Boolean replicateConfiguration;
+
+        @XmlElement(name = "type")
+        public String getType() {
+            return type;
+        }
+
+        @XmlElement(name = "mode")
+        public String getMode() {
+            return mode;
+        }
+
+        @XmlElement(name = "replication_configuration")
+        public Boolean getReplicateConfiguration() {
+            return replicateConfiguration;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public void setReplicateConfiguration(Boolean replicateConfiguration) {
+            this.replicateConfiguration = replicateConfiguration;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("ReplicationParametersRestRep [");
+            if (type != null) {
+                builder.append("type=");
+                builder.append(type);
+                builder.append(", ");
+            }
+            if (mode != null) {
+                builder.append("mode=");
+                builder.append(mode);
+                builder.append(", ");
+            }
+            builder.append("replicateConfiguration=");
+            builder.append(replicateConfiguration);
+            builder.append("]");
+            return builder.toString();
+        }
+
+    }
+
+    @XmlRootElement(name = "snapshot_settings")
+    public static class SnapshotSettingsRestRep {
+
+        private String snapshotNamePattern;
+
+        private String expiryType;
+
+        private Long expiryTime;
+
+        @XmlElement(name = "snapshot_name_pattern")
+        public String getSnapshotNamePattern() {
+            return snapshotNamePattern;
+        }
+
+        @XmlElement(name = "expiry_type")
+        public String getExpiryType() {
+            return expiryType;
+        }
+
+        @XmlElement(name = "expiry_time")
+        public Long getExpiryTime() {
+            return expiryTime;
+        }
+
+        public void setExpiryTime(Long expiryTime) {
+            this.expiryTime = expiryTime;
+        }
+
+        public void setSnapshotNamePattern(String snapshotNamePattern) {
+            this.snapshotNamePattern = snapshotNamePattern;
+        }
+
+        public void setExpiryType(String expiryType) {
+            this.expiryType = expiryType;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("SnapshotSettingsRestRep [");
+            if (snapshotNamePattern != null) {
+                builder.append("snapshotNamePattern=");
+                builder.append(snapshotNamePattern);
+                builder.append(", ");
+            }
+            if (expiryType != null) {
+                builder.append("expiryType=");
+                builder.append(expiryType);
+                builder.append(", ");
+            }
+            if (expiryTime != null) {
+                builder.append("expiryTime=");
+                builder.append(expiryTime);
+            }
+            builder.append("]");
+            return builder.toString();
+        }
+
+    }
+}

@@ -4,10 +4,15 @@
  */
 package com.emc.storageos.api.mapper;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+
+import java.net.URI;
+
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
@@ -35,6 +40,20 @@ public class FilePolicyMapper {
         schedule.setRepeat(from.getScheduleRepeat());
 
         resp.setSchedule(schedule);
+
+        URI vpoolURI = from.getFilePolicyVpool();
+        if (!NullColumnValueGetter.isNullURI(vpoolURI)) {
+            resp.setVpool(toRelatedResource(ResourceTypeEnum.FILE_VPOOL, vpoolURI));
+        }
+        Boolean appliedToAllFS = from.isApplyToAllFS();
+        if (appliedToAllFS != null) {
+            resp.setAppliedToAllFileSystems(appliedToAllFS);
+        }
+
+        String appliedAt = from.getApplyAt();
+        if (NullColumnValueGetter.isNotNullValue(appliedAt)) {
+            resp.setAppliedAt(appliedAt);
+        }
 
         String policyType = from.getFilePolicyType();
         resp.setType(policyType);

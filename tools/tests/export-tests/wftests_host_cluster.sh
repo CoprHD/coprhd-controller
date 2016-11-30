@@ -768,12 +768,11 @@ test_cluster_remove_host() {
             secho "Delete export group path..."
             
             # Try and remove both hosts from cluster, first should pass and second should fail
-            secho "SLEEPING 30"
-            sleep 30
-            hosts update $host1 --cluster null
-            secho "SLEEPING 30"
-            sleep 30
+            runcmd hosts update $host1 --cluster null
             fail hosts update $host2 --cluster null
+        
+            secho "Sleeping 60..."
+            sleep 60
         
             # Rerun the command with no failures
             set_artificial_failure none 

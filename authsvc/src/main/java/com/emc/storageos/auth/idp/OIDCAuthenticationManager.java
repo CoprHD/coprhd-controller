@@ -76,7 +76,7 @@ public class OIDCAuthenticationManager {
     }
 
     public URI buildAuthenticationRequestInURI(String resourceURI) throws Exception {
-        State state = new State(resourceURI);
+        State state = resourceURI == null ? null : new State(resourceURI);
         AuthenticationRequest req = new AuthenticationRequest(
                 null, // url to provider
                 new ResponseType(ResponseType.Value.CODE),

@@ -7,7 +7,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 public class Main {
 
     public static void main(String[] args) {
-        ViPRCoreClient client = new ViPRCoreClient(new ClientConfig().withHost("10.247.78.60").withIgnoringCertificates(true));
+        ViPRCoreClient client = new ViPRCoreClient(new ClientConfig().withHost("10.247.78.62").withIgnoringCertificates(true));
         client.auth().login("admin", "changeme");
         System.out.println("Login successfully");
     }

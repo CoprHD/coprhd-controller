@@ -255,7 +255,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     public AuthUtil.AuthMode currentAuthenticationMode() {
         AuthUtil.AuthMode authMode = AuthUtil.AuthMode.normal;
         for (AuthenticationProvider ap : _authNProviders.getAuthenticationProviders()) {
-            if (ap.getProviderConfig().getMode().equals(AuthUtil.AuthMode.oidc.name())) {
+            if ( ap.getProviderConfig() != null && ap.getProviderConfig().getMode().equals( AuthUtil.AuthMode.oidc.name() ) ) {
                 authMode =  AuthUtil.AuthMode.oidc;
                 break;
             }

@@ -1093,11 +1093,11 @@ unity_setup()
 vmax2_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=5988
+    VMAX_SMIS_PORT=7009
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
-    VMAX_SMIS_SSL=false
-    VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+    VMAX_SMIS_SSL=true
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX2_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -1153,7 +1153,7 @@ vmax3_sim_setup() {
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
-    VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -1802,14 +1802,14 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
@@ -2042,12 +2042,12 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vnx"  ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi

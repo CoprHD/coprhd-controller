@@ -19,6 +19,8 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -654,13 +656,13 @@ public class OrderService extends CatalogTaggedResourceService {
 
         Date startTime = new Date(0);
         if (!startTimeStr.isEmpty()) {
-            startTime = TimeUtils.getDateTimestamp(startTimeStr);
+            startTime = getDateTimestamp(startTimeStr);
         }
 
         Date endTime = new Date(); // now by default
 
         if (!endTimeStr.isEmpty()) {
-            endTime = TimeUtils.getDateTimestamp(endTimeStr);
+            endTime = getDateTimestamp(endTimeStr);
         }
 
         TimeUtils.validateTimestamps(startTime, endTime);
@@ -713,26 +715,51 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lbyb0:starTime={} endTime={} maxCount={} user={}",
                 new Object[] {startTimeStr, endTimeStr, user.getName()});
 
+        /*
         Date startTime = new Date(0);
         if (!startTimeStr.isEmpty()) {
-            startTime = TimeUtils.getDateTimestamp(startTimeStr);
+            startTime = getDateTimestamp(startTimeStr);
         }
 
         Date endTime = new Date(); // now by default
 
         if (!endTimeStr.isEmpty()) {
-            endTime = TimeUtils.getDateTimestamp(endTimeStr);
+            endTime = getDateTimestamp(endTimeStr);
         }
 
         TimeUtils.validateTimestamps(startTime, endTime);
+        */
 
-        long startTimeInMS= startTime.getTime();
-        long endTimeInMS = endTime.getTime();
+        long startTimeInMS = 0;
+
+        ZonedDateTime now = ZonedDateTime.now();
+        log.info("lbyt0: now={}", now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
+
+        if (!startTimeStr.isEmpty()) {
+            ZonedDateTime startTime = ZonedDateTime.parse(startTimeStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+            startTimeInMS = startTime.toInstant().toEpochMilli();
+        }
+
+        // long startTimeInMS= startTime.getTime();
+        //long endTimeInMS = endTime.getTime();
+
+        long endTimeInMS = System.currentTimeMillis();
+        if (!endTimeStr.isEmpty()) {
+            ZonedDateTime endTime = ZonedDateTime.parse(endTimeStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+            endTimeInMS = endTime.toInstant().toEpochMilli();
+        }
 
         log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
+
+        if (startTimeInMS > endTimeInMS) {
+            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
+        }
+
         long count = orderManager.getOrderCount(user, startTimeInMS, endTimeInMS);
         log.info("lbyb0 done0");
 
+        // return Response.ok(Long.toString(count));
+        //TODO: need to figure out how to return count 
         return count;
     }
 

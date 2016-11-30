@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.ClassNameTimeSeries;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -160,6 +161,8 @@ public class BourneDbClient implements DBClientWrapper {
 
         ClassNameTimeSeriesConstraintImpl constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(fieldName),
                 userId, startTime, endTime);
+        DbClientImpl dbclient = (DbClientImpl)getDbClient();
+        constraint.setKeyspace(dbclient.getLocalKeyspace());
 
         try {
             return constraint.count();

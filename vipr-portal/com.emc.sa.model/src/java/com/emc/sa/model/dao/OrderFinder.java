@@ -96,7 +96,7 @@ public class OrderFinder extends TenantModelFinder<Order> {
         }
 
 
-        long count = client.getOrderCount(Order.SUBMITTED_BY_USER_ID, userId, startTime, endTime);
+        long count = client.getOrderCount(userId, Order.SUBMITTED_BY_USER_ID, startTime, endTime);
 
         return count;
     }

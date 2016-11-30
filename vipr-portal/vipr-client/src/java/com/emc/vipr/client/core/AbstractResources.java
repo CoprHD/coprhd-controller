@@ -596,7 +596,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
 
         log.info("========= Printing Search results");
         for (SearchResultResourceRep r : results) {
-            log.info("rid is: {}", r.getId());
+            log.info("rid is: {}, name is {}", r.getId(), r.getMatch());
         }
         log.info("========= Printing Search results done");
         return results;

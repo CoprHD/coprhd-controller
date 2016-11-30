@@ -42,7 +42,7 @@ public class SearchedResRepList extends ResRepList<SearchResultResourceRep> {
     @Override
     public SearchResultResourceRep createQueryHit(URI uri, String match, UUID timestamp) {
         RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(_type, uri));
-        _log.info("===== hit res 2, id: {}, name: {}, ref: {}, match: {}", uri, selfLink.getLinkName(), selfLink.getLinkRef(), r.getMatch());
+        _log.info("===== hit res 2, id: {}, name: {}, ref: {}, match: {}", uri, selfLink.getLinkName(), selfLink.getLinkRef(), match);
         return new SearchResultResourceRep(uri, selfLink, match);
     }
 

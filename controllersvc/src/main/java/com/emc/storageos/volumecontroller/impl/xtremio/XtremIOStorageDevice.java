@@ -178,7 +178,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volume);
                     if (vplexVolume != null) {
                         Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, dbClient, false);
-                        if (haVolume != null && haVolume.getId().equals(volume.getId())) {
+                        if (haVolume != null && haVolume.getId().equals(volume.getId())
+                                && !volume.checkForRp() && !vplexVolume.checkForRp()) {
                             amountToAdjustCapacity = 1;
                         }
                     }

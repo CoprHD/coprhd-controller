@@ -37,6 +37,9 @@ import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 
+/**
+ * This provides ability to run ViPR REST APIs
+ */
 public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
@@ -68,11 +71,11 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         String path = makePath(templatePath);
 
-        ExecutionUtils.currentContext().logInfo(String.format("Started Executing REST API with uri: %s and POST Body: %s ", path, requestBody));
+        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.getFriendlyName());
 
         OrchestrationTaskResult result = makeRestCall(path, requestBody, method);
 
-        ExecutionUtils.currentContext().logInfo(String.format("Done Executing REST Step. REST result: %s", result));
+        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.getFriendlyName());
 
         return result;
     }
@@ -139,7 +142,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         
         final String path = template.expand(pathParameterMap).getPath(); 
 
-        ExecutionUtils.currentContext().logInfo(String.format("URI string is: %s", path));
+        logger.info("URI string is: {}", path);
 
         return path;
     }

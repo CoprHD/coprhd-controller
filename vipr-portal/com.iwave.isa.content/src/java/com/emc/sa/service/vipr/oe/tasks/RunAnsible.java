@@ -30,6 +30,11 @@ import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.services.util.Exec;
 
+/**
+ * Runs Orchestration Shell script or Ansible Playbook Tasks.
+ * It can run Ansible playbook on local node as well as on Remote node
+ *
+ */
 public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
@@ -45,7 +50,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     @Override
     public OrchestrationTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("Executing Ansible Step:" + step.getId() + step.getType());
+        ExecutionUtils.currentContext().logInfo("runAnsible.statusInfo", step.getId());
         //TODO Get playbook/package from DB
 
         final String extraVars = makeExtraArg(input);
@@ -54,16 +59,19 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final Exec.Result result;
         switch (type) {
             case SHELL_SCRIPT:
-                result = executeCmd(OrchestrationServiceConstants.DATA_PATH + step.getOperation(), extraVars);
+                result = executeCmd(OrchestrationServiceConstants.PATH + step.getOperation(), extraVars);
                 cleanUp(step.getOperation(), false);
                 break;
             case LOCAL_ANSIBLE:
                 final Exec.Result untarResult = untarPackage(step.getOperation());
-                if (!untarResult.exitedNormally())
+                if (!untarResult.exitedNormally()) {
                     logger.error("Failed to Untar package. Error:{}", untarResult.getStdError());
+                    cleanUp(step.getOperation(), true);
+                    return null;
+                }
 
                 //TODO Hard coded the playbook name. Get it from primitive
-                result = executeCmd(OrchestrationServiceConstants.DATA_PATH +
+                result = executeCmd(OrchestrationServiceConstants.PATH +
                         FilenameUtils.removeExtension(step.getOperation()) + "/" + "helloworld.yml", extraVars);
                 cleanUp(step.getOperation(), true);
                 break;
@@ -77,7 +85,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
                 throw new IllegalStateException("Unsupported Operation");
         }
 
-        ExecutionUtils.currentContext().logInfo("Done Executing Ansible Workflow Step:{}", step.getId());
+        ExecutionUtils.currentContext().logInfo("runAnsible.doneInfo", step.getId());
 
         if (result == null)
             return null;
@@ -95,8 +103,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {
-        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.DATA_PATH + tarFile,
-                "-C", OrchestrationServiceConstants.DATA_PATH};
+        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.PATH + tarFile,
+                "-C", OrchestrationServiceConstants.PATH};
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
 
         logger.info("Ansible Execution untar result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
@@ -124,10 +132,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result cleanUp(final String path, final boolean isTar) {
-        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH + path};
+        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.PATH + path};
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (isTar) {
-            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.DATA_PATH +
+            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.PATH +
                     FilenameUtils.removeExtension(path)};
             if (!Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, rmDir).exitedNormally())
                 logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));

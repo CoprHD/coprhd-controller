@@ -87,14 +87,16 @@ public class OrchestrationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
+        ExecutionUtils.currentContext().logInfo("orchestrationService.title");
         try {
             wfExecutor();
 
-            ExecutionUtils.currentContext().logInfo("Orchestration Engine Successfully executed Workflow:"
-                    + params.get(OrchestrationServiceConstants.WF_ID));
+            ExecutionUtils.currentContext().logInfo("orchestrationService.successStatus",
+                    ExecutionUtils.currentContext().getOrder().getWorkflowDocument());
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("Orchestration Engine Workflow Failed" + e);
+            ExecutionUtils.currentContext().logError("orchestrationService.failedStatus",
+                    ExecutionUtils.currentContext().getOrder().getWorkflowDocument());
+
             throw e;
         }
     }
@@ -116,8 +118,7 @@ public class OrchestrationService extends ViPRService {
         
         final OrchestrationWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
-        ExecutionUtils.currentContext().logInfo("Orchestration Engine Running workflow:{} Description:{}",
-                obj.getName(), obj.getDescription());
+        ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
 
         final List<Step> steps = obj.getSteps();
         for (Step step : steps)
@@ -129,20 +130,18 @@ public class OrchestrationService extends ViPRService {
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
-            ExecutionUtils.currentContext().logInfo("Orchestration Engine Running Step:{}", step.getId());
+            ExecutionUtils.currentContext().logInfo("orchestrationService.stepStatus", step.getId(), step.getType());
 
             updateInputPerStep(step);
 
             //TODO implement waitfortask
             StepAttribute stepAttribute = step.getAttributes();
 
-            OrchestrationTaskResult res = null;
+            final OrchestrationTaskResult res;
 
             StepType type = StepType.fromString(step.getType());
             switch (type) {
                 case VIPR_REST: {
-                    ExecutionUtils.currentContext().logInfo("Running ViPR REST OpName:{}, input:{}",
-                            step.getOperation(), inputPerStep.get(step.getId()));
             	    Primitive primitive = PrimitiveHelper.get(step.getOperation());
                     if( null == primitive) {
                         //TODO fail workflow
@@ -155,13 +154,13 @@ public class OrchestrationService extends ViPRService {
                     break;
                 }
                 case REST: {
-
+                    //TODO implement other REST Execution
+                    res = null;
                     break;
                 }
                 case LOCAL_ANSIBLE:
                 case SHELL_SCRIPT:
                 case REMOTE_ANSIBLE: {
-                    ExecutionUtils.currentContext().logInfo("Running Ansible Step:{}", step.getId());
                     res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId())));
 
                     break;
@@ -179,7 +178,7 @@ public class OrchestrationService extends ViPRService {
 	        next = getNext(isSuccess, res, step);
 
             if (next == null) {
-                ExecutionUtils.currentContext().logError("Orchestration Engine failed to retrieve next step:%s ", step.getId());
+                logger.error("Orchestration Engine failed to retrieve next step:{}", step.getId());
 
                 throw new IllegalStateException("Failed to retrieve Next Step");
             }
@@ -190,25 +189,23 @@ public class OrchestrationService extends ViPRService {
     {
         if (result == null)
             return false;
-        else if (step.getSuccessCriteria() == null)
+        if (step.getSuccessCriteria() == null) {
             return evaluateDefaultValue(step, result.getReturnCode());
-        else
+        } else {
             return findStatus(step.getSuccessCriteria(), result);
+        }
     }
 
     private String getNext(final boolean status, final OrchestrationTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
-                    "Step: " + step.getId() + ":" + step + "result:" + result);
+            ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getOut());
 
             return step.getNext().getDefault();
         }
 
-        ExecutionUtils.currentContext().logError("Orchestration Engine failed to run step " +
-                "Step: " + step.getId() + ":" + step + "result:" + result);
+        ExecutionUtils.currentContext().logError("orchestrationService.stepFailedStatus", step, result.getErr());
 
         return step.getNext().getFailed();
-
     }
 
     /**
@@ -369,10 +366,11 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             String value = output.get(key);
-	    if (isAnsible(step))
+            if (isAnsible(step)) {
                 out.put(key, evaluateAnsibleOut(result, key));
-	    else 
-            	out.put(key, evaluateValue(result, value));
+            } else {
+                out.put(key, evaluateValue(result, value));
+            }
         }
 
         outputPerStep.put(step.getId(), out);

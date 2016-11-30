@@ -35,10 +35,8 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.file.FilePolicyAssignParam;
-import com.emc.storageos.model.file.FilePolicyAssignResp;
-import com.emc.storageos.model.file.FilePolicyCreateResp;
-import com.emc.storageos.model.file.FilePolicyParam;
+import com.emc.storageos.model.file.policy.*;
+
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;

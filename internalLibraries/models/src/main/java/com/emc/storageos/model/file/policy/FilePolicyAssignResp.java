@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.model.file;
+package com.emc.storageos.model.file.policy;
 
 import java.net.URI;
 import java.util.Set;

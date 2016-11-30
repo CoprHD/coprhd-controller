@@ -674,7 +674,7 @@ public class DbConsistencyCheckerHelper {
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
-            builder.append("Corrupted row by version: ");
+            builder.append("Corrupted rows by version: ");
             for (Entry<String, Integer> entry : countOfVersion.entrySet()) {
                 builder.append(entry.getKey()).append("(").append(entry.getValue()).append(")\t");
             }

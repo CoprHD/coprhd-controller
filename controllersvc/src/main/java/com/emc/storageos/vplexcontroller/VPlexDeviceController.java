@@ -379,6 +379,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private DataSourceFactory dataSourceFactory;
     @Autowired
     private CustomConfigHandler customConfigHandler;
+    @Autowired
+    protected ValidatorConfig validatorConfig;
     // Consistency group manager implementations. These managers create workflow steps
     // and perform workflow logic specifically for consistency groups.
     private Map<String, ConsistencyGroupManager> consistencyGroupManagers;
@@ -3611,6 +3613,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
 
                     // Remove the volumes from the storage view
+                    // TODO this needs to be reworked, there is a direct volume removal within the following method
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                     
                     // Invoke the zoning code directly, i.e. inline, not in a workflow
@@ -3693,6 +3696,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // Remove volumes from the storage view.
+                    // TODO this needs to be reworked, there is a direct volume removal within the following method
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
@@ -3837,6 +3841,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Remove volumes from the storage view.
         String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex.getId(), client, _dbClient);
         _log.info("about to remove {} from StorageView {} on cluster {}", blockObjectNames, exportMask.getMaskName(), vplexClusterName);
+        
+        // TODO THIS REALLY NEEDS TO BE NOT DIRECTLY CALLED, PROBABLY IN A WORKFLOW STEP!!!!!!!
+        
         client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(), vplexClusterName,
                 blockObjectNames);
 
@@ -4601,6 +4608,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportRemoveInitiatorCompleter completer = new ExportRemoveInitiatorCompleter(exportURI, initiatorURIs, opId);
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportRemoveInitiator", true, opId);
             boolean hasStep = false; // true if Workflow has a Step
+            Initiator firstInitiator = _dbClient.queryObject(Initiator.class, initiatorURIs.get(0));
+            StringBuffer errorMessages = new StringBuffer();
+            boolean isValidationNeeded = validatorConfig.isValidationEnabled()
+                    && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(firstInitiator));
+            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
 
             _log.info("starting remove initiators for export group: " + exportGroup.toString());
             _log.info("request is to remove these initiators: " + initiatorURIs);
@@ -4667,11 +4679,30 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     lastStep = addStepsForRemoveInitiators(
                             vplex, workflow, exportGroup, exportMask, initsToRemove,
-                            hostURI, initiatorsAlreadyRemovedFromExportGroup, lastStep);
+                            hostURI, initiatorsAlreadyRemovedFromExportGroup, errorMessages, lastStep);
                     if (lastStep != null) {
                         hasStep = true;
                     }
                 }
+            }
+
+            String message = errorMessages.toString();
+            if (isValidationNeeded && !message.isEmpty()) {
+                _log.error("Error Message {}", errorMessages);
+                List<String> initiatorNames = new ArrayList<String>();
+                for (URI initiatorURI : initiatorURIs) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+                    if (initiator != null) {
+                        String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
+                        initiatorNames.add(normalizedName);
+                    } else {
+                        _log.warn("no initiator found for URI {}", initiatorURI);
+                    }
+                }
+                throw DeviceControllerException.exceptions.removeInitiatorValidationError(
+                        Joiner.on(", ").join(initiatorNames),
+                        vplex.forDisplay(),
+                        message);
             }
 
             // Fire off the workflow if there were initiators to delete. Otherwise just fire completer.
@@ -4711,6 +4742,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- Host URI
      * @param hostInitiatorURIs
      *            -- list of Host Initiators
+     * @param errorMessages
+     *            -- collector for any validation-related error messages
      * @param previousStep
      *            -- previous step to wait on
      * @return String last step added to workflow; null if no steps added
@@ -4718,7 +4751,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private String addStepsForRemoveInitiators(StorageSystem vplex, Workflow workflow,
             ExportGroup exportGroup, ExportMask exportMask, List<Initiator> initiators,
-            URI hostURI, List<URI> initiatorsAlreadyRemovedFromExportGroup, String previousStep) throws Exception {
+            URI hostURI, List<URI> initiatorsAlreadyRemovedFromExportGroup, 
+            StringBuffer errorMessages, String previousStep) throws Exception {
         String lastStep = previousStep;
 
         // assemble a list of other ExportGroups that reference this ExportMask
@@ -4769,11 +4803,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
         if (removeAllInits && !exportMask.hasAnyExistingInitiators() && !otherExportGroupsPresent && !exportMask.hasAnyExistingVolumes()) {
-            // TODO probably add exception/override here, 
-            // this is remove initiators operation triggering delete storage view
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
+
+            // adding to error messages so that orchestration-level validation can be invoked if necessary
+            errorMessages.append(
+                    String.format(
+                            "Mask %s would be deleted from array ",
+                            exportMask.forDisplay()));
+
             Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
             lastStep = workflow.createStep(DELETE_STORAGE_VIEW,
                     String.format("Delete VPLEX Storage View %s for ExportGroup %s",
@@ -4832,19 +4871,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     List<URI> volumeURIList = getVolumeListDiff(exportGroup, exportMask, otherExportGroups, volumesInMask);
 
                     if (!volumeURIList.isEmpty()) {
-                        _log.info("there are some volumes that need to be removed: " + volumeURIList);
+                        List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIList);
+                        String volumesForDisplay = Joiner.on(", ").join(
+                                Collections2.transform(volumes, 
+                                        CommonTransformerFunctions.fctnDataObjectToForDisplay()));
+                        _log.info("there are some volumes that need to be removed: " + volumesForDisplay);
                         List<NetworkZoningParam> zoningParams = 
-                        	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
-                        			exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
+                            NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                                exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
 
-                        // TODO probably add exception/override here, 
-                        // this is remove initiators operation triggering remove volumes.
-                        // also, the comment wording is a concern, seems hackish
+                        // adding to error messages so that orchestration-level validation can be invoked if necessary
+                        errorMessages.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
+                                exportMask.forDisplay(), volumesForDisplay));
+
+                        // TODO the comment wording here is a concern, seems hackish
 
                         // just doing a direct call to VplexApiClient here because enabling
                         // single StorageView volume remove would require a change to the
                         // MaskingOrchestrator.exportGroupRemoveVolumes interface
                         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+                        // TODO this needs to be reworked, there is a direct volume removal within the following method
                         removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                         // clean up zoning for this export mask
@@ -4906,7 +4952,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (!initiatorsToRemove.isEmpty()) {
                 lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
                         exportMask, initiatorsToRemove, targetURIs, lastStep,
-                        removeAllInits, hostURI);
+                        removeAllInits, hostURI, errorMessages);
 
                 doFireCompleter = true;
             } else {
@@ -4920,7 +4966,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // this is just a simple initiator removal, so just do it...
             lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
                     exportMask, hostInitiatorURIs, targetURIs, lastStep,
-                    removeAllInits, hostURI);
+                    removeAllInits, hostURI, errorMessages);
         }
 
         if (doFireCompleter) {
@@ -4965,12 +5011,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            for the containing host are being removed at once
      * @param computeResourceId
      *            compute resource
+     * @param errorMessages
+     *            -- collector for any validation-related error messages
      * @return a workflow step id
      */
     private String handleInitiatorRemoval(StorageSystem vplex,
             Workflow workflow, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> hostInitiatorURIs, List<URI> targetURIs, String zoneStep,
-            boolean removeAllInits, URI computeResourceId) {
+            boolean removeAllInits, URI computeResourceId, StringBuffer errorMessages) {
         _log.info("these initiators are being marked for removal from export mask {}: {}",
                 exportMask.getMaskName(), CommonTransformerFunctions.collectionToString(hostInitiatorURIs));
         String lastStep;
@@ -5010,6 +5058,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
 
+                Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
+                // Determine the virtual volume names.
+                List<String> blockObjectNames = new ArrayList<String>();
+                for (URI boURI : volumeURIList) {
+                    BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
+                    blockObjectNames.add(blockObject.getDeviceLabel());
+                    blockObjectCache.put(blockObject.getId(), blockObject);
+                }
+
                 // Pre Darth CoprHD used to create ExportMask per host in database even if multiple host share same
                 // storage view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CoprHD reused
                 // it. Normally when CoprHD creates storageview on VPLEX its for a host, so when user request to remove
@@ -5027,17 +5084,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
                             exportMask.getMaskName());
                 } else if (sharedExportMask.containsKey(exportMask.getMaskName())) {
-                    _log.info("Multiple Export mask share same stoarge view %s hence volumes will only be removed in the database. ",
+                    _log.info("Multiple Export mask share same storage view %s hence volumes will only be removed in the database. ",
                             exportMask.getMaskName());
 
-                    Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
-                    // Determine the virtual volume names.
-                    List<String> blockObjectNames = new ArrayList<String>();
-                    for (URI boURI : volumeURIList) {
-                        BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
-                        blockObjectNames.add(blockObject.getDeviceLabel());
-                        blockObjectCache.put(blockObject.getId(), blockObject);
-                    }
                     // Remove the volumes from the Export Mask.
                     exportMask.removeVolumes(volumeURIList);
                     for (URI volumeURI : volumeURIList) {
@@ -5065,10 +5114,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 } else {
                     _log.info("creating a remove volumes workflow step with " + exportMask.getMaskName()
-                            + " for volumes " + CommonTransformerFunctions.collectionToString(volumes.values()));
+                            + " for volumes " + CommonTransformerFunctions.collectionToString(volumeURIList));
 
-                    // TODO probably add exception/override here, 
-                    // this is remove initiators operation triggering remove volumes.
+                    // adding to error message so that orchestration-level validation can be invoked if necessary
+                    errorMessages.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
+                            exportMask.forDisplay(), Joiner.on(", ").join(
+                                    Collections2.transform(blockObjectCache.values(), 
+                                            CommonTransformerFunctions.fctnDataObjectToForDisplay()))));
 
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
                             exportMask, volumeURIList);

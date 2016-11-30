@@ -71,4 +71,15 @@ public class OrchestrationWorkflowManagerImpl implements
     public void delete(final OrchestrationWorkflow workflow) {
         client.delete(workflow);
     }
+
+    @Override
+    public boolean hasCatalogServices(String name) {
+        //TODO check for complete name (instead of prefix)
+        List<URI> catalogServiceURIs = client.catalogServices().findByLabel(name);
+        if (null != catalogServiceURIs && !catalogServiceURIs.isEmpty()) {
+            return true;
+        }
+        return false;
+
+    }
 }

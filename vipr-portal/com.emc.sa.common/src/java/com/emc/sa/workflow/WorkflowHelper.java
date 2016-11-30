@@ -26,6 +26,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 
 /**
@@ -68,6 +69,12 @@ public final class WorkflowHelper {
         }
         
         oeWorkflow.setSteps(toStepsJson(document.getSteps()));
+        return oeWorkflow;
+    }
+
+    public static OrchestrationWorkflow updateStatus(final OrchestrationWorkflow oeWorkflow, final String status) {
+
+        oeWorkflow.setStatus(status);
         return oeWorkflow;
     }
     

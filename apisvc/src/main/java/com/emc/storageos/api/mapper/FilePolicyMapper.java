@@ -31,7 +31,7 @@ public class FilePolicyMapper {
 
         ScheduleRestRep schedule = new ScheduleRestRep();
         String dayOfWeek = from.getScheduleDayOfWeek();
-        if (!NullColumnValueGetter.isNullValue(dayOfWeek)) {
+        if (NullColumnValueGetter.isNotNullValue(dayOfWeek)) {
             schedule.setDayOfWeek(dayOfWeek);
         }
 

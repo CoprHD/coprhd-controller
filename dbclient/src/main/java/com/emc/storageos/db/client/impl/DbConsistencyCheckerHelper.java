@@ -652,7 +652,7 @@ public class DbConsistencyCheckerHelper {
     
     public static class CheckResult {
         private int total;
-        private Map<String, Integer> countOfVersion = new HashMap<String, Integer>();
+        private Map<String, Integer> countOfVersion = new TreeMap<String, Integer>();
         
         public int getTotal() {
             return total;
@@ -675,8 +675,13 @@ public class DbConsistencyCheckerHelper {
         public String toString() {
             StringBuilder builder = new StringBuilder();
             builder.append("\nCorrupted rows by version: ");
+            int index = 1;
+            int max = countOfVersion.size();
             for (Entry<String, Integer> entry : countOfVersion.entrySet()) {
-                builder.append(entry.getKey()).append("(").append(entry.getValue()).append(")\t");
+                builder.append(entry.getKey()).append("(").append(entry.getValue()).append(")");
+                if (index++ < max) {
+                    builder.append(", ");
+                }
             }
             return builder.toString();
         }

@@ -51,7 +51,7 @@ dependencies {
             project(":dellsc"),
             project(":xiv"),
     // temp. here, to get simulator to controllersvc classpath
-            project(":storagedriversimulator"),
+            project(":storagedriversimulator")
             // This change should not be merged to master, change back before merging
             // Comment 3par out to get a vipr that doesnot support 3par natively, to test sb driver with 3par driver
             //project(":3par")

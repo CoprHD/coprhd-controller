@@ -1482,8 +1482,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     @Override
-    public void portRebalance(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> addedpaths,
-            Map<URI, List<URI>> removedPaths, boolean waitForApproval, String token) throws Exception
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> addedPaths,
+            Map<URI, List<URI>> removedPaths, boolean waitBeforeRemovePaths, String token) throws Exception
     {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {

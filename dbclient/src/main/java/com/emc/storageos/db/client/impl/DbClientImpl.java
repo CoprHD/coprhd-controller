@@ -1098,7 +1098,9 @@ public class DbClientImpl implements DbClient {
      *            object to print stack
      */
     private <T> void printPersistedObject(T obj) {
-        if (obj instanceof DataObject) {
+        final String filterClasses[] = { "Workflow", "WorkflowStep", "WorkflowStepData", "Task" };
+        ArrayList<String> filterList = new ArrayList<>(Arrays.asList(filterClasses));
+        if (obj instanceof DataObject && !filterList.contains(obj.getClass().getSimpleName())) {
             DataObject dobj = (DataObject)obj;
 
             StackTraceElement[] elements = Thread.currentThread().getStackTrace();
@@ -1131,7 +1133,7 @@ public class DbClientImpl implements DbClient {
 
             // Instrumentation for the benefit of finding anti-patterns. This can be removed or
             // encapsulated around a system property
-            printPersistedObject(obj);
+            // printPersistedObject(obj);
         }
 
         for (Entry<Class<? extends T>, List<T>> entry : typeObjMap.entrySet()) {
@@ -1181,7 +1183,7 @@ public class DbClientImpl implements DbClient {
                 serializeTasks(object, mutator, objectsToCleanup);
             }
         }
-        mutator.executeRecordFirst();
+        mutator.execute();
 
         return objectsToCleanup;
     }

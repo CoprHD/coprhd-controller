@@ -24,7 +24,11 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 public class MultiVolumeTaskCompleter extends TaskCompleter {
 
     // A list of associated volume task completers.
-    private Map<URI, VolumeTaskCompleter> _volumeTaskCompleterMap;
+    private Map<URI, VolumeTaskCompleter> _volumeTaskCompleterMap = new HashMap<>();
+
+    public MultiVolumeTaskCompleter(List<URI> ids, String opId) {
+        super(Volume.class, ids, opId);
+    }
 
     /**
      * Constructor.
@@ -34,11 +38,14 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
      */
     public MultiVolumeTaskCompleter(List<URI> ids, List<VolumeTaskCompleter> volumeTaskCompleters, String opId) {
         super(Volume.class, ids, opId);
-        _volumeTaskCompleterMap = new HashMap<URI, VolumeTaskCompleter>();
         for (VolumeTaskCompleter tc : volumeTaskCompleters) {
-            tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
-            _volumeTaskCompleterMap.put(tc.getId(), tc);
+            addVolumeCompleter(tc);
         }
+    }
+
+    public VolumeTaskCompleter addVolumeCompleter(VolumeTaskCompleter completer) {
+        completer.setNotifyWorkflow(false); // This completer will take care of notifying workflow
+        return _volumeTaskCompleterMap.put(completer.getId(), completer);
     }
 
     /**

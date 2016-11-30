@@ -7,10 +7,13 @@ package com.emc.storageos.workflow;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -847,38 +850,104 @@ public class Workflow implements Serializable {
         return state;
     }
 
+    /**
+     * Given a set of steps that executed, what is the overall service error associated with the steps?
+     * This determined in a priority order as follows:
+     * 1. The first step that failed (ERROR state) time-wise gets priority (is returned first), otherwise...
+     * 2. The first step that was put in SUSPENDED_ERROR or SUSPENDED_NO_ERROR state time-wise gets returned,
+     * otherwise...
+     * 3. The first step that was CANCELLED is returned (not as likely)
+     * 
+     * The resulting message is a compiled set of error messages from the root cause and all other steps that
+     * failed, especially during rollback.
+     * 
+     * @param statusMap
+     *            step map
+     * @return Service error that represents the overall service error (root cause)
+     * @throws WorkflowException
+     */
     public static ServiceError getOverallServiceError(Map<String, StepStatus> statusMap)
             throws WorkflowException {
         StepState state = null;
         ServiceError error = null;
+        StepStatus rootCauseStatus = null;
+        List<StepStatus> additionalErrors = new ArrayList<>();
         for (String stepId : statusMap.keySet()) {
             StepStatus status = statusMap.get(stepId);
             switch (status.state) {
-                case ERROR:
-                    if (state != StepState.ERROR) { // we want to record the root error, the first one
+                case ERROR: // ERROR has highest priority
+                    if (rootCauseStatus == null) {
+                        rootCauseStatus = status;
+                    }
+                    // We want to record the root cause error. If the date of the current stepId is earlier than the
+                    // last one we stored, then we want to store the earliest one. This will give us the root cause
+                    // error.
+                    if ((state != StepState.ERROR) || (state == StepState.ERROR && !rootCauseStatus.endTime.before(status.endTime))) {
                         state = status.state;
-                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                        rootCauseStatus = status;
+                    } else {
+                        additionalErrors.add(status);
                     }
                     break;
                 case SUSPENDED_NO_ERROR:
                 case SUSPENDED_ERROR:
-                    if (state != StepState.ERROR) {
+                    if (rootCauseStatus == null) {
+                        rootCauseStatus = status;
+                    }
+                    // 1. If we've already found any ERROR state step, then that took precedence.
+                    // 2. Otherwise, if we've already seen a SUSPENDED step, but the current step is earlier than ours,
+                    // then we want the earlier step.
+                    // 3. Otherwise we already have the earliest SUSPENDED step error code, so use that.
+                    if (state != StepState.ERROR && ((state == StepState.SUSPENDED_ERROR || state == StepState.SUSPENDED_NO_ERROR)
+                            && !rootCauseStatus.endTime.before(status.endTime))) {
                         state = status.state;
-                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                        rootCauseStatus = status;
+                    } else {
+                        additionalErrors.add(status);
                     }
                     break;
 
                 case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
-                    if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
-                        state = status.state;
-                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                    if (rootCauseStatus == null) {
+                        rootCauseStatus = status;
                     }
+                    // As long as we haven't already found an ERROR state, look for the earliest CANCELLED you can find.
+                    if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR
+                            && !rootCauseStatus.endTime.before(status.endTime)) {
+                        state = status.state;
+                        rootCauseStatus = status;
+                    } // Don't add cancelled steps to the additional Errors
                     break;
                 case SUCCESS:
                 default:
                     break;
             }
         }
+
+        // Now formulate an error message that contains all side-effects
+        if (rootCauseStatus != null) {
+            // Start the message with the root cause:
+            StringBuffer sb = new StringBuffer(
+                    "Message: " + rootCauseStatus.message + "\n" + "Description: " + rootCauseStatus.description + "\n");
+            
+            // TODO: order by running order
+            if (!additionalErrors.isEmpty()) {
+                sb.append("\nAdditional errors occurred during processing.  Each error is listed below.\n\n");
+                
+                Iterator<StepStatus> iter = additionalErrors.iterator();
+                while (iter.hasNext()) {
+                    StepStatus ss = iter.next();
+                    sb.append("Additional Message: " + ss.message + "\n" + "Description: " + ss.description + "\n");
+                    if (iter.hasNext()) {
+                        sb.append("\n");
+                    }
+                }
+            }
+            
+            // Assemble the resulting error service code with the compiled message.
+            error = ServiceError.buildServiceError(rootCauseStatus.serviceCode, sb.toString());
+        }
+        
         return error;
     }
 

@@ -25,7 +25,9 @@
 # the array/switch/RP resources so the operation can be tried again.  At worst, the user would need to clean up
 # the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
 #
-# set -x
+#set -x
+
+source $(dirname $0)/wftests_host_cluster.sh
 
 Usage()
 {
@@ -37,6 +39,12 @@ Usage()
 
 # Extra debug output
 DUTEST_DEBUG=${DUTEST_DEBUG:-0}
+
+# Global test repo location
+GLOBAL_RESULTS_IP=10.247.101.46
+GLOBAL_RESULTS_PATH=/srv/www/htdocs
+LOCAL_RESULTS_PATH=/tmp
+GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR=output_files
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
@@ -53,6 +61,12 @@ if [ "$1"x != "x" ]; then
       source $SANITY_CONFIG_FILE
    fi
 fi
+
+# Helper method to increment the failure counts
+incr_fail_count() {
+    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+}
 
 # A method that reports on the status of the test, along with other 
 # important information:
@@ -79,6 +93,11 @@ report_results() {
     branch=`git rev-parse --abbrev-ref HEAD`
     sha=`git rev-parse HEAD`
     ss=${SS}
+
+    if [ "${SS}" = "vplex" ]; then
+	ss="${SS} ${VPLEX_MODE}"
+    fi
+
     simulator="Hardware"
     if [ "${SIM}" = "1" ]; then
 	simulator="Simulator"
@@ -89,13 +108,14 @@ report_results() {
     fi
     datetime=`date +"%Y-%m-%d.%H:%M:%S"`
 
-    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},${status}"
+    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},<a href=\"${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}\">${status}</a>"
     mkdir -p /root/reliability
     echo ${result} > /tmp/report-result.txt
     echo ${result} >> /root/reliability/results-local-set.db
 
     if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@10.247.101.46 "cat >> /root/reliability/result-set.db" > /dev/null
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null 2> /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
     fi
 }
 
@@ -162,8 +182,7 @@ verify_export() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	incr_fail_count
 	cleanup
 	finish
     fi
@@ -173,8 +192,8 @@ verify_export() {
 
 # Reset the trip counters on a distinct test case
 reset_counts() {
-    VERIFY_COUNT=0
-    VERIFY_FAIL_COUNT=0
+    TRIP_VERIFY_COUNT=0
+    TRIP_VERIFY_FAIL_COUNT=0
 }
 
 # Extra gut-check.  Make sure we didn't just grab a different mask off the array.
@@ -658,10 +677,10 @@ VPOOL_BASE=vpool
 VPOOL_FAST=${VPOOL_BASE}-fast
 
 BASENUM=${BASENUM:=$RANDOM}
-VOLNAME=dutestexp${BASENUM}
+VOLNAME=wftest${BASENUM}
 EXPORT_GROUP_NAME=export${BASENUM}
-HOST1=host1export${BASENUM}
-HOST2=host2export${BASENUM}
+HOST1=wfhost1export${BASENUM}
+HOST2=wfhost2export${BASENUM}
 CLUSTER=cl${BASENUM}
 
 # Allow for a way to easily use different hardware
@@ -674,24 +693,26 @@ drawstars() {
     repeatchar=`expr $1 + 2`
     while [ ${repeatchar} -gt 0 ]
     do 
-       echo -n "*"
+       echo -n "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
        repeatchar=`expr ${repeatchar} - 1`
     done
-    echo "*"
+    echo "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
+
+TEST_OUTPUT_FILE=test_output_file.out
 
 echot() {
     numchar=`echo $* | wc -c`
-    echo ""
+    echo "" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     drawstars $numchar
-    echo "* $* *"
+    echo "* $* *" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     drawstars $numchar
 }
 
 # General echo output
 secho()
 {
-    echo -e "*** $*"
+    echo -e "*** $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
 # Place to put command output in case of failure
@@ -701,7 +722,7 @@ rm -f ${CMD_OUTPUT}
 # A method to run a command that exits on failure.
 run() {
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -712,7 +733,7 @@ run() {
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
 	fi
-	echo There was a failure
+	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	cleanup
 	finish -1
     fi
@@ -721,28 +742,32 @@ run() {
 # A method to run a command that continues on failure.
 runcmd() {
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1
+	$cmd 2>&1 
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
+	    cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	fi
-	echo There was a failure
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	incr_fail_count
     fi
 }
 
 #counterpart for run
 #executes a command that is expected to fail
 fail(){
+    if [ "${1}" = "-with_error" ]; then
+      witherror=${2}
+      shift 2
+      # TODO When the cmd fails, we can check if the failure output contains this expected error message
+    fi
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
     else
@@ -751,12 +776,11 @@ fail(){
 
     status=$?
     if [ $status -eq 0 ] ; then
-        echo '**********************************************************************'
-        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
-	cat ${CMD_OUTPUT}
-        echo '**********************************************************************'
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-	TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	incr_fail_count;
     else
 	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
@@ -811,12 +835,12 @@ setup_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_file="${DIR}/preExistingConfig.properties"
     if [ -f "$tools_file" ]; then
-	echo "stale $tools_file found. Deleting it."
+	secho "stale $tools_file found. Deleting it."
 	rm $tools_file
     fi
 
     if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
+	secho "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
 	exit;
     fi
 
@@ -842,7 +866,10 @@ login() {
     security login $SYSADMIN $SYSADMIN_PASSWORD
 }
 
-prerun_setup() {
+prerun_setup() {		
+    # Reset system properties
+    reset_system_props
+
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -861,7 +888,7 @@ prerun_setup() {
     project list --tenant emcworld > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	echo "Seeing if there's an existing base of volumes"
-	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
 	BASENUM=""
     fi
@@ -869,10 +896,10 @@ prerun_setup() {
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutestexp${BASENUM}
+       VOLNAME=wftest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
-       HOST1=host1export${BASENUM}
-       HOST2=host2export${BASENUM}
+       HOST1=wfhost1export${BASENUM}
+       HOST2=wfhost2export${BASENUM}
        CLUSTER=cl${BASENUM}
 
        sstype=${SS:0:3}
@@ -896,21 +923,22 @@ prerun_setup() {
     if [ $? -eq 0 ];
     then
 	ZONE_CHECK=0
+	SIM=1;
 	echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
     then
-	array_ip=${VNXB_IP}
-	if [ "${SIM}" = "1" ]; then
-	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
-	else
-	    FC_ZONE_A=FABRIC_vplex154nbr2
-	fi
+	   array_ip=${VNXB_IP}
+	   FC_ZONE_A=FABRIC_vplex154nbr2
     elif [ "${SS}" = "vmax2" ]
     then
         FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
+    
+    if [ "${SIM}" = "1" ]; then
+	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+	fi
 
     # All export operations orchestration go through the same entry-points
     exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
@@ -950,13 +978,23 @@ get_device_id() {
     fi
 }
 
-# Reset all of the system properties so settings are back to normal
+# Set all properties the way we expect them to be before we start the entire suite
+# We don't expect individual tests to change these, or at least if they do, we expect
+# the test to change it back.
 reset_system_props() {
+    reset_system_props_pre_test
     set_suspend_on_class_method "none"
     set_suspend_on_error false
-    set_artificial_failure "none"
     set_validation_check true
     set_validation_refresh true
+    set_controller_cs_discovery_refresh_interval 60
+    set_controller_discovery_refresh_interval 5
+}
+
+# Reset all of the system properties so settings are back to normal that are changed 
+# during the tests themselves.
+reset_system_props_pre_test() {
+    set_artificial_failure "none"
 }
 
 # Clean zones from previous tests, verify no zones are on the switch
@@ -981,6 +1019,7 @@ vnx_setup() {
     echo "Setting up SMIS for VNX"
     storage_password=$SMIS_PASSWD
 
+    VNX_PROVIDER_NAME=VNX-PROVIDER
     if [ "${SIM}" = "1" ]; then
 	vnx_sim_setup
     fi
@@ -989,37 +1028,39 @@ vnx_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VNXB_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VNXB_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VNXB_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
-	run storagedevice deregister CLARIION+${id}
-	run storagedevice delete CLARIION+${id}
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
     done
 
-    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    # Can no longer do this since network discovers where the ports are
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
-    storageport $VNXB_NATIVEGUID list --v | grep FABRIC
 
     common_setup
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    # Chose thick because we need a thick pool for VNX metas
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
-	--provisionType 'Thin'			        \
+	--multiVolumeConsistency \
+	--provisionType 'Thick'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    if [ "${SIM}" = "1" ]
+    then
+	# Remove the thin pool that doesn't support metas on the VNX simulator
+	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
+    else
+	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    fi
 }
 
 unity_setup()
@@ -1041,6 +1082,7 @@ unity_setup()
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 1				            \
+	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
@@ -1048,13 +1090,13 @@ unity_setup()
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
-vmax3_sim_setup() {
+vmax2_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=5889
+    VMAX_SMIS_PORT=5988
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
-    VMAX_SMIS_SSL=true
+    VMAX_SMIS_SSL=false
     VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
@@ -1063,7 +1105,7 @@ vmax2_setup() {
     SMISPASS=0
 
     if [ "${SIM}" = "1" ]; then
-	vmax3_sim_setup
+	vmax2_sim_setup
     fi
  
     # do this only once
@@ -1074,10 +1116,10 @@ vmax2_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VMAX_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
-	run storagedevice deregister SYMMETRIX+${id}
-	run storagedevice delete SYMMETRIX+${id}
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
     done
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1086,9 +1128,6 @@ vmax2_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-       run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
 
     common_setup
 
@@ -1097,7 +1136,8 @@ vmax2_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--multiVolumeConsistency \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1132,10 +1172,10 @@ vmax3_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VMAX_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
-	run storagedevice deregister SYMMETRIX+${id}
-	run storagedevice delete SYMMETRIX+${id}
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
     done
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1144,7 +1184,6 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
@@ -1153,7 +1192,8 @@ vmax3_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--multiVolumeConsistency \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1164,11 +1204,6 @@ vmax3_setup() {
 
 vplex_sim_setup() {
     secho "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
-
-    # Discover the Brocade SAN switch.
-    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-    FABRIC_SIMULATOR=fabric-sim
-    run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 
     # Discover the storage systems 
     secho "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
@@ -1300,13 +1335,6 @@ vplex_setup() {
     if [ "${SIM}" = "1" ]; then
 	vplex_sim_setup
 	return
-    fi
-
-    isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
-    if [ $isNetworkDiscovered -eq 0 ]; then
-        secho "Discovering Brocade SAN Switch ..."
-        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-        sleep 30
     fi
 
     secho "Discovering VPLEX Storage Assets"
@@ -1451,12 +1479,25 @@ vplex_setup() {
     esac
 }
 
+xio_sim_setup() {
+    XIO-PROVIDER=XIO-PROVIDER-SIM
+    XTREMIO_3X_IP=$XIO_SIMULATOR_IP
+    XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
+    XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+}
+
 xio_setup() {
     # do this only once
     echo "Setting up XtremIO"
-    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
     storage_password=$XTREMIO_3X_PASSWD
-    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP 443 $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    XTREMIO_PORT=443
+    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+
+    if [ "${SIM}" = "1" ]; then
+	xio_sim_setup
+    fi    
+    
+    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     run storagedevice discover_all --ignore_error
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1464,9 +1505,6 @@ xio_setup() {
     setup_varray
 
     run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
 
     common_setup
 
@@ -1478,6 +1516,7 @@ xio_setup() {
 	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+        --multiVolumeConsistency        \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
@@ -1545,11 +1584,7 @@ common_setup() {
 
 setup_varray() {
     run neighborhood create $NH
-    if [ "${SIM}" = "1" ]; then
-	run transportzone create $FC_ZONE_A $NH --type FC
-    else
-	run transportzone assign ${FC_ZONE_A} ${NH}
-    fi
+    run transportzone assign ${FC_ZONE_A} ${NH}
 }
 
 setup() {
@@ -1605,12 +1640,20 @@ setup() {
 
     if [ "${SIM}" != "1" ]; then
 	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    else
+	FABRIC_SIMULATOR=fabric-sim
+	if [ "${SS}" = "vplex" ]; then
+	    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+	    run networksystem create $FABRIC_SIMULATOR mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+	else
+	    secho "Configuring MDS/Cisco Simulator using SSH on: $SIMULATOR_CISCO_MDS"
+	    run networksystem create $FABRIC_SIMULATOR mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+	fi
     fi
 
     ${SS}_setup
 
     run cos allow $VPOOL_BASE block $TENANT
-    sleep 30
     reset_system_props
     run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
@@ -1632,7 +1675,23 @@ set_suspend_on_class_method() {
 }
 
 set_artificial_failure() {
+    if [ "$1" = "none" ]; then
+        # Reset the failure injection occurence counter
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
+    else
+        # Start incrementing the failure occurence counter for this injection point
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
+    fi
+        
     run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+}
+
+set_controller_cs_discovery_refresh_interval() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
+}
+
+set_controller_discovery_refresh_interval() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_discovery_refresh_interval $1
 }
 
 # Verify no masks
@@ -1674,7 +1733,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap"  > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null"  > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -1689,6 +1748,28 @@ validate_db() {
     do
       runcmd diff results/${item}/${cf}-${slot_1}.txt results/${item}/${cf}-${slot_2}.txt
     done
+}
+
+# Verify the failures in the variable were actually hit when the job ran.
+verify_failures() {
+    INVOKE_FAILURE_FILE=/opt/storageos/logs/invoke-test-failure.log
+    FAILURES=${1}
+
+    # cat ${INVOKE_FAILURE_FILE}
+
+    for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
+    do
+	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho 
+	    secho "FAILED: Failure injection ${failure_check} was not encountered during the operation execution."
+	    secho 
+	    incr_fail_count
+	fi
+    done
+
+    # delete the invoke test failure file.  It will get recreated.
+    rm -f ${INVOKE_FAILURE_FILE}
 }
 
 # Test 1
@@ -1721,9 +1802,16 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_createVolume \
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
@@ -1731,10 +1819,11 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004"
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
@@ -1748,11 +1837,22 @@ test_1() {
       # Check the state of the volume that doesn't exist
       snap_db 1 ${cfs}
 
-      # Create the volume
-      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
-      # Let the async jobs calm down
-      sleep 5
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}
@@ -1762,11 +1862,19 @@ test_1() {
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
-      # Remove the volume
-      runcmd volume delete ${PROJECT}/${volname} --wait
-      
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
+
       # Perform any DB validation in here
       snap_db 3 ${cfs}
 
@@ -1778,40 +1886,136 @@ test_1() {
     done
 }
 
-# Basic export test for vcenter cluster
+# Test 1
 #
+# Test creating a volume in a CG and verify the DB is in an expected state after it fails due to injected failure at end of workflow
 #
-#
+# 1. Save off state of DB (1)
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
 #
 test_2() {
-    echot "Test 2 Export VCenter Cluster test"
-    expname=${EXPORT_GROUP_NAME}t2
-    item=${RANDOM}
-    cfs="ExportGroup ExportMask"
-    mkdir -p results/${item}
-    reset_counts
+    echot "Test 2 Begins"
 
-    verify_export ${expname}1 ${HOST1} gone
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
-    # Perform any DB validation in here
-    snap_db 1 ${cfs}
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+    fi
 
-    # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+    if [ "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
 
-    # Remove the shared export
-    runcmd export_group delete ${PROJECT}/${expname}1
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
 
-    # Snap the DB again
-    snap_db 2 ${cfs}
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
-    # Validate nothing was left behind
-    validate_db 1 2 ${cfs}
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
 
-    verify_export ${expname}1 ${HOST1} gone
+    for failure in ${failure_injections}
+    do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 2 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
 
-    # Report results
-    report_results test_2 ${failure}
+      # Create a new CG
+      randval=${RANDOM}
+      CGNAME=wf-test2-cg-${randval}
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
+
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Should be able to delete the CG and recreate it.
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Re-create the consistency group
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
+
+      # Perform any DB validation in here
+      snap_db 4 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 3 4 ${cfs}
+
+      runcmd blockconsistencygroup delete ${CGNAME}
+    
+      # Report results
+      report_results test_2 ${failure}
+    done
 }
 
 # Test 3
@@ -1856,10 +2060,11 @@ test_3() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 3 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="Volume ExportGroup ExportMask"
@@ -1880,6 +2085,9 @@ test_3() {
       # Create the volume
       fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Let the async jobs calm down
       sleep 5
 
@@ -1891,10 +2099,17 @@ test_3() {
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
-
-      # Remove the volume
-      runcmd volume delete --project ${project} --wait
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_023" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+          # TODO Delete the original volume
+      else
+        runcmd volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+        # Remove the volume
+        runcmd volume delete --project ${project} --wait
+      fi
 
       # Delete the project
       runcmd project delete ${project}
@@ -1943,11 +2158,12 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004:failure_018"
+    # failure_injections="failure_004:failure_020"
 
     for failure in ${failure_injections}
     do
-      secho "Running Test 1 with failure scenario: ${failure}..."
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 4 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
@@ -1962,6 +2178,9 @@ test_4() {
 
       # Create the export
       fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}
@@ -2012,9 +2231,14 @@ test_5() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2024,6 +2248,7 @@ test_5() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 5 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2042,6 +2267,9 @@ test_5() {
 
       # Delete the export
       fail export_group delete $PROJECT/${expname}1
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
 
       # Don't validate in here.  It's a delete operation and it's allowed to leave things behind, as long as the retry cleans it up.
 
@@ -2098,6 +2326,7 @@ test_6() {
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2119,6 +2348,9 @@ test_6() {
 
       # Delete the export
       fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
 
       # Validate nothing was left behind
       snap_db 3 ${cfs}
@@ -2168,16 +2400,17 @@ test_7() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_004:failure_016 failure_004:failure_020 failure_004:failure_021"
+	storage_failure_injections="failure_004:failure_016 failure_004:failure_024 failure_004:failure_025"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    # failure_injections="failure_004:failure_024"
 
     for failure in ${failure_injections}
     do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       secho "Running Test 7 with failure scenario: ${failure}..."
       item=${RANDOM}
       cfs="ExportGroup ExportMask"
@@ -2203,6 +2436,9 @@ test_7() {
       # Attempt to add an initiator
       fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
       # Perform any DB validation in here
       snap_db 3 ${cfs}
 
@@ -2225,8 +2461,137 @@ test_7() {
     done
 }
 
+# Test 8 (volume create with metas)
+#
+# Test creating a volume and verify the DB is in an expected state after it fails due to injected failure at end of workflow
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_8() {
+    echot "Test 8 Begins"
+
+    if [ "${SIM}" != "1" ]
+    then
+	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
+	return;
+    fi
+
+    if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
+    then
+	echo "Test case only executes for vmax2 and vnx."
+	return;
+    fi
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    meta_size=240GB
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+    fi
+
+    if [ "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement \
+                                    failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                                    failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
+
+    for failure in ${failure_injections}
+    do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask"
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+
+      # run discovery to ensure we have enough space for the upcoming allocation
+      runcmd storagedevice discover_all
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
+
+      #For XIO, before failure 6 is invoked the task would have completed successfully
+      if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+	  # Remove the volume
+      	  runcmd volume delete ${PROJECT}/${volname} --wait
+      else
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+
+      	  # Let the async jobs calm down
+      	  sleep 5
+      fi
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      # run discovery to ensure we have enough space for the upcoming allocation
+      runcmd storagedevice discover_all
+
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      then
+          # Unity is expected to fail because the array doesn't like duplicate LUN names
+          fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+          # TODO Delete the original volume
+      else
+          runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+          # Remove the volume
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_8 ${failure}
+    done
+}
+
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null
@@ -2242,6 +2607,15 @@ cleanup_previous_run_artifacts() {
     project list --tenant emcworld  > /dev/null 2> /dev/null
     if [ $? -eq 1 ]; then
 	return;
+    fi
+
+    events list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `events list emcworld | grep ActionableEvent | awk '{print $1}'`
+        do
+            echo "Deleting old event: ${id}"
+            runcmd events delete ${id} > /dev/null
+        done
     fi
 
     export_group list $PROJECT | grep YES > /dev/null 2> /dev/null
@@ -2322,6 +2696,10 @@ fi
 
 setup=0;
 
+# Expected that storage platform is argument after sanity.conf
+# Expected that switches occur after that, in any order
+# Expected that test name(s) occurs last
+
 SS=${1}
 shift
 
@@ -2344,38 +2722,44 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
-if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
-then
-    echo "Setting up testing based on real hardware"
-    setup=1;
-    shift 1;
-elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
-	echo "Setting up testing based on simulators"
-	SIM=1;
-	ZONE_CHECK=0;
-	setup=1;
-	shift 1;
-    else
-	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	exit 1
-    fi
-fi
-
-# Whether to report results to the master data collector of all things
 REPORT=0
-if [ "${1}" = "-report" ]; then
-    REPORT=1
-    shift;
-fi
+DO_CLEANUP=0;
+while [ "${1:0:1}" = "-" ]
+do
+    if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
+    then
+	echo "Setting up testing based on real hardware"
+	setup=1;
+	SIM=0;
+	shift 1;
+    elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
+	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+	    echo "Setting up testing based on simulators"
+	    SIM=1;
+	    ZONE_CHECK=0;
+	    setup=1;
+	    shift 1;
+	else
+	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	    exit 1
+	fi
+    fi
+
+    # Whether to report results to the master data collector of all things
+    if [ "${1}" = "-report" ]; then
+	REPORT=1
+	shift;
+    fi
+
+    if [ "$1" = "-cleanup" ]
+    then
+	DO_CLEANUP=1;
+	shift
+    fi
+done
+
 
 login
-
-if [ "$1" = "regression" ]
-then
-    test_0;
-    shift 2;
-fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2391,30 +2775,35 @@ then
     fi
 fi
 
-docleanup=0;
-if [ "$1" = "-cleanup" ]
-then
-    docleanup=1;
-    shift
-fi
 
 test_start=1
-test_end=25
+test_end=7
 
 # If there's a last parameter, take that
 # as the name of the test to run
 # To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
-# ./dutest.sh sanity.conf vplex local test_7+
-if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
+# ./wftest.sh sanity.conf vplex local test_7+
+if [ "$1" = "hosts" ]
 then
-   echo Request to run $*
-   for t in $*
+   secho Request to run ${HOST_TEST_CASES}
+   for t in ${HOST_TEST_CASES}
    do
-      echo Run $t
-      reset_system_props
+      secho Run $
+      reset_system_props_pre_test
       prerun_tests
       $t
-      reset_system_props
+      reset_system_props_pre_test
+   done
+elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
+then
+   secho Request to run $*
+   for t in $*
+   do
+      secho Run $t
+      reset_system_props_pre_test
+      prerun_tests
+      $t
+      reset_system_props_pre_test
    done
 else
    if [ "${1:(-1)}" = "+" ]
@@ -2426,10 +2815,10 @@ else
    # Passing tests:
    while [ ${num} -le ${test_end} ]; 
    do
-     reset_system_props
+     reset_system_props_pre_test
      prerun_tests
      test_${num}
-     reset_system_props
+     reset_system_props_pre_test
      num=`expr ${num} + 1`
    done
 fi
@@ -2439,7 +2828,7 @@ echo There were $VERIFY_FAIL_COUNT verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
-if [ "${docleanup}" = "1" ]; then
+if [ "${DO_CLEANUP}" = "1" ]; then
     cleanup;
 fi
 

@@ -297,9 +297,11 @@ public class Main {
                 URI id = URI.create(column.getName().getTwo());
                 log.info("lbybb2 id={}", id);
 
+                /*
                 Order order = _client._dbClient.queryObject(Order.class, id);
                 String indexKey = order.getTenant();
                 log.info("lbybb3 indexKey={}", indexKey);
+                */
                 /*
                 RowQuery<String, CompositeColumnName> rowQuery = dataCFQuery.getKey(id.toString()).withColumnRange(
                         CompositeColumnNameSerializer.get().buildRange()
@@ -313,6 +315,7 @@ public class Main {
 
                 String indexKey = tid;
                 */
+                /*
                 log.info("lbybb3 indexKey={}", indexKey);
 
                 TimeSeriesIndexColumnName col = new TimeSeriesIndexColumnName("Order", id.toString(),column.getName().getTimeUUID());
@@ -322,6 +325,7 @@ public class Main {
                     mutationBatch.execute(); // commit
                     mutationBatch = keyspace.prepareMutationBatch();
                 }
+                */
 
                 return id;
             }catch (Throwable e) {
@@ -335,16 +339,15 @@ public class Main {
 
         log.info("lbybb0");
         try {
-            //final AlternateIdConstraintImpl constraint = new AlternateIdConstraintImpl("UserToOrders", "root", Order.class, 0, 0);
             final TimeConstraintImpl constraint = new TimeConstraintImpl("timeseriesIndex", "Order", true);
             constraint.setPageCount(10000);
             Keyspace ks = _client._dbClient.getLocalKeyspace();
             constraint.setKeyspace(ks);
+            RowQuery<String, IndexColumnName> query = constraint.genQuery();
 
             ColumnFamily<String, CompositeColumnName> orderCF = new ColumnFamily<String, CompositeColumnName>("Order",
                     StringSerializer.get(), CompositeColumnNameSerializer.get());
 
-            RowQuery<String, IndexColumnName> query = constraint.genQuery();
 
             ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery = ks.prepareQuery(orderCF);
 

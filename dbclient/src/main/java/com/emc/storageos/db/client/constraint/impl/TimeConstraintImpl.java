@@ -57,7 +57,7 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
         this.entityType = clazz;
     }
 
-    public TimeConstraintImpl(String cfName, String key, boolean value) {
+    public TimeConstraintImpl(String cfName, String key, Boolean value) {
         this.cf = new ColumnFamily<String, IndexColumnName>(cfName, StringSerializer.get(),
                 IndexColumnNameSerializer.get());;
         indexSerializer = IndexColumnNameSerializer.get();

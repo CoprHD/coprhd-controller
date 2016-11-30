@@ -165,7 +165,7 @@ public class VolumeCreate {
     /**
      * Optional remote replication parameters.
      */
-    @XmlElement(name = "remote_replication")
+    @XmlElement(name = "remote_replication_params")
     public RemoteReplicationParameters getRemoteReplicationParameters() {
         return remoteReplicationParameters;
     }

@@ -6281,7 +6281,7 @@ sbsdk_setup()
 
     #Define variables
     #SBSDK_DRIVER_SYS_NAME=SBSDK_DriverSimulator-${RANDOM}
-    # System names are important to align with remote replication configuration
+    # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
     SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
     ##
@@ -6295,6 +6295,7 @@ sbsdk_setup()
     SBSDK_DRIVER_SYS_PASSWORD=password
     SBSDK_DRIVER_SYS_VPOOL_NAME=SBSDK_VPOOL
     SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
+    # The driver simulator creates these ports for the source system
     SBSDK_DRIVER_SYS_PWWN10=61:FE:FE:FE:FE:FE:FE:10
     SBSDK_DRIVER_SYS_PWWN11=61:FE:FE:FE:FE:FE:FE:11
     SBSDK_DRIVER_SYS_PWWN12=61:FE:FE:FE:FE:FE:FE:12
@@ -6303,11 +6304,11 @@ sbsdk_setup()
     SBSDK_DRIVER_SYS_PWWN15=61:FE:FE:FE:FE:FE:FE:15
     SBSDK_DRIVER_SYS_PWWN16=61:FE:FE:FE:FE:FE:FE:16
 
-    # System names are important to align with remote replication configuration
+    # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_SYS_TARGET_NAME=target_replicationGroup1_set1
     SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=target_replicationGroup1_set1
     SBSDK_DRIVER_SYS_TARGET_IP=10.20.30.50
-    SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
+    # The driver simulator creates these ports for the target system
     SBSDK_DRIVER_SYS_PWWN20=62:FE:FE:FE:FE:FE:FE:10
     SBSDK_DRIVER_SYS_PWWN21=62:FE:FE:FE:FE:FE:FE:11
     SBSDK_DRIVER_SYS_PWWN22=62:FE:FE:FE:FE:FE:FE:12

@@ -3,7 +3,7 @@ VERSION=3.6.0.0
 JOB=1
 CONF=${NAME}.conf
 ICAF_DIR=/opt/ADG/ICAF
-CREATE_APPLIANCE_TOOL=/usr/bin/perl ${ICAF_DIR}/bin/icaf.pl
+ICAF_TOOL=/usr/bin/perl ${ICAF_DIR}/bin/icaf.pl
 JOB_DIR=${ICAF_DIR}/jobs/${NAME}-${VERSION}.${JOB}
 OUTPUT_DIR=/opt/downloads/images/${NAME}-${VERSION}.${JOB}
 DEBUG=d
@@ -20,10 +20,10 @@ createAppliance:
 	cat ../configurations.sh > config.sh
 	cat ViPRBase_config.sh >> config.sh
 	udevd -d &
-	${CREATE_APPLIANCE_TOOL} ${CONF} ${JOB} -l -c -p appliance
+	${ICAF_TOOL} ${CONF} ${JOB} -l -c -p appliance
 
 bless:
-	${CREATE_APPLIANCE_TOOL} ${CONF} ${JOB} -b
+	${ICAF_TOOL} ${CONF} ${JOB} -b
 
 clean:
 	rm -rf config.sh ViPRBase.list

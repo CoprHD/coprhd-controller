@@ -1,8 +1,6 @@
 package com.emc.storageos.db.client.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 import java.util.Map;
 import java.util.TreeMap;

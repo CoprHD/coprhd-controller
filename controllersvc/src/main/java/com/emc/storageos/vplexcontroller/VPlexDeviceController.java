@@ -3555,6 +3555,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
 
+            StringBuffer errorMessages = new StringBuffer();
+            boolean isValidationNeeded = validatorConfig.isValidationEnabled();
+            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
+
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
             // For safety, run remove volumes serially
@@ -3659,14 +3663,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     hasSteps = true;
 
                     if (!existingVolumes) {
-                        // TODO probably add exception/override here, 
-                        // this is remove volumes operation triggering initiator removal
                         // create workflow and steps to remove zones and initiators
                         String completerStepId = workflow.createStepId();
                         ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
                                 exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
 
                         List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
+
+                        // adding to error message so that orchestration-level validation can be invoked if necessary
+                        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                        String initiatorsForDisplay = Joiner.on(", ").join(
+                                Collections2.transform(initiators, 
+                                        CommonTransformerFunctions.fctnDataObjectToForDisplay()));
+                        errorMessages.append(String.format("One or more initiators would be removed from storage view %s: %s. ",
+                                exportMask.forDisplay(), initiatorsForDisplay));
 
                         // Create a step to remove initiators from the storage view
                         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
@@ -3678,8 +3688,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                         // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
                         List<NetworkZoningParam> zoningParams = 
-                            	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
-                            			exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
+                            NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                                exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
                         previousStep = workflow.createStep(
                                 ZONING_STEP,
                                 "Zoning subtask for export-group: " + exportURI,
@@ -3702,11 +3712,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
                     List<NetworkZoningParam> zoningParams = 
-                        	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
-                        			exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
+                        NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                            exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
                     hasSteps = true;
-                    // TODO probably add exception/override here, 
-                    // this is remove volumes operation triggering storage view delete
+
+                    // adding to error messages so that orchestration-level validation can be invoked if necessary
+                    errorMessages.append(
+                            String.format(
+                                    "Storage view %s would be deleted on VPLEX device. ",
+                                    exportMask.forDisplay()));
+
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
@@ -3725,6 +3740,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             if (hasSteps) {
+                String message = errorMessages.toString();
+                if (isValidationNeeded && !message.isEmpty()) {
+                    _log.error("Error Message {}", errorMessages);
+                    List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
+                    String volumesForDisplay = Joiner.on(", ").join(
+                            Collections2.transform(volumes, 
+                                    CommonTransformerFunctions.fctnDataObjectToForDisplay()));
+                    throw DeviceControllerException.exceptions.removeVolumesValidationError(
+                            volumesForDisplay, vplex.forDisplay(), message);
+                }
+
                 workflow.executePlan(
                         completer,
                         String.format("Sucessfully removed volumes or deleted Storage View: %s (%s)", exportGroup.getLabel(),
@@ -4810,7 +4836,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // adding to error messages so that orchestration-level validation can be invoked if necessary
             errorMessages.append(
                     String.format(
-                            "Mask %s would be deleted from array ",
+                            "Storage view %s would be deleted on VPLEX device. ",
                             exportMask.forDisplay()));
 
             Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
@@ -4881,7 +4907,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
 
                         // adding to error messages so that orchestration-level validation can be invoked if necessary
-                        errorMessages.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
+                        errorMessages.append(String.format("One or more volumes would be removed from storage view %s: %s. ",
                                 exportMask.forDisplay(), volumesForDisplay));
 
                         // TODO the comment wording here is a concern, seems hackish
@@ -5117,7 +5143,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumeURIList));
 
                     // adding to error message so that orchestration-level validation can be invoked if necessary
-                    errorMessages.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
+                    errorMessages.append(String.format("One or more volumes would be removed from storage view %s: %s. ",
                             exportMask.forDisplay(), Joiner.on(", ").join(
                                     Collections2.transform(blockObjectCache.values(), 
                                             CommonTransformerFunctions.fctnDataObjectToForDisplay()))));

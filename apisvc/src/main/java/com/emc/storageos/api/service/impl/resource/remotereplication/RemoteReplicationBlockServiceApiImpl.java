@@ -1,17 +1,17 @@
-package com.emc.storageos.api.service.impl.resource;
+package com.emc.storageos.api.service.impl.resource.remotereplication;
 
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
+import com.emc.storageos.api.service.impl.resource.BlockService;
+import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -26,8 +26,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.Recommendation;
-import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
-import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

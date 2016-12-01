@@ -584,22 +584,54 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
 
     @Override
     public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "createRemoteReplicationGroup", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "createRemoteReplicationGroup");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
     public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "createGroupReplicationPairs", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "createGroupReplicationPairs");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
     public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "createSetReplicationPairs", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "createSetReplicationPairs");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
     public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "deleteReplicationPairs");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
@@ -639,6 +671,14 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
 
     @Override
     public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup) {
-        return null;
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "movePair", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "movePair");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 }

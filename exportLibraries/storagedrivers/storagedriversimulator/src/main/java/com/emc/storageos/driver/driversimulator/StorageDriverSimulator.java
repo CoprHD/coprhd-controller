@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -1086,6 +1087,27 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());
         _log.info(msg);
         return true;
-}
+    }
+
+    @Override
+    public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
+        Set<String> driverPairs = new HashSet<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
+            pair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
+
+            driverPairs.add(pair.getNativeId());
+        }
+        String taskType = "create-remote-replication-pairs";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        String msg = String.format("StorageDriver: createGroupReplicationPairs information for storage group %s, pairs nativeIds %s - end",
+                replicationPairs.get(0).getReplicationGroupNativeId(), driverPairs.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
 
 }

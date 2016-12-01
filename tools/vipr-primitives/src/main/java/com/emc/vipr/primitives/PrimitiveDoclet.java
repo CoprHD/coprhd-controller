@@ -24,6 +24,7 @@ import javax.lang.model.element.Modifier;
 
 import com.emc.apidocs.ApiDoclet;
 import com.emc.apidocs.DocReporter;
+import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
@@ -110,16 +111,75 @@ public class PrimitiveDoclet {
     }
     
     private static Iterable<FieldSpec> makeFields(final ApiMethod method) {
-return ImmutableList.<FieldSpec>builder()
+        return ImmutableList.<FieldSpec>builder()
                 .add(makeStringConstant("FRIENDLY_NAME", method.brief))
                 .add(makeStringConstant("DESCRIPTION", method.description))
                 .add(makeStringConstant("SUCCESS_CRITERIA", "code > 199 or code < 300"))
                 .add(makeStringConstant("PATH", method.path))
                 .add(makeStringConstant("METHOD", method.httpMethod))
-                .add(makeStringConstant("BODY", ""))
+                .add(makeStringConstant("BODY", makeBody(method.input)))
                 .addAll(makeInput(method))
                 .add(makeOutput(method)).
                 build();
+    }
+    
+    private static String makeBody(final ApiClass input) {
+        if( null == input ) {
+            return "";
+        }
+        
+        if( null == input.fields ) {
+            throw new RuntimeException("input with no fields!!");
+        }
+        
+        final StringBuilder body = new StringBuilder();
+        String separator = "{\n";
+        if (null != input.fields) {
+
+            for (ApiField field : input.fields) {
+                final String prefix;
+                final String suffix;
+                final String name;
+                
+                if( field.collection) {
+                    prefix = "[";
+                    suffix = "]";
+                } else {
+                    prefix = "";
+                    suffix = "";
+                }
+                
+                if(null != field.wrapperName && !field.wrapperName.isEmpty()) {
+                    name = field.wrapperName;
+                } else {
+                    name = field.name;
+                }
+                
+                body.append(separator+"\""+name+"\": "+prefix);
+                if (field.isPrimitive()) {
+
+                    body.append("$"+field.name);
+                } else {
+                    body.append(makeBody(field.type));
+                }
+                body.append(suffix);
+                separator = ",\n";
+            }
+        }
+        
+        if( body.length() > 0 ) {
+            body.append("\n}");
+        }
+        
+        // We don't use attributes in the ViPR API
+        if (null != input.attributes && input.attributes.size() > 0) {
+            for (ApiField attribute : input.attributes) {
+                System.out.println("  attribute: "+ attribute.name);
+            }
+            throw new RuntimeException("Attributes not supported");
+        }
+        
+        return body.toString();
     }
     
     private static MethodSpec makeConstructor(final String name) {
@@ -152,60 +212,104 @@ return ImmutableList.<FieldSpec>builder()
             parameters.add(param.name);
             builder.add(param);
         }
-
+        
+        if( null != method.input && null != method.input.fields ) {
+            for( final ApiField field : method.input.fields ) {
+                final ImmutableList<FieldSpec> requestParameters = makeRequestParameters(method.input.name+".", field);
+                for(final FieldSpec requestParameter : requestParameters) {
+                    parameters.add(requestParameter.name);
+                }
+                builder.addAll(requestParameters);
+            }
+        }
+        
         return builder.add(FieldSpec.builder(InputParameter[].class, "INPUT")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
                 .initializer("{$L}", Joiner.on(",").join(parameters.build()))
                 .build()).build();
     }
     
+    private static ImmutableList<FieldSpec> makeRequestParameters(final String prefix, final ApiField field) {
+        final ImmutableList.Builder<FieldSpec> builder = ImmutableList
+                .<FieldSpec> builder();
+        if (field.isPrimitive()) {
+            builder.add(makeInputParameter(prefix, field, field.required));
+        } else {
+            for( ApiField subField : field.type.fields) {
+                final StringBuilder subPrefix = new StringBuilder(prefix);
+                if(field.wrapperName != null && !field.wrapperName.isEmpty()) {
+                    subPrefix.append(field.wrapperName);
+                    subPrefix.append('.');
+                }
+                subPrefix.append(field.name);
+                subPrefix.append('.');
+                
+                builder.addAll(makeRequestParameters(subPrefix.toString(), subField));
+            }
+        }
+        return builder.build();
+    }
+    
     private static FieldSpec makeInputParameter(final ApiField field, final boolean required) {
-        
-        return FieldSpec.builder(InputParameter.class, "_"+StringUtils.toUpperCase(field.name).replace('-', '\0'))
+        return makeInputParameter("", field, required);
+    }
+    
+    private static FieldSpec makeInputParameter(final String prefix, final ApiField field, final boolean required) {
+        final StringBuilder builder = new StringBuilder(prefix);
+        if(field.wrapperName != null && !field.wrapperName.isEmpty()) {
+            builder.append(field.wrapperName);
+            builder.append('.');
+        }
+        builder.append(field.name);
+        final String name = builder.toString();
+        return FieldSpec.builder(InputParameter.class, "_"+StringUtils.toUpperCase(name).replace('-', '\0').replace('.', '_'))
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
-                .initializer(makeInputParameterInitializer(field, required))
+                .initializer(makeInputParameterInitializer(name, field, required))
                 .build();
     }
 
     private static CodeBlock makeInputParameterInitializer(
-            final ApiField field, final boolean required) {
+            final String name, final ApiField field, final boolean required) {
         return CodeBlock.builder().addStatement("new $T($S, $L, null)",  
                 getParameterType(field), 
-                field.name, 
+                name, 
                 required).build();
     }
 
     private static Class<? extends BasicInputParameter<?>> getParameterType(
             final ApiField field) {
-        if( field.isPrimitive()) {
-            if(null != field.primitiveType && !field.primitiveType.isEmpty()) throw new RuntimeException("primitive type not supported: "+field.primitiveType); 
-        }
-        // TODO: primitives (i.e. boolean) do not have a type set
-        // Not sure if this is correct
+        
         final String type;
-        if( null == field.type ) {
-            type = "Boolean";
+        if (field.isPrimitive()) {
+            if (null != field.primitiveType && !field.primitiveType.isEmpty()) {
+                type = field.primitiveType;
+            } else {
+                // TODO: some primitives (i.e. boolean) do not have a type set
+                // Not sure if this is correct
+                type = "Boolean";
+            }
         } else {
             type = field.type.name;
         }
-        final Class<? extends BasicInputParameter<?>> parameterType;
+        
         switch(type) {
         case "URI":
-            parameterType = BasicInputParameter.URIParameter.class;
-            break;
+            return BasicInputParameter.URIParameter.class;
         case "String":
-            parameterType = BasicInputParameter.StringParameter.class;
-            break;
+            return BasicInputParameter.StringParameter.class;
         case "Boolean":
-            parameterType = BasicInputParameter.BooleanParameter.class;
-            break;
+            return BasicInputParameter.BooleanParameter.class;
         case "Integer":
-            parameterType = BasicInputParameter.IntegerParameter.class;
-            break;
+            return BasicInputParameter.IntegerParameter.class;
+        case "Long":
+            return BasicInputParameter.LongParameter.class;
+        case "Map":
+            return BasicInputParameter.NameValueListParameter.class;
+        case "DateTime":
+            return BasicInputParameter.DateTimeParameter.class;
         default:
-            throw new RuntimeException("Unknown type:" + field.type.name);
+            throw new RuntimeException("Unknown type:" + type);
         }
-        return parameterType;
     }
     
     private static FieldSpec makeOutput(final ApiMethod method) {
@@ -277,5 +381,15 @@ return ImmutableList.<FieldSpec>builder()
 
         return true;
     }
+    
+//    private static void printRequest(final ApiMethod method) {
+//        
+//        if( null == method) {
+//            System.out.println("  print request: null");
+//        }
+//        JAXBContext jaxbContext = JAXBContext.newInstance(method.input.);
+//        SchemaOutputResolver sor = new SchemaOutputResolver();
+//        jaxbContext.generateSchema(sor);
+//    }
 
 }

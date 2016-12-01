@@ -16,22 +16,19 @@
  */
 package com.emc.storageos.primitives.samples;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.emc.storageos.primitives.Primitive;
-import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.IntegerParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.NameValueListParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.URIParameter;
-import com.emc.storageos.primitives.output.OutputParameter;
+import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListOutputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter.StringOutputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
 
 /**
  * Class to contains the meta data for a generic rest call primitive
  */
-@XmlRootElement(name = "primitive")
 public class RestPrimitive extends Primitive {
 
     private final static String FRIENDLY_NAME = "REST API";

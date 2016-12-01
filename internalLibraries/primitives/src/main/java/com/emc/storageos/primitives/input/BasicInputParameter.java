@@ -17,13 +17,11 @@
 package com.emc.storageos.primitives.input;
 
 import java.net.URI;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
-
-import com.emc.storageos.primitives.Parameter;
-import com.emc.storageos.primitives.Parameter.ParameterType;
 
 /**
  * Class that represents the meta data for an simple input parameter
@@ -97,6 +95,19 @@ public abstract class BasicInputParameter<T> extends InputParameter {
         }
     }
     
+    public static class LongParameter extends  BasicInputParameter<Long> {
+        
+        public LongParameter(final String name, final boolean required, final Long defaultValue) {
+            super(name, required, defaultValue);
+        }
+        
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.LONG;
+        }
+    }
+    
     public static class URIParameter extends  BasicInputParameter<URI> {
         
         public URIParameter(final String name, final boolean required, final URI defaultValue) {
@@ -127,6 +138,21 @@ public abstract class BasicInputParameter<T> extends InputParameter {
 
         public NameValueListParameter(String name, boolean required,
                 Map<String, String> defaultValue) {
+            super(name, required, defaultValue);
+        }
+        
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.NAME_VALUE_LIST;
+        }
+        
+    }
+    
+    public static class DateTimeParameter extends BasicInputParameter<Calendar> {
+
+        public DateTimeParameter(String name, boolean required,
+                Calendar defaultValue) {
             super(name, required, defaultValue);
         }
         

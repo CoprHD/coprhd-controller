@@ -24,10 +24,11 @@ public interface Parameter {
     public enum ParameterType {
         STRING,
         INTEGER,
+        LONG,
         URI,
         BOOLEAN,
         NAME_VALUE_LIST,
-        TABLE, 
+        TABLE,  
     }
     
     public String getName();

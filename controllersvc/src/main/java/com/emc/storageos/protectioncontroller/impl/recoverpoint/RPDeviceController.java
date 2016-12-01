@@ -4572,6 +4572,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // This is a TARGET we failed over to. We need to build up all of its targets
                 for (URI potentialTargetVolumeID : volumeIDs) {
                     Volume potentialTargetVolume = _dbClient.queryObject(Volume.class, potentialTargetVolumeID);
+                    if (potentialTargetVolume == null || potentialTargetVolume.getInactive()) {
+                        continue;
+                    }
                     if (!potentialTargetVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())
                             && NullColumnValueGetter.isNotNullValue(potentialTargetVolume.getRSetName())
                             && potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName())

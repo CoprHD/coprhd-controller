@@ -40,10 +40,14 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         _currentIt = null;
         ColumnList<T2> result;
         try {
+            // log.info("lbyxx1");
             result = _query.execute().getResult();
+            // log.info("lbyxx2");
         } catch (final ConnectionException e) {
+            // log.info("lbyxx3");
             throw DatabaseException.retryables.connectionFailed(e);
         }
+        // log.info("lbyxx4 result.isEmpty={}", result.isEmpty());
         if (!result.isEmpty()) {
             _currentIt = result.iterator();
         }
@@ -51,12 +55,15 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
 
     @Override
     public boolean hasNext() {
+        //log.info("lbyxx5 _currentIt={}", _currentIt);
         if (_currentIt == null) {
             return false;
         }
+        // log.info("lbyxx5 hasNext={}", _currentIt.hasNext());
         if (_currentIt.hasNext()) {
             return true;
         }
+        // log.info("lbyxx6");
         runQuery();
         return _currentIt != null;
     }

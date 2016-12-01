@@ -292,10 +292,9 @@ public class Main {
         @Override
         protected URI createQueryHit(Column<IndexColumnName> column) {
             try {
-                log.info("lbybb1 stack=", new Throwable());
                 n++;
                 URI id = URI.create(column.getName().getTwo());
-                log.info("lbybb2 id={}", id);
+                // log.info("lbybb2 id={} n={} pageCount={}", id, n, pageCount);
 
                 /*
                 Order order = _client._dbClient.queryObject(Order.class, id);
@@ -316,12 +315,19 @@ public class Main {
 
                 log.info("lbybb3 indexKey={}", indexKey);
 
+                /*
                 TimeSeriesIndexColumnName col = new TimeSeriesIndexColumnName("Order", id.toString(),column.getName().getTimeUUID());
                 mutationBatch.withRow(cf, indexKey).putEmptyColumn(col, null);
+                */
 
                 if ( n % pageCount == 0) {
+                    log.info("lbybb41 n={}", n);
+                    /*
                     mutationBatch.execute(); // commit
+                    log.info("lbybb5 n={}", n);
                     mutationBatch = keyspace.prepareMutationBatch();
+                    log.info("lbybb6 n={}", n);
+                    */
                 }
 
                 return id;
@@ -357,7 +363,7 @@ public class Main {
                 iterator.next();
             }
 
-            iterator.mutationBatch.execute();
+            // iterator.mutationBatch.execute();
 
             long end = System.currentTimeMillis();
             System.out.println("Read "+n+" : "+ (end - start));

@@ -482,9 +482,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String backingReplicationGroupInstance = null;
             if (associatedVolume != null) {
                 volumeLabelBuilt = generateLabelFromAssociatedVolume(volumeLabel, associatedVolume);
-                if (NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance())) {
-                    backingReplicationGroupInstance = associatedVolume.getReplicationGroupInstance();
-                }
+                backingReplicationGroupInstance = 
+                    NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance()) ? 
+                        associatedVolume.getReplicationGroupInstance() : NullColumnValueGetter.getNullStr();
             } else {
                 volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
                         vPoolCapabilities.getResourceCount());

@@ -469,6 +469,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 // This is a TARGET we failed over to. We need to build up all of its targets
                 for (URI potentialTargetVolumeID : volumeIDs) {
                     Volume potentialTargetVolume = _dbClient.queryObject(Volume.class, potentialTargetVolumeID);
+                    if (potentialTargetVolume == null || potentialTargetVolume.getInactive()) {
+                        continue;
+                    }
                     if (potentialTargetVolume.getRSetName() != null &&
                             potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName()) &&
                             !potentialTargetVolumeID.equals(protectionVolume.getId())) {

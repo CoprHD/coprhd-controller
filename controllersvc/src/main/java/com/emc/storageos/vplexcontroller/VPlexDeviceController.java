@@ -3629,6 +3629,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
                             zoneRemoveVolumesMethod, _networkDeviceController.zoneNullRollbackMethod(), null);
 
+                    hasSteps = true;
+
                     // this next chunk of code covers the situation where the export mask
                     // is referenced by another export group containing different
                     // volumes.
@@ -3665,7 +3667,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes ({}) or initiators ({}) "
                             + "so just removing ViPR-managed volumes and initiators: {}", 
                             existingVolumes, existingInitiators, exportMask.getMaskName());
-                    hasSteps = true;
 
                     if (!existingVolumes) {
                         // create workflow and steps to remove zones and initiators
@@ -3696,6 +3697,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", previousStep, vplexURI,
                                 vplex.getSystemType(),
                                 this.getClass(), fireCompleter, null, completerStepId);
+
+                        hasSteps = true;
                     }
 
                     // Remove volumes from the storage view.
@@ -3715,6 +3718,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     previousStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(), 
                             previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
                             zoneRemoveVolumesMethod, _networkDeviceController.zoneNullRollbackMethod(), null);
+
+                    hasSteps = true;
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());

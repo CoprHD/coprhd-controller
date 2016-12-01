@@ -118,7 +118,6 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
          */
         private URI getProjectIdFromResourceId(String uri, Class<? extends DataObject> clazz) {
             URI id = URI.create(uri);
-            _log.info("Getting project from resource id {}", id);
             ProjectResource projObj = null;
 
             DataObject obj = _permissionsHelper.getObjectById(id, clazz);

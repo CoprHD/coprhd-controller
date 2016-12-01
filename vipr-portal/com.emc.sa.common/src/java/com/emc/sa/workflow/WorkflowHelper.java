@@ -72,7 +72,6 @@ public final class WorkflowHelper {
     }
 
     public static OrchestrationWorkflow updateStatus(final OrchestrationWorkflow oeWorkflow, final String status) {
-
         oeWorkflow.setStatus(status);
         return oeWorkflow;
     }

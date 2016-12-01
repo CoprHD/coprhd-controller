@@ -46,11 +46,11 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
         return findPermissions(this.clazz, user, tenantId, filterBy);
     }
 
-    public List<CatalogService> findByBaseService(String baseServiceName) {
+    public List<CatalogService> findByBaseService(final String baseServiceName) {
         log.debug("Finding catalog services for base service {}", baseServiceName);
-        List<CatalogService> results = Lists.newArrayList();
+        final List<CatalogService> results = Lists.newArrayList();
         if (null != baseServiceName) {
-            List<URI> ids = client.findAllIds(clazz);
+            final List<URI> ids = client.findAllIds(clazz);
             if (null != ids) {
                 List<CatalogService> allCatalogServices = findByIds(ids);
                 for (CatalogService cs : allCatalogServices) {

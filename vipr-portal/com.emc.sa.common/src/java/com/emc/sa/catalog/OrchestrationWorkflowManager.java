@@ -31,8 +31,8 @@ public interface OrchestrationWorkflowManager {
     public Iterator<OrchestrationWorkflow> getSummaries(final List<URI> ids);
     public void save(final OrchestrationWorkflow workflow);
     public void delete(final OrchestrationWorkflow workflow);
-    public boolean hasCatalogServices(String name);
-    public List<NamedElement> listByStatus(String status);
+    public boolean hasCatalogServices(final String name);
+    public List<NamedElement> listByStatus(final String status);
     
     
 }

@@ -632,10 +632,12 @@ public class WorkflowService implements WorkflowController {
                     _log.error("Overwriting the state of the final step of a workflow due to artificial failure request");
                     StepStatus ss = workflow.getStepStatus(stepId);
                     ss.state = StepState.ERROR;
-                    ss.description = "Artificially thrown exception";
+                    ss.description = "Artificially thrown exception: " + InvokeTestFailure.ARTIFICIAL_FAILURE_004;
+                    ss.message = "The final step in the workflow was successful, but an artificial failure request is configured to fail the final step to invoke full rollback.";
                     workflow.getStepStatusMap().put(stepId, ss);
-                    _log.info(String.format("Updating workflow step: %s state %s : %s", stepId, state, message));
-                    status.updateState(ss.state, code, message);
+                    _log.info(String.format("Updating workflow step: %s state %s : %s", stepId, state, ss.message));
+                    WorkflowException ex = WorkflowException.exceptions.workflowInvokedFailure(ss.description);
+                    status.updateState(ss.state, ex.getServiceCode(), ss.message);
                     step.status = ss;
                     // Persist the updated step state
                     persistWorkflowStep(workflow, step);

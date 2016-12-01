@@ -43,4 +43,7 @@ public interface WorkflowExceptions {
 
     @DeclareServiceCode(ServiceCode.WORKFLOW_IN_WRONG_STATE)
     public WorkflowException workflowNotSuspended(final String string, final String state);
+
+    @DeclareServiceCode(ServiceCode.WORKFLOW_INVOKED_FAILURE)
+    public WorkflowException workflowInvokedFailure(final String failureInvoked);
 }

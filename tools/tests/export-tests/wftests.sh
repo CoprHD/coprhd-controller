@@ -1001,6 +1001,7 @@ reset_system_props_pre_test() {
 prerun_tests() {
     clean_zones ${FC_ZONE_A:7} ${HOST1}
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    cleanup_previous_run_artifacts
 }
 
 vnx_sim_setup() {
@@ -1093,11 +1094,11 @@ unity_setup()
 vmax2_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
     VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VMAX_SMIS_PORT=5988
+    VMAX_SMIS_PORT=7009
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
-    VMAX_SMIS_SSL=false
-    VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+    VMAX_SMIS_SSL=true
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX2_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -1153,7 +1154,7 @@ vmax3_sim_setup() {
     SMIS_USER=$SMIS_USER
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
-    VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -1516,6 +1517,7 @@ xio_setup() {
 	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+        --multiVolumeConsistency        \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
@@ -1732,7 +1734,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null"  > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -1801,14 +1803,14 @@ test_1() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
@@ -2041,12 +2043,12 @@ test_3() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vnx"  ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
     fi
@@ -2476,13 +2478,20 @@ test_7() {
 test_8() {
     echot "Test 8 Begins"
 
-    if [ "${SIM}" != "1" ];
+    if [ "${SIM}" != "1" ]
     then
 	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
 	return;
     fi
 
+    if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
+    then
+	echo "Test case only executes for vmax2 and vnx."
+	return;
+    fi
+
     common_failure_injections="failure_004_final_step_in_workflow_complete"
+    meta_size=240GB
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2492,20 +2501,18 @@ test_8() {
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement \
                                     failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                     failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
-	meta_size=20000GB
     fi
 
     if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
-	meta_size=20000GB
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2621,13 +2628,31 @@ cleanup_previous_run_artifacts() {
 	done
     fi
 
-    volume list ${PROJECT} | grep YES | grep hijack > /dev/null2> /dev/null
+    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null2> /dev/null
     if [ $? -eq 0 ]; then
-	for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
+	for id in `volume list ${PROJECT} | grep YES | grep "hijack\|fake" | awk '{print $7}'`
 	do
 	    echo "Deleting old volume: ${id}"
 	    runcmd volume delete ${id} --wait > /dev/null
 	done
+    fi
+
+    hosts list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `hosts list emcworld | grep fake | awk '{print $4}'`
+        do
+            echo "Deleting old host: ${id}"
+            runcmd hosts delete ${id} > /dev/null
+        done
+    fi
+
+    cluster list emcworld &> /dev/null
+    if [ $? -eq 0 ]; then
+        for id in `cluster list emcworld | grep fake | awk '{print $4}'`
+        do
+            echo "Deleting old cluster: ${id}"
+            runcmd cluster delete ${id} > /dev/null
+        done
     fi
 }
 
@@ -2816,6 +2841,8 @@ else
      num=`expr ${num} + 1`
    done
 fi
+
+cleanup_previous_run_artifacts
 
 echo There were $VERIFY_COUNT verifications
 echo There were $VERIFY_FAIL_COUNT verification failures

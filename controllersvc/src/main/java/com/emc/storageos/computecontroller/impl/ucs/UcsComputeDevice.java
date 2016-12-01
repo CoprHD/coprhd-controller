@@ -653,19 +653,6 @@ public class UcsComputeDevice implements ComputeDevice {
                     .toString(), e);
         }
 
-        try {
-            ucsmService.setServiceProfileToLanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                    ce.getDn());
-            /*
-             * Wait for the reboot that happens on setting the lan boot policy on the ServiceProfile
-             */
-            pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), ce.getDn(), LsServer.class);
-        } catch (ClientGeneralException e) {
-            LOGGER.error("Unable to set lan boot On computeElement : " + ce.getId(), e);
-            throw ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(osInstallVlan, ce.getId()
-                    .toString(), e);
-        }
-
         return vlanMap;
 
     }

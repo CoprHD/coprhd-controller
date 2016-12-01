@@ -161,17 +161,15 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
                         null);
 
-                // Set host to boot from lan
-
-                waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
-                        "Set the host to boot from LAN", waitFor, cs.getId(), cs
-                                .getSystemType(),
-                        this.getClass(), new Workflow.Method("setLanBootTargetStep", computeSystemId,
-                                computeElementId, hostId),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
-
             }
+             // Set host to boot from lan
+            waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
+                     "Set the host to boot from LAN", waitFor, cs.getId(), cs.getSystemType(),
+                     this.getClass(), new Workflow.Method("setLanBootTargetStep", computeSystemId,
+                     computeElementId, hostId),
+                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
+            // Set the OS install Vlan on the first vnic
             waitFor = workflow.createStep(OS_INSTALL_PREPARE_OS_NETWORK, "prepare network for os install", waitFor, cs
                     .getId(), cs.getSystemType(), this.getClass(),
                     new Workflow.Method("prepareOsInstallNetworkStep", computeSystemId, computeElementId),

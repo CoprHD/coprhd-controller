@@ -4564,6 +4564,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         //
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 // This is a TARGET we failed over to. We need to build up all of its targets
@@ -4624,6 +4627,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
@@ -4661,6 +4667,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));

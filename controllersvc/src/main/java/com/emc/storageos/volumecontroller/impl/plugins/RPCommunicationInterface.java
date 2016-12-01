@@ -356,6 +356,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             return;
         }
 
+        List<String> staleVolumes = new ArrayList<String>();
         StringSet protectionVolumes = protectionSet.getVolumes();
         RecoverPointVolumeProtectionInfo protectionVolume = null;
         RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
@@ -365,6 +366,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             Volume protectionVolumeWWN = _dbClient.queryObject(Volume.class, URI.create(volume));
 
             if (protectionVolumeWWN == null || protectionVolumeWWN.getInactive()) {
+                staleVolumes.add(volume);
                 continue;
             }
 
@@ -413,10 +415,21 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         protectionSet.setProtectionStatus(ProtectionStatus.ENABLED.toString());
                         break;
                 }
-                _dbClient.persistObject(protectionSet);
+                _dbClient.updateObject(protectionSet);
                 break;
             }
         }
+        
+        // remove stale entries from protection set
+        if (!staleVolumes.isEmpty()) {
+            for (String vol : staleVolumes) {
+                _log.info("ProtectionSet " + protectionSet.getLabel() + " references volume " + vol
+                        + " that no longer exists in the DB.  Removing this volume reference.");
+                protectionSet.getVolumes().remove(vol);
+            }
+            _dbClient.updateObject(protectionSet);
+        }
+
     }
 
     /**
@@ -448,6 +461,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         //
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) &&
                     (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 // This is a TARGET we failed over to. We need to build up all of its targets
@@ -466,13 +482,13 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 _log.info("Change personality of failover target " + protectionVolume.getWWN() + " to source");
                 protectionVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
                 volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change personality of source volume " + protectionVolume.getWWN() + " to target");
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 volume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setRpTargets(new StringSet());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             } else if (!protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + protectionVolume.getWWN() + " is a target that remains a target");
                 // TODO: Handle failover to CRR. Need to remove the CDP volumes (including journals)

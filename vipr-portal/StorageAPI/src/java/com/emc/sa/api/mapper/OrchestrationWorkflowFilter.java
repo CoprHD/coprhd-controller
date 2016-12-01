@@ -14,24 +14,23 @@
  * limitations under the License.
  *
  */
-package com.emc.sa.catalog;
+package com.emc.sa.api.mapper;
 
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
-
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.response.BulkList.TenantResourceFilter;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.security.authentication.StorageOSUser;
 
-public interface OrchestrationWorkflowManager {
+public class OrchestrationWorkflowFilter extends TenantResourceFilter<OrchestrationWorkflow> {
 
-    public OrchestrationWorkflow getById(final URI id);
-    public List<OrchestrationWorkflow> getByName(final String name);
-    public List<NamedElement> list();
-    public Iterator<OrchestrationWorkflow> getSummaries(final List<URI> ids);
-    public void save(final OrchestrationWorkflow workflow);
-    public void delete(final OrchestrationWorkflow workflow);
+    public OrchestrationWorkflowFilter(StorageOSUser user,
+            PermissionsHelper permissionsHelper) {
+        super(user, permissionsHelper);
+    }
 
-    
-    
+    @Override
+    protected boolean isAccessible(OrchestrationWorkflow resource) {
+        return true;
+    }
+
 }

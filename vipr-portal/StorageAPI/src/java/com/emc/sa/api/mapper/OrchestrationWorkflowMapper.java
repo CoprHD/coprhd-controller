@@ -17,18 +17,28 @@
 package com.emc.sa.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowBulkRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  *
  */
-public class OrchestrationWorkflowMapper {
+public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkflow, OrchestrationWorkflowRestRep> {
     public static final OrchestrationWorkflowMapper instance = new OrchestrationWorkflowMapper();
 
     public static OrchestrationWorkflowMapper getInstance() {
@@ -38,17 +48,38 @@ public class OrchestrationWorkflowMapper {
     private OrchestrationWorkflowMapper() {
     }
     
-    public static OrchestrationWorkflowRestRep map(OEWorkflow from) {
+    public static OrchestrationWorkflowRestRep map(OrchestrationWorkflow from) {
         OrchestrationWorkflowRestRep to = new OrchestrationWorkflowRestRep(); 
         
         mapDataObjectFields(from, to);
         
         try {
-            to.setDocument(WorkflowHelper.toWorkflowDocument(from.getDocument()));
+            to.setDocument(WorkflowHelper.toWorkflowDocument(from));
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error deserializing workflow", e);
         }
         
         return to;
+    }
+    
+    public static OrchestrationWorkflowList mapList(List<NamedElement> fromList) {
+        List<NamedRelatedResourceRep> resources = new ArrayList<NamedRelatedResourceRep>();
+        for(NamedElement element : fromList) {
+            resources.add(toNamedRelatedResource(ResourceTypeEnum.ORCHESTRATION_WORKFLOW, element.getId(), element.getName()));
+        }
+        return new OrchestrationWorkflowList(resources);
+    }
+    
+    public static OrchestrationWorkflowBulkRep mapBulk(List<OrchestrationWorkflow> workflows) {
+        final List<OrchestrationWorkflowRestRep> workflowRestRepList = Lists.newArrayList();
+        for( final OrchestrationWorkflow workflow : workflows) {
+            workflowRestRepList.add(map(workflow));
+        }
+        return new OrchestrationWorkflowBulkRep(workflowRestRepList);
+    }
+
+    @Override
+    public OrchestrationWorkflowRestRep apply(OrchestrationWorkflow input) {
+        return map(input);
     }
 }

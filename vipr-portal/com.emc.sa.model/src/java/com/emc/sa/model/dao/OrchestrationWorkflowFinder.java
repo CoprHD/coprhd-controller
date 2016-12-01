@@ -16,27 +16,49 @@
  */
 package com.emc.sa.model.dao;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class OrchestrationWorkflowFinder extends ModelFinder<OEWorkflow> {
+public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkflow> {
 
+    private final static ImmutableList<String> SUMMARY_FIELDS = ImmutableList.<String>builder().add("label", OrchestrationWorkflow.NAME, OrchestrationWorkflow.DESCRIPTION).build();
     public OrchestrationWorkflowFinder(DBClientWrapper client) {
-        super(OEWorkflow.class, client);
+        super(OrchestrationWorkflow.class, client);
     }
     
-    public List<OEWorkflow> findByName(final String name) {
+    public List<OrchestrationWorkflow> findByName(final String name) {
 
-        List<OEWorkflow> results = Lists.newArrayList();
+        List<OrchestrationWorkflow> results = Lists.newArrayList();
 
-        List<NamedElement> workflows = client.findByAlternateId(OEWorkflow.class, OEWorkflow.NAME, name);
+        List<NamedElement> workflows = client.findByAlternateId(OrchestrationWorkflow.class, OrchestrationWorkflow.NAME, name);
         if (workflows != null) {
             results.addAll(findByIds(toURIs(workflows)));
         }
 
+        return results;
+    }
+    
+    public Iterator<OrchestrationWorkflow> findSummaries(final List<URI> ids) {
+        return client.findAllFields(clazz, ids, SUMMARY_FIELDS); 
+    }
+    
+    public List<NamedElement> findAllNames() {
+        final List<URI> ids = client.findAllIds(clazz);
+        final Iterator<OrchestrationWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
+        final List<NamedElement> results = new ArrayList<NamedElement>();
+        
+        while(it.hasNext()) {
+            final OrchestrationWorkflow element = it.next();
+            results.add(NamedElement.createElement(element.getId(), element.getLabel()));
+        }
+        
         return results;
     }
 

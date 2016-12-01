@@ -23,18 +23,21 @@ import com.emc.storageos.db.client.model.Name;
 /**
  * DB model to represent an orchestration engine workflow document
  */
-@Cf("OEWorkflow")
-public class OEWorkflow extends ModelObjectWithACLs {
+@Cf("OrchestrationWorkflow")
+public class OrchestrationWorkflow extends ModelObjectWithACLs {
 
-    public static final String DOCUMENT = "document";
     public static final String NAME = "name";
+    public static final String DESCRIPTION = "description";
+    public static final String STEPS = "steps";
+
     
     private String name;
-    private String document;
-    private Integer sortedIndex;
+    private String description;
+    private String steps;
+
 
     @Name(NAME)
-    @AlternateId("OEWorkflowNameIndex")
+    @AlternateId("OrchestrationWorkflowNameIndex")
     public String getName() {
         return name;
     }
@@ -44,14 +47,25 @@ public class OEWorkflow extends ModelObjectWithACLs {
         setChanged(NAME);
     }
     
-    @Name(DOCUMENT)
-    public String getDocument() {
-        return document;
+
+    @Name(DESCRIPTION)
+    public String getDescription() {
+        return description;
     }
 
-    public void setDocument(final String document) {
-        this.document = document;
-        setChanged(DOCUMENT);
+    public void setDescription(final String description) {
+        this.description = description;
+        setChanged(DESCRIPTION);
+    }
+
+    @Name(STEPS)
+    public String getSteps() {
+        return steps;
+    }
+
+    public void setSteps(final String steps) {
+        this.steps = steps;
+        setChanged(STEPS);
     }
 
     @Override

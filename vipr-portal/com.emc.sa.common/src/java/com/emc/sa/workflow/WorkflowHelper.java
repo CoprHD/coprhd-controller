@@ -17,6 +17,7 @@
 package com.emc.sa.workflow;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -24,7 +25,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 
 /**
@@ -42,12 +43,14 @@ public final class WorkflowHelper {
      * @throws JsonMappingException 
      * @throws JsonGenerationException 
      */
-    public static OEWorkflow create(final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
-        final OEWorkflow oeWorkflow = new OEWorkflow();
+    public static OrchestrationWorkflow create(final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
+        final OrchestrationWorkflow oeWorkflow = new OrchestrationWorkflow();
         
-        oeWorkflow.setId(URIUtil.createId(OEWorkflow.class));
+        oeWorkflow.setId(URIUtil.createId(OrchestrationWorkflow.class));
+        oeWorkflow.setLabel(document.getName());
         oeWorkflow.setName(document.getName());
-        oeWorkflow.setDocument(toJson(document));
+        oeWorkflow.setDescription(document.getDescription());
+        oeWorkflow.setSteps(toStepsJson(document.getSteps()));
 
         return oeWorkflow;
     }
@@ -58,18 +61,38 @@ public final class WorkflowHelper {
      * @throws JsonMappingException 
      * @throws JsonGenerationException 
      */
-    public static OEWorkflow update(final OEWorkflow oeWorkflow, final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
+    public static OrchestrationWorkflow update(final OrchestrationWorkflow oeWorkflow, final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
 
-        oeWorkflow.setDocument(toJson(document));
+        if(document.getDescription() != null) {
+            oeWorkflow.setDescription(document.getDescription());
+        }
+        
+        oeWorkflow.setSteps(toStepsJson(document.getSteps()));
         return oeWorkflow;
     }
     
-    public static OrchestrationWorkflowDocument toWorkflowDocument(final String rawJson) throws JsonParseException, JsonMappingException, IOException {
+    public static OrchestrationWorkflowDocument toWorkflowDocument(final OrchestrationWorkflow workflow) throws JsonParseException, JsonMappingException, IOException {
+        final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
+        document.setName(workflow.getName());
+        document.setDescription(workflow.getDescription());
+        document.setSteps(toDocumentSteps(workflow.getSteps()));
         
-        return MAPPER.readValue(rawJson, OrchestrationWorkflowDocument.class);
+        return document;
     }
     
-    public static String toJson(final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
-        return MAPPER.writeValueAsString(document);
+    public static OrchestrationWorkflowDocument toWorkflowDocument(final String workflow) throws JsonParseException, JsonMappingException, IOException {
+        return MAPPER.readValue(workflow, OrchestrationWorkflowDocument.class);
+    }
+    
+    public static String toWorkflowDocumentJson( OrchestrationWorkflow workflow) throws JsonGenerationException, JsonMappingException, JsonParseException, IOException {
+        return MAPPER.writeValueAsString(toWorkflowDocument(workflow));
+    }
+    
+    private static List<OrchestrationWorkflowDocument.Step> toDocumentSteps(final String steps) throws JsonParseException, JsonMappingException, IOException {
+        return steps == null ? null :  MAPPER.readValue(steps, MAPPER.getTypeFactory().constructCollectionType(List.class, OrchestrationWorkflowDocument.Step.class));
+    }
+    
+    private static String toStepsJson(final List<OrchestrationWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
+        return MAPPER.writeValueAsString(steps);
     }
 }

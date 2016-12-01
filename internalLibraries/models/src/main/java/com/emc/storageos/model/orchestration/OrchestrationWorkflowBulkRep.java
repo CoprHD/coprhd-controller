@@ -18,31 +18,29 @@ package com.emc.storageos.model.orchestration;
 
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "primitives")
-@XmlAccessorType(XmlAccessType.PROPERTY)
-public class PrimitiveList {
+import com.emc.storageos.model.BulkRestRep;
 
-    private List<PrimitiveRestRep> primitives;
+@XmlRootElement(name = "bulk_orchestration_workflows")
+public class OrchestrationWorkflowBulkRep extends BulkRestRep {
+
+    private List<OrchestrationWorkflowRestRep> workflows;
+
+    public OrchestrationWorkflowBulkRep() {}
     
-    public PrimitiveList() {
-        
-    }
-    
-    public PrimitiveList(List<PrimitiveRestRep> primitives) {
-        this.primitives = primitives;
-    }
-    
-    @XmlElement(name = "primitive")
-    public List<PrimitiveRestRep> getPrimitives() {
-        return primitives;
+    public OrchestrationWorkflowBulkRep(
+            List<OrchestrationWorkflowRestRep> workflows) {
+        this.workflows = workflows;
     }
 
-    public void setPrimitives(List<PrimitiveRestRep> primitives) {
-        this.primitives = primitives;
+    @XmlElement(name = "workflows")
+    public List<OrchestrationWorkflowRestRep> getWorkflows() {
+        return workflows;
+    }
+
+    public void setWorkflows(List<OrchestrationWorkflowRestRep> workflows) {
+        this.workflows = workflows;
     }
 }

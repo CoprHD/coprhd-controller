@@ -17,13 +17,15 @@
 package com.emc.sa.catalog;
 
 import java.net.URI;
+import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
-import com.emc.storageos.db.client.model.uimodels.OEWorkflow;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 
 
 @Component
@@ -33,7 +35,7 @@ public class OrchestrationWorkflowManagerImpl implements
     private ModelClient client;
  
     @Override
-    public OEWorkflow getById(final URI id) {
+    public OrchestrationWorkflow getById(final URI id) {
         if( id == null ) {
             return null;
         }
@@ -42,22 +44,31 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
-    public List<OEWorkflow> getByName(final String name) {
+    public List<OrchestrationWorkflow> getByName(final String name) {
         if( null == name) {
             return null;
         }
         
         return client.orchestrationWorkflows().findByName(name);
     }
+    
+    @Override
+    public List<NamedElement> list() {
+        return client.orchestrationWorkflows().findAllNames();
+    }
 
     @Override
-    public void save(final OEWorkflow workflow) {
+    public Iterator<OrchestrationWorkflow> getSummaries(List<URI> ids) {
+        return client.orchestrationWorkflows().findSummaries(ids);
+    }
+
+    @Override
+    public void save(final OrchestrationWorkflow workflow) {
         client.save(workflow);
     }
     
     @Override
-    public void delete(final OEWorkflow workflow) {
+    public void delete(final OrchestrationWorkflow workflow) {
         client.delete(workflow);
     }
-
 }

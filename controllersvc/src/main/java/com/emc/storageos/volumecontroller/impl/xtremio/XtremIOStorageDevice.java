@@ -687,32 +687,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     return;
                 }
 
-                // Set the consistency group to inactive
-                consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storage.getId()), groupName);
-
-                /*
-                 * Verify if the BlockConsistencyGroup references any LOCAL arrays.
-                 * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
-                 */
-                List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, dbClient);
-
-                boolean cgReferenced = referencedArrays != null && !referencedArrays.isEmpty();
-
-                if (!cgReferenced) {
-                    // Remove the LOCAL type
-                    StringSet cgTypes = consistencyGroup.getTypes();
-                    cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-                    consistencyGroup.setTypes(cgTypes);
-
-                    // Remove the referenced storage system as well, but only if there are no other types
-                    // of storage systems associated with the CG.
-                    if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, dbClient)) {
-                        consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
-
-                        // Update the consistency group model
-                        consistencyGroup.setInactive(markInactive);
-                    }
-                }
+                // Clean up the system consistency group references
+                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, keepRGName, markInactive, dbClient);
 
             }
             dbClient.updateObject(consistencyGroup);

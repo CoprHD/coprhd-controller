@@ -65,7 +65,13 @@ public class WorkflowServiceDescriptor {
         if(results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
-        return mapWorkflowToServiceDescriptor(results.get(0));
+        OrchestrationWorkflow orchestrationWorkflow = results.get(0);
+        // Return service only if its PUBLISHED
+        if (!OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getStatus())) {
+            log.debug("Not returning workflow service because its state ({}) is not published", orchestrationWorkflow.getStatus());
+            return null;
+        }
+        return mapWorkflowToServiceDescriptor(orchestrationWorkflow);
     }
 
     // This method will only return service descriptors for PUBLISHED workflwos

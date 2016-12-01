@@ -127,11 +127,13 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
             }
             projObj = (ProjectResource) obj;
 
-            if ( obj.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) ) {
+            if ( obj.checkInternalFlags(Flag.INTERNAL_OBJECT) ) {
                 _log.info("Resource {} is an internal resource", id);
                 DataObject parentObj = _permissionsHelper.getParentObject(obj);
                 _log.info("Resource {}'s parent is {}", id, parentObj.getId());
-                projObj = (ProjectResource) obj;
+                if (parentObj != null) {
+                    projObj = (ProjectResource) parentObj;
+                }
             }
 
             if (projObj.getProject() == null) {

@@ -2156,6 +2156,10 @@ test_4() {
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
+    if [ "${SS}" = "unity" ]; then
+      storage_failure_injections="failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+    fi
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
@@ -2315,7 +2319,7 @@ test_6() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
     then
 	storage_failure_injections="failure_004:failure_017"
     fi

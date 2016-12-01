@@ -32,7 +32,7 @@ public class BlockServiceCreateVolume extends ViPRPrimitive {
     
     private final static String  PATH = "/block/volumes";
     private final static String METHOD = "POST";
-    private final static String FRIENDLY_NAME = "REST API";
+    private final static String FRIENDLY_NAME = "Create Block Volume";
     private final static String DESCRIPTION = "Execute a REST API method";
     private final static String SUCCESS_CRITERIA = "code > 199 or code < 300";
     
@@ -54,14 +54,14 @@ public class BlockServiceCreateVolume extends ViPRPrimitive {
     private final static OutputParameter OUTPUT[] = {RESOURCE_LIST};
     
     private final static String BODY = "{\n" +
-            "  \"consistency_group\": \"$consistencyGroup\",\n" +
-            "  \"computeResource\": \"$computeResource\",\n" +
-            "  \"count\": \"$count\",\n" +
-            "  \"name\": \"$name\",\n" +
-            "  \"project\": \"$project\",\n" +
-            "  \"size\": \"$size\",\n" +
-            "  \"varray\": \"$varray\",\n" +
-            "  \"vpool\": \"$vpool\"\n" +
+            "  \"consistency_group\": $consistencyGroup,\n" +
+            "  \"computeResource\": $computeResource,\n" +
+            "  \"count\": $count,\n" +
+            "  \"name\": $name,\n" +
+            "  \"project\": $project,\n" +
+            "  \"size\": $size,\n" +
+            "  \"varray\": $varray,\n" +
+            "  \"vpool\": $vpool\n" +
             "}";
     
     public BlockServiceCreateVolume() {

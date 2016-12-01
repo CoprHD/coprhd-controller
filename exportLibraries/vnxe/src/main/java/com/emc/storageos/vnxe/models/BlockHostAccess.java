@@ -5,6 +5,9 @@
 
 package com.emc.storageos.vnxe.models;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BlockHostAccess {
     private VNXeBase host;
     private int accessMask;

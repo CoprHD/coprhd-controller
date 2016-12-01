@@ -625,6 +625,9 @@ public class BasePermissionsHelper {
                 _dbClient, Volume.class,
                 AlternateIdConstraint.Factory.getVolumesByAssociatedId(obj.getId().toString()));
 
+        if (vplexVolumes.isEmpty()) {
+            return null;
+        }
         return vplexVolumes.get(0);
     }
 

@@ -21,6 +21,7 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,9 +68,10 @@ public class WorkflowServiceDescriptor {
         return mapWorkflowToServiceDescriptor(results.get(0));
     }
 
+    // This method will only return service descriptors for PUBLISHED workflwos
     public Collection<ServiceDescriptor> listDescriptors() {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
-        List<NamedElement> oeElements = orchestrationWorkflowManager.list();
+        List<NamedElement> oeElements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.PUBLISHED.toString());
         if (null != oeElements) {
             OrchestrationWorkflow oeWorkflow;
             for(NamedElement oeElement: oeElements) {

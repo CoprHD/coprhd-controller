@@ -398,6 +398,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     exportMaskRollback(storage, context, taskCompleter);
                 }
             } else {
+            	ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
@@ -406,6 +407,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
+                ctx.setAllowExceptions(context == null);
                 validator.exportMaskDelete(ctx).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {

@@ -854,7 +854,7 @@ test_cluster_remove_host() {
             runcmd hosts update $host2 --cluster null
             
             # Zzzzzz
-            sleep 10
+            sleep 5
             
             # Ensure that export group has been removed
             fail export_group show $PROJECT/${exportgroup1}

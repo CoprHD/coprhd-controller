@@ -53,12 +53,12 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
         return prepareNamedElementFromURI(client.findAllIds(clazz));
     }
 
-    public List<NamedElement> findAllNamesByStatus(String status) {
+    public List<NamedElement> findAllNamesByStatus(final String status) {
         return prepareNamedElementFromURI(findIDsByStatus(status));
     }
 
-    private List<URI> findIDsByStatus(String status) {
-        List<URI> out = Lists.newArrayList();
+    private List<URI> findIDsByStatus(final String status) {
+        final List<URI> out = Lists.newArrayList();
         if (null != status) {
             final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATUS, status);
             if (results != null) {
@@ -70,7 +70,7 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
         return out;
     }
 
-    private List<NamedElement> prepareNamedElementFromURI(List<URI> ids) {
+    private List<NamedElement> prepareNamedElementFromURI(final List<URI> ids) {
         final Iterator<OrchestrationWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
         final List<NamedElement> results = new ArrayList<NamedElement>();
 

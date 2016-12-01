@@ -59,7 +59,7 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
-    public List<NamedElement> listByStatus(String status) {
+    public List<NamedElement> listByStatus(final String status) {
         return client.orchestrationWorkflows().findAllNamesByStatus(status);
     }
 
@@ -79,7 +79,7 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
-    public boolean hasCatalogServices(String name) {
+    public boolean hasCatalogServices(final String name) {
         final List<CatalogService> catalogServices = client.catalogServices().findByBaseService(name);
         if (null != catalogServices && !catalogServices.isEmpty()) {
             return true;

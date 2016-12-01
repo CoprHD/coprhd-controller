@@ -84,6 +84,7 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
         return null;
     }
 
+    @AlternateId("OrchestrationWorkflowStatusIndex")
     @EnumType(OrchestrationWorkflowStatus.class)
     @Name(STATUS)
     public String getStatus() {

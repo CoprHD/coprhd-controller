@@ -32,7 +32,7 @@ public interface OrchestrationWorkflowManager {
     public void save(final OrchestrationWorkflow workflow);
     public void delete(final OrchestrationWorkflow workflow);
     public boolean hasCatalogServices(String name);
-
+    public List<NamedElement> listByStatus(String status);
     
     
 }

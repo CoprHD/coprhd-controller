@@ -30,6 +30,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -69,8 +70,14 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowList getWorkflows() {
-        List<NamedElement> elements = orchestrationWorkflowManager.list();
+    public OrchestrationWorkflowList getWorkflows(@QueryParam("status") String status) {
+        List<NamedElement> elements;
+        if (null != status) {
+            elements = orchestrationWorkflowManager.listByStatus(status);
+        }
+        else {
+            elements = orchestrationWorkflowManager.list();
+        }
         return mapList(elements);
     }
     

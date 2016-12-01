@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
+import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -14,15 +15,20 @@ import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 public class StorageSynchronizedProcessor extends StorageProcessor {
 
     private Logger _log = LoggerFactory.getLogger(StorageSynchronizedProcessor.class);
+    private DbClient _dbClient;
 
     @Override
     public void processResult(Operation operation, Object resultObj,
@@ -30,6 +36,7 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
         final Iterator<?> it = (Iterator<?>) resultObj;
         @SuppressWarnings("unchecked")
         Map<String, RemoteMirrorObject> volumeToRAGroupMap = (Map<String, RemoteMirrorObject>) keyMap.get(Constants.UN_VOLUME_RAGROUP_MAP);
+        _dbClient = (DbClient) keyMap.get(Constants.dbClient);
         while (it.hasNext()) {
             try {
                 final CIMInstance instance = (CIMInstance) it.next();
@@ -38,6 +45,11 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                         Constants._SystemElement).getValue();
                 CIMObjectPath destPath = (CIMObjectPath) volumePath.getKey(
                         Constants._SyncedElement).getValue();
+                String mode = instance.getPropertyValue(SmisConstants.CP_MODE).toString();
+                String copyMode = null;
+                if (mode != null) {
+                    copyMode = SupportedCopyModes.getCopyMode(mode);
+                }
                 String sourceNativeGuid = createKeyfromPath(sourcePath);
                 sourceNativeGuid = sourceNativeGuid.replace("VOLUME", "UNMANAGEDVOLUME");
                 _log.debug("Source Native Guid {}", sourceNativeGuid);
@@ -53,6 +65,13 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                     _log.debug("Found Target Remote Object {}", rmObj);
                     rmObj.setSourceVolumeNativeGuid(sourceNativeGuid);
                     rmObj.setType(RemoteMirrorObject.Types.TARGET.toString());
+
+                    if (copyMode != null && !SupportedCopyModes.UNKNOWN.name().equals(copyMode)
+                            && !copyMode.equalsIgnoreCase(rmObj.getCopyMode())
+                            && updateSupportedCopyMode(rmObj.getCopyMode())) {
+                        rmObj.setCopyMode(copyMode);
+                        updateCopyModeInRAGroupObjectIfRequired(copyMode, rmObj);
+                    }
                 }
 
                 if (volumeToRAGroupMap.containsKey(sourceNativeGuid)) {
@@ -76,6 +95,35 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
             }
         }
 
+    }
+
+    /**
+     * Update copy mode in RA group objects in DB if they don't reflect the latest.
+     *
+     * @param copyMode the copy mode from StorageSynchornized
+     * @param rmObj the RemoteMirrorObject
+     */
+    private void updateCopyModeInRAGroupObjectIfRequired(String copyMode, RemoteMirrorObject rmObj) {
+        // get source array RA group
+        URI raGroupURI = rmObj.getTargetRaGroupUri();
+        RemoteDirectorGroup raGroup = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupURI);
+        // If pairs got added to RA group outside, after the storage systems are registered, the
+        // supported copy mode will still be ALL.
+        // update the latest copy mode in RA group object in DB
+        if (raGroup != null && !copyMode.equalsIgnoreCase(raGroup.getSupportedCopyMode())
+                && updateSupportedCopyMode(raGroup.getSupportedCopyMode())) {
+            raGroup.setSupportedCopyMode(copyMode);
+            _dbClient.updateObject(raGroup);
+        }
+
+        // get target array RA group
+        URI targetRaGroupURI = rmObj.getSourceRaGroupUri();
+        RemoteDirectorGroup targetRaGroup = _dbClient.queryObject(RemoteDirectorGroup.class, targetRaGroupURI);
+        if (targetRaGroup != null && !copyMode.equalsIgnoreCase(targetRaGroup.getSupportedCopyMode())
+                && updateSupportedCopyMode(targetRaGroup.getSupportedCopyMode())) {
+            targetRaGroup.setSupportedCopyMode(copyMode);
+            _dbClient.updateObject(targetRaGroup);
+        }
     }
 
     @Override

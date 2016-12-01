@@ -679,11 +679,12 @@ public class StorageScheduler implements Scheduler {
 
         // compute and set storage pools' and arrays' average port usage metrics before sorting
         _log.info("ArrayAffinity - compute port metrics");
-        _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
+        Map<URI, Double> arrayToAvgPortMetricsMap = _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
 
         // sort the arrays, first by host/cluster's preference, then by array's average port metrics
         // then by free capacity and capacity utilization
-        Collections.sort(candidateSystems, new StorageSystemArrayAffinityComparator(arrayToHostWeightMap, candidatePoolMap));
+        Collections.sort(candidateSystems,
+                new StorageSystemArrayAffinityComparator(arrayToHostWeightMap, candidatePoolMap, arrayToAvgPortMetricsMap));
         _log.info("ArrayAffinity - sorted candidate systems {}",
                 Joiner.on(',').join(Collections2.transform(candidateSystems, CommonTransformerFunctions.fctnDataObjectToID())));
 
@@ -1256,10 +1257,13 @@ public class StorageScheduler implements Scheduler {
     private class StorageSystemArrayAffinityComparator implements Comparator<StorageSystem> {
         private Map<URI, Double> arrayToHostWeight;
         private Map<URI, List<StoragePool>> candidatePoolMap;
+        private Map<URI, Double> arrayToAvgPortMetricsMap;
 
-        public StorageSystemArrayAffinityComparator(Map<URI, Double> arrayToHostWeight, Map<URI, List<StoragePool>> candidatePoolMap) {
+        public StorageSystemArrayAffinityComparator(Map<URI, Double> arrayToHostWeight, Map<URI, List<StoragePool>> candidatePoolMap,
+                Map<URI, Double> arrayToAvgPortMetricsMap) {
             this.arrayToHostWeight = arrayToHostWeight;
             this.candidatePoolMap = candidatePoolMap;
+            this.arrayToAvgPortMetricsMap = arrayToAvgPortMetricsMap;
         }
 
         @Override
@@ -1272,8 +1276,8 @@ public class StorageScheduler implements Scheduler {
             }
 
             if (result == 0) {
-                Double sys1Metric = _portMetricsProcessor.computeStorageSystemAvgPortMetrics(sys1.getId());
-                Double sys2Metric = _portMetricsProcessor.computeStorageSystemAvgPortMetrics(sys2.getId());
+                Double sys1Metric = arrayToAvgPortMetricsMap.get(sys1.getId());
+                Double sys2Metric = arrayToAvgPortMetricsMap.get(sys2.getId());
                 result = Double.compare(sys1Metric, sys2Metric);
             }
 

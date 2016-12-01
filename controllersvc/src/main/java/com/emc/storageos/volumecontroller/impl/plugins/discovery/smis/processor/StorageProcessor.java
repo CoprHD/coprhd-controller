@@ -21,6 +21,7 @@ import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -719,5 +721,12 @@ public abstract class StorageProcessor extends PoolProcessor {
             _logger.error("Not able to find the sync elements for volume {}", volumeInstance.getObjectPath());
         }
         return syncObject;
+    }
+
+    protected boolean updateSupportedCopyMode(String copyMode) {
+        return null == copyMode
+                || SupportedCopyModes.UNKNOWN.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ALL.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ADAPTIVECOPY.toString().equalsIgnoreCase(copyMode);
     }
 }

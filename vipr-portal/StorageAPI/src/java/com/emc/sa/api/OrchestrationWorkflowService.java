@@ -144,7 +144,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
             orchestrationWorkflowManager.save(updated);
             return map(updated);
         }
-        throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its state is %s", orchestrationWorkflow.getStatus()));
+        throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", orchestrationWorkflow.getStatus()));
     }
 
     @POST
@@ -162,7 +162,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
             orchestrationWorkflowManager.save(updated);
             return map(updated);
         }
-        throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its state is %s", orchestrationWorkflow.getStatus()));
+        throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", orchestrationWorkflow.getStatus()));
     }
 
     @POST

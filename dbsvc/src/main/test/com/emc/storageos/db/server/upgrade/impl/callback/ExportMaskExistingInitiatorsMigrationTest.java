@@ -99,9 +99,9 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
                     exportMaskVMAX.addInitiator(initiator);
                     exportMaskVMAX.addToUserCreatedInitiators(initiator);
                 } else {
-                    exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator);
-                    exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator);
-                    exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator);
+                    exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                    exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                    exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
                 }
             }
             _dbClient.createObject(host);
@@ -152,9 +152,9 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
                     exportMaskVMAX.addInitiator(initiator);
                     exportMaskVMAX.addToUserCreatedInitiators(initiator);
                 } else {
-                    exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator);
-                    exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator);
-                    exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator);
+                    exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                    exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                    exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
                 }
             }
             _dbClient.createObject(host);
@@ -199,9 +199,9 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
                     exportMaskVMAX.addInitiator(initiator);
                     exportMaskVMAX.addToUserCreatedInitiators(initiator);
                 } else {
-                    exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator);
-                    exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator);
-                    exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator);
+                    exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                    exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                    exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
                 }
             }
             _dbClient.createObject(host);
@@ -219,9 +219,9 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
                 initiator.setInitiatorPort("10:00:DE:AD:BE:EF:00:A" + j);
                 initiator.setLabel("InitiatorLabel" + i + j);
                 _dbClient.createObject(initiator);
-                exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator);
-                exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator);
-                exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator);
+                exportMaskVPLEX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                exportMaskVNX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
+                exportMaskVMAX.addToExistingInitiatorsIfAbsent(initiator.getInitiatorPort());
             }
             _dbClient.createObject(hostA);
         }

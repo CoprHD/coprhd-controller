@@ -374,7 +374,7 @@ public class HostService extends TaskResourceService {
         }
         if (host.getDiscoverable() != null && !host.getDiscoverable()) {
             host.setDiscoveryStatus(DataCollectionJobStatus.COMPLETE.name());
-            _dbClient.persistObject(host);
+            _dbClient.updateObject(host);
         }
         if ((host.getDiscoverable() == null || host.getDiscoverable())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, "host");

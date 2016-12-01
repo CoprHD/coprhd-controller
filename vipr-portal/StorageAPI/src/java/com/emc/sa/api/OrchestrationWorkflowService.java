@@ -128,7 +128,12 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
-        orchestrationWorkflowManager.delete(getOrchestrationWorkflow(id));
+        OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+        // Published workflow cannot be deleted
+        if(OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getStatus())) {
+            throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be deleted.");
+        }
+        orchestrationWorkflowManager.delete(orchestrationWorkflow);
         
         return Response.ok().build();
     }

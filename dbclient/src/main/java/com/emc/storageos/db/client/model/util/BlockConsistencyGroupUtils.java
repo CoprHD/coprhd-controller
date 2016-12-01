@@ -451,4 +451,42 @@ public class BlockConsistencyGroupUtils {
         
         return cgURIs; 
     }
+
+    public static void cleanUpCG(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
+            Boolean keepRGName, Boolean markInactive, DbClient dbClient) {
+        // Remove the replication group name from the SystemConsistencyGroup field
+        consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);
+        /*
+         * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+         * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+         */
+        List<URI> referencedArrays = getLocalSystems(consistencyGroup, dbClient);
+        boolean cgReferenced = false;
+        for (URI storageSystemUri : referencedArrays) {
+            StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
+            if (cgs != null && !cgs.isEmpty()) {
+                cgReferenced = true;
+                break;
+            }
+        }
+
+        if (!cgReferenced) {
+            // Remove the LOCAL type
+            StringSet cgTypes = consistencyGroup.getTypes();
+            cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+            consistencyGroup.setTypes(cgTypes);
+
+            StringSet requestedTypes = consistencyGroup.getRequestedTypes();
+            requestedTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+            consistencyGroup.setRequestedTypes(requestedTypes);
+
+            // Remove the referenced storage system as well, but only if there are no other types
+            // of storage systems associated with the CG.
+            if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, dbClient)) {
+                consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+                // Update the consistency group model
+                consistencyGroup.setInactive(markInactive);
+            }
+        }
+    }
 }

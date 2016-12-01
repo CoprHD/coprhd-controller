@@ -20,8 +20,10 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -1452,13 +1454,15 @@ public class VNXeStorageDevice extends VNXeOperations
         VNXeApiClient apiClient = getVnxeClient(storage);
         try {
             apiClient.deleteLunGroup(lunGroupId, false, false);
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
-            if (markInactive) {
-                consistencyGroup.setInactive(true);
+
+            if (keepRGName) {
+                return;
             }
-            _dbClient.persistObject(consistencyGroup);
+
+            // Clean up the system consistency group references
+            BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), lunGroupId, keepRGName, markInactive, _dbClient);
+
+            _dbClient.updateObject(consistencyGroup);
             _logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {

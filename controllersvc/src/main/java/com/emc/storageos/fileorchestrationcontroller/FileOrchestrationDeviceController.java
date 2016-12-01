@@ -9,8 +9,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -441,18 +443,19 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // Second, get the targets if any
                 StringSet targetFileShares = ((FileShare) fileObj).getMirrorfsTargets();
                 if (targetFileShares != null) {
-                    // set all the exports to read only
-                    List<FileShareExport> roExports = new ArrayList<FileShareExport>();
-                    for (FileShareExport export : exports) {
-                        FileExport roExport = export.getFileExport();
-                        roExport.setPermissions("ro");
-                        roExports.add(new FileShareExport(roExport));
-                    }
                     // create read only exports for each of the targets
                     for (String targetFS : targetFileShares) {
+                        // set all the exports to read only
+                        FileShare fs = s_dbClient.queryObject(FileShare.class, URIUtil.uri(targetFS));
+                        List<FileShareExport> roExports = new ArrayList<FileShareExport>();
+                        for (FileShareExport export : exports) {
+                            FileExport roExport = export.getFileExport();
+                            roExport.setPermissions("ro");
+                            roExport.setMountPath(fs.getMountPath());
+                            roExports.add(new FileShareExport(roExport));
+                        }
                         stepDescription = String.format("Creating NFS export for file system : %s", targetFS);
                         successMessage = String.format("Creating NFS export for file system : %s finished succesfully.", targetFS);
-                        FileShare fs = s_dbClient.queryObject(FileShare.class, URIUtil.uri(targetFS));
                         args = new Object[] { fs.getStorageDevice(), fs.getId(), roExports };
                         waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILESYSTEM_EXPORT_METHOD, null,
                                 stepDescription, fs.getStorageDevice(), args);
@@ -518,9 +521,28 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 waitFor = _fileDeviceController.createMethod(workflow, waitFor, VERIFY_MOUNT_DEPENDENCIES_METHOD,
                         null, "Verifying mount dependencies", storage, args);
             }
+            // Update rules for the source first
             Object[] args = new Object[] { storage, uri, param };
-            _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null, stepDescription,
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null, stepDescription,
                     storage, args);
+
+            // get targets if any (only for fs)
+            if (URIUtil.isType(uri, FileShare.class)) {
+                StringSet targetFileShares = ((FileShare) fileObj).getMirrorfsTargets();
+                if (targetFileShares != null) {
+                    // set all the exports to read only
+                    FileExportUpdateParams roParam = changeUpdateExportRulesToRO(param);
+                    // update read only export rules for each of the targets
+                    for (String targetFS : targetFileShares) {
+                        stepDescription = String.format("updating NFS export for file system : %s", targetFS);
+                        successMessage = String.format("updating NFS export for file system : %s finished succesfully.", targetFS);
+                        FileShare fs = s_dbClient.queryObject(FileShare.class, URIUtil.uri(targetFS));
+                        args = new Object[] { fs.getStorageDevice(), fs.getId(), roParam };
+                        waitFor = _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null,
+                                stepDescription, fs.getStorageDevice(), args);
+                    }
+                }
+            }
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
@@ -1730,6 +1752,81 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             ServiceError serviceError = DeviceControllerException.errors.unableToUpdateFileSystem(opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
+    }
+
+    public FileExportUpdateParams changeUpdateExportRulesToRO(FileExportUpdateParams param) {
+        FileExportUpdateParams roParam;
+        List<ExportRule> addRules = new ArrayList<ExportRule>();
+        List<ExportRule> deleteRules = new ArrayList<ExportRule>();
+        List<ExportRule> modifyRules = new ArrayList<ExportRule>();
+
+        // change add rules to readonly
+        for (ExportRule rule : param.getExportRulesToAdd().getExportRules()) {
+            ExportRule roRule = new ExportRule();
+            Set<String> roHosts = new HashSet<String>();
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadOnlyHosts());
+            }
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadWriteHosts());
+            }
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getRootHosts());
+            }
+            roRule = rule;
+            roRule.setReadOnlyHosts(roHosts);
+            addRules.add(roRule);
+        }
+
+        // change delete rules to readonly
+        for (ExportRule rule : param.getExportRulesToDelete().getExportRules()) {
+            ExportRule roRule = new ExportRule();
+            Set<String> roHosts = new HashSet<String>();
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadOnlyHosts());
+            }
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadWriteHosts());
+            }
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getRootHosts());
+            }
+            roRule = rule;
+            roRule.setReadOnlyHosts(roHosts);
+            deleteRules.add(roRule);
+        }
+
+        // change modify rules to readonly
+        for (ExportRule rule : param.getExportRulesToModify().getExportRules()) {
+            ExportRule roRule = new ExportRule();
+            Set<String> roHosts = new HashSet<String>();
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadOnlyHosts());
+            }
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadWriteHosts());
+            }
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getRootHosts());
+            }
+            roRule = rule;
+            roRule.setReadOnlyHosts(roHosts);
+            modifyRules.add(roRule);
+        }
+
+        ExportRules add = new ExportRules();
+        ExportRules modify = new ExportRules();
+        ExportRules delete = new ExportRules();
+
+        add.setExportRules(addRules);
+        modify.setExportRules(modifyRules);
+        delete.setExportRules(deleteRules);
+        roParam = new FileExportUpdateParams();
+        roParam.setExportRulesToAdd(add);
+        roParam.setExportRulesToDelete(delete);
+        roParam.setExportRulesToModify(modify);
+
+        return roParam;
     }
 
 }

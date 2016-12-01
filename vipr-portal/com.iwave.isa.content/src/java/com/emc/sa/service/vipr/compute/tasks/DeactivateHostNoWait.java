@@ -40,6 +40,8 @@ public class DeactivateHostNoWait extends ViPRExecutionTask<Task<HostRestRep>> {
 
     @Override
     public Task<HostRestRep> executeTask() throws Exception {
-        return getClient().hosts().deactivate(hostId, detachStorage);
+        Task<HostRestRep> task = getClient().hosts().deactivate(hostId, detachStorage);
+        addOrderIdTag(task.getTaskResource().getId());
+        return task;
     }
 }

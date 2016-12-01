@@ -498,7 +498,7 @@ public class BlockStorageDeviceTest {
         String token = UUID.randomUUID().toString()
                 + UUID.randomUUID().toString();
         BlockConsistencyGroupDeleteCompleter taskCompleter = new BlockConsistencyGroupDeleteCompleter(
-                consistencyGroup, token);
+                consistencyGroup, null, null, false, true, token);
         _deviceController.doDeleteConsistencyGroup(_storageSystem,
                 consistencyGroup, null, null, true, taskCompleter);
     }

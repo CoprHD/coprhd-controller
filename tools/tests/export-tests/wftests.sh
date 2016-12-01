@@ -1046,19 +1046,21 @@ vnx_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     # Chose thick because we need a thick pool for VNX metas
+    # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
+	--description Base false                \
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thick'			        \
+	--drive_type 'SATA' \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
     if [ "${SIM}" = "1" ]
     then
-	# Remove the thin pool that doesn't support metas on the VNX simulator
-	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
+	# Add the only pool that is supported by metas
+	run cos update_pools block $VPOOL_BASE --add ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+C+0000
     else
 	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
     fi
@@ -2478,12 +2480,6 @@ test_7() {
 test_8() {
     echot "Test 8 Begins"
 
-    if [ "${SIM}" != "1" ]
-    then
-	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
-	return;
-    fi
-
     if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
     then
 	echo "Test case only executes for vmax2 and vnx."
@@ -2491,7 +2487,7 @@ test_8() {
     fi
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    meta_size=240GB
+    meta_size=260GB
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2511,7 +2507,11 @@ test_8() {
 
     if [ "${SS}" = "vnx" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+	if [ "${SIM}" != "1" ]
+	then
+	    meta_size=280GB
+	fi
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
     fi
 

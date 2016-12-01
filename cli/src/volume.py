@@ -211,6 +211,7 @@ class Volume(object):
                 projectName,
                 volumeName,
                 Volume.URI_SEARCH_VOLUMES_BY_PROJECT_AND_NAME,
+                
                 self.__ipAddr,
                 self.__port)
         )
@@ -231,6 +232,8 @@ class Volume(object):
         for resource in resources:
             volume_uris.append(resource["id"])
         return volume_uris
+    
+    
 
     # Get the list of volumes given a project uri
     def list_by_uri(self, project_uri):
@@ -1285,8 +1288,6 @@ class Volume(object):
         Returns:
             Volume details in JSON response payload
         '''
-        from project import Project
-
         if (common.is_uri(name)):
             return name
 
@@ -1294,16 +1295,20 @@ class Volume(object):
         if(not pname):
             raise SOSError(SOSError.NOT_FOUND_ERR,
                            "Project name  not specified")
-        proj = Project(self.__ipAddr, self.__port)
-        puri = proj.project_query(pname)
-        puri = puri.strip()
-        uris = self.search_volumes(puri)
-        for uri in uris:
-            volume = self.show_by_uri(uri)
-            if (volume and 'name' in volume and volume['name'] == label):
-                return volume['id']
+        
+        uri = self.search_by_project_and_name(pname, label)
+        
+        volume = self.show_by_uri(uri)
+        
+        if (volume and volume['inactive'] == False):
+           
+            return volume['id']
         raise SOSError(SOSError.NOT_FOUND_ERR, "Volume " +
                        label + ": not found")
+
+        
+    
+    
 
     # Timeout handler for synchronous operations
     def timeout_handler(self):

@@ -2625,12 +2625,18 @@ test_9() {
 
     if [ "${SS}" = "unity" ]
     then
-	storage_failure_injections="failure_XXX_nothing"
+	storage_failure_injections="failure_034_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_remove_from_cg \
+                                    failure_037_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume_cg_version \
+                                    failure_035_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_delete_volume \
+                                    failure_036_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume"
     fi
 
     if [ "${SS}" = "xio" ]
     then
-	storage_failure_injections="failure_XXX_nothing"
+	storage_failure_injections="failure_038_XtremIOStorageDeviceController.doDeleteVolume_before_remove_from_cg \
+	                            failure_039_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume \
+                                    failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume \
+                                    failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume"
     fi
 
     if [ "${SS}" = "vmax3" ]
@@ -2673,8 +2679,13 @@ test_9() {
       # Create the CG
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
-      # Create the volume in a CG
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      # Create the volume in a CG (unless it's a couple special cases where we need to test w/o CG)
+      if [ "${failure}" = "failure_035_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_delete_volume" -o "${failure}" = "failure_036_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+      else
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      fi
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}

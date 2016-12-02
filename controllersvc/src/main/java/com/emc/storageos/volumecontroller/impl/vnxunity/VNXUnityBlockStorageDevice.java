@@ -271,6 +271,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         Map<String, List<String>> cgNameMap = new HashMap<String, List<String>>();
         try {
             Set<URI> updateStoragePools = new HashSet<URI>();
+            // Invoke a test failure if testing
             for (Volume volume : volumes) {
                 String lunId = volume.getNativeId();
                 if (NullColumnValueGetter.isNullValue(lunId)) {
@@ -282,6 +283,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));
                     continue;
                 }
+
                 String cgName = volume.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(cgName)) {
                     List<String> lunIds = cgNameMap.get(cgName);
@@ -291,10 +293,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                     lunIds.add(volume.getNativeId());
                 } else {
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_035);
                     apiClient.deleteLunSync(volume.getNativeId(), false);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_036);
                 }
             }
-            
+
             for (Map.Entry<String, List<String>> entry : cgNameMap.entrySet()) {
                 String cgName = entry.getKey();
                 List<String> lunIDs = entry.getValue();
@@ -316,10 +320,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                                         isRP = true;
                                         logger.info(String.format("Removing volumes from CG because the CG %sis exported to RP", cgName));
                                         VNXeUtils.getCGLock(workflowService, storageSystem, cgName, opId);
+                                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_034);
                                         apiClient.removeLunsFromConsistencyGroup(cgId, lunIDs);
                                         for (String lunId : lunIDs) {
                                             logger.info(String.format("Deleting the volume %s", lunId));
+                                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_035);
                                             apiClient.deleteLunSync(lunId, false);
+                                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_036);
                                         }
                                         break;
                                     }
@@ -330,10 +337,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
                 if (!isRP) {
                     VNXeUtils.getCGLock(workflowService, storageSystem, cgName, opId);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_034);
                     apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_037);
                 }
             }
 
+            // TODO: This'll likely need to move to the completer OR the update object needs to also be done in the
+            // exception blocks
             for (Volume vol : volumes) {
                 vol.setInactive(true);
                 dbClient.updateObject(vol);

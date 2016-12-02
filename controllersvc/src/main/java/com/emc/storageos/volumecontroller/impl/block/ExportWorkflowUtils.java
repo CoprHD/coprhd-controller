@@ -526,7 +526,7 @@ public class ExportWorkflowUtils {
      * @param waitFor - Wait on this step/group to complete in the workflow before execution
      * @param storageURI - Storage system URI
      * @param exportGroupURI - Export group URI
-     * @param exportMask - Export mask URI
+     * @param exportMaskURI -- URI of the Export Mask
      * @param addedPaths - Paths going to be added or retained
      * @param removedPath - Paths going to be removed
      * @param waitForApproval - If waiting for approval before remove paths

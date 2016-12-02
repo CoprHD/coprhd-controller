@@ -1481,7 +1481,7 @@ vplex_setup() {
 }
 
 xio_sim_setup() {
-    XIO-PROVIDER=XIO-PROVIDER-SIM
+    XTREMIO_PROVIDER_NAME=XIO-PROVIDER-SIM
     XTREMIO_3X_IP=$XIO_SIMULATOR_IP
     XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
     XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
@@ -1493,12 +1493,13 @@ xio_setup() {
     storage_password=$XTREMIO_3X_PASSWD
     XTREMIO_PORT=443
     XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+    XTREMIO_PROVIDER_NAME=XIO-PROVIDER
 
     if [ "${SIM}" = "1" ]; then
 	xio_sim_setup
     fi    
     
-    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    run storageprovider create ${XTREMIO_PROVIDER_NAME} $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     run storagedevice discover_all --ignore_error
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -2620,6 +2621,16 @@ test_9() {
     then
 	secho "test_9 is not implemented for VPLEX"
 	return
+    fi
+
+    if [ "${SS}" = "unity" ]
+    then
+	storage_failure_injections="failure_XXX_nothing"
+    fi
+
+    if [ "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_XXX_nothing"
     fi
 
     if [ "${SS}" = "vmax3" ]

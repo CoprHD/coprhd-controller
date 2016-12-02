@@ -61,6 +61,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_031 = "failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach";
     public static final String ARTIFICIAL_FAILURE_032 = "failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator";
     public static final String ARTIFICIAL_FAILURE_033 = "failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter";
+    public static final String ARTIFICIAL_FAILURE_034 = "failure_034_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

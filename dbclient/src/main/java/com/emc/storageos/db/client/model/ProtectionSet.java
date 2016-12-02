@@ -72,7 +72,6 @@ public class ProtectionSet extends DataObject {
         setChanged("protectionId");
     }
 
-    @RelationIndex(cf = "ProtectionSetVolumeIndex", type = Volume.class)
     @Name("volumes")
     public StringSet getVolumes() {
         return _volumes;

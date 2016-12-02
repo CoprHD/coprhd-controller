@@ -3612,6 +3612,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("this mask is not empty, so just updating: "
                             + exportMask.getMaskName());
 
+                    completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
                             exportMask, volumeURIList);
                     previousStep = workflow.createStep("removeVolumes",
@@ -3655,9 +3656,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                     }
                     if (!volumesFromThisMaskAreStillInExportGroup) {
-                        exportGroup.removeExportMask(exportMask.getId());
-                        // TODO - update export group; probably move to a completer
-                        _dbClient.updateObject(exportGroup);
+                        completer.addExportMaskToRemove(exportMask.getId());
                     }
                 } else if (remainingVolumesInMask.isEmpty() && (existingInitiators || existingVolumes)) {
                     // If all the volumes are getting removed and there are existing
@@ -3676,7 +3675,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                         List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
 
-                        // adding to error message so that orchestration-level validation can be invoked if necessary
                         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                         String initiatorsForDisplay = Joiner.on(", ").join(
                                 Collections2.transform(initiators, 
@@ -3702,6 +3700,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // Remove volumes from the storage view.
+                    completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
                             exportMask, volumeURIList);
                     previousStep = workflow.createStep("removeVolumes",
@@ -3868,13 +3867,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             return;
         }
 
-        Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
         // Determine the virtual volume names.
         List<String> blockObjectNames = new ArrayList<String>();
         for (URI boURI : volumeURIList) {
             BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
             blockObjectNames.add(blockObject.getDeviceLabel());
-            blockObjectCache.put(blockObject.getId(), blockObject);
         }
         // Remove volumes from the storage view.
         String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex.getId(), client, _dbClient);
@@ -3882,39 +3879,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(), vplexClusterName,
                 blockObjectNames);
 
-        // Remove the volumes from the Export Mask.
-        exportMask.removeVolumes(volumeURIList);
-        for (URI volumeURI : volumeURIList) {
-            BlockObject blockObject = blockObjectCache.get(volumeURI);
-            if (blockObject != null) {
-                if (blockObject.getWWN() != null) {
-                    exportMask.removeFromUserCreatedVolumes(blockObject);
-                } else {
-                    _log.warn("Could not remove volume " + blockObject.getId() + " from export mask " + exportMask.getLabel() +
-                            " because it does not have a WWN.  Assumed not in mask, likely part of a rollback operation");
-                }
-            }
-        }
-
-        // if the ExportMask no longer has any user added volumes,
-        // remove it from any ExportGroups it's associated with,
-        // and mark the ExportMask for deletion
-        if (!exportMask.hasAnyUserAddedVolumes()) {
-            _log.info("updating ExportGroups containing this ExportMask");
-            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-            for (ExportGroup exportGroup : exportGroups) {
-                _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
-                exportGroup.removeExportMask(exportMask.getId());
-                // TODO - update export group; probably move to a completer
-                _dbClient.updateObject(exportGroup);
-            }
-            _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
-            // TODO - mark for deletion; probably move to a completer
-            _dbClient.markForDeletion(exportMask);
-        }
-
-        // TODO - update export mask; probably move to a completer
-        _dbClient.updateObject(exportMask);
         _log.info("successfully removed " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
     }
 
@@ -4713,7 +4677,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
-                            vplex, workflow, exportGroup, exportMask, initsToRemove,
+                            vplex, workflow, completer, exportGroup, exportMask, initsToRemove,
                             hostURI, initiatorsAlreadyRemovedFromExportGroup, errorMessages, lastStep);
                     if (lastStep != null) {
                         hasStep = true;
@@ -4785,6 +4749,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws Exception
      */
     private String addStepsForRemoveInitiators(StorageSystem vplex, Workflow workflow,
+            ExportRemoveInitiatorCompleter completer,
             ExportGroup exportGroup, ExportMask exportMask, List<Initiator> initiators,
             URI hostURI, List<URI> initiatorsAlreadyRemovedFromExportGroup, 
             StringBuffer errorMessages, String previousStep) throws Exception {
@@ -4919,6 +4884,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         _log.info("creating a remove volumes workflow step with " + exportMask.getMaskName()
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumeURIList));
 
+                        completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
                         Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
                                 exportMask, volumeURIList);
                         lastStep = workflow.createStep("removeVolumes",
@@ -4940,24 +4906,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // since we are removing all initiators, go ahead and
                 // remove the export mask from this export group
-                _log.info("removing ExportMask {} from ExportGroup {}", exportMask.getId(), exportGroup.getId());
-                exportGroup.removeExportMask(exportMask.getId());
-                // TODO - update export group; probably move to a completer
-                _dbClient.updateObject(exportGroup);
+                _log.info("will remove ExportMask {} from ExportGroup {}", exportMask.getId(), exportGroup.getId());
+                completer.addExportMaskToRemove(exportMask.getId());
             }
 
+            // TODO this comment wording is so confusing (all this should be handled by the completer)
             // we DO want to remove initiator(s) from the requested ExportGroup.initiators
             // but we DON't want to remove them from any ExportMask because it is
             // in use by other ExportGroups
             for (URI initUri : hostInitiatorURIs) {
                 if (!initiatorsAlreadyRemovedFromExportGroup.contains(initUri)) {
-                    _log.info("removing Initiator {} from ExportGroup {}", initUri, exportGroup.getId());
-                    exportGroup.removeInitiator(initUri);
                     initiatorsAlreadyRemovedFromExportGroup.add(initUri);
                 }
             }
-            // TODO - update export group; probably move to a completer
-            _dbClient.updateObject(exportGroup);
 
             // if any initiators are no longer present in any export group
             // then we can go ahead and remove them from the export mask
@@ -4986,7 +4947,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             if (!initiatorsToRemove.isEmpty()) {
-                lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
+                lastStep = handleInitiatorRemoval(vplex, workflow, completer, exportGroup,
                         exportMask, initiatorsToRemove, targetURIs, lastStep,
                         removeAllInits, hostURI, errorMessages);
 
@@ -5000,7 +4961,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         } else {
             // this is just a simple initiator removal, so just do it...
-            lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
+            lastStep = handleInitiatorRemoval(vplex, workflow, completer, exportGroup,
                     exportMask, hostInitiatorURIs, targetURIs, lastStep,
                     removeAllInits, hostURI, errorMessages);
         }
@@ -5051,8 +5012,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- collector for any validation-related error messages
      * @return a workflow step id
      */
-    private String handleInitiatorRemoval(StorageSystem vplex,
-            Workflow workflow, ExportGroup exportGroup, ExportMask exportMask,
+    private String handleInitiatorRemoval(StorageSystem vplex, Workflow workflow, 
+            ExportRemoveInitiatorCompleter completer, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> hostInitiatorURIs, List<URI> targetURIs, String zoneStep,
             boolean removeAllInits, URI computeResourceId, StringBuffer errorMessages) {
         _log.info("these initiators are being marked for removal from export mask {}: {}",
@@ -5123,31 +5084,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("Multiple Export mask share same storage view %s hence volumes will only be removed in the database. ",
                             exportMask.getMaskName());
 
-                    // Remove the volumes from the Export Mask.
-                    exportMask.removeVolumes(volumeURIList);
-                    for (URI volumeURI : volumeURIList) {
-                        BlockObject blockObject = blockObjectCache.get(volumeURI);
-                        if (blockObject != null) {
-                            if (blockObject.getWWN() != null) {
-                                exportMask.removeFromUserCreatedVolumes(blockObject);
-                            } else {
-                                _log.warn("Could not remove volume " + blockObject.getId() + " from export mask " + exportMask.getLabel() +
-                                        " because it does not have a WWN.  Assumed not in mask, likely part of a rollback operation");
-                            }
-                        }
-                    }
+                    // add volumes to be removed to the completer
+                    completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
 
-                    // TODO - update export mask; probably move to a completer
-                    _dbClient.updateObject(exportMask);
-                    _log.info("successfully removed " + blockObjectNames + " from exportmask " + exportMask.getMaskName()
-                            + " in ViPR database only.");
                     // since we are removing all initiators, go ahead and
                     // remove the export mask from this export group
-                    _log.info("removing ExportMask {} from ExportGroup {}", exportMask.getId(), exportGroup.getId());
-                    exportGroup.removeExportMask(exportMask.getId());
-                    // TODO - update export group; probably move to a completer
-                    _dbClient.updateObject(exportGroup);
-
+                    completer.addExportMaskToRemove(exportMask.getId());
                 } else {
                     _log.info("creating a remove volumes workflow step with " + exportMask.getMaskName()
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumeURIList));
@@ -5158,6 +5100,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     Collections2.transform(blockObjectCache.values(), 
                                             CommonTransformerFunctions.fctnDataObjectToForDisplay()))));
 
+                    completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
                             exportMask, volumeURIList);
                     lastStep = workflow.createStep("removeVolumes",

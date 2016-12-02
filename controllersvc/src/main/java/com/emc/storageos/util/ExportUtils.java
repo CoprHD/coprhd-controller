@@ -1941,4 +1941,66 @@ public class ExportUtils {
         }
     }
 
+    /**
+     * Handle the ExportMask Volume removal based on the _exportMaskToRemovedVolumeMap.
+     * 
+     * @param dbClient a reference to the database client
+     * @param exportMaskToRemovedVolumeMap a map of ExportMask URI to Volume URIs to be removed
+     * @param exportGroupId the parent ExportGroup URI (used to determine "other" ExportGroups)
+     */
+    public static void handleExportMaskVolumeRemoval(DbClient dbClient, Map<URI, List<URI>> exportMaskToRemovedVolumeMap, URI exportGroupUri) {
+        if (null != exportMaskToRemovedVolumeMap) {
+
+            Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
+
+            for (Entry<URI, List<URI>> entry : exportMaskToRemovedVolumeMap.entrySet()) {
+                List<URI> volumeURIList = entry.getValue();
+                for (URI boURI : volumeURIList) {
+                    if (!blockObjectCache.containsKey(boURI)) {
+                        BlockObject blockObject = Volume.fetchExportMaskBlockObject(dbClient, boURI);
+                        blockObjectCache.put(blockObject.getId(), blockObject);
+                    }
+                }
+                ExportMask exportMask = dbClient.queryObject(ExportMask.class, entry.getKey());
+
+                if (null != exportMask) {
+                    // Remove the volumes from the Export Mask.
+                    exportMask.removeVolumes(volumeURIList);
+                    for (URI volumeURI : volumeURIList) {
+                        BlockObject blockObject = blockObjectCache.get(volumeURI);
+                        if (blockObject != null) {
+                            if (blockObject.getWWN() != null) {
+                                exportMask.removeFromUserCreatedVolumes(blockObject);
+                            } else {
+                                _log.warn("Could not remove volume " + blockObject.getId() + " from export mask " + exportMask.getLabel() +
+                                        " because it does not have a WWN.  Assumed not in mask, likely part of a rollback operation");
+                            }
+                        }
+                    }
+
+                    // if the ExportMask no longer has any user added volumes,
+                    // remove it from any ExportGroups it's associated with,
+                    // and mark the ExportMask for deletion
+                    if (!exportMask.hasAnyUserAddedVolumes()) {
+                        _log.info("updating ExportGroups containing this ExportMask");
+                        List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
+                        for (ExportGroup eg : exportGroups) {
+                            // only update ExportGroups besides the exportGroupUri argument
+                            if (!eg.getId().equals(exportGroupUri)) {
+                                _log.info("Removing mask from ExportGroup " + eg.getGeneratedName());
+                                eg.removeExportMask(exportMask.getId());
+                                dbClient.updateObject(eg);
+                            }
+                        }
+                        _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
+                        dbClient.markForDeletion(exportMask);
+                    }
+
+                    dbClient.updateObject(exportMask);
+                }
+            }
+        }
+    }
+
+    
 }

@@ -252,73 +252,73 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
             log.info("Processing exportMask with name {}", exportMaskLabel);
             if (exportMaskLabel.contains("Basic")){
                 if (exportMaskLabel.contains("VMAX")) {
-                    if (exportMask.getInitiators().size() != 4) {
+                    if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());
                     }
-                    if (exportMask.getUserAddedInitiators().size() != 4) {
+                    if ((exportMask.getUserAddedInitiators() != null) && exportMask.getUserAddedInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} UserAddedInitiators instead of 4", exportMaskLabel,
                                 exportMask.getUserAddedInitiators().size());
                     }
-                    if (exportMask.getExistingInitiators().size() != 0) {
+                    if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 0) {
                         log.error("ExportMask with name {} has {} ExistingInitiators instead of 0", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }
                 } else {
-                    if (exportMask.getExistingInitiators().size() != 2) {
+                    if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 2) {
                         log.error("ExportMask with name {} has {} Initiators instead of 2", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }
                 }
             } else if (exportMaskLabel.contains("UserCreated")){
-                    if (exportMask.getInitiators().size() != 4) {
+                if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());
                     }
-                    if (exportMask.getUserAddedInitiators().size() != 4) {
+                if ((exportMask.getUserAddedInitiators() != null) && exportMask.getUserAddedInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} UserAddedInitiators instead of 4", exportMaskLabel,
                                 exportMask.getUserAddedInitiators().size());
                     }
-                    if (exportMask.getExistingInitiators().size() != 0) {
+                if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 0) {
                         log.error("ExportMask with name {} has {} ExistingInitiators instead of 0", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }
             } else if (exportMaskLabel.contains("Existing")) {
                 if (exportMaskLabel.contains("VMAX")) {
-                    if (exportMask.getInitiators().size() != 4) {
+                    if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());
                     }
-                    if (exportMask.getUserAddedInitiators().size() != 4) {
+                    if ((exportMask.getUserAddedInitiators() != null) && exportMask.getUserAddedInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} UserAddedInitiators instead of 4", exportMaskLabel,
                                 exportMask.getUserAddedInitiators().size());
                     }
-                    if (exportMask.getExistingInitiators().size() != 0) {
+                    if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 0) {
                         log.error("ExportMask with name {} has {} ExistingInitiators instead of 0", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }
                 } else {
-                    if (exportMask.getExistingInitiators().size() != 4) {
+                    if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }
                 }
             } else if (exportMaskLabel.contains("Mixed")){
                 if (exportMaskLabel.contains("VMAX")) {
-                    if (exportMask.getInitiators().size() != 4) {
+                    if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());
                     }
-                    if (exportMask.getUserAddedInitiators().size() != 4) {
+                    if ((exportMask.getUserAddedInitiators() != null) && exportMask.getUserAddedInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} UserAddedInitiators instead of 4", exportMaskLabel,
                                 exportMask.getUserAddedInitiators().size());
                     }
-                    if (exportMask.getExistingInitiators().size() != 4) {
+                    if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} ExistingInitiators instead of 4", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }
                 } else {
-                    if (exportMask.getExistingInitiators().size() != 6) {
+                    if ((exportMask.getExistingInitiators() != null) && exportMask.getExistingInitiators().size() != 6) {
                         log.error("ExportMask with name {} has {} Initiators instead of 6", exportMaskLabel,
                                 exportMask.getExistingInitiators().size());
                     }

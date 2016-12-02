@@ -1456,6 +1456,7 @@ public class VNXeStorageDevice extends VNXeOperations
             apiClient.deleteLunGroup(lunGroupId, false, false);
 
             if (keepRGName) {
+                taskCompleter.ready(_dbClient);
                 return;
             }
 

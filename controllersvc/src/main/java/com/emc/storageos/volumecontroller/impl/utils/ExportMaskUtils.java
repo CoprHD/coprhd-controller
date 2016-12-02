@@ -1530,4 +1530,69 @@ public class ExportMaskUtils {
 
         return normalizedPorts.containsAll(maskInitiators);
     }
+    
+    /**
+     * Adds the new paths for an initiator to the zoneMap.
+     * @param zoneMap -- StringSetMap representing the zoneMap
+     * @param initiatorURI -- Initiator URI being worked on
+     * @param newPortURIs -- List<URI> port URIs being added for the specified initiator
+     */
+    public static void addInitiatorPathsToZoneMap(
+            StringSetMap zoneMap, URI initiatorURI, List<URI> newPortURIs) {
+        if (newPortURIs.isEmpty()) {
+            // Nothing to add
+            return;
+        }
+        StringSet portSet = new StringSet();
+        if (!zoneMap.keySet().contains(initiatorURI.toString())) {
+            zoneMap.put(initiatorURI.toString(), portSet);
+        } else {
+            portSet = zoneMap.get(initiatorURI.toString());
+        }
+        for (URI portURI : newPortURIs) {
+            if (!portSet.contains(portURI.toString())) {
+                portSet.add(portURI.toString());
+            }
+        }
+    }
+    
+    /**
+     * Removes paths for an initiator from the zoneMap
+     * @param zoneMap -- StringSetMap representing the zoneMap
+     * @param initiatorURI -- initiator URI being worked on
+     * @param removedPortURIs -- port URIs being removed from the initiator
+     */
+    public static void removeInitiatorPathsFromZoneMap(StringSetMap zoneMap, URI initiatorURI, List<URI> removedPortURIs) {
+        if (removedPortURIs.isEmpty()) {
+            // Nothing to remove
+            return;
+        }
+        if (!zoneMap.containsKey(initiatorURI.toString())) {
+            // No entry for specified initiator, nothing to do
+            return;
+        }
+        StringSet portSet = zoneMap.get(initiatorURI.toString());
+        for (URI portURI : removedPortURIs) {
+            if (portSet.contains(portURI.toString())) {
+                portSet.remove(portURI.toString());
+            }
+        }
+        if (portSet.isEmpty()) {
+            zoneMap.remove(initiatorURI.toString());
+        }
+    }
+    
+    /**
+     * Given a zone map as a Map of initiators to List of corresponding ports,
+     * return the union of all ports in the map.
+     * @param zoneMap Map<URI initiator, List<URI> portList>
+     * @return Set of all ports.
+     */
+    public static Set<URI> getAllPortsInZoneMap(Map<URI, List<URI>> zoneMap) {
+        Set<URI> result = new HashSet<URI>();
+        for (List<URI> ports : zoneMap.values()) {
+            result.addAll(ports);
+        }
+        return result;
+    }
 }

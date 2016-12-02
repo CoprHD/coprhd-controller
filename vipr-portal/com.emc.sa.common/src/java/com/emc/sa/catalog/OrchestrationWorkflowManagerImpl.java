@@ -27,6 +27,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 
 
 @Component
@@ -59,7 +60,7 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
-    public List<NamedElement> listByStatus(final String status) {
+    public List<NamedElement> listByStatus(final OrchestrationWorkflowStatus status) {
         return client.orchestrationWorkflows().findAllNamesByStatus(status);
     }
 

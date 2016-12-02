@@ -23,6 +23,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -53,14 +54,14 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
         return prepareNamedElementFromURI(client.findAllIds(clazz));
     }
 
-    public List<NamedElement> findAllNamesByStatus(final String status) {
+    public List<NamedElement> findAllNamesByStatus(final OrchestrationWorkflowStatus status) {
         return prepareNamedElementFromURI(findIDsByStatus(status));
     }
 
-    private List<URI> findIDsByStatus(final String status) {
+    private List<URI> findIDsByStatus(final OrchestrationWorkflowStatus status) {
         final List<URI> out = Lists.newArrayList();
         if (null != status) {
-            final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATUS, status);
+            final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATUS, status.toString());
             if (results != null) {
                 for (NamedElement namedElement : results) {
                     out.add(namedElement.getId());

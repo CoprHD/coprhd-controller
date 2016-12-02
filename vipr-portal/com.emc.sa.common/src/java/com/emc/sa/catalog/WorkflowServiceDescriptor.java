@@ -77,7 +77,7 @@ public class WorkflowServiceDescriptor {
     // This method will only return service descriptors for PUBLISHED workflwos
     public Collection<ServiceDescriptor> listDescriptors() {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
-        List<NamedElement> oeElements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.PUBLISHED.toString());
+        List<NamedElement> oeElements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.PUBLISHED);
         if (null != oeElements) {
             OrchestrationWorkflow oeWorkflow;
             for(NamedElement oeElement: oeElements) {

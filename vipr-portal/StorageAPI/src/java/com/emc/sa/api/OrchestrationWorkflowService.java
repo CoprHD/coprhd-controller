@@ -73,7 +73,8 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     public OrchestrationWorkflowList getWorkflows(@QueryParam("status") String status) {
         List<NamedElement> elements;
         if (null != status) {
-            elements = orchestrationWorkflowManager.listByStatus(status);
+            ArgValidator.checkFieldValueFromEnum(status, "status", OrchestrationWorkflowStatus.class);
+            elements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.valueOf(status));
         }
         else {
             elements = orchestrationWorkflowManager.list();
@@ -110,13 +111,19 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
         final OrchestrationWorkflow updated;
         try {
             OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+
             // Published workflow cannot be edited
-            if(OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getStatus())) {
-                throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be edited.");
+            switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+                case PUBLISHED:
+                    throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be edited.");
             }
+
             updated = WorkflowHelper.update(orchestrationWorkflow, workflow.getDocument());
-            // On update resetting workflow status to initial state -NONE
-            updated.setStatus(OrchestrationWorkflowStatus.NONE.toString());
+
+            // On update, if there is any change to steps, resetting workflow status to initial state -NONE
+            if (!orchestrationWorkflow.getSteps().equals(updated.getSteps())) {
+                updated.setStatus(OrchestrationWorkflowStatus.NONE.toString());
+            }
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error serializing workflow", e);
         }
@@ -129,12 +136,14 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+
         // Published workflow cannot be deleted
-        if(OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getStatus())) {
-            throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be deleted.");
+        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+            case PUBLISHED:
+                throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be deleted.");
         }
+
         orchestrationWorkflowManager.delete(orchestrationWorkflow);
-        
         return Response.ok().build();
     }
 
@@ -143,13 +152,18 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrchestrationWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
-        // Workflow can only be published when it is in VALID state
-        if (OrchestrationWorkflowStatus.VALID.toString().equals(orchestrationWorkflow.getStatus())) {
-            OrchestrationWorkflow updated = WorkflowHelper.updateStatus(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
-            orchestrationWorkflowManager.save(updated);
-            return map(updated);
+        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+            case PUBLISHED:
+                // If worklow is already in published sate, ignoring
+                return map(orchestrationWorkflow);
+            case VALID:
+                // Workflow can only be published when it is in VALID state
+                OrchestrationWorkflow updated = WorkflowHelper.updateStatus(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
+                orchestrationWorkflowManager.save(updated);
+                return map(updated);
+            default:
+                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", orchestrationWorkflow.getStatus()));
         }
-        throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", orchestrationWorkflow.getStatus()));
     }
 
     @POST
@@ -158,16 +172,21 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     public OrchestrationWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
         // Workflow can only be unpublished when it is in PUBLISHED state
-        if (OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getStatus())) {
-            //Check if there are any existing services created from this WF
-            if (orchestrationWorkflowManager.hasCatalogServices(orchestrationWorkflow.getName())) {
-                throw APIException.methodNotAllowed.notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
-            }
-            OrchestrationWorkflow updated = WorkflowHelper.updateStatus(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
-            orchestrationWorkflowManager.save(updated);
-            return map(updated);
+        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+            case VALID:
+                // workflow is not published, ignoring
+                return map(orchestrationWorkflow);
+            case PUBLISHED:
+                //Check if there are any existing services created from this WF
+                if (orchestrationWorkflowManager.hasCatalogServices(orchestrationWorkflow.getName())) {
+                    throw APIException.methodNotAllowed.notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
+                }
+                OrchestrationWorkflow updated = WorkflowHelper.updateStatus(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
+                orchestrationWorkflowManager.save(updated);
+                return map(updated);
+            default:
+                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", orchestrationWorkflow.getStatus()));
         }
-        throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", orchestrationWorkflow.getStatus()));
     }
 
     @POST

@@ -1887,7 +1887,7 @@ test_1() {
     done
 }
 
-# Test 1
+# Test 2
 #
 # Test creating a volume in a CG and verify the DB is in an expected state after it fails due to injected failure at end of workflow
 #
@@ -1922,6 +1922,7 @@ test_2() {
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
@@ -1929,6 +1930,7 @@ test_2() {
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
@@ -1936,7 +1938,7 @@ test_2() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
+    # failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
 
     for failure in ${failure_injections}
     do
@@ -2156,6 +2158,10 @@ test_4() {
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
+    if [ "${SS}" = "unity" ]; then
+      storage_failure_injections="failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+    fi
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
@@ -2315,7 +2321,7 @@ test_6() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
     then
 	storage_failure_injections="failure_004:failure_017"
     fi
@@ -2588,6 +2594,103 @@ test_8() {
 
       # Report results
       report_results test_8 ${failure}
+    done
+}
+
+# Test 9
+#
+# Test deleting a volume that is in a CG, making sure we can retry if failures occur during processing.
+#
+# 1. Save off state of DB (1)
+# 2. Create a CG in ViPR
+# 2. Perform volume create operation that will fail at the end of execution (and other locations)
+# 3. Inject a failure at a location that will cause the delete to fail
+# 4. Run the volume delete, verify failure and injection was hit
+# 5. Retry operation without failure injection
+# 7. Save off state of DB (2)
+# 8. Compare state (1) and (2)
+#
+test_9() {
+    echot "Test 9 Begins"
+
+    # Typically we have failure_004 here, but in the case of delete, there's no real rollback.
+    common_failure_injections=""
+
+    if [ "${SS}" = "vplex" ]
+    then
+	secho "test_9 is not implemented for VPLEX"
+	return
+    fi
+
+    if [ "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                                    failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries \
+	                            failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+	                            failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool \
+                                    failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
+
+    for failure in ${failure_injections}
+    do
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      secho "Running Test 9 with failure scenario: ${failure}..."
+      item=${RANDOM}
+      cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+
+      # Create a new CG
+      randval=${RANDOM}
+      CGNAME=wf-test2-cg-${randval}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 ${cfs}
+
+      # Create the CG
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Create the volume in a CG
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 2 ${cfs}
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Remove the volume
+      fail volume delete ${PROJECT}/${volname} --wait
+
+      # Turn on failure at a specific point
+      set_artificial_failure none
+
+      # Remove the volume
+      runcmd volume delete ${PROJECT}/${volname} --wait
+
+      # Remove the CG object
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 1 3 ${cfs}
+
+      # Report results
+      report_results test_9 ${failure}
     done
 }
 

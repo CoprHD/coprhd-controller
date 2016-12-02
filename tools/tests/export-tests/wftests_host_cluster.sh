@@ -265,10 +265,10 @@ test_host_remove_initiator() {
         
     for failure in ${failure_injections}
     do
-        secho "Running host_remove_initiator with failure scenario: ${failure}..."
+        echot "Running host_remove_initiator with failure scenario: ${failure}..."
         
-	TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-	reset_counts
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
         column_family="Volume ExportGroup ExportMask"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
@@ -318,13 +318,13 @@ test_host_remove_initiator() {
         if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
             # Fail, initiators should have been added to the export group
             echo "+++ FAIL - Some initiators were not found on the export group...fail."
-	    # Report results
-	    incr_fail_count
-	    if [ "${NO_BAILING}" != "1" ]
-	    then
-		report_results ${test_name} ${failure}
-		exit 1
-	    fi
+    	    # Report results
+    	    incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
         else
             echo "+++ SUCCESS - All initiators from host present on export group"   
         fi
@@ -362,13 +362,13 @@ test_host_remove_initiator() {
         if [[ "${foundinit1}" != "" || "${foundinit2}" != "" ]]; then
             # Fail, initiators 1 and 2 should be removed and initiators 3 and 4 should still be present
             echo "+++ FAIL - Expected host initiators were not removed from the export group."
-	    # Report results
-	    incr_fail_count
-	    if [ "${NO_BAILING}" != "1" ]
-	    then
-		report_results ${test_name} ${failure}
-		exit 1
-	    fi
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
         else
             echo "+++ SUCCESS - All expected host initiators removed from export group" 
         fi
@@ -391,8 +391,8 @@ test_host_remove_initiator() {
         # Validate DB
         validate_db 1 2 ${column_family}
 
-	# Report results
-	report_results ${test_name} ${failure}
+        # Report results
+        report_results ${test_name} ${failure}
     done
     
     # Cleanup the volume
@@ -746,16 +746,16 @@ test_cluster_remove_host() {
     test_name="test_cluster_remove_host"
     echot "Test cluster_remove_host Begins"
 
-    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \                                
-                                failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \ 
-                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \                                
+    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
                                 failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
                                 failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
 
-    #failure_injections="${common_failure_injections}"
+    failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
+    #failure_injections="failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete"    
 
     # Create volumes
     random_number=${RANDOM}        
@@ -766,7 +766,7 @@ test_cluster_remove_host() {
         
     for failure in ${failure_injections}
     do
-        secho "Running cluster_remove_host with failure scenario: ${failure}..."
+        echot "Running cluster_remove_host with failure scenario: ${failure}..."
         
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
@@ -849,9 +849,6 @@ test_cluster_remove_host() {
             runcmd hosts update $host1 --cluster null
             fail hosts update $host2 --cluster null
         
-            secho "Sleeping 60..."
-            sleep 60
-        
             # Rerun the command with no failures
             set_artificial_failure none 
             runcmd hosts update $host2 --cluster null
@@ -861,6 +858,23 @@ test_cluster_remove_host() {
             
             # Ensure that export group has been removed
             fail export_group show $PROJECT/${exportgroup1}
+            
+            echo "+++ Confirm export group has been deleted, expect to see an exception below if it has..."
+            foundeg1=`export_group show $PROJECT/${exportgroup1} | grep ${exportgroup1}`
+            
+            if [ "${foundeg1}" != "" ]; then
+                # Fail, export group should be removed
+                echo "+++ FAIL - Expected export group was not deleted."
+                # Report results
+                incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]
+                then
+                    report_results ${test_name} ${failure}
+                    exit 1
+                fi
+            else
+                echo "+++ SUCCESS - Expected export group was deleted." 
+            fi
                         
         else
             # Update export group

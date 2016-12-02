@@ -746,16 +746,16 @@ test_cluster_remove_host() {
     test_name="test_cluster_remove_host"
     echot "Test cluster_remove_host Begins"
 
-    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \                                
-                                failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \ 
-                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \                                
+    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
                                 failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
                                 failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
 
-    #failure_injections="${common_failure_injections}"
+    failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete"
+    #failure_injections="failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete"    
 
     # Create volumes
     random_number=${RANDOM}        
@@ -859,6 +859,7 @@ test_cluster_remove_host() {
             # Ensure that export group has been removed
             fail export_group show $PROJECT/${exportgroup1}
             
+            echo "+++ Confirm export group has been deleted, expect to see an exception below if it has..."
             foundeg1=`export_group show $PROJECT/${exportgroup1} | grep ${exportgroup1}`
             
             if [ "${foundeg1}" != "" ]; then

@@ -39,8 +39,8 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
         DbClient dbClient = getDbClient();
 
         int pageSize = 100;
-        int totalBlockObjectCount = 0;
-        int blockObjectUpdatedCount = 0;
+        int totalExportMaskObjectCount = 0;
+        int exportMaskUpdatedCount = 0;
         URI nextId = null;
         while (true) {
             List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true, nextId, pageSize);
@@ -59,14 +59,12 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
 
                 if (system != null && Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
 
-                    logger.info("Processing existing initiators for export mask {} on vmax storage {}", exportMask.getId(), systemUri);
-                    List<String> initiatorsToProcess = new ArrayList<String>();
+                    logger.info("Processing existing initiators for export mask {} on VMAX storage {}", exportMask.getId(), systemUri);
                     boolean updateObject = false;
 
                     if (exportMask.getExistingInitiators() != null &&
                             !exportMask.getExistingInitiators().isEmpty()) {
-                        initiatorsToProcess.addAll(exportMask.getExistingInitiators());
-                        for (String portName : initiatorsToProcess) {
+                        for (String portName : exportMask.getExistingInitiators()) {
                             Initiator existingInitiator = getInitiator(Initiator.toPortNetworkId(portName), dbClient);
                             if (existingInitiator != null && !checkIfDifferentResource(exportMask, existingInitiator)) {
                                 exportMask.addInitiator(existingInitiator);
@@ -77,23 +75,23 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
                         }
                     }
                     if (updateObject) {
-                        logger.info("Processed existing initiators for export mask {} on vmax storage {} and updated the Mask Object",
+                        logger.info("Processed existing initiators for export mask {} on VMAX storage {} and updated the Mask Object",
                                 exportMask.getId(), systemUri);
                         dbClient.updateObject(exportMask);
-                        blockObjectUpdatedCount++;
+                        exportMaskUpdatedCount++;
                     }
-                } else {
+                } else if (system == null) {
                     logger.warn("could not determine storage system type for exportMask {}",
                             exportMask.forDisplay());
                 }
             }
 
             nextId = exportMaskUris.get(exportMaskUris.size() - 1);
-            totalBlockObjectCount += exportMaskUris.size();
+            totalExportMaskObjectCount += exportMaskUris.size();
         }
 
         logger.info("Updated Existing information on {} of {} Export Mask Objects on VMAX Storage",
-                blockObjectUpdatedCount, totalBlockObjectCount);
+                exportMaskUpdatedCount, totalExportMaskObjectCount);
     }
 
     /**

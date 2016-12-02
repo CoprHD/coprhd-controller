@@ -164,10 +164,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
              // Set host to boot from lan
             waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
-                     "Set the host to boot from LAN", waitFor, cs.getId(), cs.getSystemType(),
-                     this.getClass(), new Workflow.Method("setLanBootTargetStep", computeSystemId,
-                     computeElementId, hostId),
-                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                     "Set the host to boot from LAN", waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                     new Workflow.Method("setLanBootTargetStep", computeSystemId,computeElementId, hostId),
+                     new Workflow.Method("setNoBootStep", computeSystemId,computeElementId, hostId),
+                     null);
 
             // Set the OS install Vlan on the first vnic
             waitFor = workflow.createStep(OS_INSTALL_PREPARE_OS_NETWORK, "prepare network for os install", waitFor, cs
@@ -211,7 +211,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         .getSystemType(),
                 this.getClass(), new Workflow.Method("setSanBootTargetStep", computeSystemId,
                         computeElementId, hostId, volumeId),
-                new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                new Workflow.Method("setNoBootStep", computeSystemId,computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
 
@@ -259,6 +259,25 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
 
     }
+    public void setNoBootStep(URI computeSystemId, URI computeElementId, URI hostId, String stepId) {
+        log.info("setNoBootStep");
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            setNoBoot(computeSystemId, computeElementId, hostId, true);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (InternalException e) {
+            log.error("Exception setNoBootStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        } catch (Exception e) {
+            log.error("Unexpected exception setNoBootStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            WorkflowStepCompleter.stepFailed(stepId,
+                    ImageServerControllerException.exceptions.unexpectedException(opName, e));
+        }
+
+    }
 
     public void setLanBootTargetStep(URI computeSystemId, URI computeElementId, URI hostId, String stepId) {
         log.info("setLanBootTargetStep");
@@ -287,6 +306,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
 
         getDevice(cs.getSystemType()).setLanBootTarget(cs, computeElementId, hostId, waitForServerRestart);
+
+    }
+
+    public void setNoBoot(URI computeSystemId, URI computeElementId, URI hostId, boolean waitForServerRestart)
+            throws InternalException {
+
+        log.info("setNoBoot");
+        ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
+
+        getDevice(cs.getSystemType()).setNoBoot(cs, computeElementId, hostId, waitForServerRestart);
 
     }
 

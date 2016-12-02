@@ -998,6 +998,26 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
+    public void setNoBoot(ComputeSystem cs, URI computeElementId, URI hostId,
+            boolean waitForServerRestart) throws InternalException {
+
+        ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, computeElementId);
+
+        try {
+            ucsmService.setServiceProfileToNoBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                    computeElement.getDn());
+
+            if (waitForServerRestart) {
+                pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                        computeElement.getDn(), LsServer.class);
+            }
+        } catch (ClientGeneralException e) {
+            throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElementId.toString(), e);
+        }
+
+    }
+
+
     @Override
     public void setLanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId,
             boolean waitForServerRestart) throws InternalException {

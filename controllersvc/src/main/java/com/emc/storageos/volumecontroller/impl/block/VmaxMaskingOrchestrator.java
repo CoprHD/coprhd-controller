@@ -194,6 +194,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
+        validateHLUForLunViolations(storage, exportGroup, initiatorURIs);
+
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         boolean anyOperationsToDo = false;

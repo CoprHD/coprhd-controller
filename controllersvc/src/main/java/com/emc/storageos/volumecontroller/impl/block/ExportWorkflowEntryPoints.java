@@ -117,10 +117,21 @@ public class ExportWorkflowEntryPoints implements Controller {
                 storageURI, volumeURIs, newVpoolURI, rollback);
     }
     
-    public static Workflow.Method portRebalanceMethod(URI storageURI, URI exportGroup, URI maskURI,
-            Map<URI, List<URI>>addedPaths, Map<URI, List<URI>> removedPaths, boolean isWaitForApproval) {
-        return new Workflow.Method("portRebalance", storageURI, exportGroup, maskURI, addedPaths, 
-                removedPaths, isWaitForApproval);
+    public static Workflow.Method zoningAddPathsMethod(URI storageURI, URI exportGroup, Map<URI, List<URI>>adjustedPaths) {
+        return new Workflow.Method("zoningAddPathMethod", storageURI, exportGroup, adjustedPaths);
+    }
+    
+    public static Workflow.Method zoningRemovePathsMethod(URI storageURI, URI exportGroup, Map<URI, List<URI>>removedPaths) {
+        return new Workflow.Method("zoningRemovePathMethod", storageURI, exportGroup, removedPaths);
+    }
+    
+    public static Workflow.Method exportRemovePathsMethod(URI storageURI, URI exportGroup, URI exportMask,
+            Map<URI, List<URI>>removedPaths) {
+        return new Workflow.Method("zoningRemovePathMethod", storageURI, exportGroup, exportMask, removedPaths);
+    }
+    
+    public static Workflow.Method exportAddPathsMethod(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>adjustedPaths) {
+        return new Workflow.Method("zoningAddPathMethod", storageURI, exportGroup, exportMask, adjustedPaths);
     }
 
     // ====================== Methods to call Masking Orchestrator
@@ -374,22 +385,49 @@ public class ExportWorkflowEntryPoints implements Controller {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
     
-    public void portRebalance(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>addedPaths, 
-            Map<URI, List<URI>>removedPaths, boolean isWaitForApproval, String token)
-                    throws ControllerException {
+    
+    public void zoningAddPaths(URI storageURI, URI exportGroup, Map<URI, List<URI>>adjustedPaths, String token) {
+        //TODO
+    }
+    
+    public void zoningRemovePaths(URI storageURI, URI exportGroup, Map<URI, List<URI>>removedPaths, String token) {
+        //TODO
+    }
+    
+    public void exportAddPaths(URI storageURI, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
+            String token) throws ControllerException{
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            final String workflowKey = "portRebalance";
+            final String workflowKey = "addPaths";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.portRebalance(storageURI, exportGroup, exportMask, addedPaths, removedPaths, isWaitForApproval, token);
+                orchestrator.portRebalance(storageURI, exportGroupURI, exportMaskURI, adjustedPaths, null, true, token);
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
             }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
-                    .exportGroupChangePathParams(e);
+                    .exportGroupPortRebalanceError(e);
+            WorkflowStepCompleter.stepFailed(token, exception);
+        }
+    }
+    
+    public void exportRemovePaths(URI storageURI, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>>removePaths, 
+            String token) throws ControllerException{
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            final String workflowKey = "removePaths";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.portRebalance(storageURI, exportGroupURI, exportMaskURI, null, removePaths, false, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions
+                    .exportGroupPortRebalanceError(e);
             WorkflowStepCompleter.stepFailed(token, exception);
         }
     }

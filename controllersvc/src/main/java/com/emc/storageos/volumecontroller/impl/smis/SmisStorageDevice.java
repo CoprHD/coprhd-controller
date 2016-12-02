@@ -3325,4 +3325,22 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
     }
+    
+    @Override
+    public void doExportAddPaths(final StorageSystem storage, final URI exportMask,
+            final Map<URI, List<URI>> newPaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportAddPaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.addPaths(storage, exportMask, newPaths, taskCompleter);
+        _log.info("{} doExportAddPaths END ...", storage.getSerialNumber());
+    }
+    
+    @Override
+    public void doExportRemovePaths(final StorageSystem storage, final URI exportMask,
+            final Map<URI, List<URI>> removePaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.removePaths(storage, exportMask, removePaths, taskCompleter);
+        _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
+    }
 }

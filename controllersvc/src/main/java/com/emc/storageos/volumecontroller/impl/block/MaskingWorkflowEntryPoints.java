@@ -646,10 +646,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             
-            getDevice(storage).doExportAddPaths(storage, exportMask, newPaths, taskCompleter);
+            getDevice(storage).doExportAddPaths(storage, exportMaskURI, newPaths, taskCompleter);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {
@@ -674,10 +673,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             
-            getDevice(storage).doExportRemovePaths(storage, exportMask, removePaths, taskCompleter);
+            getDevice(storage).doExportRemovePaths(storage, exportMaskURI, removePaths, taskCompleter);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {

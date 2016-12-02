@@ -2697,7 +2697,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @return
      * @throws Exception
      */
-    public String generateZoningRemovePathsWorkflow(Workflow workflow, Boolean waitBeforeRemovePaths, 
+    public String generateZoningRemovePathsWorkflow(Workflow workflow,  
             URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> removedPaths, String previousStep)
                     throws Exception {
         String zoningStep = workflow.createStepId();
@@ -2715,7 +2715,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 "Zoning subtask for export-group: " + exportGroupURI,
                 previousStep, NullColumnValueGetter.getNullURI(),
                 "network-system", _networkDeviceController.getClass(),
-                zoningExecuteMethod, zoningRollbackMethod, waitBeforeRemovePaths, zoningStep);
+                zoningExecuteMethod, zoningRollbackMethod, zoningStep);
 
         return zoningStep;
     }

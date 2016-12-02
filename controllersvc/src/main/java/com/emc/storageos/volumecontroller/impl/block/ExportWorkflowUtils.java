@@ -519,7 +519,7 @@ public class ExportWorkflowUtils {
     }
     
     /**
-     * Generates a Workflow Step to rebalance ports in a storage system for a specific Export Group.
+     * Generates a Workflow Step to add paths in a storage system for a specific Export Mask.
      * 
      * @param workflow - Workflow in which to add the step
      * @param wfGroupId - String pointing to the group id of the step
@@ -533,16 +533,97 @@ public class ExportWorkflowUtils {
      * @return - Step id
      * @throws ControllerException
      */
-    public String generatePortRebalanceWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPath,
-            boolean waitForApproval) throws ControllerException {
+    public String generateExportAddPathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
+            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> adjustedPaths) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
-        Workflow.Method method = ExportWorkflowEntryPoints.portRebalanceMethod(
-                storageURI, exportGroupURI, exportMask, addedPaths, removedPath, waitForApproval);
+        Workflow.Method method = ExportWorkflowEntryPoints.exportAddPathsMethod(
+                storageURI, exportGroupURI, exportMask, adjustedPaths);
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Port rebalance on storage array %s for exportGroup %s storage system %s",
-                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), storageURI.toString()),
-                storageSystem, method, null, waitFor);
+                String.format("Export add paths on storage array %s for exportGroup %s exportMask %s",
+                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
+                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+    }
+    
+    /**
+     * Generate workflow step for remove path masking in a storage system for a specific export mask.
+     * 
+     * @param workflow
+     * @param wfGroupId
+     * @param waitFor
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMask
+     * @param removePaths
+     * @param isPending
+     * @return
+     * @throws ControllerException
+     */
+    public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
+            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> removePaths, boolean isPending) 
+                    throws ControllerException {
+        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+
+        Workflow.Method method = ExportWorkflowEntryPoints.exportRemovePathsMethod(
+                storageURI, exportGroupURI, exportMask, removePaths);
+        return newWorkflowStep(workflow, wfGroupId,
+                String.format("Remove paths on storage array %s for exportGroup %s exportMask %s",
+                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
+                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+    }
+    
+    /**
+     * Generate workflow step for add path zoning
+     * 
+     * @param workflow
+     * @param wfGroupId
+     * @param storageURI
+     * @param exportGroupURI
+     * @param adjustedPaths - The paths going to be added and/or retained
+     * @param waitFor
+     * @return
+     * @throws ControllerException
+     */
+    public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
+            Map<URI, List<URI>>adjustedPaths, String waitFor) throws ControllerException {
+        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+
+        Workflow.Method method = ExportWorkflowEntryPoints.zoningAddPathsMethod(
+                storageURI, exportGroupURI, adjustedPaths);
+        Workflow.Method rollbackMethod = ExportWorkflowEntryPoints.zoningRemovePathsMethod(
+                storageURI, exportGroupURI, adjustedPaths);
+        
+        return newWorkflowStep(workflow, wfGroupId,
+                String.format("Zoning add paths on storage array %s for exportGroup %s ",
+                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString()),
+                storageSystem, method, rollbackMethod, waitFor);
+    }
+    
+    /**
+     * Generate workflow step for remove paths zoning
+     * 
+     * @param workflow
+     * @param wfGroupId
+     * @param storageURI
+     * @param exportGroupURI
+     * @param removePaths
+     * @param waitFor
+     * @return
+     * @throws ControllerException
+     */
+    public String generateZoningRemovePathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
+            Map<URI, List<URI>>removePaths, String waitFor) throws ControllerException {
+        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+
+        Workflow.Method method = ExportWorkflowEntryPoints.zoningRemovePathsMethod(
+                storageURI, exportGroupURI, removePaths);
+        Workflow.Method rollbackMethod = ExportWorkflowEntryPoints.zoningAddPathsMethod(
+                storageURI, exportGroupURI, removePaths);
+        
+        return newWorkflowStep(workflow, wfGroupId,
+                String.format("Zoning remove paths on storage array %s for exportGroup %s ",
+                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString()),
+                storageSystem, method, rollbackMethod, waitFor);
+        
     }
 }

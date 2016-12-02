@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1008,8 +1009,8 @@ public class BlockDeviceExportController implements BlockExportController {
     }
     
     @Override
-    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, Map<URI, List<URI>> addedPaths, 
-            Map<URI, List<URI>> removedPaths, ExportPathParams exportPathParam, boolean waitForApproval, 
+    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>> removedPaths, ExportPathParams exportPathParam, boolean waitBeforeRemovePaths, 
             String opId) throws ControllerException {
         _log.info("Received request to reallocate ports. Creating master workflow.");
         ExportPortRebalanceCompleter taskCompleter = new ExportPortRebalanceCompleter(systemURI, exportGroupURI, opId, 
@@ -1041,21 +1042,35 @@ public class BlockDeviceExportController implements BlockExportController {
                         "ExportPortRebalance: " + exportGroup.getLabel());
             }
             
-            String step = null;
+            String stepId = null;
+            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, 
+                    adjustedPaths, stepId);
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
                     _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
                             mask.getId().toString()));
                     continue;
                 }
-                step = _wfUtils.generatePortRebalanceWorkflow(workflow, "portRebalance", step, systemURI, exportGroup.getId(),
-                        mask.getId(), addedPaths, removedPaths, waitForApproval);
+                stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
+                        mask.getId(), adjustedPaths);
             }
 
+            boolean isPending = waitBeforeRemovePaths;
+            
+            for (ExportMask mask : exportMasks) {
+                Map<URI, List<URI>> removingPaths = getRemovePathsForExportMask(mask, removedPaths);
+                if (!removingPaths.isEmpty()) {
+                    stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
+                            systemURI, exportGroupURI, mask.getId(), removingPaths, isPending);
+                    isPending = false;
+                }
+            }
+            stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, 
+                    removedPaths, stepId);
             if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info("The updateVolumePathParams workflow has {} steps. Starting the workflow.",
+                _log.info("The Export group port rebalance workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
-                workflow.executePlan(taskCompleter, "Update the export group on all storage systems successfully.");
+                workflow.executePlan(taskCompleter, "Executing port rebalance workflow.");
             } else {
                 taskCompleter.ready(_dbClient);
             }
@@ -1064,5 +1079,43 @@ public class BlockDeviceExportController implements BlockExportController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
+    }
+    
+    /**
+     * Get the remove path list for the exportMask in the given removedPaths.
+     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
+     * 
+     * @param exportMask 
+     * @param removedPaths - The list paths. some of them may not belong to the export mask.
+     * @return - The list of paths are going to be removed from the export mask.
+     */
+    private Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (removedPaths == null || removedPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> removePorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (targets.contains(port.toString())) {
+                        removePorts.add(port);
+                    }
+                }
+                if (!removePorts.isEmpty()) {
+                    result.put(initiator, removePorts);
+                }
+            } 
+        }
+        return result;
     }
 }

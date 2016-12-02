@@ -57,11 +57,13 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -4998,6 +5000,114 @@ public class VmaxExportOperations implements ExportMaskOperations {
             ExportOperationContext.insertContextOperation(taskCompleter,
                     VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP, initiator.getId());
         }
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} addPaths START...", storage.getSerialNumber());
+        // Initiators should have been in the export mask, only need to add storage ports to the port group.
+        Set<URI> storagePorts = new HashSet<URI>();
+        for (List<URI> ports : newPaths.values()) {
+            storagePorts.addAll(ports);
+        }
+        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        try {
+            List<URI> ports = addStoragePorts(storage, storagePorts, exportMask, taskCompleter );
+            exportMask.getStoragePorts().addAll(StringSetUtil.uriListToSet(ports));
+            _dbClient.updateObject(exportMask);          
+        } catch (Exception e) {
+            _log.error(String.format("addPaths failed - maskName: %s", exportMask.getMaskName()), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+        _log.info("{} addPaths END...", storage == null ? null : storage.getSerialNumber());
+        
+        
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} removePaths START...", storage.getSerialNumber());
+        
+        //Find out if any storage port in the remove paths should be removed.
+        // If the storage ports show up in the zoning map other than the remove Paths, remove the storage ports from the
+        // port group
+        Set<URI> storagePortsInRemovePaths = new HashSet<URI>();
+        for (List<URI> ports : removePaths.values()) {
+            storagePortsInRemovePaths.addAll(ports);
+        }
+
+        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        for (Map.Entry<URI, List<URI>>entry : removePaths.entrySet()) {
+            URI initURI = entry.getKey();
+            for (URI port : entry.getValue()) {
+                zoningMap.remove(initURI.toString(), port.toString());
+            }
+        }
+        Set<URI> zoningPorts = new HashSet<URI> ();
+        for (Set<String> ports : zoningMap.values()) {
+            zoningPorts.addAll(StringSetUtil.stringSetToUriList(ports));
+        }
+        List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(storagePortsInRemovePaths), zoningPorts));
+    }
+    
+    /**
+     * 
+     * 
+     * @param storage
+     * @param ports
+     * @param exportMask
+     * @param taskCompleter
+     * @return
+     * @throws Exception
+     */
+    private List<URI> addStoragePorts(StorageSystem storage, Set<URI> ports, ExportMask exportMask, TaskCompleter taskCompleter) throws Exception {
+        if (ports == null || ports.isEmpty()) {
+            _log.info("No storage ports, return.");
+            return null;
+        } else if (exportMask.hasTargets(ports)) {
+            _log.info("The exportmask has the targets, do nothing");
+            return null;
+        }
+        _log.info("Adding targets...");
+        // always get the port group from the masking view
+        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, exportMask.getMaskName());
+        if (null == portGroupInstance) {
+            String errMsg = String.format("add storage ports failed - maskName %s : Port group not found ", exportMask.getMaskName());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+            taskCompleter.error(_dbClient, serviceError);
+            return null;
+        }
+        String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
+
+        // Get the current ports off of the storage group; only add the ones that aren't there already.
+        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
+                 portGroupInstance);
+        Set<URI> storagePortURIs = new HashSet<>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        // Google Sets.difference returns a non-serializable set, so drop it into a standard HashSet upon
+        // return.
+        List<URI> diffPorts = new ArrayList<URI>(Sets.difference(ports, storagePortURIs));
+        if (!diffPorts.isEmpty()) {
+            CIMArgument[] inArgs = _helper.getAddTargetsToMaskingGroupInputArguments(storage, portGroupInstance.getObjectPath(),
+                    exportMask.getMaskName(), Lists.newArrayList(diffPorts));
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "AddMembers", inArgs, outArgs, null);
+            ExportOperationContext.insertContextOperation(taskCompleter,
+                    VmaxExportOperationContext.OPERATION_ADD_PORTS_TO_PORT_GROUP, pgGroupName,
+                    diffPorts);
+        } else {
+            _log.info(String.format("Target ports already added to port group %s, likely by a previous operation.", pgGroupName));
+        }
+
+        return diffPorts;
+        
     }
 
 }

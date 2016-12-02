@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
@@ -229,14 +230,15 @@ public class StorageSystemTypes {
             if (provider != null) {
                 if (StringUtils.equals(VMAX, typeName)) {
                     options.add(new StringOption(SMIS, provider));
-                } 
+                }
                 else if (StringUtils.equals(XTREMIO, typeName)) {
                     options.add(new StringOption(XTREMIO, provider));
                 }
-            } else if (StringUtils.equals(UNITY, typeName)) { 
+            } else if (StringUtils.equals(UNITY, typeName)) {
                 options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
+        Collections.sort(options);
         return options;
     }
 

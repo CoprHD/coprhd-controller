@@ -1643,6 +1643,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 volume.getLabel(), volume.getId(), backingVolume.getLabel(), backingVolume.getId(), rgName));
 
                         backingVolume.setReplicationGroupInstance(rgName);
+                        changeVpoolVolume.setBackingReplicationGroupInstance(rgName);
                         _dbClient.updateObject(backingVolume);
                     }
                 }

@@ -69,16 +69,19 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
             ExportMask exportMaskVPLEX = new ExportMask();
             exportMaskVPLEX.setId(URIUtil.createId(ExportMask.class));
             exportMaskVPLEX.setLabel("VplexExportMaskMigrationTestBasic");
+            exportMaskVPLEX.setStorageDevice(vplex.getId());
             exportMasksToCreate.add(exportMaskVPLEX);
 
             ExportMask exportMaskVNX = new ExportMask();
             exportMaskVNX.setId(URIUtil.createId(ExportMask.class));
             exportMaskVNX.setLabel("VnxExportMaskMigrationTestBasic");
+            exportMaskVNX.setStorageDevice(vnx.getId());
             exportMasksToCreate.add(exportMaskVNX);
 
             ExportMask exportMaskVMAX = new ExportMask();
             exportMaskVMAX.setId(URIUtil.createId(ExportMask.class));
             exportMaskVMAX.setLabel("VmaxExportMaskMigrationTestBasic");
+            exportMaskVMAX.setStorageDevice(vmax.getId());
             exportMasksToCreate.add(exportMaskVMAX);
 
             Host host = new Host();
@@ -115,14 +118,17 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
 
             ExportMask exportMaskVPLEX = new ExportMask();
             exportMaskVPLEX.setId(URIUtil.createId(ExportMask.class));
+            exportMaskVPLEX.setStorageDevice(vplex.getId());
             exportMasksToCreate.add(exportMaskVPLEX);
 
             ExportMask exportMaskVNX = new ExportMask();
             exportMaskVNX.setId(URIUtil.createId(ExportMask.class));
+            exportMaskVNX.setStorageDevice(vnx.getId());
             exportMasksToCreate.add(exportMaskVNX);
 
             ExportMask exportMaskVMAX = new ExportMask();
             exportMaskVMAX.setId(URIUtil.createId(ExportMask.class));
+            exportMaskVMAX.setStorageDevice(vmax.getId());
             exportMasksToCreate.add(exportMaskVMAX);
 
             if (i == 1) {
@@ -169,16 +175,19 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
             ExportMask exportMaskVPLEX = new ExportMask();
             exportMaskVPLEX.setId(URIUtil.createId(ExportMask.class));
             exportMaskVPLEX.setLabel("VplexExportMaskMigrationTesterMixed");
+            exportMaskVPLEX.setStorageDevice(vplex.getId());
             exportMasksToCreate.add(exportMaskVPLEX);
 
             ExportMask exportMaskVNX = new ExportMask();
             exportMaskVNX.setId(URIUtil.createId(ExportMask.class));
             exportMaskVNX.setLabel("VnxExportMaskMigrationTesterMixed");
+            exportMaskVNX.setStorageDevice(vnx.getId());
             exportMasksToCreate.add(exportMaskVNX);
 
             ExportMask exportMaskVMAX = new ExportMask();
             exportMaskVMAX.setId(URIUtil.createId(ExportMask.class));
             exportMaskVMAX.setLabel("VmaxExportMaskMigrationTesterMixed");
+            exportMaskVMAX.setStorageDevice(vmax.getId());
             exportMasksToCreate.add(exportMaskVMAX);
 
             Host host = new Host();

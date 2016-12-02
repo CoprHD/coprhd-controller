@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -737,22 +738,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 String id = apiClient.getConsistencyGroupIdByName(cgName);
                 if (id != null && !id.isEmpty()) {
                     apiClient.deleteConsistencyGroup(id, false, false);
-                    URI systemURI = storage.getId();
-                    if (consistencyGroup != null) {
-                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), cgName);
+                    if (!keepRGName) {
+                        // Clean up the system consistency group references
+                        BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), cgName, keepRGName, markInactive, dbClient);
+                        dbClient.updateObject(consistencyGroup);
                     }
                 }
             }
-            if (markInactive && consistencyGroup != null) {
-                consistencyGroup.setInactive(true);
-                logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
-            }
-
             
-            if (consistencyGroup != null) {
-                dbClient.updateObject(consistencyGroup);
-            }
-
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             logger.info("Failed to delete consistency group: " + e);

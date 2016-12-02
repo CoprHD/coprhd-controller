@@ -1689,17 +1689,17 @@ xtremio_block_tests()
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
 
-    run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
+    run volume create ${v1} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-	run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-	run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-	run volume create ${XTREMIOVOL}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${XTREMIOVOL}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run blocksnapshot create $PROJECT/${v1} ${snap1_label}
     run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
 
     xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
-	xtremio_export_test_hlu
+    xtremio_export_test_hlu
 
     run blocksnapshot restore $snap2
     run volume bulkget
@@ -1708,9 +1708,9 @@ xtremio_block_tests()
     run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
-	run volume delete $PROJECT/${XTREMIOVOL}3 --wait
-	run volume delete $PROJECT/${XTREMIOVOL}4 --wait
-	run volume delete $PROJECT/${XTREMIOVOL}5 --wait
+    run volume delete $PROJECT/${XTREMIOVOL}3 --wait
+    run volume delete $PROJECT/${XTREMIOVOL}4 --wait
+    run volume delete $PROJECT/${XTREMIOVOL}5 --wait
 }
 
 
@@ -1757,7 +1757,7 @@ xtremio_export_test()
 
 xtremio_export_test_hlu() {
 	xtremio_export_test_hlu1
-	#xtremio_export_test_hlu2
+	xtremio_export_test_hlu2
 }
 
 #Consistent Cluster HLU
@@ -1778,7 +1778,7 @@ xtremio_export_test_hlu1()
 	HOST2=$hostbase${tenant}22
 	volname=${XTREMIOVOL}
 	
-	if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+	if ["$USE_CLUSTERED_HOSTS" -eq "0"]; then
 		echo "Skipped xtremio_export_test_hlu test when non cluster test enabled"
 		return
 	fi
@@ -1833,6 +1833,7 @@ xtremio_export_test_hlu1()
 # Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu2()
 {
+<<<<<<< HEAD
 	if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
 		echo "Skipped xtremio_export_test_hlu test when non cluster test enabled"
 		return
@@ -1877,7 +1878,6 @@ xtremio_export_test_hlu2()
 
     run export_group delete $proj/${expname}2
     run export_group delete $proj/${expname}3
-    run export_group delete $proj/${expname}4
 }
 #
 # SRDF

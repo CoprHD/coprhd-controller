@@ -1673,12 +1673,9 @@ xtremio_blockconsistencygroup_snapshot_tests()
 verify_export() {
     # Parameters: Initiator group Name, Number of Initiators, Number of Luns
     # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
-    echo "Verify called";
-    export_name=$1
-    host_name=$2
-    masking_view_name=$export_name
-    sleep 10
-    run ${BASEDIR}/\export-tests/xiohelper.sh verify_export $masking_view_name $3 $4 $5
+    IG_name=$1
+    masking_view_name=${IG_name}.lss.emc.com
+    run ${BASEDIR}/\export-tests/xiohelper.sh verify_export $masking_view_name $2 $3 $4
 }
 
 xtremio_block_tests()
@@ -1764,141 +1761,123 @@ xtremio_export_test_hlu() {
 }
 
 #Consistent Cluster HLU
-# CLUSTER with 3 hosts
+# CLUSTER with 2 hosts
 # Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
 # Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
 # Step-3: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
 # Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
 # Step-5: Delete the private volume from HOST1 exported in step-2
-# Step-6: Remove HOST3 from cluster
+# Step-6: Remove HOST2 from cluster
 # Step-7: Export a new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU. Also HLU should be same as that was assigned in step-2
 # Step-8: Remove one shared volume from cluster exported in Step-1
-# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu1()
 {
     expname=${XTREMIOEXPORT_GROUP}
-	HOST1=$hostbase${tenant}11
-	HOST2=$hostbase${tenant}12
-	HOST3=$hostbase${tenant}21
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
 	volname=${XTREMIOVOL}
 	
-	if ["$USE_CLUSTERED_HOSTS" -eq "0"] then
+	if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
 		echo "Skipped xtremio_export_test_hlu test when non cluster test enabled"
 		return
 	fi
 	echo "XTREMIO Consistent HLU Test1"
 	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
-	verify_export ${expname}1 8 1 0
+	verify_export ${HOST1} 4 1 0
+	verify_export ${HOST2} 4 1 0
 	
 	run export_group create $proj ${expname}2 $NH --type Host --volspec "${proj}/${volname}"2 --hosts "${HOST1}"
-	verify_export ${expname}1 8 1 0
-	verify_export ${expname}2 ${HOST1} 2 1 1
+	verify_export ${HOST1} 4 2 0,1
+	verify_export ${HOST2} 4 1 0
 	
 	run export_group update $proj/${expname}1 --addVolspec "${proj}/${volname}"3
-	verify_export ${expname}1 8 1 2
-	verify_export ${expname}2 ${HOST1} 2 1 1
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 2 0,2
 	
 	run export_group create $proj ${expname}3 $NH --type Host --volspec "${proj}/${volname}"4 --hosts "${HOST2}"
-	verify_export ${expname}1 8 0 2
-	verify_export ${expname}2 ${HOST1} 2 1 1
-	verify_export ${expname}3 ${HOST2} 2 1 3
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 3 0,2,3
 	
 	run export_group delete $proj/${expname}2
-	verify_export ${expname}1 8 2 0,2
-	verify_export ${expname}2 ${HOST1} gone
-    verify_export ${expname}3 ${HOST2} 2 1 3
+	verify_export ${HOST1} 4 2 0,2
+    verify_export ${HOST2} 4 3 0,2,3
 	
-	run export_group update $proj/${expname}1 --remHosts "${HOST3}"
-    verify_export ${expname}1 8 2 0,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+	run export_group update $proj/${expname}1 --remHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 0,2
 
     run export_group update $proj/${expname}1 --addVols "${proj}/${volname}"5
-    verify_export ${expname}1 8 3 0,1,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+    verify_export ${HOST1} 4 3 0,2,1
 
     run export_group update $proj/${expname}1 --remVols "${proj}/${volname}"1
-    verify_export ${expname}1 8 1 2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+    verify_export ${HOST1} 4 2 1,2
 
-	run export_group update $proj/${expname}1 --addHosts "${HOST3}"
-    verify_export ${expname}1 8 2 1,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 1,2
+    verify_export ${HOST2} 4 3 1,2,3
 
     run export_group delete $proj/${expname}1
-    verify_export ${expname}1 gone
-    verify_export ${expname}3 ${HOST2} 2 1 3
-
-    run export_group delete $proj/${expname}3
-    verify_export ${expname}1 gone
-    verify_export ${expname}3 ${HOST2} gone	
+    run export_group delete $proj/${expname}3	
 }
 
-
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
+# Step-2: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-3: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster and its hosts' views
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Export a new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU. Also HLU should be same as that was assigned in step-2
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu2()
 {
-	if ["$USE_CLUSTERED_HOSTS" -eq "0"] then
+	if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
 		echo "Skipped xtremio_export_test_hlu test when non cluster test enabled"
 		return
 	fi
 	
 	HOST1=$hostbase${tenant}11
 	HOST2=$hostbase${tenant}12
-	HOST3=$hostbase${tenant}21
 	expname=${XTREMIOEXPORT_GROUP}
 	volname=${XTREMIOVOL}
+	cluster=sanityCluster1
 	echo "XTREMIO Consistent HLU Test2"
 	
 	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
-	verify_export ${expname}1 2 1 0
+	verify_export ${HOST1} 4 1 0
 	
 	run export_group create $proj ${expname}2 $NH --type Cluster --volspec "${proj}/${volname}"2 --cluster ${tenant}/${cluster}
-	verify_export ${expname}1 ${HOST1} 2 1 0
-	verify_export ${expname}2 8 1 1
+	verify_export ${HOST1} 4 2 0,1
+	verify_export ${HOST2} 4 1 1
 	
-	run export_group update $proj/${expname}2 --addVols ${proj}/${volname}"3
-	verify_export ${expname}1 ${HOST1} 2 1 0
-	verify_export ${expname}2 8 2 1,2
+	run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"3
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 2 1,2
 	
 	run export_group create $proj ${expname}3 $NH --type Host --volspec "${proj}/${volname}"4 --hosts "${HOST2}"
-	verify_export ${expname}1 ${HOST1} 2 1 0
-	verify_export ${expname}2 8 2 1,2
-	verify_export ${expname}3 2 1 3
+	verify_export ${HOST2} 4 3 1,2,3
 	
 	run export_group delete $proj/${expname}1
-	verify_export ${expname}1 ${HOST1} gone
-	verify_export {expname}2 8 2 1,2
-	verify_export ${expname}3 2 1 3
+	verify_export ${HOST1} 4 2 1,2
+	verify_export ${HOST2} 4 3 1,2,3
 	
-	runcmd export_group update $proj/${expname}2 --remHosts "${HOST3}"
-    verify_export ${expname}2 6 2 1,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+	run export_group update $proj/${expname}2 --remHosts "${HOST2}"
+    
+    run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"5
+    verify_export ${HOST1} 4 3 0,1,2
 
-    runcmd export_group update $proj/${expname}2 --addVols "${proj}/${volname}"-5
-    verify_export ${expname}2 6 3 0,1,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+    run export_group update $proj/${expname}2 --remVols "${proj}/${volname}"2
+    verify_export ${HOST1} 4 2 0,1
 
-    runcmd export_group update $proj/${expname}2 --remVols "${proj}/${volname}"-2
-    verify_export ${expname}2 6 2 0,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
+	run export_group update $proj/${expname}2 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 0,1
+    verify_export ${HOST2} 4 3 1,2,3
 
-    runcmd export_group update $proj/${expname}2 --addHosts "${HOST3}"
-    verify_export ${expname}2 8 2 0,2
-    verify_export ${expname}3 ${HOST2} 2 1 3
-
-    runcmd export_group delete $proj/${expname}2
-    verify_export ${expname}2 gone
-    verify_export ${expname}3 ${HOST2} 2 1 3
-    verify_export ${expname}4 ${HOST3} 2 1 5
-
-    runcmd export_group delete $proj/${expname}3
-    verify_export ${expname}2 gone
-    verify_export ${expname}3 ${HOST2} gone
-    verify_export ${expname}4 ${HOST3} 2 1 5
-
-    runcmd export_group delete $proj/${expname}4
-    verify_export ${expname}2 gone
-    verify_export ${expname}3 ${HOST2} gone
-    verify_export ${expname}4 ${HOST3} gone
+    run export_group delete $proj/${expname}2
+    run export_group delete $proj/${expname}3
+    run export_group delete $proj/${expname}4
 }
 #
 # SRDF

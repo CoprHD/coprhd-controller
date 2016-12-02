@@ -204,6 +204,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="exportWorkflowEntryPoints" ref="exportWorkflowEntryPoints"/>
+        <property name="networkDeviceController" ref="networkDeviceController" />
     </bean>
 
     <bean id="locker" class="com.emc.storageos.volumecontroller.impl.ControllerLockingServiceImpl">

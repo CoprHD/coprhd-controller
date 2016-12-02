@@ -1305,28 +1305,23 @@ public class NetworkScheduler {
      * @throws DeviceControllerException
      */
     public List<NetworkFCZoneInfo> getZoningTargetsForPaths(
-            ExportGroup exportGroup, URI exportMaskURI, Map<URI, List<URI>> paths,
+            URI storageSystemURI,
+            ExportGroup exportGroup, Map<URI, List<URI>> paths,
             Map<String, List<Zone>> zonesMap, DbClient dbClient)
             throws DeviceControllerException {
         List<NetworkFCZoneInfo> zones = new ArrayList<NetworkFCZoneInfo>();
-
-        ExportMask mask = ExportMaskUtils.getExportMask(_dbClient, exportMaskURI);
-
-        //List<Initiator> initiators = getInitiators(paths.keySet());
-        _log.info(String.format("Generating zoning targets for ExportMask: %s (%s)",
-                    mask.getMaskName(), mask.getId()));
-        //checkZoningMap(exportGroup.getVirtualArray(), mask, initiators);
+        //TODO get volumes in the export group matching the systemURI
+        List<URI> volumes = new ArrayList<URI>();
         if (isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
-            zones.addAll(getZoningTargetsForPaths(exportGroup, mask, exportGroup.getVirtualArray(), paths, zonesMap));
+            zones.addAll(getZoningTargetsForPaths(exportGroup, volumes, exportGroup.getVirtualArray(), paths, zonesMap));
         }
         // If we're doing a VPlex export, it might use an alternate Varray (for HA export),
         // so check to see if we can add zones for the alternate Varray.
-        if (exportGroup.hasAltVirtualArray(mask.getStorageDevice().toString())) {
+        if (exportGroup.hasAltVirtualArray(storageSystemURI.toString())) {
             URI altVirtualArray = URI.create(exportGroup.getAltVirtualArrays()
-                    .get(mask.getStorageDevice().toString()));
+                    .get(storageSystemURI.toString()));
             if (isZoningRequired(dbClient, altVirtualArray)) {
-                zones.addAll(getZoningTargetsForPaths(exportGroup,
-                        mask, altVirtualArray, paths, zonesMap));
+                zones.addAll(getZoningTargetsForPaths(exportGroup, volumes, altVirtualArray, paths, zonesMap));
             }
         }
         
@@ -1349,7 +1344,7 @@ public class NetworkScheduler {
      * @throws DeviceControllerException
      */
     private List<NetworkFCZoneInfo> getZoningTargetsForPaths(
-            ExportGroup exportGroup, ExportMask exportMask, URI varrayUri,
+            ExportGroup exportGroup, List<URI> volumes, URI varrayUri,
             Map<URI, List<URI>> paths, Map<String, List<Zone>> zonesMap)
             throws DeviceControllerException {
         List<NetworkFCZoneInfo> fabricInfos = new ArrayList<NetworkFCZoneInfo>();
@@ -1371,11 +1366,6 @@ public class NetworkScheduler {
                             varrayUri.toString()));
                     continue;
                 }
-                if (!exportMask.getStorageDevice().equals(sp.getStorageDevice())) {
-                    _log.warn(String.format("The storage port %s does not belong to the same storage system as the export mask", 
-                            sp.getNativeGuid()));
-                    continue;
-                }
                 try {
                     NetworkFCZoneInfo fabricInfo = placeZones(
                             exportGroup.getId(),
@@ -1384,9 +1374,9 @@ public class NetworkScheduler {
                             formatWWN(initiator.getInitiatorPort()),
                             sp, initiator.getHostName(), zonesMap.get(initiator.getInitiatorPort()), true);
                     if (fabricInfo != null) {
-                        for (String volId : exportMask.getVolumes().keySet()) {
+                        for (URI volId : volumes) {
                             NetworkFCZoneInfo volFabricInfo = fabricInfo.clone();
-                            volFabricInfo.setVolumeId(URI.create(volId));
+                            volFabricInfo.setVolumeId(volId);
                             fabricInfos.add(volFabricInfo);
                         }
                     }

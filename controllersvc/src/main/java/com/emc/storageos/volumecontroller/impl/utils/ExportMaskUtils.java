@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import static com.google.common.collect.Sets.newHashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1529,5 +1530,51 @@ public class ExportMaskUtils {
         }
 
         return normalizedPorts.containsAll(maskInitiators);
+    }
+    
+    /**
+     * Get new paths which are not in any of the export masks zoning maps from the giving paths
+     * 
+     * @param dbClient
+     * @param exportMasks
+     * @param maskURIs - OUTPUT the export masks URI list which have zoning map entries
+     * @param paths - new and retained paths
+     * @return - the new paths for the export masks
+     */
+    public static Map<URI, List<URI>> getNewPaths(DbClient dbClient, List<ExportMask> exportMasks,
+            List<URI> maskURIs, Map<URI, List<URI>> paths) {
+    
+        Map<URI, List<URI>> newPaths = new HashMap<URI, List<URI>>();
+        StringSetMap allZoningMap = new StringSetMap();
+        for (ExportMask mask : exportMasks) {
+            StringSetMap map = mask.getZoningMap();
+            if (map != null && !map.isEmpty()) {
+                for (String init : map.keySet()) {
+                    StringSet allPorts = allZoningMap.get(init);
+                    if (allPorts == null) {
+                        allPorts = new StringSet();
+                        allZoningMap.put(init, allPorts);
+                    }
+                    allPorts.addAll(map.get(init));
+                }
+                maskURIs.add(mask.getId());
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : paths.entrySet()) {
+            URI init = entry.getKey();
+            List<URI> entryPorts = entry.getValue();
+            StringSet zoningPorts = allZoningMap.get(init.toString());
+            if (zoningPorts != null && !zoningPorts.isEmpty()) {
+                List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(entryPorts), zoningPorts));
+                if (diffPorts != null && !diffPorts.isEmpty()) {
+                    newPaths.put(init, diffPorts);
+                }
+            } else {
+                newPaths.put(init, entryPorts);
+            }
+            
+        }
+        return newPaths;
+        
     }
 }

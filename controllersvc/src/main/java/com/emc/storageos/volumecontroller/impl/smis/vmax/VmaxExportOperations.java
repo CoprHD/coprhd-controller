@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
@@ -106,6 +107,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class VmaxExportOperations implements ExportMaskOperations {
@@ -5015,7 +5017,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         try {
             List<URI> ports = addStoragePorts(storage, storagePorts, exportMask, taskCompleter );
             exportMask.getStoragePorts().addAll(StringSetUtil.uriListToSet(ports));
-            _dbClient.updateObject(exportMask);          
+            _dbClient.updateObject(exportMask);
+            taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error(String.format("addPaths failed - maskName: %s", exportMask.getMaskName()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -5032,26 +5035,26 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} removePaths START...", storage.getSerialNumber());
         
         //Find out if any storage port in the remove paths should be removed.
-        // If the storage ports show up in the zoning map other than the remove Paths, remove the storage ports from the
+        // If the storage ports does not show up in the zoning map other than the removing paths, remove the storage ports from the
         // port group
-        Set<URI> storagePortsInRemovePaths = new HashSet<URI>();
-        for (List<URI> ports : removePaths.values()) {
-            storagePortsInRemovePaths.addAll(ports);
-        }
-
-        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-        StringSetMap zoningMap = exportMask.getZoningMap();
-        for (Map.Entry<URI, List<URI>>entry : removePaths.entrySet()) {
-            URI initURI = entry.getKey();
-            for (URI port : entry.getValue()) {
-                zoningMap.remove(initURI.toString(), port.toString());
+        try {
+            List<URI> removingPorts = getRemovedStoragePortsForRemovePaths(exportMaskURI, removePaths, _dbClient);
+            if (removingPorts != null && !removingPorts.isEmpty()) {
+                Set<URI> portsRemoved = removeStoragePorts(storage, exportMaskURI, removingPorts, taskCompleter);
+                if (portsRemoved != null && !portsRemoved.isEmpty()) {
+                   ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                   exportMask.removeTargets(portsRemoved);
+                   _dbClient.updateObject(exportMask);
+                }
             }
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error(String.format("remvoePaths failed - maskName: %s", exportMaskURI.toString()), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
         }
-        Set<URI> zoningPorts = new HashSet<URI> ();
-        for (Set<String> ports : zoningMap.values()) {
-            zoningPorts.addAll(StringSetUtil.stringSetToUriList(ports));
-        }
-        List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(storagePortsInRemovePaths), zoningPorts));
+            
+          
     }
     
     /**
@@ -5110,4 +5113,84 @@ public class VmaxExportOperations implements ExportMaskOperations {
         
     }
 
+    private Set<URI> removeStoragePorts(StorageSystem storage, URI exportMaskURI, List<URI> targetURIList, 
+            TaskCompleter taskCompleter) throws Exception {
+        _log.info("Removing storage ports...");
+
+        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        Set<URI> portsToRemove = new HashSet<URI>();
+
+        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
+        if (null == portGroupInstance) {
+            String errMsg = String.format("remove storage ports failed - maskName %s : Port group not found ",
+                    mask.getMaskName());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+            taskCompleter.error(_dbClient, serviceError);
+            return portsToRemove;
+        }
+        String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
+
+        // Get the current ports off of the storage group; only add the ones that aren't there already.
+        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
+                portGroupInstance);
+        Set<URI> storagePortURIs = new HashSet<>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        portsToRemove = intersection(newHashSet(targetURIList), storagePortURIs);
+        boolean removingLast = portsToRemove.size() == storagePortURIs.size();
+
+        if (!portsToRemove.isEmpty() && !removingLast) {
+            CIMArgument[] inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
+                    Lists.newArrayList(portsToRemove));
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "RemoveMembers", inArgs, outArgs, null);
+        } else if (!removingLast) {
+            _log.info(String.format("Target ports already removed fom port group %s, likely by a previous operation.",
+                    pgGroupName));
+        } else {
+            // In this case, some programming, orchestration, or
+            // user-fiddling-with-things-outside-of-ViPR situation led us
+            // to this scenario.
+            // It's best to just print the ports and port group and leave it alone.
+            _log.error(String
+                    .format("Removing target ports would cause an empty port group %s, which is not allowed on VMAX.  Manual port removal may be required.",
+                            pgGroupName));
+            // This can lead to an inaccuracy in the ExportMask object, but may be recitified next time
+            // it's refreshed.
+        }
+        return portsToRemove;
+    }
+    
+    /**
+     * Get storage ports that will be removed from the export mask because of the paths are going to be removed.
+     * 
+     * @param maskURI
+     * @param removePaths
+     * @param dbClient
+     * @return The list of storage ports that is going to be removed from the export mask
+     */
+    private static List<URI> getRemovedStoragePortsForRemovePaths(URI maskURI, Map<URI, List<URI>>removePaths, DbClient dbClient) {
+        ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
+        StringSetMap zoningMap = mask.getZoningMap();
+        
+        Set<URI> storagePortsInRemovePaths = new HashSet<URI>();
+        for (List<URI> ports : removePaths.values()) {
+            storagePortsInRemovePaths.addAll(ports);
+        }
+        //StringSetMap removeMap = ExportMaskUtils.getZoneMapFromAssignments(removePaths);
+        for (Map.Entry<URI, List<URI>>entry : removePaths.entrySet()) {
+            URI initURI = entry.getKey();
+            for (URI port : entry.getValue()) {
+                zoningMap.remove(initURI.toString(), port.toString());
+            }
+        }
+        Set<URI> zoningPorts = new HashSet<URI> ();
+        for (Set<String> ports : zoningMap.values()) {
+            zoningPorts.addAll(StringSetUtil.stringSetToUriList(ports));
+        }
+        return new ArrayList<URI>(Sets.difference(storagePortsInRemovePaths, zoningPorts));
+        
+    }
 }

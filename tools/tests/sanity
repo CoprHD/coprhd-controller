@@ -1689,7 +1689,7 @@ xtremio_block_tests()
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
 
-    run volume create ${v1} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true

@@ -23,10 +23,13 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
@@ -43,6 +46,8 @@ public class ExportWorkflowUtils {
     private DbClient _dbClient;
     private ExportWorkflowEntryPoints _exportWfEntryPoints;
     private WorkflowService _workflowSvc;
+    private NetworkDeviceController networkDeviceController;
+
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -58,6 +63,10 @@ public class ExportWorkflowUtils {
 
     public void setExportWorkflowEntryPoints(ExportWorkflowEntryPoints entryPoints) {
         _exportWfEntryPoints = entryPoints;
+    }
+    
+    public void setNetworkDeviceController(NetworkDeviceController networkDeviceController) {
+        this.networkDeviceController = networkDeviceController;
     }
 
     public String generateExportGroupCreateWorkflow(Workflow workflow, String wfGroupId,
@@ -584,19 +593,21 @@ public class ExportWorkflowUtils {
      * @return
      * @throws ControllerException
      */
-    public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
-            Map<URI, List<URI>>adjustedPaths, String waitFor) throws ControllerException {
-        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+    public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI exportGroupURI, 
+            List<URI> exportMaskURIs, Map<URI, List<URI>>newPaths, String waitFor) throws ControllerException {
+        String zoningStep = workflow.createStepId();
 
-        Workflow.Method method = ExportWorkflowEntryPoints.zoningAddPathsMethod(
-                storageURI, exportGroupURI, adjustedPaths);
-        Workflow.Method rollbackMethod = ExportWorkflowEntryPoints.zoningRemovePathsMethod(
-                storageURI, exportGroupURI, adjustedPaths);
+        Workflow.Method zoningExecuteMethod = networkDeviceController
+                .zoneExportAddPathsMethod(exportGroupURI, exportMaskURIs, newPaths);
+
+        zoningStep = workflow.createStep(
+                wfGroupId,
+                "Zoning add paths subtask: " + exportGroupURI,
+                waitFor, NullColumnValueGetter.getNullURI(),
+                "network-system", networkDeviceController.getClass(),
+                zoningExecuteMethod, null, zoningStep);
         
-        return newWorkflowStep(workflow, wfGroupId,
-                String.format("Zoning add paths on storage array %s for exportGroup %s ",
-                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString()),
-                storageSystem, method, rollbackMethod, waitFor);
+        return zoningStep;
     }
     
     /**
@@ -612,18 +623,23 @@ public class ExportWorkflowUtils {
      * @throws ControllerException
      */
     public String generateZoningRemovePathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
-            Map<URI, List<URI>>removePaths, String waitFor) throws ControllerException {
+            List<URI> exportMaskURIs, Map<URI, List<URI>>removePaths, String waitFor) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
-        Workflow.Method method = ExportWorkflowEntryPoints.zoningRemovePathsMethod(
-                storageURI, exportGroupURI, removePaths);
-        Workflow.Method rollbackMethod = ExportWorkflowEntryPoints.zoningAddPathsMethod(
-                storageURI, exportGroupURI, removePaths);
+        String zoningStep = workflow.createStepId();
         
-        return newWorkflowStep(workflow, wfGroupId,
-                String.format("Zoning remove paths on storage array %s for exportGroup %s ",
-                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString()),
-                storageSystem, method, rollbackMethod, waitFor);
+        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+                convertPathsToNetworkZoningParam(exportGroupURI, exportMaskURIs, removePaths, _dbClient);
+        Workflow.Method zoningExecuteMethod = networkDeviceController
+                .zoneExportRemoveInitiatorsMethod(zoningParams);
+        zoningStep = workflow.createStep(
+                wfGroupId,
+                "Zoning subtask for remvoe paths: " + exportGroupURI,
+                waitFor, NullColumnValueGetter.getNullURI(),
+                "network-system", networkDeviceController.getClass(),
+                zoningExecuteMethod, null, zoningStep);
+
+        return zoningStep;
         
     }
 }

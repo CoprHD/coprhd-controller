@@ -16,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ExportPortRebalanceParam {
     private URI storageSystem;
     private ExportPathParameters exportPathParameters;
-    private List<InitiatorPathParam> addedPaths;
+    private List<InitiatorPathParam> adjustedPaths;
     private List<InitiatorPathParam> removedPaths;
     private Boolean waitBeforeRemovePaths;
     
@@ -45,19 +45,19 @@ public class ExportPortRebalanceParam {
     }
     
     /**
-     * Paths are going to be added
+     * Paths are going to be adjusted, including new and retained paths
      */
-    @XmlElementWrapper(name = "added_paths", required = false)
+    @XmlElementWrapper(name = "adjusted_paths", required = false)
     @XmlElement(name = "initiator_path")
-    public List<InitiatorPathParam> getAddedPaths() {
-        if (addedPaths == null) {
-            addedPaths = new ArrayList<InitiatorPathParam>();
+    public List<InitiatorPathParam> getAdjustedPaths() {
+        if (adjustedPaths == null) {
+            adjustedPaths = new ArrayList<InitiatorPathParam>();
         }
-        return addedPaths;
+        return adjustedPaths;
     }
     
-    public void setAddedPaths(List<InitiatorPathParam> paths) {
-        addedPaths = paths;
+    public void setAdjustedPaths(List<InitiatorPathParam> paths) {
+        adjustedPaths = paths;
     }
     
     /**

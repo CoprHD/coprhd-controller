@@ -2604,22 +2604,22 @@ public class NetworkDeviceController implements NetworkController {
      * @param newPaths - new paths to be added
      * @return
      */
-    public Workflow.Method zoneExportAddPathsMethod(URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> newPaths) {
-        return new Workflow.Method("zoneExportAddPaths", exportGroupURI, exportMaskURI, newPaths);
+    public Workflow.Method zoneExportAddPathsMethod(URI exportGroupURI, List<URI> exportMasks, Map<URI, List<URI>> newPaths) {
+        return new Workflow.Method("zoneExportAddPaths", exportGroupURI, exportMasks, newPaths);
     }
 
     /**
      * Handle zoning for adding new paths to export mask.
      * 
      * @param exportGroup -- Used for the zone references.
-     * @param exportMaskURI - ExportMap URI
+     * @param exportMaskURI - ExportMask URI
      * @param newPaths - new paths to be added
      * @param token Workflow step id
      * @return true if success, false otherwise
      * @throws ControllerException
      */
-    public boolean zoneExportAddPaths(URI exportGroupURI,
-            URI exportMaskURI,
+    public boolean zoneExportAddPaths(URI systemURI, URI exportGroupURI,
+            List<URI> exportMaskURIs,
             Map<URI, List<URI>> newPaths,
             String token) throws ControllerException {
         NetworkFCContext context = new NetworkFCContext();
@@ -2634,11 +2634,11 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // get existing zones on the switch
-            Map<String, List<Zone>> zonesMap = getExistingZonesMap(Arrays.asList(exportMaskURI), token);
+            Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMaskURIs, token);
 
             // Compute zones that are required.
             List<NetworkFCZoneInfo> zoneInfos =
-                    _networkScheduler.getZoningTargetsForPaths(exportGroup, exportMaskURI, newPaths, zonesMap, _dbClient);
+                    _networkScheduler.getZoningTargetsForPaths(systemURI, exportGroup, newPaths, zonesMap, _dbClient);
             context.getZoneInfos().addAll(zoneInfos);
             logZones(zoneInfos);
 

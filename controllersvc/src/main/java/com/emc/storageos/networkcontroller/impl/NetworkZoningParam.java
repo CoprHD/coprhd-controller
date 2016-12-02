@@ -165,9 +165,10 @@ public class NetworkZoningParam implements Serializable {
 	 * @return
 	 */
 	static public List<NetworkZoningParam> convertPathsToNetworkZoningParam(
-	        URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> paths, DbClient dbClient) {
+	        URI exportGroupURI, List<URI> exportMaskURIs, Map<URI, List<URI>> paths, DbClient dbClient) {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+        //TODO get removepaths per exportMask
+        ExportMask exportMask = null;
         NetworkZoningParam zoningParam = new NetworkZoningParam(exportGroup, exportMask, dbClient);
         StringSetMap zoningMap = exportMask.getZoningMap();
         StringSetMap convertedZoningMap = new StringSetMap();

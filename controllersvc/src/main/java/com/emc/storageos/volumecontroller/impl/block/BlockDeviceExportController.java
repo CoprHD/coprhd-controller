@@ -1043,8 +1043,10 @@ public class BlockDeviceExportController implements BlockExportController {
             }
             
             String stepId = null;
-            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, 
-                    adjustedPaths, stepId);
+            List<URI> maskURIs = new ArrayList<URI> ();
+            Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
+            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", exportGroupURI, maskURIs,
+                    newPaths, stepId);
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
                     _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
@@ -1052,7 +1054,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     continue;
                 }
                 stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                        mask.getId(), adjustedPaths);
+                        mask.getId(), newPaths);
             }
 
             boolean isPending = waitBeforeRemovePaths;
@@ -1066,7 +1068,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
             stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, 
-                    removedPaths, stepId);
+                    maskURIs, removedPaths, stepId);
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The Export group port rebalance workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());

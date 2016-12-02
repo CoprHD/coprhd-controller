@@ -2642,83 +2642,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 "doExportMaskAddPaths", storage.getId(), exportGroupURI, exportMaskURI,
                 newPaths, exportTaskCompleter);
 
-        Workflow.Method rollbackMethod = new Workflow.Method(
-                "rollbackExportMaskAddPaths",
-                storage.getId(), exportGroupURI, exportMaskURI, newPaths, maskingStep);
-
         maskingStep = workflow.createStep(EXPORT_MASK_ADD_PATHS_TASK,
                 String.format("Adding paths to export mask %s", exportMaskURI.toString()),
                 previousStep, storage.getId(), storage.getSystemType(),
                 MaskingWorkflowEntryPoints.class, executeMethod,
-                rollbackMethod, maskingStep);
+                null, maskingStep);
         return maskingStep;
     }
-    
-    /**
-     * Create zoning add path work flow step
-     * 
-     * @param workflow
-     * @param exportGroupURI
-     * @param exportMaskURI
-     * @param newPaths
-     * @param previousStep
-     * @return
-     * @throws Exception
-     */
-    public String generateZoningAddPathWorkflow(Workflow workflow,  URI exportGroupURI, URI exportMaskURI, 
-            Map<URI, List<URI>>newPaths, String previousStep) throws Exception{
-        String zoningStep = workflow.createStepId();
-
-        Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportAddPathsMethod(exportGroupURI, exportMaskURI, newPaths);
-
-        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
-                convertPathsToNetworkZoningParam(exportGroupURI, exportMaskURI, newPaths, _dbClient);
-        Workflow.Method zoningRollbackMethod = _networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(zoningParams);
-
-        zoningStep = workflow.createStep(
-                (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
-                "Zoning subtask for export-group: " + exportGroupURI,
-                previousStep, NullColumnValueGetter.getNullURI(),
-                "network-system", _networkDeviceController.getClass(),
-                zoningExecuteMethod, zoningRollbackMethod, zoningStep);
-
-        return zoningStep;
-    }
-    
-    /**
-     * 
-     * 
-     * @param workflow
-     * @param previousStep
-     * @param exportGroup
-     * @param exportMasksToInitiators
-     * @return
-     * @throws Exception
-     */
-    public String generateZoningRemovePathsWorkflow(Workflow workflow,  
-            URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> removedPaths, String previousStep)
-                    throws Exception {
-        String zoningStep = workflow.createStepId();
-        
-        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
-                convertPathsToNetworkZoningParam(exportGroupURI, exportMaskURI, removedPaths, _dbClient);
-        Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(zoningParams);
-
-        Workflow.Method zoningRollbackMethod = _networkDeviceController
-                .zoneExportAddPathsMethod(exportGroupURI, exportMaskURI, removedPaths);
-        
-        zoningStep = workflow.createStep(
-                (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
-                "Zoning subtask for export-group: " + exportGroupURI,
-                previousStep, NullColumnValueGetter.getNullURI(),
-                "network-system", _networkDeviceController.getClass(),
-                zoningExecuteMethod, zoningRollbackMethod, zoningStep);
-
-        return zoningStep;
-    }
+      
     
     public String generateExportMaskRemovePathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, 
             URI exportMaskURI, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
@@ -2730,15 +2661,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI,
                 removePaths, exportTaskCompleter);
 
-        Workflow.Method rollbackMethod = new Workflow.Method(
-                "rollbackExportMaskRemovePaths",
-                storage.getId(), exportGroupURI, exportMaskURI, removePaths, maskingStep);
-
         maskingStep = workflow.createStep(EXPORT_MASK_REMOVE_PATHS_TASK,
                 String.format("Removeing paths to export mask %s", exportMaskURI.toString()),
                 previousStep, storage.getId(), storage.getSystemType(),
                 MaskingWorkflowEntryPoints.class, executeMethod,
-                rollbackMethod, maskingStep);
+                null, maskingStep);
         return maskingStep;
     }
     

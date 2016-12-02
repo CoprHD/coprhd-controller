@@ -68,6 +68,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -3384,29 +3385,32 @@ public class ExportGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep portRebalance(@PathParam("id") URI id, ExportPortRebalanceParam param)
             throws ControllerException {
-         // Basic validation of ExportGroup and update request
+         // Basic validation of ExportGroup and the request
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
         if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
             throw BadRequestException.badRequests.deletionInProgress(
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
         validateExportGroupNoPendingEvents(exportGroup);
-        
-        //TODO more validation needed here to make sure paths are valid
+
+        ArgValidator.checkUri(param.getStorageSystem());
+        StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
+
+        validatePortRebalanceRequest(exportGroup, system, param);
         
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_GROUP_PORT_REBALANCE);
 
         // persist the export group to the database
         _dbClient.updateObject(exportGroup);
-        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
+        auditOp(OperationTypeEnum.EXPORT_PATH_ADJUSTMENT, true, AuditLogManager.AUDITOP_BEGIN,
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
 
         TaskResourceRep taskRes = toTask(exportGroup, task, op);
         BlockExportController exportController = getExportController();
-        _log.info("Submitting export group update request.");
-        Map<URI, List<URI>> addedPaths = convertInitiatorPathParamToMap(param.getAddedPaths());
+        _log.info("Submitting export path adjustment request.");
+        Map<URI, List<URI>> addedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
         Map<URI, List<URI>> removedPaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
         ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
         exportController.exportGroupPortRebalance(param.getStorageSystem(), id, addedPaths, removedPaths, 
@@ -3429,5 +3433,85 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         return result;
+    }
+    
+    /**
+     * Validate the port rebalance request parameters
+     * 
+     * @param exportGroup
+     * @param system
+     * @param param
+     */
+    private void validatePortRebalanceRequest(ExportGroup exportGroup, StorageSystem system, ExportPortRebalanceParam param) {
+        String systemType = system.getSystemType();
+        if (!Type.vmax.name().equalsIgnoreCase(systemType) ||
+            Type.vplex.name().equalsIgnoreCase(systemType)) {
+            throw APIException.badRequests.exportPathAdjustmentSystemNotSupported(systemType); 
+        }
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        if (exportMasks.isEmpty()) {
+            throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), system.getNativeGuid());
+        }
+        // Check remove paths do exist in the current export masks
+        Map<URI, List<URI>>removePaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
+        StringSetMap removeMap = ExportMaskUtils.getZoneMapFromAssignments(removePaths);
+        StringSetMap existingPaths = new StringSetMap();
+        for (ExportMask exportMask : exportMasks) {
+            StringSetMap zoningMap = exportMask.getZoningMap();
+            if (zoningMap != null) {
+                for (String initiator : zoningMap.keySet()) {
+                    if (zoningMap.get(initiator).isEmpty()) {
+                        // No ports for the initiator, inconsistent
+                        continue;
+                    }
+                    if (!existingPaths.keySet().contains(initiator)) {
+                        existingPaths.put(initiator, new StringSet());
+                    }
+                    existingPaths.get(initiator).addAll(zoningMap.get(initiator));
+                }
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : removePaths.entrySet()) {
+            URI initURI = entry.getKey();
+            List<URI> targets = entry.getValue();
+            if (!existingPaths.containsKey(initURI.toString())) {
+                throw APIException.badRequests.exportPathAdjustmentRemovingPathsNotExist(initURI.toString());
+            }
+            StringSet ports = existingPaths.get(initURI.toString());
+            if (!ports.containsAll(StringSetUtil.uriListToStringSet(targets))) {
+                throw APIException.badRequests.exportPathAdjustmentRemovingPathsNotExist(initURI.toString());
+            }
+        }
+        
+        // check adjusted paths are valid. initiators are in the export group, and the targets are in the storage system, and
+        // in valid state.
+        Map<URI, List<URI>>adjustedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
+        List<URI> pathInitiators = new ArrayList<URI>(adjustedPaths.keySet());
+        StringSet initiatorIds = exportGroup.getInitiators();
+        if (!initiatorIds.containsAll(StringSetUtil.uriListToStringSet(pathInitiators))) {
+            throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathInitiators));
+        }
+        Set<URI> pathTargets = new HashSet<URI>();
+        for (List<URI> targets : adjustedPaths.values()) {
+            pathTargets.addAll(targets);
+        }
+        
+        Set<URI> systemPorts = new HashSet<URI>();
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()),
+                storagePortURIs);
+        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
+        for (StoragePort port : storagePorts) {
+            if (!port.getInactive() && 
+                    port.getCompatibilityStatus().equals(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()) &&
+                    port.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name()) &&
+                    port.getDiscoveryStatus().equals(DiscoveryStatus.VISIBLE.name())) {
+                systemPorts.add(port.getId());
+            }
+        }
+        if (!systemPorts.containsAll(pathTargets)) {
+            throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathTargets));
+        }
     }
 }

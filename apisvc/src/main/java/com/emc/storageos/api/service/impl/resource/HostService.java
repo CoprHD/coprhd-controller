@@ -337,7 +337,7 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
-        return doDiscoverHost(host, taskId, updateTaskStatus);
+        return doDiscoverHost(host.getId(), taskId, updateTaskStatus);
     }
 
     /**
@@ -354,10 +354,8 @@ public class HostService extends TaskResourceService {
     @Path("/{id}/discover")
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep discoverHost(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, Host.class, "id");
-        Host host = queryObject(Host.class, id, true);
-
-        return doDiscoverHost(host, null, true);
+        ArgValidator.checkFieldUriType(id, Host.class, "id");        
+        return doDiscoverHost(id, null, true);
     }
 
     /**
@@ -368,7 +366,8 @@ public class HostService extends TaskResourceService {
      * @param updateTaskStatus if true, mark the task status as completed for non-discovered host
      * @return the task used to track the discovery job
      */
-    protected TaskResourceRep doDiscoverHost(Host host, String taskId, boolean updateTaskStatus) {
+    protected TaskResourceRep doDiscoverHost(URI hostId, String taskId, boolean updateTaskStatus) {
+        Host host = queryObject(Host.class, hostId, true);
         if (taskId == null) {
             taskId = UUID.randomUUID().toString();
         }
@@ -996,7 +995,7 @@ public class HostService extends TaskResourceService {
         _dbClient.createObject(host);
         auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
 
-        return doDiscoverHost(host, null, true);
+        return doDiscoverHost(host.getId(), null, true);
     }
 
     /**
@@ -1063,7 +1062,6 @@ public class HostService extends TaskResourceService {
             host.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
                     .getNullURI() : param.getBootVolume());
         }
-
     }
 
     /**

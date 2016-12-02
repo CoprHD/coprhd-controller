@@ -1125,7 +1125,7 @@ public interface BlockStorageDevice {
      * @param taskCompleter - task completer
      * @throws DeviceControllerException
      */
-    public void doExportAddPaths(StorageSystem storage, ExportMask exportMask, Map<URI, List<URI>>addedPaths, 
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
             TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
@@ -1137,7 +1137,7 @@ public interface BlockStorageDevice {
      * @param taskCompleter - task completer
      * @throws DeviceControllerException
      */
-    public void doExportRemovePaths(StorageSystem storage, ExportMask exportMask, Map<URI, List<URI>>removedPaths, 
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>removedPaths, 
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
 }

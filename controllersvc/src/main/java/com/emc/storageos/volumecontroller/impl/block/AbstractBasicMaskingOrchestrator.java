@@ -1482,39 +1482,30 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     @Override
-    public void portRebalance(URI storageSystem, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> addedPaths,
-            Map<URI, List<URI>> removedPaths, boolean waitBeforeRemovePaths, String token) throws Exception
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI exportMaskURI, 
+            Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
     {
+        
+        Workflow workflow = _workflowService.getNewWorkflow(
+                MaskingWorkflowEntryPoints.getInstance(),
+                "exportMaskPortRebalance", true, token);
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(
-                    MaskingWorkflowEntryPoints.getInstance(),
-                    "exportPortRebalance", true, token);
-                        
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageSystem);
 
-            _log.info(String.format("Export port rebalance for exportGroup %s  exportMask %s",
-                    exportGroupURI.toString(), exportMaskURI.toString()));
-
-            Map<URI, List<URI>> newPaths = getNewPathsForExportMask(exportMask, addedPaths);
-            String stepId = null;
-            if (newPaths != null && !newPaths.isEmpty()) {
-                stepId = generateZoningAddPathWorkflow(workflow, exportGroupURI, exportMaskURI, newPaths, stepId);
-                stepId = generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
-                        newPaths, stepId);
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            
+            if (isAdd) {
+                Map<URI, List<URI>> newPaths = getNewPathsForExportMask(exportMask, adjustedPaths);
+                generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        newPaths, null);
+            } else {
+                generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        removedPaths, null);
             }
             
-            Map<URI, List<URI>> removePaths = getRemovePathsForExportMask(exportMask, removedPaths);
-            if (removePaths != null && !removePaths.isEmpty()) {
-                stepId = generateZoningRemovePathsWorkflow(workflow, waitBeforeRemovePaths, exportGroupURI, 
-                        exportMaskURI, removePaths, stepId);
-                stepId = generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
-                        removePaths, stepId);
-            }
-            
-
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The changePathParams workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());

@@ -13360,8 +13360,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     @Override
-    public void portRebalance(URI vplex, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> addedPaths,
-            Map<URI, List<URI>> removedPaths, boolean waitForApproval, String stepId) throws Exception
+    public void portRebalance(URI vplex, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String stepId) throws Exception
     {
         // Retrieve the ExportGroup and ExportMask and validate
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -13400,7 +13400,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
             // Any initiators in the removedPaths not in the addedPaths will be removed
             for (URI initiator : removedPaths.keySet()) {
-                if (exportMask.hasInitiator(initiator.toString()) && !addedPaths.keySet().contains(initiator)) {
+                if (exportMask.hasInitiator(initiator.toString()) && !adjustedPaths.keySet().contains(initiator)) {
                     initiatorsToBeRemoved.add(initiator);
                 }
             }
@@ -13409,7 +13409,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Collection<URI> targetsInMask = Collections2.transform(exportMask.getStoragePorts(), 
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
             targetsToBeRemoved.retainAll(targetsInMask);
-            Set<URI> targetsToBeRetained = ExportMaskUtils.getAllPortsInZoneMap(addedPaths);
+            Set<URI> targetsToBeRetained = ExportMaskUtils.getAllPortsInZoneMap(adjustedPaths);
             targetsToBeRemoved.removeAll(targetsToBeRetained);
             List<URI> portsToBeRemoved = new ArrayList<URI>(targetsToBeRemoved);
             
@@ -13422,7 +13422,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 return;
             }
             
-        } else if (addedPaths != null) {
+        } else if (adjustedPaths != null) {
             // Processing added paths only
 
             // Determine initiators and targets to be added. 
@@ -13430,14 +13430,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // initiators already in the mask with new ports.
             List<URI> initiatorsToAdd = new ArrayList<URI>();
             List<URI> targetsToAdd = new ArrayList<URI>();
-            for (URI initiatorURI : addedPaths.keySet()) {
+            for (URI initiatorURI : adjustedPaths.keySet()) {
                 if (!exportMask.hasInitiator(initiatorURI.toString())) {
                     // Initiator not in ExportMask
                     Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                     if (initiator != null && !initiator.getInactive()) {
                         if (hostsInExportMask.contains(initiator.getHost())) {
                             initiatorsToAdd.add(initiatorURI);
-                            for (URI targetURI : addedPaths.get(initiatorURI)) {
+                            for (URI targetURI : adjustedPaths.get(initiatorURI)) {
                                 if (!exportMask.hasTargets(Arrays.asList(targetURI))) {
                                     targetsToAdd.add(targetURI);
                                 }
@@ -13446,7 +13446,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 } else {
                     // Initiator already in ExportMask, look for additional targets
-                    for (URI targetURI : addedPaths.get(initiatorURI)) {
+                    for (URI targetURI : adjustedPaths.get(initiatorURI)) {
                         if (!exportMask.hasTargets(Arrays.asList(targetURI))) {
                             targetsToAdd.add(targetURI);
                         }

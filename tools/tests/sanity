@@ -1673,9 +1673,16 @@ xtremio_blockconsistencygroup_snapshot_tests()
 verify_export() {
     # Parameters: Initiator group Name, Number of Initiators, Number of Luns
     # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
+    VERIFY_EXPORT_COUNT=0
+    VERIFY_EXPORT_FAIL_COUNT=0
     IG_name=$1
     masking_view_name=${IG_name}.lss.emc.com
     run ${BASEDIR}/\export-tests/xiohelper.sh verify_export $masking_view_name $2 $3 $4
+    if [ $? -ne "0" ]; then
+       echo There was a failure
+       VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+    fi
+    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
 
 xtremio_block_tests()
@@ -1711,6 +1718,8 @@ xtremio_block_tests()
     run volume delete $PROJECT/${XTREMIOVOL}3 --wait
     run volume delete $PROJECT/${XTREMIOVOL}4 --wait
     run volume delete $PROJECT/${XTREMIOVOL}5 --wait
+	echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures/
 }
 
 
@@ -1833,7 +1842,6 @@ xtremio_export_test_hlu1()
 # Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu2()
 {
-<<<<<<< HEAD
 	if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
 		echo "Skipped xtremio_export_test_hlu test when non cluster test enabled"
 		return

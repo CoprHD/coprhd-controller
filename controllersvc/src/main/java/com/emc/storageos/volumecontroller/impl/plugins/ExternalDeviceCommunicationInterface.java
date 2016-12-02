@@ -155,6 +155,7 @@ public class ExternalDeviceCommunicationInterface extends
             AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
                 initDrivers();
+                driver = drivers.get(driverType);
                 if (driver == null) {
                     _log.info("No driver entry defined for device type: {} . ", driverType);
                     return null;

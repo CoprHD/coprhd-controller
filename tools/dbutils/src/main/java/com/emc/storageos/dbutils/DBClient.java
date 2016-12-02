@@ -8,6 +8,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
+
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
@@ -18,6 +19,7 @@ import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.*;
@@ -1196,18 +1198,19 @@ public class DBClient {
                     + "%d corrupted rows found.\n", dataCf.getCF().getName(), illegalCount));
 
             logMsg("\nStart to check DataObject records that the related index is missing.\n");
-            int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
+            CheckResult checkResult = new CheckResult();
+            helper.checkCFIndices(dataCf, true, checkResult);
             logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
-                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), cfCorruptedCount));
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), checkResult.getTotal()));
 
             logMsg("\nStart to check INDEX data that the related object records are missing.\n");
             Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
-            int indexCorruptCount = 0;
+            checkResult = new CheckResult();
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
-                indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
+                helper.checkIndexingCF(indexAndCf, true, checkResult);
             }
             logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
-                    idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
+                    idxCfs.size(), dataCf.getCF().getName(), checkResult.getTotal()));
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "

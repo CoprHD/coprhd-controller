@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -101,6 +102,7 @@ public class StorageProviderTypes {
                 }
             }
         }
+        Collections.sort(allproviders);
         return allproviders;
     }
 

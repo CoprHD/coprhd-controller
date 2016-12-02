@@ -286,6 +286,8 @@ public class HostService extends TaskResourceService {
             ComputeSystemHelper.updateInitiatorHostName(_dbClient, host);
         }
         String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Host.class, id,
+                taskId, ResourceOperationTypeEnum.UPDATE_HOST);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
         // We only want to update the export group if we're changing the cluster during a host update
@@ -332,7 +334,7 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
-        return doDiscoverHost(host);
+        return doDiscoverHost(host, taskId);
     }
 
     /**
@@ -352,19 +354,21 @@ public class HostService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Host.class, "id");
         Host host = queryObject(Host.class, id, true);
 
-        return doDiscoverHost(host);
+        return doDiscoverHost(host, null);
     }
 
     /**
      * Host Discovery
+     * 
+     * @param host {@link Host} The Host to be discovered.
+     * @param taskId {@link String} taskId for the host discovery. as new taskId is generated if null passed.
      *
-     * @param the
-     *            Host to be discovered.
-     *            provided, a new taskId is generated.
      * @return the task used to track the discovery job
      */
-    protected TaskResourceRep doDiscoverHost(Host host) {
-        String taskId = UUID.randomUUID().toString();
+    protected TaskResourceRep doDiscoverHost(Host host, String taskId) {
+        if (taskId == null) {
+            taskId = UUID.randomUUID().toString();
+        }
         if (host.getDiscoverable() != null && !host.getDiscoverable()) {
             host.setDiscoveryStatus(DataCollectionJobStatus.COMPLETE.name());
             _dbClient.persistObject(host);
@@ -1290,7 +1294,7 @@ public class HostService extends TaskResourceService {
         host.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
         _dbClient.createObject(host);
         auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
-        return doDiscoverHost(host);
+        return doDiscoverHost(host, null);
     }
 
     /**

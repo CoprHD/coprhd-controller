@@ -43,6 +43,8 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.plugins.ServiceOptions;
+import com.emc.storageos.volumecontroller.impl.plugins.ServiceOptions.serviceParameters;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 
 /**
@@ -158,8 +160,11 @@ public class DataCollectionJobConsumer extends
         }
         profile.setCimConnectionFactory(_connectionFactory);
         profile.setCurrentSampleTime(System.currentTimeMillis());
+        
+        ServiceOptions serviceOptions = new ServiceOptions();
+        serviceOptions.addServiceParameter(serviceParameters.EXPORTMASKS.name(), job.getExportMasks());
         DataCollectionJobInvoker invoker = new DataCollectionJobInvoker(
-                profile, _configInfo, _dbClient, _coordinator, _networkDeviceController, _locker, job.getNamespace(), completer);
+                profile, _configInfo, _dbClient, _coordinator, _networkDeviceController, _locker, job.getNamespace(), serviceOptions,  completer);
         invoker.process(applicationContext);
         job.ready(_dbClient);
     }
@@ -354,7 +359,7 @@ public class DataCollectionJobConsumer extends
         profile.setCimConnectionFactory(_connectionFactory);
         profile.setProps(_configInfo);
         DataCollectionJobInvoker invoker = new DataCollectionJobInvoker(
-                profile, _configInfo, _dbClient, _coordinator, null, _locker, null, scanCompleter);
+                profile, _configInfo, _dbClient, _coordinator, null, _locker, null, null, scanCompleter);
         invoker.process(applicationContext);
     }
 

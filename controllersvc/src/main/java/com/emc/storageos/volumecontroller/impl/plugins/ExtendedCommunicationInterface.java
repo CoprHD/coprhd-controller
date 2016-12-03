@@ -59,5 +59,7 @@ public interface ExtendedCommunicationInterface extends CommunicationInterface {
 
     public void injectNetworkDeviceController(
             NetworkDeviceController _networkDeviceController);
+    
+    public void injectServiceOptions(ServiceOptions serviceOptions);
 
 }

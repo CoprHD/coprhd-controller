@@ -41,6 +41,9 @@ public class EventUtils {
     public static String hostClusterChangeDecline = "hostClusterChangeDecline";
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
+    
+    //ExternalChangeDetection
+    public static String refreshExportMasks = "refreshExportMasks";
 
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
             EventCode.HOST_INITIATOR_DELETE);
@@ -51,7 +54,8 @@ public class EventUtils {
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
-        UNASSIGN_HOST_FROM_VCENTER("106");
+        UNASSIGN_HOST_FROM_VCENTER("106"),
+        STORAGE_PORT_CHANGED("107");
     
         private String code;
     

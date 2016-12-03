@@ -80,10 +80,16 @@ public class EventService extends TaggedResource {
     private static final String RESOURCE_QUERY_PARAM = "resource";
 
     private static final String DETAILS_SUFFIX = "Details";
+    
+    private StorageSystemService storageSystemService;
 
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+
+    public void setStorageSystemService(StorageSystemService storageSystemService) {
+        this.storageSystemService = storageSystemService;
     }
 
     @GET
@@ -177,7 +183,7 @@ public class EventService extends TaggedResource {
                 return Lists.newArrayList("N/A");
             } else {
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+                ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller, storageSystemService);
                 return (List<String>) classMethod.invoke(executor, eventMethod.getArgs());
             }
         } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -221,7 +227,7 @@ public class EventService extends TaggedResource {
         try {
             Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+            ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller, storageSystemService);
             Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
             parameters[parameters.length - 1] = event.getId();
             TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);

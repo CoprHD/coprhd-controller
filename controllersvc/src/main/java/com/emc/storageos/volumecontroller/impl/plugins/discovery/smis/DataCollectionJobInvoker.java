@@ -28,6 +28,7 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.ExtendedCommunicationInterface;
+import com.emc.storageos.volumecontroller.impl.plugins.ServiceOptions;
 
 /**
  * Loads Spring Context based on Profile & DeviceType i.e. Scanner-block
@@ -47,10 +48,11 @@ class DataCollectionJobInvoker {
     private final Map<String, String> _configInfo;
     private final String _namespace;
     private Registry _registry;
+    private ServiceOptions _serviceOptions;
 
     public DataCollectionJobInvoker(final AccessProfile accessProfile, final Map<String, String> configInfo,
             final DbClient dbClient, final CoordinatorClient coordinator, NetworkDeviceController networkDeviceController,
-            final ControllerLockingService locker, String namespace, final TaskCompleter completer) {
+            final ControllerLockingService locker, String namespace, ServiceOptions serviceOptions,  final TaskCompleter completer) {
         _accessProfile = accessProfile;
         _configInfo = configInfo;
         _dbClient = dbClient;
@@ -59,6 +61,7 @@ class DataCollectionJobInvoker {
         _locker = locker;
         _namespace = namespace;
         _completer = completer;
+        _serviceOptions = serviceOptions;
     }
 
     private static Map<String, ApplicationContext> contextKeyToApplicationContextMap = Collections
@@ -179,6 +182,7 @@ class DataCollectionJobInvoker {
         commInterface.injectNetworkDeviceController(_networkDeviceController);
         commInterface.injectControllerLockingService(_locker);
         commInterface.injectTaskCompleter(_completer);
+        commInterface.injectServiceOptions(_serviceOptions);
         if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.SCANNER)) {
             commInterface.scan(_accessProfile);
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {

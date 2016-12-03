@@ -5,6 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.io.Serializable;
+import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
@@ -24,15 +26,28 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
             .getLogger(DataCollectionDiscoverJob.class);
     private final DataCollectionTaskCompleter _completer;
     private String _namespace;
+    private List<URI> _masks;
 
     public DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace) {
         this(completer, JobOrigin.USER_API, namespace);
     }
+    
+    public DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace, List<URI> masks) {
+        this(completer, JobOrigin.USER_API, namespace, masks);
+    }
+
 
     DataCollectionDiscoverJob(DiscoverTaskCompleter completer, JobOrigin origin, String namespace) {
         super(origin);
         _completer = completer;
         _namespace = namespace;
+    }
+    
+    DataCollectionDiscoverJob(DiscoverTaskCompleter completer, JobOrigin origin, String namespace, List<URI> masks) {
+        super(origin);
+        _completer = completer;
+        _namespace = namespace;
+        this._masks = masks;
     }
 
     @Override
@@ -92,5 +107,11 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
         DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
+
+    public List<URI> getExportMasks() {
+        return _masks;
+    }
+
+   
 
 }

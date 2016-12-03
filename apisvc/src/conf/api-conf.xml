@@ -156,6 +156,7 @@
     <bean id="eventService" class="com.emc.storageos.api.service.impl.resource.EventService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
+         <property name="storageSystemService" ref="storageSystemService"/>
     </bean>
     
     <bean id="vcenterService" class="com.emc.storageos.api.service.impl.resource.VcenterService">
@@ -623,7 +624,7 @@
                     <property name="nameGenerator" ref="defaultNameGenerator"/>
                     <property name="fileScheduler" ref="filescheduler"/>
                 </bean>
-                <bean class="com.emc.storageos.api.service.impl.resource.StorageSystemService">
+                <bean id="storageSystemService" class="com.emc.storageos.api.service.impl.resource.StorageSystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                     <property name="portMetricsProcessor" ref="portMetricsProcessor"/>

@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -108,4 +109,8 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     public List<URI> getSystemIds() {
         return _systemIds;
     }
+    
+   /* public List<URI> getExportMasks() {
+        return new ArrayList<URI>();
+    }*/
 }

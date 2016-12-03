@@ -8,8 +8,12 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -24,6 +28,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -36,6 +41,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.systems.StorageSystemRefreshParam;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -43,11 +49,17 @@ public class ActionableEventExecutor {
 
     private DbClient _dbClient;
     private ComputeSystemController computeController;
+    private StorageSystemService storageSystemService;
 
-    public ActionableEventExecutor(DbClient dbClient, ComputeSystemController computeController) {
+    public ActionableEventExecutor(DbClient dbClient, ComputeSystemController computeController, StorageSystemService storageSystemService) {
         this._dbClient = dbClient;
         this.computeController = computeController;
+        this.storageSystemService = storageSystemService;
     }
+    
+    
+    
+    
 
     /**
      * Get details for the hostClusterChange method
@@ -679,6 +691,38 @@ public class ActionableEventExecutor {
      */
     public List<String> addInitiatorDeclineDetails(URI initiator) {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
+    }
+    
+    /**
+     * This method is responsible for invoking the storage system discovery with namespace to discover
+     * and arguments.
+     * Namespace could be DETECT_CHANGES | RESOLVE_CHANGES
+     * Group selected export masks by STorage System, for each system invoke discover namespace.
+     * Namespace is attached with the actionable event
+     *  
+     * @param maskURI
+     */
+    public void refreshExports(List<URI> maskURIs, String namespace) {
+        if (this.storageSystemService == null) return;
+        
+        Iterator<ExportMask> exportMasksItr = _dbClient.queryIterativeObjects(ExportMask.class, maskURIs);
+        
+        Map<URI, List<URI>> storageSystemToMask = new HashMap<URI, List<URI>>();
+        
+        while(exportMasksItr.hasNext()) {
+            ExportMask exportMask = exportMasksItr.next();
+            if (null == storageSystemToMask.get(exportMask.getStorageDevice())) {
+                storageSystemToMask.put(exportMask.getStorageDevice(), new ArrayList<URI>());
+            }
+            storageSystemToMask.get(exportMask.getStorageDevice()).add(exportMask.getId());
+        }
+        
+        for (Entry<URI, List<URI>> entry : storageSystemToMask.entrySet()) {
+            StorageSystemRefreshParam param = new StorageSystemRefreshParam();
+            param.setMasks(entry.getValue());
+            storageSystemService.discoverSystem(entry.getKey(), namespace, param);
+        }
+        
     }
 
     /**

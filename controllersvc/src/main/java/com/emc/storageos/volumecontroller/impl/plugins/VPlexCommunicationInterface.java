@@ -614,7 +614,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 throw VPlexCollectionException.exceptions.vplexUnmanagedVolumeDiscoveryFailed(
                         accessProfile.getSystemId().toString(), ex.getLocalizedMessage());
             }
-        } else {
+        } else  if ((null != accessProfile.getnamespace())
+                && (accessProfile.getnamespace()
+                        .equals(StorageSystem.Discovery_Namespaces.DETECT_MASKING_CHANGES
+                                .toString()))) {
+            //discover only the vplex storage views and detect changes and raise event.
+            
+        } else  if ((null != accessProfile.getnamespace())
+                && (accessProfile.getnamespace()
+                        .equals(StorageSystem.Discovery_Namespaces.RESOLVE_MASKING_CHANGES
+                                .toString()))) {
+          //discover only the vplex storage views and resolve changes and raise event.
+        }
+        
+        else  {
             discoverAll(accessProfile);
         }
     }

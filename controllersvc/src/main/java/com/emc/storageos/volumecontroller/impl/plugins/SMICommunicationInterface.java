@@ -43,6 +43,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Namespace;
 import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.volumecontroller.impl.plugins.ServiceOptions.serviceParameters;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.LocalReplicaObject;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor;
@@ -62,6 +63,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     private WBEMClient _wbemClient;
     private boolean debug;
     private NamespaceList namespaces;
+    
 
     /**
      * To-Do : Argument Changes, to accomodate ProSphere usage
@@ -355,6 +357,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             List<StoragePort> discoveredPorts = new ArrayList<StoragePort>();
             _keyMap.put(Constants.DISCOVERED_PORTS, discoveredPorts);
             _keyMap.put(Constants.SLO_NAMES, new HashSet<String>());
+            _keyMap.put(serviceParameters.EXPORTMASKS.toString(), _serviceOptions);
             if (Type.ibmxiv.name().equals(accessProfile.getSystemType())) {
                 initIBMDiscoveryKeyMap(accessProfile);
             }
@@ -581,4 +584,6 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                     / (double) 1000));
         }
     }
+
+  
 }

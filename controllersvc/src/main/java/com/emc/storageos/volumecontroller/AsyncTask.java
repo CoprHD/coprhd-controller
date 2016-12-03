@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.List;
 
 /**
  * Initiator param for adding jobs into ZK queues.
@@ -22,6 +23,8 @@ public class AsyncTask implements Serializable {
     public URI _id;
 
     public String _namespace;
+    
+    public List<URI> _masks;
 
     // use this constructor if you want to discover specific namespaces [e.g. volume] within a Storage System
     public AsyncTask(Class clazz, URI id, String opId, String namespace) {
@@ -29,6 +32,14 @@ public class AsyncTask implements Serializable {
         _id = id;
         _opId = opId;
         _namespace = namespace;
+    }
+    
+    public AsyncTask(Class clazz, URI id, String opId, String namespace, List<URI> masks) {
+        _clazz = clazz;
+        _id = id;
+        _opId = opId;
+        _namespace = namespace;
+        _masks = masks;
     }
 
     // use this constructor for all purposes other than the above.

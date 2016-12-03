@@ -103,6 +103,7 @@ import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemList;
+import com.emc.storageos.model.systems.StorageSystemRefreshParam;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
@@ -166,6 +167,11 @@ public class StorageSystemService extends TaskResourceService {
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+    
+    public enum StorageSystemActions {
+        DETECT_CHANGES,
+        RESOLVE_CHANGES;
     }
 
     // how many times to retry a procedure before returning failure to the user.
@@ -700,7 +706,7 @@ public class StorageSystemService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{id}/discover")
     public TaskResourceRep discoverSystem(@PathParam("id") URI id,
-            @QueryParam("namespace") String namespace) {
+            @QueryParam("namespace") String namespace,  StorageSystemRefreshParam param) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, id);
         ArgValidator.checkEntity(storageSystem, id, isIdEmbeddedInURL(id), true);
         String deviceType = storageSystem.getSystemType();
@@ -760,7 +766,7 @@ public class StorageSystemService extends TaskResourceService {
             scheduler = new DiscoveredObjectTaskScheduler(
                     _dbClient, new DiscoverJobExec(controller));
             tasks.add(new AsyncTask(StorageSystem.class, storageSystem.getId(), taskId,
-                    namespace));
+                    namespace, param.getMasks()));
         }
 
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);

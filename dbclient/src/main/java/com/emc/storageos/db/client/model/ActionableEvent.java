@@ -24,6 +24,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private StringSet declineDetails;
     private StringSet affectedResources;
     private Calendar eventExecutionTime;
+    
 
     public enum Status {
         pending, approved, declined, failed

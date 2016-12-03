@@ -5,6 +5,9 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.io.Serializable;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -57,4 +60,6 @@ public abstract class DataCollectionJob implements Serializable {
     public String getNamespace() {
         return Discovery_Namespaces.ALL.toString();
     }
+    
+    public  List<URI> getExportMasks() {return new ArrayList<URI>(); };
 }

@@ -3445,7 +3445,7 @@ public class ExportGroupService extends TaskResourceService {
     private void validatePortRebalanceRequest(ExportGroup exportGroup, StorageSystem system, ExportPortRebalanceParam param) {
         String systemType = system.getSystemType();
         if (!Type.vmax.name().equalsIgnoreCase(systemType) ||
-            Type.vplex.name().equalsIgnoreCase(systemType)) {
+            !Type.vplex.name().equalsIgnoreCase(systemType)) {
             throw APIException.badRequests.exportPathAdjustmentSystemNotSupported(systemType); 
         }
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
@@ -3453,8 +3453,9 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), system.getNativeGuid());
         }
         // Check remove paths do exist in the current export masks
+        // we probably should not throw exceptions if removePaths do not exist int he existing path, in case
+        // this is a retry?
         Map<URI, List<URI>>removePaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
-        StringSetMap removeMap = ExportMaskUtils.getZoneMapFromAssignments(removePaths);
         StringSetMap existingPaths = new StringSetMap();
         for (ExportMask exportMask : exportMasks) {
             StringSetMap zoningMap = exportMask.getZoningMap();
@@ -3475,11 +3476,15 @@ public class ExportGroupService extends TaskResourceService {
             URI initURI = entry.getKey();
             List<URI> targets = entry.getValue();
             if (!existingPaths.containsKey(initURI.toString())) {
-                throw APIException.badRequests.exportPathAdjustmentRemovingPathsNotExist(initURI.toString());
+                _log.info(String.format("The path %s, %s does not exit in the export group any more",
+                        initURI.toString(), Joiner.on(",").join(targets)));
+                //throw APIException.badRequests.exportPathAdjustmentRemovingPathsNotExist(initURI.toString());
             }
             StringSet ports = existingPaths.get(initURI.toString());
             if (!ports.containsAll(StringSetUtil.uriListToStringSet(targets))) {
-                throw APIException.badRequests.exportPathAdjustmentRemovingPathsNotExist(initURI.toString());
+                _log.info(String.format("The path %s, %s does not exit in the export group any more",
+                        initURI.toString(), Joiner.on(",").join(targets)));
+                //throw APIException.badRequests.exportPathAdjustmentRemovingPathsNotExist(initURI.toString());
             }
         }
         

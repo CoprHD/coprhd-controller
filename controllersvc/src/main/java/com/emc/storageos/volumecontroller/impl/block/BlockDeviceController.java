@@ -210,8 +210,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String RESTORE_VOLUME_WF_NAME = "RESTORE_VOLUME_WORKFLOW";
     private static final String EXPAND_VOLUME_WF_NAME = "expandVolume";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
-    private static final String TERMINATE_RESTORE_SESSIONS_METHOD = "terminateRestoreSessions";
-    private static final String FRACTURE_CLONE_METHOD = "fractureClone";
+    private static final String TERMINATE_RESTORE_SESSIONS_METHOD = "terminateRestoreSessionsStep";
+    private static final String FRACTURE_CLONE_METHOD = "fractureCloneStep";
     private static final String UPDATE_CONSISTENCY_GROUP_WF_NAME = "UPDATE_CONSISTENCY_GROUP_WORKFLOW";
     private static final String UNTAG_VOLUME_STEP_GROUP = "UNTAG_VOLUME_WORKFLOW";
     static final String CREATE_LIST_SNAPSHOT_METHOD = "createListSnapshot";
@@ -225,7 +225,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
     public static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_METHOD = "linkBlockSnapshotSessionTarget";
-    private static final String LINK_SNAPSHOT_SESSION_TARGET_GROUP_METHOD = "linkBlockSnapshotSessionTargetGroup";
+    private static final String LINK_SNAPSHOT_SESSION_TARGET_GROUP_METHOD = "linkBlockSnapshotSessionTargetGroupStep";
     private static final String RB_LINK_SNAPSHOT_SESSION_TARGET_METHOD = "rollbackLinkBlockSnapshotSessionTarget";
     private static final String RELINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "RelinkSnapshotSessionTarget";
     private static final String RELINK_SNAPSHOT_SESSION_TARGET_METHOD = "relinkBlockSnapshotSessionTarget";
@@ -237,10 +237,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String DELETE_SNAPSHOT_SESSION_METHOD = "deleteBlockSnapshotSession";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
-    private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicasStep";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
     
-    private static final String METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP = "createFullCopyOrchestrationRollbackSteps";
+    private static final String METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP = "createFullCopyOrchestrationRollbackStep";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -551,7 +551,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return waitFor;
     }
 
-    public boolean rollbackCleanupReplicas(URI systemURI, List<URI> volumeURIs, String opId) {
+    public boolean rollbackCleanupReplicasStep(URI systemURI, List<URI> volumeURIs, String opId) {
         WorkflowStepCompleter.stepExecuting(opId);
         try {
             _log.info("Cleaning up replicas for {} volumes", volumeURIs.size());
@@ -2546,7 +2546,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method(TERMINATE_RESTORE_SESSIONS_METHOD, storage, source, snapshot);
     }
 
-    public boolean terminateRestoreSessions(URI storage, URI source, URI snapshot, String opId) {
+    public boolean terminateRestoreSessionsStep(URI storage, URI source, URI snapshot, String opId) {
         _log.info("Terminating restore sessions for snapshot: {}", snapshot);
         TaskCompleter completer = null;
         try {
@@ -4429,10 +4429,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private static Workflow.Method addToConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName,
             List<URI> addVolumesList) {
-        return new Workflow.Method("addToConsistencyGroup", storage, consistencyGroup, replicationGroupName, addVolumesList);
+        return new Workflow.Method("addToConsistencyGroupStep", storage, consistencyGroup, replicationGroupName, addVolumesList);
     }
 
-    public boolean addToConsistencyGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
+    public boolean addToConsistencyGroupStep(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
                     throws ControllerException {
         TaskCompleter taskCompleter = null;
@@ -4473,10 +4473,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private static Workflow.Method removeFromConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> removeVolumesList,
             boolean keepRGReference) {
-        return new Workflow.Method("removeFromConsistencyGroup", storage, consistencyGroup, removeVolumesList, keepRGReference);
+        return new Workflow.Method("removeFromConsistencyGroupStep", storage, consistencyGroup, removeVolumesList, keepRGReference);
     }
 
-    public boolean removeFromConsistencyGroup(URI storage, URI consistencyGroup, List<URI> removeVolumesList, boolean keepRGReference,
+    public boolean removeFromConsistencyGroupStep(URI storage, URI consistencyGroup, List<URI> removeVolumesList, boolean keepRGReference,
             String opId)
                     throws ControllerException {
         TaskCompleter taskCompleter = null;
@@ -4884,7 +4884,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method(FRACTURE_CLONE_METHOD, storage, clone, isCG);
     }
 
-    public boolean fractureClone(URI storage, List<URI> clone, boolean isCG, String opId) {
+    public boolean fractureCloneStep(URI storage, List<URI> clone, boolean isCG, String opId) {
         _log.info("Fracture clone: {}", clone.get(0));
         TaskCompleter completer = null;
         try {
@@ -5849,7 +5849,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param stepId
      *            The unique id of the workflow step in which the target is linked.
      */
-    public boolean linkBlockSnapshotSessionTargetGroup(URI systemURI, URI snapshotSessionURI, List<URI> snapshotURIs,
+    public boolean linkBlockSnapshotSessionTargetGroupStep(URI systemURI, URI snapshotSessionURI, List<URI> snapshotURIs,
             String copyMode, Boolean targetsExist, String stepId) {
         TaskCompleter completer = null;
         try {
@@ -6821,7 +6821,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return
      * @throws WorkflowException
      */
-    public boolean createFullCopyOrchestrationRollbackSteps(URI parentWorkflow, String orchestrationStepId, String token)
+    public boolean createFullCopyOrchestrationRollbackStep(URI parentWorkflow, String orchestrationStepId, String token)
             throws WorkflowException {
         // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
         // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and

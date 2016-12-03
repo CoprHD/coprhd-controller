@@ -224,7 +224,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     // Methods in the export group create workflow
     private static final String METHOD_ENABLE_IMAGE_ACCESS_STEP = "enableImageAccessStep";
-    private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "enableImageAccessStepRollback";
+    private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "enableImageAccessRollbackStep";
 
     // Methods in the create full copy workflow
     private static final String METHOD_ENABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP = "enableImageAccessForCreateReplicaStep";
@@ -237,7 +237,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "disableImageAccessSingleStep";
 
     // Methods in restore volume from snapshot workflow
-    private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
+    private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolumeStep";
 
     // Methods in the expand volume workflow
     public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
@@ -257,12 +257,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_RP_VPLEX_REINSTATE_SRC_VVOL_STEP = "rpVPlexReinstateSourceVirtualVolumeStep";
 
     // Methods in the RP export workflow
-    private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
-    private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
+    private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationStep";
+    private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackStep";
 
     // Methods in the RP export workflow
-    private static final String METHOD_RP_EXPORT_ORCHESTRATE_STEP = "rpExportOrchestrationSteps";
-    private static final String METHOD_RP_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "rpExportOrchestrationRollbackSteps";
+    private static final String METHOD_RP_EXPORT_ORCHESTRATE_STEP = "rpExportOrchestrationStep";
+    private static final String METHOD_RP_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "rpExportOrchestrationRollbackStep";
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
@@ -1037,12 +1037,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws WorkflowException
      */
-    public boolean exportOrchestrationRollbackSteps(URI parentWorkflow, String exportOrchestrationStepId, String token)
+    public boolean exportOrchestrationRollbackStep(URI parentWorkflow, String exportOrchestrationStepId, String token)
             throws WorkflowException {
         // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an
-        // already
-        // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and
-        // exportOrchestrationStepId.
+        // already (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI 
+        // and exportOrchestrationStepId.
         _workflowService.rollbackChildWorkflow(parentWorkflow, exportOrchestrationStepId, token);
 
         return true;
@@ -1059,9 +1058,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            - Operation's step ID
      * @return - Always returns true
      */
-    public boolean rpExportOrchestrationSteps(String stepId) {
+    public boolean rpExportOrchestrationStep(String stepId) {
         WorkflowStepCompleter.stepSucceded(stepId);
-        _log.info("Completed rpExportOrchestrationSteps");
+        _log.info("Completed rpExportOrchestrationStep");
         return true;
     }
 
@@ -1072,17 +1071,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            - Operation's step ID
      * @return - True on successful rollback, false otherwise
      */
-    public boolean rpExportOrchestrationRollbackSteps(String stepId) {
-        _log.info("Executing rpExportOrchestrationRollbackSteps");
+    public boolean rpExportOrchestrationRollbackStep(String stepId) {
+        _log.info("Executing rpExportOrchestrationRollbackStep");
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
             rpExportGroupRollback();
             WorkflowStepCompleter.stepSucceded(stepId);
-            _log.info("Completed rpExportOrchestrationRollbackSteps");
+            _log.info("Completed rpExportOrchestrationRollbackStep");
 
         } catch (Exception e) {
-            stepFailed(stepId, "rpExportOrchestrationRollbackSteps");
-            _log.info("Failed rpExportOrchestrationRollbackSteps");
+            stepFailed(stepId, "rpExportOrchestrationRollbackStep");
+            _log.info("Failed rpExportOrchestrationRollbackStep");
 
         }
         return true;
@@ -1098,7 +1097,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return - True on success, false otherwise
      * @throws InternalException
      */
-    public boolean exportOrchestrationSteps(List<VolumeDescriptor> volumeDescriptors, URI rpSystemId, String taskId)
+    public boolean exportOrchestrationStep(List<VolumeDescriptor> volumeDescriptors, URI rpSystemId, String taskId)
             throws InternalException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         RPCGExportOrchestrationCompleter completer = new RPCGExportOrchestrationCompleter(volUris, taskId);
@@ -1445,7 +1444,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(taskId, lockKeys,
                 LockTimeoutValue.get(LockType.RP_EXPORT));
         if (!acquiredLocks) {
-            throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "ExportOrchestrationSteps: RP Export");
+            throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "ExportOrchestrationStep: RP Export");
         }
         for (String lockKey : lockKeys) {
             _log.info("Acquired lock : " + lockKey);
@@ -2831,7 +2830,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @throws ControllerException
      */
     public boolean enableImageAccessStep(URI rpSystemId, Map<URI, Integer> snapshots, String token) throws ControllerException {
-        try {
+        try {	
             WorkflowStepCompleter.stepExecuting(token);
             URI device = null;
             for (URI snapshotID : snapshots.keySet()) {
@@ -2867,7 +2866,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws ControllerException
      */
-    public boolean enableImageAccessStepRollback(URI rpSystemId, Map<URI, Integer> snapshots, boolean setSnapshotsInactive, String stepId)
+    public boolean enableImageAccessRollbackStep(URI rpSystemId, Map<URI, Integer> snapshots, boolean setSnapshotsInactive, String stepId)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -5541,7 +5540,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return true if the step completed successfully, false otherwise.
      * @throws InternalException
      */
-    public boolean restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotID, BlockSnapshotRestoreCompleter completer,
+    public boolean restoreVolumeStep(URI protectionDevice, URI storageDevice, URI snapshotID, BlockSnapshotRestoreCompleter completer,
             String stepId) throws InternalException {
         try {
             _log.info("Restoring bookmark on the RP CG");

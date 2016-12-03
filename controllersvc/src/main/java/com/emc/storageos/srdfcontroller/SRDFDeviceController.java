@@ -114,7 +114,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String REFRESH_VOLUME_PROPERTIES_STEP = "REFRESH_VOLUME_PROPERTIES_STEP";
     private static final String REFRESH_VOLUME_PROPERTIES_STEP_DESC = "Refresh volume properties";
 
-    private static final String REMOVE_ASYNC_PAIR_METHOD = "removePairFromGroup";
+    private static final String REMOVE_ASYNC_PAIR_METHOD = "removePairFromGroupStep";
     private static final String DETACH_SRDF_PAIR_METHOD = "detachVolumePairStep";
     private static final String REMOVE_SRDF_PAIR_STEP_DESC = "Remove %1$s pair from %1$s cg";
     private static final String SUSPEND_SRDF_PAIR_STEP_DESC = "Suspend %1$s pair removed from %1$s cg";
@@ -131,8 +131,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String SUSPEND_SRDF_GROUP_METHOD = "suspendSrdfGroupStep";
     private static final String CHANGE_SRDF_TO_NONSRDF_STEP_DESC = "Converting SRDF Devices to Non Srdf devices";
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
-    private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
-    private static final String UPDATE_VOLUME_PROEPERTIES_METHOD = "updateVolumeProperties";
+    private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicasStep";
+    private static final String UPDATE_VOLUME_PROEPERTIES_METHOD = "updateVolumePropertiesStep";
     private static final String ROLLBACK_REFRESH_SYSTEM_STEP_GROUP = "ROLLBACK_REFRESH_SRDF_SYSTEMS";
     private static final String ROLLBACK_REFRESH_SYSTEM_STEP_DESC = "Null provisioning step; Refresh %s on rollback";
 
@@ -1196,7 +1196,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(REMOVE_ASYNC_PAIR_METHOD, systemURI, sourceURI, targetURI, rollback);
     }
 
-    public boolean removePairFromGroup(final URI systemURI, final URI sourceURI,
+    public boolean removePairFromGroupStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final boolean rollback, final String opId) {
         log.info("START Remove Pair from Group");
         TaskCompleter completer = null;
@@ -1445,7 +1445,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState);
     }
 
-    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
+    public boolean createListReplicasStep(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
             boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
@@ -1492,7 +1492,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
      * @param opId The stepId used for completion.
      * @return true if update is successful else false
      */
-    public boolean updateVolumeProperties(List<URI> volumeURIs, URI systemURI, String opId) {
+    public boolean updateVolumePropertiesStep(List<URI> volumeURIs, URI systemURI, String opId) {
         log.info("Update volume properties...");
         try {
             WorkflowStepCompleter.stepExecuting(opId);

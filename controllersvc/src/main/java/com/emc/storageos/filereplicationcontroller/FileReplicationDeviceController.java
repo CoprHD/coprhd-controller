@@ -71,7 +71,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String DELETE_FILE_MIRRORS_STEP = "DELETE_FILE_MIRRORS_STEP";
     private static final String DETACH_FILE_MIRRORS_STEP = "DETACH_FILE_MIRRORS_STEP";
 
-    private static final String CREATE_FILE_MIRROR_PAIR_METH = "createMirrorSession";
+    private static final String CREATE_FILE_MIRROR_PAIR_METH = "createMirrorSessionStep";
     private static final String DETACH_FILE_MIRROR_PAIR_METH = "detachMirrorFilePairStep";
     private static final String CANCEL_FILE_MIRROR_PAIR_METH = "cancelMirrorFilePairStep";
     private static final String ROLLBACK_MIRROR_LINKS_METHOD = "rollbackMirrorFileShareStep";
@@ -242,7 +242,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * @param opId
      * @return
      */
-    public boolean createMirrorSession(
+    public boolean createMirrorSessionStep(
             URI systemURI, URI sourceURI, URI targetURI, URI vpoolChangeUri, String opId) {
 
         log.info("Create Mirror Session between source and Target Pair");
@@ -491,10 +491,10 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String START_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
     private static final String CANCEL_MIRROR_FILESHARE_STEP = "cancelPrepMirrorFilePairStep";
 
-    private static final String FAILOVER_MIRROR_FILESHARE_METH = "failoverMirrorFilePair";
-    private static final String RESYNC_MIRROR_FILESHARE_METH = "resyncPrepMirrorFilePair";
-    private static final String START_MIRROR_FILESHARE_METH = "startPrepMirrorFilePair";
-    private static final String CANCEL_MIRROR_FILESHARE_METH = "cancelPrepMirrorFilePair";
+    private static final String FAILOVER_MIRROR_FILESHARE_METHOD = "failoverMirrorFilePairStep";
+    private static final String RESYNC_MIRROR_FILESHARE_METHOD = "resyncPrepMirrorFilePairStep";
+    private static final String START_MIRROR_FILESHARE_METHOD = "startPrepMirrorFilePairStep";
+    private static final String CANCEL_MIRROR_FILESHARE_METHOD = "cancelPrepMirrorFilePairStep";
 
     private static final String FAILOVER_FILE_MIRRORS_STEP_DESC = "failover MirrorFileShare Link";
     private static final String RESYNC_MIRROR_FILESHARE_STEP_DESC = "resync MirrorFileShare Link";
@@ -619,7 +619,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     // resyncPrep -step
     public static Workflow.Method
             resyncPrepMirrorPairMeth(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName) {
-        return new Workflow.Method(RESYNC_MIRROR_FILESHARE_METH, primarysystemURI, targetSystemURI, fileshareURI, policyName);
+        return new Workflow.Method(RESYNC_MIRROR_FILESHARE_METHOD, primarysystemURI, targetSystemURI, fileshareURI, policyName);
     }
 
     /**
@@ -631,7 +631,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * @param policyName
      * @param opId
      */
-    public boolean resyncPrepMirrorFilePair(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName, String opId) {
+    public boolean resyncPrepMirrorFilePairStep(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName, String opId) {
         TaskCompleter completer = null;
         try {
             StorageSystem primarySystem = dbClient.queryObject(StorageSystem.class, primarysystemURI);
@@ -667,7 +667,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     // start Mirror -step
     public static Workflow.Method
             startMirrorPairMeth(URI storage, URI fsURI, String policyName) {
-        return new Workflow.Method(START_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+        return new Workflow.Method(START_MIRROR_FILESHARE_METHOD, storage, fsURI, policyName);
     }
 
     /**
@@ -678,7 +678,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * @param policyName
      * @param opId
      */
-    public boolean startPrepMirrorFilePair(URI storage, URI fileshareURI, String policyName, String opId) {
+    public boolean startPrepMirrorFilePairStep(URI storage, URI fileshareURI, String policyName, String opId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
@@ -707,7 +707,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     // failover Mirror -step
     public static Workflow.Method
             faioverMirrorPairMeth(URI storage, URI fsURI, String policyName) {
-        return new Workflow.Method(FAILOVER_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+        return new Workflow.Method(FAILOVER_MIRROR_FILESHARE_METHOD, storage, fsURI, policyName);
     }
 
     /**
@@ -718,7 +718,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * @param policyName
      * @param opId
      */
-    public boolean failoverMirrorFilePair(URI storage, URI fileshareURI, String policyName, String opId) {
+    public boolean failoverMirrorFilePairStep(URI storage, URI fileshareURI, String policyName, String opId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
@@ -745,7 +745,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     // Cancel Mirror Policy -step
     public static Workflow.Method
     cancelMirrorPairMeth(URI storage, URI fsURI, String policyName) {
-        return new Workflow.Method(CANCEL_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+        return new Workflow.Method(CANCEL_MIRROR_FILESHARE_METHOD, storage, fsURI, policyName);
     }
     /* Cancel the running Mirror policy.
      * @param storage
@@ -753,7 +753,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * @param policyName
      * @param opId
      */
-    public boolean cancelPrepMirrorFilePair(URI storage, URI fileshareURI, String policyName, String opId) {
+    public boolean cancelPrepMirrorFilePairStep(URI storage, URI fileshareURI, String policyName, String opId) {
         MirrorFileCancelTaskCompleter cancelTaskCompleter = null;
         try {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);

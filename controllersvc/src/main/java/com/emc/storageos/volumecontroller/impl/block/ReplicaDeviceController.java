@@ -521,10 +521,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     private static Workflow.Method addSnapshotSessionsToConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> addVolumesList) {
-        return new Workflow.Method("addSnapshotSessionsToConsistencyGroup", storage, consistencyGroup, addVolumesList);
+        return new Workflow.Method("addSnapshotSessionsToConsistencyGroupStep", storage, consistencyGroup, addVolumesList);
     }
 
-    public boolean addSnapshotSessionsToConsistencyGroup(URI storage, URI consistencyGroup, List<URI> volumes, String opId)
+    public boolean addSnapshotSessionsToConsistencyGroupStep(URI storage, URI consistencyGroup, List<URI> volumes, String opId)
             throws ControllerException {
         TaskCompleter taskCompleter = null;
         WorkflowStepCompleter.stepExecuting(opId);
@@ -780,7 +780,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     public Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
             List<URI> addVolumesList) {
-        return new Workflow.Method("addToReplicationGroup", storage, consistencyGroup, repGroupName, addVolumesList);
+        return new Workflow.Method("addToReplicationGroupStep", storage, consistencyGroup, repGroupName, addVolumesList);
     }
 
     /**
@@ -794,7 +794,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * @return
      * @throws ControllerException
      */
-    public boolean addToReplicationGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
+    public boolean addToReplicationGroupStep(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
             throws ControllerException {
         WorkflowStepCompleter.stepExecuting(opId);
@@ -1275,7 +1275,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     static Workflow.Method removeFromReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
             List<URI> addVolumesList) {
-        return new Workflow.Method("removeFromReplicationGroup", storage, consistencyGroup, repGroupName, addVolumesList);
+        return new Workflow.Method("removeFromReplicationGroupStep", storage, consistencyGroup, repGroupName, addVolumesList);
     }
 
     /**
@@ -1289,7 +1289,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * @return
      * @throws ControllerException
      */
-    public boolean removeFromReplicationGroup(URI storage, URI consistencyGroup, String repGroupName, List<URI> addVolumesList,
+    public boolean removeFromReplicationGroupStep(URI storage, URI consistencyGroup, String repGroupName, List<URI> addVolumesList,
             String opId)
             throws ControllerException {
         TaskCompleter taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);

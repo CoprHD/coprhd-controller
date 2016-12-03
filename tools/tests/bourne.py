@@ -1528,24 +1528,24 @@ class Bourne:
 
             if (type == 'block'):
 
-        # process remote replication parameters
-        if (remoteReplication):
-                copies = remoteReplication.split(',')
-                rrEntries = []
-                for copy in copies:
-                    copyParam = copy.split(":")
-                    rr_params = dict()
-                    rr_params['varray'] = self.neighborhood_query(copyParam[0])
-                    try:
-                        rr_params['vpool'] = self.cos_query("block", copyParam[1])
-                    except:
-                         pass
-                    rrEntries.append(rr_params)
-                cos_protection_remote_replication_params = dict()
-                cos_protection_remote_replication_params['remote_replication_settings'] = rrEntries
-                cos_protection_params['remote_replicication'] = cos_protection_remote_replication_params
+                # process remote replication parameters
+                if (remoteReplication):
+                        copies = remoteReplication.split(',')
+                        rrEntries = []
+                        for copy in copies:
+                            copyParam = copy.split(":")
+                            rr_params = dict()
+                            rr_params['varray'] = self.neighborhood_query(copyParam[0])
+                            try:
+                                rr_params['vpool'] = self.cos_query("block", copyParam[1])
+                            except:
+                                 pass
+                            rrEntries.append(rr_params)
+                        cos_protection_remote_replication_params = dict()
+                        cos_protection_remote_replication_params['remote_replication_settings'] = rrEntries
+                        cos_protection_params['remote_replicication'] = cos_protection_remote_replication_params
 
-        # remote replication end
+                # remote replication end
 
 		if (srdf):
                     cos_protection_srdf_params = dict()
@@ -3721,16 +3721,16 @@ class Bourne:
         if (remoteReplication):
             rr_params = remoteReplication.split(":")
             replication_settings = dict()
-            replication_settings['repication_set'] = self.replicationset_query(rr_params[0])
+            replication_settings['replication_set'] = self.replicationset_query(rr_params[0])
             try:
                 replication_settings['replication_group'] = self.replicationgroup_query(rr_params[1])
             except:
                 pass
             replication_settings['replication_mode'] = rr_params[2]
 
-            remote_replication_params = dict()
-            remote_replication_params['remote_replication'] = replication_settings
-            parms['remote_replication_params'] =  remote_replication_params
+            #remote_replication_params = dict()
+            #remote_replication_params['remote_replication'] = replication_settings
+            parms['remote_replication_params'] =  replication_settings
         # remote replication end
 
         print "VOLUME CREATE Params = ", parms

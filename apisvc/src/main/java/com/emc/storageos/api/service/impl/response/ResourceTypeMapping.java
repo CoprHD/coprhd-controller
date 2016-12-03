@@ -87,6 +87,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -225,6 +227,8 @@ public class ResourceTypeMapping {
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
         classMapping.put(OPENSTACK_TENANT, OSTenant.class);
         classMapping.put(STORAGE_SYSTEM_TYPE, StorageSystemType.class);
+        classMapping.put(REMOTE_REPLICATION_SET, RemoteReplicationSet.class);
+        classMapping.put(REMOTE_REPLICATION_GROUP, RemoteReplicationGroup.class);
         classMapping.put(CATALOG_SERVICE, CatalogService.class);
         classMapping.put(ORDER, Order.class);
         classMapping.put(CATALOG_CATEGORY, CatalogCategory.class);

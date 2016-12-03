@@ -655,7 +655,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         return BlockOrchestrationDeviceController._remoteReplicationDeviceController;
     }
 
-    public static void setReplicaDeviceController(RemoteReplicationDeviceController remoteReplicationDeviceController) {
+    public static void setRemoteReplicationDeviceController(RemoteReplicationDeviceController remoteReplicationDeviceController) {
         BlockOrchestrationDeviceController._remoteReplicationDeviceController = remoteReplicationDeviceController;
     }
 

@@ -1,7 +1,16 @@
 package com.emc.storageos.model.remotereplication;
 
 
-public class RemoteReplicationGroupRestRep {
+import com.emc.storageos.model.DataObjectRestRep;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlAccessorType(XmlAccessType.PROPERTY)
+@XmlRootElement(name = "remote_replication_group")
+public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
 
     // native id of this group
     private String nativeId;
@@ -18,6 +27,7 @@ public class RemoteReplicationGroupRestRep {
     // Display name of this replication group (whem provisioned by the systemt).
     private String displayName;
 
+    @XmlElement(name = "native_id")
     public String getNativeId() {
         return nativeId;
     }
@@ -26,6 +36,7 @@ public class RemoteReplicationGroupRestRep {
         this.nativeId = nativeId;
     }
 
+    @XmlElement(name = "reachable")
     public Boolean getReachable() {
         return reachable;
     }
@@ -34,6 +45,7 @@ public class RemoteReplicationGroupRestRep {
         this.reachable = reachable;
     }
 
+    @XmlElement(name = "name")
     public String getDeviceLabel() {
         return deviceLabel;
     }
@@ -42,6 +54,7 @@ public class RemoteReplicationGroupRestRep {
         this.deviceLabel = deviceLabel;
     }
 
+    @XmlElement(name = "storage_system_type")
     public String getStorageSystemType() {
         return storageSystemType;
     }
@@ -50,6 +63,7 @@ public class RemoteReplicationGroupRestRep {
         this.storageSystemType = storageSystemType;
     }
 
+    @XmlElement(name = "display_name")
     public String getDisplayName() {
         return displayName;
     }

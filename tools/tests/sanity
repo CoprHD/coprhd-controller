@@ -6287,8 +6287,8 @@ sbsdk_setup()
     ##
     SBSDK_DRIVER_SYS_NAME=source_replicationGroup1_set1
     SBSDK_DRIVER_SYS_TYPE=driversystem
-    #SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
-    SBSDK_DRIVER_SYS_NATIVEGUID=source_replicationGroup1_set1
+    SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
+    #SBSDK_DRIVER_SYS_NATIVEGUID=source_replicationGroup1_set1
     SBSDK_DRIVER_SYS_IP=10.20.30.40
     SBSDK_DRIVER_SYS_PORT=8080
     SBSDK_DRIVER_SYS_USER=user
@@ -6306,7 +6306,8 @@ sbsdk_setup()
 
     # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_SYS_TARGET_NAME=target_replicationGroup1_set1
-    SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=target_replicationGroup1_set1
+    #SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=target_replicationGroup1_set1
+    SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_TARGET_NAME
     SBSDK_DRIVER_SYS_TARGET_IP=10.20.30.50
     # The driver simulator creates these ports for the target system
     SBSDK_DRIVER_SYS_PWWN20=62:FE:FE:FE:FE:FE:FE:10
@@ -6371,7 +6372,6 @@ sbsdk_setup()
                      --provisionType 'Thin'                    \
                      --neighborhoods $NH                       \
                      --max_snapshots 1                         \
-                     --max_mirrors 1                           \
                      --expandable false                        \
                      --remote_replication "${NH}:${SBSDK_DRIVER_SYS_VPOOL_NAME}"
     run cos allow $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME block $TENANT

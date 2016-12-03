@@ -185,7 +185,7 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
 
         // Build descriptors and prepare database volumes for block volumes
         // We will use default logic for this.
-        BlockServiceApi api = BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        BlockServiceApi api = BlockService.getBlockServiceImpl("default");
         List<VolumeDescriptor> volumeDescriptors = api.createVolumesAndDescriptors(descriptors, volumeLabel, size, project,
                 varray, vpool, recommendations, taskList, task, capabilities);
 

@@ -1211,12 +1211,12 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vpool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vpool.getMultivolumeConsistency() != null && vpool.getMultivolumeConsistency()) {
             return getBlockServiceImpl("group");
-        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
-            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         }
 
         return getBlockServiceImpl("default");

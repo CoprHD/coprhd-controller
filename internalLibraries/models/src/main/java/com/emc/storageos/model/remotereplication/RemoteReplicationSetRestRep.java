@@ -1,7 +1,15 @@
 package com.emc.storageos.model.remotereplication;
 
+import com.emc.storageos.model.DataObjectRestRep;
 
-public class RemoteReplicationSetRestRep {
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlAccessorType(XmlAccessType.PROPERTY)
+@XmlRootElement(name = "remote_replication_set")
+public class RemoteReplicationSetRestRep extends DataObjectRestRep {
 
     // native id of replication set.
     private String nativeId;
@@ -15,6 +23,8 @@ public class RemoteReplicationSetRestRep {
     // Type of storage systems in this replication set.
     private String storageSystemType;
 
+
+    @XmlElement(name = "native_id")
     public String getNativeId() {
         return nativeId;
     }
@@ -23,6 +33,7 @@ public class RemoteReplicationSetRestRep {
         this.nativeId = nativeId;
     }
 
+    @XmlElement(name = "name")
     public String getDeviceLabel() {
         return deviceLabel;
     }
@@ -31,6 +42,7 @@ public class RemoteReplicationSetRestRep {
         this.deviceLabel = deviceLabel;
     }
 
+    @XmlElement(name = "reachable")
     public Boolean getReachable() {
         return reachable;
     }
@@ -39,6 +51,8 @@ public class RemoteReplicationSetRestRep {
         this.reachable = reachable;
     }
 
+
+    @XmlElement(name = "storage_system_type")
     public String getStorageSystemType() {
         return storageSystemType;
     }

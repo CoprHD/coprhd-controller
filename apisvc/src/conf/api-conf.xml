@@ -465,7 +465,17 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
+    <bean id="remoteReplicationSetService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationSetService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="remoteReplicationGroupService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
     <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -542,6 +552,8 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
+                <ref bean="remoteReplicationSetService" />
+                <ref bean="remoteReplicationGroupService" />
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

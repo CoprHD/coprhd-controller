@@ -61,11 +61,11 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         this.dbClient = dbClient;
     }
 
-    public RemoteReplicationDevice getDevice() {
+    public RemoteReplicationDevice getRemoteReplicationDevice() {
         return remoteReplicationdevice;
     }
 
-    public void setDevice(RemoteReplicationDevice device) {
+    public void setRemoteReplicationDevice(RemoteReplicationDevice device) {
         this.remoteReplicationdevice = device;
     }
 
@@ -235,7 +235,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         RemoteReplicationTaskCompleter taskCompleter = new RemoteReplicationTaskCompleter(elementURIs, opId);
         List<RemoteReplicationPair> rrPairs = prepareRemoteReplicationPairs(sourceDescriptors, targetURIs);
 
-        RemoteReplicationDevice rrDevice = getDevice();
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
 
         // All replication pairs should have the same link characteristics
         VirtualPoolCapabilityValuesWrapper capabilities = sourceDescriptors.get(0).getCapabilitiesValues();

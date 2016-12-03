@@ -14,6 +14,7 @@ public class RemoteReplicationMapper {
         }
         RemoteReplicationSetRestRep to = new RemoteReplicationSetRestRep();
 
+        to.setId(from.getId());
         to.setDeviceLabel(from.getDeviceLabel());
         to.setNativeId(from.getNativeId());
         to.setReachable(from.getReachable());
@@ -28,6 +29,7 @@ public class RemoteReplicationMapper {
         }
         RemoteReplicationGroupRestRep to = new RemoteReplicationGroupRestRep();
 
+        to.setId(from.getId());
         to.setDeviceLabel(from.getDeviceLabel());
         to.setNativeId(from.getNativeId());
         to.setReachable(from.getReachable());

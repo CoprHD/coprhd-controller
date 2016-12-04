@@ -55,7 +55,7 @@ public class EventUtils {
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
         UNASSIGN_HOST_FROM_VCENTER("106"),
-        STORAGE_PORT_CHANGED("107");
+        MASKING_PORTS_CHANGED("107");
     
         private String code;
     

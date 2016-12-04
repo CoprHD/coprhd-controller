@@ -1,21 +1,19 @@
+/*
+ * Copyright (c) 2008-2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import javax.cim.CIMObjectPath;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -38,12 +36,17 @@ public class MaskingPathChangeProcessor extends Processor {
             List<URI> maskUris = (List<URI>) keyMap.get(serviceParameters.EXPORTMASKS);
             _logger.info("Masking views to get processed :{}", Joiner.on("@@").join(maskUris));
             if (null == maskUris) {
+                _logger.warn("Change Detection received 0 masks to process");
                 return;
             }
-            List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, maskUris);
-            
             String serialID = (String) keyMap.get(Constants._serialID);
             Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
+            /**
+             * Loop through each export Mask, get its entry from database. Check
+             * if the URI is available in the list to get processed if yes, then
+             * add it to the map, the next SMI-S call would detect or resolve
+             * changes on the masking view.
+             */
             while (it.hasNext()) {
                 CIMObjectPath path = it.next();
                 if (path.toString().contains(serialID)) {
@@ -54,7 +57,7 @@ public class MaskingPathChangeProcessor extends Processor {
                     if (null == maskUri || maskUri.isEmpty()) {
                         _logger.debug("Mask {} Not found in DB", maskName);
                     } else if (maskUris.contains(maskUri)) {
-                        _logger.info("Mask {} found to get refreshed", maskName);
+                        _logger.info("Mask {} found will be added to detect or resolve changes", maskName);
                         addPath(keyMap, operation.getResult(), path);
                     }
                     
@@ -62,7 +65,7 @@ public class MaskingPathChangeProcessor extends Processor {
                 
             }
         } catch (Exception e) {
-            _logger.error("Masking path discovery failed during array affinity discovery", e);
+            _logger.error("Change Detection on Masking failed, ", e);
         }
     }
     

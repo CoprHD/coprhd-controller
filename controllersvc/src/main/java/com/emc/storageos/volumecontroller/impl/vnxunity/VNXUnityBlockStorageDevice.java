@@ -708,10 +708,9 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 cgNames = ssm.get(storage.getId().toString());
                 if (cgNames == null || cgNames.isEmpty()) {
                     logger.info("There is no array consistency group to be deleted.");
-                    if (markInactive) {
-                        consistencyGroup.setInactive(true);
-                        dbClient.updateObject(consistencyGroup);
-                    }
+                    // Clean up the system consistency group references
+                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), null, keepRGName, markInactive, dbClient);
+                    dbClient.updateObject(consistencyGroup);
                     taskCompleter.ready(dbClient);
                     return;
                 }

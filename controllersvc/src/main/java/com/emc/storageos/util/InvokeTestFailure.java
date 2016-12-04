@@ -164,7 +164,8 @@ public final class InvokeTestFailure {
         }
 
         // Extract the method name from the system property
-        String failOnMethodName = invokeArtificialFailure.substring(ARTIFICIAL_FAILURE_015.length());
+        int failure_15_index = invokeArtificialFailure.lastIndexOf(ARTIFICIAL_FAILURE_015);
+        String failOnMethodName = invokeArtificialFailure.substring(failure_15_index + ARTIFICIAL_FAILURE_015.length());
         String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
                 && methodName.equalsIgnoreCase(failOnMethodName)) {

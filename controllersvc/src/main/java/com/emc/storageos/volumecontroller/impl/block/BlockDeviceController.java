@@ -2064,6 +2064,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.BlockController#activateSnapshot(java.net.URI, java.util.List, java.lang.String)
+     * Official Workflow Step
+     */
     @Override
     public void activateSnapshot(URI storage, List<URI> snapshotList, String opId)
             throws ControllerException {
@@ -3647,6 +3651,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String ACTIVATE_CLONE_WF_NAME = "ACTIVATE_CLONE_WORKFLOW";
     private static final String ACTIVATE_CLONE_GROUP = "BlockDeviceActivateClone";
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.BlockController#activateFullCopy(java.net.URI, java.util.List, java.lang.String)
+     * Official Workflow Step
+     */
     @Override
     public void activateFullCopy(URI storage, List<URI> fullCopy, String opId) {
         TaskCompleter completer = new CloneWorkflowCompleter(fullCopy, opId);

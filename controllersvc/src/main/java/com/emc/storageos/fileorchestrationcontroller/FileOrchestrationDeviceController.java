@@ -546,6 +546,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#snapshotFS(java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     * Official Workflow Step
+     */
     @Override
     public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId) throws ControllerException {
         // Using VNXeFSSnapshotTaskCompleter as it will serve the purpose..

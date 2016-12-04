@@ -235,7 +235,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add methods for RP CG delete
-            waitFor = _rpDeviceController.addPreVolumeExpandSteps(
+            waitFor = _rpDeviceController.addStepsForPreVolumeExpand(
                     workflow, volumes, taskId);
 
             // Call the BlockDeviceController to add its methods if there are block or VPLEX backend volumes.
@@ -251,7 +251,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     workflow, waitFor, volumes, taskId);
 
             // Call the RPDeviceController to add its methods for post volume expand ie. recreate RPCG
-            waitFor = _rpDeviceController.addPostVolumeExpandSteps(
+            waitFor = _rpDeviceController.addStepsForPostVolumeExpand(
                     workflow, waitFor, volumes, taskId);
 
             // Finish up and execute the plan.
@@ -289,7 +289,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add RP steps for volume restore from snapshot
-            waitFor = _rpDeviceController.addPreRestoreVolumeSteps(
+            waitFor = _rpDeviceController.addStepsForPreRestoreVolume(
                     workflow, storage, volume, snapshot, taskId);
 
             // Call the VplexDeviceController to add its steps for restore volume from snapshot
@@ -305,7 +305,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     workflow, waitFor, storage, pool, volume, snapshot, null, syncDirection, taskId, completer);
 
             // Call the RP controller to add RP post restore steps
-            waitFor = _rpDeviceController.addPostRestoreVolumeSteps(
+            waitFor = _rpDeviceController.addStepsForPostRestoreVolume(
                     workflow, waitFor, storage, volume, snapshot, taskId);
 
             // Finish up and execute the plan.
@@ -680,7 +680,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add RP steps for volume restore
-            waitFor = _rpDeviceController.addPreRestoreFromFullcopySteps(
+            waitFor = _rpDeviceController.addStepsForPreRestoreFromFullCopy(
                     workflow, waitFor, storage, fullCopyURIs, taskId);
 
             // Call the VplexDeviceController to add its steps for restore volume from full copy
@@ -691,7 +691,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _blockDeviceController.addStepsForRestoreFromFullcopy(workflow, waitFor, storage, fullCopyURIs, taskId, completer);
 
             // Call the RPDeviceController to add its steps for post restore volume from full copy
-            waitFor = _rpDeviceController.addPostRestoreFromFullcopySteps(workflow, waitFor, storage, fullCopyURIs, taskId);
+            waitFor = _rpDeviceController.addStepsForPostRestoreFromFullcopy(workflow, waitFor, storage, fullCopyURIs, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter

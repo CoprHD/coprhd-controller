@@ -609,6 +609,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * So from the backing volumes, try and find the original VPool and VArray that were used
      * for the volume create request. We can use that volume to update the VPlex Virtual
      * Volume.
+     * Official Workflow Step
      *
      * @param rpSourceDescriptors
      *            Descriptors for RP_VPLEX_VIRT_SOURCE or RP_EXISTING_SOURCE volumes
@@ -1027,6 +1028,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for rolling back the ExportOrchestration sub-workflow steps.
+     * Official Workflow Step
      *
      * @param parentWorkflow
      *            -- the URI of the parent Workflow, which is used to locate the sub-workflow
@@ -1053,6 +1055,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * orchestration method.
      * The main reason to have this method is to make sure the roll back of RP export groups happen after the actual
      * export rollbacks.
+     * Official Workflow Step
      *
      * @param stepId
      *            - Operation's step ID
@@ -1088,6 +1091,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
+     * Official Workflow Step
      * @param volumeDescriptors
      *            - Volume descriptors
      * @param rpSystemId
@@ -1510,6 +1514,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * This operation will add additional journal volumes to a recoverpoint consistency group
+     * Official Workflow Step
      *
      * @param rpSystemId
      *            - recoverpoint system
@@ -1541,6 +1546,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Recoverpoint specific workflow method for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
+     * Official Workflow Step
      *
      * @param opId
      */
@@ -1554,6 +1560,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Recoverpoint specific rollback for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
+     * Official Workflow Step
      *
      * @param exportGroupURI
      * @param opId
@@ -1633,6 +1640,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for rolling back adding journal volumes to CG.
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -1649,6 +1657,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for creating/updating a consistency group.
+     * Official Workflow Step
      *
      * @param rpSystemId
      *            RP system Id
@@ -1795,6 +1804,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for cg create rollback
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -2156,6 +2166,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * The step that deletes the CG from the RecoverPoint appliance if all of the volumeIDs are in the request,
      * otherwise delete replication sets and associated journals.
+     * Official Workflow Step
      *
      * @param rpSystem
      *            protection system
@@ -2395,6 +2406,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * The step that rolls back the delete of the CG from the RecoverPoint appliance. It is a no-op.
+     * Official Workflow Step
      *
      * @param rpSystem
      *            protection system
@@ -2819,6 +2831,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for enabling an image access
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -2855,6 +2868,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow rollback step method for enabling an image access
+     * Official Workflow Step
      *
      * @param rpSystemId
      *            RP System
@@ -3041,6 +3055,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Workflow step method for disabling an image access. Called only when disabling image access
      * during a snapshot create that is part array snapshot and part RP bookmark.
+     * Official Workflow Step
      *
      * @param rpSystemId
      *            RP system
@@ -3097,6 +3112,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for disabling an image access of all snapshots in an export group
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -3168,6 +3184,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for disabling an image access
+     * Official Workflow Step
      *
      * @param rpSystemId
      *            RP system URI
@@ -3485,7 +3502,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws WorkflowException
      */
-    public String addPreVolumeExpandSteps(Workflow workflow, List<VolumeDescriptor> volumeDescriptors, String taskId)
+    public String addStepsForPreVolumeExpand(Workflow workflow, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws WorkflowException {
 
         // Just grab a legit target volume that already has an assigned protection controller.
@@ -3568,7 +3585,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws WorkflowException
      */
-    public String addPostVolumeExpandSteps(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+    public String addStepsForPostVolumeExpand(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws WorkflowException {
 
         // Get only the RP volumes from the descriptors.
@@ -3606,6 +3623,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Delete the replication set
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -3654,6 +3672,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Recreate the replication set
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -4051,7 +4070,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (!volumes.isEmpty()) {
                 VirtualPool newVirtualPool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 // Add workflow step
-                addUpdateConsistencyGroupPolicyStep(workflow, protectionSystem, consistencyGroup, newVirtualPool.getRpCopyMode());
+                addStepForUpdateConsistencyGroupPolicy(workflow, protectionSystem, consistencyGroup, newVirtualPool.getRpCopyMode());
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateAutoTieringPolicy workflow has {} step(s). Starting the workflow.",
@@ -4081,7 +4100,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            the requested copy mode (SYNCHRONOUS or ASYNCHRONOUS)
      * @return the step identifier
      */
-    public String addUpdateConsistencyGroupPolicyStep(Workflow workflow, ProtectionSystem protectionSystem, URI cgUri, String copyMode)
+    public String addStepForUpdateConsistencyGroupPolicy(Workflow workflow, ProtectionSystem protectionSystem, URI cgUri, String copyMode)
             throws InternalException {
 
         String stepId = workflow.createStepId();
@@ -4099,6 +4118,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Updates the consistency group policy (replication mode).
+     * Official Workflow Step
      *
      * @param protectionSystem
      *            the RP protection system
@@ -4226,6 +4246,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step to perform RP protection operation
+     * Official Workflow Step
      *  
      * @param protectionSystem
      * @param cgId
@@ -4748,7 +4769,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Workflow workflow = _workflowService.getNewWorkflow(this, "createSnapshot", true, newToken);
 
             // Step 1 - Create a RP bookmark
-            String waitFor = addCreateBookmarkStep(workflow, snapshotList, system, snapshotName, volumeWWNs, rpBookmarkOnly, null);
+            String waitFor = addStepForCreateBookmark(workflow, snapshotList, system, snapshotName, volumeWWNs, rpBookmarkOnly, null);
 
             if (!rpBookmarkOnly) {
                 // Local array snap, additional steps required for snap operation
@@ -4920,7 +4941,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
 
                 // Step 1 - Create a RP bookmark
-                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
+                String rpWaitFor = addStepForCreateBookmark(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
                         waitFor);
 
                 // Lock CG for the duration of the workflow so enable and disable can complete before another workflow
@@ -4986,6 +5007,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Invokes the storage specific BlockController method to perform the snapshot operation
+     * Official Workflow Step
      *
      * @param storageURI
      *            Storage System URI
@@ -5015,6 +5037,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Rollback method for Block snapshot create.
+     * Official Workflow Step
      *
      * @param stepId
      * @return
@@ -5043,7 +5066,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            if true, an RP bookmark is taken or a local array snap is performed.
      * @return
      */
-    public String addCreateBookmarkStep(Workflow workflow, List<URI> snapshotList, ProtectionSystem system, String bookmarkName,
+    public String addStepForCreateBookmark(Workflow workflow, List<URI> snapshotList, ProtectionSystem system, String bookmarkName,
             Set<String> volumeWWNs, boolean emOnly, String waitFor) throws InternalException {
 
         String stepId = workflow.createStepId();
@@ -5062,6 +5085,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * This method creates a RP bookmark
+     * Official Workflow Step
      *
      * @param snapshotList
      *            List of snapshot
@@ -5127,6 +5151,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Rollback method for create bookmark step.
      * Currently, this is just a dummy step and does nothing.
+     * Official Workflow Step
      *
      * @param stepId
      * @return
@@ -5315,7 +5340,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            the top level operation's taskId
      * @return A waitFor key that can be used by subsequent controllers to wait on
      */
-    public String addPreRestoreVolumeSteps(Workflow workflow, URI storageSystemURI, URI volumeURI, URI snapshotURI, String taskId) {
+    public String addStepsForPreRestoreVolume(Workflow workflow, URI storageSystemURI, URI volumeURI, URI snapshotURI, String taskId) {
 
         String waitFor = null;
         BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
@@ -5422,7 +5447,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            the top level operation's taskId
      * @return A waitFor key that can be used by subsequent controllers to wait on
      */
-    public String addPostRestoreVolumeSteps(Workflow workflow, String waitFor, URI storageSystemURI, URI volumeURI, URI snapshotURI,
+    public String addStepsForPostRestoreVolume(Workflow workflow, String waitFor, URI storageSystemURI, URI volumeURI, URI snapshotURI,
             String taskId) {
 
         BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
@@ -5526,8 +5551,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This
-     * step is
-     * required for RP bookmark restores.
+     * step is required for RP bookmark restores.
+     * Official Workflow Step
      *
      * @param protectionDevice
      *            RP protection system URI
@@ -5777,6 +5802,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Enable image access before create native array replica operation
+     * Official Workflow Step
      *
      * @param protectionDevice
      * @param clazz
@@ -5873,6 +5899,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Disable image access for after create native array replica operation
+     * Official Workflow Step
      *
      * @param protectionDevice
      * @param clazz
@@ -6471,6 +6498,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for modifying a consistency group.
+     * Official Workflow Step
      *
      * @param rpSystemId
      *            RP system Id
@@ -6621,6 +6649,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for creating a consistency group.
+     * Official Workflow Step
      *
      * @param rpSystem
      *            RP system
@@ -6773,6 +6802,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Removes ViPR level protection attributes from RP Source volumes
+     * Official Workflow Step
      *
      * @param volumes
      *            All volumes to remove protection attributes from
@@ -6922,7 +6952,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
 
                 // Step 1 - Create a RP bookmark
-                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
+                String rpWaitFor = addStepForCreateBookmark(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
                         waitFor);
 
                 // Lock CG for the duration of the workflow so enable and disable can complete before another workflow
@@ -7022,7 +7052,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            the top level operation's taskId
      * @return A waitFor key that can be used by subsequent controllers to wait on
      */
-    public String addPreRestoreFromFullcopySteps(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies,
+    public String addStepsForPreRestoreFromFullCopy(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies,
             String taskId) {
         if (fullCopies != null && !fullCopies.isEmpty()) {
             List<Volume> sourceVolumes = checkIfDistributedVplexOrVmaxFullCopies(fullCopies);
@@ -7081,7 +7111,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            the top level operation's taskId
      * @return A waitFor key that can be used by subsequent controllers to wait on
      */
-    public String addPostRestoreFromFullcopySteps(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies,
+    public String addStepsForPostRestoreFromFullcopy(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies,
             String taskId) {
         if (fullCopies != null && !fullCopies.isEmpty()) {
             List<Volume> sourceVolumes = checkIfDistributedVplexOrVmaxFullCopies(fullCopies);

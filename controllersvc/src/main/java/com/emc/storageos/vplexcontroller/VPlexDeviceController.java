@@ -95,7 +95,6 @@ import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
-import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -125,12 +124,10 @@ import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrche
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowEntryPoints;
-import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
@@ -210,12 +207,10 @@ import com.google.common.collect.Collections2;
  * 2. The RP Initiators do not have a valid Host URI. They do however have a Host Name.
  * This is accounted for in VPlexUtil.getExportMaskHost() and VPlexUtil.getInitiatorHost().
  *
- * @author Watson
- *
  */
 public class VPlexDeviceController implements VPlexController, BlockOrchestrationInterface, MaskingOrchestrator {
 
-    // Workflow names
+	// Workflow names
     private static final String MIGRATE_VOLUMES_WF_NAME = "migrateVolumes";
     private static final String DELETE_MIGRATION_SOURCES_WF_NAME = "deleteMigrationSources";
     private static final String IMPORT_VOLUMES_WF_NAME = "importVolumes";
@@ -250,11 +245,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String MIGRATION_VOLUME_DELETE_STEP = "delete";
     private static final String VIRTUAL_VOLUME_EXPAND_STEP = "expandVirtualVolume";
     private static final String EXPANSION_MIGRATION_STEP = "expansionMigrate";
-    private static final String COPY_VOLUME_STEP = "copyVolume";
     private static final String IMPORT_COPY_STEP = "importCopy";
     private static final String VOLUME_FORGET_STEP = "forgetVolumes";
     private static final String ZONING_STEP = "zoning";
-    private static final String REMOVE_INITIATOR_STEP = "removeInitiator";
     private static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VPLEX_VOLUME_STEP = "restoreVPlexVolume";
     private static final String INVALIDATE_CACHE_STEP = "invalidateCache";
@@ -265,7 +258,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String WAIT_ON_REBUILD_STEP = "waitOnRebuild";
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
-    private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
     private static final String RELINK_SNAPSHOT_SESSION_TARGET_STEP = "RelinkSnapshotSessionTarget";
@@ -274,68 +266,59 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
     private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
-    private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
-    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
-    private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
-    private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
     private static final String VALIDATE_VPLEX_VOLUME_STEP = "validateVPlexVolumeStep";
 
     // Workflow controller method names.
-    private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
-    private static final String CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "createVirtualVolumes";
-    private static final String RB_CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "rollbackCreateVirtualVolumes";
-    private static final String RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME = "rollbackUpgradeVirtualVolumeLocalToDistributed";
-    private static final String CREATE_MIRRORS_METHOD_NAME = "createMirrors";
-    private static final String RB_CREATE_MIRRORS_METHOD_NAME = "rollbackCreateMirrors";
-    private static final String DELETE_MIRROR_DEVICE_METHOD_NAME = "deleteMirrorDevice";
-    private static final String RB_DELETE_MIRROR_DEVICE_METHOD_NAME = "rollbackDeleteMirrorDevice";
-    private static final String DETACH_MIRROR_DEVICE_METHOD_NAME = "detachMirrorDevice";
-    private static final String PROMOTE_MIRROR_METHOD_NAME = "promoteMirror";
-    private static final String RB_PROMOTE_MIRROR_METHOD_NAME = "rollbackPromoteMirror";
-    private static final String MIGRATE_VIRTUAL_VOLUME_METHOD_NAME = "migrateVirtualVolume";
-    private static final String RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME = "rollbackMigrateVirtualVolume";
-    private static final String COMMIT_MIGRATION_METHOD_NAME = "commitMigration";
-    private static final String RB_COMMIT_MIGRATION_METHOD_NAME = "rollbackCommitMigration";
-    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumesStep";
+    private static final String CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "createVirtualVolumesStep";
+    private static final String RB_CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "rollbackCreateVirtualVolumesStep";
+    private static final String RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME = "rollbackUpgradeVirtualVolumeLocalToDistributedStep";
+    private static final String CREATE_MIRRORS_METHOD_NAME = "createMirrorsStep";
+    private static final String RB_CREATE_MIRRORS_METHOD_NAME = "rollbackCreateMirrorsStep";
+    private static final String DELETE_MIRROR_DEVICE_METHOD_NAME = "deleteMirrorDeviceStep";
+    private static final String RB_DELETE_MIRROR_DEVICE_METHOD_NAME = "rollbackDeleteMirrorDeviceStep";
+    private static final String DETACH_MIRROR_DEVICE_METHOD_NAME = "detachMirrorDeviceStep";
+    private static final String PROMOTE_MIRROR_METHOD_NAME = "promoteMirrorStep";
+    private static final String RB_PROMOTE_MIRROR_METHOD_NAME = "rollbackPromoteMirrorStep";
+    private static final String MIGRATE_VIRTUAL_VOLUME_METHOD_NAME = "migrateVirtualVolumeStep";
+    private static final String RB_MIGRATE_VIRTUAL_VOLUME_METHOD_NAME = "rollbackMigrateVirtualVolumeStep";
+    private static final String COMMIT_MIGRATION_METHOD_NAME = "commitMigrationStep";
+    private static final String RB_COMMIT_MIGRATION_METHOD_NAME = "rollbackCommitMigrationStep";
+    private static final String ROLLBACK_NULL_METHOD_NAME = "rollbackNullStep";
     private static final String CREATE_VIRTUAL_VOLUME_FROM_IMPORT_METHOD_NAME = "createVirtualVolumeFromImportStep";
-    private static final String DELETE_VIRTUAL_VOLUMES_METHOD_NAME = "deleteVirtualVolumes";
-    private static final String DELETE_MIGRATION_SOURCES_METHOD = "deleteMigrationSources";
-    private static final String EXPAND_VOLUME_NATIVELY_METHOD_NAME = "expandVolumeNatively";
-    private static final String EXPAND_VIRTUAL_VOLUME_METHOD_NAME = "expandVirtualVolume";
-    private static final String EXPANSION_MIGRATION_METHOD_NAME = "migrateVolumeForExpansion";
-    private static final String SET_CG_PROPERTIES_METHOD_NAME = "setCGProperties";
-    private static final String FULL_COPY_METHOD_NAME = "createFullCopy";
-    private static final String IMPORT_COPY_METHOD_NAME = "importCopy";
-    private static final String FORGET_VOLUMES_METHOD_NAME = "forgetVolumes";
-    private static final String RB_FORGET_VOLUMES_METHOD_NAME = "rollbackForgetVolumes";
-    private static final String CREATE_STORAGE_VIEW = "createStorageView";
-    private static final String DELETE_STORAGE_VIEW = "deleteStorageView";
-    private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
-    private static final String INVALIDATE_CACHE_METHOD_NAME = "invalidateCache";
-    private static final String DETACH_MIRROR_METHOD_NAME = "detachMirror";
-    private static final String ATTACH_MIRROR_METHOD_NAME = "attachMirror";
-    private static final String RESTORE_RESYNC_RB_METHOD_NAME = "rollbackRestoreResync";
-    private static final String EXPORT_MASK_DELETE_METHOD_NAME = "exportMaskDelete";
-    private static final String EXPORT_MASK_CREATE_METHOD_NAME = "exportMaskCreate";
-    private static final String WAIT_ON_REBUILD_METHOD_NAME = "waitOnRebuild";
-    private static final String RESTORE_FROM_FC_METHOD_NAME = "restoreFromFullCopy";
-    private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
-    private static final String DETACH_FC_METHOD_NAME = "detachFullCopy";
-    private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
-    private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
-    private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
-    private static final String RELINK_SNAPSHOT_SESSION_TARGETS_METHOD_NAME = "relinkTargetsToSnapshotSession";
+    private static final String DELETE_VIRTUAL_VOLUMES_METHOD_NAME = "deleteVirtualVolumesStep";
+    private static final String DELETE_MIGRATION_SOURCES_METHOD = "deleteMigrationSourcesStep";
+    private static final String EXPAND_VOLUME_NATIVELY_METHOD_NAME = "expandVolumeNativelyStep";
+    private static final String EXPAND_VIRTUAL_VOLUME_METHOD_NAME = "expandVirtualVolumeStep";
+    private static final String EXPANSION_MIGRATION_METHOD_NAME = "migrateVolumeForExpansionStep";
+    private static final String IMPORT_COPY_METHOD_NAME = "importCopyStep";
+    private static final String FORGET_VOLUMES_METHOD_NAME = "forgetVolumesStep";
+    private static final String RB_FORGET_VOLUMES_METHOD_NAME = "rollbackForgetVolumesStep";
+    private static final String CREATE_STORAGE_VIEW_METHOD_NAME = "createStorageViewStep";
+    private static final String DELETE_STORAGE_VIEW_METHOD_NAME = "deleteStorageViewStep";
+    private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolumeStep";
+    private static final String INVALIDATE_CACHE_METHOD_NAME = "invalidateCacheStep";
+    private static final String DETACH_MIRROR_METHOD_NAME = "detachMirrorStep";
+    private static final String ATTACH_MIRROR_METHOD_NAME = "attachMirrorStep";
+    private static final String RESTORE_RESYNC_RB_METHOD_NAME = "rollbackRestoreResyncStep";
+    private static final String EXPORT_MASK_DELETE_METHOD_NAME = "exportMaskDeleteStep";
+    private static final String WAIT_ON_REBUILD_METHOD_NAME = "waitOnRebuildStep";
+    private static final String RESTORE_FROM_FC_METHOD_NAME = "restoreFromFullCopyStep";
+    private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopyStep";
+    private static final String DETACH_FC_METHOD_NAME = "detachFullCopyStep";
+    private static final String VOLUME_FULLCOPY_RELATION_METHOD_NAME = "establishVolumeFullCopyGroupRelationStep";
+    private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshotStep";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGETS_METHOD_NAME = "relinkTargetsToSnapshotSessionStep";
     private static final String PAUSE_MIGRATION_METHOD_NAME = "pauseMigrationStep";
     private static final String RESUME_MIGRATION_METHOD_NAME = "resumeMigrationStep";
     private static final String CANCEL_MIGRATION_METHOD_NAME = "cancelMigrationStep";
     private static final String DELETE_MIGRATION_METHOD_NAME = "deleteMigrationStep";
-    private static final String RESTORE_SNAP_SESSION_METHOD_NAME = "restoreSnapshotSession";
-    private static final String REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME = "removeFromConsistencyGroup";
-    private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
-    private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
-    private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopy";
-    private static final String VALIDATE_VPLEX_VOLUME_METHOD = "validateVPlexVolume";
+    private static final String RESTORE_SNAP_SESSION_METHOD_NAME = "restoreSnapshotSessionStep";
+    private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopyStep";
+    private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopyStep";
+    private static final String VALIDATE_VPLEX_VOLUME_METHOD_NAME = "validateVPlexVolumeStep";
+    private static final String STORAGE_VIEW_REMOVE_INITIATORS_METHOD_NAME = "storageViewRemoveInitiatorsStep";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -384,8 +367,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private BlockStorageScheduler _blockScheduler;
     private ValidatorFactory validator;
     private static volatile VPlexDeviceController _instance;
-    private ExportWorkflowUtils _exportWfUtils;
-    private NetworkScheduler _networkScheduler;
     private static final URI nullURI = NullColumnValueGetter.getNullURI();
     @Autowired
     private DataSourceFactory dataSourceFactory;
@@ -405,10 +386,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     public void setVplexApiLockManager(VPlexApiLockManager lockManager) {
         _vplexApiLockManager = lockManager;
-    }
-
-    public void setExportWorkflowUtils(ExportWorkflowUtils exportWorkflowUtils) {
-        _exportWfUtils = exportWorkflowUtils;
     }
 
     public void setConsistencyGroupManagers(Map<String, ConsistencyGroupManager> serviceInterfaces) {
@@ -848,7 +825,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            - The stepId used for completion.
      * @throws WorkflowException
      */
-    public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap, String stepId)
+    public void createVirtualVolumesStep(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap, String stepId)
             throws WorkflowException {
         List<List<VolumeInfo>> rollbackData = new ArrayList<List<VolumeInfo>>();
         List<URI> createdVplexVolumeURIs = new ArrayList<URI>();
@@ -1133,7 +1110,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      * @throws WorkflowException
      */
-    public void rollbackCreateVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, String executeStepId, String stepId)
+    public void rollbackCreateVirtualVolumesStep(URI vplexURI, List<URI> vplexVolumeURIs, String executeStepId, String stepId)
             throws WorkflowException {
         try {
             List<List<VolumeInfo>> rollbackData = (List<List<VolumeInfo>>) _workflowService.loadStepData(executeStepId);
@@ -1446,7 +1423,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            -- Workflow Step Id.
      */
-    public void markVolumesInactive(List<URI> volumes, String stepId) {
+    public void markVolumesInactiveStep(List<URI> volumes, String stepId) {
         try {
             for (URI uri : volumes) {
                 Volume volume = _dbClient.queryObject(Volume.class, uri);
@@ -1571,7 +1548,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The id of the workflow step that invoked this method.
      */
-    public void forgetVolumes(URI vplexSystemURI, List<VolumeInfo> volumeInfo, String stepId) {
+    public void forgetVolumesStep(URI vplexSystemURI, List<VolumeInfo> volumeInfo, String stepId) {
         try {
             // Workflow step is executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1648,8 +1625,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The id of the workflow step that invoked this method.
      */
-    public void rollbackForgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
-        forgetVolumes(vplexSystemURI, getNativeVolumeInfo(volumeURIs), stepId);
+    public void rollbackForgetVolumesStep(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
+        forgetVolumesStep(vplexSystemURI, getNativeVolumeInfo(volumeURIs), stepId);
     }
 
     private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs, List<URI> doNotFullyDeleteVolumeList) {
@@ -1668,7 +1645,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      * @throws WorkflowException
      */
-    public void deleteVirtualVolumes(URI vplexURI, List<URI> volumeURIs,
+    public void deleteVirtualVolumesStep(URI vplexURI, List<URI> volumeURIs,
             List<URI> doNotFullyDeleteVolumeList, String stepId) throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1893,9 +1870,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId);
 
             // Do the source side export if there are src side volumes and initiators.
-            String srcExportStepId = null;
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
-                srcExportStepId = assembleExportMasksWorkflow(vplex, export, srcVarray,
+                assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
             }
@@ -2736,7 +2712,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         // Add a step to export on the VPlex. They call this a Storage View.
-        Workflow.Method storageViewExecuteMethod = new Workflow.Method(CREATE_STORAGE_VIEW,
+        Workflow.Method storageViewExecuteMethod = new Workflow.Method(CREATE_STORAGE_VIEW_METHOD_NAME,
                 vplexSystem.getId(), exportGroup.getId(), exportMask.getId(), blockObjectMap, inits, hostTargets);
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(vplexSystem.getId(), exportMask.getId());
@@ -2778,9 +2754,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("adding step to update export mask: " + exportMask.getMaskName());
 
         // Add a step to update export mask on the VPlex.
-        Workflow.Method storageViewExecuteMethod = new Workflow.Method("exportMaskAddVolumes",
+        Workflow.Method storageViewExecuteMethod = new Workflow.Method("exportMaskAddVolumesStep",
                 vplexSystem.getId(), export, exportMask.getId(), blockObjectMap);
-        Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+        Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_NULL_METHOD_NAME);
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
@@ -2835,7 +2811,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      * @throws ControllerException
      */
-    public void createStorageView(URI vplexURI, URI exportURI, URI exportMaskURI, Map<URI, Integer> blockObjectMap,
+    public void createStorageViewStep(URI vplexURI, URI exportURI, URI exportMaskURI, Map<URI, Integer> blockObjectMap,
             List<URI> initiators, List<URI> targets, String stepId) throws ControllerException {
         String lockName = null;
         boolean lockAcquired = false;
@@ -3098,7 +3074,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     } else {
                         _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
                         Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, exportMask.getId());
-                        storageViewStepId = workflow.createStep(DELETE_STORAGE_VIEW,
+                        storageViewStepId = workflow.createStep(DELETE_STORAGE_VIEW_METHOD_NAME,
                                 String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                                         exportMask.getMaskName(), export),
                                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
@@ -3146,7 +3122,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (!exportMaskUris.isEmpty()) {
                 _log.info("exportGroupDelete export mask URIs: " + exportMaskUris);
                 _log.info("exportGroupDelete volume URIs: " + volumeUris);
-                String zoningStep = workflow.createStepId();
                 List<NetworkZoningParam> zoningParams = NetworkZoningParam.convertExportMasksToNetworkZoningParam(export, exportMaskUris, _dbClient);
                 Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportMasksDeleteMethod(
                         zoningParams, volumeUris);
@@ -3210,7 +3185,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return
      */
     private Workflow.Method deleteStorageViewMethod(URI vplexURI, URI exportMaskURI) {
-        return new Workflow.Method(DELETE_STORAGE_VIEW, vplexURI, exportMaskURI);
+        return new Workflow.Method(DELETE_STORAGE_VIEW_METHOD_NAME, vplexURI, exportMaskURI);
     }
 
     /**
@@ -3221,7 +3196,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      * @throws WorkflowException
      */
-    public void deleteStorageView(URI vplexURI, URI exportMaskURI, String stepId) throws WorkflowException {
+    public void deleteStorageViewStep(URI vplexURI, URI exportMaskURI, String stepId) throws WorkflowException {
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
@@ -3419,7 +3394,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param opId
      * @throws ControllerException
      */
-    public void exportMaskAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
+    public void exportMaskAddVolumesStep(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap,
             String opId) throws ControllerException {
         String volListStr = Joiner.on(',').join(volumeMap.keySet());
@@ -3688,7 +3663,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // Create a step to remove initiators from the storage view
                         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
                                 exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
-                        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+                        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_NULL_METHOD_NAME);
                         previousStep = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
                                 null, vplexURI, vplex.getSystemType(), this.getClass(),
                                 removeInitiatorMethod, removeInitiatorRollbackMethod, null);
@@ -3722,7 +3697,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         			exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
                     hasSteps = true;
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
-                    previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
+                    previousStep = workflow.createStep(DELETE_STORAGE_VIEW_METHOD_NAME,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
                             previousStep, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
 
@@ -3773,7 +3748,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return
      */
     public Workflow.Method storageViewRemoveVolumesMethod(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList) {
-        return new Workflow.Method("storageViewRemoveVolumes", vplexURI, exportMask,
+        return new Workflow.Method("storageViewRemoveVolumesStep", vplexURI, exportMask,
                 volumeURIList);
     }
 
@@ -3788,7 +3763,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- Workflow step id
      * @throws WorkflowException
      */
-    public void storageViewRemoveVolumes(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList, String stepId)
+    public void storageViewRemoveVolumesStep(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList, String stepId)
             throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -4202,7 +4177,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public Workflow.Method storageViewAddInitiatorsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, boolean sharedExportMask) {
-        return new Workflow.Method("storageViewAddInitiators", vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask);
+        return new Workflow.Method("storageViewAddInitiatorsStep", vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask);
     }
 
     /**
@@ -4227,7 +4202,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- Workflow step id.
      * @throws WorkflowException
      */
-    public void storageViewAddInitiators(URI vplexURI, URI exportURI, URI maskURI,
+    public void storageViewAddInitiatorsStep(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> initiatorURIs,
             List<URI> targetURIs, boolean sharedExportMask,
             String stepId) throws DeviceControllerException {
@@ -4386,7 +4361,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public Workflow.Method storageViewAddStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs) {
-        return new Workflow.Method("storageViewAddStoragePorts", vplexURI, exportURI, maskURI, targetURIs);
+        return new Workflow.Method("storageViewAddStoragePortsStep", vplexURI, exportURI, maskURI, targetURIs);
     }
 
     /**
@@ -4408,7 +4383,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- Workflow step id.
      * @throws WorkflowException
      */
-    public void storageViewAddStoragePorts(URI vplexURI, URI exportURI, URI maskURI,
+    public void storageViewAddStoragePortsStep(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs,
             String stepId) throws DeviceControllerException {
         try {
@@ -4500,7 +4475,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public Workflow.Method storageViewRemoveStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs) {
-        return new Workflow.Method("storageViewRemoveStoragePorts", vplexURI, exportURI, maskURI, targetURIs);
+        return new Workflow.Method("storageViewRemoveStoragePortsStep", vplexURI, exportURI, maskURI, targetURIs);
     }
 
     /**
@@ -4521,7 +4496,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- Workflow step id.
      * @throws WorkflowException
      */
-    public void storageViewRemoveStoragePorts(URI vplexURI, URI exportURI, URI maskURI,
+    public void storageViewRemoveStoragePortsStep(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs,
             String stepId) throws DeviceControllerException {
         try {
@@ -4787,7 +4762,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
             Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
-            lastStep = workflow.createStep(DELETE_STORAGE_VIEW,
+            lastStep = workflow.createStep(DELETE_STORAGE_VIEW_METHOD_NAME,
                     String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                             exportMask.getMaskName(), exportGroup.getId()),
                     lastStep, vplex.getId(), vplex.getSystemType(),
@@ -4984,7 +4959,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // from the storage view on the vplex device.
         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
                 exportMask.getId(), hostInitiatorURIs, targetURIs);
-        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_NULL_METHOD_NAME);
         lastStep = workflow.createStep("storageView", "Removing " + hostInitiatorURIs.toString(),
                 zoneStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
                 removeInitiatorMethod, removeInitiatorRollbackMethod, null);
@@ -5099,7 +5074,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     private Workflow.Method fireTaskCompleterMethod(TaskCompleter completer) {
-        return new Workflow.Method("fireTaskCompleter", completer);
+        return new Workflow.Method("fireTaskCompleterStep", completer);
     }
 
     /**
@@ -5114,7 +5089,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            Workflow step id -- assumed to be in the completer!
      */
-    public void fireTaskCompleter(TaskCompleter completer, String stepId) {
+    public void fireTaskCompleterStep(TaskCompleter completer, String stepId) {
         completer.ready(_dbClient);
     }
 
@@ -5131,7 +5106,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private Workflow.Method storageViewRemoveInitiatorsMethod(URI vplexURI, URI exportGroupURI,
             URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs) {
-        return new Workflow.Method("storageViewRemoveInitiators", vplexURI, exportGroupURI,
+        return new Workflow.Method(STORAGE_VIEW_REMOVE_INITIATORS_METHOD_NAME, vplexURI, exportGroupURI,
                 exportMaskURI, initiatorURIs, targetURIs);
     }
 
@@ -5155,7 +5130,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- Workflow step id.
      * @throws WorkflowException
      */
-    public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
+    public void storageViewRemoveInitiatorsStep(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, String stepId)
             throws WorkflowException {
         try {
@@ -5440,48 +5415,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     *
-     * @param exportGroup
-     * @param volumeMap
-     * @return
-     */
-    private Map<URI, Integer> createVolumeMap(URI storageSystemURI, ExportGroup exportGroup,
-            Map<URI, Volume> volumeMap) {
-        Map<URI, Integer> volumeLunIdMap = new HashMap<URI, Integer>();
-        Iterator<URI> volumeIter = volumeMap.keySet().iterator();
-        while (volumeIter.hasNext()) {
-            URI volumeURI = volumeIter.next();
-            Volume volume = volumeMap.get(volumeURI);
-            if (volume.getStorageController().toString().equals(storageSystemURI.toString())) {
-                volumeLunIdMap.put(volumeURI, ExportGroup.LUN_UNASSIGNED);
-                exportGroup.addVolume(volumeURI, ExportGroup.LUN_UNASSIGNED);
-            }
-        }
-        return volumeLunIdMap;
-    }
-
-    /**
-     * Returns a list of Initiator URIs in the ExportGroup
-     *
-     * @param exportGroup
-     * @return
-     */
-    private List<URI> getInitiators(ExportGroup exportGroup) {
-        List<URI> initiatorURIs = new ArrayList<URI>();
-        if (exportGroup.hasInitiators()) {
-            for (String initiator : exportGroup.getInitiators()) {
-                try {
-                    URI initiatorURI = new URI(initiator);
-                    initiatorURIs.add(initiatorURI);
-                } catch (URISyntaxException ex) {
-                    _log.error("Bad URI syntax: " + initiator);
-                }
-            }
-        }
-        return initiatorURIs;
-    }
-
-    /**
      * Return a list of ExportGroups for a BlockObject on an array.
      * This is used by deleteVolumes to find the ExportGroup(s) on the underlying array.
      *
@@ -5522,15 +5455,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         this._networkDeviceController = networkDeviceController;
     }
 
-    public void setNetworkScheduler(NetworkScheduler networkScheduler) {
-        this._networkScheduler = networkScheduler;
-    }
-
     private Workflow.Method rollbackMethodNullMethod() {
-        return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        return new Workflow.Method(ROLLBACK_NULL_METHOD_NAME);
     }
 
-    public void rollbackMethodNull(String stepId) throws WorkflowException {
+    public void rollbackNullStep(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
@@ -5916,7 +5845,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return A reference to the workflow method.
      */
     private Workflow.Method createValidateVPlexVolumeMethod(URI vplexSystemURI, URI vplexVolumeURI) {
-        return new Workflow.Method(VALIDATE_VPLEX_VOLUME_METHOD, vplexSystemURI, vplexVolumeURI);
+        return new Workflow.Method(VALIDATE_VPLEX_VOLUME_METHOD_NAME, vplexSystemURI, vplexVolumeURI);
     }
 
     /**
@@ -5931,7 +5860,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The workflow step id.
      */
-    public void validateVPlexVolume(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
+    public void validateVPlexVolumeStep(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
         Volume vplexVolume = null;
         try {
             // Skip this if validation disabled
@@ -6041,7 +5970,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            The workflow step identifier.
      * @throws WorkflowException
      */
-    public void migrateVirtualVolume(URI vplexURI, URI virtualVolumeURI,
+    public void migrateVirtualVolumeStep(URI vplexURI, URI virtualVolumeURI,
             URI targetVolumeURI, URI migrationURI, URI newNhURI, String stepId) throws WorkflowException {
         _log.info("Migration {} using target {}", migrationURI, targetVolumeURI);
 
@@ -6168,7 +6097,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            The rollback step id.
      * @throws WorkflowException
      */
-    public void rollbackMigrateVirtualVolume(URI vplexURI, URI migrationURI,
+    public void rollbackMigrateVirtualVolumeStep(URI vplexURI, URI migrationURI,
             String migrateStepId, String stepId) throws WorkflowException {
         Migration migration = null;
         String migrationVolumeLabel = null;
@@ -6279,7 +6208,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @throws WorkflowException
      */
-    public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
+    public void commitMigrationStep(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
             Boolean rename, URI newVpoolURI, URI newVarrayURI, String stepId) throws WorkflowException {
         _log.info("Committing migration {}", migrationURI);
         Migration migration = null;
@@ -6487,7 +6416,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      
      * @throws WorkflowException
      */
-    public void rollbackCommitMigration(List<URI> migrationURIs, URI newVpoolURI, URI newVarrayURI, String commitStepId,
+    public void rollbackCommitMigrationStep(List<URI> migrationURIs, URI newVpoolURI, URI newVarrayURI, String commitStepId,
             String stepId) throws WorkflowException {
         // Update step state to executing.
         WorkflowStepCompleter.stepExecuting(stepId);
@@ -6660,7 +6589,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            The workflow step id.
      * @throws WorkflowException
      */
-    public void deleteMigrationSources(URI vplexURI, URI virtualVolumeURI,
+    public void deleteMigrationSourcesStep(URI vplexURI, URI virtualVolumeURI,
             URI newVpoolURI, URI newVarrayURI, List<URI> migrationSources, String stepId) throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -7048,10 +6977,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     static public class ImportRollbackHandler implements Workflow.WorkflowRollbackHandler, Serializable {
-        @Override
-        // Nothing to do.
-                public
-                void initiatingRollback(Workflow workflow, Object[] args) {
+		private static final long serialVersionUID = -2934667954227513983L;
+
+		@Override
+        public void initiatingRollback(Workflow workflow, Object[] args) {
+			// Nothing to do.
         }
 
         @Override
@@ -7094,7 +7024,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws WorkflowException
      *             When an error occurs updating the workflow step state
      */
-    public void rollbackUpgradeVirtualVolumeLocalToDistributed(
+    public void rollbackUpgradeVirtualVolumeLocalToDistributedStep(
             URI vplexURI, String virtualVolumeName, String virtualVolumePath, 
             String executeStepId, String stepId)
             throws WorkflowException {
@@ -7158,7 +7088,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public void importRollbackHandler(Object[] args) {
         URI importVolumeURI = (URI) args[0];
-        URI createVolumeURI = (URI) args[1];
         URI vplexVolumeURI = (URI) args[2];
 
         Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
@@ -7479,7 +7408,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @throws WorkflowException
      */
-    public void waitOnRebuild(URI vplexURI, URI vplexVolumeURI, String stepId)
+    public void waitOnRebuildStep(URI vplexURI, URI vplexVolumeURI, String stepId)
             throws WorkflowException {
 
         String volumeName = null;
@@ -7649,7 +7578,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return VIRTUAL_VOLUME_EXPAND_STEP;
     }
 
-    public void expandVolumeNatively(URI vplexURI, URI vplexVolumeURI, Long newSize,
+    public void expandVolumeNativelyStep(URI vplexURI, URI vplexVolumeURI, Long newSize,
             String opId) throws ControllerException {
 
         _log.info("VPlex controller expand volume {}", vplexVolumeURI);
@@ -7684,7 +7613,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             if (vplexVolume.getProvisionedCapacity() != null
                     && newSize > vplexVolume.getProvisionedCapacity()) {
-                expandVirtualVolume(vplexURI, vplexVolumeURI, newSize, systemNativeGuids, opId);
+                expandVirtualVolumeStep(vplexURI, vplexVolumeURI, newSize, systemNativeGuids, opId);
                 _log.info(String.format(
                         "Executed vplex virtual volume expansion. Expanded capacity to: %s", newSize));
             } else {
@@ -7758,7 +7687,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws WorkflowException
      *             When an error occurs updating the work step state.
      */
-    public void expandVirtualVolume(URI vplexSystemURI, URI vplexVolumeURI, Long newSize,
+    public void expandVirtualVolumeStep(URI vplexSystemURI, URI vplexVolumeURI, Long newSize,
             List<String> systemNativeGuids, String stepId) throws WorkflowException {
         try {
             // Update step state to executing.
@@ -7905,7 +7834,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws ControllerException
      *             When an error occurs migrating the volumes.
      */
-    public void migrateVolumeForExpansion(URI vplexSystemURI, URI vplexVolumeURI,
+    public void migrateVolumeForExpansionStep(URI vplexSystemURI, URI vplexVolumeURI,
             List<URI> targetVolumeURIs, Map<URI, URI> migrationsMap,
             Map<URI, URI> poolVolumeMap, String opId, String stepId) throws ControllerException {
 
@@ -8304,55 +8233,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     * Create a step in the passed workflow to create native full copies for
-     * the volumes or snapshots represented by the passed volume descriptors.
-     *
-     * @param workflow
-     *            A reference to the workflow to which the step is added.
-     * @param srcObject
-     *            A reference to a backend source volume or snapshot to be copied.
-     * @param copyVolumeDescriptors
-     *            The descriptors representing the backend
-     *            full copy volumes.
-     * @param waitFor
-     *            The step in the passed workflow for which this step should
-     *            wait to complete successfully before executing.
-     *
-     * @return The id of the step, for which subsequent steps in the workflow
-     *         should wait.
-     */
-    private String createStepForNativeCopy(Workflow workflow, BlockObject srcObject,
-            List<VolumeDescriptor> copyVolumeDescriptors, String waitFor) {
-        List<URI> copyVolumeURIs = VolumeDescriptor.getVolumeURIs(copyVolumeDescriptors);
-        StorageSystem srcVolumeSystem = getDataObject(StorageSystem.class,
-                srcObject.getStorageController(), _dbClient);
-        URI srcVolumeSystemURI = srcVolumeSystem.getId();
-        _log.info("Source volume storage system is {}", srcVolumeSystemURI);
-
-        String stepId = workflow.createStepId();
-        Workflow.Method executeMethod = new Workflow.Method(FULL_COPY_METHOD_NAME,
-                srcVolumeSystemURI, copyVolumeURIs, Boolean.FALSE);
-        Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_FULL_COPY_METHOD, srcVolumeSystemURI, copyVolumeURIs);
-        workflow.createStep(COPY_VOLUME_STEP, String.format(
-                "Create full copy volumes %s on system %s", copyVolumeURIs,
-                srcVolumeSystemURI), waitFor, srcVolumeSystemURI,
-                srcVolumeSystem.getSystemType(), BlockDeviceController.class,
-                executeMethod, rollbackMethod, stepId);
-
-        // Create a task operation status for each volume copy that will
-        // be updated when the step is executed and completed.
-        for (URI copyVolumeURI : copyVolumeURIs) {
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY);
-            _dbClient.createTaskOpStatus(Volume.class, copyVolumeURI, stepId, op);
-        }
-
-        _log.info("Created workflow step to create native full copies");
-
-        return stepId;
-    }
-
-    /**
      * Creates a step in the passed workflow to import each copy of the passed
      * primary backend volume to a VPLEX virtual volume.
      *
@@ -8517,7 +8397,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs configuring the import
      *             workflow.
      */
-    public void importCopy(URI vplexSystemURI, List<VolumeDescriptor> volumeDescriptors,
+    public void importCopyStep(URI vplexSystemURI, List<VolumeDescriptor> volumeDescriptors,
             URI projectURI, URI tenantURI, String stepId)
             throws ControllerException {
         _log.info("Executing import step for full copy.");
@@ -8551,7 +8431,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public Workflow.Method rollbackImportCopyMethod(
             VolumeDescriptor vplexVolumeDescriptor, List<VolumeDescriptor> assocVolumeDescrs) {
-        return new Workflow.Method("rollbackImportCopy", vplexVolumeDescriptor,
+        return new Workflow.Method("rollbackImportCopyStep", vplexVolumeDescriptor,
                 assocVolumeDescrs);
     }
 
@@ -8566,7 +8446,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The rollback step id.
      */
-    public void rollbackImportCopy(VolumeDescriptor vplexVolumeDescriptor,
+    public void rollbackImportCopyStep(VolumeDescriptor vplexVolumeDescriptor,
             List<VolumeDescriptor> assocVolumeDescrs, String stepId) {
 
         // Update step state to executing.
@@ -8625,9 +8505,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // We'll need a list of the native full copy URIs.
             List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
-
-            // Get the VPLEX system.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
             // Get the native system.
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
@@ -8829,7 +8706,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The workflow step identifier.
      */
-    public void invalidateCache(URI vplexURI, URI vplexVolumeURI, String stepId) {
+    public void invalidateCacheStep(URI vplexURI, URI vplexVolumeURI, String stepId) {
         _log.info("Executing invalidate cache for volume {} on VPLEX {}", vplexVolumeURI,
                 vplexURI);
 
@@ -8950,7 +8827,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The workflow step identifier.
      */
-    public void detachMirror(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI,
+    public void detachMirrorStep(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI,
             URI cgURI, String stepId) {
 
         _log.info("Executing detach mirror {} of VPLEX volume {} on VPLEX {}",
@@ -9118,7 +8995,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The workflow step identifier.
      */
-    public void attachMirror(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI,
+    public void attachMirrorStep(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI,
             URI cgURI, String detachStepId, String stepId) {
         _log.info("Executing attach mirror {} to VPLEX volume {} on VPLEX {}",
                 new Object[] { mirrorVolumeURI, vplexVolumeURI, vplexURI });
@@ -9238,9 +9115,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     nativeSystemURI = nativeFullCopyVolume.getStorageController();
                 }
             }
-
-            // Get the VPLEX system.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
             // Get the native system.
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
@@ -9546,8 +9420,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
                     storageViewInitiators, newTargets, shared);
-            Workflow.Method addToViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-            String viewStepId = workflow.createStep("storageView", "Add " + message,
+            Workflow.Method addToViewRollbackMethod = new Workflow.Method(ROLLBACK_NULL_METHOD_NAME);
+            workflow.createStep("storageView", "Add " + message,
                     ZONING_STEP, vplex.getId(), vplex.getSystemType(), this.getClass(),
                     addToViewMethod, addToViewRollbackMethod, null);
         }
@@ -9834,7 +9708,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      *            The workflow step identifier.
      */
-    public void rollbackRestoreResync(URI vplexURI, URI vplexVolumeURI,
+    public void rollbackRestoreResyncStep(URI vplexURI, URI vplexVolumeURI,
             URI mirrorVolumeURI, URI cgURI, String detachStepId, String stepId) {
         _log.info("Executing rollback of restore/resync volume {} on VPLEX {}",
                 new Object[] { vplexVolumeURI, vplexURI });
@@ -10187,7 +10061,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs configuring the
      *             promote mirror workflow steps.
      */
-    public String addStepsForPromoteMirrors(Workflow workflow, String waitFor, URI vplexURI,
+    public String addStepsForPromoteMirrorsStep(Workflow workflow, String waitFor, URI vplexURI,
             List<URI> mirrors, List<URI> promotees, String taskId) throws ControllerException {
         try {
             for (URI mirrorURI : mirrors) {
@@ -10196,10 +10070,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Add a step to detach mirror
                 waitFor = addStepsForDetachMirror(workflow, waitFor, vplexURI, mirrorURI, promotedVolumeForMirror.getId(), taskId);
-
-                if (promotedVolumeForMirror == null) {
-                    throw new IllegalStateException("No volume available for the promotion of mirror " + mirrorURI);
-                }
 
                 // Create a step for promoting the mirror.
                 String stepId = workflow.createStepId();
@@ -10252,7 +10122,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void promoteMirror(URI vplexURI, URI vplexMirrorURI, URI promoteVolumeURI, String stepId) throws WorkflowException {
+    public void promoteMirrorStep(URI vplexURI, URI vplexMirrorURI, URI promoteVolumeURI, String stepId) throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
@@ -10382,7 +10252,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void rollbackPromoteMirror(URI vplexURI, URI mirrorURI, URI promoteeURI, String executeStepId, String stepId)
+    public void rollbackPromoteMirrorStep(URI vplexURI, URI mirrorURI, URI promoteeURI, String executeStepId, String stepId)
             throws WorkflowException {
         try {
             // Update step state to executing.
@@ -10648,7 +10518,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String waitFor = null; // the wait for key returned by previous call
 
             // Add steps for detaching and promoting mirror to a virtual volume
-            waitFor = addStepsForPromoteMirrors(workflow, waitFor, vplexURI, mirrors, promotees, taskId);
+            waitFor = addStepsForPromoteMirrorsStep(workflow, waitFor, vplexURI, mirrors, promotees, taskId);
             List<URI> volumesWithTasks = new ArrayList<URI>(promotees);
             volumesWithTasks.add(sourceVolumeURI);
 
@@ -10700,7 +10570,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void createMirrors(URI vplexURI, List<URI> vplexMirrorURIs, String workflowTaskId, String stepId) throws WorkflowException {
+    public void createMirrorsStep(URI vplexURI, List<URI> vplexMirrorURIs, String workflowTaskId, String stepId) throws WorkflowException {
         List<VolumeInfo> rollbackData = new ArrayList<VolumeInfo>();
         List<URI> createdVplexMirrorURIs = new ArrayList<URI>();
         VplexMirrorTaskCompleter completer = new VplexMirrorTaskCompleter(VplexMirror.class, vplexMirrorURIs, workflowTaskId);
@@ -10854,7 +10724,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void deleteMirrorDevice(URI vplexURI, URI vplexMirrorURI, String stepId) throws WorkflowException {
+    public void deleteMirrorDeviceStep(URI vplexURI, URI vplexMirrorURI, String stepId) throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
@@ -10928,7 +10798,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void rollbackDeleteMirrorDevice(URI vplexURI, URI mirrorURI, String stepId) throws WorkflowException {
+    public void rollbackDeleteMirrorDeviceStep(URI vplexURI, URI mirrorURI, String stepId) throws WorkflowException {
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -11016,7 +10886,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void detachMirrorDevice(URI vplexURI, URI vplexMirrorURI, URI promotedVolumeURI, boolean discard, String stepId)
+    public void detachMirrorDeviceStep(URI vplexURI, URI vplexMirrorURI, URI promotedVolumeURI, boolean discard, String stepId)
             throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -11100,7 +10970,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *             When an error occurs updating the workflow step
      *             state.
      */
-    public void rollbackCreateMirrors(URI vplexURI, List<URI> vplexMirrorURIs, String executeStepId, String stepId)
+    public void rollbackCreateMirrorsStep(URI vplexURI, List<URI> vplexMirrorURIs, String executeStepId, String stepId)
             throws WorkflowException {
         try {
             List<VolumeInfo> rollbackData = (List<VolumeInfo>) _workflowService.loadStepData(executeStepId);
@@ -11133,47 +11003,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
 
-    // /**
-    // * This method generate steps to create ExportMask for each host based on the initiators
-    // * provided
-    // *
-    // * @param workflow the main workflow
-    // * @param wfGroupId the workflow group Id, if any
-    // * @param waitFor the id of a step on which this workflow has to wait, if any
-    // * @param storage Storage system URI
-    // * @param export Export Group URI
-    // * @param volumeMap Volume-lun map to be part of the export mask
-    // * @param initiatorURIs List of newly added initiator URIs
-    // * @throws WorkflowException
-    // */
-    // private String generateExportMaskCreateWorkflow(Workflow workflow, String wfGroupId,
-    // String waitFor, URI storage,
-    // URI export,
-    // Map<URI, Integer> volumeMap,
-    // List<URI> initiatorURIs)
-    // throws WorkflowException {
-    // DiscoveredSystemObject storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-    //
-    // Workflow.Method method =
-    // exportMaskCreateMethod(storage, export, volumeMap, initiatorURIs);
-    //
-    // Workflow.Method rollback =
-    // exportMaskDeleteMethod(storage, export, initiatorURIs);
-    //
-    // if (wfGroupId == null) {
-    // wfGroupId = method.getClass().getSimpleName();
-    // }
-    // return workflow.createStep(wfGroupId, String.format("Creating export on storage array %s (%s)",
-    // storageSystem.getNativeGuid(), storage.toString()),
-    // waitFor, NullColumnValueGetter.getNullURI(),
-    // storageSystem.getSystemType(), this.getClass(), method,
-    // rollback, null);
-    // }
-
-    private Workflow.Method exportMaskDeleteMethod(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs) {
-        return new Workflow.Method(EXPORT_MASK_DELETE_METHOD_NAME, storageURI, exportGroupURI, initiatorURIs);
-    }
-
     /**
      * This method deletes the export mask and remove it from export group as part of rollback.
      *
@@ -11187,7 +11016,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            The worflow opId
      * @throws ControllerException
      */
-    public void exportMaskDelete(URI vplex, URI exportGroupURI, List<URI> initiatorURIs, String opId)
+    public void exportMaskDeleteStep(URI vplex, URI exportGroupURI, List<URI> initiatorURIs, String opId)
             throws ControllerException {
         _log.info("Entering exportMaskDelete, opId: " + opId);
         WorkflowStepCompleter.stepExecuting(opId);
@@ -12027,7 +11856,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD,
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD_NAME,
                     nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
             workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
                     "create group relation between Volume group and Full copy group", null,
@@ -12200,7 +12029,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
-            URI volId = migration.getVolume();
             client.resumeMigrations(Arrays.asList(migration.getLabel()));
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.getStatusValue());
             _dbClient.updateObject(migration);
@@ -12406,9 +12234,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAP_SESSION_WF_NAME, false, opId);
             _log.info("Created restore snapshot session workflow with operation id {}", opId);
 
-            // Get the VPLEX system.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-
             // Get the VPLEX volume(s) to be restored.
             List<Volume> vplexVolumes = new ArrayList<Volume>();
             if (!snapSession.hasConsistencyGroup()) {
@@ -12500,6 +12325,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     snapSessionURI.toString(), e);
             completer.error(_dbClient, serviceError);
         }
+    }
+    
+    public void relinkTargetsToSnapshotSessionStep(URI vplexURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException {
+    	relinkTargetsToSnapshotSession(vplexURI, tgtSnapSessionURI, snapshotURIs, opId);
     }
     
     /**
@@ -13358,7 +13188,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Now add the steps to create the block snapshot on the storage system
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vplexUri);
         Workflow.Method createFullCopyMethod = new Workflow.Method(CREATE_FULL_COPY_METHOD_NAME, vplexUri, volumeDescriptors);
-        Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+        Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_NULL_METHOD_NAME);
 
         waitFor = workflow.createStep(CREATE_FULL_COPY_METHOD_NAME, "Create Block Full Copy for VPlex", waitFor, storageSystem.getId(),
                 storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);

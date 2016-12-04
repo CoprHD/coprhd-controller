@@ -134,7 +134,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
-    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    private static final String ROLLBACK_NULL_METHOD = "rollbackNullStep";
 
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -179,7 +179,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @return workflow method that is empty
      */
     private Workflow.Method rollbackMethodNullMethod() {
-        return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        return new Workflow.Method(ROLLBACK_NULL_METHOD);
     }
 
     /**
@@ -187,13 +187,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * to continue to prior steps back up the workflow chain. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
+     * Official Workflow Step
      * 
      * @param stepId
      *            The id of the step being rolled back.
      * 
      * @throws WorkflowException
      */
-    public void rollbackMethodNull(String stepId) throws WorkflowException {
+    public void rollbackNullStep(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
@@ -949,13 +950,26 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public Workflow.Method updateExportGroupMethod(URI exportGroupURI, Map<URI, Integer> newVolumesMap,
             Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> adedHosts, Set<URI> removedHosts,
             Set<URI> addedInitiators, Set<URI> removedInitiators) {
-        return new Workflow.Method("updateExportGroup", exportGroupURI, newVolumesMap,
+        return new Workflow.Method("updateExportGroupStep", exportGroupURI, newVolumesMap,
                 addedClusters, removedClusters, adedHosts, removedHosts, addedInitiators,
                 removedInitiators);
     }
 
-    public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
-            Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> adedHosts, Set<URI> removedHosts,
+    /**
+     * Official Workflow Step
+     * @param exportGroup
+     * @param newVolumesMap
+     * @param addedClusters
+     * @param removedClusters
+     * @param addedHosts
+     * @param removedHosts
+     * @param addedInitiators
+     * @param removedInitiators
+     * @param stepId
+     * @throws Exception
+     */
+    public void updateExportGroupStep(URI exportGroup, Map<URI, Integer> newVolumesMap,
+            Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> addedHosts, Set<URI> removedHosts,
             Set<URI> addedInitiators,
             Set<URI> removedInitiators, String stepId) throws Exception {
         Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
@@ -968,7 +982,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
-                removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
+                removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
@@ -976,10 +990,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
-        return new Workflow.Method("updateFileShare", deviceId, systemType, fileShareId, export);
+        return new Workflow.Method("updateFileShareStep", deviceId, systemType, fileShareId, export);
     }
 
-    public void updateFileShare(URI deviceId, String systemType, URI fileShareId, FileShareExport export, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param deviceId
+     * @param systemType
+     * @param fileShareId
+     * @param export
+     * @param stepId
+     */
+    public void updateFileShareStep(URI deviceId, String systemType, URI fileShareId, FileShareExport export, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         FileController fileController = getController(FileController.class, systemType);
         FileShare fs = _dbClient.queryObject(FileShare.class, fileShareId);
@@ -990,10 +1012,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method unexportFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
-        return new Workflow.Method("unexportFileShare", deviceId, systemType, fileShareId, export);
+        return new Workflow.Method("unexportFileShareStep", deviceId, systemType, fileShareId, export);
     }
 
-    public void unexportFileShare(URI deviceId, String systemType, URI fileShareId, FileShareExport export, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param deviceId
+     * @param systemType
+     * @param fileShareId
+     * @param export
+     * @param stepId
+     */
+    public void unexportFileShareStep(URI deviceId, String systemType, URI fileShareId, FileShareExport export, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         FileController fileController = getController(FileController.class, systemType);
         FileShare fs = _dbClient.queryObject(FileShare.class, fileShareId);
@@ -1017,7 +1047,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @return workflow method for attaching and mounting disks and datastores
      */
     public Workflow.Method attachAndMountMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
-        return new Workflow.Method("attachAndMount", exportGroup, hostId, vcenter, vcenterDatacenter);
+        return new Workflow.Method("attachAndMountStep", exportGroup, hostId, vcenter, vcenterDatacenter);
     }
 
     /**
@@ -1035,7 +1065,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @return workflow method for unmounting and detaching disks and datastores
      */
     public Workflow.Method unmountAndDetachMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
-        return new Workflow.Method("unmountAndDetach", exportGroup, hostId, vcenter, vcenterDatacenter);
+        return new Workflow.Method("unmountAndDetachStep", exportGroup, hostId, vcenter, vcenterDatacenter);
     }
 
     /**
@@ -1043,6 +1073,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * For each volume in the export group, the associated disk is attached to the host and any datastores backed by the
      * volume are mounted
      * to the host.
+     * Official Workflow Step
      * 
      * @param exportGroupId
      *            export group that contains volumes
@@ -1055,7 +1086,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param stepId
      *            the id of the workflow step
      */
-    public void attachAndMount(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+    public void attachAndMountStep(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
@@ -1124,12 +1155,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @return workflow method for unmounting and detaching disks and datastores
      */
     public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI vcenter, URI vcenterDatacenter) {
-        return new Workflow.Method("verifyDatastore", exportGroup, vcenter, vcenterDatacenter);
+        return new Workflow.Method("verifyDatastoreStep", exportGroup, vcenter, vcenterDatacenter);
     }
 
     /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
      * virtual machines.
+     * Official Workflow Step
      * 
      * @param exportGroupId
      *            export group that contains volumes
@@ -1140,7 +1172,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param stepId
      *            the id of the workflow step
      */
-    public void verifyDatastore(URI exportGroupId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+    public void verifyDatastoreStep(URI exportGroupId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
@@ -1178,6 +1210,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Unmounts and detaches every datastore and disk associated with the volumes in the export group.
      * For each volume in the export group, the backed datastore is unmounted and the associated disk is detached from
      * the host.
+     * Official Workflow Step
      * 
      * @param exportGroupId
      *            export group that contains volumes
@@ -1190,7 +1223,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param stepId
      *            the id of the workflow step
      */
-    public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+    public void unmountAndDetachStep(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
@@ -1340,10 +1373,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method deleteExportGroupMethod(URI exportGroupURI) {
-        return new Workflow.Method("deleteExportGroup", exportGroupURI);
+        return new Workflow.Method("deleteExportGroupStep", exportGroupURI);
     }
 
-    public void deleteExportGroup(URI exportGroup, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param exportGroup
+     * @param stepId
+     */
+    public void deleteExportGroupStep(URI exportGroup, String stepId) {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
         _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                 stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
@@ -1435,10 +1473,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId, URI vCenterDataCenterId) {
-        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId, vCenterDataCenterId);
+        return new Workflow.Method("updateHostAndInitiatorClusterReferencesStep", hostId, clusterId, vCenterDataCenterId);
     }
 
-    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param clusterId
+     * @param vCenterDataCenterId
+     * @param stepId
+     */
+    public void updateHostAndInitiatorClusterReferencesStep(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
         ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
@@ -1765,7 +1810,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public void createDirectory(URI hostId, String mountPath, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void createDirectoryStep(URI hostId, String mountPath, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1783,7 +1834,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param mountPath
+     * @param resId
+     * @param subDirectory
+     * @param security
+     * @param fsType
+     * @param stepId
+     */
+    public void addToFSTabStep(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1801,12 +1862,28 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void mount(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
-        mountDir(resId, hostId, mountPath, subDir, security, fsType, stepId);
+    /**
+     * Official Workflow Step
+     * @param resId
+     * @param hostId
+     * @param mountPath
+     * @param subDir
+     * @param security
+     * @param fsType
+     * @param stepId
+     */
+    public void mountStep(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        mountDirStep(resId, hostId, mountPath, subDir, security, fsType, stepId);
         createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
     }
 
-    public void verifyMountPoint(URI hostId, String mountPath, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void verifyMountPointStep(URI hostId, String mountPath, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1824,12 +1901,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void deleteDirectory(URI resId, URI hostId, String mountPath, String stepId) {
-        deleteDir(resId, hostId, mountPath, stepId);
+    /**
+     * Official Workflow Step
+     * @param resId
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void deleteDirectoryStep(URI resId, URI hostId, String mountPath, String stepId) {
+        deleteDirStep(resId, hostId, mountPath, stepId);
         removeMountDBEntry(resId, hostId, mountPath);
     }
 
-    public void removeFromFSTab(URI hostId, String mountPath, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void removeFromFSTabStep(URI hostId, String mountPath, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1847,7 +1937,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void unmount(URI hostId, String mountPath, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void unmountStep(URI hostId, String mountPath, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1882,7 +1978,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return null;
     }
 
-    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param mountPath
+     * @param resId
+     * @param stepId
+     */
+    public void removeFromFSTabRollBackStep(URI hostId, String mountPath, URI resId, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1901,7 +2004,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void deleteDir(URI resId, URI hostId, String mountPath, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param resId
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void deleteDirStep(URI resId, URI hostId, String mountPath, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1919,11 +2029,31 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void unmountRollBack(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
-        mountDir(resId, hostId, mountPath, subDir, security, fsType, stepId);
+    /**
+     * Official Workflow Step
+     * @param resId
+     * @param hostId
+     * @param mountPath
+     * @param subDir
+     * @param security
+     * @param fsType
+     * @param stepId
+     */
+    public void unmountRollBackStep(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        mountDirStep(resId, hostId, mountPath, subDir, security, fsType, stepId);
     }
 
-    public void mountDir(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param resId
+     * @param hostId
+     * @param mountPath
+     * @param subDir
+     * @param security
+     * @param fsType
+     * @param stepId
+     */
+    public void mountDirStep(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1941,50 +2071,57 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void createDirectoryRollBack(URI resId, URI hostId, String mountPath, String stepId) {
-        deleteDir(resId, hostId, mountPath, stepId);
+    /**
+     * Official Workflow Step
+     * @param resId
+     * @param hostId
+     * @param mountPath
+     * @param stepId
+     */
+    public void createDirectoryRollBackStep(URI resId, URI hostId, String mountPath, String stepId) {
+        deleteDirStep(resId, hostId, mountPath, stepId);
     }
 
     public Method createDirectoryMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("createDirectory", args.getHostId(), args.getMountPath());
+        return new Workflow.Method("createDirectoryStep", args.getHostId(), args.getMountPath());
     }
 
     public Method addtoFSTabMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("addToFSTab", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
+        return new Workflow.Method("addToFSTabStep", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
                 args.getSecurity(), args.getFsType());
     }
 
     public Method mountDeviceMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("mount", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
+        return new Workflow.Method("mountStep", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
                 args.getSecurity(), args.getFsType());
     }
 
     public Method verifyMountPointMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("verifyMountPoint", args.getHostId(), args.getMountPath());
+        return new Workflow.Method("verifyMountPointStep", args.getHostId(), args.getMountPath());
     }
 
     public Method unmountDeviceMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("unmount", args.getHostId(), args.getMountPath());
+        return new Workflow.Method("unmountStep", args.getHostId(), args.getMountPath());
     }
 
     public Method removeFromFSTabMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("removeFromFSTab", args.getHostId(), args.getMountPath());
+        return new Workflow.Method("removeFromFSTabStep", args.getHostId(), args.getMountPath());
     }
 
     public Method removeFromFSTabRollBackMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("removeFromFSTabRollBack", args.getHostId(), args.getMountPath(), args.getResId());
+        return new Workflow.Method("removeFromFSTabRollBackStep", args.getHostId(), args.getMountPath(), args.getResId());
     }
 
     public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("deleteDirectory", args.getResId(), args.getHostId(), args.getMountPath());
+        return new Workflow.Method("deleteDirectoryStep", args.getResId(), args.getHostId(), args.getMountPath());
     }
 
     public Method createDirectoryRollBackMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("createDirectoryRollBack", args.getResId(), args.getHostId(), args.getMountPath());
+        return new Workflow.Method("createDirectoryRollBackStep", args.getResId(), args.getHostId(), args.getMountPath());
     }
 
     public Method unmountRollBackMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("unmountRollBack", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
+        return new Workflow.Method("unmountRollBackStep", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
                 args.getSecurity(), args.getFsType());
     }
 

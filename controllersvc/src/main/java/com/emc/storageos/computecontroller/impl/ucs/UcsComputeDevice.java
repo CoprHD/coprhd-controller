@@ -451,9 +451,9 @@ public class UcsComputeDevice implements ComputeDevice {
             createSpToken = workflow.createStep(CREATE_SP_FROM_SPT_STEP,
                     "create a service profile from the ServiceProfile template selected in the VCP", null,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "createLsServer", computeSystem, sptDn, host.getHostName()),
+                            "createLsServerStep", computeSystem, sptDn, host.getHostName()),
                     new Workflow.Method(
-                            "deleteLsServer", computeSystem, createSpToken),
+                            "deleteLsServerStep", computeSystem, createSpToken),
                     createSpToken);
 
             String modifySpBootToken = workflow.createStepId();
@@ -462,30 +462,30 @@ public class UcsComputeDevice implements ComputeDevice {
                             MODIFY_SP_BOOT_ORDER_STEP,
                             "Modify the created service profile to have an Empty boot policy, if a boot policy was associated, it will be over-written!",
                             createSpToken, computeSystem.getId(), computeSystem.getSystemType(), this.getClass(),
-                            new Workflow.Method("modifyLsServerNoBoot", computeSystem, createSpToken),
-                            new Workflow.Method("deleteLsServer", computeSystem, createSpToken), modifySpBootToken);
+                            new Workflow.Method("modifyLsServerNoBootStep", computeSystem, createSpToken),
+                            new Workflow.Method("deleteLsServerStep", computeSystem, createSpToken), modifySpBootToken);
 
             String bindSPStepId = workflow.createStepId();
             bindSPStepId = workflow.createStep(BIND_SERVICE_PROFILE_TO_BLADE_STEP,
                     "bind a service profile to the blade represented by the CE associated with the Host",
                     modifySpBootToken, computeSystem.getId(), computeSystem.getSystemType(), this.getClass(),
-                    new Workflow.Method("bindServiceProfileToBlade", computeSystem, host.getId(),
+                    new Workflow.Method("bindServiceProfileToBladeStep", computeSystem, host.getId(),
                             createSpToken),
-                    new Workflow.Method("unbindServiceProfile", computeSystem, createSpToken),
+                    new Workflow.Method("unbindServiceProfileStep", computeSystem, createSpToken),
                     bindSPStepId);
 
             String addHostPortsToNetworkStepId = workflow.createStepId();
             addHostPortsToNetworkStepId = workflow.createStep(ADD_HOST_PORTS_TO_NETWORKS_STEP,
                     "Add host ports from service profile to the corresponding network in the vArray", bindSPStepId,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "addHostPortsToVArrayNetworks", varray, host),
+                            "addHostPortsToVArrayNetworksStep", varray, host),
                     null, addHostPortsToNetworkStepId);
 
             String addHostToSharedExportGroupsStepId = workflow.createStepId();
             addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
                     "Add host to shared export groups", addHostPortsToNetworkStepId,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "addHostToSharedExportGroups", host),
+                            "addHostToSharedExportGroupsStep", host),
                     null, addHostToSharedExportGroupsStepId);
 
             workflow.executePlan(taskCompleter, "Successfully created host : " + host.getHostName());
@@ -498,7 +498,12 @@ public class UcsComputeDevice implements ComputeDevice {
         }
     }
 
-    public void addHostToSharedExportGroups(Host host, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param host
+     * @param stepId
+     */
+    public void addHostToSharedExportGroupsStep(Host host, String stepId) {
 
         LOGGER.info("addHostToSharedExportGroups : " + host.getHostName());
 
@@ -588,7 +593,14 @@ public class UcsComputeDevice implements ComputeDevice {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
-    public void unbindServiceProfile(ComputeSystem cs, String contextStepId, String stepId)
+    /**
+     * Official Workflow Step
+     * @param cs
+     * @param contextStepId
+     * @param stepId
+     * @throws ClientGeneralException
+     */
+    public void unbindServiceProfileStep(ComputeSystem cs, String contextStepId, String stepId)
             throws ClientGeneralException {
         WorkflowStepCompleter.stepExecuting(stepId);
         String spDn = (String) workflowService.loadStepData(contextStepId);
@@ -762,7 +774,15 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
-    public LsServer createLsServer(ComputeSystem cs, String sptDn, String spRn, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param cs
+     * @param sptDn
+     * @param spRn
+     * @param stepId
+     * @return
+     */
+    public void createLsServerStep(ComputeSystem cs, String sptDn, String spRn, String stepId) {
 
         WorkflowStepCompleter.stepExecuting(stepId);
         LOGGER.info("Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
@@ -785,16 +805,20 @@ public class UcsComputeDevice implements ComputeDevice {
             LOGGER.error("Unable to createLsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
                     ComputeSystemControllerException.exceptions.unableToProvisionHost(spRn, cs.getNativeGuid(), e));
-            return null;
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);
         LOGGER.info("Done Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
-        return lsServer;
     }
 
-    public LsServer modifyLsServerNoBoot(ComputeSystem cs, String contextStepId, String stepId) {
-
+    /**
+	 * Official Workflow Step
+     * @param cs
+     * @param contextStepId
+     * @param stepId
+     * @return
+     */
+    public void modifyLsServerNoBootStep(ComputeSystem cs, String contextStepId, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         String spDn = (String) workflowService.loadStepData(contextStepId);
         LOGGER.info("Modifying Service Profile to have no Boot Policy: " + spDn);
@@ -807,16 +831,13 @@ public class UcsComputeDevice implements ComputeDevice {
             LOGGER.error("Unable to modify LsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
                     ComputeSystemControllerException.exceptions.unableToProvisionHost(spDn, cs.getNativeGuid(), e));
-            return null;
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);
         LOGGER.info("Done updating Service Profile : " + spDn + " from Service Profile Template : " + spDn);
-
-        return lsServer;
     }
 
-    public void deleteLsServer(ComputeSystem cs, String createSpStepId, String stepId) throws ClientGeneralException {
+    public void deleteLsServerStep(ComputeSystem cs, String createSpStepId, String stepId) throws ClientGeneralException {
         WorkflowStepCompleter.stepExecuting(stepId);
         String spDn = (String) workflowService.loadStepData(createSpStepId);
         try {
@@ -835,7 +856,14 @@ public class UcsComputeDevice implements ComputeDevice {
         }
     }
 
-    public void bindServiceProfileToBlade(ComputeSystem computeSystem, URI hostURI, String contextStepId,
+    /**
+     * Official Workflow Step
+     * @param computeSystem
+     * @param hostURI
+     * @param contextStepId
+     * @param stepId
+     */
+    public void bindServiceProfileToBladeStep(ComputeSystem computeSystem, URI hostURI, String contextStepId,
             String stepId) {
 
         ComputeElement computeElement = null;
@@ -901,7 +929,13 @@ public class UcsComputeDevice implements ComputeDevice {
         return ucsmURL;
     }
 
-    public void addHostPortsToVArrayNetworks(VirtualArray varray, Host host, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param varray
+     * @param host
+     * @param stepId
+     */
+    public void addHostPortsToVArrayNetworksStep(VirtualArray varray, Host host, String stepId) {
 
         LOGGER.info("Adding host ports to networks in Varray : " + varray.getLabel() + "for Host: "
                 + host.getHostName());

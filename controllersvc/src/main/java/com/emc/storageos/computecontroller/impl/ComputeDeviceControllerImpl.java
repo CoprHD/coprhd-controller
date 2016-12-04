@@ -77,7 +77,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private static final String POST_OS_INSTALL_POWER_ON_STEP = "POST_OS_INSTALL_POWER_ON_STEP";
     private static final String REBIND_HOST_TO_TEMPLATE = "REBIND_HOST_TO_TEMPLATE";
 
-    private static final String ROLLBACK_NOTHING_METHOD = "rollbackNothingMethod";
+    private static final String ROLLBACK_NOTHING_METHOD = "rollbackNullStep";
 
     private static final long TASK_STATUS_POLL_FREQUENCY = 30 * 1000;
 
@@ -158,7 +158,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         "prepare host for os install by unbinding it from service profile template",
                         waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
                         new Workflow.Method("unbindHostFromTemplateStep", computeSystemId, hostId),
-                        new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
+                        new Workflow.Method("rollbackUnbindHostFromTemplateStep", computeSystemId, hostId),
                         null);
 
                 // Set host to boot from lan
@@ -175,7 +175,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(OS_INSTALL_PREPARE_OS_NETWORK, "prepare network for os install", waitFor, cs
                     .getId(), cs.getSystemType(), this.getClass(),
                     new Workflow.Method("prepareOsInstallNetworkStep", computeSystemId, computeElementId),
-                    new Workflow.Method("rollbackOsInstallNetwork", computeSystemId, computeElementId, prepStepId),
+                    new Workflow.Method("rollbackOsInstallNetworkStep", computeSystemId, computeElementId, prepStepId),
                     prepStepId);
 
         } else {
@@ -235,13 +235,22 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * This is needed if any of the workflow steps have a real rollback method.
+     * Official Workflow Step
      *
      * @param stepId
      */
-    public void rollbackNothingMethod(String stepId) {
+    public void rollbackNullStep(String stepId) {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param computeElementId
+     * @param hostId
+     * @param volumeId
+     * @param stepId
+     */
     public void setSanBootTargetStep(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId, String stepId) {
         log.info("setSanBootTargetStep");
         try {
@@ -262,6 +271,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param computeElementId
+     * @param hostId
+     * @param stepId
+     */
     public void setLanBootTargetStep(URI computeSystemId, URI computeElementId, URI hostId, String stepId) {
         log.info("setLanBootTargetStep");
         try {
@@ -303,6 +319,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param computeElementId
+     * @param powerState
+     * @param stepId
+     */
     public void setPowerComputeElementStep(URI computeSystemId, URI computeElementId, String powerState, String stepId) {
         log.info("setPowerComputeElementStep");
         try {
@@ -357,6 +380,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         getDevice(cs.getSystemType()).rebindHostToTemplate(computeSystemId, hostId);
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param hostId
+     * @param stepId
+     */
     public void unbindHostFromTemplateStep(URI computeSystemId, URI hostId, String stepId) {
         log.info("unbindHostFromTemplateStep");
 
@@ -390,8 +419,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
-    public void rollbackUnbindHostFromTemplate(URI computeSystemId, URI hostId, String stepId) {
-        log.info("rollbackUnbindHostFromTemplate");
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param hostId
+     * @param stepId
+     */
+    public void rollbackUnbindHostFromTemplateStep(URI computeSystemId, URI hostId, String stepId) {
+        log.info("rollbackUnbindHostFromTemplateStep");
 
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -405,11 +440,17 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
                     .unexpectedException(opName, e);
-            log.error("Unexpected exception rollbackUnbindHostFromTemplate: " + e.getMessage(), e);
+            log.error("Unexpected exception rollbackUnbindHostFromTemplateStep: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, controllerException);
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param hostId
+     * @param stepId
+     */
     public void rebindHostToTemplateStep(URI computeSystemId, URI hostId, String stepId) {
         log.info("rebindHostToTemplateStep");
 
@@ -442,6 +483,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param computeElementId
+     * @param stepId
+     */
     public void prepareOsInstallNetworkStep(URI computeSystemId, URI computeElementId, String stepId) {
         log.info("prepareOsInstallNetworkStep");
 
@@ -475,8 +522,15 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
-    public void rollbackOsInstallNetwork(URI computeSystemId, URI computeElementId, String prepareStepId, String stepId) {
-        log.info("rollbackOsInstallNetwork");
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param computeElementId
+     * @param prepareStepId
+     * @param stepId
+     */
+    public void rollbackOsInstallNetworkStep(URI computeSystemId, URI computeElementId, String prepareStepId, String stepId) {
+        log.info("rollbackOsInstallNetworkStep");
 
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -494,7 +548,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
                     .unexpectedException(opName, e);
-            log.error("Unexpected exception rollbackOsInstallNetwork: " + e.getMessage(), e);
+            log.error("Unexpected exception rollbackOsInstallNetworkStep: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, controllerException);
         }
     }
@@ -507,6 +561,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         return getDevice(cs.getSystemType()).prepareOsInstallNetwork(computeSystemId, computeElementId);
     }
 
+    /**
+     * Official Workflow Step
+     * @param computeSystemId
+     * @param computeElementId
+     * @param contextStepId
+     * @param stepId
+     */
     public void removeOsInstallNetworkStep(URI computeSystemId, URI computeElementId, String contextStepId,
             String stepId) {
         log.info("removeOsInstallNetworkStep");
@@ -554,12 +615,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
                     "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId), null,
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceModeStep", hostId), null,
                     null);
 
             waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
                     "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId), null,
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterClusterStep", hostId), null,
                     null);
         }
 
@@ -588,13 +649,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
-                            "deactiveComputeSystemHost", cs.getId(), hostId),
+                            "deactiveComputeSystemHostStep", cs.getId(), hostId),
                     null, null);
 
             if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId), null, null);
+                        this.getClass(), new Workflow.Method("deleteBlockVolumeStep", hostId), null, null);
             }
         }
 
@@ -639,7 +700,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(CHECK_CLUSTER_VMS,
                     "If synced with vCenter, check if there are VMs in the cluster", waitFor, clusterId,
                     clusterId.toString(), this.getClass(),
-                    new Workflow.Method("checkClusterVms", cluster.getId(), cluster.getVcenterDataCenter()), null, null);
+                    new Workflow.Method("checkClusterVmsStep", cluster.getId(), cluster.getVcenterDataCenter()), null, null);
         }
 
         /*
@@ -649,15 +710,20 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER,
                     "If synced with vCenter, remove the cluster", waitFor, clusterId,
                     clusterId.toString(), this.getClass(),
-                    new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()), null, null);
+                    new Workflow.Method("removeVcenterClusterStep", cluster.getId(), cluster.getVcenterDataCenter()), null, null);
         }
 
         return waitFor;
     }
 
-    public void deleteBlockVolume(URI hostId, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param stepId
+     */
+    public void deleteBlockVolumeStep(URI hostId, String stepId) {
 
-        log.info("deleteBlockVolume");
+        log.info("deleteBlockVolumeStep");
 
         Host host = null;
 
@@ -736,12 +802,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * This will attempt to put host into maintenance mode on a Vcenter.
+     * Official Workflow Step
      *
      * @param hostId
      * @param stepId
      */
-    public void putHostInMaintenanceMode(URI hostId, String stepId) {
-        log.info("putHostInMaintenanceMode {}", hostId);
+    public void putHostInMaintenanceModeStep(URI hostId, String stepId) {
+        log.info("putHostInMaintenanceModeStep {}", hostId);
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -787,12 +854,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * This will attempt to remove host from vCenter cluster.
+     * Official Workflow Step
      *
      * @param hostId
      * @param stepId
      */
-    public void removeHostFromVcenterCluster(URI hostId, String stepId) {
-        log.info("removeHostFromVcenterCluster {}", hostId);
+    public void removeHostFromVcenterClusterStep(URI hostId, String stepId) {
+        log.info("removeHostFromVcenterClusterStep {}", hostId);
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -837,7 +905,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 }
             }
         } catch (VcenterControllerException e) {
-            log.warn("VcenterControllerException when trying to removeHostFromVcenterCluster: " + e.getMessage(), e);
+            log.warn("VcenterControllerException when trying to removeHostFromVcenterClusterStep: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {
                 log.info("did not find the host, considering success");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -849,7 +917,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 WorkflowStepCompleter.stepFailed(stepId, e);
             }
         } catch (InternalException e) {
-            log.error("InternalException when trying to removeHostFromVcenterCluster: " + e.getMessage(), e);
+            log.error("InternalException when trying to removeHostFromVcenterClusterStep: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
             log.error("unexpected exception: " + e.getMessage(), e);
@@ -861,13 +929,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * Checks if the cluster in Vcenter has VMs. Exception is thrown if VMs are present.
+     * Official Workflow Step
      *
      * @param clusterId
      * @param datacenterId
      * @param stepId
      */
-    public void checkClusterVms(URI clusterId, URI datacenterId, String stepId) {
-        log.info("checkClusterVms {} {}", clusterId, datacenterId);
+    public void checkClusterVmsStep(URI clusterId, URI datacenterId, String stepId) {
+        log.info("checkClusterVmsStep {} {}", clusterId, datacenterId);
         Cluster cluster = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -886,7 +955,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VcenterControllerException e) {
-            log.warn("VcenterControllerException when trying to checkClusterVms: " + e.getMessage(), e);
+            log.warn("VcenterControllerException when trying to checkClusterVmsStep: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {
                 log.info("did not find the datacenter or cluster, considering success");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -895,7 +964,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 WorkflowStepCompleter.stepFailed(stepId, e);
             }
         } catch (InternalException e) {
-            log.error("InternalException when trying to checkClusterVms: " + e.getMessage(), e);
+            log.error("InternalException when trying to checkClusterVmsStep: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
             log.error("unexpected exception " + e);
@@ -907,13 +976,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * Remove cluster from vCenter.
+     * Official Workflow Step
      *
      * @param clusterId
      * @param datacenterId
      * @param stepId
      */
-    public void removeVcenterCluster(URI clusterId, URI datacenterId, String stepId) {
-        log.info("removeVcenterCluster {} {}", clusterId, datacenterId);
+    public void removeVcenterClusterStep(URI clusterId, URI datacenterId, String stepId) {
+        log.info("removeVcenterClusterStep {} {}", clusterId, datacenterId);
         Cluster cluster = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -925,7 +995,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VcenterControllerException e) {
-            log.warn("VcenterControllerException when trying to removeVcenterCluster: " + e.getMessage(), e);
+            log.warn("VcenterControllerException when trying to removeVcenterClusterStep: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {
                 log.info("did not find the datacenter or cluster, considering success");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -934,7 +1004,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 WorkflowStepCompleter.stepFailed(stepId, e);
             }
         } catch (InternalException e) {
-            log.error("InternalException when trying to removeVcenterCluster: " + e.getMessage(), e);
+            log.error("InternalException when trying to removeVcenterClusterStep: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
             log.error("unexpected exception " + e);
@@ -944,14 +1014,18 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
     }
 
-    public void deactiveComputeSystemHost(URI csId, URI hostId, String stepId) {
-
-        log.info("deactiveComputeSystemHost");
+    /**
+     * Official Workflow Step
+     * @param csId
+     * @param hostId
+     * @param stepId
+     */
+    public void deactiveComputeSystemHostStep(URI csId, URI hostId, String stepId) {
+        log.info("deactiveComputeSystemHostStep");
 
         Host host = null;
 
         try {
-
             WorkflowStepCompleter.stepExecuting(stepId);
 
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);

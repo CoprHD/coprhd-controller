@@ -326,7 +326,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             snapshotList.add(snapshotId);
         }
 
-        waitFor = _blockDeviceController.createListSnapshotStep(workflow, waitFor, storageSystem, snapshotList);
+        waitFor = _blockDeviceController.addStepsForCreateListSnapshot(workflow, waitFor, storageSystem, snapshotList);
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
@@ -710,7 +710,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             mirrorList.add(mirrorId);
         }
 
-        waitFor = _blockDeviceController.createListMirrorStep(workflow, waitFor, storageSystem, mirrorList);
+        waitFor = _blockDeviceController.addStepsForCreateListMirror(workflow, waitFor, storageSystem, mirrorList);
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),

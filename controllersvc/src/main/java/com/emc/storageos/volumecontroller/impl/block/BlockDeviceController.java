@@ -209,7 +209,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String PAUSE_MIRRORS_WF_NAME = "PAUSE_MIRRORS_WORKFLOW";
     private static final String RESTORE_VOLUME_WF_NAME = "RESTORE_VOLUME_WORKFLOW";
     private static final String EXPAND_VOLUME_WF_NAME = "expandVolume";
-    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    private static final String ROLLBACK_NULL_METHOD = "rollbackNullStep";
     private static final String TERMINATE_RESTORE_SESSIONS_METHOD = "terminateRestoreSessionsStep";
     private static final String FRACTURE_CLONE_METHOD = "fractureCloneStep";
     private static final String UPDATE_CONSISTENCY_GROUP_WF_NAME = "UPDATE_CONSISTENCY_GROUP_WORKFLOW";
@@ -222,7 +222,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String RESTORE_SNAPSHOT_SESSION_WF_NAME = "restoreSnapshotSessionWF";
     private static final String DELETE_SNAPSHOT_SESSION_WF_NAME = "deleteSnapshotSessionWF";
     public static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
-    private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
+    private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSessionStep";
     public static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_METHOD = "linkBlockSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_GROUP_METHOD = "linkBlockSnapshotSessionTargetGroupStep";
@@ -313,7 +313,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return A workflow method
      */
     Workflow.Method rollbackMethodNullMethod() {
-        return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        return new Workflow.Method(ROLLBACK_NULL_METHOD);
     }
 
     /**
@@ -338,7 +338,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *
      * @throws WorkflowException
      */
-    public void rollbackMethodNull(String stepId) throws WorkflowException {
+    public void rollbackNullStep(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
@@ -983,6 +983,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createVolumesMethod just above (except
      * opId).
+     * Official Workflow Step
      */
     @Override
     public void createVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs,
@@ -2066,7 +2067,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /* (non-Javadoc)
      * @see com.emc.storageos.volumecontroller.BlockController#activateSnapshot(java.net.URI, java.util.List, java.lang.String)
-     * Official Workflow Step
      */
     @Override
     public void activateSnapshot(URI storage, List<URI> snapshotList, String opId)
@@ -2583,6 +2583,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMirrorMethod just above (except
      * opId).
+     * Official Workflow Step
      */
     @Override
     public void createMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean createInactive, String opId)
@@ -3558,10 +3559,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public Workflow.Method createFullCopyVolumeMethod(URI storage, URI sourceVolume, List<URI> fullCopyVolumes,
             Boolean createInactive, boolean isCG) {
-        return new Workflow.Method("createFullCopyVolume", storage, sourceVolume, fullCopyVolumes, createInactive, isCG);
+        return new Workflow.Method("createFullCopyVolumeStep", storage, sourceVolume, fullCopyVolumes, createInactive, isCG);
     }
 
-    public void createFullCopyVolume(URI storage, URI sourceVolume, List<URI> fullCopyVolumes, Boolean createInactive, boolean isCG,
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param sourceVolume
+     * @param fullCopyVolumes
+     * @param createInactive
+     * @param isCG
+     * @param taskId
+     */
+    public void createFullCopyVolumeStep(URI storage, URI sourceVolume, List<URI> fullCopyVolumes, Boolean createInactive, boolean isCG,
             String taskId) {
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3592,7 +3602,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             createInactive, taskCompleter);
                 } else {
                     // List Replica
-                    createListClone(storage, fullCopyVolumes, createInactive, taskId);
+                    createListCloneStep(storage, fullCopyVolumes, createInactive, taskId);
                 }
 
             } else {
@@ -3653,7 +3663,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /* (non-Javadoc)
      * @see com.emc.storageos.volumecontroller.BlockController#activateFullCopy(java.net.URI, java.util.List, java.lang.String)
-     * Official Workflow Step
      */
     @Override
     public void activateFullCopy(URI storage, List<URI> fullCopy, String opId) {
@@ -3712,6 +3721,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("activateFullCopyStep", storage, clone);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param fullCopy
+     * @param opId
+     */
     public void activateFullCopyStep(URI storage, List<URI> fullCopy, String opId) {
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4273,6 +4288,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.BlockController#updateConsistencyGroup(java.net.URI, java.net.URI, java.util.List, java.util.List, java.lang.String)
+     * Official Workflow Step
+     */
     @Override
     public void updateConsistencyGroup(URI storage, URI consistencyGroup,
             List<URI> addVolumesList,
@@ -4374,6 +4393,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, replicationGroupName);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param consistencyGroup
+     * @param replicationGroupName
+     * @param opId
+     * @return
+     * @throws ControllerException
+     */
     public boolean createConsistencyGroupStep(URI storage, URI consistencyGroup, String replicationGroupName, String opId)
             throws ControllerException {
         TaskCompleter taskCompleter = null;
@@ -4440,6 +4468,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("addToConsistencyGroupStep", storage, consistencyGroup, replicationGroupName, addVolumesList);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param consistencyGroup
+     * @param replicationGroupName
+     * @param addVolumesList
+     * @param opId
+     * @return
+     * @throws ControllerException
+     */
     public boolean addToConsistencyGroupStep(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
                     throws ControllerException {
@@ -5290,10 +5328,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method createListCloneMethod(URI storage, List<URI> cloneList, Boolean createInactive) {
-        return new Workflow.Method("createListClone", storage, cloneList, createInactive);
+        return new Workflow.Method("createListCloneStep", storage, cloneList, createInactive);
     }
 
-    public void createListClone(URI storage, List<URI> cloneList, Boolean createInactive, String taskId) {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param cloneList
+     * @param createInactive
+     * @param taskId
+     */
+    public void createListCloneStep(URI storage, List<URI> cloneList, Boolean createInactive, String taskId) {
         try {
             WorkflowStepCompleter.stepExecuting(taskId);
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -5308,10 +5353,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method rollbackListCloneMethod(URI storage, List<URI> cloneList) {
-        return new Workflow.Method("rollbackListClone", storage, cloneList);
+        return new Workflow.Method("rollbackListCloneStep", storage, cloneList);
     }
 
-    public void rollbackListClone(URI storage, List<URI> cloneList, String taskId) {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param cloneList
+     * @param taskId
+     */
+    public void rollbackListCloneStep(URI storage, List<URI> cloneList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
         _log.info("Rollback list clone");
         List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
@@ -5387,7 +5438,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            List of URIs for mirrors to be created
      * @return last step added to waitFor
      */
-    public String createListMirrorStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList)
+    public String addStepsForCreateListMirror(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList)
             throws ControllerException {
         URI storage = storageSystem.getId();
         waitFor = workflow.createStep(CREATE_MIRRORS_STEP_GROUP, "Creating list mirror", waitFor,
@@ -5400,10 +5451,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method createListMirrorMethod(URI storage, List<URI> mirrorList, Boolean createInactive) {
-        return new Workflow.Method("createListMirror", storage, mirrorList, createInactive);
+        return new Workflow.Method("createListMirrorStep", storage, mirrorList, createInactive);
     }
 
-    public void createListMirror(URI storage, List<URI> mirrorList, Boolean createInactive, String opId)
+    public void createListMirrorStep(URI storage, List<URI> mirrorList, Boolean createInactive, String opId)
             throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -5421,10 +5472,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method rollbackListMirrorMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("rollbackListMirror", storage, mirrorList);
+        return new Workflow.Method("rollbackListMirrorStep", storage, mirrorList);
     }
 
-    public void rollbackListMirror(URI storage, List<URI> mirrorList, String taskId) {
+    public void rollbackListMirrorStep(URI storage, List<URI> mirrorList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
 
         try {
@@ -5485,7 +5536,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            List of URIs for snapshots to be created
      * @return last step added to waitFor
      */
-    public String createListSnapshotStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> snapshotList)
+    public String addStepsForCreateListSnapshot(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> snapshotList)
             throws ControllerException {
         URI storage = storageSystem.getId();
         waitFor = workflow.createStep(CREATE_SNAPSHOTS_STEP_GROUP,
@@ -5498,10 +5549,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method createListSnapshotMethod(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly) {
-        return new Workflow.Method("createListSnapshot", storage, snapshotList, createInactive, readOnly);
+        return new Workflow.Method("createListSnapshotStep", storage, snapshotList, createInactive, readOnly);
     }
 
-    public void createListSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param snapshotList
+     * @param createInactive
+     * @param readOnly
+     * @param opId
+     * @throws ControllerException
+     */
+    public void createListSnapshotStep(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws ControllerException {
         WorkflowStepCompleter.stepExecuting(opId);
         TaskCompleter completer = null;
@@ -5521,10 +5581,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method rollbackListSnapshotMethod(URI storage, List<URI> snapshotList) {
-        return new Workflow.Method("rollbackListSnapshot", storage, snapshotList);
+        return new Workflow.Method("rollbackListSnapshotStep", storage, snapshotList);
     }
 
-    public void rollbackListSnapshot(URI storage, List<URI> snapshotList, String taskId) {
+    public void rollbackListSnapshotStep(URI storage, List<URI> snapshotList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
         try {
             List<BlockSnapshot> snapshotsNoRollback = new ArrayList<BlockSnapshot>();
@@ -5786,6 +5846,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Creates array snapshots on the array with the passed URI and associates these
      * with the BlockSnapshotSession instances with the passed URIs.
+     * Official Workflow Step
      *
      * @param systemURI
      *            The URI of the storage system.
@@ -5796,7 +5857,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param stepId
      *            The unique id of the workflow step in which the snapshots are be created.
      */
-    public void createBlockSnapshotSession(URI systemURI, URI snapSessionURI, String groupName, String stepId) {
+    public void createBlockSnapshotSessionStep(URI systemURI, URI snapSessionURI, String groupName, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -6822,6 +6883,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     
     /**
      * calls the child workflow step rollback methods
+     * Official Workflow Step
      * 
      * @param parentWorkflow
      * @param orchestrationStepId
@@ -6880,7 +6942,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     descriptor.getVolumeURI(),  
                     descriptor.getSnapSessionSnapshotURIs(), 
                     descriptor.getCapabilitiesValues().getSnapshotSessionCopyMode());
-            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_NULL_METHOD);
 
             waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
                     storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);

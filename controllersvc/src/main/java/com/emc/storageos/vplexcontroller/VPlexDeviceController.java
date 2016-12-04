@@ -1780,7 +1780,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            The workflow token
      * @throws ControllerException
      */
-    public void exportMaskCreate(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap,
+    public void exportMaskCreateStep(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap,
             List<URI> initiatorURIs, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -3747,7 +3747,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- URI of virtual volumes
      * @return
      */
-    public Workflow.Method storageViewRemoveVolumesMethod(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList) {
+    private Workflow.Method storageViewRemoveVolumesMethod(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList) {
         return new Workflow.Method("storageViewRemoveVolumesStep", vplexURI, exportMask,
                 volumeURIList);
     }
@@ -4150,7 +4150,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     private Workflow.Method zoneRollbackMethod(URI exportGroupURI, String contextKey) {
-        return new Workflow.Method("zoneRollback", exportGroupURI, contextKey);
+        return new Workflow.Method("zoneRollbackStep", exportGroupURI, contextKey);
     }
 
     /**
@@ -4162,7 +4162,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param taskId
      * @throws DeviceControllerException
      */
-    public void zoneRollback(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
+    public void zoneRollbackStep(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
         _networkDeviceController.zoneRollback(exportGroupURI, contextKey, taskId);
     }
 
@@ -4175,7 +4175,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param targetURIs
      * @return Workflow.Method for addition to workflow.
      */
-    public Workflow.Method storageViewAddInitiatorsMethod(URI vplexURI, URI exportURI, URI maskURI,
+    private Workflow.Method storageViewAddInitiatorsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, boolean sharedExportMask) {
         return new Workflow.Method("storageViewAddInitiatorsStep", vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask);
     }
@@ -4359,7 +4359,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- list of targets URIs
      * @return Workflow.Method for addition to workflow.
      */
-    public Workflow.Method storageViewAddStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
+    private Workflow.Method storageViewAddStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs) {
         return new Workflow.Method("storageViewAddStoragePortsStep", vplexURI, exportURI, maskURI, targetURIs);
     }
@@ -4473,7 +4473,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- list of additional targets URIs
      * @return Workflow.Method for addition to workflow.
      */
-    public Workflow.Method storageViewRemoveStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
+    private Workflow.Method storageViewRemoveStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs) {
         return new Workflow.Method("storageViewRemoveStoragePortsStep", vplexURI, exportURI, maskURI, targetURIs);
     }
@@ -8429,7 +8429,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @return A reference to the rollback import copy workflow method.
      */
-    public Workflow.Method rollbackImportCopyMethod(
+    private Workflow.Method rollbackImportCopyMethod(
             VolumeDescriptor vplexVolumeDescriptor, List<VolumeDescriptor> assocVolumeDescrs) {
         return new Workflow.Method("rollbackImportCopyStep", vplexVolumeDescriptor,
                 assocVolumeDescrs);

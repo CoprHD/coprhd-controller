@@ -336,14 +336,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         Map<URI, URI> volumeToNewVpoolsMap = VolumeDescriptor.createVolumeToNewVpoolMap(volumes);
         
         List<URI> volURIs = VolumeDescriptor.getVolumeURIs(volumes);
-        List<URI> cgIds = null;
         List<URI> migrationURIs = new ArrayList<URI>();
         for (VolumeDescriptor desc : volumes) {
             URI migrationURI = desc.getMigrationId();
             if (!NullColumnValueGetter.isNullURI(migrationURI)) {
                 migrationURIs.add(migrationURI);
             }
-            cgIds = Volume.fetchCgIds(s_dbClient, volURIs);
         }
 
         VolumeVpoolChangeTaskCompleter completer = new VolumeVpoolChangeTaskCompleter(
@@ -596,7 +594,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     }
 
     public void setDbClient(DbClient dbClient) {
-        this.s_dbClient = dbClient;
+        BlockOrchestrationDeviceController.s_dbClient = dbClient;
     }
 
     public void setLocker(ControllerLockingService locker) {
@@ -608,7 +606,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     }
 
     public void setBlockDeviceController(BlockDeviceController blockDeviceController) {
-        this._blockDeviceController = blockDeviceController;
+        BlockOrchestrationDeviceController._blockDeviceController = blockDeviceController;
     }
 
     public static VPlexDeviceController getVplexDeviceController() {

@@ -1481,7 +1481,7 @@ vplex_setup() {
 }
 
 xio_sim_setup() {
-    XIO-PROVIDER=XIO-PROVIDER-SIM
+    XTREMIO_PROVIDER_NAME=XIO-PROVIDER-SIM
     XTREMIO_3X_IP=$XIO_SIMULATOR_IP
     XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
     XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
@@ -1493,12 +1493,13 @@ xio_setup() {
     storage_password=$XTREMIO_3X_PASSWD
     XTREMIO_PORT=443
     XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+    XTREMIO_PROVIDER_NAME=XIO-PROVIDER
 
     if [ "${SIM}" = "1" ]; then
 	xio_sim_setup
     fi    
     
-    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    run storageprovider create ${XTREMIO_PROVIDER_NAME} $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     run storagedevice discover_all --ignore_error
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -2622,6 +2623,22 @@ test_9() {
 	return
     fi
 
+    if [ "${SS}" = "unity" ]
+    then
+	storage_failure_injections="failure_034_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_remove_from_cg \
+                                    failure_037_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume_cg_version \
+                                    failure_035_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_delete_volume \
+                                    failure_036_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume"
+    fi
+
+    if [ "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_038_XtremIOStorageDeviceController.doDeleteVolume_before_remove_from_cg \
+	                            failure_039_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume \
+                                    failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume \
+                                    failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume"
+    fi
+
     if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
@@ -2662,8 +2679,13 @@ test_9() {
       # Create the CG
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
-      # Create the volume in a CG
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      # Create the volume in a CG (unless it's a couple special cases where we need to test w/o CG)
+      if [ "${failure}" = "failure_035_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_delete_volume" -o "${failure}" = "failure_036_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume" ]
+      then
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+      else
+	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      fi
 
       # Perform any DB validation in here
       snap_db 2 ${cfs}

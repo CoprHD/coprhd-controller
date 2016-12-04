@@ -6832,8 +6832,9 @@ public class SmisCommandHelper implements SmisConstants {
      *            [in] - Locking service to protect access across
      * @param parkingSLOStorageGroups
      *            [in] - Set of SE_DeviceMaskingGroup CIMInstance objects
+     * @throws Exception if there is a issue in deleting ParikingSLOStorageGroup
      */
-    public void deleteParkingSLOStorageGroupsIfEmpty(StorageSystem storage, Set<CIMInstance> parkingSLOStorageGroups) {
+    public void deleteParkingSLOStorageGroupsIfEmpty(StorageSystem storage, Set<CIMInstance> parkingSLOStorageGroups) throws Exception {
         String currentHeldLockName = null;
         CloseableIterator<CIMObjectPath> volumeIterator = null;
         try {
@@ -6866,6 +6867,7 @@ public class SmisCommandHelper implements SmisConstants {
             callRefreshSystem(storage, null);
         } catch (Exception e) {
             _log.error("An exception while processing deleteParkingSLOStorageGroupsIfEmpty", e);
+            throw e;
         } finally {
             // Cleanup any iterator that may have been open but not yet closed
             if (volumeIterator != null) {

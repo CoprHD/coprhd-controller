@@ -1492,6 +1492,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_042);
+            
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
             
             // Test mechanism to invoke a failure. No-op on production systems.

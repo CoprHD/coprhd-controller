@@ -25,10 +25,14 @@ public interface Parameter {
         STRING,
         INTEGER,
         LONG,
+        SHORT, 
+        DOUBLE,
         URI,
         BOOLEAN,
+        DATETIME, 
+        DATE, 
         NAME_VALUE_LIST,
-        TABLE,  
+        TABLE 
     }
     
     public String getName();

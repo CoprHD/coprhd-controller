@@ -18,9 +18,6 @@ package com.emc.storageos.primitives.output;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import com.emc.storageos.primitives.Parameter;
-import com.emc.storageos.primitives.Parameter.ParameterType;
-
 /**
  * Class that represents a simple output parameter
  */
@@ -64,9 +61,119 @@ public abstract class BasicOutputParameter extends OutputParameter {
         
     }
     
-    public static class NameValueListOutputParameter extends BasicOutputParameter {
+    public static class IntegerParameter extends BasicOutputParameter {
 
-        public NameValueListOutputParameter(String name) {
+        public IntegerParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.INTEGER;
+        }
+        
+    }
+    
+    public static class LongParameter extends BasicOutputParameter {
+
+        public LongParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.LONG;
+        }
+        
+    }
+    
+    public static class ShortParameter extends BasicOutputParameter {
+
+        public ShortParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        public ParameterType getType() {
+            return ParameterType.SHORT;
+        }
+        
+    }
+    
+    public static class DoubleParameter extends BasicOutputParameter {
+
+        public DoubleParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        public ParameterType getType() {
+            return ParameterType.DOUBLE;
+        }
+        
+    }
+    
+    public static class URIParameter extends BasicOutputParameter {
+
+        public URIParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.URI;
+        }
+        
+    }
+    
+    public static class DateTimeParameter extends BasicOutputParameter {
+
+        public DateTimeParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.DATETIME;
+        }
+        
+    }
+    
+    public static class DateParameter extends BasicOutputParameter {
+
+        public DateParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.DATE;
+        }
+        
+    }
+    
+    public static class BooleanParameter extends BasicOutputParameter {
+
+        public BooleanParameter(String name) {
+            super(name);
+        }
+
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.BOOLEAN;
+        }
+        
+    }
+    
+    public static class NameValueListParameter extends BasicOutputParameter {
+
+        public NameValueListParameter(String name) {
             super(name);
         }
 

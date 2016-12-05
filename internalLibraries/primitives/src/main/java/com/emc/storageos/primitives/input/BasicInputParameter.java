@@ -159,7 +159,7 @@ public abstract class BasicInputParameter<T> extends InputParameter {
         @Override 
         @XmlElement(name = "type")
         public ParameterType getType() {
-            return ParameterType.NAME_VALUE_LIST;
+            return ParameterType.DATETIME;
         }
         
     }

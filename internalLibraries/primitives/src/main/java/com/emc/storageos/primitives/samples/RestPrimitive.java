@@ -22,8 +22,7 @@ import com.emc.storageos.primitives.input.BasicInputParameter.NameValueListParam
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.URIParameter;
 import com.emc.storageos.primitives.input.InputParameter;
-import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListOutputParameter;
-import com.emc.storageos.primitives.output.BasicOutputParameter.StringOutputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
 /**
@@ -48,8 +47,8 @@ public class RestPrimitive extends Primitive {
     
     private final static InputParameter INPUT[] = {HOSTNAME, PORT, URI, METHOD, SCHEME, CONTENT_TYPE, ACCEPT, EXTRA_HEADERS, BODY, QUERY};
 
-    private final static NameValueListOutputParameter HEADERS = new NameValueListOutputParameter("headers");
-    private final static StringOutputParameter ENTITY = new StringOutputParameter("entity");
+    private final static BasicOutputParameter.NameValueListParameter HEADERS = new BasicOutputParameter.NameValueListParameter("headers");
+    private final static BasicOutputParameter.StringOutputParameter ENTITY = new BasicOutputParameter.StringOutputParameter("entity");
     
     private final static OutputParameter OUTPUT[] = {HEADERS,ENTITY};
     

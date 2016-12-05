@@ -69,7 +69,7 @@ verify_export() {
     TMPFILE2=/dev/null
     
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
-    grep -n ${IG_PATTERN} ${TMPFILE1}2 > /dev/null
+    grep -n ${IG_PATTERN} ${TMPFILE1} 2> /dev/null
     if [ $? -ne 0 ]
     then
     if [ "$2" = "gone" ]
@@ -105,7 +105,7 @@ verify_export() {
 	failed=true
     fi
 
-	if [[ !-z "${HLUS}" ]]
+	if [[ ! -z "${HLUS}" ]]
 	then
 	if [ ${hlus} -ne ${HLUS} ]
 	then

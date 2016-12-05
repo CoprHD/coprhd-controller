@@ -109,8 +109,8 @@ public class DataCollectionJobScheduler {
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
         COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
-        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay),
-        EXTERNAL_CHANGE_DETECT_INTERVALS("ecd-discovery-interval", "ecd-discovery-refresh-interval", initialDiscoveryDelay);
+        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
+        //EXTERNAL_CHANGE_DETECT_INTERVALS("ecd-discovery-interval", "ecd-discovery-refresh-interval", initialDiscoveryDelay);
 
         private final String _interval;
         private volatile long _intervalValue;
@@ -166,9 +166,9 @@ public class DataCollectionJobScheduler {
             if (ControllerServiceImpl.COMPUTE_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return COMPUTE_DISCOVER_INTERVALS;
             } 
-            if (ControllerServiceImpl.ECD_DISCOVERY.equalsIgnoreCase(jobType)) {
+            /*if (ControllerServiceImpl.ECD_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return EXTERNAL_CHANGE_DETECT_INTERVALS;
-            } 
+            }*/ 
             else {
                 return null;
             }

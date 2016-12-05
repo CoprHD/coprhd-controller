@@ -1507,7 +1507,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             }
             
             if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info("The changePathParams workflow has {} steps. Starting the workflow.",
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
             } else {

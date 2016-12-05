@@ -638,13 +638,15 @@ public class MaskingWorkflowEntryPoints implements Controller {
             URI exportMaskURI,
             Map<URI, List<URI>> newPaths,
             TaskCompleter taskCompleter, String token) throws ControllerException {
-        String call = String.format("doExporMaskAddPaths(%s, %s, %s, %s, %s, %s)",
+        
+        String call = String.format("doExporMaskAddPaths(%s, %s, %s, %s, %s)",
                 storageURI.toString(),
                 exportGroupURI.toString(),
                 exportMaskURI.toString(),
                 newPaths != null ? Joiner.on(',').withKeyValueSeparator("=").join(newPaths) : "No path",
                 taskCompleter.getOpId());
         try {
+            _log.info(call + " starts");
             WorkflowStepCompleter.stepExecuting(token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             
@@ -665,7 +667,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             URI exportMaskURI,
             Map<URI, List<URI>> removePaths,
             TaskCompleter taskCompleter, String token) throws ControllerException {
-        String call = String.format("doExporMaskAddPaths(%s, %s, %s, %s, %s, %s)",
+        String call = String.format("doExporMaskAddPaths(%s, %s, %s, %s, %s)",
                 storageURI.toString(),
                 exportGroupURI.toString(),
                 exportMaskURI.toString(),

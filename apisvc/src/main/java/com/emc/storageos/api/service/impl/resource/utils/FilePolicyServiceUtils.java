@@ -20,9 +20,9 @@ import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.file.FilePolicyScheduleParams;
-import com.emc.storageos.model.file.FileSnapshotPolicyExpireParam;
-import com.emc.storageos.model.file.FileSnapshotPolicyParam;
+import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
+import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
+import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**

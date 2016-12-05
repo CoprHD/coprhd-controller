@@ -1082,7 +1082,6 @@ public class NetworkDeviceController implements NetworkController {
                 otherInitiators.add(ini.getInitiatorPort());
             }
         }
-        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_043);
         if (!exportInitiators.isEmpty()) {
             _log.info("Getting existing zones from network system for {} ", otherInitiators);
             zonesMap.putAll(getInitiatorsZones(exportInitiators));

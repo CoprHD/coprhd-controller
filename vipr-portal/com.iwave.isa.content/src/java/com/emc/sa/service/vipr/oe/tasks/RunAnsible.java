@@ -76,8 +76,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
                 cleanUp(step.getOperation(), true);
                 break;
             case REMOTE_ANSIBLE:
-                //TODO impl remote exec
-                result = executeCmd(null, null);
+                logger.info("Executing Remote ansible");
+                //String ip = input.get("remoteIp").get(0);//"10.247.66.88,";
+                String ip = "10.247.66.88"; //Get from Param/JSON
+		String user = "root";
+                String remotePlaybook = "/data/hello.yml"; //TODO Get from primitive remote playbook
+                String remoteBin = "/usr/bin/ansible-playbook";//Get from Param/JSON
+                result = executeRemoteCmd(user, ip, remotePlaybook, remoteBin, extraVars);
+
+                logger.info("Result: out:{} err:{} exitVal:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
                 break;
             default:
                 logger.error("Ansible Operation type:{} not supported", type);
@@ -93,6 +100,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
+    }
+
+    ///usr/bin/ssh", "root@10.247.66.88", "/usr/bin/ansible-playbook /data/hello.yml --extra-var \" \"
+    private Exec.Result executeRemoteCmd(final String user, final String ip, final String path, final String binPath, final String extraVars) {
+        logger.info("executing remote ansi ip:{} path:{} bin:{} extravar:{} user:{}", ip, path, binPath, extraVars, user);
+	String commands = binPath+" "+path+" --extra-var "+extraVars;
+        final String[] cmds = {"/usr/bin/ssh", user+"@"+ip, commands};
+        
+	return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
     private Exec.Result executeCmd(final String path, final String extraVars) {

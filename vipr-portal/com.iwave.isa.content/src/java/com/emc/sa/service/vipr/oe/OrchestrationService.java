@@ -90,12 +90,9 @@ public class OrchestrationService extends ViPRService {
         ExecutionUtils.currentContext().logInfo("orchestrationService.title");
         try {
             wfExecutor();
-
-            ExecutionUtils.currentContext().logInfo("orchestrationService.successStatus",
-                    ExecutionUtils.currentContext().getOrder().getWorkflowDocument());
+            ExecutionUtils.currentContext().logInfo("orchestrationService.successStatus");
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("orchestrationService.failedStatus",
-                    ExecutionUtils.currentContext().getOrder().getWorkflowDocument());
+            ExecutionUtils.currentContext().logError("orchestrationService.failedStatus");
 
             throw e;
         }
@@ -198,7 +195,7 @@ public class OrchestrationService extends ViPRService {
 
     private String getNext(final boolean status, final OrchestrationTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getOut());
+            ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getReturnCode());
 
             return step.getNext().getDefault();
         }

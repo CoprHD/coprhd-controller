@@ -10,6 +10,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.google.common.base.Function;
 
 public class MapFilePolicy implements Function<FilePolicy, FilePolicyRestRep> {
+
     public static final MapFilePolicy instance = new MapFilePolicy();
 
     public static MapFilePolicy getInstance() {

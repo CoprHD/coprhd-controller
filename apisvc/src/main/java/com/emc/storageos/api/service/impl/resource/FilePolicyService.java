@@ -49,6 +49,7 @@ import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -104,17 +105,18 @@ public class FilePolicyService extends TaskResourceService {
         return FilePolicy.class;
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public FilePolicyBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<FilePolicy> _dbIterator = _dbClient.queryIterativeObjects(
                 getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new BulkList.FilePolicyResourceFilter(getUserFromContext(), _permissionsHelper);
         return new FilePolicyBulkRep(BulkList.wrapping(_dbIterator,
-                MapFilePolicy.getInstance()));
+                MapFilePolicy.getInstance(), filter));
     }
 
     @Override
     public FilePolicyBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        verifySystemAdmin();
         return queryBulkResourceReps(ids);
     }
 
@@ -169,19 +171,40 @@ public class FilePolicyService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public FilePolicyListRestRep getFilePolicies() {
 
         FilePolicyListRestRep filePolicyList = new FilePolicyListRestRep();
         List<URI> ids = _dbClient.queryByType(FilePolicy.class, true);
         for (URI id : ids) {
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, id);
+
             if (filePolicy != null) {
-                filePolicyList.add(toNamedRelatedResource(filePolicy, filePolicy.getFilePolicyName()));
+
+                if (canAccessFilePolicy(filePolicy)) {
+                    filePolicyList.add(toNamedRelatedResource(filePolicy, filePolicy.getFilePolicyName()));
+                }
             }
         }
 
         return filePolicyList;
+    }
+
+    private boolean canAccessFilePolicy(FilePolicy filePolicy) {
+        StringSet tenants = filePolicy.getTenantOrg();
+
+        if (tenants == null || tenants.isEmpty()) {
+            return true;
+        }
+
+        if (isSystemAdmin()) {
+            return true;
+        }
+
+        StorageOSUser user = getUserFromContext();
+        String userTenantId = user.getTenantId();
+
+        return tenants.contains(userTenantId);
     }
 
     /**
@@ -193,12 +216,16 @@ public class FilePolicyService extends TaskResourceService {
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public FilePolicyRestRep getFilePolicy(@PathParam("id") URI id) {
 
         _log.info("Request recieved to get the file policy of id: {}", id);
         FilePolicy filepolicy = queryResource(id);
         ArgValidator.checkEntity(filepolicy, id, true);
+
+        if (!canAccessFilePolicy(filepolicy)) {
+            throw APIException.forbidden.tenantCannotAccessFilePolicy(filepolicy.getFilePolicyName());
+        }
 
         return map(filepolicy);
     }

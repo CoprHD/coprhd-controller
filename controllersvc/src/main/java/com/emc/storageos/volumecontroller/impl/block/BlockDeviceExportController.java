@@ -1038,14 +1038,17 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
-                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        "ExportPortRebalance: " + exportGroup.getLabel());
+                _log.error("Port rebalance could not require log");
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("port rebalance", "Could not acquire workflow loc");
+                taskCompleter.error(_dbClient, serviceError);
+                return;
+
             }
             
             String stepId = null;
             List<URI> maskURIs = new ArrayList<URI> ();
             Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
-            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", exportGroupURI, maskURIs,
+            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskURIs,
                     newPaths, stepId);
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {

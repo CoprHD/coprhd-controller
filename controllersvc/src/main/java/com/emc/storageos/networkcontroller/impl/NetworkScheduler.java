@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -1311,7 +1312,25 @@ public class NetworkScheduler {
             throws DeviceControllerException {
         List<NetworkFCZoneInfo> zones = new ArrayList<NetworkFCZoneInfo>();
         //TODO get volumes in the export group matching the systemURI
+        StringMap volumeMap = exportGroup.getVolumes();
         List<URI> volumes = new ArrayList<URI>();
+        if (volumeMap == null) {
+            // it should not happen, log
+            _log.info(String.format("There is no volume in the export group %s", exportGroup.getLabel()));
+        } else {
+            Set<String> vols = volumeMap.keySet();
+            for (String volId : vols) {
+                URI volURI = URI.create(volId);
+                Volume volume = dbClient.queryObject(Volume.class, volURI);
+                if (volume != null) {
+                    URI systemURI = volume.getStorageController();
+                    if (systemURI.equals(storageSystemURI)) {
+                        volumes.add(volURI);
+                    }
+                }
+            }
+        }
+        
         if (isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
             zones.addAll(getZoningTargetsForPaths(exportGroup, volumes, exportGroup.getVirtualArray(), paths, zonesMap));
         }

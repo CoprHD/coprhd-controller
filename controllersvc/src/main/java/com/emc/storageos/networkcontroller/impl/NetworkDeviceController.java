@@ -2604,8 +2604,8 @@ public class NetworkDeviceController implements NetworkController {
      * @param newPaths - new paths to be added
      * @return
      */
-    public Workflow.Method zoneExportAddPathsMethod(URI exportGroupURI, List<URI> exportMasks, Map<URI, List<URI>> newPaths) {
-        return new Workflow.Method("zoneExportAddPaths", exportGroupURI, exportMasks, newPaths);
+    public Workflow.Method zoneExportAddPathsMethod(URI systemURI, URI exportGroupURI, List<URI> exportMasks, Map<URI, List<URI>> newPaths) {
+        return new Workflow.Method("zoneExportAddPaths", systemURI, exportGroupURI, exportMasks, newPaths);
     }
 
     /**

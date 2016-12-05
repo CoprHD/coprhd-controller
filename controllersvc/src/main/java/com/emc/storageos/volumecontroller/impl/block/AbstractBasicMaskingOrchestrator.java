@@ -1507,7 +1507,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             }
             
             if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info("The changePathParams workflow has {} steps. Starting the workflow.",
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
             } else {
@@ -1562,41 +1562,4 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         return result;
     }
     
-    /**
-     * Get the remove path list for the exportMask in the given removedPaths.
-     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
-     * 
-     * @param exportMask 
-     * @param removedPaths - The list paths. some of them may not belong to the export mask.
-     * @return - The list of paths are going to be removed from the export mask.
-     */
-    protected Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
-        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
-        StringSetMap zoningMap = exportMask.getZoningMap();
-        StringSet maskInitiators = exportMask.getInitiators();
-        if (removedPaths == null || removedPaths.isEmpty()) {
-            return result;
-        }
-        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
-            URI initiator = entry.getKey();
-            if (!maskInitiators.contains(initiator.toString())) {
-                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
-                continue;
-            }
-            List<URI> ports = entry.getValue();
-            List<URI> removePorts = new ArrayList<URI> ();
-            StringSet targets = zoningMap.get(initiator.toString());
-            if (targets != null && !targets.isEmpty()) {
-                for (URI port : ports) {
-                    if (targets.contains(port.toString())) {
-                        removePorts.add(port);
-                    }
-                }
-                if (!removePorts.isEmpty()) {
-                    result.put(initiator, removePorts);
-                }
-            } 
-        }
-        return result;
-    }
 }

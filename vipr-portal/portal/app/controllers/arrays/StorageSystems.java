@@ -334,7 +334,7 @@ public class StorageSystems extends ViprResourceController {
         if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
             redirect(storageArray.referrerUrl);
         }
-
+        list();
     }
 
     public static void delete(@As(",") String[] ids) {

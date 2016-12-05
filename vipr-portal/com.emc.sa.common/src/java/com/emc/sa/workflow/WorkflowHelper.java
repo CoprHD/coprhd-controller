@@ -80,7 +80,6 @@ public final class WorkflowHelper {
         final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
         document.setName(workflow.getName());
         document.setDescription(workflow.getDescription());
-        document.setState(workflow.getState());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
         
         return document;

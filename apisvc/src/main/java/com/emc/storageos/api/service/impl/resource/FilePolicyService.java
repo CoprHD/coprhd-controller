@@ -167,7 +167,7 @@ public class FilePolicyService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
-    public FilePolicyListRestRep getVirtualNasServers() {
+    public FilePolicyListRestRep getFilePolicies() {
 
         FilePolicyListRestRep filePolicyList = new FilePolicyListRestRep();
         List<URI> ids = _dbClient.queryByType(FilePolicy.class, true);

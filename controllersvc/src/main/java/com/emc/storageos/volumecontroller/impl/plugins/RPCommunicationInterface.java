@@ -422,11 +422,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         
         // remove stale entries from protection set
         if (!staleVolumes.isEmpty()) {
-            for (String vol : staleVolumes) {
-                _log.info("ProtectionSet " + protectionSet.getLabel() + " references volume " + vol
-                        + " that no longer exists in the DB.  Removing this volume reference.");
-                protectionSet.getVolumes().remove(vol);
-            }
+            _log.info(String.format("ProtectionSet %s references at least one volume id that no longer exist in the database. Removing all stale volume references: %s", 
+                    protectionSet.getLabel(), String.join(",", staleVolumes)));
+            protectionSet.getVolumes().removeAll(staleVolumes);
             _dbClient.updateObject(protectionSet);
         }
 

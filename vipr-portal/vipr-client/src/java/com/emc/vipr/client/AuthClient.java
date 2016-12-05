@@ -7,6 +7,7 @@ package com.emc.vipr.client;
 import com.emc.storageos.model.password.PasswordChangeParam;
 import com.emc.vipr.client.impl.Constants;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.client.impl.jersey.OidcAuthFilter;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
@@ -59,6 +60,21 @@ public class AuthClient {
     public String login(String username, String password) {
         WebResource resource = client.getClient().resource(client.uriBuilder("/login").build());
         resource.addFilter(new HTTPBasicAuthFilter(username, password));
+        ClientResponse response = resource.get(ClientResponse.class);
+        response.close();
+        client.setLoginTime(System.currentTimeMillis());
+        return client.getAuthToken();
+    }
+
+    /**
+     * Perform a oidc login. The credential will be sent to OIDC provider directly and authentication will happen there.
+     * @param username
+     * @param password
+     * @return
+     */
+    public String oidcLogin(String username, String password) {
+        WebResource resource = client.getClient().resource(client.uriBuilder("/login").build());
+        resource.addFilter(new OidcAuthFilter(username, password));
         ClientResponse response = resource.get(ClientResponse.class);
         response.close();
         client.setLoginTime(System.currentTimeMillis());

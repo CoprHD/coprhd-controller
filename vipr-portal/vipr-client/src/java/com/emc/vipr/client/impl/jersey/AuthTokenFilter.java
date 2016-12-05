@@ -11,6 +11,7 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.ClientFilter;
 import javax.ws.rs.core.HttpHeaders;
 import java.net.URI;
+import java.util.Map;
 
 /**
  * Jersey filter for accessing and sending Storage OS Auth Token. This also implements redirection manually 302.

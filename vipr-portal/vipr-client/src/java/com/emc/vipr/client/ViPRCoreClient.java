@@ -140,6 +140,21 @@ public class ViPRCoreClient {
     }
 
     /**
+     * Performs an OIDC login and returns the updated client.
+     *
+     * @see AuthClient#oidcLogin(String, String)
+     * @param username
+     *            The username.
+     * @param password
+     *            The password.
+     * @return The updated client.
+     */
+    public ViPRCoreClient withOidcLogin(String username, String password) {
+        auth().oidcLogin(username, password);
+        return this;
+    }
+
+    /**
      * Sets the authentication token and returns the updated client.
      *
      * @see #setAuthToken(String)

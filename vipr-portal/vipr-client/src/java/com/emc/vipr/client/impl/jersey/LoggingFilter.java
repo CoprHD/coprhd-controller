@@ -209,9 +209,9 @@ public class LoggingFilter extends ClientFilter {
         long startTime = System.currentTimeMillis();
         ClientResponse response = getNext().handle(request);
 
-        if (log.isInfoEnabled()) {
+     //   if (log.isInfoEnabled()) {
             logResponse(id, response, startTime);
-        }
+     //   }
         return response;
     }
 

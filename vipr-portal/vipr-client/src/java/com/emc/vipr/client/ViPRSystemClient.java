@@ -78,6 +78,19 @@ public class ViPRSystemClient {
         return this;
     }
 
+    /**
+     * Performs an oidc login and returns the updated client.
+     *
+     * @see AuthClient#oidcLogin(String, String)
+     * @param username The username.
+     * @param password The password.
+     * @return The updated client.
+     */
+    public ViPRSystemClient withOidcLogin(String username, String password) {
+        auth().oidcLogin(username, password);
+        return this;
+    }
+
     public AuthClient auth() {
         return new AuthClient(client);
     }

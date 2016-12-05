@@ -52,7 +52,7 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
         if (null != baseServiceName) {
             final List<URI> ids = client.findAllIds(clazz);
             if (null != ids) {
-                List<CatalogService> allCatalogServices = findByIds(ids);
+                final List<CatalogService> allCatalogServices = findByIds(ids);
                 for (CatalogService cs : allCatalogServices) {
                     if (baseServiceName.equals(cs.getBaseService())) {
                         log.debug("Found service: {}", cs.getId());

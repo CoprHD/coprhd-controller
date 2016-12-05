@@ -154,7 +154,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
         switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
             case PUBLISHED:
-                // If worklow is already in published sate, ignoring
+                // If worklow is already in published state, ignoring
                 return map(orchestrationWorkflow);
             case VALID:
                 // Workflow can only be published when it is in VALID state

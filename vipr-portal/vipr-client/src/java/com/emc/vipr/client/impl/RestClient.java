@@ -93,7 +93,6 @@ public class RestClient {
             if (config.getMaxRetries() > 0) {
                 c.addFilter(new RetryFilter(config.getMaxRetries(), config.getRetryInterval()));
             }
-
             c.addFilter(new ValidationErrorFilter(config));
             c.addFilter(new ExceptionOnErrorFilter());
 
@@ -117,7 +116,6 @@ public class RestClient {
                     return authToken;
                 }
             }));
-
             client = c;
         }
 

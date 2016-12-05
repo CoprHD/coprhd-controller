@@ -1048,7 +1048,7 @@ public class BlockDeviceExportController implements BlockExportController {
             String stepId = null;
             List<URI> maskURIs = new ArrayList<URI> ();
             Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
-            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", exportGroupURI, maskURIs,
+            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskURIs,
                     newPaths, stepId);
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {

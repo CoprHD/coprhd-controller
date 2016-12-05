@@ -1577,4 +1577,41 @@ public class ExportMaskUtils {
         return newPaths;
         
     }
+    
+    /**
+     * Get the remove path list for the exportMask in the given removedPaths.
+     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
+     * 
+     * @param exportMask 
+     * @param removedPaths - The list paths. some of them may not belong to the export mask.
+     * @return - The list of paths are going to be removed from the export mask.
+     */
+    public static Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (removedPaths == null || removedPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> removePorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (targets.contains(port.toString())) {
+                        removePorts.add(port);
+                    }
+                }
+                if (!removePorts.isEmpty()) {
+                    result.put(initiator, removePorts);
+                }
+            } 
+        }
+        return result;
+    }
 }

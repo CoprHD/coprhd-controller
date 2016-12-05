@@ -167,30 +167,38 @@ public class NetworkZoningParam implements Serializable {
 	static public List<NetworkZoningParam> convertPathsToNetworkZoningParam(
 	        URI exportGroupURI, List<URI> exportMaskURIs, Map<URI, List<URI>> paths, DbClient dbClient) {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
-        //TODO get removepaths per exportMask
-        ExportMask exportMask = null;
-        NetworkZoningParam zoningParam = new NetworkZoningParam(exportGroup, exportMask, dbClient);
-        StringSetMap zoningMap = exportMask.getZoningMap();
-        StringSetMap convertedZoningMap = new StringSetMap();
-        // Get the path entries in both of the exportMask zoning map and the paths
-        for (Map.Entry<URI, List<URI>> entry : paths.entrySet()) {
-            URI init = entry.getKey();
-            List<URI> pathPorts = entry.getValue();
-            StringSet ports = zoningMap.get(init.toString());
-            if (ports != null && !ports.isEmpty()) {
-                StringSet convertedPorts = new StringSet();
-                for (URI pathPort : pathPorts) {
-                    if (ports.contains(pathPort.toString())) {
-                        convertedPorts.add(pathPort.toString());
+
+        List<NetworkZoningParam> result = new ArrayList<NetworkZoningParam>();
+        for (URI maskURI : exportMaskURIs) {
+            ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
+            Map<URI, List<URI>> maskPaths = ExportMaskUtils.getRemovePathsForExportMask(mask, paths);
+            if (maskPaths.isEmpty()) {
+                continue;
+            }
+            NetworkZoningParam zoningParam = new NetworkZoningParam(exportGroup, mask, dbClient);
+            StringSetMap zoningMap = mask.getZoningMap();
+            StringSetMap convertedZoningMap = new StringSetMap();
+            // Get the path entries in both of the exportMask zoning map and the paths
+            for (Map.Entry<URI, List<URI>> entry : maskPaths.entrySet()) {
+                URI init = entry.getKey();
+                List<URI> pathPorts = entry.getValue();
+                StringSet ports = zoningMap.get(init.toString());
+                if (ports != null && !ports.isEmpty()) {
+                    StringSet convertedPorts = new StringSet();
+                    for (URI pathPort : pathPorts) {
+                        if (ports.contains(pathPort.toString())) {
+                            convertedPorts.add(pathPort.toString());
+                        }
+                    }
+                    if (!convertedPorts.isEmpty()) {
+                        convertedZoningMap.put(init.toString(), convertedPorts);
                     }
                 }
-                if (!convertedPorts.isEmpty()) {
-                    convertedZoningMap.put(init.toString(), convertedPorts);
-                }
             }
+            zoningParam.setZoningMap(convertedZoningMap);
+            result.add(zoningParam);
         }
-        zoningParam.setZoningMap(convertedZoningMap);
-        return Arrays.asList(zoningParam);
+        return result;
     }
 	
 	public StringSetMap getZoningMap() {

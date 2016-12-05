@@ -593,12 +593,12 @@ public class ExportWorkflowUtils {
      * @return
      * @throws ControllerException
      */
-    public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI exportGroupURI, 
+    public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI systemURI, URI exportGroupURI, 
             List<URI> exportMaskURIs, Map<URI, List<URI>>newPaths, String waitFor) throws ControllerException {
         String zoningStep = workflow.createStepId();
 
         Workflow.Method zoningExecuteMethod = networkDeviceController
-                .zoneExportAddPathsMethod(exportGroupURI, exportMaskURIs, newPaths);
+                .zoneExportAddPathsMethod(systemURI, exportGroupURI, exportMaskURIs, newPaths);
 
         zoningStep = workflow.createStep(
                 wfGroupId,
@@ -624,7 +624,6 @@ public class ExportWorkflowUtils {
      */
     public String generateZoningRemovePathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
             List<URI> exportMaskURIs, Map<URI, List<URI>>removePaths, String waitFor) throws ControllerException {
-        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         String zoningStep = workflow.createStepId();
         

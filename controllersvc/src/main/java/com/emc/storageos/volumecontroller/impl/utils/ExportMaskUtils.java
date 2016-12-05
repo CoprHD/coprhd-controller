@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -385,6 +386,65 @@ public class ExportMaskUtils {
         }
         return false;
     }
+    
+    /**
+     * For a given export group and storage system, this will check wheather there are any export mask exists
+     * in storage system which matches export group and storage ports in VArray
+     * 
+     * @param dbClient
+     * @param exportGroup
+     * @param storageURI
+     * @return 
+     */
+    public static boolean hasExportMaskForStorageAndVArray(DbClient dbClient,
+            ExportGroup exportGroup,
+            URI storageURI) {
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                storageURI, exportGroup.getVirtualArray(), dbClient);
+        StringSet maskUriSet = exportGroup.getExportMasks();
+        if (maskUriSet != null) {
+            for (String maskUriString : maskUriSet) {
+                ExportMask mask = dbClient.queryObject(ExportMask.class,
+                        URI.create(maskUriString));
+                URI maskStorageURI = mask.getStorageDevice();
+                if (maskStorageURI.equals(storageURI)) {
+                    for (String storagePort : mask.getStoragePorts()) {
+                        if(storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort))
+                            return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * For a given storage system and varray this will fetch the set of storage ports which are part of both
+     * the storage system and varray.
+     * @param storageURI
+     * @param varray
+     * @param dbClient
+     * @return
+     */
+    public static Set<String> getStoragePortUrisAssociatedWithVarrayAndStorageArray(URI storageURI, URI varray, DbClient dbClient) {
+        URIQueryResultList storagePortsAssociatedWithVarray = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varray.toString()),
+                storagePortsAssociatedWithVarray);
+        //Get all the storage ports that are in the varray belonging to the storage array
+        Set<URI> storagePortsSetAssociatedWithVarray = new HashSet<>();
+        storagePortsSetAssociatedWithVarray.addAll(storagePortsAssociatedWithVarray);
+        
+        URIQueryResultList storagePortsAssociatedWithStorageSystem = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortsForStorageSystemConstraint(storageURI.toString()),
+                storagePortsAssociatedWithStorageSystem);
+        
+        Set<URI> storagePortsSetAssociatedWithStorageSystem = new HashSet<>();
+        storagePortsSetAssociatedWithStorageSystem.addAll(storagePortsAssociatedWithStorageSystem);
+        
+        return Sets.intersection(storagePortsSetAssociatedWithVarray, storagePortsSetAssociatedWithStorageSystem)
+                .stream().map(storagePortUri -> storagePortUri.toString()).collect(Collectors.toSet());
+    }
+
     
     /**
      * Generate a name for the export mask based on the initiators sent in.

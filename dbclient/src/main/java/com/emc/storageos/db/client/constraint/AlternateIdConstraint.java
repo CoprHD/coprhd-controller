@@ -347,6 +347,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
         }
         
+        public static AlternateIdConstraint getStoragePortsForStorageSystemConstraint(String storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(StoragePort.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageSystem);
+        }
+
         public static AlternateIdConstraint getImplicitVirtualArrayStoragePoolsConstraint(String varrayId) {
             DataObjectType doType = TypeMap.getDoType(StoragePool.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("connectedVirtualArrays"), varrayId);

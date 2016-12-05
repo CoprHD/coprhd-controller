@@ -1269,6 +1269,7 @@ vplex_sim_setup() {
                              --provisionType 'Thin'                             \
                              --highavailability vplex_local                     \
                              --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
                              --expandable true 
@@ -1316,6 +1317,7 @@ vplex_sim_setup() {
                              --protocols FC                                         \
                              --numpaths 2                                           \
                              --provisionType 'Thin'                                 \
+		             --multiVolumeConsistency \
                              --highavailability vplex_distributed                   \
                              --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
                              --haNeighborhood $VPLEX_VARRAY2                        \
@@ -1383,6 +1385,7 @@ vplex_setup() {
                              --provisionType 'Thin'                             \
                              --highavailability vplex_local                     \
                              --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
                              --expandable true 
@@ -1427,6 +1430,7 @@ vplex_setup() {
                              --description 'vpool-for-vplex-distributed-volumes'    \
                              --protocols FC                                         \
                              --numpaths 2                                           \
+		             --multiVolumeConsistency \
                              --provisionType 'Thin'                                 \
                              --highavailability vplex_distributed                   \
                              --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \

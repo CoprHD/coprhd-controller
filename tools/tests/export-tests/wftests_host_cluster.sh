@@ -752,10 +752,10 @@ test_cluster_remove_host() {
                                 failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
                                 failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
 
-    failure_injections="${common_failure_injections}"
+    #failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete"    
+    failure_injections="failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"    
 
     # Create volumes
     random_number=${RANDOM}        

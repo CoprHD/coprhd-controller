@@ -40,8 +40,8 @@
         </property>
     </bean>
     
-    <!--bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init"-->
-    </bean>
+    <!--bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
+    </bean-->
     <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
     </bean>
     <bean id="deduplicationCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition">

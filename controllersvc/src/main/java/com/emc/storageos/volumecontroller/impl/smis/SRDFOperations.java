@@ -62,6 +62,8 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.srdfcontroller.SRDFDeviceController;
+import com.emc.storageos.srdfcontroller.SRDFDeviceController.SRDFOperationsEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -729,7 +731,9 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     group);
             boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
-            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null;
+            //Format flag  needed for operations other than Change virtual Pool and Expand
+            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null
+                    || !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, !emptyRDFGroup, formatVolumeFlagNeeded);
             CIMArgument[] inArgs = helper.getCreateElementReplicaForSRDFInputArguments(
                     srcVolumePath, tgtVolumePath, repCollectionPath, modeValue,
@@ -762,7 +766,8 @@ public class SRDFOperations implements SmisConstants {
             int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
             CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
-            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null;
+            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null
+                    || !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
             boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue, !emptyRDFGroup,
                     formatVolumeFlagNeeded);
@@ -1903,7 +1908,8 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     raGroup);
             // look for existing volumes, if found then use AddSyncPair
-            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null;
+            boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null
+                    || !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, true, formatVolumeFlagNeeded);
             String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
             CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,

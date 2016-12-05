@@ -26,12 +26,26 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
     private URI sourceCGUri;
 
     private URI vpoolChangeURI;
+    
+    private String operationName;
 
     public SRDFMirrorCreateCompleter(final URI sourceURI, final URI targetUri, final URI vPoolChangeUri, final String opId) {
         super(asList(sourceURI, targetUri), opId);
         vpoolChangeURI = vPoolChangeUri;
     }
+    
+    public SRDFMirrorCreateCompleter(final URI sourceURI, final URI targetUri, final URI vPoolChangeUri, final String operation, final String opId) {
+        super(asList(sourceURI, targetUri), opId);
+        vpoolChangeURI = vPoolChangeUri;
+        operationName = operation;
+    }
 
+    public SRDFMirrorCreateCompleter(List<URI> volumeURIs, final URI vPoolChangeUri, final String operation, String opId) {
+        super(volumeURIs, opId);
+        vpoolChangeURI = vPoolChangeUri;
+        operationName = operation;
+    }
+    
     public SRDFMirrorCreateCompleter(List<URI> volumeURIs, final URI vPoolChangeUri, String opId) {
         super(volumeURIs, opId);
         vpoolChangeURI = vPoolChangeUri;
@@ -46,6 +60,10 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
     
     public URI getVirtualPoolChangeURI() {
       return vpoolChangeURI;
+    }
+    
+    public String getOperationName() {
+        return operationName;
     }
 
     @Override

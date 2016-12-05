@@ -1606,11 +1606,11 @@ xtremio_tests()
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
-        #xtremio_ingest_test
+        xtremio_ingest_test
         secho "XIO ingest tests complete"
 
         secho "XIO ingest exported volumes"
-        #xtremio_ingest_export_test
+        xtremio_ingest_export_test
         secho "XIO ingest tests complete"
 
    fi

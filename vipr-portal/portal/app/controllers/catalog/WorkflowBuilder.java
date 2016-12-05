@@ -16,24 +16,7 @@
  */
 package controllers.catalog;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
-import com.emc.storageos.model.orchestration.PrimitiveList;
-import com.emc.storageos.model.orchestration.PrimitiveRestRep;
-import com.emc.storageos.model.orchestration.internal.Primitive;
-import com.emc.storageos.model.orchestration.internal.PrimitiveHelper;
-import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
-import com.emc.vipr.model.catalog.WFBulkRep;
-import com.emc.vipr.model.catalog.WFDirectoryParam;
-import com.emc.vipr.model.catalog.WFDirectoryRestRep;
-
-import com.google.gson.annotations.SerializedName;
-
-import controllers.Common;
-
-import play.Logger;
-import play.mvc.Controller;
-import play.mvc.With;
+import static util.BourneUtil.getCatalogClient;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -41,7 +24,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static util.BourneUtil.getCatalogClient;
+import play.Logger;
+import play.mvc.Controller;
+import play.mvc.With;
+
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
+import com.emc.storageos.model.orchestration.PrimitiveList;
+import com.emc.storageos.model.orchestration.PrimitiveRestRep;
+import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.PrimitiveHelper;
+import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.vipr.model.catalog.WFBulkRep;
+import com.emc.vipr.model.catalog.WFDirectoryParam;
+import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import com.google.gson.annotations.SerializedName;
+
+import controllers.Common;
 
 /**
  * @author Nick Aquino

@@ -1606,11 +1606,11 @@ xtremio_tests()
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
-        xtremio_ingest_test
+        #xtremio_ingest_test
         secho "XIO ingest tests complete"
 
         secho "XIO ingest exported volumes"
-        xtremio_ingest_export_test
+        #xtremio_ingest_export_test
         secho "XIO ingest tests complete"
 
    fi
@@ -1701,18 +1701,18 @@ xtremio_block_tests()
     run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run blocksnapshot create $PROJECT/${v1} ${snap1_label}
-    run blocksnapshot create $PROJECT/${v2} ${snap2_label}
+    #run blocksnapshot create $PROJECT/${v1} ${snap1_label}
+    #run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
 
-    xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
+   # xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
     xtremio_export_test_hlu
 
-    run blocksnapshot restore $snap2
-    run volume bulkget
+    #run blocksnapshot restore $snap2
+    #run volume bulkget
 
-    run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
-    run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
+    #run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
+    #run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
     run volume delete $PROJECT/${XTREMIOVOL}3 --wait
@@ -1766,7 +1766,7 @@ xtremio_export_test()
 
 xtremio_export_test_hlu() {
 	xtremio_export_test_hlu1
-	xtremio_export_test_hlu2
+#	xtremio_export_test_hlu2
 }
 
 #Consistent Cluster HLU
@@ -1817,16 +1817,23 @@ xtremio_export_test_hlu1()
 
     run export_group update $proj/${expname}1 --addVols "${proj}/${volname}"5
     verify_export ${HOST1} 4 3 0,2,1
+    verify_export ${HOST2} 4 3 0,2,3
 
     run export_group update $proj/${expname}1 --remVols "${proj}/${volname}"1
     verify_export ${HOST1} 4 2 1,2
+    verify_export ${HOST2} 4 3 0,2,3
 
 	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
     verify_export ${HOST1} 4 2 1,2
-    verify_export ${HOST2} 4 3 1,2,3
+    verify_export ${HOST2} 4 3 0,2,3
 
     run export_group delete $proj/${expname}1
+    verify_export ${HOST1} 4 0 0
+    verify_export ${HOST2} 4 2 0,3
+
     run export_group delete $proj/${expname}3	
+    verify_export ${HOST1} 4 0 0
+    verify_export ${HOST2} 4 1 0 
 }
 
 #Consistent Cluster HLU
@@ -1876,16 +1883,22 @@ xtremio_export_test_hlu2()
     
     run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"5
     verify_export ${HOST1} 4 3 0,1,2
+    verify_export ${HOST2} 4 3 1,2,3
 
     run export_group update $proj/${expname}2 --remVols "${proj}/${volname}"2
-    verify_export ${HOST1} 4 2 0,1
+    verify_export ${HOST1} 4 2 0,2
 
 	run export_group update $proj/${expname}2 --addHosts "${HOST2}"
-    verify_export ${HOST1} 4 2 0,1
+    verify_export ${HOST1} 4 2 0,2
     verify_export ${HOST2} 4 3 1,2,3
 
     run export_group delete $proj/${expname}2
+    verify_export ${HOST1} 4 0 0
+    verify_export ${HOST2} 4 1 3
+
     run export_group delete $proj/${expname}3
+    verify_export ${HOST1} 4 0 0
+    verify_export ${HOST2} 4 0 0
 }
 #
 # SRDF

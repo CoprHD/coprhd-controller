@@ -3444,7 +3444,7 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validatePortRebalanceRequest(ExportGroup exportGroup, StorageSystem system, ExportPortRebalanceParam param) {
         String systemType = system.getSystemType();
-        if (!Type.vmax.name().equalsIgnoreCase(systemType) ||
+        if (!Type.vmax.name().equalsIgnoreCase(systemType) &&
             !Type.vplex.name().equalsIgnoreCase(systemType)) {
             throw APIException.badRequests.exportPathAdjustmentSystemNotSupported(systemType); 
         }

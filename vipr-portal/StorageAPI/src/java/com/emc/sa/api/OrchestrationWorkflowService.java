@@ -112,18 +112,18 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
         try {
             OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
 
-            // Published workflow cannot be edited
-            switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+            switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
                 case PUBLISHED:
                     throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be edited.");
+                default:
+                    updated = WorkflowHelper.update(orchestrationWorkflow, workflow.getDocument());
+
+                    // On update, if there is any change to steps, resetting workflow status to initial state -NONE
+                    if (!orchestrationWorkflow.getSteps().equals(updated.getSteps())) {
+                        updated.setState(OrchestrationWorkflowStatus.NONE.toString());
+                    }
             }
 
-            updated = WorkflowHelper.update(orchestrationWorkflow, workflow.getDocument());
-
-            // On update, if there is any change to steps, resetting workflow status to initial state -NONE
-            if (!orchestrationWorkflow.getSteps().equals(updated.getSteps())) {
-                updated.setStatus(OrchestrationWorkflowStatus.NONE.toString());
-            }
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error serializing workflow", e);
         }
@@ -137,14 +137,14 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
 
-        // Published workflow cannot be deleted
-        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
             case PUBLISHED:
+                // Published workflow cannot be deleted
                 throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be deleted.");
+            default:
+                orchestrationWorkflowManager.delete(orchestrationWorkflow);
+                return Response.ok().build();
         }
-
-        orchestrationWorkflowManager.delete(orchestrationWorkflow);
-        return Response.ok().build();
     }
 
     @POST
@@ -152,17 +152,17 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrchestrationWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
-        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
             case PUBLISHED:
                 // If worklow is already in published state, ignoring
                 return map(orchestrationWorkflow);
             case VALID:
                 // Workflow can only be published when it is in VALID state
-                OrchestrationWorkflow updated = WorkflowHelper.updateStatus(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
+                OrchestrationWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
                 orchestrationWorkflowManager.save(updated);
                 return map(updated);
             default:
-                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", orchestrationWorkflow.getStatus()));
+                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", orchestrationWorkflow.getState()));
         }
     }
 
@@ -172,7 +172,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     public OrchestrationWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
         OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
         // Workflow can only be unpublished when it is in PUBLISHED state
-        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getStatus())) {
+        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
             case VALID:
                 // workflow is not published, ignoring
                 return map(orchestrationWorkflow);
@@ -181,11 +181,11 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
                 if (orchestrationWorkflowManager.hasCatalogServices(orchestrationWorkflow.getName())) {
                     throw APIException.methodNotAllowed.notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
-                OrchestrationWorkflow updated = WorkflowHelper.updateStatus(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
+                OrchestrationWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
                 orchestrationWorkflowManager.save(updated);
                 return map(updated);
             default:
-                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", orchestrationWorkflow.getStatus()));
+                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", orchestrationWorkflow.getState()));
         }
     }
 
@@ -195,7 +195,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     public OrchestrationWorkflowRestRep validateWorkflow(@PathParam("id") final URI id) {
         //TODO: Placeholder for validating workflow
         // For now just setting status to VALID
-        OrchestrationWorkflow updated = WorkflowHelper.updateStatus(getOrchestrationWorkflow(id), OrchestrationWorkflowStatus.VALID.toString());
+        OrchestrationWorkflow updated = WorkflowHelper.updateState(getOrchestrationWorkflow(id), OrchestrationWorkflowStatus.VALID.toString());
         orchestrationWorkflowManager.save(updated);
         return map(updated);
     }

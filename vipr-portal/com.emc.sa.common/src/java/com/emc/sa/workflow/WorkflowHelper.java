@@ -71,8 +71,8 @@ public final class WorkflowHelper {
         return oeWorkflow;
     }
 
-    public static OrchestrationWorkflow updateStatus(final OrchestrationWorkflow oeWorkflow, final String status) {
-        oeWorkflow.setStatus(status);
+    public static OrchestrationWorkflow updateState(final OrchestrationWorkflow oeWorkflow, final String state) {
+        oeWorkflow.setState(state);
         return oeWorkflow;
     }
     
@@ -80,7 +80,7 @@ public final class WorkflowHelper {
         final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
         document.setName(workflow.getName());
         document.setDescription(workflow.getDescription());
-        document.setStatus(workflow.getStatus());
+        document.setState(workflow.getState());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
         
         return document;

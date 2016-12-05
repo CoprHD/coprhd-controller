@@ -61,7 +61,7 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
     private List<URI> findIDsByStatus(final OrchestrationWorkflowStatus status) {
         final List<URI> out = Lists.newArrayList();
         if (null != status) {
-            final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATUS, status.toString());
+            final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATE, status.toString());
             if (results != null) {
                 for (NamedElement namedElement : results) {
                     out.add(namedElement.getId());

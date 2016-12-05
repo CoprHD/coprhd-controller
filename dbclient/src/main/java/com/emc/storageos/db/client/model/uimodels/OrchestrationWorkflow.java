@@ -30,13 +30,13 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
     public static final String NAME = "name";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";
-    public static final String STATUS = "status";
+    public static final String STATE = "state";
 
     
     private String name;
     private String description;
     private String steps;
-    private String status = OrchestrationWorkflowStatus.NONE.toString();
+    private String state = OrchestrationWorkflowStatus.NONE.toString();
 
     public enum OrchestrationWorkflowStatus {
         NONE,
@@ -86,13 +86,13 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
 
     @AlternateId("OrchestrationWorkflowStatusIndex")
     @EnumType(OrchestrationWorkflowStatus.class)
-    @Name(STATUS)
-    public String getStatus() {
-        return status == null? OrchestrationWorkflowStatus.NONE.toString() : status;
+    @Name(STATE)
+    public String getState() {
+        return state == null? OrchestrationWorkflowStatus.NONE.toString() : state;
     }
 
-    public void setStatus(final String status) {
-        this.status = status;
-        setChanged(STATUS);
+    public void setState(final String state) {
+        this.state = state;
+        setChanged(STATE);
     }
 }

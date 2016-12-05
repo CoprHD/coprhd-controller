@@ -67,8 +67,8 @@ public class WorkflowServiceDescriptor {
         }
         OrchestrationWorkflow orchestrationWorkflow = results.get(0);
         // Return service only if its PUBLISHED
-        if (!OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getStatus())) {
-            log.debug("Not returning workflow service because its state ({}) is not published", orchestrationWorkflow.getStatus());
+        if (!OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getState())) {
+            log.debug("Not returning workflow service because its state ({}) is not published", orchestrationWorkflow.getState());
             return null;
         }
         return mapWorkflowToServiceDescriptor(orchestrationWorkflow);

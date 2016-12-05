@@ -34,7 +34,7 @@ public class OrchestrationWorkflowDocument {
     
     private String name;
     private String description;
-    private String status;
+    private String state;
     private List<Step> steps;
 
     @XmlElement(name = "name")
@@ -55,13 +55,13 @@ public class OrchestrationWorkflowDocument {
         this.description = description;
     }
 
-    @XmlElement(name = "status" )
-    public String getStatus() {
-        return status;
+    @XmlElement(name = "state" )
+    public String getState() {
+        return state;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setState(String state) {
+        this.state = state;
     }
 
     @XmlElementWrapper(name = "steps")

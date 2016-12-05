@@ -1,16 +1,21 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.client.impl.jersey;
 
-import com.emc.vipr.client.impl.Constants;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientRequest;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.ClientFilter;
+import com.sun.jersey.core.util.Base64;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.HttpHeaders;
+import java.io.UnsupportedEncodingException;
 
 /**
- * Created by wangs12 on 12/2/2016.
+ * The client side filter to redirect OIDC interfactions between provider and vipr.
  */
 public class OidcAuthFilter extends ClientFilter {
 
@@ -35,7 +40,7 @@ public class OidcAuthFilter extends ClientFilter {
 
     private ClientResponse authenticateToOidc(ClientResponse response) {
         final ClientRequest newRequest = ClientRequest.create().
-                header("Authorization", "Basic YWRtaW46Y2hhbmdlbWU=").
+                header("Authorization", encodeAsBasicAuth(username, password)).
                 header("Accept", "*/*").
                 build(response.getLocation(), HttpMethod.GET);
 
@@ -50,5 +55,14 @@ public class OidcAuthFilter extends ClientFilter {
             return true;
         }
         return false;
+    }
+
+    public String encodeAsBasicAuth(final String username, final String password) {
+        try {
+            return "Basic " + new String(Base64.encode(username + ":" + password), "ASCII");
+        } catch (UnsupportedEncodingException ex) {
+            // This should never occur
+            throw new RuntimeException(ex);
+        }
     }
 }

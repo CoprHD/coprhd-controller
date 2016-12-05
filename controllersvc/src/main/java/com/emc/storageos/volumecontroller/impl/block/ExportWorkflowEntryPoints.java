@@ -13,7 +13,6 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -119,21 +118,13 @@ public class ExportWorkflowEntryPoints implements Controller {
                 storageURI, volumeURIs, newVpoolURI, rollback);
     }
     
-    public static Workflow.Method zoningAddPathsMethod(URI storageURI, URI exportGroup, Map<URI, List<URI>>adjustedPaths) {
-        return new Workflow.Method("zoningAddPathMethod", storageURI, exportGroup, adjustedPaths);
-    }
-    
-    public static Workflow.Method zoningRemovePathsMethod(URI storageURI, URI exportGroup, Map<URI, List<URI>>removedPaths) {
-        return new Workflow.Method("zoningRemovePathMethod", storageURI, exportGroup, removedPaths);
-    }
-    
     public static Workflow.Method exportRemovePathsMethod(URI storageURI, URI exportGroup, URI exportMask,
             Map<URI, List<URI>>removedPaths) {
-        return new Workflow.Method("zoningRemovePathMethod", storageURI, exportGroup, exportMask, removedPaths);
+        return new Workflow.Method("exportRemovePathMethod", storageURI, exportGroup, exportMask, removedPaths);
     }
     
     public static Workflow.Method exportAddPathsMethod(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>adjustedPaths) {
-        return new Workflow.Method("zoningAddPathMethod", storageURI, exportGroup, exportMask, adjustedPaths);
+        return new Workflow.Method("exportAddPathMethod", storageURI, exportGroup, exportMask, adjustedPaths);
     }
 
     // ====================== Methods to call Masking Orchestrator

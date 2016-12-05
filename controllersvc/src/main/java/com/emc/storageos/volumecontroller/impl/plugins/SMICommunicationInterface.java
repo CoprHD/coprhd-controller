@@ -357,7 +357,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             List<StoragePort> discoveredPorts = new ArrayList<StoragePort>();
             _keyMap.put(Constants.DISCOVERED_PORTS, discoveredPorts);
             _keyMap.put(Constants.SLO_NAMES, new HashSet<String>());
-            _keyMap.put(serviceParameters.EXPORTMASKS.toString(), _serviceOptions);
+            _keyMap.put(Constants.SUBNAMESPACES, _subNamespaces);
             if (Type.ibmxiv.name().equals(accessProfile.getSystemType())) {
                 initIBMDiscoveryKeyMap(accessProfile);
             }
@@ -366,7 +366,12 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
 
             executor.setKeyMap(_keyMap);
-            executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
+            for (String subNamespace : _subNamespaces.keySet()) {
+                String namespace = accessProfile.getnamespace() +"-" + subNamespace;
+                _logger.info("Executing Namespace {}", namespace.toLowerCase());
+                executor.execute((Namespace) namespaces.getNsList().get(namespace.toLowerCase()));
+            }
+            
 
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",

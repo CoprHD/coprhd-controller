@@ -161,10 +161,9 @@ public class DataCollectionJobConsumer extends
         profile.setCimConnectionFactory(_connectionFactory);
         profile.setCurrentSampleTime(System.currentTimeMillis());
         
-        ServiceOptions serviceOptions = new ServiceOptions();
-        serviceOptions.addServiceParameter(serviceParameters.EXPORTMASKS.name(), job.getExportMasks());
+        
         DataCollectionJobInvoker invoker = new DataCollectionJobInvoker(
-                profile, _configInfo, _dbClient, _coordinator, _networkDeviceController, _locker, job.getNamespace(), serviceOptions,  completer);
+                profile, _configInfo, _dbClient, _coordinator, _networkDeviceController, _locker, job.getNamespace(), job.getSubNamespaces(),  completer);
         invoker.process(applicationContext);
         job.ready(_dbClient);
     }

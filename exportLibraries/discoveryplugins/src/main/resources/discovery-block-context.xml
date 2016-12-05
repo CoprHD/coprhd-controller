@@ -9,8 +9,8 @@
 		<property name="nsList">
 			<map>
 				<entry key="discover" value-ref="discoverer" />
-				<entry key="detectMaskingChanges" value-ref="detectMaskingChanges"/>
-				<entry key="resolveMaskingChanges" value-ref="resolveMaskingChanges"/>
+				<entry key="detect-mask" value-ref="detectMaskingChanges"/>
+				<entry key="resolve-mask" value-ref="resolveMaskingChanges"/>
 			</map>
 		</property>
 	</bean>

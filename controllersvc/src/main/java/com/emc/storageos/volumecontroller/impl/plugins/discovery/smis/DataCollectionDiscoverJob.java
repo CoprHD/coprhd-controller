@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
@@ -26,14 +27,14 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
             .getLogger(DataCollectionDiscoverJob.class);
     private final DataCollectionTaskCompleter _completer;
     private String _namespace;
-    private List<URI> _masks;
+    private Map<String, List<URI>> subNamespaces;
 
     public DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace) {
         this(completer, JobOrigin.USER_API, namespace);
     }
     
-    public DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace, List<URI> masks) {
-        this(completer, JobOrigin.USER_API, namespace, masks);
+    public DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace, Map<String, List<URI>> namespaceParams) {
+        this(completer, JobOrigin.USER_API, namespace, namespaceParams);
     }
 
 
@@ -43,11 +44,11 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
         _namespace = namespace;
     }
     
-    DataCollectionDiscoverJob(DiscoverTaskCompleter completer, JobOrigin origin, String namespace, List<URI> masks) {
+    DataCollectionDiscoverJob(DiscoverTaskCompleter completer, JobOrigin origin, String namespace, Map<String, List<URI>> subNamespaces) {
         super(origin);
         _completer = completer;
         _namespace = namespace;
-        this._masks = masks;
+        this.setSubNamespaces(subNamespaces);
     }
 
     @Override
@@ -108,10 +109,12 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
 
-    public List<URI> getExportMasks() {
-        return _masks;
+    public Map<String, List<URI>> getSubNamespaces() {
+        return subNamespaces;
     }
 
-   
+    public void setSubNamespaces(Map<String, List<URI>> subNamespaces) {
+        this.subNamespaces = subNamespaces;
+    }
 
 }

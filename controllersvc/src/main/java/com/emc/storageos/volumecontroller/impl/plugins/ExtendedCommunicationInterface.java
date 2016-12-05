@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
+import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -60,6 +62,6 @@ public interface ExtendedCommunicationInterface extends CommunicationInterface {
     public void injectNetworkDeviceController(
             NetworkDeviceController _networkDeviceController);
     
-    public void injectServiceOptions(ServiceOptions serviceOptions);
+    public void injectSubNamespaces(Map<String,List<URI>> subNamespaces);
 
 }

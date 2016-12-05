@@ -4,8 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -48,11 +50,11 @@ class DataCollectionJobInvoker {
     private final Map<String, String> _configInfo;
     private final String _namespace;
     private Registry _registry;
-    private ServiceOptions _serviceOptions;
+    private Map<String,List<URI>> _subNamespaces;
 
     public DataCollectionJobInvoker(final AccessProfile accessProfile, final Map<String, String> configInfo,
             final DbClient dbClient, final CoordinatorClient coordinator, NetworkDeviceController networkDeviceController,
-            final ControllerLockingService locker, String namespace, ServiceOptions serviceOptions,  final TaskCompleter completer) {
+            final ControllerLockingService locker, String namespace, Map<String,List<URI>> subNamespaces,  final TaskCompleter completer) {
         _accessProfile = accessProfile;
         _configInfo = configInfo;
         _dbClient = dbClient;
@@ -61,7 +63,7 @@ class DataCollectionJobInvoker {
         _locker = locker;
         _namespace = namespace;
         _completer = completer;
-        _serviceOptions = serviceOptions;
+        _subNamespaces = subNamespaces;
     }
 
     private static Map<String, ApplicationContext> contextKeyToApplicationContextMap = Collections
@@ -182,7 +184,7 @@ class DataCollectionJobInvoker {
         commInterface.injectNetworkDeviceController(_networkDeviceController);
         commInterface.injectControllerLockingService(_locker);
         commInterface.injectTaskCompleter(_completer);
-        commInterface.injectServiceOptions(_serviceOptions);
+        commInterface.injectSubNamespaces(_subNamespaces);
         if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.SCANNER)) {
             commInterface.scan(_accessProfile);
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {

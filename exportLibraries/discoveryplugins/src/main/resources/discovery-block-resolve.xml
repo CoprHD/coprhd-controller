@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    
+    <!-- List of supported Namespaces -->
+	<bean id="namespaces"
+		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+		<property name="nsList">
+			<map>
+				<entry key="resolve-mask" value-ref="resolveMaskingChanges"/>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="detectMaskingChanges" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="operations">
+			<list>
+               
+                <ref bean="computerSystem" />
+                
+                <!-- get Controller Configuration Service -->
+				<ref bean="getControllerConfigurationService" />
+                
+                <!-- get Existing Masking Views -->
+				<ref bean="getMaskingViews" />
+				
+				<!-- get initiators targets -->
+				<ref bean="detectChanges" />
+				
+                
+		   </list>
+		</property> 
+    </bean>
+    
+    <bean id="resolveMaskingChanges" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="operations">
+			<list>
+               
+                <ref bean="computerSystem" />
+                
+                <!-- get Controller Configuration Service -->
+				<ref bean="getControllerConfigurationService" />
+                
+                <!-- get Existing Masking Views -->
+				<ref bean="getMaskingViews" />
+				
+				<!-- get initiators targets -->
+				<ref bean="resolveChanges" />
+				
+                
+		   </list>
+		</property> 
+    </bean>
+    
+     <!-- SMI-S Call to get Controller Configuration Service -->
+    <bean id="getControllerConfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+    	<property name="arguments">
+			<list>
+				<ref bean="reference-controllerconfigurationService" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="configurationService" />
+		<property name="method" value="enumerateInstanceNames" />
+		<property name="processor" ref="controllerConfigurationProcessor" />
+		<property name="message" value="Invoking enumerateInstanceNames to get Controller Configuration Service"/>
+    </bean>
+    
+    <bean id="controllerConfigurationProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.ControllerConfigurationProcessor" />
+    
+    <bean id="reference-controllerconfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="configurationService" />
+	</bean>
+	
+	<!-- SMI-S Call to get  Get Masking Views -->
+
+	<bean id="getMaskingViews" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-controllerconfigurationService" />
+				<ref bean="null" />
+				<ref bean="resultClass-lunMaskingProtocolController" />
+				<ref bean="null" />
+				<ref bean="null" />
+
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="maskingViews" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="maskingPathChangeProcessor" />
+		<property name="message" value="Invoking associatorNames to get MaskingView details"/>
+	</bean>
+
+	<bean id="resultClass-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_LunMaskingSCSIProtocolController" />
+	</bean>
+	
+	<bean id="maskingPathChangeProcessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingPathChangeProcessor">
+        <property name="partitionManager" ref="partitionManager"/>
+    </bean>
+    
+    <!-- SMI-S Calls to run Masking Detection Changes -->
+
+    <bean id="maskingChangeDetectionProcessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingChangeDetectionProcessor">
+        <property name="partitionManager" ref="partitionManager"/>
+    </bean>
+    
+     <bean id="detectChanges" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+           <list>
+                <ref bean="reference-maskingViews" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="bool-true" />
+                <ref bean="null" />
+                <ref bean="null" />
+                
+                <ref bean="null" />
+                <ref bean="timeout" />
+                <ref bean="bool" />
+                <ref bean="maxMaskingViewObjects" />
+            </list>
+        </property>
+        <property name="instance" ref="cimClient" />
+        <property name="result" value="" />
+        <property name="method" value="associators" />
+        <property name="processor" ref="maskingChangeDetectionProcessor" />
+        <property name="message" value="Invoking associators to get Export information."/>
+    </bean>
+
+    <bean id="maxMaskingViewObjects" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue32" />
+        <property name="value" value="100" />
+        <property name="name" value="maxObjects" />
+    </bean>
+    
+    <bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="maskingViews" />
+	</bean>
+	
+	<!-- SMI-S Calls to run Resolve Masking Changes -->
+	
+	 <bean id="resolveChanges" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+           <list>
+                <ref bean="reference-maskingViews" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="bool-true" />
+                <ref bean="null" />
+                <ref bean="null" />
+                
+                <ref bean="null" />
+                <ref bean="timeout" />
+                <ref bean="bool" />
+                <ref bean="maxMaskingViewObjects" />
+            </list>
+        </property>
+        <property name="instance" ref="cimClient" />
+        <property name="result" value="" />
+        <property name="method" value="associators" />
+        <property name="processor" ref="maskingResolveChangesProcessor" />
+        <property name="message" value="Invoking associators to get Export information."/>
+    </bean>
+    
+     <bean id="maskingResolveChangesProcessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingResolveChangesProcessor">
+        <property name="partitionManager" ref="partitionManager"/>
+    </bean>
+    
+    <!-- END SMI-S Calls to run Resolve Masking Changes -->
+    
+</beans>

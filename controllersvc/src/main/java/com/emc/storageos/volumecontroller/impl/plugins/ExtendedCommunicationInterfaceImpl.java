@@ -68,7 +68,7 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
     public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
     private XMLStatsDumpGenerator _xmlDumpGenerator;
     
-    protected ServiceOptions _serviceOptions;
+    protected Map<String, List<URI>> _subNamespaces;
 
     @Override
     public final void injectCache(Map<String, Object> cache) {
@@ -96,10 +96,10 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
     }
     
     @Override
-    public void injectServiceOptions(ServiceOptions serviceOptions) {
-        _serviceOptions = serviceOptions;
-        
+    public void injectSubNamespaces(Map<String,List<URI>> subNamespaces) {
+        _subNamespaces = subNamespaces;
     }
+   
 
     /**
      * Dump stat records in /tmp location.

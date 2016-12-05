@@ -661,7 +661,7 @@ public class ControllerServiceImpl implements ControllerService {
                 if (null == task._namespace) {
                     task._namespace = Discovery_Namespaces.ALL.toString();
                 }
-                DataCollectionJob job = new DataCollectionDiscoverJob(completer, task._namespace, task._masks);
+                DataCollectionJob job = new DataCollectionDiscoverJob(completer, task._namespace, task.namespaceParams);
                 jobs.add(job);
             }
         }

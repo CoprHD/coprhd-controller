@@ -16,8 +16,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -100,6 +102,7 @@ import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupList;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
+import com.emc.storageos.model.systems.DiscoverNamespaceParam;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemList;
@@ -765,8 +768,14 @@ public class StorageSystemService extends TaskResourceService {
         } else {
             scheduler = new DiscoveredObjectTaskScheduler(
                     _dbClient, new DiscoverJobExec(controller));
+            Map<String, List<URI>> namespaceParams = new HashMap<String, List<URI>>();
+            if (param.getNamespaceParams() != null) {
+                for (DiscoverNamespaceParam namespaceparam : param.getNamespaceParams()) {
+                    namespaceParams.put(namespaceparam.getModuleName(), namespaceparam.getModules());
+                }
+            }
             tasks.add(new AsyncTask(StorageSystem.class, storageSystem.getId(), taskId,
-                    namespace, param.getMasks()));
+                    namespace, namespaceParams));
         }
 
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);

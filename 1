@@ -1,0 +1,37 @@
+First Cut of External Change Detection for masks
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch bugfix-external-change-detection-prototype
+# Changes to be committed:
+#   (use "git reset HEAD <file>..." to unstage)
+#
+#	modified:   apisvc/src/conf/api-conf.xml
+#	modified:   apisvc/src/main/java/com/emc/storageos/api/service/impl/resource/ActionableEventExecutor.java
+#	modified:   apisvc/src/main/java/com/emc/storageos/api/service/impl/resource/EventService.java
+#	modified:   apisvc/src/main/java/com/emc/storageos/api/service/impl/resource/StorageSystemService.java
+#	new file:   controllersvc/src/conf/exportchange-detection.properties
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/AsyncTask.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/ControllerServiceImpl.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/block/Test.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/block/VmaxMaskingOrchestrator.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/ExtendedCommunicationInterface.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/ExtendedCommunicationInterfaceImpl.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/SMICommunicationInterface.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/ServiceOptions.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/VPlexCommunicationInterface.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/DataCollectionArrayAffinityJob.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/DataCollectionDiscoverJob.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/DataCollectionJob.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/DataCollectionJobConsumer.java
+#	modified:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/DataCollectionJobInvoker.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/processor/StoragePortExternalChangeDetection.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/processor/export/externalChangeDetection/MaskingChangeDetectionProcessor.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/processor/export/externalChangeDetection/MaskingPathChangeProcessor.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/processor/export/externalChangeDetection/MaskingResolveChangesProcessor.java
+#	new file:   controllersvc/src/main/java/com/emc/storageos/volumecontroller/impl/utils/ExportChangeDetectionProperties.java
+#	modified:   dbclient/src/main/java/com/emc/storageos/db/client/model/ActionableEvent.java
+#	modified:   dbclient/src/main/java/com/emc/storageos/db/client/model/StorageSystem.java
+#	modified:   dbclient/src/main/java/com/emc/storageos/db/client/model/util/EventUtils.java
+#	modified:   exportLibraries/discoveryplugins/src/main/resources/discovery-block-context.xml
+#	new file:   internalLibraries/models/src/main/java/com/emc/storageos/model/systems/StorageSystemRefreshParam.java
+#

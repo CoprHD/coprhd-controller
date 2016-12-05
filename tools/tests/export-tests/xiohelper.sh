@@ -67,12 +67,8 @@ verify_export() {
     HLUS=$4
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
-    PROJECT=$5
-
-    #sleep 1
-    #java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
-    ./export_group list ${PROJECT} > ${TMPFILE1}2>${TMPFILE2}
-    echo ${TMPFILE1}2
+    
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${IG_PATTERN} ${TMPFILE1}2 > /dev/null
     if [ $? -ne 0 ]
     then
@@ -131,7 +127,6 @@ verify_export() {
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
-echo $tools_file
 tools_jar="${DIR}/ArrayTools.jar"
 if [ "$1" = "add_volume_to_mask" ]; then
     shift

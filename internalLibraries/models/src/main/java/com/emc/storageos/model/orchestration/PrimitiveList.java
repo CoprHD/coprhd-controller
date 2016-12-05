@@ -38,8 +38,11 @@ public class PrimitiveList {
     }
     
     @XmlElement(name = "primitive")
-    List<PrimitiveRestRep> getPrimitives() {
+    public List<PrimitiveRestRep> getPrimitives() {
         return primitives;
-    }    
+    }
 
+    public void setPrimitives(List<PrimitiveRestRep> primitives) {
+        this.primitives = primitives;
+    }
 }

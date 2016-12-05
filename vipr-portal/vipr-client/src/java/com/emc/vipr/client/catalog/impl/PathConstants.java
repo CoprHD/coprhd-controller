@@ -64,5 +64,6 @@ public class PathConstants {
     public static final String WF_DIRECTORY_BULK = "/workflow/directory/bulk";
     public static final String WF_DIRECTORY = "/workflow/directory/{id}";
     public static final String WF_DIRECTORY_DELETE = "/workflow/directory/{id}/deactivate";
-
+    public static final String OE_PRIMITIVES = "/primitives";
+    public static final String OE_WORKFLOWS = "/workflows";
 }

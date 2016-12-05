@@ -49,6 +49,8 @@ import com.emc.sa.api.utils.CatalogConfigUtils;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogCategoryManager;
 import com.emc.sa.catalog.CatalogServiceManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -99,6 +101,9 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
 
     private CatalogConfigUtils catalogConfigUtils;
 
@@ -151,7 +156,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      */
     private ServiceDescriptor getServiceDescriptor(String serviceId) {
         try {
-            return serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
+            return ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, serviceId);
         } catch (IllegalStateException e) {
             return null;
         }
@@ -396,8 +401,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
     private void validateParam(CatalogServiceCommonParam input, CatalogService existing) {
 
-        ServiceDescriptor descriptor =
-                catalogServiceManager.getServiceDescriptor(input.getBaseService());
+        ServiceDescriptor descriptor = getServiceDescriptor(input.getBaseService());
 
         if (descriptor == null) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());

@@ -198,7 +198,7 @@ public class OrchestrationWorkflowDocument {
         public void setType(String type) {
             this.type = type;
         }
-        
+
         @XmlElement(name = "input")
         public Map<String, Input> getInput() {
             return input;

@@ -167,4 +167,8 @@ public class ViPRCatalogClient2 {
     public WFDirectoryClient wfDirectories() {
         return new WFDirectoryClient(this, client);
     }
+
+    public OEClient oePrimitives() {
+        return new OEClient(this, client);
+    }
 }

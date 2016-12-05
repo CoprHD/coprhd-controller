@@ -34,7 +34,6 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +60,8 @@ import com.emc.sa.api.mapper.OrderMapper;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogServiceManager;
 import com.emc.sa.catalog.OrderManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -152,6 +153,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
 
     @Autowired
     private EncryptionProvider encryptionProvider;
@@ -384,20 +388,21 @@ public class OrderService extends CatalogTaggedResourceService {
                     asString(createParam.getCatalogService()));
         }
 
-        ServiceDescriptor descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), service.getBaseService());
+        final ServiceDescriptor descriptor = ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, service.getBaseService());
         if (descriptor == null) {
             throw APIException.badRequests.orderServiceDescriptorNotFound(
                     service.getBaseService());
         }
 
-        if(service.getWorkflowName() != null ) {
-            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getWorkflowName());
+        // Getting and setting workflow document (if its workflow service)
+        if (null != descriptor.getWorkflowId()) {
+            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getBaseService());
             if( null == workflowDocument ) {
-                throw APIException.badRequests.workflowNotFound(service.getWorkflowName());
+                throw APIException.badRequests.workflowNotFound(service.getBaseService());
             }
             createParam.setWorkflowDocument(workflowDocument);
         }
-        
+
         Order order = createNewObject(tenantId, createParam);
 
         addLockedFields(service.getId(), descriptor, createParam);

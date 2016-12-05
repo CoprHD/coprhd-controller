@@ -60,6 +60,9 @@ public class ServiceDescriptorBuilder {
         else if (StringUtils.equals(definition.type, ServiceItem.TYPE_TABLE)) {
             return build(baseKey, (TableDefinition) definition);
         }
+        else if (StringUtils.equals(definition.type, ServiceItem.TYPE_MODAL)) {
+            return build(baseKey, (ModalDefinition) definition);
+        }
         else {
             return build(baseKey, (FieldDefinition) definition);
         }
@@ -105,6 +108,17 @@ public class ServiceDescriptorBuilder {
             table.addItem(field);
         }
         return table;
+    }
+    
+    public ServiceFieldModal build(String baseKey, ModalDefinition definition) {
+        String baseTableKey = getBaseKey(baseKey, definition);
+        ServiceFieldModal modal = new ServiceFieldModal();
+        apply(baseTableKey, definition, modal);
+        for (ItemDefinition itemDefinition : definition.items.values()) {
+            ServiceItem item = build(baseTableKey, itemDefinition);
+            modal.addItem(item);
+        }
+        return modal;
     }
 
     private void apply(String baseKey, ItemDefinition source, ServiceItem target) {

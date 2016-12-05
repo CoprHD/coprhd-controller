@@ -44,6 +44,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
 
     /** Indicates if the operation can result in data loss (Warn the user) */
     private boolean destructive = false;
+    
+    /** Indicated if the order will display a preview option */
+    private boolean displayPreview = true;
 
     public String getServiceId() {
         return serviceId;
@@ -113,6 +116,14 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     public void setDestructive(boolean destructive) {
         this.destructive = destructive;
     }
+    
+    public boolean isDisplayPreview() {
+        return displayPreview;
+    }
+    
+    public void setDisplayPreview(boolean displayPreview) {
+        this.displayPreview = displayPreview;
+    }
 
     public ServiceField getField(String name) {
         return ServiceField.findField(this, name);
@@ -156,6 +167,7 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         builder.append("description", description);
         builder.append("category", category);
         builder.append("destructive", destructive);
+        builder.append("displayPreview", displayPreview);
         builder.append("roles", roles);
         builder.append("items", items);
         return builder.toString();

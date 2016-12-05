@@ -1,0 +1,82 @@
+{
+    baseKey:"PortRebalancing.Block",
+    serviceId:"PortRebalancing",
+    displayPreview: true,
+    fields:{
+    	host:{
+            type:"assetType.vipr.host",
+            lockable: true
+        },
+        virtualArray:{
+            type:"assetType.vipr.blockVirtualArray",
+            lockable: true
+        },
+
+        virtualPool:{
+            type:"assetType.vipr.blockVirtualPool",
+            lockable: true
+        },
+        
+              
+        minPaths: {
+          type:"number",
+          lockable: true,
+          required: false,
+          validation: {
+            min:1,
+            max:65535
+          }
+        },
+        
+        maxPaths: {
+          type:"number",
+          lockable: true,
+          required: false,
+          validation: {
+            min:1,
+            max:65535
+          }
+        },
+        
+        pathsPerInitiator: {
+          type:"number",
+          lockable: true,
+          required: false,
+          validation: {
+            min:1,
+            max:65535
+          }
+        },
+        
+        ports:{
+	        type:"assetType.vipr.ports",
+	        select: "many"
+	    },
+	    
+	    exportPathPreview:{
+	       type:"modal",
+           items:{
+                name:{
+                    type:"text",
+                    validation:{
+                        min:2,
+                        max:128
+                    }
+                },
+               size:{
+                    type:"storageSize",
+                    validation:{
+                        min:0
+                    }
+                },
+                numberOfVolumes:{
+                    type:"number",
+                    initialValue: "1",
+                    validation:{
+                        min:1
+                    }
+                }
+    	    }
+        }
+    }
+}

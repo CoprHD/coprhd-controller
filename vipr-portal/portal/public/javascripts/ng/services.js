@@ -145,6 +145,9 @@ angular.module("services", []).directive({
 	                    if (item.select == 'many') {
 	                    	type = '<select-many>';
 	                    }
+	                    else if (item.select == "readOnly") {
+	                    	type = '<select-read-only>';
+	                    }
 	                    else {
 	                    	type = '<select-one>';
 	                    	addBlankOptionIfRequired(item);
@@ -220,6 +223,17 @@ angular.module("services", []).directive({
                 for (var i = 0; i <= rows; i++) {
                     $scope.addRow();
                 }
+            }
+        });
+    },
+    serviceModal: function(tag) {
+        return tag('serviceModal', {
+            scope: true,
+            preLink: function(scope, element, attrs) {
+                scope.modal = scope.$eval(attrs.modal);
+                angular.forEach(scope.modal.items, function(value) {
+                  scope[value.name] = value;
+                });                
             }
         });
     },

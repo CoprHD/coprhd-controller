@@ -90,6 +90,21 @@
                 <span ng-switch-when="table">
                   <service-table table="item"></service-table>
                 </span>
+
+                
+                #{Modal.dialog id:'portRebalancingPreview'}
+			      #{Modal.body}
+					#{Form.header titleKey:'PortRebalancing.preview.title'/}
+					<span ng-switch-when="modal">
+                  <service-modal modal="item"></service-modal>
+                  </span>
+                  #{/Modal.body}
+				  #{Modal.footer}
+				    #{Form.button 'button.done', icon:'primary', data:['dismiss':'modal']/}
+				  #{/Modal.footer}
+				#{/Modal.dialog}
+                
+
                 <span ng-switch-default>
                   <service-field field="item"></service-field>
                 </span>
@@ -133,10 +148,85 @@
                 <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
                 <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
             </button>
+            <!-- button type="submit" class="btn btn-primary" ng-show="serviceDescriptor.displayPreview" ng-disabled="disablePreviewButton()" v-submit-form>
+                <span v-icon=check></span>
+                <span>&{"service.preview"}</span>
+            </button-->
+            #{if serviceDescriptor.displayPreview}
+              #{Form.button name:'service.preview', icon:'check', action:'showModalDialog()' /}
+           	#{/if}
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>
 
       </form>
       
   </div>
+  
+<!--div ng-repeat="item in serviceDescriptor.items | values | unlocked">
+  <span ng-switch="item.type">
+    <span ng-switch-when="modal">
+      <service-modal modal="item"></service-group>
+    </span>
+  </span>
+</div>
+
+#{Modal.dialog id:'portRebalancingPreview'}
+  #{Modal.body}
+    #{Form.header titleKey:'PortRebalancing.preview.title'/}
+    <div ng-repeat="item in modal.items | values | unlocked">
+      <span ng-switch="item.type">
+        <span ng-switch-when="modal">
+          <service-table table="item"></service-table>
+        </span>
+      </span>
+    </div>
+    <!-- div class="panel-group">
+      <div ng-repeat="item in serviceDescriptor.items | values | unlocked">
+        <span ng-switch="item.type">
+          <span ng-switch-when="modal">
+            <service-group modal="item"></service-group>
+          </span>
+        </span>
+      </div>
+    </div>
+    <div class="title">
+      <h4>&{'PortRebalancing.addedPort'}</h4>
+    </div>
+    <div>
+      <ul>
+        <li>Port 01</li>
+        <li>Port 02</li>
+        <li>Port 03</li>
+      </ul>
+    </div>
+    <div class="title">
+      <h4>&{'PortRebalancing.removedPort'}</h4>
+    </div>
+    <div>
+      <ul>
+        <li>Port 04</li>
+        <li>Port 05</li>
+      </ul>
+    </div>
+    <div class="title">
+      <h4>&{'PortRebalancing.affectedExports'}</h4>
+    </div>
+    <div>
+      <ul>
+        <li>Export 01</li>
+        <li>Export 02</li>
+        <li>Export 03</li>
+      </ul>
+    </div>
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button 'button.done', icon:'primary', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+  -->
+  <script>
+	function showModalDialog() {
+	  $('.modal').modal();
+	}
+  </script>
 #{/if}

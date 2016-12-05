@@ -118,7 +118,8 @@ public class ServiceField extends ServiceItem {
 
     @Override
     public void setType(String type) {
-        if (StringUtils.equals(type, TYPE_GROUP) || StringUtils.equals(type, TYPE_TABLE)) {
+        if (StringUtils.equals(type, TYPE_GROUP) || StringUtils.equals(type, TYPE_TABLE)
+                || StringUtils.equals(type, TYPE_MODAL)) {
             throw new IllegalArgumentException("Invalid field type: " + type);
         }
         super.setType(type);

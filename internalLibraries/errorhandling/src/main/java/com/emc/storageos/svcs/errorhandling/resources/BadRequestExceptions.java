@@ -1067,7 +1067,7 @@ public interface BadRequestExceptions {
     public BadRequestException parameterValueIsNotValid(final String parameterName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName,final String validCharacters);
+    public BadRequestException parameterValueContainsInvalidCharacters(final String parameterName, final String validCharacters);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterValueCannotBeUpdated(final String parameterName,
@@ -2256,7 +2256,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolNotAllCGVolumes();
-        
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolVolumeIsNotInCG();
 
@@ -3113,22 +3113,25 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deactivateRPTargetNotSupported(final String string);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddProtectionWhenSnapshotsExist(final String volumeLabel);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyScheduleParam(final String policyName, final String errorMsg);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyType(final String policyType);
-   
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileReplicationPolicyParam(final String policyName, final String errorMsg);
-  
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyAssignParam(final String policyName, final String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException failedToDeleteFilePolicy(final String policyName, final String reason);
 }

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -22,6 +23,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +52,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
@@ -198,6 +201,36 @@ public class FilePolicyService extends TaskResourceService {
         ArgValidator.checkEntity(filepolicy, id, true);
 
         return map(filepolicy);
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    public Response deleteFilePolicy(@PathParam("id") URI id) {
+
+        FilePolicy filepolicy = queryResource(id);
+        ArgValidator.checkEntity(filepolicy, id, true);
+
+        ArgValidator.checkReference(FilePolicy.class, id, checkForDelete(filepolicy));
+
+        String policyAppliedAt = filepolicy.getApplyAt();
+        if (policyAppliedAt != null) {
+            _log.error("Delete file pocicy failed because the policy is applied at " + policyAppliedAt);
+            throw APIException.badRequests.failedToDeleteFilePolicy(filepolicy.getLabel(), "This policy is applied at: " + policyAppliedAt);
+        }
+        StringSet assignedResources = filepolicy.getAssignedResources();
+
+        if (assignedResources != null && !assignedResources.isEmpty()) {
+            _log.error("Delete file pocicy failed because the policy has associacted resources");
+            throw APIException.badRequests.failedToDeleteFilePolicy(filepolicy.getLabel(), "This policy has assigned resources.");
+        }
+
+        _dbClient.markForDeletion(filepolicy);
+
+        auditOp(OperationTypeEnum.DELETE_FILE_POLICY, true, null, filepolicy.getId().toString(),
+                filepolicy.getLabel());
+        return Response.ok().build();
     }
 
     @PUT

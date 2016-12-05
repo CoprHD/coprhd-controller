@@ -866,12 +866,16 @@ public class WorkflowService implements WorkflowController {
         List<URI> workflowIds = new ArrayList<URI>();
         if (result.iterator().hasNext()) {
             while (result.iterator().hasNext()) {
-                workflowIds.add(result.iterator().next());
+                URI wfId = result.iterator().next();
+                _log.info("Found existing workflow {} with task id {}", wfId.toString(), taskId);
+                workflowIds.add(wfId);
             }
             Iterator<com.emc.storageos.db.client.model.Workflow> wfItr = _dbClient
                     .queryIterativeObjects(com.emc.storageos.db.client.model.Workflow.class, workflowIds);
             while (wfItr.hasNext()) {
-                if (!wfItr.next().getCompleted()) {
+                com.emc.storageos.db.client.model.Workflow wf = wfItr.next();
+                if (!wf.getCompleted()) {
+                    _log.error("Task id {} is in use; found in progress workflow {}", taskId, wf.getId().toString());
                     return true;
                 }
             }

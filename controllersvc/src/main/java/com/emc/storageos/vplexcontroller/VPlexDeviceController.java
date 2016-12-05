@@ -5051,7 +5051,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
                             exportMask.getMaskName());
                 } else if (sharedExportMask.containsKey(exportMask.getMaskName())) {
-                    _log.info("Multiple Export mask share same storage view %s hence volumes will only be removed in the database. ",
+                    _log.info("Multiple export masks share the same storage view (%s), hence volumes will only be removed in the database. ",
                             exportMask.getMaskName());
 
                     // add volumes to be removed to the completer

@@ -59,7 +59,7 @@ add_initiator_to_mask() {
 }
 
 verify_export() {
-    # Parameters: Initiator group Name, Number of Initiators, Number of Luns
+    # Parameters: Initiator group Name, Number of Initiators, Number of Luns, HLU
     # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
     IG_PATTERN=$1
     NUM_INITIATORS=$2
@@ -89,7 +89,7 @@ verify_export() {
     fi
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
     num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
-	hlus=`grep -Po '(?<=hostLunNumber:":")[^"]*' ${TMPFILE1}`
+	hlus=`grep -Po '(?<=lun:":")[^"]*' ${TMPFILE1}`
     failed=false
     echo $num_inits $num_luns $hlus
 
@@ -105,6 +105,8 @@ verify_export() {
 	failed=true
     fi
 
+	if [[ !-z "${HLUS}" ]]
+	then
 	if [ ${hlus} -ne ${HLUS} ]
 	then
 		hlu_arr=(${HLUS//,/ })
@@ -113,6 +115,7 @@ verify_export() {
 			echo -e "\e[91mERROR\e[0m: Export group hlus: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
 			failed=true
 		fi
+	fi
 	fi
 
     if [ "${failed}" = "true" ]

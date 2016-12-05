@@ -123,7 +123,8 @@ public class BlockMapper {
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
         to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
-        if (DiscoveredDataObject.Type.vplex.name().equalsIgnoreCase(from.getSystemType())) {
+        boolean isVplexVolume = DiscoveredDataObject.Type.vplex.name().equalsIgnoreCase(from.getSystemType());
+        if (isVplexVolume) {
             to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         }
         
@@ -274,21 +275,16 @@ public class BlockMapper {
             to.setProtection(toProtection);
         }
 
-        if (NullColumnValueGetter.isNotNullValue((from.getReplicationGroupInstance()))) {
-            to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        String replicationGroupInstance = isVplexVolume ? 
+                from.getBackingReplicationGroupInstance() : from.getReplicationGroupInstance();
+        if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance)) {
+            to.setReplicationGroupInstance(replicationGroupInstance);
         }
 
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
             for (String backingVolume : from.getAssociatedVolumes()) {
                 backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
-            }
-            // Get ReplicationGroupInstance from source back end volume
-            if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
-                if (sourceSideBackingVolume != null
-                        && NullColumnValueGetter.isNotNullValue((sourceSideBackingVolume.getReplicationGroupInstance()))) {
-                    to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
-                }
             }
             to.setHaVolumes(backingVolumes);
         }
@@ -299,7 +295,6 @@ public class BlockMapper {
             }
             to.setVolumeGroups(volumeGroups);
         }
-
 
         return to;
     }

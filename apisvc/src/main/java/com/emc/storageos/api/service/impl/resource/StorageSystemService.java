@@ -1965,6 +1965,7 @@ public class StorageSystemService extends TaskResourceService {
         boolean validNameSpace = false;
 
         _log.info("NAME SPACE INVOKED IS :" + nameSpace);
+        _log.info("storageSystem.getSystemType() is {}", storageSystem.getSystemType());
         
         if (Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(nameSpace)) {
             if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||

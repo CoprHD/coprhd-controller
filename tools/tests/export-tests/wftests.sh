@@ -2236,7 +2236,9 @@ test_5() {
     echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                               failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2256,7 +2258,7 @@ test_5() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    # failure_injections="failure_007 failure_008"
 
     for failure in ${failure_injections}
     do

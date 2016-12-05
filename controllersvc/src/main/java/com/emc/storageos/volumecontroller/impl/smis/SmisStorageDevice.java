@@ -1778,6 +1778,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (groupName == null) {
                 _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
                         consistencyGroupId, systemURI));
+                // Clean up the system consistency group references
+                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, keepRGName, markInactive, _dbClient);
+                _dbClient.updateObject(consistencyGroup);
                 return;
             }
 

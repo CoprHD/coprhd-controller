@@ -9,31 +9,12 @@
 		<property name="nsList">
 			<map>
 				<entry key="resolve-mask" value-ref="resolveMaskingChanges"/>
+				
 			</map>
 		</property>
 	</bean>
 	
-	<bean id="detectMaskingChanges" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-		<property name="operations">
-			<list>
-               
-                <ref bean="computerSystem" />
-                
-                <!-- get Controller Configuration Service -->
-				<ref bean="getControllerConfigurationService" />
-                
-                <!-- get Existing Masking Views -->
-				<ref bean="getMaskingViews" />
-				
-				<!-- get initiators targets -->
-				<ref bean="detectChanges" />
-				
-                
-		   </list>
-		</property> 
-    </bean>
-    
-    <bean id="resolveMaskingChanges" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+	<bean id="resolveMaskingChanges" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
 		<property name="operations">
 			<list>
                
@@ -53,6 +34,49 @@
 		</property> 
     </bean>
     
+    
+    <!-- SMI Call to get CIMObject Path for the System -->
+	<bean id="computerSystem" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-comp" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="ComputerSystem" />
+		<property name="method" value="enumerateInstanceNames" />
+		<property name="processor" ref="cimpathprocessor" />
+		<property name="message" value="Invoking EnumerateInstances of EMC_StorageSystem to find the right Array"/>
+
+	</bean>
+
+	<bean id="reference-comp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="ComputerSystem" />
+	</bean>
+
+	<!-- Processors -->
+	<bean id="cimpathprocessor"
+		class="com.emc.storageos.plugins.common.processor.CIMPathProcessor" />
+    
+    <!-- ArgsCreator Instance -->
+	<bean id="argscreator" class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.SmisDiscoveryArgsCreator">
+		<constructor-arg ref="smiutility" />
+	</bean>
+	
+	<!-- SMIUtility -->
+	<bean id="smiutility" class="com.emc.storageos.plugins.common.Util" />
+
+     <!-- cimClient -->
+	 <bean id="cimClient"
+		class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="cimClient" />
+	</bean>
+	
+	
      <!-- SMI-S Call to get Controller Configuration Service -->
     <bean id="getControllerConfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
     	<property name="arguments">
@@ -114,7 +138,7 @@
         <property name="partitionManager" ref="partitionManager"/>
     </bean>
     
-     <bean id="detectChanges" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+     <bean id="resolveChanges" class="com.emc.storageos.plugins.common.domainmodel.Operation">
         <property name="arguments">
            <list>
                 <ref bean="reference-maskingViews" />
@@ -152,38 +176,34 @@
 		<property name="value" value="maskingViews" />
 	</bean>
 	
-	<!-- SMI-S Calls to run Resolve Masking Changes -->
 	
-	 <bean id="resolveChanges" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="arguments">
-           <list>
-                <ref bean="reference-maskingViews" />
-                <ref bean="null" />
-                <ref bean="null" />
-                <ref bean="null" />
-                <ref bean="null" />
-                <ref bean="bool-true" />
-                <ref bean="null" />
-                <ref bean="null" />
-                
-                <ref bean="null" />
-                <ref bean="timeout" />
-                <ref bean="bool" />
-                <ref bean="maxMaskingViewObjects" />
-            </list>
-        </property>
-        <property name="instance" ref="cimClient" />
-        <property name="result" value="" />
-        <property name="method" value="associators" />
-        <property name="processor" ref="maskingResolveChangesProcessor" />
-        <property name="message" value="Invoking associators to get Export information."/>
-    </bean>
-    
-     <bean id="maskingResolveChangesProcessor"
-        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingResolveChangesProcessor">
-        <property name="partitionManager" ref="partitionManager"/>
-    </bean>
-    
-    <!-- END SMI-S Calls to run Resolve Masking Changes -->
+    <bean id="timeout" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getIntValue32" />
+		<property name="value" value="1200" />
+		<property name="name" value="timeoutinSeconds" />
+	</bean>
+	
+	<bean id="null" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value">
+			<null />
+		</property>
+	</bean>
+	<bean id="bool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getBoolValue" />
+		<property name="value" value="false" />
+		<property name="name" value="qualifiers" />
+	</bean>
+	<bean id="bool-true" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getBoolValue" />
+		<property name="value" value="true" />
+		<property name="name" value="qualifiers" />
+	</bean>
+	
+	
     
 </beans>

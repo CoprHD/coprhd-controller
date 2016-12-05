@@ -24,21 +24,18 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.ExportMask;
-
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.DiscoveryModules;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.StringSetUtil;
-
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
-
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ExportChangeDetectionProperties;
 import com.google.common.base.Joiner;
@@ -133,7 +130,7 @@ public class MaskingChangeDetectionProcessor extends Processor {
                         storagePortsFromArray, initiatorPortsInMask, initiatorsFromArray);
                 EventUtils.createActionableEvent(_dbClient, EventCode.MASKING_PORTS_CHANGED, null, maskName, message, "warning",
                         exportMask, maskUriList, EventUtils.refreshExportMasks, new Object[] { maskUriList,
-                                StorageSystem.Discovery_Namespaces.resolveMaskingChanges });
+                                StorageSystem.Discovery_Namespaces.RESOLVE});
             }
             
         } catch (Exception e) {

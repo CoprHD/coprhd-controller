@@ -183,7 +183,12 @@ public class StorageSystem extends DiscoveredSystemObject {
     public static enum Discovery_Namespaces {
         UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, 
         BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY,
-        detectMaskingChanges, resolveMaskingChanges, ALL
+        DETECT, RESOLVE, ALL
+    }
+    
+    public static enum DiscoveryModules {
+        MASKING,
+        CONSISTENCYGROUP
     }
 
     public static enum SupportedReplicationTypes {

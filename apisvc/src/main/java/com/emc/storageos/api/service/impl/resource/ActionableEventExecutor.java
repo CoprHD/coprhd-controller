@@ -33,6 +33,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem.DiscoveryModules;
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -41,6 +43,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.systems.DiscoverNamespaceParam;
 import com.emc.storageos.model.systems.StorageSystemRefreshParam;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -697,7 +700,7 @@ public class ActionableEventExecutor {
      * This method is responsible for invoking the storage system discovery with namespace to discover
      * and arguments.
      * Namespace could be DETECT_CHANGES | RESOLVE_CHANGES
-     * Group selected export masks by STorage System, for each system invoke discover namespace.
+     * Group selected export masks by Storage System, for each system invoke discover namespace.
      * Namespace is attached with the actionable event
      *  
      * @param maskURI
@@ -719,7 +722,12 @@ public class ActionableEventExecutor {
         
         for (Entry<URI, List<URI>> entry : storageSystemToMask.entrySet()) {
             StorageSystemRefreshParam param = new StorageSystemRefreshParam();
-            param.setMasks(entry.getValue());
+            DiscoverNamespaceParam nsParam = new DiscoverNamespaceParam();
+            nsParam.setModuleName(DiscoveryModules.MASKING.name());
+            nsParam.setModules(entry.getValue());
+            List<DiscoverNamespaceParam> dsParams = new ArrayList<DiscoverNamespaceParam>();
+            dsParams.add(nsParam);
+            param.setNamespaceParams(dsParams);
             storageSystemService.discoverSystem(entry.getKey(), namespace, param);
         }
         

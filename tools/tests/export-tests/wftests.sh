@@ -2284,7 +2284,6 @@ test_5() {
 
       # Delete the export
       fail export_group delete $PROJECT/${expname}1
-      echo ***** before vf ${failure}
 
       # Verify injected failures were hit
       verify_failures ${failure}

@@ -1701,18 +1701,18 @@ xtremio_block_tests()
     run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    #run blocksnapshot create $PROJECT/${v1} ${snap1_label}
-    #run blocksnapshot create $PROJECT/${v2} ${snap2_label}
+    run blocksnapshot create $PROJECT/${v1} ${snap1_label}
+    run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
 
-   # xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
+    xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
     xtremio_export_test_hlu
 
-    #run blocksnapshot restore $snap2
-    #run volume bulkget
+    run blocksnapshot restore $snap2
+    run volume bulkget
 
-    #run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
-    #run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
+    run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
+    run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
     run volume delete $PROJECT/${XTREMIOVOL}3 --wait
@@ -1766,7 +1766,7 @@ xtremio_export_test()
 
 xtremio_export_test_hlu() {
 	xtremio_export_test_hlu1
-#	xtremio_export_test_hlu2
+	xtremio_export_test_hlu2
 }
 
 #Consistent Cluster HLU

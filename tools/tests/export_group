@@ -100,7 +100,7 @@ def export_group_realloc(args):
         print rep
         return
     print "Added or Retained Paths: "
-    added_paths = []
+    adjusted_paths = []
     for path in addedpaths:
         added_path = dict();
         added_path['initiator'] = path['initiator']['id']
@@ -109,7 +109,7 @@ def export_group_realloc(args):
             print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
             added_ports.append(port['id'])
         added_path['storage_ports'] = added_ports
-        added_paths.append(added_path)   
+        adjusted_paths.append(added_path)   
     removedPaths=rep['removed_paths']
     removed_paths = []
     print "Removed Paths: "
@@ -135,7 +135,7 @@ def export_group_realloc(args):
         gopayload=dict()
         gopayload['storage_system'] = storageId
         gopayload['path_parameters'] = path_param
-        gopayload['added_paths'] = added_paths
+        gopayload['adjusted_paths'] = adjusted_paths
         gopayload['removed_paths'] = removed_paths
         if args.wait:
             gopayload['wait_before_remove_paths'] = 'true';

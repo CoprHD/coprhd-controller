@@ -75,6 +75,7 @@ public class DataCollectionJobScheduler {
     private ScheduledExecutorService _dataCollectionExecutorService = null;
     private static final String ENABLE_METERING = "enable-metering";
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
+    private static final String ENABLE_AUTO_ECD_DISCOVER = "enable-externalchange-discovery";
     private static final String ENABLE_ARRAYAFFINITY_DISCOVER = "enable-arrayaffinity-discovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
     private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
@@ -108,7 +109,8 @@ public class DataCollectionJobScheduler {
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
         COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
-        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
+        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay),
+        EXTERNAL_CHANGE_DETECT_INTERVALS("ecd-discovery-interval", "ecd-discovery-refresh-interval", initialDiscoveryDelay);
 
         private final String _interval;
         private volatile long _intervalValue;
@@ -163,7 +165,11 @@ public class DataCollectionJobScheduler {
             }
             if (ControllerServiceImpl.COMPUTE_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return COMPUTE_DISCOVER_INTERVALS;
-            } else {
+            } 
+            if (ControllerServiceImpl.ECD_DISCOVERY.equalsIgnoreCase(jobType)) {
+                return EXTERNAL_CHANGE_DETECT_INTERVALS;
+            } 
+            else {
                 return null;
             }
         }
@@ -195,6 +201,8 @@ public class DataCollectionJobScheduler {
         boolean enableAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTODISCOVER));
         boolean enableArrayAffinityDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_ARRAYAFFINITY_DISCOVER));
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
+        boolean enableAutoEcdDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTO_ECD_DISCOVER));
+        
 
         // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
         // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
@@ -269,6 +277,16 @@ public class DataCollectionJobScheduler {
             _logger.info("Metering is disabled.");
         }
 
+        if (enableAutoEcdDiscovery) {
+            JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.ECD_DISCOVERY);
+            schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.ECD_DISCOVERY),
+                    intervals.getInitialDelay(),
+                    intervals.getInterval());
+        }
+        else {
+            _logger.info("Metering is disabled.");
+        }
+        
         discoverySchedulingSelector = _coordinator.getLeaderSelector(leaderSelectorPath,
                 schedulingProcessor);
         discoverySchedulingSelector.autoRequeue();
@@ -402,12 +420,15 @@ public class DataCollectionJobScheduler {
         List<URI> allSystemsURIs = new ArrayList<URI>();
         Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
 
+        
         if (jobType.equalsIgnoreCase(ControllerServiceImpl.NS_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(NetworkSystem.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.CS_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(Host.class, true).iterator());
             addToList(allSystemsURIs, _dbClient.queryByType(Vcenter.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.COMPUTE_DISCOVERY)) {
+            addToList(allSystemsURIs, _dbClient.queryByType(ComputeSystem.class, true).iterator());
+        } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.ECD_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(ComputeSystem.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
             List<URI> systemURIs = _dbClient.queryByType(StorageSystem.class, true);

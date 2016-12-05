@@ -614,11 +614,30 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 throw VPlexCollectionException.exceptions.vplexUnmanagedVolumeDiscoveryFailed(
                         accessProfile.getSystemId().toString(), ex.getLocalizedMessage());
             }
+        } else if((null != accessProfile.getnamespace())
+                && (accessProfile.getnamespace()
+                        .equals(StorageSystem.Discovery_Namespaces.DETECT_EXTERNAL_CHANGES
+                                .toString()))){
+        	discoverExternalChanges(accessProfile);
+        	
         } else {
             discoverAll(accessProfile);
         }
     }
 
+    /**
+     * Implementation for discovering external changes(done outside ViPR) associated with VPLEX storage system.
+     *
+     * @param accessProfile providing context for this discovery session
+     *
+     * @throws BaseCollectionException
+     */
+    private void discoverExternalChanges(AccessProfile accessProfile) throws BaseCollectionException {
+    	s_logger.info("BEGIN EXTERNAL CHANGE DETECTION DISCOVERY");
+    	
+    	s_logger.info("END EXTERNAL CHANGE DETECTION DISCOVERY");
+    }
+    
     /**
      * Implementation for discovering assembly ID (serial number) to cluster id (0 or 1)
      * mapping used in placement algorithms such as RP and VPLEX.

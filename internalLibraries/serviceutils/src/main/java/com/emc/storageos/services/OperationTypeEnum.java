@@ -123,6 +123,7 @@ public enum OperationTypeEnum {
     CREATE_EXPORT_GROUP("ExportCreated", "ExportCreateFailed", "Export Create"),
     UPDATE_EXPORT_GROUP("ExportUpdated", "ExportUpdateFailed", "Export Update"),
     DELETE_EXPORT_GROUP("ExportDeleted", "ExportDeleteFailed", "Export Delete"),
+    REFRESH_EXPORT_GROUP("ExportRefreshed", "ExportRefreshFailed", "Export Refresh"),
     ADD_EXPORT_INITIATOR("ExportInitiatorAdded", "ExportInitiatorAddFailed", "ExportInitiator Add"),
     ADD_EXPORT_VOLUME("ExportVolumeAdded", "ExportVolumeAddFailed", "ExportVolume Add"),
     DELETE_EXPORT_INITIATOR("ExportInitiatorRemoved", "ExportInitiatorRemoveFailed", "ExportInitiator Remove"),

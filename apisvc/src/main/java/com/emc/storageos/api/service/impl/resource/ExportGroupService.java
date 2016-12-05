@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.model.StorageSystem.DiscoveryModules;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -110,6 +111,8 @@ import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
+import com.emc.storageos.model.systems.DiscoverNamespaceParam;
+import com.emc.storageos.model.systems.StorageSystemRefreshParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -166,6 +169,12 @@ public class ExportGroupService extends TaskResourceService {
             _blockStorageScheduler = blockStorageScheduler;
         }
 
+    }
+    
+    private StorageSystemService storageSystemService;
+
+    public void setStorageSystemService(StorageSystemService storageSystemService) {
+        this.storageSystemService = storageSystemService;
     }
 
     @Override
@@ -1806,6 +1815,59 @@ public class ExportGroupService extends TaskResourceService {
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
 
+        return toTask(exportGroup, task, op);
+    }
+    
+    /**
+     * 
+     * @param groupId
+     * @return
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/refresh")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep refreshExportGroup(@PathParam("id") URI groupId)
+            throws ControllerException {
+        String task = UUID.randomUUID().toString();
+        Operation op = null;
+        ExportGroup exportGroup = lookupExportGroup(groupId);
+        validateExportGroupNoPendingEvents(exportGroup);
+        //Get Export masks from the export Group and Group by Storage System.
+        //For each storage System and all its masks, call discover API with detect namespace.
+        //if Vplex export Group, get its internal export Group, follow the same process above.
+        
+        //TODO differentiate VPlex Export Groups.
+        
+        if (null == exportGroup.getExportMasks()) {
+            op = initTaskStatus(exportGroup, task, Operation.Status.ready, ResourceOperationTypeEnum.REFRESH_EXPORT_GROUP);
+        } else {
+           List<ExportMask> exportMasks =  _dbClient.queryObject(ExportMask.class, StringSetUtil.stringSetToUriList(exportGroup.getExportMasks()));
+           Map<URI, List<URI>> storageToMask = new HashMap<URI, List<URI>>();
+           for (ExportMask eMask : exportMasks) {
+               if (null == storageToMask.get(eMask.getStorageDevice())) {
+                   storageToMask.put(eMask.getStorageDevice(), new ArrayList<URI>());
+               }
+               storageToMask.get(eMask.getStorageDevice()).add(eMask.getId());
+           }
+           //TODO Task needs to be tracked, right now we get multiple tasks getting spawned, but the parent task doesnt have any control.
+           for (Entry<URI, List<URI>> entry : storageToMask.entrySet()) {
+               StorageSystemRefreshParam param = new StorageSystemRefreshParam();
+               DiscoverNamespaceParam nsParam = new DiscoverNamespaceParam();
+               nsParam.setModuleName(DiscoveryModules.MASKING.name());
+               nsParam.setModules(entry.getValue());
+               List<DiscoverNamespaceParam> dsParams = new ArrayList<DiscoverNamespaceParam>();
+               dsParams.add(nsParam);
+               param.setNamespaceParams(dsParams);
+               storageSystemService.discoverSystem(entry.getKey(), StorageSystem.Discovery_Namespaces.DETECT.name(), param);
+           }
+        }
+        
+        auditOp(OperationTypeEnum.REFRESH_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
+                exportGroup.getLabel(), exportGroup.getId().toString(),
+                exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
+        
         return toTask(exportGroup, task, op);
     }
 

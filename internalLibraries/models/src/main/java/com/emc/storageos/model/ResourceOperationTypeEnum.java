@@ -83,6 +83,7 @@ public enum ResourceOperationTypeEnum {
     RESYNCHRONIZE_VOLUME_GROUP_FULL_COPY("RESYNCHRONIZE APPLICATION FULL COPY", "resynchronize application full copy"),
     CREATE_EXPORT_GROUP("CREATE EXPORT GROUP", "create export group operation"),
     DELETE_EXPORT_GROUP("DELETE EXPORT GROUP", "delete export group operation"),
+    REFRESH_EXPORT_GROUP("REFRESH EXPORT GROUP", "refresh export group operation"),
     ADD_EXPORT_VOLUME("ADD VOLUME TO EXPORT GROUP", "add volume to export group"),
     CREATE_VIRTUAL_VOLUME("CREATE VIRTUAL VOLUME", "create a virtual volume"),
     ROLLBACK_CREATE_VIRTUAL_VOLUME("ROLLBACK CREATE VIRTUAL VOLUME", "rollback virtual volume create"),

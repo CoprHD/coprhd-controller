@@ -13,10 +13,7 @@ import java.nio.file.attribute.GroupPrincipal;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
@@ -26,19 +23,28 @@ import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.base.Function;
+import com.netflix.astyanax.ExceptionCallback;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.RowCallback;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.query.AllRowsQuery;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.recipes.reader.AllRowsReader;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static com.emc.storageos.dbutils.CommandHandler.*;
 
 /**
  * Class provided simple cli for DB, to dump records in user readable format
@@ -258,7 +264,7 @@ public class Main {
             iterator.mutationBatch.execute();
 
             long end = System.currentTimeMillis();
-            System.out.println("Read "+n+" : "+ (end - start));
+            System.out.println("Read " + n + " : " + (end - start));
         }catch (Throwable e) {
             log.error("e=", e);
         }
@@ -272,6 +278,10 @@ public class Main {
         ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery;
         MutationBatch mutationBatch;
         int pageCount;
+        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange()
+                .greaterThanEquals("tenant")
+                .lessThanEquals("tenant")
+                .limit(1);
 
         MigrationAllOrderHitIterator(Keyspace ks, TimeConstraintImpl c, RowQuery<String, IndexColumnName> query,
                                      ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery)  {
@@ -297,12 +307,8 @@ public class Main {
                 // log.info("lbybb2 id={} n={} pageCount={}", id, n, pageCount);
 
                 /*
-                Order order = _client._dbClient.queryObject(Order.class, id);
-                String indexKey = order.getTenant();
-                log.info("lbybb3 indexKey={}", indexKey);
-                */
                 RowQuery<String, CompositeColumnName> rowQuery = dataCFQuery.getKey(id.toString()).withColumnRange(
-                        CompositeColumnNameSerializer.get().buildRange()
+                        IndexColumnNameSerializer.get().buildRange()
                                 .greaterThanEquals("tenant")
                                 .lessThanEquals("tenant")
                                 .limit(1));
@@ -313,22 +319,19 @@ public class Main {
 
                 String indexKey = tid;
 
-                log.info("lbybb3 indexKey={}", indexKey);
+                log.info("lbybb33 indexKey={}", indexKey);
 
-                /*
                 TimeSeriesIndexColumnName col = new TimeSeriesIndexColumnName("Order", id.toString(),column.getName().getTimeUUID());
                 mutationBatch.withRow(cf, indexKey).putEmptyColumn(col, null);
-                */
 
                 if ( n % pageCount == 0) {
                     log.info("lbybb41 n={}", n);
-                    /*
                     mutationBatch.execute(); // commit
                     log.info("lbybb5 n={}", n);
                     mutationBatch = keyspace.prepareMutationBatch();
                     log.info("lbybb6 n={}", n);
-                    */
                 }
+                */
 
                 return id;
             }catch (Throwable e) {
@@ -341,35 +344,53 @@ public class Main {
         long start = System.currentTimeMillis();
 
         log.info("lbybb0");
+
+        Keyspace ks = _client._dbClient.getLocalKeyspace();
+        ColumnFamily<String, IndexColumnName> tenantToOrder = new ColumnFamily<String, IndexColumnName>("TenantToOrder",
+                StringSerializer.get(), IndexColumnNameSerializer.get());
+        ColumnFamily<String, TimeSeriesIndexColumnName> newCf = new ColumnFamily<String, TimeSeriesIndexColumnName>(
+                        "AllOrdersByTimeStamp", StringSerializer.get(),
+                        TimeSeriesColumnNameSerializer.get());
+        MutationBatch mutationBatch = ks.prepareMutationBatch();
         try {
-            final TimeConstraintImpl constraint = new TimeConstraintImpl("timeseriesIndex", "Order", true);
-            constraint.setPageCount(10000);
-            Keyspace ks = _client._dbClient.getLocalKeyspace();
-            constraint.setKeyspace(ks);
-            RowQuery<String, IndexColumnName> query = constraint.genQuery();
+            long n = 0;
+            long m = 0;
+            OperationResult<Rows<String, IndexColumnName>> result = ks.prepareQuery(tenantToOrder).getAllRows()
+                    .setRowLimit(100)
+                    .withColumnRange(new RangeBuilder().setLimit(0).build())
+                    .execute();
+            for (Row<String, IndexColumnName> row : result.getResult()) {
+                n++;
+                m = 0;
+                //log.info("lbyd2 key={} n={}", row.getKey(), n);
+                RowQuery<String, IndexColumnName> rowQuery = ks.prepareQuery(tenantToOrder).getKey(row.getKey())
+                        .autoPaginate(true)
+                        .withColumnRange(new RangeBuilder().setLimit(5).build());
+                ColumnList<IndexColumnName> cols;
+                while (!(cols = rowQuery.execute().getResult()).isEmpty()) {
+                    for (Column<IndexColumnName> col : cols) {
+                        m++;
+                        String indexKey = row.getKey();
+                        String orderId = col.getName().getTwo();
+                        log.info("lbyd11: tid={} order={} m={}", indexKey, orderId, m);
 
-            ColumnFamily<String, CompositeColumnName> orderCF = new ColumnFamily<String, CompositeColumnName>("Order",
-                    StringSerializer.get(), CompositeColumnNameSerializer.get());
-
-
-            ColumnFamilyQuery<String, CompositeColumnName> dataCFQuery = ks.prepareQuery(orderCF);
-
-            MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, dataCFQuery);
-            // MigrationAllOrderHitIterator iterator = new MigrationAllOrderHitIterator(ks, constraint, query, null);
-
-            iterator.prime();
-
-            while (iterator.hasNext()) {
-                iterator.next();
+                        TimeSeriesIndexColumnName newCol = new TimeSeriesIndexColumnName("Order", orderId,
+                                col.getName().getTimeUUID());
+                        mutationBatch.withRow(newCf, indexKey).putEmptyColumn(newCol, null);
+                        if ( m % 10000 == 0) {
+                            log.info("lbyd22 commit m={}", m);
+                            mutationBatch.execute();
+                        }
+                    }
+                }
             }
-
-            // iterator.mutationBatch.execute();
-
+            mutationBatch.execute();
             long end = System.currentTimeMillis();
-            System.out.println("Read "+n+" : "+ (end - start));
-        }catch (Throwable e) {
-            log.error("e=", e);
+            System.out.println("Read5 "+n+" : "+ (end - start)/1000);
+        }catch (Exception e) {
+            log.error("lbyy0: e=", e);
         }
+
         System.exit(1);
     }
     private static void queryMyOrderIndexes(){
@@ -512,7 +533,7 @@ public class Main {
             // migrateMyOrderIndexes();
             migrateAllOrderIndexes();
 
-            /*
+/*
             List<URI> ids = new ArrayList();
             URI uri = new URI("urn:storageos:Order:b1c0eaca-725f-416d-aa6a-9cfcefa4f8f9:vdc1");
             ids.add(uri);
@@ -531,11 +552,9 @@ public class Main {
             if (!orders.isEmpty()) {
                 log.info("lby3 order={}", orders.get(0));
             }
-            */
+*/
 
-            System.exit(1);
-
-            /*
+/*
             CommandHandler handler = null;
             boolean result = false;
 
@@ -590,21 +609,21 @@ public class Main {
                     break;
                 case CHECK_DB:
                     _client.init();
-                    handler = new CheckDBHandler(args);
+                    handler = new CommandHandler.CheckDBHandler(args);
                     break;
                 case REBUILD_INDEX:
                     _client.init();
-                    handler = new RebuildIndexHandler(args);
+                    handler = new CommandHandler.RebuildIndexHandler(args);
                     break;
                 case RUN_MIGRATION_CALLBACK:
                     _client.init();
-                    handler = new RunMigrationCallback(args);
+                    handler = new CommandHandler.RunMigrationCallback(args);
                     break;    
                 default:
                     throw new IllegalArgumentException("Invalid command ");
             }
             handler.process(_client);
-        */
+            */
         } catch (Exception e) {
             System.err.println("Exception e=" + e);
             log.error("Exception e=", e);

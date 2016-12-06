@@ -29,20 +29,17 @@ get_host_cluster() {
 # 8. Remove initiator port wwn from network
 #
 test_host_add_initiator() {
-    test_name="test_host_add_initiator"
     echot "Test test_host_add_initiator_failure"
-    item=${RANDOM}
-    cfs="ExportGroup ExportMask Initiator Network"
-    cfs2="ExportGroup ExportMask Initiator"
-    expname=${EXPORT_GROUP_NAME}t1
     
+    test_name="test_host_add_initiator"
+    cfs="ExportGroup ExportMask Initiator"
+    host=fakehost-${RANDOM}
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn` 
+    volume=${VOLNAME}-2        
+            
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    export_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
-    
-    mkdir -p results/${item}
-    
-    test_pwwn=`randwwn`
-    test_nwwn=`randwwn`
+    host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
     exclusive_export=${expname}1_exclusive
     cluster_export=${expname}1_cluster
@@ -62,14 +59,29 @@ test_host_add_initiator() {
     
     for failure in ${failure_injections}
     do
-	   TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-	   reset_counts
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            echot "Running happy path test for add initiator to host..."
+        else    
+            echot "Running Add initiator to host with failure scenario: ${failure}..."
+        fi    
+        
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        exclusive_export=fakeexport-${item}
+
+        snap_db 1 ${cfs}
+
+        # Run the exclusive export group create command
+        runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${volume} --hosts ${HOST1}
+
+        snap_db 2 ${cfs}        
 
         # Verify the initiator does not exist in the ExportGroup
         add_init="false"
-        if [[ $(export_contains $exclusive_export $test_pwwn) ]]; then
-            #|| $(export_contains $cluster_export $test_pwwn) ]]; then
-            echo "Add initiator to host test failed. Initiator "${test_pwwn}" already exists" 
+        if [[ $(export_contains $exclusive_export $fake_pwwn1) ]]; then
+            echo "Add initiator to host test failed. Initiator "${fake_pwwn1}" already exists" 
             
             # Report results
             incr_fail_count
@@ -78,48 +90,41 @@ test_host_add_initiator() {
                 finish -1
             fi
         fi  
-        
-        snap_db 2 ${cfs2}
 
         # Add initiator to network
-        runcmd run transportzone add ${FC_ZONE_A} ${test_pwwn}
+        runcmd run transportzone add ${FC_ZONE_A} ${fake_pwwn1}
     
         # Add initiator to host.  This will add the initiator to both the exclusive and shared export groups. This is because
         # The host is already part of the cluster that was used to create the cluster export group.
         if [ ${failure} = ${HAPPY_PATH_TEST_INJECTION} ]; then
-            secho "Running happy path test for add initiator to host..."
-        
             # If this is the happy path test, the command should succeed
-            runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+            runcmd initiator create ${HOST1} FC ${fake_pwwn1} --node ${fake_nwwn1}
         else
-            secho "Running Add initiator to host with failure scenario: ${failure}..."
-            
             # Turn on failure at a specific point
             set_artificial_failure ${failure}            
             
-            fail initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}
+            fail initiator create ${HOST1} FC ${fake_pwwn1} --node ${fake_nwwn1}
                 
             # Let the async jobs calm down
             sleep 5
     
             # Perform any DB validation in here
-            snap_db 3 ${cfs2}
+            snap_db 3 ${cfs}
 
             # Validate nothing was left behind
-            validate_db 2 3 ${cfs2}
+            validate_db 2 3 ${cfs}
                 
             # Rerun the command
             set_artificial_failure none
-            runcmd initiator create ${HOST1} FC ${test_pwwn} --node ${test_nwwn}                
+            runcmd initiator create ${HOST1} FC ${fake_pwwn1} --node ${fake_nwwn1}                
         fi
     
         # Verify the initiator has been added to the ExportGroup
-        if [[ $(export_contains $exclusive_export $test_pwwn) ]]; then
-            #&& $(export_contains $cluster_export $test_pwwn) ]]; then
+        if [[ $(export_contains $exclusive_export $fake_pwwn1) ]]; then
             add_init="true"
-            echo "Verified that initiator "${test_pwwn}" has been added to export"
+            echo "Verified that initiator "${fake_pwwn1}" has been added to export"
         else
-            echo "Add initiator to host test failed. Initiator "${test_pwwn}" was not added to the export"  
+            echo "Add initiator to host test failed. Initiator "${fake_pwwn1}" was not added to the export"  
 		
 		    # Report results
 		    incr_fail_count
@@ -129,13 +134,17 @@ test_host_add_initiator() {
             fi
         fi
 
-        if [ ${add_init} = "true"  ]; then
+        if [ ${add_init} = "true" ]; then
             # If the initiator has been added, remove it here so the export groups are clean for the next failure injection
-            runcmd initiator delete ${HOST1}/${test_pwwn}
+            runcmd initiator delete ${HOST1}/${fake_pwwn1}
             sleep 20
-            runcmd transportzone remove ${FC_ZONE_A} ${test_pwwn}
+            runcmd transportzone remove ${FC_ZONE_A} ${fake_pwwn1}
             sleep 20
         fi
+        
+        # Cleanup export group  
+        runcmd export_group update ${PROJECT}/${exclusive_export} --remVols ${PROJECT}/${volume}                         
+        runcmd export_group delete ${PROJECT}/${exclusive_export}
         
         snap_db 4 ${cfs}  
 
@@ -658,6 +667,12 @@ test_move_non_clustered_host_to_cluster() {
 
     for failure in ${failure_injections}
     do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            echot "Running happy path test for move non-clustered host to cluster..."
+        else    
+            echot "Running move non-clustered host to cluster with failure scenario: ${failure}..."
+        fi    
+        
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
 

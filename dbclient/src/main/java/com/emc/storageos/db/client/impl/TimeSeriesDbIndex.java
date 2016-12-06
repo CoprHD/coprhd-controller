@@ -41,7 +41,7 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, indexKey);
 
-        _log.info("lbytt0: add indexKey={} key={}", indexKey, recordKey);
+        _log.info("lbytt0: add indexKey={} key={} stack=", indexKey, recordKey, new Throwable());
 
         TimeSeriesIndexColumnName indexEntry = new TimeSeriesIndexColumnName(className, recordKey, mutator.getTimeUUID());
 
@@ -57,24 +57,21 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
         UUID uuid = column.getName().getTimeUUID();
 
         _log.info("lbyd0: recordKey={} className={} stack=", recordKey, className, new Throwable());
-        /*
+        _log.info("column={}", column.getName());
         if (!className.equals("Order")) {
             throw new RuntimeException("Can not create TimeSeriesIndex on non Order object");
         }
 
-        try {
-            URI orderId = new URI(recordKey);
-        }catch ()
-        */
+        List<Column<CompositeColumnName>> value = fieldColumnMap.get("tenant");
+        Column<CompositeColumnName> tenantCol = value.get(0);
+        CompositeColumnName columnName = tenantCol.getName();
+        String tid = tenantCol.getStringValue();
+        _log.info("lbyd3 tid={}", tid);
 
-        /*
-        String indexKey = getRowKey(column);
+        ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, tid);
 
-        ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, indexKey);
-        */
-
-        //_log.info("lbyf0 to delete indexKey={} stack=", indexKey, new Throwable());
-        // indexColList.deleteColumn(new TimeSeriesIndexColumnName(indexKey, uuid));
+        _log.info("lbyf0 to delete indexKey={}", tid);
+        indexColList.deleteColumn(new TimeSeriesIndexColumnName(className, recordKey, uuid));
 
         return true;
     }

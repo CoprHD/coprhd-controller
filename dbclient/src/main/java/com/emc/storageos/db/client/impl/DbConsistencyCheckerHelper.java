@@ -32,12 +32,10 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
@@ -47,7 +45,6 @@ public class DbConsistencyCheckerHelper {
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
-    private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
@@ -58,7 +55,7 @@ public class DbConsistencyCheckerHelper {
 
     public DbConsistencyCheckerHelper(DbClientImpl dbClient) {
         this.dbClient = dbClient;
-        schemaVersionsTime = querySchemaVersions();
+        schemaVersionsTime = dbClient.querySchemaVersions();
     }
 
     /**
@@ -617,25 +614,6 @@ public class DbConsistencyCheckerHelper {
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
     	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
-    }
-
-    protected Map<Long, String> querySchemaVersions() {
-        Map<Long, String> result = new TreeMap<Long, String>();
-        ColumnFamily<String, String> CF_STANDARD1 =
-                new ColumnFamily<String, String>("SchemaRecord",
-                        StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
-        try {
-            OperationResult<CqlResult<String, String>> queryResult = dbClient.getLocalContext().getKeyspace().prepareQuery(CF_STANDARD1)
-                    .withCql(CQL_QUERY_SCHEMA_VERSION_TIMESTAMP)
-                    .execute();
-            for (Row<String, String> row : queryResult.getResult().getRows()) {
-                result.put(row.getColumns().getColumnByIndex(1).getLongValue(), row.getColumns().getColumnByIndex(0).getStringValue());
-            }
-        } catch (ConnectionException e) {
-            _log.error("Failed to query schema versions", e);
-        }
-        
-        return result;
     }
     
     protected String findDataCreatedInWhichDBVersion(long createTime) {

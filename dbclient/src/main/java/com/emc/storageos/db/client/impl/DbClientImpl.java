@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -93,12 +94,14 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.ConsistencyLevel;
+import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.query.ColumnCountQuery;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
@@ -114,6 +117,7 @@ public class DbClientImpl implements DbClient {
     public static final String DB_CASSANDRA_GC_GRACE_PERIOD = "DB_CASSANDRA_GC_GRACE_PERIOD";
     public static final String DB_CASSANDRA_INDEX_GC_GRACE_PERIOD = "DB_CASSANDRA_INDEX_GC_GRACE_PERIOD";
     public static final String DB_CASSANDRA_GC_GRACE_PERIOD_PREFIX = "DB_CASSANDRA_GC_GRACE_PERIOD_";
+    private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
 
     private static final Logger _log = LoggerFactory.getLogger(DbClientImpl.class);
     private static final int DEFAULT_TS_PAGE_SIZE = 100;
@@ -1982,5 +1986,22 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
 
-    
+    public Map<Long, String> querySchemaVersions() {
+        Map<Long, String> result = new TreeMap<Long, String>();
+        ColumnFamily<String, String> ColumnFamily =
+                new ColumnFamily<String, String>("SchemaRecord",
+                        StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
+        try {
+            OperationResult<CqlResult<String, String>> queryResult = getLocalContext().getKeyspace().prepareQuery(ColumnFamily)
+                    .withCql(CQL_QUERY_SCHEMA_VERSION_TIMESTAMP)
+                    .execute();
+            for (Row<String, String> row : queryResult.getResult().getRows()) {
+                result.put(row.getColumns().getColumnByIndex(1).getLongValue(), row.getColumns().getColumnByIndex(0).getStringValue());
+            }
+        } catch (ConnectionException e) {
+            _log.error("Failed to query schema versions", e);
+        }
+        
+        return result;
+    }
 }

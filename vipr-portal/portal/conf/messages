@@ -3516,7 +3516,7 @@ resources.volume.accessState.readwrite=Read Write
 resources.volume.accessState.writeonce=Write Once
 resources.volume.accessState.notready=Not Ready
 
-resources.volume.resourceLimitAlert=The number of volumes is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. You may create new volumes in another project.
+resources.volume.resourceLimitAlert=The number of volumes is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. 
 
 resources.continuouscopy=Continuous Copy
 resources.continuouscopy.image=assets/Continuous_Copy.png
@@ -3615,7 +3615,7 @@ resources.snapshot.syncactive.no=No
 resources.snapshot.deleteConfirm=Are you sure you want to delete this snapshot?
 resources.snapshot.notFound=Snapshot Not Found
 resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. Please check the task list for an updated status.
-resources.snapshot.resourceLimitAlert=The number of snapshots is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. You may create new snapshots in another project.
+resources.snapshot.resourceLimitAlert=The number of snapshots is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. 
 
 resources.snapshot.session.unknown=Unknown Snapshot Session with ID '%s'
 resources.snapshot.session.name=Name

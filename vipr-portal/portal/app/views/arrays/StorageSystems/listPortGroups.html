@@ -15,20 +15,59 @@
                   source:@portGroupsJson(),
                   selectable:true}
   #{DataTable.buttonBar}
-    #{Form.button name:'button.add', class:'success', icon:'plus', submit:'addForm'/}
+    #{Form.button name:'button.add', class:'success', icon:'plus', action:'$("#createDialog").modal("show")'/}
     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
 
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 
-#{DataTable.formAction @addPortGroup(), id:'addForm', table:'protGroups', fields:formFields/}
+<!-- #{DataTable.formAction @addPortGroup(storageSystemId), id:'addForm', table:'protGroups', fields:formFields/} -->
 #{DataTable.formAction @deletePortGroup(), id:'removeForm', table:'protGroups', fields:formFields/}
 
+
+#{Modal.dialog id:'createDialog'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'portGroup.create.title'}</h4> 
+    &{'portGroup.create.description'}
+  #{/Modal.header}
+  #{form @addPortGroup(), id:'portGroup', class:'form form-horizontal'}
+    #{Modal.body}
+      <input type="hidden" name="storageSystemId" value="${storageSystemId}">
+      #{field 'name'}
+        %{ field.label = messages.get('portGroup.name') }%
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Modal.buttonBar}
+        #{Form.button 'button.done', class:'primary', icon:'ok-sign', type:'submit'/}
+      #{/Modal.buttonBar}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    $('#createDialog').on('shown.bs.modal', function(e) {
+        $('#name').focus();
+    });
+    $('#createDialog').on('show.bs.modal', function(e) {
+        $('#name').val('').trigger('change');
+    });
+    $('#name').on('change keydown keyup', function(e) {
+        if (e.which != 10 && e.which != 13) {
+          var value = $(this).val();
+          $('#createDialog button.btn-primary').prop('disabled', 
+                (value == null) || (value == '') || (value.trim() == ''));
+        }
+    });
+});
+</script>
 <script type="text/javascript">
 function renderLink(o, val) {
 	
 	var data = o.aData;
-    var url = #{jsAction @editPortGroup(':id')/};
+    var url = #{jsAction @editPortGroup(':id',storageSystemId)/};
     var href = url(data);
 	
     return "<a href='"+href+"'>" + val + "</a>";

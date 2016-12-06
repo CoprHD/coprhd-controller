@@ -1,0 +1,117 @@
+%{
+  titleKey = 'portGroup.' + (portGroup?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.assets', 'nav.storageArrays']/}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @savePortGroup(), id:'portGroup', class:'form form-horizontal', autocomplete:"off"}
+ 
+    #{field 'portGroup.id'}
+      <input type="hidden" name="id" value="${field.value}">
+    #{/field}  
+ 
+  #{field 'storageSystemId'}
+      <input type="hidden" name="${storageSystemId}" value="${storageSystemId}">
+   #{/field}
+    
+    #{field 'portGroup.name'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'portGroup.name'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'portGroup.description'}
+      %{
+        field.required = true
+        field.fieldKey = 'portGroup.description'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'portGroup.maxPaths'}
+      %{
+        field.fieldKey = 'portGroup.maxPaths'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'portGroup.minPaths'}
+      %{
+        field.fieldKey = 'portGroup.minPaths'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'portGroup.pathsPerInitiator'}
+      %{
+        field.fieldKey = 'portGroup.pathsPerInitiator'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'portGroup.maxInitiatorsPerPort'}
+      %{
+        field.fieldKey = 'portGroup.maxInitiatorsPerPort'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@portGroups(storageSystemId)/}
+#{/form}
+
+#{DataTable.header titleKey:'portGroup.storagePorts.title'/}
+#{DataTable.table id:'storagePorts', 
+                  dataTable:portDataTable,
+                  source:@storagePortsJson(portGroup.id),
+                  selectable:true}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddStoragePortsDialog()'/}
+     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removePortsForm', data:['enabled':'selected']/}
+
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+%{
+  formFields = ['pathParamId': portGroup.id]
+  if (storageSystemId) {
+    formFields['storageSystemId'] = storageSystemId
+  }
+}%
+
+#{DataTable.formAction @deletePorts(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
+#{DataTable.formAction @addPorts(), id:'addArrayPortsForm', table:'arrayPorts', fields:formFields/}
+   <input type="hidden" name="pathParamId" value="${pathParamId}">
+   <input type="hidden" name="storageSystemId" value="${storageSystemId}">
+#{Modal.dialog id:'addStoragePortsDialog', cssClass:'extra-wide'}
+  #{Modal.body}
+    
+    #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
+    #{DataTable.table id: 'arrayPorts',
+                      dataTable: portSelectionDataTable,
+                      source: @availablePortsJson(portGroup.id+"~~~"+storageSystemId),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addArrayPortsForm', 
+                  data:['enabled':'selected', 'table':'arrayEndpoints']/}
+    #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
+
+</div>
+<script type="text/javascript">
+
+function showAddStoragePortsDialog() {
+    table.arrayPorts.dataTable.create();
+    table.arrayPorts.dataTable.updateSelectedFooter();
+    table.arrayPorts.dataTable.reset();
+    $('#addStoragePortsDialog').modal();
+}
+</script>

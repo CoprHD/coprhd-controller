@@ -13,14 +13,15 @@ import com.emc.storageos.model.block.export.ExportPathParametersBulkRep;
 import com.emc.storageos.model.block.export.ExportPathParametersList;
 import com.emc.storageos.model.block.export.ExportPathParametersRestRep;
 import com.emc.storageos.model.block.export.ExportPathUpdateParams;
+import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.google.common.collect.Lists;
 
-public class ExportPathParameters extends AbstractCoreBulkResources<ExportPathParametersRestRep> {
+public class PathParameters extends AbstractCoreBulkResources<ExportPathParametersRestRep> {
 
-    public ExportPathParameters(ViPRCoreClient parent, RestClient client) {
+    public PathParameters(ViPRCoreClient parent, RestClient client) {
 
         super(parent, client, ExportPathParametersRestRep.class, PathConstants.EXPORT_PATH_PARAMS_URL);
     }

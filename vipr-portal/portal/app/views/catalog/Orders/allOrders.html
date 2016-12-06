@@ -3,9 +3,9 @@
 
 #{tenantSelector /}
 #{DataTable.header titleKey:'allOrders.title' /}
-<div class="max-days-selector">
-  <div class="description">&{'orders.maxDays'}</div>
-  <div class="control">
+<div class="max-days-selector" style="width: 810px; margin-left: -760px;margin-right:250px">
+  <div class="description" >&{'orders.maxDays'}</div>
+  <div class="control" style="width:110px;">
   #{field 'maxDays'}
     %{
       field.cssClass = 'input-sm'
@@ -15,9 +15,36 @@
     #{Form.selectOne field:field/}
   #{/field}
   </div>
+  
+  <label class="description">&{"orders.startDate"}:</label>
+  <div class="control" style="width:150px;">
+      <date-picker ng-model="scheduler.startDate" close="true"></date-picker>
+      <input type="hidden" name="scheduler.startDate" value="{{scheduler.startDate}}"/>
+   </div>
+  
+   <label class="description">&{"orders.endDate"}:</label>
+   <div class="control" style="width:150px;">
+      <date-picker ng-model="scheduler.endDate" close="true"></date-picker>
+      <input type="hidden" name="scheduler.endDate" value="{{scheduler.endDate}}"/>
+   </div>
+  
+  
+  
   <div class="clearfix"></div>
+  
 </div>
-#{DataTable.table id:'orders', dataTable:dataTable, source: @allOrdersJson(), options: ['fnServerParams': 'addParams']/}
+#{DataTable.table id:'orders', 
+                  dataTable:dataTable, 
+                  source: @allOrdersJson(),
+                  selectable: true, 
+                  options: ['fnServerParams': 'addParams']}
+        #{DataTable.buttonBar}
+            #{Form.button name:'button.download', class:'primary', icon:'download', submit:'createForm'/}
+            #{Form.button name:'button.delete', class:'danger', icon:'minus', submit:'deleteForm',
+                                  data:['enabled':'selected', 'selection':'single', 'property':'canDelete', 'value':'true']/}
+        #{/DataTable.buttonBar}
+
+#{/DataTable.table}
 
 <script type="text/javascript">
 function addParams(aoData) {

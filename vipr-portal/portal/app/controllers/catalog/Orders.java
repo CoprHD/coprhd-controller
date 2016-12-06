@@ -99,7 +99,7 @@ public class Orders extends OrderExecution {
         if (maxDays == null) {
             maxDays = 1;
         }
-        int[] days = { 1, 7, 14, 30, 90 };
+        int[] days = { 1, 7, 14, 30, 90, 0 };
         List<StringOption> options = Lists.newArrayList();
         options.add(new StringOption(String.valueOf(maxDays), MessagesUtils.get("orders.nDays", maxDays)));
         for (int day : days) {
@@ -273,7 +273,7 @@ public class Orders extends OrderExecution {
 
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-        
+
         receipt(orderId);
     }
 
@@ -446,8 +446,8 @@ public class Orders extends OrderExecution {
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
         public ScheduledEventRestRep scheduledEvent;
-        public Date scheduleStartDateTime; 
-        
+        public Date scheduleStartDateTime;
+
         public Map<URI, String> viprTaskStepMessages;
 
         public OrderDetails(String orderId) {
@@ -494,10 +494,10 @@ public class Orders extends OrderExecution {
             URI scheduledEventId = order.getScheduledEventId();
             if (scheduledEventId != null) {
                 scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
-                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
-                                        scheduledEvent.getScheduleInfo().getStartDate(), 
-                                        scheduledEvent.getScheduleInfo().getHourOfDay(), 
-                                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z",
+                        scheduledEvent.getScheduleInfo().getStartDate(),
+                        scheduledEvent.getScheduleInfo().getHourOfDay(),
+                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
                 DateTime startDateTime = DateTime.parse(isoDateTimeStr);
                 scheduleStartDateTime = startDateTime.toDate();
             }

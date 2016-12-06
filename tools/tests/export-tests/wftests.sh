@@ -1958,7 +1958,9 @@ test_2() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch \
-                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
     fi
 
@@ -1978,7 +1980,7 @@ test_2() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
 
     if [ "${SS}" = "vplex" ]
     then

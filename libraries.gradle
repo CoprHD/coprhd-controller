@@ -470,4 +470,8 @@ ext {
     ceph = [
         "com.ceph:rados:0.3.0"
     ]
+
+    javapoet = [
+        "com.squareup:javapoet:1.8.0"
+    ]
 }

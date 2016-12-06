@@ -5,8 +5,7 @@ ext {
 }
 
 dependencies {
-    compile files("libs/javapoet-1.8.0.jar"),
-            files("libs/reflections-0.9.10.jar"),
+    compile library(javapoet),
             library(guava),
             rootProject.toolsJar,
             project(":apidocs"),

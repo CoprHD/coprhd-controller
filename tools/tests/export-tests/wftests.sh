@@ -1818,7 +1818,8 @@ test_1() {
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+	storage_failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool \
+	                            failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
@@ -1833,7 +1834,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004_final_step_in_workflow_complete:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
+    # failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
 
     for failure in ${failure_injections}
     do

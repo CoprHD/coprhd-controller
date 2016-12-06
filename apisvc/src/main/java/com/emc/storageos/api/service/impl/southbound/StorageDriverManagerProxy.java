@@ -104,7 +104,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
     }
 
     private <K, V> Map<K, V> mergeMap(Map<K, V> m1, Map<K, V> m2) {
-        Map<K, V> m = new HashMap<K, V>(m1.size(), m2.size());
+        Map<K, V> m = new HashMap<K, V>();
         m.putAll(m1);
         m.putAll(m2);
         return m;

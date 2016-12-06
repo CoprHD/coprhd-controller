@@ -736,23 +736,31 @@ test_cluster_remove_host() {
     test_name="test_cluster_remove_host"
     echot "Test cluster_remove_host Begins"
 
-    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                                failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                 failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
                                 failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
                                 failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
-                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter"
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                                failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
-    #failure_injections="${common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} {common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"    
+    #failure_injections="failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"    
 
     # Create volumes
     random_number=${RANDOM}        
+    
+    # Create a second project
+    PROJECT2=${PROJECT}-${RANDOM}
+    runcmd project create ${PROJECT2} --tenant $TENANT
+    
+    # Create two volumes
     volume1=${VOLNAME}-1-${random_number}
     volume2=${VOLNAME}-2-${random_number}    
     runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-    runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    runcmd volume create ${volume2} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB    
         
     for failure in ${failure_injections}
     do
@@ -767,6 +775,7 @@ test_cluster_remove_host() {
         host2=fakehost2-${random_number}
         cluster1=fakecluster1-${random_number}
         exportgroup1=exportgroup1-${random_number}
+        exportgroup2=exportgroup2-${random_number}        
         
         # Snap DB
         snap_db 1 ${column_family}
@@ -804,30 +813,38 @@ test_cluster_remove_host() {
         sleep 2
         
         # Export the volume to the fake cluster    
-        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}       
+        runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+        #runcmd export_group create ${PROJECT2} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT2}/${volume2} --clusters ${TENANT}/${cluster1}
         
-        # Double check the export groups to ensure the hosts and initiators are present
-        foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
-        foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
-        foundinit3=`export_group show $PROJECT/${exportgroup1} | grep ${init3}`
-        foundinit4=`export_group show $PROJECT/${exportgroup1} | grep ${init4}`
-        foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
-        foundhost2=`export_group show $PROJECT/${exportgroup1} | grep ${host2}`    
+        # List of all export groups being used
+        #exportgroups="${PROJECT}/${exportgroup1} ${PROJECT2}/${exportgroup2}"
+        exportgroups="${PROJECT}/${exportgroup1}"
         
-        if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
-            # Fail, hosts and initiators should have been added to the export group
-            echo "+++ FAIL - Some hosts and host initiators were not found on the export group...fail."
-            # Report results
-            incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                exit 1
+        for eg in ${exportgroups}
+        do
+            # Double check export group to ensure the hosts and initiators are present
+            foundinit1=`export_group show ${eg} | grep ${init1}`
+            foundinit2=`export_group show ${eg} | grep ${init2}`
+            foundinit3=`export_group show ${eg} | grep ${init3}`
+            foundinit4=`export_group show ${eg} | grep ${init4}`
+            foundhost1=`export_group show ${eg} | grep ${host1}`
+            foundhost2=`export_group show ${eg} | grep ${host2}`    
+            
+            if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
+                # Fail, hosts and initiators should have been added to the export group
+                echo "+++ FAIL - Some hosts and host initiators were not found on ${eg}...fail."
+                # Report results
+                incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]
+                then
+                    report_results ${test_name} ${failure}
+                    exit 1
+                fi
+            else
+                echo "+++ SUCCESS - All hosts and host initiators present on ${eg}"   
             fi
-        else
-            echo "+++ SUCCESS - All hosts and host initiators present on export group"   
-        fi
-                               
+        done
+            
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
                         
@@ -837,7 +854,11 @@ test_cluster_remove_host() {
             
             # Try and remove both hosts from cluster, first should pass and second should fail
             runcmd hosts update $host1 --cluster null
-            fail hosts update $host2 --cluster null
+            
+            # Happy path would mean there is no fail, otherwise we should expect a failure
+            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then            
+                fail hosts update $host2 --cluster null
+            fi
         
             # Rerun the command with no failures
             set_artificial_failure none 
@@ -846,32 +867,38 @@ test_cluster_remove_host() {
             # Zzzzzz
             sleep 5
             
-            # Ensure that export group has been removed
-            fail export_group show $PROJECT/${exportgroup1}
-            
-            echo "+++ Confirm export group has been deleted, expect to see an exception below if it has..."
-            foundeg1=`export_group show $PROJECT/${exportgroup1} | grep ${exportgroup1}`
-            
-            if [ "${foundeg1}" != "" ]; then
-                # Fail, export group should be removed
-                echo "+++ FAIL - Expected export group was not deleted."
-                # Report results
-                incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
+            for eg in ${exportgroups}
+            do
+                # Ensure that export group has been removed
+                fail export_group show ${eg}
+                
+                echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
+                foundeg=`export_group show ${eg} | grep ${eg}`
+                
+                if [ "${foundeg}" != "" ]; then
+                    # Fail, export group should be removed
+                    echo "+++ FAIL - Expected export group ${eg} was not deleted."
+                    # Report results
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]
+                    then
+                        report_results ${test_name} ${failure}
+                        exit 1
+                    fi
+                else
+                    echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
                 fi
-            else
-                echo "+++ SUCCESS - Expected export group was deleted." 
-            fi
+            done
                         
         else
             # Update export group
             secho "Update export group path..."
             
-            # Try and remove one host from cluster, this should fail
-            fail hosts update $host1 --cluster null
+            # Happy path would mean there is no fail, otherwise we should expect a failure
+            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+                # Try and remove one host from cluster, this should fail
+                fail hosts update $host1 --cluster null
+            fi
         
             # Rerun the command with no failures
             set_artificial_failure none 
@@ -880,29 +907,33 @@ test_cluster_remove_host() {
             # Zzzzzz
             sleep 5
             
-            # Ensure that initiator 1 and 2 and host1 have been removed
-            foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
-            foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
-            foundhost1=`export_group show $PROJECT/${exportgroup1} | grep ${host1}`
+            for eg in ${exportgroups}
+            do
+                # Ensure that initiator 1 and 2 and host1 have been removed
+                foundinit1=`export_group show ${eg} | grep ${init1}`
+                foundinit2=`export_group show ${eg} | grep ${init2}`
+                foundhost1=`export_group show ${eg} | grep ${host1}`
+                
+                if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
+                    # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
+                    echo "+++ FAIL - Expected host and host initiators were not removed from the export group ${eg}."
+                    # Report results
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]
+                    then
+                        report_results ${test_name} ${failure}
+                        exit 1
+                    fi
+                else
+                    echo "+++ SUCCESS - Expected host and host initiators removed from export group ${eg}." 
+                fi                                     
+            done
             
-            if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
-                # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
-                echo "+++ FAIL - Expected host and host initiators were not removed from the export group."
-                # Report results
-                incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
-                fi
-            else
-                echo "+++ SUCCESS - Expected host and host initiators removed from export group" 
-            fi 
-            
-            # Cleanup export group  
+            # Cleanup export groups  
             runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
-            runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume2}                         
-            runcmd export_group delete ${PROJECT}/${exportgroup1}    
+            runcmd export_group delete ${PROJECT}/${exportgroup1}            
+            #runcmd export_group update ${PROJECT2}/${exportgroup2} --remVols ${PROJECT2}/${volume2}                                     
+            #runcmd export_group delete ${PROJECT2}/${exportgroup2}
         fi    
         
         # Cleanup all
@@ -926,5 +957,6 @@ test_cluster_remove_host() {
     
      # Cleanup volumes
     runcmd volume delete ${PROJECT}/${volume1} --wait
-    runcmd volume delete ${PROJECT}/${volume2} --wait 
+    runcmd volume delete ${PROJECT2}/${volume2} --wait 
+    runcmd project delete ${PROJECT2}
 }

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.vipr.model.catalog.*;
 import com.google.common.collect.ImmutableMap;
 
 import models.BreadCrumb;
@@ -29,12 +30,6 @@ import util.ServiceDescriptorUtils;
 import util.ServiceFormUtils;
 import util.ServiceFormUtils.AssetFieldDescriptor;
 
-import com.emc.vipr.model.catalog.AssetOption;
-import com.emc.vipr.model.catalog.CatalogServiceFieldRestRep;
-import com.emc.vipr.model.catalog.CatalogServiceRestRep;
-import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
-import com.emc.vipr.model.catalog.ServiceFieldRestRep;
-import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
@@ -98,6 +93,8 @@ public class Services extends Controller {
         Map<String, String> overriddenValues = getOverriddenValues(service);
         Map<String, String> availableAssets = getAvailableAssets(assetFieldDescriptors, overriddenValues);
 
+        logServiceDescriptor(serviceDescriptor);
+
         // Load any Asset Options for root fields so they are rendered directly onto the form
         List<ServiceFieldRestRep> allFields = ServiceDescriptorUtils.getAllFieldList(serviceDescriptor.getItems());
         for (ServiceFieldRestRep field : allFields) {
@@ -154,6 +151,25 @@ public class Services extends Controller {
                 ));
 
         render();
+    }
+
+    private static void logServiceDescriptor(ServiceDescriptorRestRep serviceDescriptor) {
+
+        Logger.info("======= Service Desc is %s, %s, %s, %s",
+                serviceDescriptor.getCategory(),
+                serviceDescriptor.getItems(),
+                serviceDescriptor.getTitle(),
+                serviceDescriptor.getServiceId());
+
+        Logger.info("======= Service Items Begin: ");
+        for (ServiceItemRestRep item : serviceDescriptor.getItems()) {
+            Logger.info(
+                    "============== Item is %s, %s, %s",
+                    item.getLabel(),
+                    item.getName(),
+                    item.getType());
+        }
+        Logger.info("======= Service Items Done");
     }
 
     public static void corruptedService(CatalogServiceRestRep service) {

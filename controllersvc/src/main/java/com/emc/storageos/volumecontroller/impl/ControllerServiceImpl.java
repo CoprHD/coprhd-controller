@@ -91,6 +91,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String POOL_MATCHER = "PoolMatcher";
     public static final String NS_DISCOVERY = "NS_Discovery";
     public static final String COMPUTE_DISCOVERY = "Compute_Discovery";
+    public static final String ECD_DISCOVERY = "ECD_Discovery";
     public static final String CS_DISCOVERY = "CS_Discovery";
     private static final String DISCOVERY_COREPOOLSIZE = "discovery-core-pool-size";
     private static final int ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE = 3;
@@ -107,7 +108,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
 
     // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, ECD_DISCOVERY };
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;

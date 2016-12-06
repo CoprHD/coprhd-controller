@@ -1964,6 +1964,9 @@ public class StorageSystemService extends TaskResourceService {
     private boolean validateNameSpace(String nameSpace, StorageSystem storageSystem) {
         boolean validNameSpace = false;
 
+        _log.info("NAME SPACE INVOKED IS :" + nameSpace);
+        _log.info("storageSystem.getSystemType() is {}", storageSystem.getSystemType());
+        
         if (Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(nameSpace)) {
             if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
                     Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType())) {
@@ -1994,6 +1997,11 @@ public class StorageSystemService extends TaskResourceService {
             }
         }
 
+        if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.DETECT_EXTERNAL_CHANGES.toString()) &&
+        		Type.vplex.toString().equalsIgnoreCase(storageSystem.getSystemType()) ){
+        	return true;
+        }
+        
         boolean isFileStorageSystem = storageSystem.storageSystemIsFile();
         if (isFileStorageSystem) {
             if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||

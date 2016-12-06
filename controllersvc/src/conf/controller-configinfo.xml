@@ -11,6 +11,7 @@
         <entry key="ArrayAffinity-block-host" value="arrayaffinitydiscovery-block-host-context.xml" />
         <entry key="ArrayAffinity-block" value="arrayaffinitydiscovery-block-context.xml" />
         <entry key="Discovery-vplex-unmanaged_volumes" value="discovery-vplex-context.xml" />
+        <entry key="Discovery-vplex-detect_external_changes" value="discovery-vplex-context.xml" />
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-unmanaged_filesystems" value="discovery-netappc-context.xml" />
         <entry key="Discovery-isilon-unmanaged_filesystems" value="discovery-isilon-context.xml" />
@@ -140,6 +141,7 @@
         
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
+        <entry key="enable-externalchange-discovery" value="true" />
         <entry key="enable-arrayaffinity-discovery" value="false" />
         <entry key="enable-autoscan" value="false" />
 

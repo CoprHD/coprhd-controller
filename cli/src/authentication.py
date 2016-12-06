@@ -165,8 +165,6 @@ class Authentication(object):
                     else:
                         authToken = self.direct_login(url, username, password, cookiejar)
 
-                    print("login done: token is {}".format(authToken))
-
             else:
                 raise SOSError(
                     SOSError.HTTP_ERR,
@@ -187,7 +185,6 @@ class Authentication(object):
         parentshellpid = None
         installdir_cookie = None
         if sys.platform.startswith('linux'):
-            print("2222")
             parentshellpid = os.getppid()
             if(cookiefile is None):
                 if (parentshellpid is not None):

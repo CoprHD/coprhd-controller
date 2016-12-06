@@ -29,31 +29,33 @@ import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.RootDoc;
 
 /**
- * Doclet class that leverages the ApiDoclet to scan the ViPR API to create primitives
+ * Doclet class that leverages the ApiDoclet to scan the ViPR API to create
+ * primitives
  */
 public class PrimitiveDoclet {
 
     private static final String OUTPUT_OPTION = "-d";
     private static final String SOURCE_DIR = "src/main/generated";
-    
+
     private static String outputDirectory;
-     
+
     public static boolean start(RootDoc root) {
         List<ApiService> services = ApiDoclet.findApiServices(root.classes());
-        
+
         Iterable<JavaFile> files = ApiPrimitiveMaker.makePrimitives(services);
-        
-        for( final JavaFile file : files ) {
+
+        for (final JavaFile file : files) {
             try {
-                file.writeTo(new File(outputDirectory+SOURCE_DIR));
+                file.writeTo(new File(outputDirectory + SOURCE_DIR));
             } catch (IOException e) {
-                throw new RuntimeException("Failed to write to output folder", e);
+                throw new RuntimeException("Failed to write to output folder",
+                        e);
             }
         }
-        
+
         return true;
     }
-    
+
     /** Required by Doclet, otherwise it does not process Generics correctly */
     public static LanguageVersion languageVersion() {
         return LanguageVersion.JAVA_1_5;
@@ -84,23 +86,27 @@ public class PrimitiveDoclet {
         }
 
         if (!outputOptionFound) {
-            reporter.printError("Output dir option " + OUTPUT_OPTION + " not specified");
+            reporter.printError("Output dir option " + OUTPUT_OPTION
+                    + " not specified");
         }
 
         DocReporter.printWarning("Finished Processing Options");
 
         return valid && outputOptionFound;
     }
-    
-    private static synchronized boolean checkOutputOption(String value, DocErrorReporter reporter) {
+
+    private static synchronized boolean checkOutputOption(String value,
+            DocErrorReporter reporter) {
         File file = new File(value);
         if (!file.exists()) {
-            reporter.printError("Output directory (" + OUTPUT_OPTION + ") not found :" + file.getAbsolutePath());
+            reporter.printError("Output directory (" + OUTPUT_OPTION
+                    + ") not found :" + file.getAbsolutePath());
             return false;
         }
 
         if (!file.isDirectory()) {
-            reporter.printError("Output directory (" + OUTPUT_OPTION + ") is not a directory :" + file.getAbsolutePath());
+            reporter.printError("Output directory (" + OUTPUT_OPTION
+                    + ") is not a directory :" + file.getAbsolutePath());
             return false;
         }
 

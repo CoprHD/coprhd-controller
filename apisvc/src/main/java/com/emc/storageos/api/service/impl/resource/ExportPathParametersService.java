@@ -141,7 +141,7 @@ public class ExportPathParametersService extends TaggedResource {
         return Response.ok().build();
     }
 
-    @DELETE
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })

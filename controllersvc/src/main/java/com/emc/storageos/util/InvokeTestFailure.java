@@ -61,6 +61,19 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_031 = "failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach";
     public static final String ARTIFICIAL_FAILURE_032 = "failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator";
     public static final String ARTIFICIAL_FAILURE_033 = "failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter";
+    public static final String ARTIFICIAL_FAILURE_034 = "failure_034_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_remove_from_cg";
+    public static final String ARTIFICIAL_FAILURE_035 = "failure_035_VNXUnityBlockStorageDeviceController.doDeleteVolume_before_delete_volume";
+    public static final String ARTIFICIAL_FAILURE_036 = "failure_036_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume";
+    public static final String ARTIFICIAL_FAILURE_037 = "failure_037_VNXUnityBlockStorageDeviceController.doDeleteVolume_after_delete_volume_cg_version";
+    public static final String ARTIFICIAL_FAILURE_038 = "failure_038_XtremIOStorageDeviceController.doDeleteVolume_before_remove_from_cg";
+    public static final String ARTIFICIAL_FAILURE_039 = "failure_039_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume";
+    public static final String ARTIFICIAL_FAILURE_040 = "failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume";
+    public static final String ARTIFICIAL_FAILURE_041 = "failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume";
+    public static final String ARTIFICIAL_FAILURE_042 = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences";
+    public static final String ARTIFICIAL_FAILURE_043 = "failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation";
+    public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation";
+    public static final String ARTIFICIAL_FAILURE_045 = "failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation";
+    public static final String ARTIFICIAL_FAILURE_046 = "failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
@@ -164,7 +177,8 @@ public final class InvokeTestFailure {
         }
 
         // Extract the method name from the system property
-        String failOnMethodName = invokeArtificialFailure.substring(ARTIFICIAL_FAILURE_015.length());
+        String failOnMethodName = invokeArtificialFailure
+                .substring(invokeArtificialFailure.indexOf(ARTIFICIAL_FAILURE_015) + ARTIFICIAL_FAILURE_015.length());
         String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
                 && methodName.equalsIgnoreCase(failOnMethodName)) {

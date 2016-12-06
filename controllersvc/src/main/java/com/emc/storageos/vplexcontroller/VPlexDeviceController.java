@@ -932,6 +932,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
 
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_045);
+
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
                     clusterInfoList = client.getClusterInfoDetails();
@@ -944,6 +946,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
                         false, thinEnabled);
 
+                // Note: according to client.createVirtualVolume, this will never be the case.
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
                     throw ex;
@@ -952,6 +955,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexVolumeNameMap.put(vvInfo.getName(), vplexVolume);
                 virtualVolumeInfos.add(vvInfo);
             }
+
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_046);
 
             Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
 
@@ -7238,6 +7243,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vinfos.add(vinfo);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
                 virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
+                // Note: According to client.createVirtualVolume code, this will never be the case (null)
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
                     ServiceError serviceError = VPlexApiException.errors.createVirtualVolumeFromImportStepFailed(opName);
@@ -8724,6 +8730,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                     }
                     fullCopyVolume.setReplicaState(nativeFCReplicaState);
+                    // update the backingReplicationGroupInstance on the virtual volume full copy if present on backend volume
+                    String backingReplicationGroupInstance = 
+                        NullColumnValueGetter.isNotNullValue(nativeFullCopyVolume.getBackingReplicationGroupInstance()) ? 
+                            nativeFullCopyVolume.getBackingReplicationGroupInstance() : NullColumnValueGetter.getNullStr();
+                    fullCopyVolume.setBackingReplicationGroupInstance(backingReplicationGroupInstance);
                     _dbClient.updateObject(fullCopyVolume);
                 } else {
                     _log.warn("Can't find native full copy volume");

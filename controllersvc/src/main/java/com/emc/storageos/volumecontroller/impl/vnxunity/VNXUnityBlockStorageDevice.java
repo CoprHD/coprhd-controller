@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -271,6 +272,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         Map<String, List<String>> cgNameMap = new HashMap<String, List<String>>();
         try {
             Set<URI> updateStoragePools = new HashSet<URI>();
+            // Invoke a test failure if testing
             for (Volume volume : volumes) {
                 String lunId = volume.getNativeId();
                 if (NullColumnValueGetter.isNullValue(lunId)) {
@@ -282,6 +284,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));
                     continue;
                 }
+
                 String cgName = volume.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(cgName)) {
                     List<String> lunIds = cgNameMap.get(cgName);
@@ -291,10 +294,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                     lunIds.add(volume.getNativeId());
                 } else {
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_035);
                     apiClient.deleteLunSync(volume.getNativeId(), false);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_036);
                 }
             }
-            
+
             for (Map.Entry<String, List<String>> entry : cgNameMap.entrySet()) {
                 String cgName = entry.getKey();
                 List<String> lunIDs = entry.getValue();
@@ -316,10 +321,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                                         isRP = true;
                                         logger.info(String.format("Removing volumes from CG because the CG %sis exported to RP", cgName));
                                         VNXeUtils.getCGLock(workflowService, storageSystem, cgName, opId);
+                                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_034);
                                         apiClient.removeLunsFromConsistencyGroup(cgId, lunIDs);
                                         for (String lunId : lunIDs) {
                                             logger.info(String.format("Deleting the volume %s", lunId));
+                                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_035);
                                             apiClient.deleteLunSync(lunId, false);
+                                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_036);
                                         }
                                         break;
                                     }
@@ -330,10 +338,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
                 if (!isRP) {
                     VNXeUtils.getCGLock(workflowService, storageSystem, cgName, opId);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_034);
                     apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_037);
                 }
             }
 
+            // TODO: This'll likely need to move to the completer OR the update object needs to also be done in the
+            // exception blocks
             for (Volume vol : volumes) {
                 vol.setInactive(true);
                 dbClient.updateObject(vol);
@@ -707,10 +719,9 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 cgNames = ssm.get(storage.getId().toString());
                 if (cgNames == null || cgNames.isEmpty()) {
                     logger.info("There is no array consistency group to be deleted.");
-                    if (markInactive) {
-                        consistencyGroup.setInactive(true);
-                        dbClient.updateObject(consistencyGroup);
-                    }
+                    // Clean up the system consistency group references
+                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), null, keepRGName, markInactive, dbClient);
+                    dbClient.updateObject(consistencyGroup);
                     taskCompleter.ready(dbClient);
                     return;
                 }
@@ -726,22 +737,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 String id = apiClient.getConsistencyGroupIdByName(cgName);
                 if (id != null && !id.isEmpty()) {
                     apiClient.deleteConsistencyGroup(id, false, false);
-                    URI systemURI = storage.getId();
-                    if (consistencyGroup != null) {
-                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), cgName);
+                    if (!keepRGName) {
+                        // Clean up the system consistency group references
+                        BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), cgName, keepRGName, markInactive, dbClient);
+                        dbClient.updateObject(consistencyGroup);
                     }
                 }
             }
-            if (markInactive && consistencyGroup != null) {
-                consistencyGroup.setInactive(true);
-                logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
-            }
-
             
-            if (consistencyGroup != null) {
-                dbClient.updateObject(consistencyGroup);
-            }
-
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             logger.info("Failed to delete consistency group: " + e);

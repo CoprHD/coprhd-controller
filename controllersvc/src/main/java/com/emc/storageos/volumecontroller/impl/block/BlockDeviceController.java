@@ -167,6 +167,7 @@ import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -1854,12 +1855,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // Add the volume to the list to delete
                     volumes.add(volume);
                 } else {
-                    // Add the proper status, since we won't be deleting this volume
-                    String opName = ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName();
-                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOp(opName);
-                    serviceError.setMessage("Volume does not exist or is already deleted");
                     _log.info("Volume does not exist or is already deleted");
-                    volumeCompleter.error(_dbClient, serviceError);
+                    volumeCompleter.ready(_dbClient);
                 }
                 completer.addVolumeCompleter(volumeCompleter);
             }
@@ -3227,7 +3224,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, storage, groupName, keepRGName, markInactive, opId);
             List<String> lockKeys = new ArrayList<String>();
             if (groupName != null && !groupName.isEmpty()) {
                 lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
@@ -4327,7 +4324,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         createConsistencyGroupMethod(storage, consistencyGroup, groupName),
-                        rollbackMethodNullMethod(), null);
+                        deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, false), null);
             }
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
@@ -4337,7 +4334,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         addToConsistencyGroupMethod(storage, consistencyGroup, groupName, addVolumesList),
-                        rollbackMethodNullMethod(), null);
+                        removeFromConsistencyGroupMethod(storage, consistencyGroup, addVolumesList, false), null);
 
                 // call ReplicaDeviceController
                 waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
@@ -4351,13 +4348,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // call ReplicaDeviceController
                     waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, consistencyGroup,
                             removeVolumesList, task);
-
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                             String.format("Removing volumes from consistency group %s", consistencyGroup),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
                             removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList, false),
-                            rollbackMethodNullMethod(), null);
+                            addToConsistencyGroupMethod(storage, consistencyGroup, groupName, removeVolumesList), null);
 
                     // remove replication group if the CG will become empty
                     if ((addVolumesList == null || addVolumesList.isEmpty()) &&
@@ -4367,7 +4363,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 waitFor, storage, storageSystem.getSystemType(),
                                 this.getClass(),
                                 deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, false),
-                                rollbackMethodNullMethod(), null);
+                                createConsistencyGroupMethod(storage, consistencyGroup, groupName), null);
                     }
                 }
             }
@@ -6733,7 +6729,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, storage, groupName, keepRGName, markInactive, opId);
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,
                     markInactive,
                     sourceGroupName, completer);

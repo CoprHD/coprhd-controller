@@ -75,8 +75,9 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         List<VolumeDescriptor> existingDescriptors = new ArrayList<>();
         List<Recommendation> sourceVolumeRecommendations = getSourceVolumeRecommendations(volRecommendations);
         List<VolumeDescriptor> sourceVolumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                param.getName(), size, project, varray, vpool, sourceVolumeRecommendations, taskList, task, capabilities,
+                param.getName()+"_SOURCE", size, project, varray, vpool, sourceVolumeRecommendations, taskList, task, capabilities,
                 Volume.PersonalityTypes.SOURCE);
+        _log.info("Source volume descriptors: {}", sourceVolumeDescriptors);
         List<URI> sourceVolumeURIs = VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors);
 
 
@@ -85,8 +86,9 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         VirtualArray targetVArray = _dbClient.queryObject(VirtualArray.class, targetVArrayUri);
         VirtualPool targetVPool = volRecommendations.get(0).getVirtualPool();
         List<VolumeDescriptor> targetVolumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                param.getName(), size, project, targetVArray, targetVPool, volRecommendations, taskList, task, capabilities,
+                param.getName()+"_TARGET", size, project, targetVArray, targetVPool, volRecommendations, taskList, task, capabilities,
                 Volume.PersonalityTypes.TARGET);
+        _log.info("Target volume descriptors: {}", targetVolumeDescriptors);
         List<VolumeDescriptor> blockVolumeDescriptors = new ArrayList<>(sourceVolumeDescriptors);
         blockVolumeDescriptors.addAll(targetVolumeDescriptors);
 
@@ -94,7 +96,10 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         // Now we need to build descriptors for remote replication volumes
         // Build descriptors for remote replication source/target
         List<VolumeDescriptor> remoteReplicationSourceDescriptor = buildRemoteReplicationDescriptors(sourceVolumeDescriptors, capabilities, VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE);
-        List<VolumeDescriptor> remoteReplicationTargetDescriptor = buildRemoteReplicationDescriptors(sourceVolumeDescriptors, capabilities, VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET);
+        _log.info("RR Source volume descriptors: {}", remoteReplicationSourceDescriptor);
+
+        List<VolumeDescriptor> remoteReplicationTargetDescriptor = buildRemoteReplicationDescriptors(targetVolumeDescriptors, capabilities, VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET);
+        _log.info("RR Target volume descriptors: {}", remoteReplicationTargetDescriptor);
 
         // We are done with all descriptors. Collect them in one final list.
         List<VolumeDescriptor> allDescriptors = new ArrayList<>(sourceVolumeDescriptors);

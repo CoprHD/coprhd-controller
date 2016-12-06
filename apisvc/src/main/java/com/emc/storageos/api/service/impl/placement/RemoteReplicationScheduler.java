@@ -189,33 +189,60 @@ public class RemoteReplicationScheduler implements Scheduler {
 
         // Build recommendation for each volume
         // Create recommendation for each source volume
-        List<Recommendation> sourceVolumeRecommendations = new ArrayList<>();
+        List<VolumeRecommendation> sourceVolumeRecommendations = new ArrayList<>();
         for (Recommendation recommendation : sourceRecommendationsForPools) {
             int count = recommendation.getResourceCount();
             while (count > 0) {
-                Recommendation volumeRecommendation = new Recommendation();
+                VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
+                        capabilities.getSize(), vPool, vArray.getId());
                 volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
                 volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendation.setVirtualArray(vArray.getId());
                 volumeRecommendation.setVirtualPool(vPool);
                 volumeRecommendation.setResourceCount(1);
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 sourceVolumeRecommendations.add(volumeRecommendation);
-            //    volumeRecommendations.add(volumeRecommendation);
+                if (capabilities.getBlockConsistencyGroup() != null) {
+                    volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
+                }
                 count--;
             }
         }
 
+//        List<Recommendation> sourceVolumeRecommendations = new ArrayList<>();
+//        for (Recommendation recommendation : sourceRecommendationsForPools) {
+//            int count = recommendation.getResourceCount();
+//            while (count > 0) {
+//                Recommendation volumeRecommendation = new Recommendation();
+//                volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
+//                volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
+//                volumeRecommendation.setVirtualArray(vArray.getId());
+//                volumeRecommendation.setVirtualPool(vPool);
+//                volumeRecommendation.setResourceCount(1);
+//                sourceVolumeRecommendations.add(volumeRecommendation);
+//            //    volumeRecommendations.add(volumeRecommendation);
+//                count--;
+//            }
+//        }
+
         // Create recommendation for each target volume. Use source volume recommendations as underlying recommendations.
         int sourceVolumeRecommendationIndex = 0;
-        for (Recommendation recommendation : targetRecommendationsForPools) {
-            int count = recommendation.getResourceCount();
+        for (Recommendation targetRecommendation : targetRecommendationsForPools) {
+            int count = targetRecommendation.getResourceCount();
             while (count > 0) {
-                Recommendation volumeRecommendation = new Recommendation();
-                volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
-                volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
+                VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
+                        capabilities.getSize(), targetVirtualPool, targetVirtualArray.getId());
+                volumeRecommendation.setSourceStoragePool(targetRecommendation.getSourceStoragePool());
+                volumeRecommendation.setSourceStorageSystem(targetRecommendation.getSourceStorageSystem());
                 volumeRecommendation.setVirtualArray(targetVirtualArray.getId());
                 volumeRecommendation.setVirtualPool(targetVirtualPool);
                 volumeRecommendation.setResourceCount(1);
+                volumeRecommendation.addStoragePool(targetRecommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(targetRecommendation.getSourceStorageSystem());
+                if (capabilities.getBlockConsistencyGroup() != null) {
+                    volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
+                }
                 // set source volume recommendation as underlying recommendation
                 volumeRecommendation.setRecommendation(sourceVolumeRecommendations.get(sourceVolumeRecommendationIndex++));
                 volumeRecommendations.add(volumeRecommendation);

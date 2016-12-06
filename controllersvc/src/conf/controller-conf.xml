@@ -1098,6 +1098,7 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+                <ref bean="remoteReplicationDeviceController"/>
 		<ref bean="workflowService"/>
                 <ref bean="computeSystemOrchestrationDeviceController"/>
             </set>

@@ -132,22 +132,22 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public String addStepsForCreateVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-            List<VolumeDescriptor> rrDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
-                            VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET}, new VolumeDescriptor.Type[] {});
-            if (rrDescriptors.isEmpty()) {
-                _log.info("No Remote Replication Steps required");
-                return waitFor;
-            }
+        List<VolumeDescriptor> rrDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
+                        VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET}, new VolumeDescriptor.Type[] {});
+        if (rrDescriptors.isEmpty()) {
+            _log.info("No Remote Replication Steps required");
+            return waitFor;
+        }
 
         List<VolumeDescriptor> sourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE);
         List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET);
 
-            _log.info("Adding steps to create remote replication links for volumes");
-            waitFor = createRemoteReplicationSteps(workflow, waitFor, sourceDescriptors, targetDescriptors);
-            return waitFor;
+        _log.info("Adding steps to create remote replication links for volumes");
+        waitFor = createRemoteReplicationSteps(workflow, waitFor, sourceDescriptors, targetDescriptors);
+        return waitFor;
     }
 
     public String createRemoteReplicationSteps(Workflow workflow, String waitFor, List<VolumeDescriptor> sourceDescriptors, List<VolumeDescriptor> targetDescriptors) {
@@ -228,6 +228,9 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         boolean createGroupPairs = false;
 
         // build remote replication pairs and call device layer
+        _log.info("Source volume descriptors: {}", sourceDescriptors);
+        _log.info("Target volume descriptors: {}", targetDescriptors);
+
         List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
         List<URI> elementURIs = new ArrayList<>();
         elementURIs.addAll(VolumeDescriptor.getVolumeURIs(sourceDescriptors));
@@ -330,6 +333,9 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));
             rrPair.setTargetElement(new NamedURI(targetURI, RemoteReplicationPair.ElementType.VOLUME.toString()));
+            _log.info("Remote Replication Pair {} ", rrPair);
+
+            rrPairs.add(rrPair);
         }
         return rrPairs;
     }

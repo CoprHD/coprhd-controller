@@ -28,7 +28,7 @@ import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
 import com.emc.vipr.client.core.Events;
-import com.emc.vipr.client.core.ExportPathParameters;
+import com.emc.vipr.client.core.PathParameters;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -432,7 +432,7 @@ public class ViPRCoreClient {
         return new StorageSystemType(client);
     }
     
-    public ExportPathParameters exportPathParameters(){
-        return new ExportPathParameters(this, client);
+    public PathParameters exportPathParameters(){
+        return new PathParameters(this, client);
     }
 }

@@ -158,6 +158,7 @@ public class OrchestrationWorkflowDocument {
     public static class Step {
 
         private String id;
+        private String friendlyName;
         private String operation;
         private String description;
         private String type;
@@ -174,7 +175,16 @@ public class OrchestrationWorkflowDocument {
         public void setId(String stepId) {
             this.id = stepId;
         }
-        
+
+        @XmlElement(name = "friendlyName")
+        public String getFriendlyName() {
+            return friendlyName;
+        }
+        public void setFriendlyName(String friendlyName) {
+            this.friendlyName = friendlyName;
+        }
+
+
         @XmlElement(name = "operation")
         public String getOperation() {
             return operation;

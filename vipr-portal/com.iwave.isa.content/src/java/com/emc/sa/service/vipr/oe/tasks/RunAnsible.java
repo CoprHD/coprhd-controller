@@ -18,6 +18,11 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -56,35 +61,38 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final String extraVars = makeExtraArg(input);
 
         final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
+
         final Exec.Result result;
         switch (type) {
             case SHELL_SCRIPT:
+                //TODO Dynamically create the playbook from shell script
                 result = executeCmd(OrchestrationServiceConstants.PATH + step.getOperation(), extraVars);
                 cleanUp(step.getOperation(), false);
+
                 break;
             case LOCAL_ANSIBLE:
-                final Exec.Result untarResult = untarPackage(step.getOperation());
-                if (!untarResult.exitedNormally()) {
-                    logger.error("Failed to Untar package. Error:{}", untarResult.getStdError());
-                    cleanUp(step.getOperation(), true);
+                try {
+                    untarPackage("ansi.tar");
+                    final String ips = getHosts();
+                    result = executeLocal(ips, extraVars, OrchestrationServiceConstants.PATH +
+                            FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
+                } catch (final IOException e) {
+                    logger.info("Unable to perform Local Ansible task {}", e);
+
                     return null;
+                } finally {
+                    cleanUp("ansi.tar", true);
                 }
 
-                //TODO Hard coded the playbook name. Get it from primitive
-                result = executeCmd(OrchestrationServiceConstants.PATH +
-                        FilenameUtils.removeExtension(step.getOperation()) + "/" + "helloworld.yml", extraVars);
-                cleanUp(step.getOperation(), true);
                 break;
             case REMOTE_ANSIBLE:
-                logger.info("Executing Remote ansible");
-                //String ip = input.get("remoteIp").get(0);//"10.247.66.88,";
-                String ip = "10.247.66.88"; //Get from Param/JSON
-		String user = "root";
-                String remotePlaybook = "/data/hello.yml"; //TODO Get from primitive remote playbook
-                String remoteBin = "/usr/bin/ansible-playbook";//Get from Param/JSON
+                //TODO get the information from JSON and primitive
+                final String ip = "10.247.66.88";
+                final String user = "root";
+                final String remotePlaybook = "/data/hello.yml";
+                final String remoteBin = "/usr/bin/ansible-playbook";
                 result = executeRemoteCmd(user, ip, remotePlaybook, remoteBin, extraVars);
 
-                logger.info("Result: out:{} err:{} exitVal:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
                 break;
             default:
                 logger.error("Ansible Operation type:{} not supported", type);
@@ -102,13 +110,48 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
-    ///usr/bin/ssh", "root@10.247.66.88", "/usr/bin/ansible-playbook /data/hello.yml --extra-var \" \"
-    private Exec.Result executeRemoteCmd(final String user, final String ip, final String path, final String binPath, final String extraVars) {
+    //TODO Hard coded everything for testing.
+    //During upload of primitive, user will specify if hosts file is needed or not?
+    //If needed then they will specify the List of hosts group (e.g: webservers, linuxhosts ...etc)
+    //These information Runner will get from primitives.
+    //Once it gets the meta data from the primitive it will get the values from input
+
+    String getHosts() throws IOException {
+        final boolean isHostFileRequired = true;
+        final String ips;
+        if (isHostFileRequired) {
+            List<String> lines = Arrays.asList("[webservers]", "10.247.66.88");
+            Path file = Paths.get("/opt/storageos/hosts");
+            Files.write(file, lines, Charset.forName("UTF-8"));
+            ips = "/opt/storageos/hosts";
+        } else {
+            ips = "10.247.66.88,";
+        }
+
+        return ips;
+    }
+
+    private Exec.Result executeRemoteCmd(final String user, final String ip, final String path, final String binPath,
+                                         final String extraVars) {
         logger.info("executing remote ansi ip:{} path:{} bin:{} extravar:{} user:{}", ip, path, binPath, extraVars, user);
-	String commands = binPath+" "+path+" --extra-var "+extraVars;
-        final String[] cmds = {"/usr/bin/ssh", user+"@"+ip, commands};
-        
-	return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        String commands = binPath + " " + path + " --extra-var " + extraVars;
+        final String[] cmds = {"/usr/bin/ssh", user + "@" + ip, commands};
+
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+    }
+
+    private Exec.Result executeLocal(final String ips, final String extraVars, final String path, final String user) {
+        logger.info("local Ansible Execution ips:{} extra var:{} path:{}, user:{}", ips, extraVars, path, user);
+        if (user != null) {
+            final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, "-i", ips, "-u", user, path,
+                    OrchestrationServiceConstants.EXTRA_VARS, extraVars};
+            return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        }
+
+        final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, "-i", ips, path,
+                OrchestrationServiceConstants.EXTRA_VARS, extraVars};
+
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
     private Exec.Result executeCmd(final String path, final String extraVars) {
@@ -119,10 +162,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {
-        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION, OrchestrationServiceConstants.PATH + tarFile,
-                "-C", OrchestrationServiceConstants.PATH};
+        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION,
+                OrchestrationServiceConstants.PATH + tarFile, "-C", OrchestrationServiceConstants.PATH};
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
 
+        if (result == null || result.getExitValue() != 0) {
+            logger.error("Failed to Untar package. Error:{}", result.getStdError());
+
+            throw new IOException("Unable to untar package" + result.getStdError());
+        }
         logger.info("Ansible Execution untar result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
         return result;
@@ -148,11 +196,13 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result cleanUp(final String path, final boolean isTar) {
-        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.PATH + path};
+        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION,
+                OrchestrationServiceConstants.PATH + path};
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (isTar) {
-            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, OrchestrationServiceConstants.PATH +
-                    FilenameUtils.removeExtension(path)};
+            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION,
+                    OrchestrationServiceConstants.PATH + FilenameUtils.removeExtension(path)};
+
             if (!Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, rmDir).exitedNormally())
                 logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));
         }
@@ -163,4 +213,3 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return result;
     }
 }
-

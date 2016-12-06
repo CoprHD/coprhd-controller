@@ -3876,6 +3876,8 @@ storageDrivers.upgrade.init.success=Upgrade request initiated  ...
 
 storageDrivers.install.title=Install Storage Driver
 storageDrivers.upgrade.title=Upgrade Storage Driver
+storageDrivers.install.description=Browse to upload the jar file for the driver to install.
+storageDrivers.upgrade.description=Browse to upload new jar file for chosen driver to upgrade. Version checking is bypassed when "Force" is checked.
 
 storageSystemTypes.storageTypeId=Id
 storageSystemTypes.id=Id

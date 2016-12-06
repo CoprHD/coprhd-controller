@@ -1,5 +1,7 @@
 %{
   titleKey = 'storageDrivers.upgrade.title';
+  descriptionKey = 'storageDrivers.upgrade.description';
+  image = '/public/img/assets/StorageArray.png';
 }%
 
 #{set 'title'}&{titleKey}#{/set}
@@ -7,9 +9,15 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.storageDrivers'] /}
 
-#{alerts/}
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'storageDrivers.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
 
-#{Form.header titleKey:'storageDrivers.upload.title' /}
+<div class="container">
+
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image/}
+#{alerts/}
 #{form @upgradeDriver(), enctype:'multipart/form-data', method:'POST', class:'form form-horizontal', autocomplete:"off"}
      #{field 'driverFile'}
         #{Form.fileUploadControlGroup field:field/}
@@ -23,3 +31,4 @@
         #{Form.button name:'button.cancel', icon:'trash', href:@list()/}
      #{/Form.buttonBar}
 #{/form}
+</div>

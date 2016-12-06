@@ -60,11 +60,7 @@ public class RowMutator {
     }
 
     public UUID getTimeUUID() {
-        return _timeUUID;
-    }
-
-    public long getTimeStamp() {
-        return _timeStamp;
+        return TimeUUIDUtils.getUniqueTimeUUIDinMicros();
     }
 
     /**

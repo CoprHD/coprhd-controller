@@ -46,7 +46,7 @@ public class ScopedLabelDbIndex extends DbIndex {
                 mutator.getIndexColumnList(indexCF, scopedRowKey);
 
         IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(),
-                label, recordKey, mutator.getTimeUUID());
+                label, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

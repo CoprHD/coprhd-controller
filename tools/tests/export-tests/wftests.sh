@@ -1739,7 +1739,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -2236,7 +2236,9 @@ test_5() {
     echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                               failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2256,7 +2258,7 @@ test_5() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    # failure_injections="failure_007 failure_008"
 
     for failure in ${failure_injections}
     do

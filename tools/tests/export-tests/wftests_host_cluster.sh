@@ -6,7 +6,7 @@
 
 HAPPY_PATH_TEST_INJECTION="happy_path_test_injection"
 
-HOST_TEST_CASES="test_host_add_initiator test_vcenter_event test_host_remove_initiator test_move_clustered_host_to_another_cluster test_manual_move_non_clustered_host_to_cluster test_cluster_remove_host"
+HOST_TEST_CASES="test_host_add_initiator test_vcenter_event test_host_remove_initiator test_move_clustered_host_to_another_cluster test_move_non_clustered_host_to_cluster test_cluster_remove_host"
 
 get_host_cluster() {
     tenant=$1
@@ -50,7 +50,7 @@ test_host_add_initiator() {
     verify_export ${exclusive_export} ${HOST1} gone
     verify_export ${cluster_export} ${CLUSTER} gone
     
-    failure_injections="${common_failure_injections} ${export_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${export_failure_injections}"
     
     # Run the exclusive export group create command
     runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1}
@@ -612,30 +612,19 @@ test_move_non_clustered_host_to_cluster() {
     test_name="test_move_non_clustered_host_to_cluster"
     failure="only_one_test"
     echot "Test test_move_non_clustered_host_to_cluster"
-    host=fakehost${RANDOM}
+    host=fakehost-${RANDOM}
     
     cfs="ExportGroup ExportMask Network Host Initiator"
-    cfs2="ExportGroup ExportMask Host Initiator"
-    
-    mkdir -p results/${item}
-    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
 
+    host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&1"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    export_failure_injections="failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
-                               failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
-                               failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
-  
-
+    
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
 
-    cluster1_name="cluster-1"
-
-    exclusive_export=exclusive1_export
-    cluster1_export=cluster1_export
-
-    verify_export ${exclusive_export} $host} gone
-    verify_export ${cluster1_export} ${cluster1_name} gone
+    cluster1=fakecluster-${RANDOM}
 
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
@@ -645,75 +634,76 @@ test_move_non_clustered_host_to_cluster() {
         
     # Create new initators and add to fakehost
     runcmd initiator create $host FC ${fake_pwwn1} --node ${fake_nwwn1}
-
-    # Run the exclusive export group create command
-    runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${host}
     
-    # Run the cluster export group create command
-    runcmd export_group create $PROJECT ${cluster1_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --clusters ${TENANT}/${cluster1_name}
+    # Create the fake cluster
+    runcmd cluster create ${cluster1} $TENANT    
 
-    snap_db 1 ${cfs}
-
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${export_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${host_cluster_failure_injections}"
 
     for failure in ${failure_injections}
     do
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-
-        snap_db 2 ${cfs2}
-
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
             secho "Running happy path test for move non-clustered host to cluster..."
-            
-            # Move the host to first cluster
-            runcmd hosts update ${host} --cluster ${TENANT}/${cluster1_name}
-            
-            # Wait for the update operation to complete
-            sleep 15
         else    
             secho "Running move non-clustered host to cluster with failure scenario: ${failure}..."
+        fi    
+        
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        cluster1_export=clusterexport-${item}
+
+        snap_db 1 ${cfs}
+
+        # Run the cluster export group create command
+        runcmd export_group create $PROJECT ${cluster1_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters ${TENANT}/${cluster1}
+
+        snap_db 2 ${cfs}
+
+        move_host="false"
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Move the host to first cluster
+            runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}
+        else    
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
             
-            # Move the host to first cluster
-            fail hosts update ${host} --cluster ${TENANT}/${cluster1_name}
-                
-            # Let the async jobs calm down
-            sleep 5
+            # Move the host to the cluster
+            fail hosts update ${host} --cluster ${TENANT}/${cluster1}
     
             # Snap the DB after rollback
-            snap_db 3 ${cfs2}
+            snap_db 3 ${cfs}
 
             # Validate nothing was left behind
-            validate_db 2 3 ${cfs2}
+            validate_db 2 3 ${cfs}
                 
             # Rerun the command
             set_artificial_failure none
 
             # Retry move the host to first cluster
-            runcmd hosts update ${host} --cluster ${TENANT}/${cluster1_name}   
-            
-            # Wait for the update operation to complete
-            sleep 15            
+            runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}           
         fi
 
-        if [[ $(export_contains $exclusive_export $host) && $(export_contains $cluster1_export $fake_pwwn1) ]]; then
-            echo "Host" ${host} "has been successfully moved to cluster" ${cluster1_name}
+        if [[ $(export_contains $cluster1_export $host) ]]; then
+            move_host="true"
+            echo "Host" ${host} "has been successfully moved to cluster" ${cluster1}
         else
-            echo "Failed to move host" ${host} "to cluster" ${cluster1_name}  
+            echo "Failed to move host" ${host} "to cluster" ${cluster1}  
             
             # Report results
             incr_fail_count
             if [ "${NO_BAILING}" != "1" ]; then
-                report_results test_move_non_clustered_host_to_cluster ${failure}
+                report_results ${test_name} ${failure}
                 finish -1
             fi
         fi    
 
-        runcmd hosts delete ${host}
-        runcmd run transportzone remove ${FC_ZONE_A} ${fake_pwwn1}
-   
+        if [ ${move_host} = "true"  ]; then
+            # Also removes the export group/mask
+            runcmd hosts update ${host} --cluster null
+        fi
+        
         snap_db 4 ${cfs}  
 
         # Validate that nothing was left behind

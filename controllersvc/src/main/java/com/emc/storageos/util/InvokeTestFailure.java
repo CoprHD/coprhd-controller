@@ -71,7 +71,6 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_041 = "failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume";
     public static final String ARTIFICIAL_FAILURE_042 = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences";
 
-
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
     /**

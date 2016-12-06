@@ -455,7 +455,9 @@ public class BlockConsistencyGroupUtils {
     public static void cleanUpCG(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
             Boolean keepRGName, Boolean markInactive, DbClient dbClient) {
         // Remove the replication group name from the SystemConsistencyGroup field
-        consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);
+        if (replicationGroupName != null) {
+            consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);
+        }
         /*
          * Verify if the BlockConsistencyGroup references any LOCAL arrays.
          * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.

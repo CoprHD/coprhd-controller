@@ -846,7 +846,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
                     oldvCenterDataCenterId = host.getVcenterDataCenter();
                 }
-            }
+            }            
 
             waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
                     String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
@@ -1428,10 +1428,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_028);
         } catch (Exception ex) {
             _log.error("Exception occured while deleting export group {}", exportGroup, ex);
-            // Clean up any pending tasks
-            ExportTaskCompleter taskCompleter = new ExportDeleteCompleter(exportGroup, false, stepId);;
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            taskCompleter.error(_dbClient, serviceError);
             // Fail the step
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));        
         }
@@ -1534,7 +1530,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_042);
+            
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
 
             // Test mechanism to invoke a failure. No-op on production systems.
@@ -2122,7 +2121,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         fsMount.setSubDirectory(subDir);
         _log.debug("Storing New DB Mount Info {}" + fsMount);
         _dbClient.createObject(fsMount);
-
     }
 
     private void removeMountDBEntry(URI resId, URI hostId, String mountPath) {
@@ -2151,26 +2149,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException {
         removeInitiatorFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
-
     }
 
     @Override
     public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException {
         removeInitiatorsFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
-
     }
 
     @Override
     public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException {
         addHostsToExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, taskId, oldCluster, isVcenter);
-
     }
 
     @Override
     public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
             throws ControllerException {
         removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
-
     }
 }

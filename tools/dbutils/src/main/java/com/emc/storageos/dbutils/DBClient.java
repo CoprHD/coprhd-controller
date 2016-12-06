@@ -222,8 +222,6 @@ public class DBClient {
      */
     private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz, Map<String, String> criterias)
             throws Exception {
-
-        Iterator<T> objects;
         int countLimit = 0;
         int countAll = 0;
         String input;
@@ -231,9 +229,13 @@ public class DBClient {
         boolean isPrint = true;
 
         try {
-            objects = _dbClient.queryIterativeObjects(clazz, ids);
-            while (objects.hasNext()) {
-                T object = (T) objects.next();
+            Iterator<URI> uriIter = ids.iterator();
+            while (uriIter.hasNext()) {
+                URI uri = uriIter.next();
+                T object = (T) _dbClient.queryObject(uri);
+                if (object == null) {
+                    continue;
+                }
                 isPrint = printBeanProperties(clazz, object, criterias);
                 if (isPrint) {
                     countLimit++;

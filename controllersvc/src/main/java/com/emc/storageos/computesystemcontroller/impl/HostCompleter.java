@@ -50,7 +50,7 @@ public class HostCompleter extends ComputeSystemCompleter {
                     Host host = dbClient.queryObject(Host.class, id);
                     if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                         host.setProvisioningStatus(Host.ProvisioningJobStatus.ERROR.toString());
-                        dbClient.persistObject(host);
+                        dbClient.updateObject(host);
                     }
                     if (!NullColumnValueGetter.isNullURI(eventId)) {
                         ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
@@ -72,5 +72,4 @@ public class HostCompleter extends ComputeSystemCompleter {
             }
         }
     }
-
 }

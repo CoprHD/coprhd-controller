@@ -281,6 +281,7 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         URI oldClusterURI = host.getCluster();
+        URI newClusterURI = updateParam.getCluster();
         populateHostData(host, updateParam);
         if (updateParam.getHostName() != null) {
             ComputeSystemHelper.updateInitiatorHostName(_dbClient, host);
@@ -292,29 +293,29 @@ public class HostService extends TaskResourceService {
 
         boolean updateTaskStatus = true;
         // We only want to update the export group if we're changing the cluster during a host update
-        if (updateParam.getCluster() != null) {
+        if (newClusterURI != null) {
             updateTaskStatus = false;
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
-                    && NullColumnValueGetter.isNullURI(host.getCluster())
+                    && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
                         taskId);
             } else if (updateExports && NullColumnValueGetter.isNullURI(oldClusterURI)
-                    && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI)) {
                 // Non-clustered host being added to a cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
-                    && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && !oldClusterURI.equals(host.getCluster())
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && !oldClusterURI.equals(newClusterURI)
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                            || ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI))) {
                 // Clustered host being moved to another cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else {
                 updateTaskStatus = true;
-                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, newClusterURI, host.getId());
             }
         }
         /*
@@ -333,11 +334,12 @@ public class HostService extends TaskResourceService {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }
 
-        _dbClient.updateAndReindexObject(host);
+        _dbClient.updateObject(host);
+        
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
-        return doDiscoverHost(host, taskId, updateTaskStatus);
+        return doDiscoverHost(host.getId(), taskId, updateTaskStatus);
     }
 
     /**
@@ -354,10 +356,8 @@ public class HostService extends TaskResourceService {
     @Path("/{id}/discover")
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep discoverHost(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, Host.class, "id");
-        Host host = queryObject(Host.class, id, true);
-
-        return doDiscoverHost(host, null, true);
+        ArgValidator.checkFieldUriType(id, Host.class, "id");        
+        return doDiscoverHost(id, null, true);
     }
 
     /**
@@ -368,13 +368,14 @@ public class HostService extends TaskResourceService {
      * @param updateTaskStatus if true, mark the task status as completed for non-discovered host
      * @return the task used to track the discovery job
      */
-    protected TaskResourceRep doDiscoverHost(Host host, String taskId, boolean updateTaskStatus) {
+    protected TaskResourceRep doDiscoverHost(URI hostId, String taskId, boolean updateTaskStatus) {
+        Host host = queryObject(Host.class, hostId, true);
         if (taskId == null) {
             taskId = UUID.randomUUID().toString();
         }
         if (host.getDiscoverable() != null && !host.getDiscoverable()) {
             host.setDiscoveryStatus(DataCollectionJobStatus.COMPLETE.name());
-            _dbClient.persistObject(host);
+            _dbClient.updateObject(host);
         }
         if ((host.getDiscoverable() == null || host.getDiscoverable())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, "host");
@@ -981,6 +982,7 @@ public class HostService extends TaskResourceService {
         Host host = new Host();
         host.setId(URIUtil.createId(Host.class));
         host.setTenant(tenant.getId());
+        host.setCluster(param.getCluster());
         populateHostData(host, param);
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
             if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
@@ -996,7 +998,7 @@ public class HostService extends TaskResourceService {
         _dbClient.createObject(host);
         auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
 
-        return doDiscoverHost(host, null, true);
+        return doDiscoverHost(host.getId(), null, true);
     }
 
     /**
@@ -1013,10 +1015,7 @@ public class HostService extends TaskResourceService {
         }
         if (param.getHostName() != null) {
             host.setHostName(param.getHostName());
-        }
-        if (param.getCluster() != null) {
-            host.setCluster(param.getCluster());
-        }
+        }        
         if (param.getOsVersion() != null) {
             host.setOsVersion(param.getOsVersion());
         }
@@ -1063,7 +1062,6 @@ public class HostService extends TaskResourceService {
             host.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
                     .getNullURI() : param.getBootVolume());
         }
-
     }
 
     /**

@@ -538,16 +538,16 @@ public class ExportWorkflowUtils {
      * @param exportMaskURI -- URI of the Export Mask
      * @param addedPaths - Paths going to be added or retained
      * @param removedPath - Paths going to be removed
-     * @param waitForApproval - If waiting for approval before remove paths
      * @return - Step id
      * @throws ControllerException
      */
     public String generateExportAddPathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> adjustedPaths) throws ControllerException {
+            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removedPaths) 
+                    throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddPathsMethod(
-                storageURI, exportGroupURI, exportMask, adjustedPaths);
+                storageURI, exportGroupURI, exportMask, adjustedPaths, removedPaths);
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Export add paths on storage array %s for exportGroup %s exportMask %s",
                         storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
@@ -563,18 +563,20 @@ public class ExportWorkflowUtils {
      * @param storageURI
      * @param exportGroupURI
      * @param exportMask
+     * @param adjustedpaths
      * @param removePaths
      * @param isPending
      * @return
      * @throws ControllerException
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> removePaths, boolean isPending) 
+            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>> removePaths, boolean isPending) 
                     throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportRemovePathsMethod(
-                storageURI, exportGroupURI, exportMask, removePaths);
+                storageURI, exportGroupURI, exportMask, adjustedPaths, removePaths);
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Remove paths on storage array %s for exportGroup %s exportMask %s",
                         storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),

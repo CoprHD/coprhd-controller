@@ -1050,23 +1050,34 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
             stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskURIs,
                     newPaths, stepId);
+            Map<URI, Map<URI, List<URI>>> maskAjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            for (ExportMask mask : exportMasks) {
+                Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
+                Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
+                maskAjustedPathMap.put(mask.getId(), adjustedPathForMask);
+                maskRemovePathMap.put(mask.getId(), removedPathForMask);
+                
+            }
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
                     _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
                             mask.getId().toString()));
                     continue;
                 }
+                URI maskURI = mask.getId();
                 stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                        mask.getId(), newPaths);
+                        maskURI, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
             }
 
             boolean isPending = waitBeforeRemovePaths;
             
             for (ExportMask mask : exportMasks) {
-                Map<URI, List<URI>> removingPaths = getRemovePathsForExportMask(mask, removedPaths);
+                URI maskURI = mask.getId();
+                Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                 if (!removingPaths.isEmpty()) {
                     stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                            systemURI, exportGroupURI, mask.getId(), removingPaths, isPending);
+                            systemURI, exportGroupURI, mask.getId(), maskAjustedPathMap.get(maskURI), removingPaths, isPending);
                     isPending = false;
                 }
             }

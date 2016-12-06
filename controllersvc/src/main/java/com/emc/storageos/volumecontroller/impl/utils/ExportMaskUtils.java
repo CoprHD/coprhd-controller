@@ -60,6 +60,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
@@ -1613,5 +1614,48 @@ public class ExportMaskUtils {
             } 
         }
         return result;
+    }
+    
+    /**
+     * Get adjusted paths per export mask. the members in the adjusted paths could belong to different export masks in the same export group
+     * This method would check on the initiators in the export mask, if the path initiator belong to the same host as the initiators in the 
+     * export mask, then the path belongs to the export mask.
+     * 
+     * @param exportMask - export mask
+     * @param adjustedPaths - The list of the adjusted paths (new and retained) for the export group
+     * @param dbClient
+     * @return The path belongs to the export mask
+     */
+    public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return result;
+        }
+        Set<String> hostsInMask = new HashSet<String> ();
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
+            URI initURI = entry.getKey();
+            Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
+            String hostName = initiator.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                if (hostsInMask.contains(hostName)) {
+                    result.put(initURI, entry.getValue());
+                }
+            } else {
+                if (exportMask.getInitiators().contains(initURI.toString())) {
+                    result.put(initURI, entry.getValue());
+                }
+                    
+            }
+        }
+                
+        return result;
+        
     }
 }

@@ -119,12 +119,13 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
     
     public static Workflow.Method exportRemovePathsMethod(URI storageURI, URI exportGroup, URI exportMask,
-            Map<URI, List<URI>>removedPaths) {
-        return new Workflow.Method("exportRemovePaths", storageURI, exportGroup, exportMask, removedPaths);
+            Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths) {
+        return new Workflow.Method("exportRemovePaths", storageURI, exportGroup, exportMask, adjustedPaths, removedPaths);
     }
     
-    public static Workflow.Method exportAddPathsMethod(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>adjustedPaths) {
-        return new Workflow.Method("exportAddPaths", storageURI, exportGroup, exportMask, adjustedPaths);
+    public static Workflow.Method exportAddPathsMethod(URI storageURI, URI exportGroup, URI exportMask, Map<URI, List<URI>>adjustedPaths,
+            Map<URI, List<URI>>removedPaths) {
+        return new Workflow.Method("exportAddPaths", storageURI, exportGroup, exportMask, adjustedPaths, removedPaths);
     }
 
     // ====================== Methods to call Masking Orchestrator
@@ -378,24 +379,15 @@ public class ExportWorkflowEntryPoints implements Controller {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
     
-    
-    public void zoningAddPaths(URI storageURI, URI exportGroup, Map<URI, List<URI>>adjustedPaths, String token) {
-        //TODO
-    }
-    
-    public void zoningRemovePaths(URI storageURI, URI exportGroup, Map<URI, List<URI>>removedPaths, String token) {
-        //TODO
-    }
-    
     public void exportAddPaths(URI storageURI, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
-            String token) throws ControllerException{
+            Map<URI, List<URI>>removePaths, String token) throws ControllerException{
         try {
             WorkflowStepCompleter.stepExecuting(token);
             final String workflowKey = "addPaths";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.portRebalance(storageURI, exportGroupURI, exportMaskURI, adjustedPaths, null, true, token);
+                orchestrator.portRebalance(storageURI, exportGroupURI, exportMaskURI, adjustedPaths, removePaths, true, token);
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
             }
@@ -406,15 +398,15 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
     
-    public void exportRemovePaths(URI storageURI, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>>removePaths, 
-            String token) throws ControllerException{
+    public void exportRemovePaths(URI storageURI, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>>removePaths, String token) throws ControllerException{
         try {
             WorkflowStepCompleter.stepExecuting(token);
             final String workflowKey = "removePaths";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
                 DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
                 MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-                orchestrator.portRebalance(storageURI, exportGroupURI, exportMaskURI, null, removePaths, false, token);
+                orchestrator.portRebalance(storageURI, exportGroupURI, exportMaskURI, adjustedPaths, removePaths, false, token);
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
             }

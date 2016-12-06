@@ -620,15 +620,20 @@ public class BasePermissionsHelper {
         return getObjectById(id.getURI(), clazz, false);
     }
 
+    /**
+     * Get parent of of the object. Now Vplex volume is the only supported case, return null for other types of object
+     * @param obj
+     * @return
+     */
     public Volume getParentObject(DataObject obj) {
         final List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, Volume.class,
                 AlternateIdConstraint.Factory.getVolumesByAssociatedId(obj.getId().toString()));
 
-        if (vplexVolumes.isEmpty()) {
+        if (vplexVolumes == null || vplexVolumes.isEmpty()) {
             return null;
         }
-        return vplexVolumes.get(0);
+        return vplexVolumes.get(0); // Assuming there is only parent
     }
 
     /**

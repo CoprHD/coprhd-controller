@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.db.client.model.ZoneInfo;
@@ -33,7 +34,9 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private StringSet _knownStoragePortUris;
     private StringSet _unmanagedStoragePortNetworkIds;
     private StringSet _knownVolumeUris;
+    private StringMap _knownVolumeUrisWithHLU; // Added new field of type 'Map' to store HLU for each volume.
     private StringSet _unmanagedVolumeUris;
+    private StringMap _unmanagedVolumeUrisWithHLU;
     private ZoneInfoMap _zoningMap;
 
     @RelationIndex(cf = "UnManagedExportMaskRelationIndex", type = StorageSystem.class)
@@ -155,6 +158,18 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         this._knownVolumeUris = knownVolumeUris;
     }
 
+    @Name("knownVolumeUrisWithHLU")
+    public StringMap getKnownVolumeUrisWithHLU() {
+        if (null == _knownVolumeUrisWithHLU) {
+            setKnownVolumeUrisWithHLU(new StringMap());
+        }
+        return _knownVolumeUrisWithHLU;
+    }
+
+    public void setKnownVolumeUrisWithHLU(StringMap knownVolumeUrisWithHLU) {
+        this._knownVolumeUrisWithHLU = knownVolumeUrisWithHLU;
+    }
+
     @Name("unmanagedVolumeUris")
     public StringSet getUnmanagedVolumeUris() {
         if (null == _unmanagedVolumeUris) {
@@ -166,6 +181,18 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     public void setUnmanagedVolumeUris(
             StringSet unmanagedVolumeUris) {
         this._unmanagedVolumeUris = unmanagedVolumeUris;
+    }
+
+    @Name("unmanagedVolumeUrisWithHLU")
+    public StringMap getUnmanagedVolumeUrisWithHLU() {
+        if (null == _unmanagedVolumeUrisWithHLU) {
+            setUnmanagedVolumeUrisWithHLU(new StringMap());
+        }
+        return _unmanagedVolumeUrisWithHLU;
+    }
+
+    public void setUnmanagedVolumeUrisWithHLU(StringMap unmanagedVolumeUrisWithHLU) {
+        this._unmanagedVolumeUrisWithHLU = unmanagedVolumeUrisWithHLU;
     }
 
     @Name("zoningMap")

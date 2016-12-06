@@ -1739,7 +1739,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -1802,7 +1802,15 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
+	# which depends on vplex project, not the other way around.
+	storage_failure_injections="failure_004_final_step_in_workflow_complete:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
+                                    failure_004_final_step_in_workflow_complete:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
+                                    failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
+                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
                                     failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
@@ -1825,7 +1833,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool"
+    # failure_injections="failure_004_final_step_in_workflow_complete:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
 
     for failure in ${failure_injections}
     do
@@ -2241,7 +2249,9 @@ test_5() {
     echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                               failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2261,7 +2271,7 @@ test_5() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015"
+    # failure_injections="failure_007 failure_008"
 
     for failure in ${failure_injections}
     do
@@ -2628,7 +2638,8 @@ test_9() {
 
     if [ "${SS}" = "vplex" ]
     then
-	secho "test_9 is not implemented for VPLEX"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
+                                    failure_010_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation"
 	return
     fi
 

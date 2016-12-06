@@ -882,7 +882,8 @@ public class Workflow implements Serializable {
                     // We want to record the root cause error. If the date of the current stepId is earlier than the
                     // last one we stored, then we want to store the earliest one. This will give us the root cause
                     // error.
-                    if ((state != StepState.ERROR) || (state == StepState.ERROR && !rootCauseStatus.endTime.before(status.endTime))) {
+                    if ((state != StepState.ERROR) || (state == StepState.ERROR && rootCauseStatus.endTime != null
+                            && !rootCauseStatus.endTime.before(status.endTime))) {
                         state = status.state;
                         rootCauseStatus = status;
                     } else {
@@ -899,7 +900,7 @@ public class Workflow implements Serializable {
                     // then we want the earlier step.
                     // 3. Otherwise we already have the earliest SUSPENDED step error code, so use that.
                     if (state != StepState.ERROR && ((state == StepState.SUSPENDED_ERROR || state == StepState.SUSPENDED_NO_ERROR)
-                            && !rootCauseStatus.endTime.before(status.endTime))) {
+                            && rootCauseStatus.endTime != null && !rootCauseStatus.endTime.before(status.endTime))) {
                         state = status.state;
                         rootCauseStatus = status;
                     } else {
@@ -913,7 +914,7 @@ public class Workflow implements Serializable {
                     }
                     // As long as we haven't already found an ERROR state, look for the earliest CANCELLED you can find.
                     if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR
-                            && !rootCauseStatus.endTime.before(status.endTime)) {
+                            && rootCauseStatus.endTime != null && !rootCauseStatus.endTime.before(status.endTime)) {
                         state = status.state;
                         rootCauseStatus = status;
                     } // Don't add cancelled steps to the additional Errors

@@ -65,17 +65,17 @@ public class ExportPathParametersService extends TaggedResource {
 
         _log.info("Export Path Params creation started -- ");
 
-        if (!rangeCheck(param.getMaxPaths(), 1, 65535)) {
+        if (param.getMaxPaths() != null && !rangeCheck(param.getMaxPaths(), 1, 65535)) {
             _log.error("Failed to create export path params due to Max Path not in the range");
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Max Path not in the range");
         }
 
-        if (!rangeCheck(param.getMinPaths(), 1, 65535)) {
+        if (param.getMinPaths() != null && !rangeCheck(param.getMinPaths(), 1, 65535)) {
             _log.error("Failed to create export path params due to Min Path not in the range");
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Min Path not in the range");
         }
 
-        if (!rangeCheck(param.getPathsPerInitiator(), 1, 65535)) {
+        if (param.getPathsPerInitiator() != null && !rangeCheck(param.getPathsPerInitiator(), 1, 65535)) {
             _log.error("Failed to create export path params due to Path Per Initiator not in the range");
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Path Per Initiator not in the range");
         }
@@ -143,7 +143,7 @@ public class ExportPathParametersService extends TaggedResource {
 
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}")
+    @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteExportPathParameters(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ExportPathParams.class, "id");

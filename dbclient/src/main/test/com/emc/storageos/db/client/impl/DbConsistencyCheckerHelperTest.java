@@ -5,8 +5,6 @@
 package com.emc.storageos.db.client.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -30,8 +28,14 @@ public class DbConsistencyCheckerHelperTest {
         timeStampVersionMap.put(TIME_STAMP_3_5, "3.5");
         timeStampVersionMap.put(TIME_STAMP_3_6, "3.6");
         
-        DbClientImpl dbClient = mock(DbClientImpl.class);
-        doReturn(timeStampVersionMap).when(dbClient).querySchemaVersions();
+        DbClientImpl dbClient = new DbClientImpl() {
+
+            @Override
+            public Map<Long, String> querySchemaVersions() {
+                return timeStampVersionMap;
+            }
+            
+        };
         helper = new DbConsistencyCheckerHelper(dbClient);
     }
     

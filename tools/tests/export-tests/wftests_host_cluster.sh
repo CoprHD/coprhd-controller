@@ -744,7 +744,7 @@ test_cluster_remove_host() {
                                 failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
                                 failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} {common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"    

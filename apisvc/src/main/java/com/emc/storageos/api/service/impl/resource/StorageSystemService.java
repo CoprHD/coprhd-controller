@@ -1998,7 +1998,7 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.DETECT_EXTERNAL_CHANGES.toString()) &&
-        		!Type.vplex.toString().equalsIgnoreCase(storageSystem.getSystemType()) ){
+        		Type.vplex.toString().equalsIgnoreCase(storageSystem.getSystemType()) ){
         	return true;
         }
         

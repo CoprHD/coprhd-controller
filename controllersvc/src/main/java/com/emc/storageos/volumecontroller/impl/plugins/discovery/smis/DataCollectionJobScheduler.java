@@ -277,7 +277,7 @@ public class DataCollectionJobScheduler {
             _logger.info("Metering is disabled.");
         }
 
-        if (enableAutoEcdDiscovery) {
+        /*if (enableAutoEcdDiscovery) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.ECD_DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.ECD_DISCOVERY),
                     intervals.getInitialDelay(),
@@ -285,7 +285,7 @@ public class DataCollectionJobScheduler {
         }
         else {
             _logger.info("Metering is disabled.");
-        }
+        }*/
         
         discoverySchedulingSelector = _coordinator.getLeaderSelector(leaderSelectorPath,
                 schedulingProcessor);

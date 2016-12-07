@@ -635,7 +635,6 @@ public class OrderService extends CatalogTaggedResourceService {
      * @throws DatabaseException when a DB error occurs
      */
     @GET
-    //@Path("/myorders")
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderBulkRep getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
@@ -647,11 +646,6 @@ public class OrderService extends CatalogTaggedResourceService {
 
         log.info("lby0:starTime={} endTime={} maxCount={} user={}",
                 new Object[] {startTimeStr, endTimeStr, maxCount, user.getName()});
-        /*
-        long now = System.currentTimeMillis();
-        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime);
-        long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime);
-        */
         int max = Integer.parseInt(maxCount);
 
         Date startTime = new Date(0);
@@ -706,7 +700,7 @@ public class OrderService extends CatalogTaggedResourceService {
     @GET
     @Path("/count")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public long getUserOrderCount(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+    public OrderCount getUserOrderCount(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                       @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr)
             throws DatabaseException {
 
@@ -715,23 +709,20 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lbyb0:starTime={} endTime={} maxCount={} user={}",
                 new Object[] {startTimeStr, endTimeStr, user.getName()});
 
-        /*
-        Date startTime = new Date(0);
-        if (!startTimeStr.isEmpty()) {
-            startTime = getDateTimestamp(startTimeStr);
-        }
+        long startTimeInMS = 0;
+        long endTimeInMS = TimeUtils.getCurrentTime();
 
-        Date endTime = new Date(); // now by default
+        if (!startTimeStr.isEmpty()) {
+            Date startTime = getDateTimestamp(startTimeStr);
+            startTimeInMS = startTime.getTime();
+        }
 
         if (!endTimeStr.isEmpty()) {
-            endTime = getDateTimestamp(endTimeStr);
+            Date endTime = getDateTimestamp(endTimeStr);
+            endTimeInMS = endTime.getTime();
         }
 
-        TimeUtils.validateTimestamps(startTime, endTime);
-        */
-
-        long startTimeInMS = 0;
-
+        /*
         ZonedDateTime now = ZonedDateTime.now();
         log.info("lbyt0: now={}", now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
 
@@ -740,14 +731,12 @@ public class OrderService extends CatalogTaggedResourceService {
             startTimeInMS = startTime.toInstant().toEpochMilli();
         }
 
-        // long startTimeInMS= startTime.getTime();
-        //long endTimeInMS = endTime.getTime();
-
         long endTimeInMS = System.currentTimeMillis();
         if (!endTimeStr.isEmpty()) {
             ZonedDateTime endTime = ZonedDateTime.parse(endTimeStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
             endTimeInMS = endTime.toInstant().toEpochMilli();
         }
+        */
 
         log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
 
@@ -756,11 +745,12 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         long count = orderManager.getOrderCount(user, startTimeInMS, endTimeInMS);
-        log.info("lbyb0 done0");
+        log.info("lbyb0 count={} done0", count);
 
-        // return Response.ok(Long.toString(count));
-        //TODO: need to figure out how to return count
-        return count;
+        OrderCount resp = new OrderCount();
+        resp.put(user.getName(), count);
+
+        return resp;
     }
 
     /**

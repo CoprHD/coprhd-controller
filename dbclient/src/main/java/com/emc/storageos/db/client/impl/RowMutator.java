@@ -33,7 +33,6 @@ public class RowMutator {
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
-    private UUID _timeUUID;
     private long _timeStamp;
     private MutationBatch _mutationBatch;
     private Keyspace keyspace;
@@ -43,13 +42,23 @@ public class RowMutator {
      * Construct RowMutator instance for for index CF and object CF updates
      * 
      * @param keyspace - cassandra keyspace object
-     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure 
+     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
      */
     public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
+        this(keyspace, retryWithLocalQuorum, TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros()));
+    }
+    
+    /**
+     * Construct RowMutator instance for for index CF and object CF updates
+     * 
+     * @param keyspace - cassandra keyspace object
+     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
+     * @param microsTimeStamp timestamp works as the start time for timeUUID
+     */
+    public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum, long microsTimeStamp) {
         this.keyspace = keyspace;
-        _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
-        _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
-
+        this._timeStamp = microsTimeStamp;
+        
         _mutationBatch = keyspace.prepareMutationBatch();
         _mutationBatch.setTimestamp(_timeStamp).withAtomicBatch(true);
 
@@ -60,7 +69,8 @@ public class RowMutator {
     }
 
     public UUID getTimeUUID() {
-        return TimeUUIDUtils.getUniqueTimeUUIDinMicros();
+        _timeStamp += 1000;
+        return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp);
     }
 
     /**

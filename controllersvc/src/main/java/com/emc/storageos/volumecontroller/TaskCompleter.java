@@ -68,6 +68,9 @@ public abstract class TaskCompleter implements Serializable {
     @XmlTransient
     private boolean completed;
 
+    @XmlTransient
+    private boolean rollingBack;
+
     /**
      * JAXB requirement
      */
@@ -106,6 +109,14 @@ public abstract class TaskCompleter implements Serializable {
 
     public void setCompleted(boolean completed) {
         this.completed = completed;
+    }
+
+    public boolean isRollingBack() {
+        return rollingBack;
+    }
+
+    public void setRollingBack(boolean rollingBack) {
+        this.rollingBack = rollingBack;
     }
 
     public Class getType() {

@@ -7,17 +7,9 @@ package com.emc.storageos.workflow;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
+import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +18,9 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * A Workflow represents a sequence of steps that can be executed by Controllers to
@@ -868,60 +863,56 @@ public class Workflow implements Serializable {
      */
     public static ServiceError getOverallServiceError(Map<String, StepStatus> statusMap)
             throws WorkflowException {
-        StepState state = null;
         ServiceError error = null;
         StepStatus rootCauseStatus = null;
         List<StepStatus> additionalErrors = new ArrayList<>();
-        for (String stepId : statusMap.keySet()) {
-            StepStatus status = statusMap.get(stepId);
-            switch (status.state) {
-                case ERROR: // ERROR has highest priority
-                    if (rootCauseStatus == null) {
-                        rootCauseStatus = status;
-                    }
-                    // We want to record the root cause error. If the date of the current stepId is earlier than the
-                    // last one we stored, then we want to store the earliest one. This will give us the root cause
-                    // error.
-                    if ((state != StepState.ERROR) || (state == StepState.ERROR && rootCauseStatus.endTime != null
-                            && !rootCauseStatus.endTime.before(status.endTime))) {
-                        state = status.state;
-                        rootCauseStatus = status;
-                    } else {
-                        additionalErrors.add(status);
-                    }
-                    break;
-                case SUSPENDED_NO_ERROR:
-                case SUSPENDED_ERROR:
-                    if (rootCauseStatus == null) {
-                        rootCauseStatus = status;
-                    }
-                    // 1. If we've already found any ERROR state step, then that took precedence.
-                    // 2. Otherwise, if we've already seen a SUSPENDED step, but the current step is earlier than ours,
-                    // then we want the earlier step.
-                    // 3. Otherwise we already have the earliest SUSPENDED step error code, so use that.
-                    if (state != StepState.ERROR && ((state == StepState.SUSPENDED_ERROR || state == StepState.SUSPENDED_NO_ERROR)
-                            && rootCauseStatus.endTime != null && !rootCauseStatus.endTime.before(status.endTime))) {
-                        state = status.state;
-                        rootCauseStatus = status;
-                    } else {
-                        additionalErrors.add(status);
-                    }
-                    break;
 
-                case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
-                    if (rootCauseStatus == null) {
-                        rootCauseStatus = status;
-                    }
-                    // As long as we haven't already found an ERROR state, look for the earliest CANCELLED you can find.
-                    if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR
-                            && rootCauseStatus.endTime != null && !rootCauseStatus.endTime.before(status.endTime)) {
-                        state = status.state;
-                        rootCauseStatus = status;
-                    } // Don't add cancelled steps to the additional Errors
-                    break;
-                case SUCCESS:
-                default:
-                    break;
+        final Map<StepState, Integer> errorStatePriorities = new HashMap<>();
+        errorStatePriorities.put(StepState.ERROR, 0);
+        errorStatePriorities.put(StepState.SUSPENDED_NO_ERROR, 1);
+        errorStatePriorities.put(StepState.SUSPENDED_ERROR, 1);
+        errorStatePriorities.put(StepState.CANCELLED, 2);
+
+        // Filter out non-error statuses.
+        List<StepStatus> statuses = newArrayList(filter(statusMap.values(), new Predicate<StepStatus>() {
+            @Override
+            public boolean apply(StepStatus input) {
+                return errorStatePriorities.containsKey(input.state);
+            }
+        }));
+
+        //Sort the statuses based on the errorStatePriorities map and also by earliest time.
+        Collections.sort(statuses, new Comparator<StepStatus>() {
+            @Override
+            public int compare(StepStatus a, StepStatus b) {
+                Integer aStatePriority = errorStatePriorities.get(a.state);
+                Integer bStatePriority = errorStatePriorities.get(b.state);
+
+                if (aStatePriority != null && bStatePriority == null) {
+                    return -1;
+                } else if (aStatePriority == null && bStatePriority != null) {
+                    return 1;
+                } else if (aStatePriority == null && bStatePriority == null) {
+                    return 0;
+                }
+
+                int result = aStatePriority.compareTo(bStatePriority);
+                if (result != 0) {
+                    return result;
+                }
+
+                long aTime = a.endTime.getTime();
+                long bTime = b.endTime.getTime();
+                return Long.compare(aTime, bTime);
+            }
+        });
+
+        // First element will be the root cause, the remaining elements are additional errors.
+        for (StepStatus status : statuses) {
+            if (rootCauseStatus == null) {
+                rootCauseStatus = status;
+            } else {
+                additionalErrors.add(status);
             }
         }
 
@@ -930,8 +921,7 @@ public class Workflow implements Serializable {
             // Start the message with the root cause:
             StringBuffer sb = new StringBuffer(
                     "Message: " + rootCauseStatus.message + "\n" + "Description: " + rootCauseStatus.description + "\n");
-            
-            // TODO: order by running order
+
             if (!additionalErrors.isEmpty()) {
                 sb.append("\nAdditional errors occurred during processing.  Each error is listed below.\n\n");
                 

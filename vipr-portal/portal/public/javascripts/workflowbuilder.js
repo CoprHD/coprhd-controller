@@ -349,7 +349,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     // This method will create tab view for workflows
     function previewNode(node) {
         var tabID = "tab_"+node.id;
-        //addTab(tabID);
         $rootScope.$emit("addWorkflowTab", tabID);
     }
 
@@ -497,7 +496,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         //set ID and text within the step element
         //TODO: retrieve stepname from step data when API is available
         var randomIdHash = Math.random().toString(36).substring(7);
-        //var stepName = $(e.toElement).text();
 
         //compensate x,y for zoom
         var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
@@ -510,9 +508,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         //add data
         //TODO:remove friendly_name, it will be included in step data already
         var stepData = jQuery.extend(true, {}, treecontroller.data("primitiveData"));
-        test = stepData;
         stepData.id = randomIdHash;
-        //stepData.friendly_name = stepName;
         stepData.positionY = positionY;
         stepData.positionX = positionX;
 

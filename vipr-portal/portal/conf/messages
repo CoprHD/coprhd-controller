@@ -4072,6 +4072,7 @@ button.save=Save
 button.done=Done
 button.ok=OK
 button.remove=Remove
+button.confirm=Confirm
 button.rediscover=Rediscover
 button.discoverArrayAffinity=Discover Array Affinity
 button.manage=Manage

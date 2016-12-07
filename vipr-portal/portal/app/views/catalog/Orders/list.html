@@ -54,8 +54,9 @@
   
 </div>
 
+<!-- TODO for mockup only, from listJson to allOrdersJson-->
 #{DataTable.table
-id:'orders', dataTable:dataTable, source:@listJson(),
+id:'orders', dataTable:dataTable, source:@allOrdersJson(),
 cssClass:'editableRows', options: ['fnServerParams': 'addParams']/}
 <script type="text/javascript">
 table.orders.dataTable.afterCreate(function(dataTable) {
@@ -66,6 +67,7 @@ table.orders.dataTable.afterCreate(function(dataTable) {
 function addParams(aoData) {
     aoData.push({"name":"startDate", "value":"${startDate}"});
     aoData.push({"name":"endDate", "value":"${endDate}"});
+    aoData.push({"name":"maxDays", "value": 90}); //only for mockup
 }
 
 function updateDateRange() {

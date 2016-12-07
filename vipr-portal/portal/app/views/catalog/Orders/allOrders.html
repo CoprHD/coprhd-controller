@@ -43,17 +43,42 @@
                   options: ['fnServerParams': 'addParams']}
         #{DataTable.buttonBar}
             #{Form.button name:'button.download', class:'primary', icon:'download', submit:'createForm'/}
-            #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm',
-                                  data:['enabled':'selected', 'selection':'single', 'property':'canDelete', 'value':'true']/}
+            #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm'/}
         #{/DataTable.buttonBar}
 
 #{/DataTable.table}
+
+     #{Modal.dialog id:'deleteDialog', titleKey: 'Confirm to Delete Orders'}
+      #{Modal.body cssClass:'form-horizontal'}
+      All rows are checked, DELETE action will be performed on all <b style="color:red">9700</b> orders, please CONFIRM!           
+          <div>
+            <span class="help-block">We strongly recommend to download the orders before deleting them.</span>
+          </div>
+      #{/Modal.body}
+      #{Modal.footer}
+       #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}
+        #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+      #{/Modal.footer}
+    #{/Modal.dialog}
+    
+    #{Modal.dialog id:'downloadDialog', titleKey: 'Confirm to Download Orders'}
+      #{Modal.body cssClass:'form-horizontal'}
+      All rows are checked, DOWNLOAD will be performed on all 9700 orders, click 'Confirm' to start.           
+          <div>
+            <span class="help-block">Only one 'Download/Delete Orders' job is allowed at any time.</span>
+          </div>
+      #{/Modal.body}
+      #{Modal.footer}
+       #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}
+        #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+      #{/Modal.footer}
+    #{/Modal.dialog}
 
 <script type="text/javascript">
 function addParams(aoData) {
 	var param = "${maxDays}";
 	param = param == 0 ? 180: param;
-    aoData.push({"name":"maxDays", "value": param});
+    aoData.push({"name":"maxDays", "value": 90});//for mockup, 90 should be param
 }
 table.orders.dataTable.afterCreate(function(dataTable) {
     var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
@@ -64,6 +89,8 @@ $(document).ready(function() {
 	if(requestMaxDays != 0) {
 	    $(".forRange").hide();
 	}
+	//$( "input[type=checkbox]" ).prop('checked', true);//for mockup
+	$( "input[type=text]" ).prop('readonly', false);//for mockup
 	
     $('#maxDays').on('change', function() {
         var maxDays = $(this).val();
@@ -75,5 +102,13 @@ $(document).ready(function() {
             window.location.href = url;
         }
     });
+	
+    $('.btn-danger').on('click', function() {
+    	$('#deleteDialog').modal();
+    });
+    $('.btn-primary').on('click', function() {
+        $('#downloadDialog').modal();
+    });
+	
 });
 </script>

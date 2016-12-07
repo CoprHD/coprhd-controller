@@ -11,7 +11,9 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -51,6 +53,7 @@ import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.InvalidLogin;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datacenter;
+import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
 /**
@@ -108,6 +111,18 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             save(vcenter);
             processHostChanges(changes, deletedHosts, deletedClusters, true);
+            HashMap<Datacenter, Datastore[]> datacenterDatastoreMap = (HashMap<Datacenter, Datastore[]>) getDatastores(vcenter);
+            List<VcenterDataCenter> oldDatacenters = new ArrayList<VcenterDataCenter>();
+            Iterables.addAll(oldDatacenters, getDatacenters(vcenter));
+            List<Cluster> oldClusters = new ArrayList<Cluster>();
+            for(VcenterDataCenter oldDatacenter: oldDatacenters){
+                Iterables.addAll(oldClusters, getClusters(oldDatacenter));
+            }
+            List<Host> oldHosts = new ArrayList<Host>();
+            for (VcenterDataCenter oldDatacenter : oldDatacenters){
+                Iterables.addAll(oldHosts, getHosts(oldDatacenter));
+            }           
+            processDatastoreRename(datacenterDatastoreMap, oldClusters, oldHosts, vcenter);
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
@@ -143,6 +158,15 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
     public VcenterVersion getVersion(Vcenter vcenter) {
         VCenterAPI api = createVCenterAPI(vcenter);
         return api.getVcenterVersion();
+    }
+    
+    public Map<Datacenter, Datastore[]> getDatastores(Vcenter vcenter){
+        VCenterAPI api = createVCenterAPI(vcenter);
+        HashMap<Datacenter, Datastore[]> datacenterDatastoreMap= new HashMap<Datacenter, Datastore[]>();
+        for (Datacenter sourceDatacenter : api.listAllDatacenters()) {
+            datacenterDatastoreMap.put(sourceDatacenter, sourceDatacenter.getDatastores());
+        }  
+        return datacenterDatastoreMap;
     }
 
     private Iterable<VcenterDataCenter> getDatacenters(Vcenter vcenter) {
@@ -280,6 +304,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             return dataCenter;
         }
+        
 
         private void discoverDatacenters(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters,
                 Set<URI> discoveredHosts) {

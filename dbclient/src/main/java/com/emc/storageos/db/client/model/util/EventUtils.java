@@ -35,12 +35,14 @@ public class EventUtils {
     public static String hostClusterChange = "hostClusterChange";
     public static String removeInitiator = "removeInitiator";
     public static String addInitiator = "addInitiator";
+    public static String vcenterDatastoreRename = "vcenterDatastoreRename";
     public static String hostVcenterUnassignDecline = "hostVcenterUnassignDecline";
     public static String hostVcenterChangeDecline = "hostVcenterChangeDecline";
     public static String hostDatacenterChangeDecline = "hostDatacenterChangeDecline";
     public static String hostClusterChangeDecline = "hostClusterChangeDecline";
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
+    public static String vcenterDatastoreRenameDecline = "vcenterDatastoreRenameDecline";
 
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
             EventCode.HOST_INITIATOR_DELETE);
@@ -51,7 +53,8 @@ public class EventUtils {
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
-        UNASSIGN_HOST_FROM_VCENTER("106");
+        UNASSIGN_HOST_FROM_VCENTER("106"),
+        VENTER_DATASTORE_RENAME("107");
     
         private String code;
     

@@ -82,6 +82,7 @@ public class OrchestrationWorkflowDocument {
         public void setType(String type) {
             this.type = type;
         }
+
         @XmlElement(name = "friendly_name")
         public String getFriendlyName() {
             return friendlyName;

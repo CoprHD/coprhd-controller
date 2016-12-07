@@ -200,7 +200,7 @@ public class OrchestrationService extends ViPRService {
             return step.getNext().getDefault();
         }
 
-        ExecutionUtils.currentContext().logError("orchestrationService.stepFailedStatus", step, result.getErr());
+        ExecutionUtils.currentContext().logError("orchestrationService.stepFailedStatus", step);
 
         return step.getNext().getFailed();
     }

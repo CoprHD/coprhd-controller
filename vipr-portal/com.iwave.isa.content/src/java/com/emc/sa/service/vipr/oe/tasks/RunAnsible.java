@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +47,12 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private final Step step;
     private final Map<String, List<String>> input;
+    private final String orderDir;
 
     public RunAnsible(final Step step, final Map<String, List<String>> input) {
         this.step = step;
         this.input = input;
+        orderDir = "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
     }
 
     @Override
@@ -59,6 +62,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         //TODO Get playbook/package from DB
 
         final String extraVars = makeExtraArg(input);
+        createOrderDir();
 
         final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
 
@@ -110,6 +114,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
+    private void createOrderDir() {
+
+    }
+
     //TODO Hard coded everything for testing.
     //During upload of primitive, user will specify if hosts file is needed or not?
     //If needed then they will specify the List of hosts group (e.g: webservers, linuxhosts ...etc)
@@ -131,34 +139,52 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return ips;
     }
 
-    private Exec.Result executeRemoteCmd(final String user, final String ip, final String path, final String binPath,
-                                         final String extraVars) {
-        logger.info("executing remote ansi ip:{} path:{} bin:{} extravar:{} user:{}", ip, path, binPath, extraVars, user);
-        String commands = binPath + " " + path + " --extra-var " + extraVars;
-        final String[] cmds = {"/usr/bin/ssh", user + "@" + ip, commands};
+    private Exec.Result buildAndExecute(final String extraVars, final ImmutableList.Builder<String> builder) {
+        if (extraVars != null && !extraVars.isEmpty())
+            builder.add(OrchestrationServiceConstants.EXTRA_VARS).add(extraVars);
 
-        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
-    }
+        final ImmutableList<String> cmdList = builder.build();
+        final String[] cmds = cmdList.toArray(new String[cmdList.size()]);
 
-    private Exec.Result executeLocal(final String ips, final String extraVars, final String path, final String user) {
-        logger.info("local Ansible Execution ips:{} extra var:{} path:{}, user:{}", ips, extraVars, path, user);
-        if (user != null) {
-            final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, "-i", ips, "-u", user, path,
-                    OrchestrationServiceConstants.EXTRA_VARS, extraVars};
-            return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        for (int i=0; i<cmds.length; i++) {
+            logger.info("cmd:{}", cmds[i]);
         }
 
-        final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, "-i", ips, path,
-                OrchestrationServiceConstants.EXTRA_VARS, extraVars};
-
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
-    private Exec.Result executeCmd(final String path, final String extraVars) {
-        final String[] cmds = {OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, path,
-                OrchestrationServiceConstants.EXTRA_VARS, extraVars};
+    //Execute Ansible playbook on remote node. Playbook is also in remote node
+    private Exec.Result executeRemoteCmd(final String user, final String ip, final String playbook, final String ansiblePath,
+                                         final String extraVars) {
+        logger.info("executing remote ansi ip:{} playbook:{} ansiblePath:{} extravar:{} user:{}", ip, playbook, ansiblePath, extraVars, user);
 
-        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add(OrchestrationServiceConstants.SHELL_LOCAL_BIN).add(user + "@" + ip).add(ansiblePath).add(" ").add(playbook);
+
+        return buildAndExecute(extraVars, builder);
+    }
+
+    //Execute Ansible playbook on given nodes. Playbook in in local node
+    private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
+        logger.info("local Ansible Execution ips:{} extra var:{} path:{}, user:{}", ips, extraVars, playbook, user);
+
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN).add("-i").add(ips);
+
+        if (user != null)
+            builder.add("-u").add(user);
+
+        builder.add(playbook);
+
+        return buildAndExecute(extraVars, builder);
+    }
+
+    //Execute Ansible playbook on localhost
+    private Exec.Result executeCmd(final String playbook, final String extraVars) {
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN).add(playbook);
+
+        return buildAndExecute(extraVars, builder);
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {

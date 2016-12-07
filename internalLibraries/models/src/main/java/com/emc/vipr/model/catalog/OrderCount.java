@@ -1,5 +1,6 @@
 package com.emc.vipr.model.catalog;
 
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,8 @@ public class OrderCount {
         countMap.put(key, count);
     }
 
-    public Map<String, Long> get() {
+    @XmlElement(name = "counts")
+    public Map<String, Long> getCounts() {
         return countMap;
     }
 }

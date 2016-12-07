@@ -733,7 +733,7 @@ public class SRDFOperations implements SmisConstants {
             boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
             //Format flag  needed for operations other than Change virtual Pool and Expand
             boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null
-                    || !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
+                    && !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, !emptyRDFGroup, formatVolumeFlagNeeded);
             CIMArgument[] inArgs = helper.getCreateElementReplicaForSRDFInputArguments(
                     srcVolumePath, tgtVolumePath, repCollectionPath, modeValue,
@@ -767,7 +767,7 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
             boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null
-                    || !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
+                    && !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
             boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue, !emptyRDFGroup,
                     formatVolumeFlagNeeded);
@@ -1909,7 +1909,7 @@ public class SRDFOperations implements SmisConstants {
                     raGroup);
             // look for existing volumes, if found then use AddSyncPair
             boolean formatVolumeFlagNeeded = ((SRDFMirrorCreateCompleter)completer).getVirtualPoolChangeURI() == null
-                    || !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
+                    && !SRDFOperationsEnum.EXPAND.name().equalsIgnoreCase( ((SRDFMirrorCreateCompleter)completer).getOperationName()) ;
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, true, formatVolumeFlagNeeded);
             String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
             CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,

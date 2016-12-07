@@ -19,7 +19,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class PortAllocatePreviewRestRep {
     
-    private List<InitiatorPortMapRestRep> addedPaths;
+    private List<InitiatorPortMapRestRep> adjustedPaths;
     private List<InitiatorPortMapRestRep> removedPaths;
     private List<NamedRelatedResourceRep> affectedExportGroups;
     
@@ -31,12 +31,12 @@ public class PortAllocatePreviewRestRep {
         return affectedExportGroups;
     }
 
-    @XmlElementWrapper(name = "added_paths") 
+    @XmlElementWrapper(name = "adjusted_paths") 
     public List<InitiatorPortMapRestRep> getAddedPaths() {
-        if (addedPaths == null) {
-            addedPaths = new ArrayList<InitiatorPortMapRestRep>();
+        if (adjustedPaths == null) {
+            adjustedPaths = new ArrayList<InitiatorPortMapRestRep>();
         }
-        return addedPaths;
+        return adjustedPaths;
     }
     
     @XmlElementWrapper(name = "removed_paths") 

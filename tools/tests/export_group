@@ -95,7 +95,7 @@ def export_group_realloc(args):
         print 'No path parameters (optional)'
     rep = bourne.export_group_realloc(groupId, storageId, varrayId, args.useexisting, path_param);
     try:
-        addedpaths=rep['added_paths']
+        addedpaths=rep['adjusted_paths']
     except:
         print rep
         return

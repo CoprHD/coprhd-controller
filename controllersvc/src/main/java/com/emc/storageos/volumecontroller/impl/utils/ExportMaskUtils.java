@@ -1547,7 +1547,8 @@ public class ExportMaskUtils {
         return result;
     }
 
-     * Get new paths which are not in any of the export masks zoning maps from the giving paths
+    /*
+     * Get new paths which are not in any of the export masks zoning maps from the given paths
      * 
      * @param dbClient
      * @param exportMasks
@@ -1640,17 +1641,7 @@ public class ExportMaskUtils {
      */
     public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
-        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
-        if (initiators == null || initiators.isEmpty()) {
-            return result;
-        }
-        Set<String> hostsInMask = new HashSet<String> ();
-        for (Initiator init : initiators) {
-            String hostName = init.getHostName();
-            if (hostName != null && !hostName.isEmpty()) {
-                hostsInMask.add(hostName);
-            }
-        }
+        Set<String> hostsInMask = getHostNamesInMask(exportMask, dbClient);
         for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
             URI initURI = entry.getKey();
             Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
@@ -1669,5 +1660,26 @@ public class ExportMaskUtils {
                 
         return result;
         
+    }
+    
+    /**
+     * Returns the set of Hosts Names in an ExportMask
+     * @param exportMask
+     * @param dbClient
+     * @return Set of Hostnames
+     */
+    public static Set<String> getHostNamesInMask(ExportMask exportMask, DbClient dbClient) {
+        Set<String> hostsInMask = new HashSet<String> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return hostsInMask;
+        }
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        return hostsInMask;
     }
 }

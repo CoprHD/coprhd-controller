@@ -1067,7 +1067,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
                 URI maskURI = mask.getId();
                 stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                        maskURI, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                        mask, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
             }
 
             boolean isPending = waitBeforeRemovePaths;
@@ -1077,7 +1077,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                 if (!removingPaths.isEmpty()) {
                     stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                            systemURI, exportGroupURI, mask.getId(), maskAjustedPathMap.get(maskURI), removingPaths, isPending);
+                            systemURI, exportGroupURI, mask, maskAjustedPathMap.get(maskURI), removingPaths, isPending);
                     isPending = false;
                 }
             }

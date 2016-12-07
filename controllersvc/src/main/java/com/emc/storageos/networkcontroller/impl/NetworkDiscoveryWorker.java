@@ -602,7 +602,7 @@ public class NetworkDiscoveryWorker {
             _log.info("Endpoints of given VSAN {}/{} in network {}: {}", currentNetworkId, currentNetworkWwn,
                 networkSystem.getLabel(), endpoints);
             // How to determine it's a transit network: 1. More than one network system have the same network.
-            if (currentNetwork != null && currentNetwork.getNetworkSystems().size() > 1) {
+            if (currentNetwork != null && currentNetwork.getNetworkSystems() != null && currentNetwork.getNetworkSystems().size() > 1) {
                 _log.info("Network id={} is a transit VSAN", currentNetworkId);
                 transitNetworks.add(currentNetworkId);
             } else {

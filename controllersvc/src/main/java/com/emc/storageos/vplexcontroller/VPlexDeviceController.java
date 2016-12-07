@@ -13377,7 +13377,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         
         // Refresh the ExportMask so we have the latest data.
-        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplex, _dbClient);
         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
         String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex, client, _dbClient);
         VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -13416,7 +13416,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         if (hostsInExportMask.contains(initiator.getHost())) {
                             initiatorsToAdd.add(initiatorURI);
                             for (URI targetURI : adjustedPaths.get(initiatorURI)) {
-                                if (!exportMask.hasTargets(Arrays.asList(targetURI))) {
+                                if (!exportMask.hasTargets(Arrays.asList(targetURI)) && 
+                                        !targetsToAdd.contains(targetURI)) {
                                     targetsToAdd.add(targetURI);
                                 }
                             }
@@ -13425,7 +13426,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 } else {
                     // Initiator already in ExportMask, look for additional targets
                     for (URI targetURI : adjustedPaths.get(initiatorURI)) {
-                        if (!exportMask.hasTargets(Arrays.asList(targetURI))) {
+                        if (!exportMask.hasTargets(Arrays.asList(targetURI)) && 
+                                !targetsToAdd.contains(targetURI)) {
                             targetsToAdd.add(targetURI);
                         }
                     }
@@ -13435,16 +13437,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
             // Invoke either storageViewAddInitiators or storageViewAddPorts as a step
             Workflow.Method addPathsMethod = null;
-            if (!initiatorsToAdd.isEmpty()) {
-                addPathsMethod = storageViewAddInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToAdd, targetsToAdd, sharedMask);
-            } else if (!targetsToAdd.isEmpty()) {
-                addPathsMethod = storageViewAddStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, targetsToAdd);
+            if (!initiatorsToAdd.isEmpty() || !targetsToAdd.isEmpty()) {
+                if (!initiatorsToAdd.isEmpty()) {
+                    addPathsMethod = storageViewAddInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToAdd, targetsToAdd, sharedMask);
+                } else if (!targetsToAdd.isEmpty()) {
+                    addPathsMethod = storageViewAddStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, targetsToAdd);
+                }
+                String description = String.format("Adding paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
+                lastStep = workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, null);
+                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId, adjustedPaths);
+                workflow.executePlan(completer, description + " completed successfully");
+                return;
             }
-            String description = String.format("Adding paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
-            lastStep = workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, null);
-
-            ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId, adjustedPaths);
-            workflow.executePlan(completer, description + " completed successfully");
             
         } else {
             // Processing the paths to be removed only, but want to see what is retained.
@@ -13469,16 +13473,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Call either storageViewRemoveInitiators or storageViewRemoveStoragePorts
             Workflow.Method removePathsMethod = null;
-            if (!initiatorsToBeRemoved.isEmpty()) {
-                removePathsMethod = storageViewRemoveInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToBeRemoved, portsToBeRemoved);
-            } else {
-                removePathsMethod = storageViewRemoveStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, portsToBeRemoved);
-            }
-            String description = String.format("Removing paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
-            lastStep = workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
+            if (!initiatorsToBeRemoved.isEmpty() || !portsToBeRemoved.isEmpty()) {
+                if (!initiatorsToBeRemoved.isEmpty()) {
+                    removePathsMethod = storageViewRemoveInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToBeRemoved, portsToBeRemoved);
+                } else {
+                    removePathsMethod = storageViewRemoveStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, portsToBeRemoved);
+                }
+                String description = String.format("Removing paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
+                lastStep = workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
 
-            ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId, adjustedPaths);
-            workflow.executePlan(completer, description + " completed successfully");
+                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId, adjustedPaths);
+                workflow.executePlan(completer, description + " completed successfully");
+                return;
+            }
         } 
 
         // Apparently nothing to do, return success

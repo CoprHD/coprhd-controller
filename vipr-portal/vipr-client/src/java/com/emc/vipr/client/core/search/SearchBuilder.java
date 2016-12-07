@@ -136,4 +136,9 @@ public class SearchBuilder<T extends DataObjectRestRep> {
     public List<T> run() {
         return resources.getByRefs(resources.performSearch(parameters), filter);
     }
+
+    public List<SearchResultResourceRep> search() {
+        List<SearchResultResourceRep> refs = resources.performSearch(parameters);
+        return resources.getRefsWithFilter(refs, filter);
+    }
 }

@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
 
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,6 +105,19 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
+    }
+
+    protected List<AssetOption> createBaseResourceOptions(List<SearchResultResourceRep> refs) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (SearchResultResourceRep ref : refs) {
+            options.add(createBaseResourceOption(ref));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    private AssetOption createBaseResourceOption(SearchResultResourceRep ref) {
+        return new AssetOption(ref.getId(), ref.getMatch());
     }
 
     protected static List<AssetOption> createStringOptions(Collection<String> values) {

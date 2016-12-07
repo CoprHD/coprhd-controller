@@ -7,6 +7,7 @@ package com.emc.vipr.client.core;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TagAssignment;
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.search.SearchBuilder;
 import java.net.URI;
@@ -68,6 +69,7 @@ public interface Resources<T extends DataObjectRestRep> {
      * @return the resource values.
      */
     public List<T> getByRefs(Collection<? extends RelatedResourceRep> refs, ResourceFilter<T> filter);
+
 
     /**
      * <p>

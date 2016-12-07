@@ -211,6 +211,10 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
         return getByIds(refIds(refs), filter);
     }
 
+    public List<SearchResultResourceRep> getRefsWithFilter(List<SearchResultResourceRep> refs, ResourceFilter<T> filter) {
+        return refs;
+    }
+
     @Override
     public Set<String> getTags(URI id) {
         Tags tags = client.get(Tags.class, getTagsUrl(), id);

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -708,6 +709,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
 
         return createBaseResourceOptions(volumes);
+    }
+
+    @Asset("unassignedBlockVolumeRef")
+    @AssetDependencies({ "host", "project" })
+    public List<AssetOption> getBlockVolumeRefs(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
+        ViPRCoreClient client = api(ctx);
+        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
+
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
+                exportedBlockResources);
+        SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
+
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
+        List<SearchResultResourceRep> volumeRefs =
+                client.blockVolumes().findRefsByProject( projectId, unexportedFilter.and(sourceTargetVolumesFilter) );
+
+        return createBaseResourceOptions(volumeRefs);
     }
 
     @Asset("unassignedVplexBlockVolume")

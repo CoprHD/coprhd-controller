@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.search.ProjectSearchBuilder;
@@ -76,5 +77,9 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
      */
     public List<T> findByProject(URI projectId, ResourceFilter<T> filter) {
         return search().byProject(projectId).filter(filter).run();
+    }
+
+    public List<SearchResultResourceRep> findRefsByProject(URI projectId, ResourceFilter<T> filter) {
+        return search().byProject(projectId).filter(filter).search();
     }
 }

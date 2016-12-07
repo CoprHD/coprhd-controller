@@ -181,7 +181,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     // Namespace denotes the Element used in Discovery
     public static enum Discovery_Namespaces {
-        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY, ALL
+        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY, ALL, DETECT_EXTERNAL_CHANGES        
     }
 
     public static enum SupportedReplicationTypes {

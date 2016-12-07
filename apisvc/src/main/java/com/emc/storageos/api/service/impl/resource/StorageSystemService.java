@@ -1994,6 +1994,11 @@ public class StorageSystemService extends TaskResourceService {
             }
         }
 
+        if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.DETECT_EXTERNAL_CHANGES.toString()) &&
+        		Type.vplex.toString().equalsIgnoreCase(storageSystem.getSystemType()) ){
+        	return true;
+        }
+        
         boolean isFileStorageSystem = storageSystem.storageSystemIsFile();
         if (isFileStorageSystem) {
             if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||

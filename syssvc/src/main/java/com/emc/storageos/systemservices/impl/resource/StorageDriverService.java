@@ -161,7 +161,9 @@ public class StorageDriverService {
             if (driverMap.containsKey(driverName)) {
                 StorageDriverRestRep driverRestRep = driverMap.get(driverName);
                 driverRestRep.getSupportedTypes().add(type.getStorageTypeDispName());
-                driverRestRep.setDriverStatus(type.getDriverStatus());
+                if (!(IN_USE.equals(driverRestRep.getDriverStatus()) && READY.equals(type.getDriverStatus()))) {
+                    driverRestRep.setDriverStatus(type.getDriverStatus());
+                }
             } else {
                 driverMap.put(type.getDriverName(), StorageDriverMapper.map(type));
             }
@@ -171,7 +173,7 @@ public class StorageDriverService {
         return driverList;
     }
 
-    private Set<String> getUsedStorageProviderTypes() {
+    protected Set<String> getUsedStorageProviderTypes() {
         List<URI> ids = dbClient.queryByType(StorageProvider.class, true);
         Set<String> types = new HashSet<String>();
         Iterator<StorageProvider> it = dbClient.queryIterativeObjects(StorageProvider.class, ids);
@@ -182,7 +184,7 @@ public class StorageDriverService {
         return types;
     }
 
-    private Set<String> getUsedStorageSystemTypes() {
+    protected Set<String> getUsedStorageSystemTypes() {
         List<URI> ids = dbClient.queryByType(StorageSystem.class, true);
         Set<String> types = new HashSet<String>();
         Iterator<StorageSystem> it = dbClient.queryIterativeObjects(StorageSystem.class, ids);

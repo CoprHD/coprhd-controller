@@ -1,7 +1,7 @@
 {
-    baseKey:"PortRebalancing.Block",
-    serviceId:"PortRebalancing",
-    displayPreview: true,
+    baseKey:"ExportPathAdjustment.Block",
+    serviceId:"ExportPathAdjustment",
+    useModal: true,
     fields:{
     	host:{
             type:"assetType.vipr.host",
@@ -11,13 +11,7 @@
             type:"assetType.vipr.blockVirtualArray",
             lockable: true
         },
-
-        virtualPool:{
-            type:"assetType.vipr.blockVirtualPool",
-            lockable: true
-        },
         
-              
         minPaths: {
           type:"number",
           lockable: true,
@@ -48,33 +42,36 @@
           }
         },
         
-        ports:{
-	        type:"assetType.vipr.ports",
-	        select: "many"
-	    },
-	    
+        advanced:{
+          type:"group",
+          collapsed:true,
+          items:{ 
+            storageSystem: {
+                type:"assetType.vipr.storageSystem",
+                required: false
+            },       
+            ports:{
+                type:"assetType.vipr.exportPathPorts",
+                select: "many",
+                required: false
+            }
+          }
+        },
+        
 	    exportPathPreview:{
 	       type:"modal",
            items:{
-                name:{
-                    type:"text",
-                    validation:{
-                        min:2,
-                        max:128
-                    }
+                addedPorts:{
+                    type:"assetType.vipr.exportPathAddedPorts",
+                    select: "many"
                 },
-               size:{
-                    type:"storageSize",
-                    validation:{
-                        min:0
-                    }
+                removedPorts:{
+                    type:"assetType.vipr.exportPathRemovedPorts",
+                    select: "many"
                 },
-                numberOfVolumes:{
-                    type:"number",
-                    initialValue: "1",
-                    validation:{
-                        min:1
-                    }
+                affectedExports:{
+                    type:"assetType.vipr.exportPathAffectedExports",
+                    select: "many"
                 }
     	    }
         }

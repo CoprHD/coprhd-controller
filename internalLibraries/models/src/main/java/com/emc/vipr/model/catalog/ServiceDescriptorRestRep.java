@@ -23,7 +23,7 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
     private String description;
     private List<String> roles;
     private boolean destructive = false;
-    private boolean displayPreview = false;
+    private boolean useModal = false;
     private List<ServiceItemRestRep> items;
 
     @XmlElement(name = "service_id")
@@ -83,13 +83,13 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
         this.destructive = destructive;
     }
     
-    @XmlElement(name = "display_preview")
-    public boolean isDisplayPreview() {
-        return displayPreview;
+    @XmlElement(name = "use_modal")
+    public boolean isUseModal() {
+        return useModal;
     }
 
-    public void setDisplayPreview(boolean displayPreview) {
-        this.displayPreview = displayPreview;
+    public void setUseModal(boolean useModal) {
+        this.useModal = useModal;
     }
 
     @XmlElementWrapper(name = "items")

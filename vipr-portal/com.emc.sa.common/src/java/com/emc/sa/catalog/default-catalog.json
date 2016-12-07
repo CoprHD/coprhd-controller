@@ -172,7 +172,7 @@
         },
         {
           "image": "icon_db_create.png",
-          "baseService": "PortRebalancing"
+          "baseService": "ExportPathAdjustment"
         }
       ]
     },

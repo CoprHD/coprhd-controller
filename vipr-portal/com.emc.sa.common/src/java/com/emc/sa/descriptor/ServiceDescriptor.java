@@ -46,7 +46,7 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     private boolean destructive = false;
     
     /** Indicated if the order will display a preview option */
-    private boolean displayPreview = true;
+    private boolean useModal = true;
 
     public String getServiceId() {
         return serviceId;
@@ -117,12 +117,12 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         this.destructive = destructive;
     }
     
-    public boolean isDisplayPreview() {
-        return displayPreview;
+    public boolean isUseModal() {
+        return useModal;
     }
     
-    public void setDisplayPreview(boolean displayPreview) {
-        this.displayPreview = displayPreview;
+    public void setUseModal(boolean useModal) {
+        this.useModal = useModal;
     }
 
     public ServiceField getField(String name) {
@@ -167,7 +167,7 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         builder.append("description", description);
         builder.append("category", category);
         builder.append("destructive", destructive);
-        builder.append("displayPreview", displayPreview);
+        builder.append("useModal", useModal);
         builder.append("roles", roles);
         builder.append("items", items);
         return builder.toString();

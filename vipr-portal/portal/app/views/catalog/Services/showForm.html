@@ -90,21 +90,27 @@
                 <span ng-switch-when="table">
                   <service-table table="item"></service-table>
                 </span>
-
-                
-                #{Modal.dialog id:'portRebalancingPreview'}
-			      #{Modal.body}
-					#{Form.header titleKey:'PortRebalancing.preview.title'/}
-					<span ng-switch-when="modal">
-                  <service-modal modal="item"></service-modal>
-                  </span>
-                  #{/Modal.body}
-				  #{Modal.footer}
-				    #{Form.button 'button.done', icon:'primary', data:['dismiss':'modal']/}
-				  #{/Modal.footer}
-				#{/Modal.dialog}
-                
-
+                <span ng-switch-when="modal">
+        #{Modal.dialog id:'portRebalancingPreview'}
+          #{Modal.body}
+            #{Form.header titleKey:'PortRebalancing.preview.title'/}
+          <service-modal modal="item"></service-modal>
+          #{/Modal.body}
+          #{Modal.footer}
+          <button-bar>
+            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+                <span v-icon=shopping-cart></span>
+                <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
+                <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+            </button>
+            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+          </button-bar>
+          #{/Modal.footer}
+        #{/Modal.dialog}
+        </span>
+                <span ng-switch-when="modal">
+                  <!-- Keep this switch since we need to consume the modal entry to avoid processing in default -->
+                </span>
                 <span ng-switch-default>
                   <service-field field="item"></service-field>
                 </span>
@@ -143,90 +149,59 @@
           #{/if}
           
           <button-bar>
-            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+            #{if serviceDescriptor.useModal}
+              #{Form.button name:'service.preview', icon:'check', action:'showModalDialog()' /}
+            #{/if}
+            #{else}
+              <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
                 <span v-icon=shopping-cart></span>
                 <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
                 <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
-            </button>
-            <!-- button type="submit" class="btn btn-primary" ng-show="serviceDescriptor.displayPreview" ng-disabled="disablePreviewButton()" v-submit-form>
-                <span v-icon=check></span>
-                <span>&{"service.preview"}</span>
-            </button-->
-            #{if serviceDescriptor.displayPreview}
-              #{Form.button name:'service.preview', icon:'check', action:'showModalDialog()' /}
-           	#{/if}
+              </button>
+            #{/else}
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>
 
       </form>
       
   </div>
-  
-<!--div ng-repeat="item in serviceDescriptor.items | values | unlocked">
-  <span ng-switch="item.type">
-    <span ng-switch-when="modal">
-      <service-modal modal="item"></service-group>
-    </span>
-  </span>
-</div>
-
-#{Modal.dialog id:'portRebalancingPreview'}
-  #{Modal.body}
-    #{Form.header titleKey:'PortRebalancing.preview.title'/}
-    <div ng-repeat="item in modal.items | values | unlocked">
+<!-- 
+<div class="container">
+  <div class="panel-group">
+  <form ng-if="showForm" class="form-horizontal" ng-controller="ServiceFormCtrl">
+    <div ng-repeat="item in serviceDescriptor.items | values | unlocked">
       <span ng-switch="item.type">
         <span ng-switch-when="modal">
-          <service-table table="item"></service-table>
+        #{Modal.dialog id:'portRebalancingPreview'}
+          #{Modal.body}
+            #{Form.header titleKey:'PortRebalancing.preview.title'/}
+          <service-modal modal="item"></service-modal>
+          #{/Modal.body}
+          #{Modal.footer}
+          <button-bar>
+            <button  onclick="submitParentForm()" class="btn btn-primary" ng-disabled="disableSubmitButton()">
+                <span v-icon=shopping-cart></span>
+                <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
+                <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+            </button>
+            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+          </button-bar>
+          #{/Modal.footer}
+        #{/Modal.dialog}
         </span>
       </span>
     </div>
-    <!-- div class="panel-group">
-      <div ng-repeat="item in serviceDescriptor.items | values | unlocked">
-        <span ng-switch="item.type">
-          <span ng-switch-when="modal">
-            <service-group modal="item"></service-group>
-          </span>
-        </span>
-      </div>
-    </div>
-    <div class="title">
-      <h4>&{'PortRebalancing.addedPort'}</h4>
-    </div>
-    <div>
-      <ul>
-        <li>Port 01</li>
-        <li>Port 02</li>
-        <li>Port 03</li>
-      </ul>
-    </div>
-    <div class="title">
-      <h4>&{'PortRebalancing.removedPort'}</h4>
-    </div>
-    <div>
-      <ul>
-        <li>Port 04</li>
-        <li>Port 05</li>
-      </ul>
-    </div>
-    <div class="title">
-      <h4>&{'PortRebalancing.affectedExports'}</h4>
-    </div>
-    <div>
-      <ul>
-        <li>Export 01</li>
-        <li>Export 02</li>
-        <li>Export 03</li>
-      </ul>
-    </div>
-  #{/Modal.body}
-  #{Modal.footer}
-    #{Form.button 'button.done', icon:'primary', data:['dismiss':'modal']/}
-  #{/Modal.footer}
-#{/Modal.dialog}
+  </form>
+  </div>
+</div>
   -->
   <script>
 	function showModalDialog() {
 	  $('.modal').modal();
+	}
+	
+	function submitParentForm() {
+		document.getElementById("serviceForm").submit();
 	}
   </script>
 #{/if}

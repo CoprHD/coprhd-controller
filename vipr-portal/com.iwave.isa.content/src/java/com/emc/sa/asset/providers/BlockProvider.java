@@ -700,6 +700,54 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return varrayIds;
     }
+    
+    @Asset("exportPathPorts")
+    @AssetDependencies({ "host", "storageSystem" })
+    public List<AssetOption> getPorts(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption("Port01", "Port01"));
+        options.add(new AssetOption("Port02", "Port02"));
+        options.add(new AssetOption("Port03", "Port03"));
+        options.add(new AssetOption("Port04", "Port04"));
+        options.add(new AssetOption("Port05", "Port05"));
+        return options;
+    }
+    
+    @Asset("exportPathAddedPorts")
+    @AssetDependencies({ "host", "storageSystem" })
+    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption("Port01", "Port01"));
+        options.add(new AssetOption("Port02", "Port02"));
+        options.add(new AssetOption("Port03", "Port03"));
+        options.add(new AssetOption("Port04", "Port04"));
+        options.add(new AssetOption("Port05", "Port05"));
+        return options;
+    }
+    
+    @Asset("exportPathRemovedPorts")
+    @AssetDependencies({ "host", "storageSystem" })
+    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption("Port01", "Port01"));
+        options.add(new AssetOption("Port02", "Port02"));
+        options.add(new AssetOption("Port03", "Port03"));
+        options.add(new AssetOption("Port04", "Port04"));
+        options.add(new AssetOption("Port05", "Port05"));
+        return options;
+    }
+    
+    @Asset("exportPathAffectedExports")
+    @AssetDependencies({ "host", "storageSystem" })
+    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption("Port01", "Port01"));
+        options.add(new AssetOption("Port02", "Port02"));
+        options.add(new AssetOption("Port03", "Port03"));
+        options.add(new AssetOption("Port04", "Port04"));
+        options.add(new AssetOption("Port05", "Port05"));
+        return options;
+    }
 
     @Asset("unassignedBlockVolume")
     @AssetDependencies({ "host", "project" })

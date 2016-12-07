@@ -92,10 +92,11 @@
         <entry key="metering-interval" value="3600" />
         <entry key="discovery-interval" value="3600" />
         <entry key="arrayaffinity-discovery-interval" value="3600" />
+        <entry key="external-change-discovery-interval" value="86400" />
         <entry key="compute-discovery-interval" value="3600" />
         <entry key="ns-discovery-interval" value="3600" />
         <entry key="cs-discovery-interval" value="86400" />
-        <entry key="scan-interval" value="600" />
+        <entry key="scan-interval" value="600" />        
 
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->
@@ -104,6 +105,7 @@
          <!--Increased the refresh interval from 60sec to 10min to avoid frequent refreshes -->
         <entry key="discovery-refresh-interval" value="600" />
         <entry key="arrayaffinity-discovery-refresh-interval" value="600" />
+        <entry key="external-change-discovery-refresh-interval" value="3600" />
         <entry key="ns-discovery-refresh-interval" value="60" />
         <entry key="compute-discovery-refresh-interval" value="60" />
         <entry key="cs-discovery-refresh-interval" value="60" />

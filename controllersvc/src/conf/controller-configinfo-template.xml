@@ -97,6 +97,7 @@
         <entry key="metering-interval" value="${controller_metering_interval}" />
         <entry key="discovery-interval" value="${controller_discovery_interval}" />
         <entry key="arrayaffinity-discovery-interval" value="${controller_arrayaffinity_discovery_interval}" />
+        <entry key="external-change-discovery-interval" value="${controller_external-change-discovery-interval}" />
         <entry key="ns-discovery-interval" value="${controller_ns_discovery_interval}" />
         <entry key="compute-discovery-interval" value="${controller_compute_discovery_interval}" />
         <entry key="cs-discovery-interval" value="${controller_cs_discovery_interval}" />

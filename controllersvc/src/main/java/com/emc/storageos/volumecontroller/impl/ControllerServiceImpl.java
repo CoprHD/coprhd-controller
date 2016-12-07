@@ -84,6 +84,7 @@ public class ControllerServiceImpl implements ControllerService {
     private static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
     public static final String DISCOVERY = "Discovery";
     public static final String ARRAYAFFINITY_DISCOVERY = "ArrayAffinity";
+    public static final String EXTERNAL_CHANGE_DISCOVERY = "ExternalChangeDiscovery";
     public static final String DISCOVERY_RECONCILE_TZ = "DiscoveryReconcileTZ";
     public static final String SCANNER = "Scanner";
     public static final String METERING = "Metering";

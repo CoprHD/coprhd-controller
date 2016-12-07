@@ -30,7 +30,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -78,11 +77,13 @@ public class DataCollectionJobConsumer extends
             final DataCollectionJob job, final DistributedQueueItemProcessedCallback callback)
             throws Exception {
         try {
-            // By the time we get to Discovery/Metering someone could have removed the storage system from Vipr.
+            // By the time we get to Discovery/Metering someone
+            // could have removed the storage system from Vipr.
             // Check that the job is still "active".
             if (!job.isActiveJob(_dbClient)) {
                 return;
             }
+            
             if (job instanceof DataCollectionScanJob) {
                 triggerScanning((DataCollectionScanJob) job);
             } else {
@@ -132,9 +133,10 @@ public class DataCollectionJobConsumer extends
          * to set the required parameters for Discovery.
          */
         AccessProfile profile = _util.getAccessProfile(completer.getType(),
-                completer.getId(),
-                jobType, job.getNamespace());
+                                                       completer.getId(),
+                                                       jobType, job.getNamespace());
         profile.setProps(new HashMap<String, String>(_configInfo));
+        
         if (job instanceof DataCollectionArrayAffinityJob) {
             List<URI> hostIds = ((DataCollectionArrayAffinityJob) job).getHostIds();
             if (hostIds != null && !hostIds.isEmpty()) {
@@ -159,7 +161,8 @@ public class DataCollectionJobConsumer extends
         profile.setCimConnectionFactory(_connectionFactory);
         profile.setCurrentSampleTime(System.currentTimeMillis());
         DataCollectionJobInvoker invoker = new DataCollectionJobInvoker(
-                profile, _configInfo, _dbClient, _coordinator, _networkDeviceController, _locker, job.getNamespace(), completer);
+                profile, _configInfo, _dbClient, _coordinator,
+                _networkDeviceController, _locker, job.getNamespace(), completer);
         invoker.process(applicationContext);
         job.ready(_dbClient);
     }

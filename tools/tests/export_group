@@ -95,21 +95,21 @@ def export_group_realloc(args):
         print 'No path parameters (optional)'
     rep = bourne.export_group_realloc(groupId, storageId, varrayId, args.useexisting, path_param);
     try:
-        addedpaths=rep['added_paths']
+        adjustedpaths=rep['adjusted_paths']
     except:
         print rep
         return
     print "Added or Retained Paths: "
     adjusted_paths = []
-    for path in addedpaths:
-        added_path = dict();
-        added_path['initiator'] = path['initiator']['id']
-        added_ports = []
+    for path in adjustedpaths:
+        adjusted_path = dict();
+        adjusted_path['initiator'] = path['initiator']['id']
+        adjusted_ports = []
         for port in path['storage_ports']:
             print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
-            added_ports.append(port['id'])
-        added_path['storage_ports'] = added_ports
-        adjusted_paths.append(added_path)   
+            adjusted_ports.append(port['id'])
+        adjusted_path['storage_ports'] = adjusted_ports
+        adjusted_paths.append(adjusted_path)   
     removedPaths=rep['removed_paths']
     removed_paths = []
     print "Removed Paths: "

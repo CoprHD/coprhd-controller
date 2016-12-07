@@ -78,8 +78,10 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
 import com.emc.storageos.volumecontroller.impl.StorageGroupPolicyLimitsParam;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskVolumeToStorageGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExportGroupCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -5015,8 +5017,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("The export mask zoning map" + exportMask.toString());
         try {
             List<URI> ports = addStoragePorts(storage, storagePorts, exportMask, taskCompleter );
-            exportMask.getStoragePorts().addAll(StringSetUtil.uriListToSet(ports));
-            _dbClient.updateObject(exportMask);
+            if (ports != null && !ports.isEmpty()) {
+                ExportMaskAddPathsCompleter completer = (ExportMaskAddPathsCompleter) taskCompleter;
+                completer.setNewStoragePorts(ports);
+            }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error(String.format("addPaths failed - maskName: %s", exportMask.getMaskName()), e);
@@ -5041,11 +5045,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
             if (removingPorts != null && !removingPorts.isEmpty()) {
                 Set<URI> portsRemoved = removeStoragePorts(storage, exportMaskURI, removingPorts, taskCompleter);
                 if (portsRemoved != null && !portsRemoved.isEmpty()) {
-                   ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                   _log.info("exportMask before removing targets" + exportMask.toString());
-                   exportMask.removeTargets(portsRemoved);
-                   _dbClient.updateObject(exportMask);
-                   _log.info("exportMask before removing targets" + exportMask.toString());
+                    ExportMaskRemovePathsCompleter completer = (ExportMaskRemovePathsCompleter) taskCompleter;
+                    List<URI> removedPorts = new ArrayList<URI> (portsRemoved);
+                    completer.setRemovedStoragePorts(removedPorts);
                 }
             }
             taskCompleter.ready(_dbClient);

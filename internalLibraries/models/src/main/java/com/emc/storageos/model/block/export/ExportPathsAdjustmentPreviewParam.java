@@ -9,14 +9,14 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="block_export_port_allocate")
-public class ExportPortAllocateParam {
+@XmlRootElement(name="block_export_paths_adjustment_preview")
+public class ExportPathsAdjustmentPreviewParam {
     private URI virtualArray;
     private URI storageSystem;
     private Boolean useExistingPaths;
     private ExportPathParameters exportPathParameters;
     
-    @XmlElement(name="path_parameters", required=false)
+    @XmlElement(name="path_parameters", required=true)
     public ExportPathParameters getExportPathParameters() {
         return exportPathParameters;
     }

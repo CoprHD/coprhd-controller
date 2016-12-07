@@ -16,17 +16,20 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import java.util.List;
-
-import javax.xml.bind.annotation.XmlElement;
-
 import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
+import com.google.gson.annotations.SerializedName;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
 
 public class InputParameterRestRep {
 
+    @SerializedName("name")
     private String name;
+    @SerializedName("required")
     private boolean required;
+    @SerializedName("default_value")
     private List<String> defaultValue;
+    @SerializedName("type")
     private ParameterType type;
     
     @XmlElement(name = "name")

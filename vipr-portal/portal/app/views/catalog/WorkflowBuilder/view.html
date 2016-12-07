@@ -8,13 +8,8 @@
 #{script 'jstree.min.js'/}
 
 <div ng-controller="builderController" class="row">
-    <div id="theSidebar" class="sidebar" style="width: inherit !important;" >
-        <div>
-            <input class="search-input form-control" placeholder="search..."></input>
-        </div>
-        <div id="jstree_demo" >
-        </div>
-    </div>
+
+    <div id="tmp"></div>
     <div class="builder-column">
 
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
@@ -25,10 +20,17 @@
         <div class="tab-content">
             <div class="tab-pane active" id="home">
                 Welcome!
+                <div ng-controller="treeController" id="theSidebar" class="sidebar" >
+                    <div class="home-sidebar">
+                        <div>
+                            <input class="search-input form-control" placeholder="search..."></input>
+                        </div>
+                        <div id="jstree_demo" >
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.id}}">
-                #{workflowDesigner/}
-            </div>
+            #{workflowDesigner/}
         </div>
     </div>
 </div>

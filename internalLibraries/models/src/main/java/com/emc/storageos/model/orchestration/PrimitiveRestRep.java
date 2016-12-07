@@ -16,22 +16,27 @@
  */
 package com.emc.storageos.model.orchestration;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep {
-    
+    @SerializedName("name")
     private String name;
+    @SerializedName("friendly_name")
     private String friendlyName;
+    @SerializedName("description")
     private String description;
+    @SerializedName("success_criteria")
     private String successCriteria;
+    @SerializedName("input")
     private List<InputParameterRestRep> input;
+    @SerializedName("output")
     private List<OutputParameterRestRep> output;
-    
+
     @XmlElement(name = "name")
     public String getName() {
         return name;

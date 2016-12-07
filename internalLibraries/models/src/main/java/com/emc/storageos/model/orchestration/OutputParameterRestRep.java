@@ -16,17 +16,20 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import javax.xml.bind.annotation.XmlElement;
-
 import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
+import com.google.gson.annotations.SerializedName;
+import javax.xml.bind.annotation.XmlElement;
 
 /**
  * Rest representation class for an orchestration output parameter
  */
 public class OutputParameterRestRep {
 
+    @SerializedName("name")
     private String name;
+    @SerializedName("type")
     private ParameterType type;
+    @SerializedName("table")
     private String table;
     
     @XmlElement(name = "name")

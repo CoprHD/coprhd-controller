@@ -107,7 +107,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
 
     // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, ECD_DISCOVERY };
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY};
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;

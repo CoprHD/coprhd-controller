@@ -101,7 +101,6 @@
         <entry key="compute-discovery-interval" value="${controller_compute_discovery_interval}" />
         <entry key="cs-discovery-interval" value="${controller_cs_discovery_interval}" />
         <entry key="scan-interval" value="${controller_scan_interval}" />
-		<entry key="ecd-discovery-interval" value="external_change_discovery_interval" />
 		
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->

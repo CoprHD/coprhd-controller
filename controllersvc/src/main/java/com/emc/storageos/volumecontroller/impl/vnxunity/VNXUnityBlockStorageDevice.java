@@ -689,7 +689,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 logger.info("Consistency group {} created", label);
             } else {
                 logger.error("No storage resource Id returned");
-                consistencyGroupObj.setInactive(true);
+                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroupObj, storage.getId(), null, false, dbClient);
                 dbClient.updateObject(consistencyGroupObj);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateConsistencyGroup failed");
                 taskCompleter.error(dbClient, error);

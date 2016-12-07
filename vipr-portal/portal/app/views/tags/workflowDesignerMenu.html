@@ -63,12 +63,12 @@
                 <div class="panel-body sidenav-panel">
                     <table>
                         <tr>
-                            <td><b>key</b></td>
-                            <td><b>value</b></td>
+                            <td><b>name</b></td>
+                            <td><b>type</b></td>
                         </tr>
-                        <tr ng-repeat="(okey,ovalue) in stepData.output">
-                            <td>{{ okey }}</td>
-                            <td>{{ ovalue }}</td>
+                        <tr ng-repeat="output in stepData.output">
+                            <td>{{output.name}}</td>
+                            <td>{{output.type}}</td>
                         </tr>
                     </table>
                 </div>

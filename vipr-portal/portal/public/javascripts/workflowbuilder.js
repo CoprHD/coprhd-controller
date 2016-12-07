@@ -190,9 +190,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.workflowTabs = {};
 
-    addTab('tab_1');
-    addTab('tab_2');
-
     function addTab(tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
       $scope.$apply();
@@ -319,7 +316,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                  }
             }
         }).on('ready.jstree', function() {
-            jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: -24 }});
+            jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
         })
@@ -336,7 +333,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
         //move this
         var itemData = jstreeContainer.jstree(true).get_json(treeId).data;
-        $('#tmp').data(itemData);
+        $element.data("primitiveData",itemData);
 
         return $( $item );
     }
@@ -391,8 +388,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 })
 .controller('tabController', function($element, $scope, $compile, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
-    var diagramContainer = $element.find('#diagramContainer')
-    var sbSite = $element.find('#sb-site')
+    var diagramContainer = $element.find('#diagramContainer');
+    var sbSite = $element.find('#sb-site');
+    var treecontroller = $element.find('#theSidebar');
     var jspInstance;
     var workflowData;
     $scope.selectedId = '';
@@ -511,7 +509,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
         //add data
         //TODO:remove friendly_name, it will be included in step data already
-        var stepData = $('#tmp').data();
+        var stepData = jQuery.extend(true, {}, treecontroller.data("primitiveData"));
         test = stepData;
         stepData.id = randomIdHash;
         //stepData.friendly_name = stepName;
@@ -585,7 +583,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.select = function(stepId) {
         $scope.selectedId = stepId;
-        var data = diagramContainer.find(' #'+stepId).data("oeData");
+        var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
     }
 

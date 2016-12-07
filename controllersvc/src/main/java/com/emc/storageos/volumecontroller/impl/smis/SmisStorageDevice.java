@@ -3336,11 +3336,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
     
     @Override
-    public void doExportRemovePaths(final StorageSystem storage, final URI exportMask,
+    public void doExportRemovePaths(final StorageSystem storage, final URI exportMask, final Map<URI, List<URI>> adjustedPaths,
             final Map<URI, List<URI>> removePaths, final TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.removePaths(storage, exportMask, removePaths, taskCompleter);
+        _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
         _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
     }
 }

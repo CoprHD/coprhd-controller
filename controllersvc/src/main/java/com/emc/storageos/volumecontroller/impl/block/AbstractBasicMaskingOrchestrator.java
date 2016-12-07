@@ -1502,7 +1502,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
                         newPaths, null);
             } else {
-                generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI, adjustedPaths, 
                         removedPaths, null);
             }
             

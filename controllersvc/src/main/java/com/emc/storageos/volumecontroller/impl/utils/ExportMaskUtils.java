@@ -1644,17 +1644,16 @@ public class ExportMaskUtils {
         Set<String> hostsInMask = getHostNamesInMask(exportMask, dbClient);
         for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
             URI initURI = entry.getKey();
-            Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
-            String hostName = initiator.getHostName();
-            if (hostName != null && !hostName.isEmpty()) {
-                if (hostsInMask.contains(hostName)) {
-                    result.put(initURI, entry.getValue());
-                }
+            if (exportMask.getInitiators().contains(initURI.toString())) {
+                result.put(initURI, entry.getValue());
             } else {
-                if (exportMask.getInitiators().contains(initURI.toString())) {
-                    result.put(initURI, entry.getValue());
-                }
-                    
+                Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
+                String hostName = initiator.getHostName();
+                if (hostName != null && !hostName.isEmpty()) {
+                    if (hostsInMask.contains(hostName)) {
+                        result.put(initURI, entry.getValue());
+                    }
+                } 
             }
         }
                 

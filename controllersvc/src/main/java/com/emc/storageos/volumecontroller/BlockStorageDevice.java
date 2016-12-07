@@ -1131,13 +1131,14 @@ public interface BlockStorageDevice {
     /**
      * Remove paths from export mask
      * 
-     * @param storage Storage system
-     * @param exportMask Export mask 
+     * @param storage - Storage system
+     * @param exportMask - Export mask 
+     * @param adjustedPaths - new and/or retained paths in the export mask
      * @param removedPaths - paths to be removed
      * @param taskCompleter - task completer
      * @throws DeviceControllerException
      */
-    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>removedPaths, 
-            TaskCompleter taskCompleter) throws DeviceControllerException;
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
 
 }

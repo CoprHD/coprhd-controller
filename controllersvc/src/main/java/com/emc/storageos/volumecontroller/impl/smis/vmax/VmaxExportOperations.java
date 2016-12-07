@@ -5012,6 +5012,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             storagePorts.addAll(ports);
         }
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        _log.info("The export mask zoning map" + exportMask.toString());
         try {
             List<URI> ports = addStoragePorts(storage, storagePorts, exportMask, taskCompleter );
             exportMask.getStoragePorts().addAll(StringSetUtil.uriListToSet(ports));
@@ -5028,7 +5029,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+    public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} removePaths START...", storage.getSerialNumber());
         
@@ -5036,13 +5037,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // If the storage ports does not show up in the zoning map other than the removing paths, remove the storage ports from the
         // port group
         try {
-            List<URI> removingPorts = getRemovedStoragePortsForRemovePaths(exportMaskURI, removePaths, _dbClient);
+            List<URI> removingPorts = getRemovedStoragePortsForRemovePaths(adjustedPaths, removePaths);
             if (removingPorts != null && !removingPorts.isEmpty()) {
                 Set<URI> portsRemoved = removeStoragePorts(storage, exportMaskURI, removingPorts, taskCompleter);
                 if (portsRemoved != null && !portsRemoved.isEmpty()) {
                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                   _log.info("exportMask before removing targets" + exportMask.toString());
                    exportMask.removeTargets(portsRemoved);
                    _dbClient.updateObject(exportMask);
+                   _log.info("exportMask before removing targets" + exportMask.toString());
                 }
             }
             taskCompleter.ready(_dbClient);
@@ -5167,26 +5170,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param dbClient
      * @return The list of storage ports that is going to be removed from the export mask
      */
-    private static List<URI> getRemovedStoragePortsForRemovePaths(URI maskURI, Map<URI, List<URI>>removePaths, DbClient dbClient) {
-        ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-        StringSetMap zoningMap = mask.getZoningMap();
+    private static List<URI> getRemovedStoragePortsForRemovePaths(Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removePaths) {
         
         Set<URI> storagePortsInRemovePaths = new HashSet<URI>();
         for (List<URI> ports : removePaths.values()) {
             storagePortsInRemovePaths.addAll(ports);
         }
-        //StringSetMap removeMap = ExportMaskUtils.getZoneMapFromAssignments(removePaths);
-        for (Map.Entry<URI, List<URI>>entry : removePaths.entrySet()) {
-            URI initURI = entry.getKey();
-            for (URI port : entry.getValue()) {
-                zoningMap.remove(initURI.toString(), port.toString());
-            }
+        
+        Set<URI> storagePortsInAdjustedPaths = new HashSet<URI> ();
+        for (List<URI> existingPorts : adjustedPaths.values()) {
+            storagePortsInAdjustedPaths.addAll(existingPorts);
         }
-        Set<URI> zoningPorts = new HashSet<URI> ();
-        for (Set<String> ports : zoningMap.values()) {
-            zoningPorts.addAll(StringSetUtil.stringSetToUriList(ports));
-        }
-        return new ArrayList<URI>(Sets.difference(storagePortsInRemovePaths, zoningPorts));
+        return new ArrayList<URI>(Sets.difference(storagePortsInRemovePaths, storagePortsInAdjustedPaths));
         
     }
 }

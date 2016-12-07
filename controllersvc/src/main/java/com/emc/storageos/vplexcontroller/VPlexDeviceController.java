@@ -13445,7 +13445,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
                 String description = String.format("Adding paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
                 lastStep = workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, null);
-                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId, adjustedPaths);
+                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
+                completer.setNewInitiators(initiatorsToAdd);
+                completer.setNewStoragePorts(targetsToAdd);
                 workflow.executePlan(completer, description + " completed successfully");
                 return;
             }
@@ -13482,7 +13484,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String description = String.format("Removing paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
                 lastStep = workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
 
-                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId, adjustedPaths);
+                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
                 workflow.executePlan(completer, description + " completed successfully");
                 return;
             }

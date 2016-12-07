@@ -1534,7 +1534,21 @@ public class ExportMaskUtils {
     }
     
     /**
-     * Get new paths which are not in any of the export masks zoning maps from the giving paths
+     * Given a zone map as a Map of initiators to List of corresponding ports,
+     * return the union of all ports in the map.
+     * @param zoneMap Map<URI initiator, List<URI> portList>
+     * @return Set of all ports.
+     */
+    public static Set<URI> getAllPortsInZoneMap(Map<URI, List<URI>> zoneMap) {
+        Set<URI> result = new HashSet<URI>();
+        for (List<URI> ports : zoneMap.values()) {
+            result.addAll(ports);
+        }
+        return result;
+    }
+
+    /*
+     * Get new paths which are not in any of the export masks zoning maps from the given paths
      * 
      * @param dbClient
      * @param exportMasks
@@ -1576,7 +1590,6 @@ public class ExportMaskUtils {
             
         }
         return newPaths;
-        
     }
     
     /**
@@ -1628,17 +1641,7 @@ public class ExportMaskUtils {
      */
     public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
-        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
-        if (initiators == null || initiators.isEmpty()) {
-            return result;
-        }
-        Set<String> hostsInMask = new HashSet<String> ();
-        for (Initiator init : initiators) {
-            String hostName = init.getHostName();
-            if (hostName != null && !hostName.isEmpty()) {
-                hostsInMask.add(hostName);
-            }
-        }
+        Set<String> hostsInMask = getHostNamesInMask(exportMask, dbClient);
         for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
             URI initURI = entry.getKey();
             if (exportMask.getInitiators().contains(initURI.toString())) {
@@ -1656,5 +1659,26 @@ public class ExportMaskUtils {
                 
         return result;
         
+    }
+    
+    /**
+     * Returns the set of Hosts Names in an ExportMask
+     * @param exportMask
+     * @param dbClient
+     * @return Set of Hostnames
+     */
+    public static Set<String> getHostNamesInMask(ExportMask exportMask, DbClient dbClient) {
+        Set<String> hostsInMask = new HashSet<String> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return hostsInMask;
+        }
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        return hostsInMask;
     }
 }

@@ -34,6 +34,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoningAddPathsCompleter;
@@ -540,23 +541,23 @@ public class ExportWorkflowUtils {
      * @param waitFor - Wait on this step/group to complete in the workflow before execution
      * @param storageURI - Storage system URI
      * @param exportGroupURI - Export group URI
-     * @param exportMaskURI -- URI of the Export Mask
+     * @param exportMask --  the Export Mask
      * @param addedPaths - Paths going to be added or retained
      * @param removedPath - Paths going to be removed
      * @return - Step id
      * @throws ControllerException
      */
     public String generateExportAddPathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removedPaths) 
+            URI storageURI, URI exportGroupURI, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removedPaths) 
                     throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddPathsMethod(
-                storageURI, exportGroupURI, exportMask, adjustedPaths, removedPaths);
-        return newWorkflowStep(workflow, wfGroupId,
-                String.format("Export add paths on storage array %s for exportGroup %s exportMask %s",
-                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
-                storageSystem, method, null, waitFor);
+                storageURI, exportGroupURI, exportMask.getId(), adjustedPaths, removedPaths);
+        String stepDescription = String.format("Export add paths mask %s hosts %s", exportMask.getMaskName(), 
+                ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
+        return newWorkflowStep(workflow, wfGroupId, stepDescription,
+                storageSystem, method, rollbackMethodNullMethod(), waitFor);
     }
     
     /**
@@ -575,17 +576,17 @@ public class ExportWorkflowUtils {
      * @throws ControllerException
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
+            URI storageURI, URI exportGroupURI, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>> removePaths, boolean isPending) 
                     throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportRemovePathsMethod(
-                storageURI, exportGroupURI, exportMask, adjustedPaths, removePaths);
-        return newWorkflowStep(workflow, wfGroupId,
-                String.format("Remove paths on storage array %s for exportGroup %s exportMask %s",
-                        storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
-                storageSystem, method, null, waitFor);
+                storageURI, exportGroupURI, exportMask.getId(), adjustedPaths, removePaths);
+        String stepDescription = String.format("Export remove paths mask %s hosts %s", exportMask.getMaskName(), 
+                ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
+        return newWorkflowStep(workflow, wfGroupId, stepDescription,
+                storageSystem, method, rollbackMethodNullMethod(), waitFor);
     }
     
     /**

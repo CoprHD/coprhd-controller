@@ -130,7 +130,6 @@ import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
@@ -140,6 +139,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInit
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
@@ -13361,12 +13361,136 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     @Override
-    public void portRebalance(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> adjustedpaths,
-            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
+    public void portRebalance(URI vplex, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String stepId) throws Exception
     {
+        // Retrieve the ExportGroup and ExportMask and validate
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        if (exportGroup == null || exportMask == null || exportGroup.getInactive() || exportMask.getInactive() || 
+                !exportGroup.hasMask(exportMaskURI)) {
+            String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
+            _log.info(reason);
+            ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+            return;
+        }
         
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        // Refresh the ExportMask so we have the latest data.
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplex, _dbClient);
+        VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+        String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex, client, _dbClient);
+        VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+        _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
+        Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
+        VPlexControllerUtils.refreshExportMask(
+                _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
         
+        // Determine hosts in ExportMask
+        Set<URI> hostsInExportMask = new HashSet<URI>();
+        Set<String> hostNames = new HashSet<String>();
+        Set<Initiator> initiatorsInMask = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+        for (Initiator initiator : initiatorsInMask) {
+            if (initiator.getHost() != null) {
+               hostsInExportMask.add(initiator.getHost());
+            }
+            hostNames.add(initiator.getHostName());
+        }
+        boolean sharedMask = (hostsInExportMask.size() > 1);
         
+        if (isAdd) {
+            // Processing added paths only
+            Workflow workflow = _workflowService.getNewWorkflow(this, "portRebalance", false, stepId);
+            String lastStep = null;
+
+            // Determine initiators and targets to be added. 
+            // These are initiators not already in mask that are in a host in the mask.and
+            // initiators already in the mask with new ports.
+            List<URI> initiatorsToAdd = new ArrayList<URI>();
+            List<URI> targetsToAdd = new ArrayList<URI>();
+            for (URI initiatorURI : adjustedPaths.keySet()) {
+                if (!exportMask.hasInitiator(initiatorURI.toString())) {
+                    // Initiator not in ExportMask
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+                    if (initiator != null && !initiator.getInactive()) {
+                        if (hostsInExportMask.contains(initiator.getHost())) {
+                            initiatorsToAdd.add(initiatorURI);
+                            for (URI targetURI : adjustedPaths.get(initiatorURI)) {
+                                if (!exportMask.hasTargets(Arrays.asList(targetURI)) && 
+                                        !targetsToAdd.contains(targetURI)) {
+                                    targetsToAdd.add(targetURI);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Initiator already in ExportMask, look for additional targets
+                    for (URI targetURI : adjustedPaths.get(initiatorURI)) {
+                        if (!exportMask.hasTargets(Arrays.asList(targetURI)) && 
+                                !targetsToAdd.contains(targetURI)) {
+                            targetsToAdd.add(targetURI);
+                        }
+                    }
+
+                }
+            }
+            
+            // Invoke either storageViewAddInitiators or storageViewAddPorts as a step
+            Workflow.Method addPathsMethod = null;
+            if (!initiatorsToAdd.isEmpty() || !targetsToAdd.isEmpty()) {
+                if (!initiatorsToAdd.isEmpty()) {
+                    addPathsMethod = storageViewAddInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToAdd, targetsToAdd, sharedMask);
+                } else if (!targetsToAdd.isEmpty()) {
+                    addPathsMethod = storageViewAddStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, targetsToAdd);
+                }
+                String description = String.format("Adding paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
+                lastStep = workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, null);
+                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
+                completer.setNewInitiators(initiatorsToAdd);
+                completer.setNewStoragePorts(targetsToAdd);
+                workflow.executePlan(completer, description + " completed successfully");
+                return;
+            }
+            
+        } else {
+            // Processing the paths to be removed only, but want to see what is retained.
+            Workflow workflow = _workflowService.getNewWorkflow(this, "portRebalance", false, stepId);
+            String lastStep = null;
+            List<URI> initiatorsToBeRemoved = new ArrayList<URI>();
+
+            // Any initiators in the removedPaths not in the addedPaths will be removed
+            for (URI initiator : removedPaths.keySet()) {
+                if (exportMask.hasInitiator(initiator.toString()) && !adjustedPaths.keySet().contains(initiator)) {
+                    initiatorsToBeRemoved.add(initiator);
+                }
+            }
+            // Compute the targets to be removed.
+            Set<URI> targetsToBeRemoved = ExportMaskUtils.getAllPortsInZoneMap(removedPaths);
+            Collection<URI> targetsInMask = Collections2.transform(exportMask.getStoragePorts(), 
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI);
+            targetsToBeRemoved.retainAll(targetsInMask);
+            Set<URI> targetsToBeRetained = ExportMaskUtils.getAllPortsInZoneMap(adjustedPaths);
+            targetsToBeRemoved.removeAll(targetsToBeRetained);
+            List<URI> portsToBeRemoved = new ArrayList<URI>(targetsToBeRemoved);
+
+            // Call either storageViewRemoveInitiators or storageViewRemoveStoragePorts
+            Workflow.Method removePathsMethod = null;
+            if (!initiatorsToBeRemoved.isEmpty() || !portsToBeRemoved.isEmpty()) {
+                if (!initiatorsToBeRemoved.isEmpty()) {
+                    removePathsMethod = storageViewRemoveInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToBeRemoved, portsToBeRemoved);
+                } else {
+                    removePathsMethod = storageViewRemoveStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, portsToBeRemoved);
+                }
+                String description = String.format("Removing paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
+                lastStep = workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
+
+                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
+                workflow.executePlan(completer, description + " completed successfully");
+                return;
+            }
+        } 
+
+        // Apparently nothing to do, return success
+        WorkflowStepCompleter.stepSucceeded(stepId, "No operation performed on VPLEX mask");
     }
 }

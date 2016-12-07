@@ -941,6 +941,9 @@ public class ConnectivityUtil {
     public static String getVplexClusterForExportMask(ExportMask exportMask, URI vplexStorageSystemUri, DbClient dbClient) {
         String vplexCluster = CLUSTER_UNKNOWN;
         List<URI> storagePortUris = URIUtil.toURIList(exportMask.getStoragePorts());
+        if (storagePortUris == null) {
+            return CLUSTER_UNKNOWN;
+        }
         for (URI uri : storagePortUris) {
             StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);
             if ((storagePort != null)

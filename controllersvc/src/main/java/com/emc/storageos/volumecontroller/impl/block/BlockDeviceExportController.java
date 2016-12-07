@@ -1067,12 +1067,13 @@ public class BlockDeviceExportController implements BlockExportController {
                 for (ExportMask mask : exportMasks) {                    
                     URI maskURI = mask.getId();
                     stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                            maskURI, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                            mask, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
                 }
     
                 stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAjustedPathMap,
                         newPaths, stepId);
                 }
+
             boolean isPending = waitBeforeRemovePaths;
             
             if (removedPaths != null && !removedPaths.isEmpty() ) {
@@ -1081,7 +1082,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                     if (!removingPaths.isEmpty()) {
                         stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                                systemURI, exportGroupURI, mask.getId(), maskAjustedPathMap.get(maskURI), removingPaths, isPending);
+                                systemURI, exportGroupURI, mask, maskAjustedPathMap.get(maskURI), removingPaths, isPending);
                         isPending = false;
                     }
                 }

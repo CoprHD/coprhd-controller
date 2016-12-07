@@ -337,7 +337,7 @@ public final class ApiPrimitiveMaker {
                 if (subField.hasChildElements()) {
                     subPrefix = makeParameterName(parameterName, subField);
                 } else {
-                    subPrefix = prefix;
+                    subPrefix = parameterName;
                 }
                 builder.addAll(makeRequestParameters(fieldName, subPrefix,
                         subField));
@@ -371,7 +371,7 @@ public final class ApiPrimitiveMaker {
                 if (subField.hasChildElements()) {
                     subPrefix = makeParameterName(parameterName, subField);
                 } else {
-                    subPrefix = prefix;
+                    subPrefix = parameterName;
                 }
                 builder.addAll(makeResponseParameters(fieldName, subPrefix,
                         subField));

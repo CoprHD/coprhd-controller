@@ -46,8 +46,7 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
                     _log.error(String.format("Delete of Consistency group %s failed. Cleaning up the BlockConsistencyGroup object - "
                             + "replicationGroupName [%s], keepRGName [%s], markInactive [%s] ", consistencyGroup.getLabel(),
                             replicationGroupName, keepRGName, markInactive));
-                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storageSystem, replicationGroupName, keepRGName, markInactive,
-                            dbClient);
+                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storageSystem, replicationGroupName, markInactive, dbClient);
                     dbClient.updateObject(consistencyGroup);
                 }
                  

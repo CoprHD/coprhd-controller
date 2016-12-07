@@ -721,11 +721,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
 
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
+        //List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
         List<SearchResultResourceRep> volumeRefs =
                 client.blockVolumes().findRefsByProject( projectId, unexportedFilter.and(sourceTargetVolumesFilter) );
 
-        return createBaseResourceOptions(volumeRefs);
+        return createBaseResourceOptions2(volumeRefs);
     }
 
     @Asset("unassignedVplexBlockVolume")

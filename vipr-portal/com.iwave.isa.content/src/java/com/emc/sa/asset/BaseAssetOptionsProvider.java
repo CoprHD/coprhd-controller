@@ -107,7 +107,7 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
         return options;
     }
 
-    protected List<AssetOption> createBaseResourceOptions(List<SearchResultResourceRep> refs) {
+    protected List<AssetOption> createBaseResourceOptions2(List<SearchResultResourceRep> refs) {
         List<AssetOption> options = Lists.newArrayList();
         for (SearchResultResourceRep ref : refs) {
             options.add(createBaseResourceOption(ref));

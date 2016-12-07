@@ -48,6 +48,7 @@ import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.vipr.model.catalog.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -647,22 +648,22 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lby0:starTime={} endTime={} maxCount={} user={}",
                 new Object[] {startTimeStr, endTimeStr, maxCount, user.getName()});
         int max = Integer.parseInt(maxCount);
+        long startTimeInMS = 0;
+        long endTimeInMS = System.currentTimeMillis();
 
-        Date startTime = new Date(0);
         if (!startTimeStr.isEmpty()) {
-            startTime = getDateTimestamp(startTimeStr);
+            Date startTime = getDateTimestamp(startTimeStr);
+            startTimeInMS = startTime.getTime();
         }
-
-        Date endTime = new Date(); // now by default
 
         if (!endTimeStr.isEmpty()) {
-            endTime = getDateTimestamp(endTimeStr);
+            Date endTime = getDateTimestamp(endTimeStr);
+            endTimeInMS = endTime.getTime();
         }
 
-        TimeUtils.validateTimestamps(startTime, endTime);
-
-        long startTimeInMS= startTime.getTime();
-        long endTimeInMS = endTime.getTime();
+        if (startTimeInMS > endTimeInMS) {
+            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
+        }
 
         log.info("lby00 start={} end={} max={}", startTimeInMS, endTimeInMS, max);
         List<Order> orders = orderManager.getUserOrders(user, startTimeInMS, endTimeInMS, max);
@@ -698,7 +699,7 @@ public class OrderService extends CatalogTaggedResourceService {
      * @throws DatabaseException when a DB error occurs
      */
     @GET
-    @Path("/count")
+    @Path("/user-order-count")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderCount getUserOrderCount(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                       @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr)
@@ -798,21 +799,21 @@ public class OrderService extends CatalogTaggedResourceService {
      * @throws DatabaseException when a DB error occurs
      */
     @DELETE
-    @Path("/remove")
+    @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
                                  @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
-                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_ID_PARAM) String tenandID) {
+                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenandIDs) {
         StorageOSUser user = getUserFromContext();
 
-        log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenandID, user.getName()});
+        log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenandIDs, user.getName()});
 
         long now = System.currentTimeMillis();
         long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime)*1000;
         long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime)*1000;
 
-        OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tenandID);
+        OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tenandIDs);
         try {
             queue.put(job);
         }catch (Exception e) {
@@ -820,31 +821,6 @@ public class OrderService extends CatalogTaggedResourceService {
             log.error("{} e=", errMsg, e);
             APIException.internalServerErrors.genericApisvcError(errMsg, e);
         }
-
-        /*
-        AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(user.getName(), startTimeInMacros, endTimeInMacros, true);
-        NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
-        long matchedCount = 0;
-        _dbClient.queryByConstraint(constraint, queryResults);
-
-        for (NamedElementQueryResultList.NamedElement e : queryResults) {
-            matchedCount++;
-        }
-
-        log.info("lbyg0: {} to be deleted", matchedCount);
-        */
-        /*
-        Order order = queryResource(id);
-        ArgValidator.checkEntity(order, id, true);
-
-        if (order.getScheduledEventId()!=null) {
-            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
-        }
-
-        orderManager.deleteOrder(order);
-
-        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());
-        */
 
         return Response.ok().build();
     }

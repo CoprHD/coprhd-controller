@@ -5,7 +5,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.HashMap;
 import java.util.Map;
 
-@XmlRootElement(name = "ordercount")
+@XmlRootElement(name = "order_count")
 public class OrderCount {
     private Map<String, Long> countMap = new HashMap();
 

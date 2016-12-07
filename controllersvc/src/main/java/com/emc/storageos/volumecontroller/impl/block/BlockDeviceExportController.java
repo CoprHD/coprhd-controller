@@ -1077,12 +1077,16 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean isPending = waitBeforeRemovePaths;
             
             if (removedPaths != null && !removedPaths.isEmpty() ) {
+                // TODO -- externalize this
+                String suspendMessage = "Adjust/rescan host paths. Press \"Resume\" to start removal of unnecessary paths."
+                        + "\"Rollback\" will terminate the order without removing paths.";
                 for (ExportMask mask : exportMasks) {
                     URI maskURI = mask.getId();
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                     if (!removingPaths.isEmpty()) {
                         stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                                systemURI, exportGroupURI, mask, maskAjustedPathMap.get(maskURI), removingPaths, isPending);
+                                systemURI, exportGroupURI, mask, maskAjustedPathMap.get(maskURI), removingPaths, 
+                                isPending, suspendMessage);
                         isPending = false;
                     }
                 }

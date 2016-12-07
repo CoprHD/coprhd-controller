@@ -443,11 +443,10 @@ public class ExportWorkflowUtils {
             throws WorkflowRestartedException {
         return _workflowSvc.getNewWorkflow(_exportWfEntryPoints, name, rollback, opId);
     }
-
+    
     /**
      * Wrapper for WorkflowService.createStep. The method expects that the method and
      * rollback (if specified) are in the ExportWorkflowEntryPoints class.
-     * 
      * 
      * @param workflow - Workflow in which to add the step
      * @param groupId - String pointing to the group id of the step
@@ -473,6 +472,40 @@ public class ExportWorkflowUtils {
                 waitFor, storageSystem.getId(),
                 storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
                 rollback, null);
+    }
+
+    /**
+     * Wrapper for WorkflowService.createStep. The method expects that the method and
+     * rollback (if specified) are in the ExportWorkflowEntryPoints class.
+     * 
+     * @param workflow - Workflow in which to add the step
+     * @param groupId - String pointing to the group id of the step
+     * @param description - String description of the step
+     * @param storageSystem - StorageSystem object to which operation applies
+     * @param method - Step method to be called
+     * @param rollback - Step rollback method to be call (if any)
+     * @param waitFor - String of groupId of step to wait for
+     * @param setSuspend - Sets the suspend flag on the step
+     * @param suspendMessage -- String message that will be displayed on suspend
+     * 
+     * @return String the stepId generated for the step.
+     * @throws WorkflowException
+     */
+    public String newWorkflowStep(Workflow workflow,
+            String groupId, String description,
+            DiscoveredSystemObject storageSystem,
+            Workflow.Method method, Workflow.Method rollback,
+            String waitFor, boolean setSuspend, String suspendMessage)
+            throws WorkflowException {
+        if (groupId == null) {
+            groupId = method.getClass().getSimpleName();
+        }
+        String stepId =  workflow.createStep(groupId, description,
+                waitFor, storageSystem.getId(),
+                storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
+                rollback, setSuspend, null);
+        workflow.setSuspendedStepMessage(stepId, suspendMessage);
+        return stepId;
     }
 
     /**
@@ -572,12 +605,13 @@ public class ExportWorkflowUtils {
      * @param adjustedpaths
      * @param removePaths
      * @param isPending
+     * @param suspendMessage
      * @return
      * @throws ControllerException
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
             URI storageURI, URI exportGroupURI, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>> removePaths, boolean isPending) 
+            Map<URI, List<URI>> removePaths, boolean isPending, String suspendMessage) 
                     throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
@@ -586,7 +620,7 @@ public class ExportWorkflowUtils {
         String stepDescription = String.format("Export remove paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
         return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+                storageSystem, method, rollbackMethodNullMethod(), waitFor, isPending, suspendMessage);
     }
     
     /**

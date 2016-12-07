@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,10 @@ import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoningAddPathsCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoningRemovePathsCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowRestartedException;
@@ -551,7 +556,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Export add paths on storage array %s for exportGroup %s exportMask %s",
                         storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
-                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+                storageSystem, method, null, waitFor);
     }
     
     /**
@@ -580,7 +585,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Remove paths on storage array %s for exportGroup %s exportMask %s",
                         storageSystem.getNativeGuid(), storageURI, exportGroupURI.toString(), exportMask.toString()),
-                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+                storageSystem, method, null, waitFor);
     }
     
     /**
@@ -596,11 +601,13 @@ public class ExportWorkflowUtils {
      * @throws ControllerException
      */
     public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI systemURI, URI exportGroupURI, 
-            List<URI> exportMaskURIs, Map<URI, List<URI>>newPaths, String waitFor) throws ControllerException {
+            Map<URI, Map<URI, List<URI>>> exportMaskNewPathsMap, Map<URI, List<URI>>newPaths, String waitFor) throws ControllerException {
         String zoningStep = workflow.createStepId();
 
-        Workflow.Method zoningExecuteMethod = networkDeviceController
-                .zoneExportAddPathsMethod(systemURI, exportGroupURI, exportMaskURIs, newPaths);
+        ExportTaskCompleter taskCompleter = new ZoningAddPathsCompleter(exportGroupURI, zoningStep, exportMaskNewPathsMap);
+        List<URI> maskURIs = new ArrayList<URI> (exportMaskNewPathsMap.keySet());
+        Workflow.Method zoningExecuteMethod = networkDeviceController.zoneExportAddPathsMethod(systemURI, exportGroupURI, 
+                maskURIs, newPaths, taskCompleter);
 
         zoningStep = workflow.createStep(
                 wfGroupId,
@@ -615,24 +622,26 @@ public class ExportWorkflowUtils {
     /**
      * Generate workflow step for remove paths zoning
      * 
-     * @param workflow
-     * @param wfGroupId
-     * @param storageURI
-     * @param exportGroupURI
-     * @param removePaths
-     * @param waitFor
-     * @return
+     * @param workflow - workflow
+     * @param wfGroupId - workflow group id
+     * @param storageURI - system URI
+     * @param exportGroupURI - export group URI
+     * @param maskAjustedPathMap - adjusted paths per mask
+     * @param maskRemovePaths - remove paths per mask
+     * @param waitFor - wait for step
+     * @return - generated step id
      * @throws ControllerException
      */
     public String generateZoningRemovePathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
-            List<URI> exportMaskURIs, Map<URI, List<URI>>removePaths, String waitFor) throws ControllerException {
+            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap, Map<URI, Map<URI, List<URI>>> maskRemovePaths, String waitFor) 
+                    throws ControllerException {
 
         String zoningStep = workflow.createStepId();
-        
+        ZoningRemovePathsCompleter taskCompleter = new ZoningRemovePathsCompleter(exportGroupURI, zoningStep, maskAdjustedPathMap);
         List<NetworkZoningParam> zoningParams = NetworkZoningParam.
-                convertPathsToNetworkZoningParam(exportGroupURI, exportMaskURIs, removePaths, _dbClient);
+                convertPathsToNetworkZoningParam(exportGroupURI, maskRemovePaths, _dbClient);
         Workflow.Method zoningExecuteMethod = networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(zoningParams);
+                .zoneExportRemovePathsMethod(zoningParams, taskCompleter);
         zoningStep = workflow.createStep(
                 wfGroupId,
                 "Zoning subtask for remvoe paths: " + exportGroupURI,

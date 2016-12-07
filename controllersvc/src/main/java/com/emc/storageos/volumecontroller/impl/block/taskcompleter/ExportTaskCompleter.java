@@ -109,6 +109,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 case CREATE_EXPORT_GROUP:
                 case UPDATE_EXPORT_GROUP:
                 case DELETE_EXPORT_GROUP:
+                case EXPORT_PATH_ADJUSTMENT:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup
                             .getLabel(), exportGroup.getId().toString(), exportGroup.getVirtualArray()
                             .toString(), exportGroup.getProject().toString());

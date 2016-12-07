@@ -1660,7 +1660,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         

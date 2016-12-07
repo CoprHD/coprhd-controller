@@ -1255,7 +1255,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     }
     
     @Override
-    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>removedPaths, 
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths, 
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

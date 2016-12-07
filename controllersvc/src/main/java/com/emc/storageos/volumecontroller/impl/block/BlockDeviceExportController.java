@@ -1046,43 +1046,48 @@ public class BlockDeviceExportController implements BlockExportController {
             }
             
             String stepId = null;
-            List<URI> maskURIs = new ArrayList<URI> ();
-            Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
-            stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskURIs,
-                    newPaths, stepId);
             Map<URI, Map<URI, List<URI>>> maskAjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
-            for (ExportMask mask : exportMasks) {
-                Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
-                Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
-                maskAjustedPathMap.put(mask.getId(), adjustedPathForMask);
-                maskRemovePathMap.put(mask.getId(), removedPathForMask);
-                
-            }
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
                     _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
                             mask.getId().toString()));
                     continue;
                 }
-                URI maskURI = mask.getId();
-                stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                        maskURI, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
+                Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
+                maskAjustedPathMap.put(mask.getId(), adjustedPathForMask);
+                maskRemovePathMap.put(mask.getId(), removedPathForMask);
+                
             }
-
+            
+            List<URI> maskURIs = new ArrayList<URI> ();
+            Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
+            if (!newPaths.isEmpty()) {
+                for (ExportMask mask : exportMasks) {                    
+                    URI maskURI = mask.getId();
+                    stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
+                            maskURI, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                }
+    
+                stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAjustedPathMap,
+                        newPaths, stepId);
+                }
             boolean isPending = waitBeforeRemovePaths;
             
-            for (ExportMask mask : exportMasks) {
-                URI maskURI = mask.getId();
-                Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
-                if (!removingPaths.isEmpty()) {
-                    stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                            systemURI, exportGroupURI, mask.getId(), maskAjustedPathMap.get(maskURI), removingPaths, isPending);
-                    isPending = false;
+            if (removedPaths != null && !removedPaths.isEmpty() ) {
+                for (ExportMask mask : exportMasks) {
+                    URI maskURI = mask.getId();
+                    Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
+                    if (!removingPaths.isEmpty()) {
+                        stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
+                                systemURI, exportGroupURI, mask.getId(), maskAjustedPathMap.get(maskURI), removingPaths, isPending);
+                        isPending = false;
+                    }
                 }
+                stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAjustedPathMap,
+                        maskRemovePathMap, stepId);
             }
-            stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, 
-                    maskURIs, removedPaths, stepId);
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The Export group port rebalance workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
@@ -1097,41 +1102,4 @@ public class BlockDeviceExportController implements BlockExportController {
         }
     }
     
-    /**
-     * Get the remove path list for the exportMask in the given removedPaths.
-     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
-     * 
-     * @param exportMask 
-     * @param removedPaths - The list paths. some of them may not belong to the export mask.
-     * @return - The list of paths are going to be removed from the export mask.
-     */
-    private Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
-        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
-        StringSetMap zoningMap = exportMask.getZoningMap();
-        StringSet maskInitiators = exportMask.getInitiators();
-        if (removedPaths == null || removedPaths.isEmpty()) {
-            return result;
-        }
-        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
-            URI initiator = entry.getKey();
-            if (!maskInitiators.contains(initiator.toString())) {
-                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
-                continue;
-            }
-            List<URI> ports = entry.getValue();
-            List<URI> removePorts = new ArrayList<URI> ();
-            StringSet targets = zoningMap.get(initiator.toString());
-            if (targets != null && !targets.isEmpty()) {
-                for (URI port : ports) {
-                    if (targets.contains(port.toString())) {
-                        removePorts.add(port);
-                    }
-                }
-                if (!removePorts.isEmpty()) {
-                    result.put(initiator, removePorts);
-                }
-            } 
-        }
-        return result;
-    }
 }

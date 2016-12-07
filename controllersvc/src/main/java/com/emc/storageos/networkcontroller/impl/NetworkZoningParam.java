@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -165,13 +166,14 @@ public class NetworkZoningParam implements Serializable {
 	 * @return
 	 */
 	static public List<NetworkZoningParam> convertPathsToNetworkZoningParam(
-	        URI exportGroupURI, List<URI> exportMaskURIs, Map<URI, List<URI>> paths, DbClient dbClient) {
+	        URI exportGroupURI, Map<URI, Map<URI, List<URI>>> maskRemovePaths, DbClient dbClient) {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
 
         List<NetworkZoningParam> result = new ArrayList<NetworkZoningParam>();
-        for (URI maskURI : exportMaskURIs) {
+        for (Map.Entry<URI, Map<URI, List<URI>>> maskEntry : maskRemovePaths.entrySet()) {
+            URI maskURI = maskEntry.getKey();
             ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-            Map<URI, List<URI>> maskPaths = ExportMaskUtils.getRemovePathsForExportMask(mask, paths);
+            Map<URI, List<URI>> maskPaths = maskEntry.getValue();
             if (maskPaths.isEmpty()) {
                 continue;
             }

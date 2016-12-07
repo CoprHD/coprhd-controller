@@ -2635,8 +2635,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Map<URI, List<URI>> newPaths, String previousStep) throws Exception {
         
         String maskingStep = workflow.createStepId();
-        ExportTaskCompleter exportTaskCompleter = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, 
-                maskingStep, newPaths);
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
 
         Workflow.Method executeMethod = new Workflow.Method(
                 "doExportMaskAddPaths", storage.getId(), exportGroupURI, exportMaskURI,
@@ -2652,13 +2651,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
       
     
     public String generateExportMaskRemovePathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, 
-            URI exportMaskURI, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
+            URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
         
         String maskingStep = workflow.createStepId();
         ExportTaskCompleter exportTaskCompleter = new ExportOrchestrationTask(exportGroupURI, maskingStep);
 
         Workflow.Method executeMethod = new Workflow.Method(
-                "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI,
+                "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI, adjustedPaths, 
                 removePaths, exportTaskCompleter);
 
         maskingStep = workflow.createStep(EXPORT_MASK_REMOVE_PATHS_TASK,

@@ -120,10 +120,11 @@ public interface ExportMaskOperations {
      * 
      * @param storage
      * @param exportMaskURI
-     * @param newPaths
+     * @param adjustedPaths - paths (new and/or retained) in the export mask
+     * @param removePaths - paths to be removed
      * @param taskCompleter
      * @throws Exception
      */
-    public void removePaths(StorageSystem storage, URI exportMaskURI,
+    public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
 }

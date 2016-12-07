@@ -1260,9 +1260,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String customLocations = ",";
 
         // get the system access zones
-        namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE,
-                "isilon",
-                null);
+        DataSource ds = new DataSource();
+        ds.addProperty(CustomConfigConstants.ISILON_NO_DIR, "");
+        ds.addProperty(CustomConfigConstants.ISILON_DIR_NAME, "");
+        namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
+                ds);
+        namespace = namespace.replaceAll("=", "");
         systemAccessZone = IFS_ROOT + "/" + namespace + "/";
         // get the user access zone
         userAccessZone = getUserAccessZonePath(nasServer);

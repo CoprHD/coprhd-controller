@@ -2557,10 +2557,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private String getSystemAccessZoneNamespace() {
 
         String namespace = "";
-
+        DataSource dataSource = new DataSource();
+        dataSource.addProperty(CustomConfigConstants.ISILON_NO_DIR, "");
+        dataSource.addProperty(CustomConfigConstants.ISILON_DIR_NAME, "");
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
-                null);
-
+                dataSource);
+        // framework does't allow empty variable to be set. To work around if = is added to variable via conf and then remove it here
+        namespace = namespace.replaceAll("=", "");
         return namespace;
     }
 }

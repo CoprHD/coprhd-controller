@@ -3,7 +3,12 @@
 
 #{tenantSelector /}
 #{DataTable.header titleKey:'allOrders.title' /}
-<div class="max-days-selector" style="width: 810px; margin-left: -760px;margin-right:250px">
+
+
+<div class="max-days-selector" 
+#{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if} 
+#{else} style="margin-left: -170px;margin-right:170px" #{/else}
+>
   <div class="description" >&{'orders.maxDays'}</div>
   <div class="control" style="width:110px;">
   #{field 'maxDays'}
@@ -16,19 +21,17 @@
   #{/field}
   </div>
   
-  <label class="description">&{"orders.startDate"}:</label>
-  <div class="control" style="width:150px;">
+  <label class="description forRange">&{"orders.startDate"}:</label>
+  <div class="control forRange" style="width:150px;">
       <date-picker ng-model="scheduler.startDate" close="true"></date-picker>
-      <input type="hidden" name="scheduler.startDate" value="{{scheduler.startDate}}"/>
+      <input type="hidden" name="scheduler.startDate" value="2016-10-31"/>
    </div>
   
-   <label class="description">&{"orders.endDate"}:</label>
-   <div class="control" style="width:150px;">
+   <label class="description forRange">&{"orders.endDate"}:</label>
+   <div class="control forRange" style="width:150px;">
       <date-picker ng-model="scheduler.endDate" close="true"></date-picker>
       <input type="hidden" name="scheduler.endDate" value="{{scheduler.endDate}}"/>
    </div>
-  
-  
   
   <div class="clearfix"></div>
   
@@ -40,7 +43,7 @@
                   options: ['fnServerParams': 'addParams']}
         #{DataTable.buttonBar}
             #{Form.button name:'button.download', class:'primary', icon:'download', submit:'createForm'/}
-            #{Form.button name:'button.delete', class:'danger', icon:'minus', submit:'deleteForm',
+            #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm',
                                   data:['enabled':'selected', 'selection':'single', 'property':'canDelete', 'value':'true']/}
         #{/DataTable.buttonBar}
 
@@ -48,17 +51,29 @@
 
 <script type="text/javascript">
 function addParams(aoData) {
-    aoData.push({"name":"maxDays", "value":"${maxDays}"});
+	var param = "${maxDays}";
+	param = param == 0 ? 180: param;
+    aoData.push({"name":"maxDays", "value": param});
 }
 table.orders.dataTable.afterCreate(function(dataTable) {
     var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
     watchOrderStatus(dataTable.getDataTable(), itemsJson);
 });
 $(document).ready(function() {
+	var requestMaxDays = "${maxDays}";
+	if(requestMaxDays != 0) {
+	    $(".forRange").hide();
+	}
+	
     $('#maxDays').on('change', function() {
         var maxDays = $(this).val();
-        var url = #{jsAction @allOrders()/}()+"?maxDays="+maxDays;
-        window.location.href = url;
+        if(maxDays == 0) {
+        	$(".forRange").show();
+        	$('.max-days-selector').css({'width': '780px', 'margin-left': '-650px', 'margin-right':'170px'});
+        } else {
+            var url = #{jsAction @allOrders()/}()+"?maxDays="+maxDays;
+            window.location.href = url;
+        }
     });
 });
 </script>

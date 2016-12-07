@@ -1,7 +1,7 @@
 #{extends 'main.html' /} #{set navSelected: ['nav.orders',
 'nav.catalog', 'nav.viewOrders'] /}
 
-<div class="col-sm-6 controls">
+<!-- <div class="col-sm-6 controls">
 	<div class="row col-gap-sm">
 		<div class="col-xs-5">
 			<date-picker ng-model="myOrder.startDate" close="true"></date-picker>
@@ -19,8 +19,42 @@
 			</button>
 		</div>
 	</div>
+</div> -->
+#{DataTable.header titleKey:'orders.title'/} 
+
+<div class="max-days-selector" 
+#{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if} 
+#{else} style="margin-left: -170px;margin-right:170px" #{/else}
+>
+  <div class="description" >&{'orders.maxDays'}</div>
+  <div class="control" style="width:110px;">
+  #{field 'maxDays'}
+    %{
+      field.cssClass = 'input-sm'
+      field.options = maxDaysOptions
+      field.disableSearch = true
+    }%
+    #{Form.selectOne field:field/}
+  #{/field}
+  </div>
+  
+  <label class="description forRange">&{"orders.startDate"}:</label>
+  <div class="control forRange" style="width:150px;">
+      <date-picker ng-model="scheduler.startDate" close="true"></date-picker>
+      <input type="hidden" name="scheduler.startDate" value="2016-10-31"/>
+   </div>
+  
+   <label class="description forRange">&{"orders.endDate"}:</label>
+   <div class="control forRange" style="width:150px;">
+      <date-picker ng-model="scheduler.endDate" close="true"></date-picker>
+      <input type="hidden" name="scheduler.endDate" value="{{scheduler.endDate}}"/>
+   </div>
+  
+  <div class="clearfix"></div>
+  
 </div>
-#{DataTable.header titleKey:'orders.title'/} #{DataTable.table
+
+#{DataTable.table
 id:'orders', dataTable:dataTable, source:@listJson(),
 cssClass:'editableRows', options: ['fnServerParams': 'addParams']/}
 <script type="text/javascript">
@@ -41,4 +75,22 @@ function updateDateRange() {
 	var url = #{jsAction @list()/}()+"?startDate="+startDate+"&endDate="+endDate;
     window.location.href = url;
 }
+
+$(document).ready(function() {
+    var requestMaxDays = "${maxDays}";
+    if(requestMaxDays != 0) {
+        $(".forRange").hide();
+    }
+    
+    $('#maxDays').on('change', function() {
+        var maxDays = $(this).val();
+        if(maxDays == 0) {
+            $(".forRange").show();
+            $('.max-days-selector').css({'width': '780px', 'margin-left': '-650px', 'margin-right':'170px'});
+        } else {
+            var url = #{jsAction @allOrders()/}()+"?maxDays="+maxDays;
+            window.location.href = url;
+        }
+    });
+});
 </script>

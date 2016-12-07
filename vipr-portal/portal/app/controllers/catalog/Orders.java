@@ -135,6 +135,7 @@ public class Orders extends OrderExecution {
         dataTable.setUserInfo(Security.getUserInfo());
         renderArgs.put("startDate", params.get("startDate"));
         renderArgs.put("endDate", params.get("endDate"));
+        addMaxDaysRenderArgs();
         render(dataTable);
     }
 

@@ -49,8 +49,8 @@ public class ExportHLUProcessor extends StorageProcessor {
         WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
         CIMObjectPath maskingViewPath = null;
         try {
-            maskingViewPath = getObjectPathfromCIMArgument(args);
-            logger.debug("Masking view: {}", maskingViewPath.toString());
+            maskingViewPath = getObjectPathfromCIMArgument(args, keyMap);
+            logger.info("Masking view: {}", maskingViewPath.toString());
             UnManagedExportMask uem = getUnManagedExportMask(maskingViewPath);
             if (uem == null) {
                 logger.error("Skipping HLU discovery as the unmananged export mask with path {} doesn't exist in ViPR",
@@ -119,17 +119,19 @@ public class ExportHLUProcessor extends StorageProcessor {
 
                 String volume = protocolControllerForUnitInstance.getPropertyValue(SmisConstants.CP_DEPENDENT).toString();
                 CIMObjectPath volumePath = new CIMObjectPath(volume);
-                logger.debug("Volume path: {}" + volumePath.toString());
+                logger.debug("Volume path: {}", volumePath.toString());
                 // Check if storage volume exists in DB
                 String nativeGuid = getVolumeNativeGuid(volumePath);
                 Volume storageVolume = checkStorageVolumeExistsInDB(nativeGuid, dbClient);
                 if (storageVolume != null) {
+                    logger.debug("Volume: {}, HLU: {}", storageVolume.getId(), hlu);
                     knownVolumes.put(storageVolume.getId().toString(), hlu.toString());
                 } else {
                     // Check if unmanaged volume exists in DB
                     nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
                     UnManagedVolume umv = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
                     if (umv != null) {
+                        logger.debug("Unmanaged volume: {}, HLU: {}", umv.getId(), hlu);
                         unmanagedVolumes.put(umv.getId().toString(), hlu.toString());
                     } else {
                         logger.debug("Neither Volume nor UnManaged Volume found for {}", nativeGuid);

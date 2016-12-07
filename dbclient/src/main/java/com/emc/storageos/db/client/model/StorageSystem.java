@@ -146,6 +146,12 @@ public class StorageSystem extends DiscoveredSystemObject {
     private Long _lastArrayAffinityRunTime = 0L;
     private Long _nextArrayAffinityRunTime = 0L;
     private Long _successArrayAffinityTime = 0L;
+    
+    private String _lastExternalChangeStatusMessage;
+    private String _externalChangeStatus = DataCollectionJobStatus.CREATED.name();
+    private Long _lastExternalChangeRunTime = 0L;
+    private Long _nextExternalChangeRunTime = 0L;
+    private Long _successExternalChangeTime = 0L;
 
     public static enum SupportedFileReplicationTypes {
         REMOTE("remote"), LOCAL("local");
@@ -755,6 +761,57 @@ public class StorageSystem extends DiscoveredSystemObject {
     public void setSuccessArrayAffinityTime(Long time) {
         _successArrayAffinityTime = time;
         setChanged("successArrayAffinityTime");
+    }
+    
+    @Name("lastExternalChangeStatusMessage")
+    public String getLastExternalChangeStatusMessage() {
+        return _lastExternalChangeStatusMessage;
+    }
+
+    public void setLastExternalChangeStatusMessage(String _lastExternalChangeStatusMessage) {
+        this._lastExternalChangeStatusMessage = _lastExternalChangeStatusMessage;
+        setChanged("lastExternalChangeStatusMessage");
+    }
+
+    @EnumType(DataCollectionJobStatus.class)
+    @Name("externalChangeStatus")
+    public String getExternalChangeStatus() {
+        return _externalChangeStatus;
+    }
+
+    public void setExternalChangeStatus(String _externalChangeStatus) {
+        this._externalChangeStatus = _externalChangeStatus;
+        setChanged("externalChangeStatus");
+    }
+
+    @Name("lastExternalChangeRunTime")
+    public Long getLastExternalChangeRunTime() {
+        return _lastExternalChangeRunTime;
+    }
+
+    public void setLastExternalChangeRunTime(Long _lastExternalChangeRunTime) {
+        this._lastExternalChangeRunTime = _lastExternalChangeRunTime;
+        setChanged("lastExternalChangeRunTime");
+    }
+
+    @Name("nextExternalChangeRunTime")
+    public Long getNextExternalChangeRunTime() {
+        return _nextExternalChangeRunTime;
+    }
+
+    public void setNextExternalChangeRunTime(Long _nextExternalChangeRunTime) {
+        this._nextExternalChangeRunTime = _nextExternalChangeRunTime;
+        setChanged("nextExternalChangeRunTime");
+    }
+
+    @Name("successExternalChangeTime")
+    public Long getSsuccessExternalChangeTime() {
+        return _successExternalChangeTime;
+    }
+
+    public void setSuccessExternalChangeTime(Long _successExternalChangeTime) {
+        this._successExternalChangeTime = _successExternalChangeTime;
+        setChanged("successExternalChangeTime");
     }
 
     @Name("sharedStorageCapacity")

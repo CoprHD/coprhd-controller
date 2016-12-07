@@ -75,7 +75,7 @@ public class DataCollectionJobScheduler {
     private ScheduledExecutorService _dataCollectionExecutorService = null;
     private static final String ENABLE_METERING = "enable-metering";
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
-    private static final String ENABLE_AUTO_ECD_DISCOVER = "enable-externalchange-discovery";
+    private static final String ENABLE_AUTO_EXTERNAL_CHANGE_DISCOVERY = "enable-externalchange-discovery";
     private static final String ENABLE_ARRAYAFFINITY_DISCOVER = "enable-arrayaffinity-discovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
     private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
@@ -84,6 +84,7 @@ public class DataCollectionJobScheduler {
 
     private static final int initialScanDelay = 30;
     private static final int initialDiscoveryDelay = 90;
+    private static final int initialExternalChangeDiscoveryDelay = 3600;
     private static final int initialArrayAffinityDiscoveryDelay = 90;
     private static final int initialMeteringDelay = 60;
     private static final int initialConnectionRefreshDelay = 10;
@@ -105,6 +106,9 @@ public class DataCollectionJobScheduler {
 
         SCAN_INTERVALS("scan-interval", "scan-refresh-interval", initialScanDelay),
         DISCOVER_INTERVALS("discovery-interval", "discovery-refresh-interval", initialDiscoveryDelay),
+        EXTERNAL_CHANGE_DISCOVERY_INTERVALS("external-change-discovery-interval", 
+                                            "external-change-discovery-refresh-interval",
+                                            initialExternalChangeDiscoveryDelay),
         ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval", initialArrayAffinityDiscoveryDelay),       
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
@@ -147,27 +151,36 @@ public class DataCollectionJobScheduler {
             if (ControllerServiceImpl.SCANNER.equalsIgnoreCase(jobType)) {
                 return SCAN_INTERVALS;
             }
+            
             if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(jobType)) {
                 return DISCOVER_INTERVALS;
             }
+            
             if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return ARRAYAFFINITY_DISCOVER_INTERVALS;
             }
+            
+            if (ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY.equalsIgnoreCase(jobType)) {
+                return EXTERNAL_CHANGE_DISCOVERY_INTERVALS;
+            }
+            
             if (ControllerServiceImpl.NS_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return NS_DISCOVER_INTERVALS;
             }
+            
             if (ControllerServiceImpl.CS_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return CS_DISCOVER_INTERVALS;
             }
+            
             if (ControllerServiceImpl.METERING.equalsIgnoreCase(jobType)) {
                 return METERING_INTERVALS;
             }
+            
             if (ControllerServiceImpl.COMPUTE_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return COMPUTE_DISCOVER_INTERVALS;
             } 
-            else {
-                return null;
-            }
+            
+            return null;
         }
 
         public static long getMaxIdleInterval() {
@@ -197,13 +210,14 @@ public class DataCollectionJobScheduler {
         boolean enableAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTODISCOVER));
         boolean enableArrayAffinityDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_ARRAYAFFINITY_DISCOVER));
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
-        boolean enableAutoEcdDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTO_ECD_DISCOVER));
+        boolean enableAutoEcd = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTO_EXTERNAL_CHANGE_DISCOVERY));
         
 
         // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
         // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
         if (!PlatformUtils.isOssBuild() && (enableAutoScan || enableAutoDiscovery || enableAutoMetering)) {
-            String numOfNodesString = _coordinator.getPropertyInfo().getProperty(PropertyConstants.NODE_COUNT_KEY);
+            String numOfNodesString = _coordinator.getPropertyInfo().getProperty(
+                                      PropertyConstants.NODE_COUNT_KEY);
             if (numOfNodesString != null && numOfNodesString.equals("1")) {
 
                 boolean enableAutoOpsSingleNodeString = false;
@@ -261,6 +275,16 @@ public class DataCollectionJobScheduler {
             _logger.info("Array Affinity discovery is enabled with interval {}", intervals.getInterval());
         } else {
             _logger.info("Array Affinity discovery is disabled");
+        }
+        
+        if (enableAutoEcd) {
+            JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY);
+            schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY),
+                    intervals.getInitialDelay(),
+                    intervals.getInterval());
+            _logger.info("External change discovery is enabled with interval {}", intervals.getInterval());
+        } else {
+            _logger.info("External change discovery is disabled");
         }
 
         if (enableAutoMetering) {
@@ -452,6 +476,10 @@ public class DataCollectionJobScheduler {
                     }
                 }
             }
+        } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY)) {
+            addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
+            //TODO - what about protection systems? If it has to be considered, remove this if condition
+            // the else condition below alone is good
         } else {
             addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
             addToList(allSystemsURIs, _dbClient.queryByType(ProtectionSystem.class, true).iterator());
@@ -553,12 +581,18 @@ public class DataCollectionJobScheduler {
             String jobType, String taskId, URI systemURI) {
         DataCollectionJob job = null;
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(jobType)) {
-            MeteringTaskCompleter completer = new MeteringTaskCompleter(systemClass, systemURI,
-                    taskId);
+            MeteringTaskCompleter completer = new MeteringTaskCompleter(systemClass, systemURI, taskId);
             job = new DataCollectionMeteringJob(completer, DataCollectionJob.JobOrigin.SCHEDULER);
+        } else if (ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY.equalsIgnoreCase(jobType)) {
+            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI,
+                                                                        taskId, jobType);
+            job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER,
+                                                Discovery_Namespaces.DETECT_EXTERNAL_CHANGES.toString());
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(jobType)) {
-            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI, taskId, jobType);
-            job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ALL.toString());
+            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI,
+                                                                        taskId, jobType);
+            job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER,
+                                                Discovery_Namespaces.ALL.toString());
         }
 
         return job;
@@ -695,9 +729,10 @@ public class DataCollectionJobScheduler {
         // COP-20052 if an unmanaged CG discovery is requested, just run it
         if (!scheduler &&
                 (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
-                        Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
-                        Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
-                Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
+                 Discovery_Namespaces.DETECT_EXTERNAL_CHANGES.name().equalsIgnoreCase(namespace) ||
+                 Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
+                 Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
+                 Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
             _logger.info(namespace + " discovery has been requested by the user, scheduling now...");
             return true;
         }
@@ -832,6 +867,8 @@ public class DataCollectionJobScheduler {
             return storageSystem.getLastMeteringRunTime();
         } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
             return ((StorageSystem) storageSystem).getLastArrayAffinityRunTime();
+        } else if (ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) storageSystem).getLastExternalChangeRunTime();
         } else {
             return storageSystem.getLastDiscoveryRunTime();
         }
@@ -843,6 +880,8 @@ public class DataCollectionJobScheduler {
             return storageSystem.getNextMeteringRunTime();
         } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
             return ((StorageSystem) storageSystem).getNextArrayAffinityRunTime();
+        } else if (ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) storageSystem).getNextExternalChangeRunTime();
         } else {
             return storageSystem.getNextDiscoveryRunTime();
         }
@@ -861,6 +900,8 @@ public class DataCollectionJobScheduler {
             return system.getMeteringStatus();
         } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
             return ((StorageSystem) system).getArrayAffinityStatus();
+        } else if (ControllerServiceImpl.EXTERNAL_CHANGE_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) system).getExternalChangeStatus();
         } else {
             return system.getDiscoveryStatus();
         }

@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller.impl;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -79,6 +80,7 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
@@ -2593,5 +2595,147 @@ public class NetworkDeviceController implements NetworkController {
                     + ex.getMessage());
         }
         return alwaysRefresh;
+    }
+    
+    /**
+     * Adds paths to the export mask.
+     * 
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param newPaths - new paths to be added
+     * @return
+     */
+    public Workflow.Method zoneExportAddPathsMethod(URI systemURI, URI exportGroupURI, Collection<URI> exportMasks, 
+            Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter) {
+        return new Workflow.Method("zoneExportAddPaths", systemURI, exportGroupURI, exportMasks, newPaths, taskCompleter);
+    }
+
+    /**
+     * Handle zoning for adding new paths to export mask.
+     * 
+     * @param exportGroup -- Used for the zone references.
+     * @param exportMaskURI - ExportMask URI
+     * @param newPaths - new paths to be added
+     * @param token Workflow step id
+     * @return true if success, false otherwise
+     * @throws ControllerException
+     */
+    public boolean zoneExportAddPaths(URI systemURI, URI exportGroupURI,
+            Collection<URI> exportMaskURIs,
+            Map<URI, List<URI>> newPaths,
+            TaskCompleter taskCompleter,
+            String token) throws ControllerException {
+        NetworkFCContext context = new NetworkFCContext();
+        boolean status = false;
+        ExportGroup exportGroup = _dbClient
+                .queryObject(ExportGroup.class, exportGroupURI);
+        _log.info(String.format("Entering zoneExportAddPaths for ExportGroup: %s (%s)",
+                exportGroup.getLabel(), exportGroup.getId()));
+        try {
+            if (!isZoningRequired(exportGroup.getVirtualArray())) {
+                _log.info("The zoning is not required.");
+                taskCompleter.ready(_dbClient);
+                return true;
+            }
+
+            // get existing zones on the switch
+            Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMaskURIs, token);
+
+            // Compute zones that are required.
+            List<NetworkFCZoneInfo> zoneInfos =
+                    _networkScheduler.getZoningTargetsForPaths(systemURI, exportGroup, newPaths, zonesMap, _dbClient);
+            context.getZoneInfos().addAll(zoneInfos);
+            logZones(zoneInfos);
+
+            // If there are no zones to do, we were successful.
+            if (context.getZoneInfos().isEmpty()) {
+                taskCompleter.ready(_dbClient);;
+                return true;
+            }
+
+            // Now call addZones to add all the required zones.
+            BiosCommandResult result = addRemoveZones(exportGroup.getId(),
+                    context.getZoneInfos(), false);
+            status = result.isCommandSuccess();
+            if (status) {
+                taskCompleter.ready(_dbClient);
+            } else {
+                ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddPathsError(
+                        result.getMessage());
+                taskCompleter.error(_dbClient, svcError);
+            }
+
+            return status;
+        } catch (Exception ex) {
+            _log.error("Exception zoning add paths", ex);
+            ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddPathsFailed(
+                    ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
+            return status;
+        }
+    }
+    
+    /**
+     * Adds paths to the export mask.
+     * 
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param newPaths - new paths to be added
+     * @return
+     */
+    public Workflow.Method zoneExportRemovePathsMethod(List<NetworkZoningParam> zoningParam, TaskCompleter taskCompleter) {
+        return new Workflow.Method("zoneExportRemovePaths", zoningParam, taskCompleter);
+    }
+    
+    public boolean zoneExportRemovePaths(List<NetworkZoningParam> zoningParams, TaskCompleter taskCompleter, String token) {
+        if (zoningParams.isEmpty()) {
+            _log.info("zoningParams is empty, returning");
+            taskCompleter.ready(_dbClient);
+            return true;
+        }
+        NetworkFCContext context = new NetworkFCContext();
+        boolean status = false;
+        URI exportGroupId = zoningParams.get(0).getExportGroupId();
+        URI virtualArray = zoningParams.get(0).getVirtualArray();
+        _log.info(String.format("Entering zoneExportRemovePaths for ExportGroup: %s",
+                zoningParams.get(0).getExportGroupDisplay()));
+        try {
+            if(!isZoningRequired(virtualArray)) {
+                taskCompleter.ready(_dbClient);
+                return true;
+            }
+            context.setAddingZones(false);
+
+            // Get the zoning targets to be removed.
+            List<NetworkFCZoneInfo> zoneInfos = _networkScheduler.getZoningRemoveTargets(zoningParams, null);
+            context.getZoneInfos().addAll(zoneInfos);
+            logZones(zoneInfos);
+
+            // If there are no zones to do, we were successful.
+            if (context.getZoneInfos().isEmpty()) {
+                taskCompleter.ready(_dbClient);
+                return true;
+            }
+
+            // Now call removeZones to remove all the required zones.
+            BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
+            status = result.isCommandSuccess();
+
+            if (status) {
+                taskCompleter.ready(_dbClient);
+            } else {
+                ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemovePathsError(
+                        result.getMessage());
+                taskCompleter.error(_dbClient, svcError);
+            }
+            return status;
+
+        } catch (Exception ex) {
+            _log.error("Exception zoning remove initiators", ex);
+            ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemovePathsFailed(
+                    ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
+            return status;
+        }
     }
 }

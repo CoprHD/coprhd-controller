@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import static com.google.common.collect.Sets.newHashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
@@ -1529,5 +1531,130 @@ public class ExportMaskUtils {
         }
 
         return normalizedPorts.containsAll(maskInitiators);
+    }
+    
+    /**
+     * Get new paths which are not in any of the export masks zoning maps from the giving paths
+     * 
+     * @param dbClient
+     * @param exportMasks
+     * @param maskURIs - OUTPUT the export masks URI list which have zoning map entries
+     * @param paths - new and retained paths
+     * @return - the new paths for the export masks
+     */
+    public static Map<URI, List<URI>> getNewPaths(DbClient dbClient, List<ExportMask> exportMasks,
+            List<URI> maskURIs, Map<URI, List<URI>> paths) {
+    
+        Map<URI, List<URI>> newPaths = new HashMap<URI, List<URI>>();
+        StringSetMap allZoningMap = new StringSetMap();
+        for (ExportMask mask : exportMasks) {
+            StringSetMap map = mask.getZoningMap();
+            if (map != null && !map.isEmpty()) {
+                for (String init : map.keySet()) {
+                    StringSet allPorts = allZoningMap.get(init);
+                    if (allPorts == null) {
+                        allPorts = new StringSet();
+                        allZoningMap.put(init, allPorts);
+                    }
+                    allPorts.addAll(map.get(init));
+                }
+                maskURIs.add(mask.getId());
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : paths.entrySet()) {
+            URI init = entry.getKey();
+            List<URI> entryPorts = entry.getValue();
+            StringSet zoningPorts = allZoningMap.get(init.toString());
+            if (zoningPorts != null && !zoningPorts.isEmpty()) {
+                List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(entryPorts), zoningPorts));
+                if (diffPorts != null && !diffPorts.isEmpty()) {
+                    newPaths.put(init, diffPorts);
+                }
+            } else {
+                newPaths.put(init, entryPorts);
+            }
+            
+        }
+        return newPaths;
+        
+    }
+    
+    /**
+     * Get the remove path list for the exportMask in the given removedPaths.
+     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
+     * 
+     * @param exportMask 
+     * @param removedPaths - The list paths. some of them may not belong to the export mask.
+     * @return - The list of paths are going to be removed from the export mask.
+     */
+    public static Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (removedPaths == null || removedPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> removePorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (targets.contains(port.toString())) {
+                        removePorts.add(port);
+                    }
+                }
+                if (!removePorts.isEmpty()) {
+                    result.put(initiator, removePorts);
+                }
+            } 
+        }
+        return result;
+    }
+    
+    /**
+     * Get adjusted paths per export mask. the members in the adjusted paths could belong to different export masks in the same export group
+     * This method would check on the initiators in the export mask, if the path initiator belong to the same host as the initiators in the 
+     * export mask, then the path belongs to the export mask.
+     * 
+     * @param exportMask - export mask
+     * @param adjustedPaths - The list of the adjusted paths (new and retained) for the export group
+     * @param dbClient
+     * @return The path belongs to the export mask
+     */
+    public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return result;
+        }
+        Set<String> hostsInMask = new HashSet<String> ();
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
+            URI initURI = entry.getKey();
+            if (exportMask.getInitiators().contains(initURI.toString())) {
+                result.put(initURI, entry.getValue());
+            } else {
+                Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
+                String hostName = initiator.getHostName();
+                if (hostName != null && !hostName.isEmpty()) {
+                    if (hostsInMask.contains(hostName)) {
+                        result.put(initURI, entry.getValue());
+                    }
+                } 
+            }
+        }
+                
+        return result;
+        
     }
 }

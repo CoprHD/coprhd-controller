@@ -12,8 +12,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="block_export_port_rebalance")
-public class ExportPortRebalanceParam {
+@XmlRootElement(name="block_export_paths_adjustment")
+public class ExportPathsAdjustmentParam {
     private URI storageSystem;
     private ExportPathParameters exportPathParameters;
     private List<InitiatorPathParam> adjustedPaths;
@@ -33,9 +33,9 @@ public class ExportPortRebalanceParam {
     }
     
     /**
-     * Export path parameter to be used. if not specified, the existing path parameters would be used.
+     * Export path parameter to be used.
      */
-    @XmlElement(name="path_parameters", required=false)
+    @XmlElement(name="path_parameters", required=true)
     public ExportPathParameters getExportPathParameters() {
         return exportPathParameters;
     }

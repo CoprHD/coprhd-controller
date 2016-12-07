@@ -15,9 +15,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
-@XmlRootElement(name = "port_allocate_preview")
+@XmlRootElement(name = "export_paths_adjustment_preview")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class PortAllocatePreviewRestRep {
+public class ExportPathsAdjustmentPreviewRestRep {
     
     private List<InitiatorPortMapRestRep> adjustedPaths;
     private List<InitiatorPortMapRestRep> removedPaths;
@@ -32,7 +32,7 @@ public class PortAllocatePreviewRestRep {
     }
 
     @XmlElementWrapper(name = "adjusted_paths") 
-    public List<InitiatorPortMapRestRep> getAddedPaths() {
+    public List<InitiatorPortMapRestRep> getAdjustedPaths() {
         if (adjustedPaths == null) {
             adjustedPaths = new ArrayList<InitiatorPortMapRestRep>();
         }

@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAdd
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -2654,7 +2655,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
         
         String maskingStep = workflow.createStepId();
-        ExportTaskCompleter exportTaskCompleter = new ExportOrchestrationTask(exportGroupURI, maskingStep);
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskRemovePathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
 
         Workflow.Method executeMethod = new Workflow.Method(
                 "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI, adjustedPaths, 

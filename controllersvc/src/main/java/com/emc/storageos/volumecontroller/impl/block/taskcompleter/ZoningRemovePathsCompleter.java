@@ -14,7 +14,6 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ZoningRemovePathsCompleter extends ExportTaskCompleter{
 
@@ -37,7 +36,6 @@ public class ZoningRemovePathsCompleter extends ExportTaskCompleter{
                     Map<URI, List<URI>> zoningPaths = maskPathEntry.getValue();
                     ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskURI);
                     // update zoning map
-                    //StringSetMap newZoningMap = ExportMaskUtils.getZoneMapFromAssignments(zoningPaths);
                     StringSetMap zoningMap = exportMask.getZoningMap();
                     zoningMap.clear();
                     for (Map.Entry<URI, List<URI>> zoningPath : zoningPaths.entrySet()) {

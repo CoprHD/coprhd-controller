@@ -343,8 +343,8 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
-URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/port-allocate-preview' 
-URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/port-rebalance' 
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'

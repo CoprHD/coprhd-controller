@@ -11,7 +11,7 @@
     <profile name="base" description="ADG default"/>
   </profiles>
   <preferences>
-    <version>__VERSION__</version>
+    <version>0.0.0</version>
     <packagemanager>zypper</packagemanager>
     <bootsplash-theme>SLES</bootsplash-theme>
     <bootloader-theme>SLES</bootloader-theme>
@@ -20,6 +20,8 @@
     <keytable>us.map.gz</keytable>
     <timezone>US + Canada/Eastern Time</timezone>
     <hwclock>utc</hwclock>
+</preferences>
+<preferences profiles="appliance">
     <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=1 boot=/dev/sda1">
       <systemdisk name="systemVG">
         <volume name="swap" size="6144"/>
@@ -51,10 +53,19 @@
     <source path="/slesmedia/12-SLES-DVD1"/>
   </repository>
   <packages type="image" profiles="base,appliance">
+    <package name="haveged" bootinclude="true"/>
+    <package name="libfipscheck1" bootinclude="true"/>
+    <package name="openssh-fips" bootinclude="true"/>
+    <package name="fipscheck" bootinclude="true"/>
+    <package name="dracut-fips" bootinclude="true"/>
+    <package name="libcryptsetup4-hmac" bootinclude="true"/>
+    <package name="libgcrypt20-hmac" bootinclude="true"/>
+    <package name="libopenssl1_0_0-hmac" bootinclude="true"/>
+    <package name="libsoftokn3-hmac" bootinclude="true"/>
     <package name="audit"/>
-	<package name="apache-commons-daemon"/>
-	<package name="apache-commons-logging"/>
-	<package name="apache2-utils"/>
+    <package name="apache-commons-daemon"/>
+    <package name="apache-commons-logging"/>
+    <package name="apache2-utils"/>
     <package name="atmel-firmware"/>
     <package name="augeas-lenses"/>
     <package name="autoyast2-installation"/>
@@ -108,8 +119,8 @@
     <package name="openssh"/>
     <package name="pam-modules"/>
     <package name="parted"/>
-	<package name="pciutils"/>
-	<package name="pciutils-ids"/>
+    <package name="pciutils"/>
+    <package name="pciutils-ids"/>
     <package name="perl-Config-Crontab"/>
     <package name="perl-IO-Socket-INET6"/>
     <package name="perl-XML-Writer"/>

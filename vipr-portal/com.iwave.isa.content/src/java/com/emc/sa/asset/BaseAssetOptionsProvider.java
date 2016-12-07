@@ -113,6 +113,13 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
             options.add(createBaseResourceOption(ref));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
+
+        getLog().info("===== options start");
+        for (AssetOption option : options) {
+            String msg = String.format("========== option is %s, %s", option.key, option.value);
+            getLog().info(msg);
+        }
+        getLog().info("===== options end");
         return options;
     }
 

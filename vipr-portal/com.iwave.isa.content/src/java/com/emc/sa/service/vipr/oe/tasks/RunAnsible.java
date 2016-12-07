@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.oe.tasks;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -52,7 +53,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     public RunAnsible(final Step step, final Map<String, List<String>> input) {
         this.step = step;
         this.input = input;
-        orderDir = "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
+        orderDir = OrchestrationServiceConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
     }
 
     @Override
@@ -62,7 +63,12 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         //TODO Get playbook/package from DB
 
         final String extraVars = makeExtraArg(input);
-        createOrderDir();
+
+        //TODO After the column family implementation will use this context directory instead of PATH
+        if (createOrderDir(orderDir) == false) {
+            logger.error("Failed to create Order directory:{}", orderDir);
+            return null;
+        }
 
         final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
 
@@ -114,8 +120,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return new OrchestrationTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
-    private void createOrderDir() {
-
+    private boolean createOrderDir(String dir) {
+        logger.info("order dir:{}", dir);
+        File file = new File(dir);
+        if (!file.exists()) {
+            return file.mkdir();
+        } else {
+            logger.error("Cannot create directory. Already exists. Dir:{}", dir);
+            return false;
+        }
     }
 
     //TODO Hard coded everything for testing.

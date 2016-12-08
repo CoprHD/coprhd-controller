@@ -112,7 +112,7 @@ public class FilePolicyService extends TaskResourceService {
                 getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.FilePolicyResourceFilter(getUserFromContext(), _permissionsHelper);
         return new FilePolicyBulkRep(BulkList.wrapping(_dbIterator,
-                MapFilePolicy.getInstance(), filter));
+                MapFilePolicy.getInstance(_dbClient), filter));
     }
 
     @Override
@@ -227,7 +227,7 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.forbidden.tenantCannotAccessFilePolicy(filepolicy.getFilePolicyName());
         }
 
-        return map(filepolicy);
+        return map(filepolicy, _dbClient);
     }
 
     @DELETE

@@ -92,7 +92,12 @@ public class FilePolicyMapper {
                         Iterator<? extends DataObject> resourceIterator = dbClient.queryIterativeObjects(clazz, resourceURIs);
                         while (resourceIterator.hasNext()) {
                             DataObject dataObject = resourceIterator.next();
-                            resp.addAssignedResource(DbObjectMapper.toNamedRelatedResource(dataObject));
+                            if (FilePolicyApplyLevel.vpool == level) {
+                                resp.addAssignedResource(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
+                                        dataObject.getId(), dataObject.getLabel()));
+                            } else {
+                                resp.addAssignedResource(DbObjectMapper.toNamedRelatedResource(dataObject));
+                            }
                         }
                     }
                 }

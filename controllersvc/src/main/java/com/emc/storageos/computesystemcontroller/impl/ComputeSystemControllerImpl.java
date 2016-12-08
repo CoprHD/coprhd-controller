@@ -77,7 +77,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -1020,6 +1019,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
                     removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
+
+            // No code should be added following the call to the block controller to preserve rollback integrity
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
             // Clean up any pending tasks
@@ -1231,7 +1232,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_029);
-            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1293,7 +1293,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                     // Test mechanism to invoke a failure. No-op on production systems.
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
-                    
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
@@ -1421,7 +1420,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_027);
-            
             blockController.exportGroupDelete(exportGroup, stepId);
 
             // Test mechanism to invoke a failure. No-op on production systems.
@@ -1538,12 +1536,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_032);
-            
             ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_033);
-            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error("Exception occured while updating host and initiator cluster references {} - {}", hostId, clusterId, ex);

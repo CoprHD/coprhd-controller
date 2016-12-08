@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(RebuildIndexDuplicatedCFNameMigration.class);
+    private int totalProccessedClassCount = 0;
 
     @Override
     public void process() throws MigrationCallbackException {
@@ -68,7 +70,7 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
                 handleDataObjectClass(duplciatedIndexDataObject);
             }
 
-            log.info("Total Classes: {}" + duplciatedIndexDataObjects.size());
+            log.info("Total Classes: {}", totalProccessedClassCount);
         } catch (Exception e) {
             log.error("Failed to fun migration handler RebuildIndexDuplicatedCFName {}", e);
         }
@@ -81,8 +83,14 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
 
         InternalDbClient dbClient = (InternalDbClient) getDbClient();
         DataObjectType doType = TypeMap.getDoType((Class<? extends DataObject>) Class.forName(duplciatedIndexDataObject.getClassName()));
-        Keyspace keyspace = KeyspaceUtil.isGlobal(doType.getDataObjectClass()) ?
-                dbClient.getGeoContext().getKeyspace() : dbClient.getLocalContext().getKeyspace();
+        
+        if (KeyspaceUtil.isGlobal(doType.getDataObjectClass())) {
+            log.info("Skip global model {}", duplciatedIndexDataObject.getClassName());
+            return;
+        }
+        
+        totalProccessedClassCount++;
+        Keyspace keyspace = dbClient.getLocalContext().getKeyspace();
 
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
         OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(100).execute();
@@ -112,7 +120,7 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             Row<String, CompositeColumnName> objRow, Keyspace keyspace) throws InstantiationException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException {
         Set<String> fields = new HashSet<String>();
-        Map<String, CompositeColumnName> valueColumnMap = new HashMap<String, CompositeColumnName>();
+        Map<FieldValueTimeUUIDPair, CompositeColumnName> valueColumnMap = new HashMap<FieldValueTimeUUIDPair, CompositeColumnName>();
         int totalCleanupCount = 0;
 
         for (FieldInfo field : entry.getValue()) {
@@ -133,7 +141,7 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
                 continue;
             }
 
-            String key = String.format("%s:%s", valueObject.toString(), column.getName().getTimeUUID());
+            FieldValueTimeUUIDPair key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
             if (valueColumnMap.containsKey(key)) {
                 totalCleanupCount++;
                 rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, keyspace);
@@ -142,7 +150,9 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             }
         }
 
-        log.info("Total cleanup {} for {}", totalCleanupCount, objRow.getKey());
+        if (totalCleanupCount > 0) {
+            log.info("Total cleanup {} for {}", totalCleanupCount, objRow.getKey());
+        }
         return totalCleanupCount;
     }
 
@@ -158,5 +168,51 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
         columnField.serialize(dataObject, rowMutator);
         
         rowMutator.execute();
+    }
+
+    public int getTotalProccessedClassCount() {
+        return totalProccessedClassCount;
+    }   
+}
+
+class FieldValueTimeUUIDPair {
+    private Object fieldValue;
+    private UUID timeUUID;
+
+    public FieldValueTimeUUIDPair(Object fieldValue, UUID timeUUID) {
+        super();
+        this.fieldValue = fieldValue;
+        this.timeUUID = timeUUID;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((fieldValue == null) ? 0 : fieldValue.hashCode());
+        result = prime * result + ((timeUUID == null) ? 0 : timeUUID.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        FieldValueTimeUUIDPair other = (FieldValueTimeUUIDPair) obj;
+        if (fieldValue == null) {
+            if (other.fieldValue != null)
+                return false;
+        } else if (!fieldValue.equals(other.fieldValue))
+            return false;
+        if (timeUUID == null) {
+            if (other.timeUUID != null)
+                return false;
+        } else if (!timeUUID.equals(other.timeUUID))
+            return false;
+        return true;
     }
 }

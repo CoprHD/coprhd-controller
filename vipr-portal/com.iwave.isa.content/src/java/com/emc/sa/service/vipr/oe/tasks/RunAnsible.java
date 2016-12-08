@@ -83,8 +83,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
             case LOCAL_ANSIBLE:
                 try {
                     untarPackage("ansi.tar");
-                    final String ips = getHosts();
-                    result = executeLocal(ips, extraVars, OrchestrationServiceConstants.PATH +
+                    final String hosts = getHostFile();
+                    result = executeLocal(hosts, extraVars, OrchestrationServiceConstants.PATH +
                             FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
                 } catch (final IOException e) {
                     logger.info("Unable to perform Local Ansible task {}", e);
@@ -132,29 +132,38 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     //TODO Hard coded everything for testing.
-    //During upload of primitive, user will specify if hosts file is needed or not?
-    //If needed then they will specify the List of hosts group (e.g: webservers, linuxhosts ...etc)
-    //These information Runner will get from primitives.
-    //Once it gets the meta data from the primitive it will get the values from input
+    //During upload of primitive, user will specify if hosts file is already present or not?
+    //If already present, then get it from the param
+    //If not present, dynamically create one with the given hostgroups and IpAddress(e.g: webservers, linuxhosts ...etc)
+    //If nothing is given by user default to localhost
 
-    String getHosts() throws IOException {
-        final boolean isHostFileRequired = true;
-        final String ips;
-        if (isHostFileRequired) {
-            List<String> lines = Arrays.asList("[webservers]", "10.247.66.88");
-            Path file = Paths.get("/opt/storageos/hosts");
-            Files.write(file, lines, Charset.forName("UTF-8"));
-            ips = "/opt/storageos/hosts";
+    private String getHostFile() throws IOException {
+        final boolean isHostFilePresent = true;
+        String hosts;
+        if (isHostFilePresent) {
+            hosts = "/opt/storageos/ansi/hosts";
         } else {
-            ips = "10.247.66.88,";
+            List<String> lines = Arrays.asList("[webservers]", "10.247.66.88");
+            Path file = Paths.get("/opt/storageos/ansi/hosts");
+            Files.write(file, lines, Charset.forName("UTF-8"));
+            hosts = "/opt/storageos/ansi/hosts";
         }
 
-        return ips;
+        if (hosts == null || hosts.isEmpty())
+            hosts = "localhost";
+
+        return hosts;
     }
 
-    private Exec.Result buildAndExecute(final String extraVars, final ImmutableList.Builder<String> builder) {
+    private Exec.Result buildAndExecute(final String extraVars, final String limit, final String tags, final ImmutableList.Builder<String> builder) {
         if (extraVars != null && !extraVars.isEmpty())
             builder.add(OrchestrationServiceConstants.EXTRA_VARS).add(extraVars);
+
+        if (limit != null && !limit.isEmpty())
+            builder.add("-l").add(limit);
+
+        if (tags != null && !tags.isEmpty())
+            builder.add("-t").add(tags);
 
         final ImmutableList<String> cmdList = builder.build();
         final String[] cmds = cmdList.toArray(new String[cmdList.size()]);
@@ -166,18 +175,19 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
+    //TODO Implement for limit, tags
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String user, final String ip, final String playbook, final String ansiblePath,
                                          final String extraVars) {
         logger.info("executing remote ansi ip:{} playbook:{} ansiblePath:{} extravar:{} user:{}", ip, playbook, ansiblePath, extraVars, user);
 
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add(OrchestrationServiceConstants.SHELL_LOCAL_BIN).add(user + "@" + ip).add(ansiblePath).add(" ").add(playbook);
+        builder.add(OrchestrationServiceConstants.SHELL_LOCAL_BIN).add(user + "@" + ip).add(ansiblePath).add(playbook);
 
-        return buildAndExecute(extraVars, builder);
+        return buildAndExecute(extraVars, null, null, builder);
     }
 
-    //Execute Ansible playbook on given nodes. Playbook in in local node
+    //Execute Ansible playbook on given nodes. Playbook in local node
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
         logger.info("local Ansible Execution ips:{} extra var:{} path:{}, user:{}", ips, extraVars, playbook, user);
 
@@ -189,7 +199,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         builder.add(playbook);
 
-        return buildAndExecute(extraVars, builder);
+        return buildAndExecute(extraVars, null, null, builder);
     }
 
     //Execute Ansible playbook on localhost
@@ -197,7 +207,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
         builder.add(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN).add(playbook);
 
-        return buildAndExecute(extraVars, builder);
+        return buildAndExecute(extraVars, null, null, builder);
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {

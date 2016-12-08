@@ -20,6 +20,9 @@ import java.util.List;
 
 import javax.lang.model.element.Modifier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
@@ -46,7 +49,7 @@ import com.sun.tools.javac.util.StringUtils;
 public final class ApiPrimitiveMaker {
 
     private static final String PACKAGE = "com.emc.storageos.primitives";
-    private static final String TASK_SUCCESS = "#task.state = success";
+    private static final String TASK_SUCCESS = "#task.state = ready";
     private static final String HTTP_SUCCESS = "code > 199 and code < 300";
 
     private static final MethodSpec PATH_METHOD = MethodSpec
@@ -68,6 +71,13 @@ public final class ApiPrimitiveMaker {
             .<MethodSpec> builder()
             .add(PATH_METHOD, METHOD_METHOD, BODY_METHOD).build();
 
+    private static ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
+            .<String> builder().add("assignTags").add("getTags").add("search")
+            .add("getBulkIds").add("getBulkResources").add("getTasks").build();
+
+    final private static Logger _log = LoggerFactory
+            .getLogger(ApiPrimitiveMaker.class);
+
     private ApiPrimitiveMaker() {
     }
 
@@ -86,11 +96,31 @@ public final class ApiPrimitiveMaker {
 
         for (ApiService service : services) {
             for (ApiMethod method : service.methods) {
-                builder.add(makePrimitive(method));
+                if (blackListed(method)) {
+                    _log.info("Method "
+                            + method.apiService.getFqJavaClassName() + "::"
+                            + method.javaMethodName + " is black listed");
+                } else if (method.isDeprecated) {
+                    _log.info("Method "
+                            + method.apiService.getFqJavaClassName() + "::"
+                            + method.javaMethodName + " is deprecated");
+                } else if (null == method.brief || method.brief.isEmpty()) {
+                    _log.error("No brief description for "
+                            + method.apiService.getFqJavaClassName() + "::"
+                            + method.javaMethodName);
+                } else {
+                    builder.add(makePrimitive(method));
+                }
             }
         }
 
         return builder.build();
+    }
+
+    private static boolean blackListed(final ApiMethod method) {
+        return (METHOD_BLACK_LIST.contains(method.javaMethodName) || METHOD_BLACK_LIST
+                .contains(method.apiService.getFqJavaClassName() + "::"
+                        + method.javaMethodName));
     }
 
     /**

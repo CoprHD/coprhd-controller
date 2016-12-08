@@ -3179,7 +3179,7 @@ public class ExportGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/paths-adjustment-preview")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public ExportPathsAdjustmentPreviewRestRep portAllocate(@PathParam("id") URI id, ExportPathsAdjustmentPreviewParam param)
+    public ExportPathsAdjustmentPreviewRestRep pathsAdjustmentPreview(@PathParam("id") URI id, ExportPathsAdjustmentPreviewParam param)
             throws ControllerException {
          // Basic validation of ExportGroup and update request
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);

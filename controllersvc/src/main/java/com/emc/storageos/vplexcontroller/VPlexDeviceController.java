@@ -142,6 +142,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
@@ -13381,7 +13382,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
         String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex, client, _dbClient);
         VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
-        _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
+        _log.info("Processing and Refreshing ExportMask {}", exportMask.getMaskName());
         Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
         VPlexControllerUtils.refreshExportMask(
                 _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
@@ -13434,6 +13435,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 }
             }
+            _log.info("Targets to add: " + targetsToAdd.toString());
+            _log.info("Initiators to add: " + initiatorsToAdd.toString());
             
             // Invoke either storageViewAddInitiators or storageViewAddPorts as a step
             Workflow.Method addPathsMethod = null;
@@ -13472,6 +13475,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Set<URI> targetsToBeRetained = ExportMaskUtils.getAllPortsInZoneMap(adjustedPaths);
             targetsToBeRemoved.removeAll(targetsToBeRetained);
             List<URI> portsToBeRemoved = new ArrayList<URI>(targetsToBeRemoved);
+            _log.info("Ports to be removed: " + portsToBeRemoved.toString());
+            _log.info("Initiators to be removed: " + initiatorsToBeRemoved.toString());
 
             // Call either storageViewRemoveInitiators or storageViewRemoveStoragePorts
             Workflow.Method removePathsMethod = null;
@@ -13484,7 +13489,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String description = String.format("Removing paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
                 lastStep = workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
 
-                ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
+                ExportMaskRemovePathsCompleter completer = new ExportMaskRemovePathsCompleter(exportGroupURI, exportMaskURI, stepId);
+                completer.setRemovedStoragePorts(portsToBeRemoved);
+                completer.setRemovedInitiators(initiatorsToBeRemoved);
                 workflow.executePlan(completer, description + " completed successfully");
                 return;
             }

@@ -1048,12 +1048,14 @@ public class BlockDeviceExportController implements BlockExportController {
             String stepId = null;
             Map<URI, Map<URI, List<URI>>> maskAjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
                     _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
                             mask.getId().toString()));
                     continue;
                 }
+                affectedMasks.add(mask);
                 Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
                 Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
                 maskAjustedPathMap.put(mask.getId(), adjustedPathForMask);
@@ -1094,6 +1096,15 @@ public class BlockDeviceExportController implements BlockExportController {
                         maskRemovePathMap, stepId);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
+                // update ExportPortRebalanceCompleter with affected export groups
+                Set<URI> affectedExportGroups = new HashSet<URI> ();
+                for (ExportMask mask : affectedMasks) {
+                    List<ExportGroup> assocExportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
+                    for (ExportGroup eg : assocExportGroups) {
+                        affectedExportGroups.add(eg.getId());
+                    }
+                }
+                taskCompleter.setAffectedExportGroups(affectedExportGroups);
                 _log.info("The Export paths adjustment workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Executing port rebalance workflow.");

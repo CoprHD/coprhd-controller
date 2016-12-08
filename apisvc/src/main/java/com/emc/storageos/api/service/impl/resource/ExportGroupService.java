@@ -3370,7 +3370,7 @@ public class ExportGroupService extends TaskResourceService {
     
     
     /**
-     * Paths adjustment
+     * Export paths adjustment
      *  
      * @param id The export group id
      * @param param The parameters including addedPaths, removedPaths, storage system URI, exportPathParameters, 

@@ -186,6 +186,7 @@ public enum ResourceOperationTypeEnum {
     DISCOVER_STORAGE_SYSTEM("DISCOVER STORAGESYSTEM", "discover a storage systems"),
     METERING_STORAGE_SYSTEM("METERING STORAGE SYSTEM", "obtain metering information on a storage system"),
     ARRAYAFFINITY_STORAGE_SYSTEM("DISCOVER ARRAY AFFINITY", "obtain array affinity information on a storage system"),
+    EXTERNALCHANGE_STORAGE_SYSTEM("DISCOVER EXTERNAL CHANGE", "discover external change on a storage system"),
     DEREGISTER_STORAGE_SYSTEM("UNREGISTER STORAGESYSTEM", "unregister a storage systems"),
     CREATE_STORAGE_POOL("CREATE STORAGEPOOL", "create storagepool operation"),
     CREATE_STORAGE_PORT("CREATE STORAGEPORT", "create storageport operation"),

@@ -108,7 +108,7 @@ public class DataCollectionJobScheduler {
         DISCOVER_INTERVALS("discovery-interval", "discovery-refresh-interval", initialDiscoveryDelay),
         EXTERNAL_CHANGE_DISCOVERY_INTERVALS("external-change-discovery-interval", 
                                             "external-change-discovery-refresh-interval",
-                                            initialExternalChangeDiscoveryDelay),
+                                            initialDiscoveryDelay),//TODO - change it to initialExternalChangeDiscoveryDelay
         ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval", initialArrayAffinityDiscoveryDelay),       
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),

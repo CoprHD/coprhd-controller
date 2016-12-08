@@ -22,21 +22,22 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
 
     private final ColumnFamily<String, TimeSeriesIndexColumnName> indexCF;
     private final Class<? extends DataObject> entryType;
+    private final String indexKey;
     private long startTimeMicros;
     private long endTimeMicros;
     private long lastMatchedTimeStamp = 0;
 
     private Keyspace _keyspace;
 
-    public TimeSeriesConstraintImpl(ColumnField field, long startTimeInMS, long endTimeInMS) {
+    public TimeSeriesConstraintImpl(String indexKey, ColumnField field, long startTimeInMS, long endTimeInMS) {
         super(field);
         indexSerializer = TimeSeriesColumnNameSerializer.get();
 
         indexCF = field.getIndexCF();
+        this.indexKey = indexKey;
         entryType = field.getDataObjectType();
         startTimeMicros = startTimeInMS*1000L;
         endTimeMicros = endTimeInMS * 1000L;
-        log.info("lbym1: key={} stack=", entryType.getSimpleName(), new Throwable());
     }
 
     @Override
@@ -55,13 +56,15 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
 
     @Override
     protected RowQuery<String, TimeSeriesIndexColumnName> genQuery() {
-        log.info("cf={} key={}", indexCF.getName(), entryType.getSimpleName());
+        log.info("cf={} key={} column1={}", indexCF.getName(), indexKey, entryType.getSimpleName());
         log.info("startime= {} endtime= {}", startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
 
         RowQuery<String, TimeSeriesIndexColumnName> query = _keyspace.prepareQuery(indexCF)
-                .getKey(entryType.getSimpleName())
+                //.getKey(entryType.getSimpleName())
+                .getKey(indexKey)
                 .withColumnRange(TimeSeriesColumnNameSerializer.get().buildRange()
+                        .withPrefix(entryType.getSimpleName())
                         .greaterThan(startTimeMicros)
                         .lessThanEquals(endTimeMicros)
                         .limit(pageCount));
@@ -69,7 +72,7 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
         return query;
     }
 
-    public int count() throws ConnectionException {
+    public long count() throws ConnectionException {
         try {
             OperationResult<Integer> countResult = _keyspace.prepareQuery(indexCF).getKey(entryType.getSimpleName())
                     .getCount().execute();
@@ -82,7 +85,7 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
 
     @Override
     protected URI getURI(Column<TimeSeriesIndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+        return URI.create(col.getName().getThree());
     }
 
     @Override

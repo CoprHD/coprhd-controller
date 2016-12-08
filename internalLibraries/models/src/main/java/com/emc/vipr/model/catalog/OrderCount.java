@@ -16,6 +16,10 @@ public class OrderCount {
         countMap.put(key, count);
     }
 
+    public void setCountMap(Map<String, Long> countMap) {
+        this.countMap = countMap;
+    }
+
     @XmlElement(name = "counts")
     public Map<String, Long> getCounts() {
         return countMap;

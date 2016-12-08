@@ -89,6 +89,12 @@ public class InMemoryDbClient implements DBClientWrapper {
     }
 
     @Override
+    public Map<String, Long> getOrderCount(List<URI> tids, String fieldName, long startTime, long endTime) {
+        //TODO:
+        return null;
+    }
+
+    @Override
     public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
             String labelPrefix) throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
@@ -102,7 +108,8 @@ public class InMemoryDbClient implements DBClientWrapper {
         return results;
     }
 
-    public List<NamedElement> findAllOrdersByTimeRange(String columnField, Date startTime, Date endTime, int maxCount)
+    @Override
+    public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime, int maxCount)
             throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
         for (URI modelId : findAllIds(Order.class)) {

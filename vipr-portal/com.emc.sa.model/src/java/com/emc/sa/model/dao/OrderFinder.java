@@ -9,6 +9,8 @@ import java.net.URI;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import org.apache.commons.lang.StringUtils;
@@ -101,6 +103,18 @@ public class OrderFinder extends TenantModelFinder<Order> {
         return count;
     }
 
+    public Map<String, Long> getOrdersCount(List<URI> tids, long startTime, long endTime) {
+        Map<String, Long> counts = new HashMap<String, Long>();
+
+        if (tids.isEmpty()) {
+            return counts;
+        }
+
+        return client.getOrderCount(tids, Order.SUBMITTED, startTime, endTime);
+    }
+
+
+    /*
     public List<NamedElement> findIdsByTimeRange(Date startTime, Date endTime, int maxCount) {
         //return client.findAllOrdersByTimeRange(Order.class, "indexed", startTime, endTime, maxCount);
         return client.findAllOrdersByTimeRange(Order.SUBMITTED, startTime, endTime, maxCount);
@@ -111,11 +125,14 @@ public class OrderFinder extends TenantModelFinder<Order> {
         List<NamedElement> orderIds = findIdsByTimeRange(startTime, endTime, maxCount);
         return findByIds(toURIs(orderIds));
     }
+    */
 
     public List<Order> findByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
         if (tenantId == null) {
             return Lists.newArrayList();
         }
-        return TenantUtils.filter(findByTimeRange(startTime, endTime, maxCount), tenantId.toString());
+        //return TenantUtils.filter(findByTimeRange(startTime, endTime, maxCount), tenantId.toString());
+        List<NamedElement> orderIds = client.findAllOrdersByTimeRange(tenantId, Order.SUBMITTED, startTime, endTime, maxCount);
+        return findByIds(toURIs(orderIds));
     }
 }

@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by brian on 16-11-18.
@@ -19,7 +21,7 @@ public class OrderServiceJob implements Serializable {
 
     private long startTime;
     private long endTime;
-    private String tenandId;
+    private List<URI> tenantIDs;
 
     private long total = 0; // number of orders to be deleted
     private long nOrdersDeleted = 0;  // the total number of deleted orders so far
@@ -31,10 +33,10 @@ public class OrderServiceJob implements Serializable {
     public OrderServiceJob() {
     }
 
-    public OrderServiceJob(long start, long end, String tid) {
+    public OrderServiceJob(long start, long end, List<URI> tids) {
         startTime = start;
         endTime = end;
-        tenandId = tid;
+        tenantIDs = tids;
     }
 
     private void writeObject(ObjectOutputStream out) throws IOException {
@@ -43,7 +45,7 @@ public class OrderServiceJob implements Serializable {
         //parameters given by REST API
         out.writeLong(startTime);
         out.writeLong(endTime);
-        out.writeObject(tenandId);
+        out.writeObject(tenantIDs);
 
         out.writeLong(total);
         out.writeLong(nOrdersDeleted);
@@ -58,7 +60,7 @@ public class OrderServiceJob implements Serializable {
 
         startTime = in.readLong();
         endTime = in.readLong();
-        tenandId = (String)in.readObject();
+        tenantIDs = (List<URI>)in.readObject();
 
         total = in.readLong();
         nOrdersDeleted = in.readLong();
@@ -76,8 +78,8 @@ public class OrderServiceJob implements Serializable {
         return endTime;
     }
 
-    public String getTenandId() {
-        return tenandId;
+    public List<URI> getTenandIDs() {
+        return tenantIDs;
     }
 
     public long getTotal() {
@@ -108,8 +110,8 @@ public class OrderServiceJob implements Serializable {
                 .append(startTime)
                 .append("\nendTime:")
                 .append(endTime)
-                .append("\ntenandId:")
-                .append(tenandId)
+                .append("\ntenandIDs:")
+                .append(tenantIDs)
                 .append("\ntotal:")
                 .append(total)
                 .append("\norders deleted:")

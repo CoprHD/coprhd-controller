@@ -50,8 +50,10 @@ public interface DBClientWrapper {
 
     public long getOrderCount(String userId, String value, long startTime, long endTime) throws DataAccessException;
 
+    public Map<String, Long> getOrderCount(List<URI> tids, String value, long startTime, long endTime) throws DataAccessException;
+
     //public <T extends DataObject> List<NamedElement> findAllOrdersByTimeRange(Class<T> clazz, String columnField, Date startTime,
-    public List<NamedElement> findAllOrdersByTimeRange(String columnField, Date startTime, Date endTime, int maxCount)
+    public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime, int maxCount)
             throws DataAccessException;
 
     public <T extends DataObjectWithACLs> Map<URI, Set<String>> findByPermission(Class<T> type, PermissionsKey key)

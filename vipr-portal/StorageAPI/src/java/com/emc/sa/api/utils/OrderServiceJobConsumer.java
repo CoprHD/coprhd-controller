@@ -55,22 +55,24 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
         */
 
             boolean error = false;
-            String tid = job.getTenandId();
-            log.info("lbyh tid={}", tid);
-            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(startTime, endTime);
-            NamedElementQueryResultList ids = new NamedElementQueryResultList();
-            dbClient.queryByConstraint(constraint, ids);
-            for (NamedElementQueryResultList.NamedElement namedID : ids) {
-                URI id = namedID.getId();
-                log.info("lbyh id={}", id);
-                try {
-                    orderManager.deleteOrder(id, tid);
-                } catch (BadRequestException e) {
-                    //TODO: change to debug level
-                    log.error("lbyh failed to delete order {} e=", id, e);
-                } catch (Exception e) {
-                    log.error("lbyh1: failed to delete order={} e=", id, e);
-                    error = true;
+            List<URI> tids = job.getTenandIDs();
+            log.info("lbyh tids={}", tids);
+            for (URI tid : tids) {
+                AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(tid, startTime, endTime);
+                NamedElementQueryResultList ids = new NamedElementQueryResultList();
+                dbClient.queryByConstraint(constraint, ids);
+                for (NamedElementQueryResultList.NamedElement namedID : ids) {
+                    URI id = namedID.getId();
+                    log.info("lbyh id={}", id);
+                    try {
+                        orderManager.deleteOrder(id, tid.toString());
+                    } catch (BadRequestException e) {
+                        //TODO: change to debug level
+                        log.error("lbyh failed to delete order {} e=", id, e);
+                    } catch (Exception e) {
+                        log.error("lbyh1: failed to delete order={} e=", id, e);
+                        error = true;
+                    }
                 }
             }
 

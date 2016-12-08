@@ -172,10 +172,40 @@ public class BourneDbClient implements DBClientWrapper {
     }
 
     @Override
-    public List<NamedElement> findAllOrdersByTimeRange(String columnField, Date startTime, Date endTime, int maxCount)
+    public Map<String, Long> getOrderCount(List<URI> tids, String fieldName, long startTime, long endTime) {
+
+        LOG.info("lbyb2: getOrderCount(tids={} cf={}, startTime={}, endTime={})",
+                new Object[] {tids, fieldName, startTime, endTime});
+
+        Map<String, Long> counts = new HashMap();
+
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+
+        for (URI tid : tids) {
+            String tenantId = tid.toString();
+            TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(tenantId,
+                    doType.getColumnField(fieldName), startTime, endTime);
+
+            DbClientImpl dbclient = (DbClientImpl) getDbClient();
+            constraint.setKeyspace(dbclient.getLocalKeyspace());
+
+            try {
+                counts.put(tenantId, constraint.count());
+            } catch (ConnectionException e) {
+                throw new DataAccessException(e);
+            }
+        }
+
+        return counts;
+    }
+
+
+    @Override
+    public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime,
+                                                       int maxCount)
             throws DataAccessException {
-        LOG.info("findAllOrdersByTimeRange(columnField={}, startTime={} endTime={} maxCount={})",
-                new Object[]{columnField, startTime, endTime, maxCount});
+        LOG.info("findAllOrdersByTimeRange(tid={} columnField={}, startTime={} endTime={} maxCount={})",
+                new Object[]{tid, columnField, startTime, endTime, maxCount});
 
         //DecommissionedConstraint constraint = DecommissionedConstraint.Factory.getTimeConstraint(clazz, columnField, startTime, endTime);
         // return queryNamedElementsByConstraint(constraint);
@@ -185,7 +215,7 @@ public class BourneDbClient implements DBClientWrapper {
         DataObjectType doType = TypeMap.getDoType(Order.class);
         long startTimeInMS = startTime.getTime();
         long endTimeInMS = endTime.getTime();
-        TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(doType.getColumnField(columnField),
+        TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(tid.toString(), doType.getColumnField(columnField),
                 startTimeInMS, endTimeInMS);
         List<NamedElement> allOrderIds = queryNamedElementsByConstraint(constraint, maxCount);
 

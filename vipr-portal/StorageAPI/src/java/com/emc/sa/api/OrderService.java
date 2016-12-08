@@ -16,6 +16,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -573,6 +574,7 @@ public class OrderService extends CatalogTaggedResourceService {
      *            inclusive.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or
      *            datetime in ms.
+     * @param tenantIDs a list of tenant IDs separated by ','
      * @prereq none
      * @return A reference to the StreamingOutput to which the log data is
      *         written.
@@ -583,7 +585,8 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN })
     @Path("/export")
     public Response exportOrders( @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
-                               @QueryParam(LogRequestParam.END_TIME) String endTimeStr) throws Exception {
+                                  @QueryParam(LogRequestParam.END_TIME) String endTimeStr,
+                                  @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) throws Exception {
         log.info("lbyk:export orders startTime={}, endTime={}", startTimeStr, endTimeStr);
 
         // Validate the passed start and end times are valid.
@@ -600,28 +603,32 @@ public class OrderService extends CatalogTaggedResourceService {
             log.info("Setting start time to yesterday {} ", startTime);
         }
 
+        List<URI> tids= getTenantIDs(tenantIDs);
+
         final long startTimeInMS = startTime.getTime();
         final long endTimeInMS = endTime.getTime();
         StreamingOutput out = new StreamingOutput() {
             @Override
             public void write(OutputStream outputStream) {
-                exportOrders(startTimeInMS, endTimeInMS, outputStream);
+                exportOrders(tids, startTimeInMS, endTimeInMS, outputStream);
             }
         };
 
         return Response.ok(out).build();
     }
 
-    private void exportOrders(long startTime, long endTime, OutputStream outputStream) {
+    private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream) {
         PrintStream out = new PrintStream(outputStream);
-        AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(startTime, endTime);
-        NamedElementQueryResultList ids = new NamedElementQueryResultList();
-        _dbClient.queryByConstraint(constraint, ids);
-        for (NamedElementQueryResultList.NamedElement namedID : ids) {
-            URI id = namedID.getId();
-            log.info("lbyh id={}", id);
-            Order order = _dbClient.queryObject(Order.class, id);
-            out.print(order.toString());
+        for (URI tid : tids) {
+            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(tid, startTime, endTime);
+            NamedElementQueryResultList ids = new NamedElementQueryResultList();
+            _dbClient.queryByConstraint(constraint, ids);
+            for (NamedElementQueryResultList.NamedElement namedID : ids) {
+                URI id = namedID.getId();
+                log.info("lbyh id={}", id);
+                Order order = _dbClient.queryObject(Order.class, id);
+                out.print(order.toString());
+            }
         }
     }
 
@@ -754,28 +761,6 @@ public class OrderService extends CatalogTaggedResourceService {
         return resp;
     }
 
-    /**
-     * Gets the list of orders for current user
-     *
-     * @brief List Orders
-     * @return a list of orders
-     * @throws DatabaseException when a DB error occurs
-     */
-    /*
-    @GET
-    @Path("")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderList getUserOrders() throws DatabaseException {
-
-        StorageOSUser user = getUserFromContext();
-
-        List<Order> orders = orderManager.getUserOrders(user, 0 , 0 , -1);
-        OrderList list = toOrderList(orders);
-
-        return list;
-    }
-    */
-
     private Order getOrderById(URI id, boolean checkInactive) {
         Order order = orderManager.getOrderById(id);
         ArgValidator.checkEntity(order, id, isIdEmbeddedInURL(id), checkInactive);
@@ -793,6 +778,76 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
+     * @brief Get number of orders within a time range for the given tenants
+     * @param startTimeStr
+     * @param endTimeStr
+     * @return  number of orders of each tenant
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("/count")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public OrderCount getOrderCount(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+                                    @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
+                                    @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs)
+            throws DatabaseException {
+
+        StorageOSUser user = getUserFromContext();
+
+        log.info("lbya0:starTime={} endTime={} maxCount={} user={}",
+                new Object[] {startTimeStr, endTimeStr, user.getName()});
+
+        List<URI> tids= getTenantIDs(tenantIDs);
+
+        long startTimeInMS = 0;
+        long endTimeInMS = TimeUtils.getCurrentTime();
+
+        if (!startTimeStr.isEmpty()) {
+            Date startTime = getDateTimestamp(startTimeStr);
+            startTimeInMS = startTime.getTime();
+        }
+
+        if (!endTimeStr.isEmpty()) {
+            Date endTime = getDateTimestamp(endTimeStr);
+            endTimeInMS = endTime.getTime();
+        }
+
+        log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
+
+        if (startTimeInMS > endTimeInMS) {
+            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
+        }
+
+        Map<String, Long> countMap = orderManager.getOrderCount(tids, startTimeInMS, endTimeInMS);
+        log.info("lbyb0 count={} done0", countMap);
+
+        OrderCount resp = new OrderCount();
+        resp.setCountMap(countMap);
+
+        return resp;
+    }
+
+    private List<URI> getTenantIDs(@DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) {
+        if (tenantIDs.isEmpty()) {
+            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
+        }
+
+        String[] tenantIDsInStr = tenantIDs.split(",");
+        List<URI> ids = new ArrayList();
+        try {
+            for (String id : tenantIDsInStr) {
+                URI uri = new URI(id);
+                ids.add(uri);
+            }
+        }catch(URISyntaxException e) {
+            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDs, e);
+        }
+
+        return ids;
+    }
+
+    /**
      *
      * @brief Deactivate Order
      * @return OK if deactivation completed successfully
@@ -804,16 +859,17 @@ public class OrderService extends CatalogTaggedResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
                                  @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
-                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenandIDs) {
+                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) {
         StorageOSUser user = getUserFromContext();
 
-        log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenandIDs, user.getName()});
+        log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenantIDs, user.getName()});
 
         long now = System.currentTimeMillis();
         long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime)*1000;
         long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime)*1000;
 
-        OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tenandIDs);
+        List<URI> tids = getTenantIDs(tenantIDs);
+        OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tids);
         try {
             queue.put(job);
         }catch (Exception e) {

@@ -497,6 +497,10 @@ public class OrderManagerImpl implements OrderManager {
         return client.orders().getOrdersCount(user.getUserName(), startTime, endTime);
     }
 
+    public Map<String, Long> getOrderCount(List<URI> tids, long startTime, long endTime) {
+        return client.orders().getOrdersCount(tids, startTime, endTime);
+    }
+
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus) {
         return client.orders().findByOrderStatus(tenantId.toString(), orderStatus);
     }

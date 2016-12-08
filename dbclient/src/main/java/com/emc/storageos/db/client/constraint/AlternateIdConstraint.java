@@ -790,10 +790,10 @@ public interface AlternateIdConstraint extends Constraint {
             return new ClassNameTimeSeriesConstraintImpl(field, user, startTimeInMS, endTimeInMS);
         }
 
-        public static AlternateIdConstraint getOrders(long startTimeInMS, long endTimeInMS) {
+        public static AlternateIdConstraint getOrders(URI tid, long startTimeInMS, long endTimeInMS) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED);
-            return new TimeSeriesConstraintImpl(field, startTimeInMS, endTimeInMS);
+            return new TimeSeriesConstraintImpl(tid.toString(), field, startTimeInMS, endTimeInMS);
         }
     }
 }

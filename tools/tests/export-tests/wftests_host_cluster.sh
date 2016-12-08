@@ -716,7 +716,7 @@ export_contains() {
     export_name=$1
     search_value=$2
    
-    export_group show $PROJECT/${export_name} | grep ${search_value}
+    export_group show ${export_name} | grep ${search_value}
 }
 
 # Test Cluster Remove Host
@@ -734,7 +734,7 @@ test_cluster_remove_host() {
     # Turn off validation, shouldn't need to do this but until we have
     # all the updates for export simplification it may be a necessary
     # evil.
-    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
@@ -747,7 +747,7 @@ test_cluster_remove_host() {
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"    
+    #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
 
     # Create volumes
     random_number=${RANDOM}        
@@ -827,7 +827,7 @@ test_cluster_remove_host() {
             foundinit3=`export_group show ${eg} | grep ${init3}`
             foundinit4=`export_group show ${eg} | grep ${init4}`
             foundhost1=`export_group show ${eg} | grep ${host1}`
-            foundhost2=`export_group show ${eg} | grep ${host2}`    
+            foundhost2=`export_group show ${eg} | grep ${host2}`
             
             if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
                 # Fail, hosts and initiators should have been added to the export group

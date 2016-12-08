@@ -1461,7 +1461,7 @@ public class VNXeStorageDevice extends VNXeOperations
             }
 
             // Clean up the system consistency group references
-            BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), lunGroupId, keepRGName, markInactive, _dbClient);
+            BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), lunGroupId, markInactive, _dbClient);
 
             _dbClient.updateObject(consistencyGroup);
             _logger.info("Consistency group {} deleted", consistencyGroup.getLabel());

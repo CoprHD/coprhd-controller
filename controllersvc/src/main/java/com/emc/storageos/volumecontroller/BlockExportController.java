@@ -91,6 +91,7 @@ public interface BlockExportController extends Controller {
      * 
      * @param systemURI - URI of storage system
      * @param exportGroupURI - URI of export group
+     * @param varray - URI of virtual array
      * @param addedPaths - paths to be added or retained
      * @param removedPaths - paths to be removed
      * @param exportPathParam - export path parameter
@@ -98,6 +99,6 @@ public interface BlockExportController extends Controller {
      * @param opId - the taskId
      * @throws ControllerException
      */
-    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
+    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
 }

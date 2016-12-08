@@ -7231,7 +7231,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     @Override
-    public void portRebalance(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> adjustedpaths,
+    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
     {
         

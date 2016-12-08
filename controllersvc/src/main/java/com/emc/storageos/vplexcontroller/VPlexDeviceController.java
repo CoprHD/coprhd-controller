@@ -13361,7 +13361,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     @Override
-    public void portRebalance(URI vplex, URI exportGroupURI, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
+    public void portRebalance(URI vplex, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String stepId) throws Exception
     {
         // Retrieve the ExportGroup and ExportMask and validate

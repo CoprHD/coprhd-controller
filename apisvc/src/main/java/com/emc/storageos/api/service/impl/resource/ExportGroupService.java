@@ -3395,8 +3395,27 @@ public class ExportGroupService extends TaskResourceService {
 
         ArgValidator.checkUri(param.getStorageSystem());
         StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
+        
+     // Get the virtual array, default to Export Group varray. Validate it matches.
+        URI varray = param.getVirtualArray();
+        if (varray != null) {
+           boolean validVarray = varray.equals(exportGroup.getVirtualArray());
+           if (exportGroup.getAltVirtualArrays() != null 
+                   && varray.equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
+               validVarray = true;
+           }
+           if (!validVarray) {
+               throw APIException.badRequests.varrayNotInExportGroup(varray.toString());
+           }
+        } else {    
+            varray = exportGroup.getVirtualArray();
+        }
 
         validatePortRebalanceRequest(exportGroup, system, param);
+        Boolean wait = param.getWaitBeforeRemovePaths();
+        if (wait == null) {
+            wait = false;
+        }
         
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_PATHS_ADJUSTMENT);
@@ -3413,8 +3432,8 @@ public class ExportGroupService extends TaskResourceService {
         Map<URI, List<URI>> addedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
         Map<URI, List<URI>> removedPaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
         ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
-        exportController.exportGroupPortRebalance(param.getStorageSystem(), id, addedPaths, removedPaths, 
-                pathParam, param.getWaitBeforeRemovePaths(), task);
+        exportController.exportGroupPortRebalance(param.getStorageSystem(), id, varray, addedPaths, removedPaths, 
+                pathParam, wait, task);
         return taskRes;
     }
     

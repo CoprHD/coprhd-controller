@@ -134,6 +134,7 @@ def export_group_realloc(args):
         print "Executing..."
         gopayload=dict()
         gopayload['storage_system'] = storageId
+        gopayload['virtual_array'] = varrayId
         gopayload['path_parameters'] = path_param
         gopayload['adjusted_paths'] = adjusted_paths
         gopayload['removed_paths'] = removed_paths

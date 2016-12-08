@@ -2,8 +2,11 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +18,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -38,6 +42,7 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
 
         DbClient dbClient = getDbClient();
 
+        Map<URI, StorageSystem> systemMap = new HashMap<>();
         int pageSize = 100;
         int totalExportMaskObjectCount = 0;
         int exportMaskUpdatedCount = 0;
@@ -55,7 +60,13 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
             while (exportMaskIterator.hasNext()) {
                 ExportMask exportMask = exportMaskIterator.next();
                 URI systemUri = exportMask.getStorageDevice();
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
+                StorageSystem system = systemMap.get(systemUri);
+                if (system == null) {
+                    system = dbClient.queryObject(StorageSystem.class, systemUri);
+                    if (system != null) {
+                        systemMap.put(systemUri, system);
+                    }
+                }
 
                 if (system != null && Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
 

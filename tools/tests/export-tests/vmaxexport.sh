@@ -1913,12 +1913,12 @@ test_35() {
     verify_export ${expname}2 -x- 6 4 0,1,2,3
 
     runcmd export_group create $PROJECT ${expname}4 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-7 --hosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 4 0,1,2,4
-    verify_export ${expname}4 ${HOST3} 2 1 0
+    verify_export ${expname}2 -x- 6 4 0,1,2,3
+    verify_export ${expname}4 ${HOST3} 2 1 4
 
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
-    verify_export ${expname}4 ${HOST3} 2 1 0
+    verify_export ${expname}4 ${HOST3} 2 1 4
 
     runcmd export_group delete $PROJECT/${expname}4
     verify_export ${expname}4 ${HOST3} gone
@@ -2001,34 +2001,34 @@ test_36() {
     runcmd export_group create $PROJECT ${expname}4 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST3}"
     verify_export ${expname}2 -x- 4 2 2,3
     verify_export ${expname}3 ${HOST2} 2 1 0
-    verify_export ${expname}4 ${HOST3} 2 1 1 # Array assigned HLU will be 1 for non-clustered host Masking view
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
     verify_export ${expname}2 -x- 6 2 2,3
     verify_export ${expname}3 ${HOST2} 2 1 0
-    verify_export ${expname}4 ${HOST3} 2 1 1
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}3
     verify_export ${expname}2 -x- 6 2 2,3
     verify_export ${expname}3 ${HOST2} gone
-    verify_export ${expname}4 ${HOST3} 2 1 1
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-6"
-    verify_export ${expname}2 -x- 6 4 0,1,2,3
-    verify_export ${expname}4 ${HOST3} 2 1 1
+    verify_export ${expname}2 -x- 6 4 1,2,3,4
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-7+88"
     # 88 in decimal, 58 in Hex
-    verify_export ${expname}2 -x- 6 5 0,1,2,3,58
-    verify_export ${expname}4 ${HOST3} 2 1 1
+    verify_export ${expname}2 -x- 6 5 1,2,3,4,58
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}4 --addVols ${PROJECT}/${VOLNAME}-8
-    verify_export ${expname}2 -x- 6 5 0,1,2,3,58
-    verify_export ${expname}4 ${HOST3} 2 2 0,1
+    verify_export ${expname}2 -x- 6 5 1,2,3,4,58
+    verify_export ${expname}4 ${HOST3} 2 2 0,5
 
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
-    verify_export ${expname}4 ${HOST3} 2 2 0,1
+    verify_export ${expname}4 ${HOST3} 2 2 0,5
 
     runcmd export_group delete $PROJECT/${expname}4
     verify_export ${expname}4 ${HOST3} gone

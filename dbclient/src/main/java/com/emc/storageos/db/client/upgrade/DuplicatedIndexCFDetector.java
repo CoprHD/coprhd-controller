@@ -37,7 +37,7 @@ public class DuplicatedIndexCFDetector {
                 for (AnnotationType annotation : field.getAnnotations().getAnnotations()) {
                     if (isDbIndexAnnotation(annotation)) {
                         String indexCF = getDbIndexCFName(annotation);
-                        IndexCFKey indexCFKey = new IndexCFKey(annotation.getType(), indexCF);
+                        IndexCFKey indexCFKey = new IndexCFKey(annotation.getType(), indexCF, field.getType());
                         
                         if (!indexFieldsMap.containsKey(indexCFKey)) {
                             indexFieldsMap.put(indexCFKey, new ArrayList<FieldInfo>());
@@ -134,11 +134,13 @@ public class DuplicatedIndexCFDetector {
     public static class IndexCFKey {
         private String index;
         private String cf;
+        private String fieldTypeClass;
         
-        public IndexCFKey(String index, String cf) {
+        public IndexCFKey(String index, String cf, String fieldTypeClass) {
             super();
             this.index = index;
             this.cf = cf;
+            this.fieldTypeClass = fieldTypeClass;
         }
 
         @Override
@@ -146,6 +148,7 @@ public class DuplicatedIndexCFDetector {
             final int prime = 31;
             int result = 1;
             result = prime * result + ((cf == null) ? 0 : cf.hashCode());
+            result = prime * result + ((fieldTypeClass == null) ? 0 : fieldTypeClass.hashCode());
             result = prime * result + ((index == null) ? 0 : index.hashCode());
             return result;
         }
@@ -159,11 +162,15 @@ public class DuplicatedIndexCFDetector {
             if (getClass() != obj.getClass())
                 return false;
             IndexCFKey other = (IndexCFKey) obj;
-            
             if (cf == null) {
                 if (other.cf != null)
                     return false;
             } else if (!cf.equals(other.cf))
+                return false;
+            if (fieldTypeClass == null) {
+                if (other.fieldTypeClass != null)
+                    return false;
+            } else if (!fieldTypeClass.equals(other.fieldTypeClass))
                 return false;
             if (index == null) {
                 if (other.index != null)
@@ -175,7 +182,15 @@ public class DuplicatedIndexCFDetector {
 
         @Override
         public String toString() {
-            return "IndexCFKey [index=" + index + ", cf=" + cf + "]";
+            StringBuilder builder = new StringBuilder();
+            builder.append("IndexCFKey [index=");
+            builder.append(index);
+            builder.append(", cf=");
+            builder.append(cf);
+            builder.append(", fieldTypeClass=");
+            builder.append(fieldTypeClass);
+            builder.append("]");
+            return builder.toString();
         }
     }
 }

@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchemaRecord;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.DuplicatedIndexCFDetector;
 import com.emc.storageos.db.client.upgrade.DuplicatedIndexCFDetector.DuplciatedIndexDataObject;
@@ -140,8 +141,16 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             if (valueObject == null || column.getName().getTimeUUID() == null) {
                 continue;
             }
-
-            FieldValueTimeUUIDPair key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
+            
+            FieldValueTimeUUIDPair key = null;
+            if (columnField.getType() == ColumnField.ColumnType.NamedURI || columnField.getType() == ColumnField.ColumnType.Primitive) { 
+                key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
+            } else if (columnField.getType() == ColumnField.ColumnType.TrackingSet) {
+                key = new FieldValueTimeUUIDPair(column.getName().getTwo(), column.getName().getTimeUUID());
+            } else {
+                continue;
+            }
+            
             if (valueColumnMap.containsKey(key)) {
                 totalCleanupCount++;
                 rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, keyspace);
@@ -164,6 +173,11 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
 
         DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(rowKey));
         dataObject.trackChanges();
+        if (columnField.getType() == ColumnField.ColumnType.TrackingSet) {
+            StringSet stringSet = new StringSet();
+            stringSet.add(column.getStringValue());
+            value = stringSet;
+        }
         columnField.getPropertyDescriptor().getWriteMethod().invoke(dataObject, value);
         columnField.serialize(dataObject, rowMutator);
         

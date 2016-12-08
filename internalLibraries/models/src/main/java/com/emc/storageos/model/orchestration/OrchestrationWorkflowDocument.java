@@ -177,7 +177,7 @@ public class OrchestrationWorkflowDocument {
             this.id = stepId;
         }
 
-        @XmlElement(name = "friendlyName")
+        @XmlElement(name = "friendly_name")
         public String getFriendlyName() {
             return friendlyName;
         }

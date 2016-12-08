@@ -65,7 +65,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final String extraVars = makeExtraArg(input);
 
         //TODO After the column family implementation will use this context directory instead of PATH
-        if (createOrderDir(orderDir) == false) {
+        if (!createOrderDir(orderDir)) {
             logger.error("Failed to create Order directory:{}", orderDir);
             return null;
         }

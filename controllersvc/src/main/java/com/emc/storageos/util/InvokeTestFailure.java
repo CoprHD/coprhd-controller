@@ -7,6 +7,8 @@ package com.emc.storageos.util;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.wbem.WBEMException;
 
@@ -14,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.google.common.base.Strings;
 
 /**
  * A static class that invokes failures in a controlled manner, giving us the ability to test
@@ -81,6 +84,12 @@ public final class InvokeTestFailure {
      * Counter for the number of failure injection occurrences.
      */
     private static int FAILURE_COUNTER = 0;
+
+    /**
+     * Regex pattern for extracting the method name from failure 015.
+     */
+    private static final String invokeMethodPattern = String.format("^.*%s(\\w+)$", ARTIFICIAL_FAILURE_015);
+    private static final int METHOD_NAME_GROUP = 1;
 
     private static volatile String _beanName;
 
@@ -177,13 +186,14 @@ public final class InvokeTestFailure {
         }
 
         // Extract the method name from the system property
-        String failOnMethodName = invokeArtificialFailure
-                .substring(invokeArtificialFailure.indexOf(ARTIFICIAL_FAILURE_015) + ARTIFICIAL_FAILURE_015.length());
-        String failureKeyImportantPart = failureKey.substring(0, FAILURE_SUBSTRING_LENGTH);
-        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKeyImportantPart)
-                && methodName.equalsIgnoreCase(failOnMethodName)) {
-            log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
-            throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
+        Pattern p = Pattern.compile(invokeMethodPattern);
+        Matcher matcher = p.matcher(invokeArtificialFailure);
+        if (matcher.matches()) {
+            String failOnMethodName = matcher.group(METHOD_NAME_GROUP);
+            if (!Strings.isNullOrEmpty(failOnMethodName) && failOnMethodName.equalsIgnoreCase(methodName)) {
+                log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
+                throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
+            }
         }
     }
 

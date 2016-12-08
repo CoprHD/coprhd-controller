@@ -1062,6 +1062,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void rollBackCreateVolumes(URI systemURI, List<URI> volumeURIs, String opId) throws ControllerException {
         MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, opId);
         List<Volume> volumes = new ArrayList<>(volumeURIs.size());
+
+        completer.setRollingBack(true);
         try {
             String logMsg = String.format(
                     "rollbackCreateVolume start - Array:%s, Volume:%s", systemURI.toString(), Joiner.on(',').join(volumeURIs));
@@ -1857,6 +1859,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _log.info("Volume does not exist or is already deleted");
                     volumeCompleter.ready(_dbClient);
                 }
+                volumeCompleter.setRollingBack(completer.isRollingBack());
                 completer.addVolumeCompleter(volumeCompleter);
             }
             _log.info(entryLogMsgBuilder.toString());

@@ -1,7 +1,24 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.hosts'] /}
 
+<script type="text/javascript">
+  	function checkHostLimits() {
+        //Do nothing if dataTable is not created
+        if (table.host.dataTable.getDataTable() != null) {
+            var limit = ${resource_limit_tenant_hosts};
+            if (table.host.dataTable.needResourceLimitAlert(limit)){
+                $('#resourceLimitAlert').text(Messages.get('resources.host.resourceLimitAlert', limit));
+       		    $('#resourceLimitAlert').show();
+            }
+        }
+    }
+  	table.host.dataTable.setDrawCallback(checkHostLimits);
+</script>
+
 #{tenantSelector/}
+
+<p id="resourceLimitAlert" class="alert alert-info" style="display:none"></p>
+
 #{DataTable.header titleKey:'Hosts.list.title'/}
 #{DataTable.baseCrudTable id:'host',
                       dataTable:dataTable,

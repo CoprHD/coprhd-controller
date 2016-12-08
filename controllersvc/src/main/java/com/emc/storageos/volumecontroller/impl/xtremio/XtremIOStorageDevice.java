@@ -669,7 +669,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
                         consistencyGroupId, systemURI));
                 // Clean up the system consistency group references
-                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, keepRGName, markInactive, dbClient);
+                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, markInactive, dbClient);
                 dbClient.updateObject(consistencyGroup);
                 return;
             }
@@ -699,7 +699,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 }
 
                 // Clean up the system consistency group references
-                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, keepRGName, markInactive, dbClient);
+                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, markInactive, dbClient);
 
             }
             dbClient.updateObject(consistencyGroup);

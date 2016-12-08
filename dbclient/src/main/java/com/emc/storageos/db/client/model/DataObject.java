@@ -181,6 +181,9 @@ public abstract class DataObject implements Serializable {
      */
     public void setInactive(Boolean inactive) {
         _inactive = inactive;
+        if (inactive) {
+            _log.error("setting object " + getId() + " inactive");
+        }
         setChanged("inactive");
     }
 

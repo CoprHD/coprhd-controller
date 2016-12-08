@@ -167,7 +167,6 @@ import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -683,7 +682,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
                             createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName),
-                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, false), null);
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, true), null);
                     createdCg = true;
                     _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
                 }
@@ -1160,7 +1159,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public void handleException(Exception e, TaskCompleter taskCompleter) {
+    /**
+     * Private exception handling method to reduce code repetition.
+     * 
+     * @param e
+     *            exception
+     * @param taskCompleter
+     *            completer to notify
+     */
+    private void handleException(Exception e, TaskCompleter taskCompleter) {
         _log.error("Handling exception with task completer: {}", taskCompleter, e);
         if (taskCompleter != null && (taskCompleter.isCompleted() || taskCompleter.isAsynchronous())) {
             _log.warn("Task has been marked as either asynchronous or completed.  Not performing any error handling.");
@@ -1182,6 +1189,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         setVolumesInactive(volumes);
     }
 
+    /**
+     * Convenience method to set the volumes to inactive
+     * 
+     * @param volumes
+     *            volume objects
+     */
     private void setVolumesInactive(List<Volume> volumes) {
         for (Volume volume : volumes) {
             volume.setInactive(true);
@@ -1856,8 +1869,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // Add the volume to the list to delete
                     volumes.add(volume);
                 } else {
+                    // Add the proper status, since we won't be deleting this volume
+                    String opName = ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName();
+                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOp(opName);
+                    serviceError.setMessage("Volume does not exist or is already deleted");
                     _log.info("Volume does not exist or is already deleted");
-                    volumeCompleter.ready(_dbClient);
+                    volumeCompleter.error(_dbClient, serviceError);
                 }
                 volumeCompleter.setRollingBack(completer.isRollingBack());
                 completer.addVolumeCompleter(volumeCompleter);
@@ -4326,7 +4343,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         createConsistencyGroupMethod(storage, consistencyGroup, groupName),
-                        deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, false), null);
+                        deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, true), null);
             }
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
@@ -4364,7 +4381,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 String.format("Deleting replication group for consistency group %s", consistencyGroup),
                                 waitFor, storage, storageSystem.getSystemType(),
                                 this.getClass(),
-                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, false),
+                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, true),
                                 createConsistencyGroupMethod(storage, consistencyGroup, groupName), null);
                     }
                 }

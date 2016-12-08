@@ -91,8 +91,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * 
      * Finds the next available HLU for cluster export by querying the cluster's hosts'
      * used HLUs and updates the volumeHLU map with free HLUs.
-     * If it is a host export where the host belongs to a cluster, then the exclusive export
-     * to this host should be assigned with cluster's next free HLU number.
      *
      * @param storage the storage system
      * @param exportGroup the export group
@@ -160,8 +158,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void validateHLUForLunViolations(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
         if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
-            // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
+            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
             Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);

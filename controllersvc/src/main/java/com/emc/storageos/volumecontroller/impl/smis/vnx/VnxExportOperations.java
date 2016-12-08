@@ -152,6 +152,8 @@ public class VnxExportOperations implements ExportMaskOperations {
             CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage,
                     exportMaskURI, volumeURIHLUs, null, targetURIList, taskCompleter);
             if (protocolControllers != null) {
+                ExportOperationContext.insertContextOperation(taskCompleter, VnxExportOperationContext.OPERATION_CREATE_STORAGE_GROUP,
+                        exportMaskURI);
                 _log.debug("createExportMask succeeded.");
                 for (CIMObjectPath protocolController : protocolControllers) {
                     _helper.setProtocolControllerNativeId(exportMaskURI, protocolController);
@@ -164,8 +166,6 @@ public class VnxExportOperations implements ExportMaskOperations {
                 ExportMaskOperationsHelper.populateDeviceNumberFromProtocolControllers(_dbClient, cimConnection, exportMaskURI,
                         volumeURIHLUs, protocolControllers, taskCompleter);
                 modifyClarPrivileges(storage, initiatorList);
-                ExportOperationContext.insertContextOperation(taskCompleter, VnxExportOperationContext.OPERATION_CREATE_STORAGE_GROUP,
-                        exportMaskURI);
                 taskCompleter.ready(_dbClient);
             } else {
                 _log.debug("createExportMask failed. No protocol controller created.");
@@ -258,6 +258,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(context == null);
             validator.exportMaskDelete(ctx).validate();
 
             CIMObjectPath protocolController = _cimPath.getClarProtocolControllers(storage, nativeId)[0];
@@ -403,7 +404,13 @@ public class VnxExportOperations implements ExportMaskOperations {
                 }
             }
 
-            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(context == null);
+            validator.removeVolumes(ctx).validate();
 
             if (null == volumeURIList || volumeURIList.isEmpty()) {
                 taskCompleter.ready(_dbClient);
@@ -669,17 +676,23 @@ public class VnxExportOperations implements ExportMaskOperations {
                                             hlu = -1;
                                         }
                                         exportMask.addVolume(volume.getId(), hlu);
+                                        exportMask.removeFromExistingVolumes(volume);
                                     }
                                 }
                             }
                         }
                     }
 
+                    Set existingInitiators = (exportMask.getExistingInitiators() != null) ? exportMask.getExistingInitiators()
+                            : Collections.emptySet();
+                    Set existingVolumes = (exportMask.getExistingVolumes() != null) ? exportMask.getExistingVolumes().keySet()
+                            : Collections.emptySet();
+
                     builder.append(String.format("XM:%s is matching. " +
                             "EI: { %s }, EV: { %s }",
                             name,
-                            Joiner.on(',').join(exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));
+                            Joiner.on(',').join(existingInitiators),
+                            Joiner.on(',').join(existingVolumes)));
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);
@@ -1000,9 +1013,10 @@ public class VnxExportOperations implements ExportMaskOperations {
      * @param initiators
      *            [in] - An array Initiator objects, whose representation will
      *            be removed from the array.
+     * @throws Exception 
      */
     private void deleteStorageHWIDs(StorageSystem storage,
-            List<Initiator> initiators) {
+            List<Initiator> initiators) throws Exception {
         if (initiators == null || initiators.isEmpty()) {
             _log.debug("No initiators ...");
             return;
@@ -1010,17 +1024,19 @@ public class VnxExportOperations implements ExportMaskOperations {
         CIMObjectPath hwIdManagementSvc = _cimPath
                 .getStorageHardwareIDManagementService(storage);
         for (Initiator initiator : initiators) {
-            try {
+        	try {    
                 CIMArgument[] createHwIdIn = _helper.getDeleteStorageHardwareIDArgs(storage, initiator);
                 CIMArgument[] createHwIdOut = new CIMArgument[5];
                 _helper.invokeMethod(storage, hwIdManagementSvc,
                         SmisConstants.DELETE_STORAGE_HARDWARE_ID, createHwIdIn,
                         createHwIdOut);
-            } catch (WBEMException e) {
-                _log.error("deleteStorageHWIDs -- WBEMException: " + e.getMessage());
-            } catch (Exception e) {
-                _log.error("deleteStorageHWIDs -- Exception: " + e.getMessage());
-            }
+		    } catch (WBEMException e) {
+		        _log.error("deleteStorageHWIDs -- WBEMException: " + e.getMessage());
+		        throw e;
+		    } catch (Exception e) {
+		        _log.error("deleteStorageHWIDs -- Exception: " + e.getMessage());
+		        throw e;
+		    }
         }
     }
 

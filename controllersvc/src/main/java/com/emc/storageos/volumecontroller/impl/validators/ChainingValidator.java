@@ -55,7 +55,7 @@ public class ChainingValidator implements Validator {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
-
+        
         if (logger.hasErrors() && shouldThrowException()) {
             logger.generateException(type);
         }

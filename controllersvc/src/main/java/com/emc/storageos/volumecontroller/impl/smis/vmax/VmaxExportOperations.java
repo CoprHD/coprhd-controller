@@ -398,6 +398,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     exportMaskRollback(storage, context, taskCompleter);
                 }
             } else {
+            	ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
@@ -406,6 +407,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
+                ctx.setAllowExceptions(context == null);
                 validator.exportMaskDelete(ctx).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
@@ -1028,10 +1030,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         SmisMaskingViewAddVolumeJob job = new SmisMaskingViewAddVolumeJob(
                                 null, storage.getId(), exportMaskURI, newVolumesToAdd, null, completer);
                         job.setCIMObjectPathfactory(_cimPath);
-                        _helper.addVolumesToStorageGroup(newVolumesToAdd, storage, childGroupName, job, forceFlag);
                         ExportOperationContext.insertContextOperation(taskCompleter,
                                 VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP,
                                 childGroupName, newVolumesToAdd, forceFlag);
+                        _helper.addVolumesToStorageGroup(newVolumesToAdd, storage, childGroupName, job, forceFlag);
                         _log.info("Adding Volumes to non cascaded Storage Group {} END",
                                 childGroupName);
                     } else {
@@ -1123,12 +1125,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
-            validator.removeVolumes(storage, exportMaskURI, initiatorList, blockObjects).validate();
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            // Get the context from the task completer, in case this is a rollback.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(blockObjects);
+            ctx.setInitiators(initiatorList);
+            // Allow exceptions to be thrown when not rolling back, i.e. when context is null
+            ctx.setAllowExceptions(context == null);
+            validator.removeVolumes(ctx).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
             if (context != null) {
                 exportMaskRollback(storage, context, taskCompleter);
                 taskCompleter.ready(_dbClient);

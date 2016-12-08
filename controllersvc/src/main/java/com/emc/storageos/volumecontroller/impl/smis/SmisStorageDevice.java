@@ -782,9 +782,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         if (initiatorURIs != null) {
             initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
         }
+        
+        List<URI> volURIs = Lists.newArrayList();
+        if (volumeURIs != null) {
+        	volURIs.addAll(volumeURIs);
+        }
 
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
-                volumeURIs, new ArrayList<URI>(), initiators, taskCompleter);
+        		volURIs, new ArrayList<URI>(), initiators, taskCompleter);
         _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 

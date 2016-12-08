@@ -54,7 +54,7 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
             for (URI volumeURI : _volumes) {
                 BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-                if (exportMask != null && status == Operation.Status.ready) {
+                if (exportMask != null && Operation.isTerminalState(status)) {
                     exportMask.removeFromUserCreatedVolumes(volume);
                     exportMask.removeVolume(volume.getId());
                 }

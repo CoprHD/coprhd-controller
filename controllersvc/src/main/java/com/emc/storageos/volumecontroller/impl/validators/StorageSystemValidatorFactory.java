@@ -32,27 +32,11 @@ public interface StorageSystemValidatorFactory {
     /**
      * Create an {@link Validator} instance for validating removal of a volume from an
      * export group.
-     *
-     * @param storage
-     * @param exportMaskURI
-     * @param initiators
+     * 
+     * @param ctx ExportMaskValidationContext
      * @return
      */
-    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-            Collection<Initiator> initiators);
-
-    /**
-     * Create an {@link Validator} instance for validating removal of a volume from an
-     * export group.
-     *
-     * @param storage
-     * @param exportMaskURI
-     * @param initiators
-     * @param volumes
-     * @return
-     */
-    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-                            Collection<Initiator> initiators, Collection<? extends BlockObject> volumes);
+    Validator removeVolumes(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating addition of initiators to an

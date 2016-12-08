@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,12 +76,13 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
 
                     logger.info("Processing existing initiators for export mask {} on VMAX storage {}", exportMask.getId(), systemUri);
                     boolean updateObject = false;
+                    List<String> initiatorsToProcess = new ArrayList<String>();
 
                     if (exportMask.getExistingInitiators() != null &&
                             !exportMask.getExistingInitiators().isEmpty()) {
-                        Iterator<String> portNameIterator = exportMask.getExistingInitiators().iterator();
-                        while (portNameIterator.hasNext()) {
-                            Initiator existingInitiator = getInitiator(Initiator.toPortNetworkId(portNameIterator.next()), dbClient);
+                        initiatorsToProcess.addAll(exportMask.getExistingInitiators());
+                        for (String portName : initiatorsToProcess) {
+                            Initiator existingInitiator = getInitiator(Initiator.toPortNetworkId(portName), dbClient);
                             if (existingInitiator != null && !checkIfDifferentResource(exportMask, existingInitiator)) {
                                 exportMask.addInitiator(existingInitiator);
                                 exportMask.addToUserCreatedInitiators(existingInitiator);

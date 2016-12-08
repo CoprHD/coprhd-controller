@@ -136,6 +136,7 @@ public interface MaskingOrchestrator {
      * @param workflow - Workflow
      * @param storageSystem - StorageSystem URI
      * @param exportGroup - ExportGroup URI the port rebalance will happen
+     * @param varray - URI of virtual array
      * @param exportMask - Export mask URI
      * @param addpaths - Paths going to be added
      * @param removedPaths - Paths going to removed
@@ -143,6 +144,6 @@ public interface MaskingOrchestrator {
      * @param token - Operation token for completer
      * @throws Exception
      */
-    public void portRebalance(URI storageSystem, URI exportGroup, URI exportMask, Map<URI, List<URI>> addpaths,
+    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> addpaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception;
 }

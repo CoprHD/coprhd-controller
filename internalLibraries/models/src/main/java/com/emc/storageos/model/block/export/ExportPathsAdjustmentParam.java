@@ -19,6 +19,7 @@ public class ExportPathsAdjustmentParam {
     private List<InitiatorPathParam> adjustedPaths;
     private List<InitiatorPathParam> removedPaths;
     private Boolean waitBeforeRemovePaths;
+    private URI virtualArray;
     
     /**
      * Specifies the storage system whose ports will be reallocated.
@@ -90,5 +91,18 @@ public class ExportPathsAdjustmentParam {
 
     public void setWaitBeforeRemovePaths(Boolean wait) {
         waitBeforeRemovePaths = wait;
+    }
+    
+    /**
+     *  Optional virtual_array parameter. Must match the Export Group virtual array or the
+     *  alternate VPLEX high availability virtual array for the storage system.
+     */
+    @XmlElement(name = "virtual_array", required=false)
+    public URI getVirtualArray() {
+        return virtualArray;
+    }
+
+    public void setVirtualArray(URI virtualArray) {
+        this.virtualArray = virtualArray;
     }
 }

@@ -574,23 +574,24 @@ public class ExportWorkflowUtils {
      * @param waitFor - Wait on this step/group to complete in the workflow before execution
      * @param storageURI - Storage system URI
      * @param exportGroupURI - Export group URI
-     * @param exportMask --  the Export Mask
+     * @param varray - URI of virtual array
+     * @param exportMask --  The Export Mask
      * @param addedPaths - Paths going to be added or retained
      * @param removedPath - Paths going to be removed
      * @return - Step id
      * @throws ControllerException
      */
     public String generateExportAddPathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removedPaths) 
-                    throws ControllerException {
+            URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>> removedPaths) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddPathsMethod(
-                storageURI, exportGroupURI, exportMask.getId(), adjustedPaths, removedPaths);
+                storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removedPaths);
         String stepDescription = String.format("Export add paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
         return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+                storageSystem, method, null, waitFor);
     }
     
     /**
@@ -610,17 +611,17 @@ public class ExportWorkflowUtils {
      * @throws ControllerException
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
-            URI storageURI, URI exportGroupURI, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
+            URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>> removePaths, boolean isPending, String suspendMessage) 
                     throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportRemovePathsMethod(
-                storageURI, exportGroupURI, exportMask.getId(), adjustedPaths, removePaths);
+                storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removePaths);
         String stepDescription = String.format("Export remove paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
         return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, rollbackMethodNullMethod(), waitFor, isPending, suspendMessage);
+                storageSystem, method, null, waitFor, isPending, suspendMessage);
     }
     
     /**

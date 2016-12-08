@@ -1482,7 +1482,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     @Override
-    public void portRebalance(URI storageSystem, URI exportGroupURI, URI exportMaskURI, 
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI varray, URI exportMaskURI, 
             Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
     {

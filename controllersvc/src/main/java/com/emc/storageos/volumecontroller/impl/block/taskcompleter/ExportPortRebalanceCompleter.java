@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -35,6 +34,7 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
     
     private ExportPathParams newPathParam;
     private URI systemURI;
+    private Set<URI> affectedExportGroups;
     
     public ExportPortRebalanceCompleter(URI systemURI, URI id, String opId, ExportPathParams exportPathParam) {
         super(ExportGroup.class, id, opId);
@@ -42,13 +42,14 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
         this.systemURI = systemURI;
     }
     
+    public void setAffectedExportGroups(Set<URI> exportGroups) {
+        this.affectedExportGroups = exportGroups;
+    }
+    
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            super.complete(dbClient, status, coded);
-            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-            
-            //TODO update volumes exportPathParams
+
             Operation operation = new Operation();
             switch (status) {
                 case error:
@@ -56,7 +57,7 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
                     break;
                 case ready:
                     operation.ready();
-                    updateVolumeExportPathParam(dbClient, exportGroup);
+                    updateVolumeExportPathParam(dbClient);
                     break;
                 case suspended_no_error:
                     operation.suspendedNoError();
@@ -67,6 +68,7 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
                 default:
                     break;
             }
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.updateObject(exportGroup);
 
@@ -79,6 +81,8 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
             log.error(String.format("Failed updating status for Export path adjustment - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
 
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
     
@@ -94,102 +98,109 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
      * @param dbClient
      * @param exportGroup
      */
-    private void updateVolumeExportPathParam(DbClient dbClient, ExportGroup exportGroup) {
+    private void updateVolumeExportPathParam(DbClient dbClient) {
         log.info("updating path param map.");
-        StringMap volumes = exportGroup.getVolumes();
-        StringMap existingPathMap = exportGroup.getPathParameters();
-        List<URI> impactedVolumes = new ArrayList<URI>();
-        Map<URI, List<URI>> vpoolVolumes = new HashMap<URI, List<URI>>();
-        Map<URI, List<URI>> volumePath = new HashMap<URI, List<URI>> ();
-        if (volumes != null && !volumes.isEmpty()) {
-            Set<String> volSet = volumes.keySet();
-            for (String volId : volSet) {
-                URI volURI = URI.create(volId);
-                Volume volume = dbClient.queryObject(Volume.class, volURI);
-                if (volume != null && volume.getStorageController().equals(systemURI)) {
-                    log.info(String.format("Checking for the volume %s", volume.getLabel()));
-                    // Check if the volume is in the pathMap
-                    String pathParm = existingPathMap.get(volId);
-                    if (pathParm != null) {
-                        URI pathId  = URI.create(pathParm);
-                        List<URI> vols = volumePath.get(pathId);
-                        if (vols == null) {
-                            vols = new ArrayList<URI>();
-                            volumePath.put(pathId, vols);
+        if (affectedExportGroups == null || affectedExportGroups.isEmpty()) {
+            // not export group is affected, return;
+        }
+        for (URI egURI : affectedExportGroups) {
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);
+            log.info(String.format("Updating export group %s", exportGroup.getId().toString()));
+            StringMap volumes = exportGroup.getVolumes();
+            StringMap existingPathMap = exportGroup.getPathParameters();
+            List<URI> impactedVolumes = new ArrayList<URI>();
+            Map<URI, List<URI>> vpoolVolumes = new HashMap<URI, List<URI>>();
+            Map<URI, List<URI>> volumePath = new HashMap<URI, List<URI>> ();
+            if (volumes != null && !volumes.isEmpty()) {
+                Set<String> volSet = volumes.keySet();
+                for (String volId : volSet) {
+                    URI volURI = URI.create(volId);
+                    Volume volume = dbClient.queryObject(Volume.class, volURI);
+                    if (volume != null && volume.getStorageController().equals(systemURI)) {
+                        log.info(String.format("Checking for the volume %s", volume.getLabel()));
+                        // Check if the volume is in the pathMap
+                        String pathParm = existingPathMap.get(volId);
+                        if (pathParm != null) {
+                            URI pathId  = URI.create(pathParm);
+                            List<URI> vols = volumePath.get(pathId);
+                            if (vols == null) {
+                                vols = new ArrayList<URI>();
+                                volumePath.put(pathId, vols);
+                            }
+                            vols.add(volURI);
+                        } else {
+                        
+                            // check if the volumes' export path parameters are the same
+                            URI vpId = volume.getVirtualPool();
+                            List<URI> vols = vpoolVolumes.get(vpId);
+                            if (vols == null) {
+                                vols = new ArrayList<URI>();
+                                vpoolVolumes.put(vpId, vols);
+                            }
+                            vols.add(volURI);
                         }
-                        vols.add(volURI);
-                    } else {
-                    
-                        // check if the volumes' export path parameters are the same
-                        URI vpId = volume.getVirtualPool();
-                        List<URI> vols = vpoolVolumes.get(vpId);
-                        if (vols == null) {
-                            vols = new ArrayList<URI>();
-                            vpoolVolumes.put(vpId, vols);
-                        }
-                        vols.add(volURI);
                     }
                 }
             }
-        }
-        if (!vpoolVolumes.isEmpty()) {
-            log.info("check for vpool");
-            for (Map.Entry<URI, List<URI>> entry : vpoolVolumes.entrySet()) {
-                URI vpoolId = entry.getKey();
-                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolId);
-                if (vpool != null) {
-                    log.info(String.format("vpool path param : %d, %d, %d", vpool.getMinPaths(), vpool.getNumPaths(), vpool.getPathsPerInitiator()));
-                    log.info(String.format("New path param %d, %d, %d", newPathParam.getMinPaths(), newPathParam.getMaxPaths(), newPathParam.getPathsPerInitiator()));
-                    if (vpool.getMinPaths() != newPathParam.getMinPaths() ||
-                            vpool.getNumPaths() != newPathParam.getMaxPaths() ||
-                            vpool.getPathsPerInitiator() != newPathParam.getPathsPerInitiator()) {
+            if (!vpoolVolumes.isEmpty()) {
+                log.info("check for vpool");
+                for (Map.Entry<URI, List<URI>> entry : vpoolVolumes.entrySet()) {
+                    URI vpoolId = entry.getKey();
+                    VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolId);
+                    if (vpool != null) {
+                        log.info(String.format("vpool path param : %d, %d, %d", vpool.getMinPaths(), vpool.getNumPaths(), vpool.getPathsPerInitiator()));
+                        log.info(String.format("New path param %d, %d, %d", newPathParam.getMinPaths(), newPathParam.getMaxPaths(), newPathParam.getPathsPerInitiator()));
+                        if (vpool.getMinPaths() != newPathParam.getMinPaths() ||
+                                vpool.getNumPaths() != newPathParam.getMaxPaths() ||
+                                vpool.getPathsPerInitiator() != newPathParam.getPathsPerInitiator()) {
+                            impactedVolumes.addAll(entry.getValue());
+                        }
+                    }
+                }
+            }
+            if (!volumePath.isEmpty()) {
+                for (Map.Entry<URI, List<URI>> entry : volumePath.entrySet()) {
+                    URI pathParamURI = entry.getKey();
+                    ExportPathParams pathParam = dbClient.queryObject(ExportPathParams.class, pathParamURI);
+                    if (pathParam == null || pathParam.getMinPaths() != newPathParam.getMinPaths() ||
+                            pathParam.getMaxPaths() != newPathParam.getMaxPaths() ||
+                            pathParam.getPathsPerInitiator() != newPathParam.getPathsPerInitiator()) {
+                        //remove the path entry for this volume
+                        for (URI volURI : entry.getValue()) {
+                            exportGroup.removeFromPathParameters(volURI);
+                        }
+                        // If there are no more entries for the given ExportPathParam, mark it for deletion
+                        if (!exportGroup.getPathParameters().containsValue(pathParamURI.toString()) &&
+                                pathParam != null) {
+                            dbClient.markForDeletion(pathParam);
+                        }
                         impactedVolumes.addAll(entry.getValue());
                     }
+                    
                 }
             }
-        }
-        if (!volumePath.isEmpty()) {
-            for (Map.Entry<URI, List<URI>> entry : volumePath.entrySet()) {
-                URI pathParamURI = entry.getKey();
-                ExportPathParams pathParam = dbClient.queryObject(ExportPathParams.class, pathParamURI);
-                if (pathParam == null || pathParam.getMinPaths() != newPathParam.getMinPaths() ||
-                        pathParam.getMaxPaths() != newPathParam.getMaxPaths() ||
-                        pathParam.getPathsPerInitiator() != newPathParam.getPathsPerInitiator()) {
-                    //remove the path entry for this volume
-                    for (URI volURI : entry.getValue()) {
-                        exportGroup.removeFromPathParameters(volURI);
-                    }
-                    // If there are no more entries for the given ExportPathParam, mark it for deletion
-                    if (!exportGroup.getPathParameters().containsValue(pathParamURI.toString()) &&
-                            pathParam != null) {
-                        dbClient.markForDeletion(pathParam);
-                    }
-                    impactedVolumes.addAll(entry.getValue());
+            if (!impactedVolumes.isEmpty()) {
+                ExportPathParams pathParam = new ExportPathParams();
+                pathParam.setMaxPaths(newPathParam.getMaxPaths());
+                pathParam.setMinPaths(newPathParam.getMinPaths());
+                pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
+                pathParam.setExportGroupType(exportGroup.getType());
+                pathParam.setLabel(exportGroup.getLabel());
+                if (newPathParam.getStoragePorts() != null) {
+                    pathParam.setStoragePorts(newPathParam.getStoragePorts());
+                }
+                pathParam.setExplicitlyCreated(false);
+                
+                pathParam.setId(URIUtil.createId(ExportPathParams.class));
+                pathParam.setInactive(false);
+                dbClient.createObject(pathParam);
+                for (URI volId : impactedVolumes) {
+                    exportGroup.addToPathParameters(volId, pathParam.getId());
                 }
                 
             }
+            dbClient.updateObject(exportGroup);
         }
-        if (!impactedVolumes.isEmpty()) {
-            ExportPathParams pathParam = new ExportPathParams();
-            pathParam.setMaxPaths(newPathParam.getMaxPaths());
-            pathParam.setMinPaths(newPathParam.getMinPaths());
-            pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
-            pathParam.setExportGroupType(exportGroup.getType());
-            pathParam.setLabel(exportGroup.getLabel());
-            if (newPathParam.getStoragePorts() != null) {
-                pathParam.setStoragePorts(newPathParam.getStoragePorts());
-            }
-            pathParam.setExplicitlyCreated(false);
-            
-            pathParam.setId(URIUtil.createId(ExportPathParams.class));
-            pathParam.setInactive(false);
-            dbClient.createObject(pathParam);
-            for (URI volId : impactedVolumes) {
-                exportGroup.addToPathParameters(volId, pathParam.getId());
-            }
-            
-        }
-        dbClient.updateObject(exportGroup);
     }
 
 }

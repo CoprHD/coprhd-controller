@@ -2643,7 +2643,7 @@ public class NetworkDeviceController implements NetworkController {
 
             // Compute zones that are required.
             List<NetworkFCZoneInfo> zoneInfos =
-                    _networkScheduler.getZoningTargetsForPaths(systemURI, exportGroup, newPaths, zonesMap, _dbClient);
+                    _networkScheduler.getZoningTargetsForPaths(systemURI, exportGroup, exportMaskURIs, newPaths, zonesMap, _dbClient);
             context.getZoneInfos().addAll(zoneInfos);
             logZones(zoneInfos);
 

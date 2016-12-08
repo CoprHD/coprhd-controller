@@ -1009,15 +1009,15 @@ public class BlockDeviceExportController implements BlockExportController {
     }
     
     @Override
-    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, Map<URI, List<URI>> adjustedPaths, 
+    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>> removedPaths, ExportPathParams exportPathParam, boolean waitBeforeRemovePaths, 
             String opId) throws ControllerException {
-        _log.info("Received request to reallocate ports. Creating master workflow.");
+        _log.info("Received request for paths adjustment. Creating master workflow.");
         ExportPortRebalanceCompleter taskCompleter = new ExportPortRebalanceCompleter(systemURI, exportGroupURI, opId, 
                 exportPathParam);
         Workflow workflow = null;
         try {
-            workflow = _wfUtils.newWorkflow("port rebalance", false, opId);
+            workflow = _wfUtils.newWorkflow("paths adjustment", false, opId);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             if (exportGroup == null || exportGroup.getExportMasks() == null) {
                 _log.info("No export group or export mask");
@@ -1038,8 +1038,8 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
-                _log.error("Port rebalance could not require log");
-                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("port rebalance", "Could not acquire workflow loc");
+                _log.error("Paths adjustment could not require log");
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("paths adjustment", "Could not acquire workflow loc");
                 taskCompleter.error(_dbClient, serviceError);
                 return;
 
@@ -1048,12 +1048,14 @@ public class BlockDeviceExportController implements BlockExportController {
             String stepId = null;
             Map<URI, Map<URI, List<URI>>> maskAjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
                 if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
                     _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
                             mask.getId().toString()));
                     continue;
                 }
+                affectedMasks.add(mask);
                 Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
                 Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
                 maskAjustedPathMap.put(mask.getId(), adjustedPathForMask);
@@ -1067,7 +1069,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 for (ExportMask mask : exportMasks) {                    
                     URI maskURI = mask.getId();
                     stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                            mask, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                            varray, mask, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
                 }
     
                 stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAjustedPathMap,
@@ -1085,7 +1087,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                     if (!removingPaths.isEmpty()) {
                         stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                                systemURI, exportGroupURI, mask, maskAjustedPathMap.get(maskURI), removingPaths, 
+                                systemURI, exportGroupURI, varray, mask, maskAjustedPathMap.get(maskURI), removingPaths, 
                                 isPending, suspendMessage);
                         isPending = false;
                     }
@@ -1094,7 +1096,16 @@ public class BlockDeviceExportController implements BlockExportController {
                         maskRemovePathMap, stepId);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info("The Export group port rebalance workflow has {} steps. Starting the workflow.",
+                // update ExportPortRebalanceCompleter with affected export groups
+                Set<URI> affectedExportGroups = new HashSet<URI> ();
+                for (ExportMask mask : affectedMasks) {
+                    List<ExportGroup> assocExportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
+                    for (ExportGroup eg : assocExportGroups) {
+                        affectedExportGroups.add(eg.getId());
+                    }
+                }
+                taskCompleter.setAffectedExportGroups(affectedExportGroups);
+                _log.info("The Export paths adjustment workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Executing port rebalance workflow.");
             } else {

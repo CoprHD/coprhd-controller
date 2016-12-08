@@ -108,4 +108,13 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     public List<URI> getSystemIds() {
         return _systemIds;
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob#matches(com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob)
+     */
+    @Override
+    public boolean matches(DataCollectionJob o) {
+        // TODO Auto-generated method stub
+        return false;
+    }
 }

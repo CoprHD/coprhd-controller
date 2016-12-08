@@ -5,6 +5,8 @@
 
 package com.emc.storageos.coordinator.client.service;
 
+import java.util.List;
+
 /**
  * Main API for coordinator backed distributed queue
  */
@@ -31,4 +33,9 @@ public interface DistributedQueue<T> {
      * @param item
      */
     public void put(T item) throws Exception;
+
+    /**
+     * @return
+     */
+    public List<T> getQueuedItems() throws Exception;
 }

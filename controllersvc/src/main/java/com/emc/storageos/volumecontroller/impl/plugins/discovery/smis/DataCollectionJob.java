@@ -57,4 +57,6 @@ public abstract class DataCollectionJob implements Serializable {
     public String getNamespace() {
         return Discovery_Namespaces.ALL.toString();
     }
+    
+    public abstract boolean matches(DataCollectionJob o);
 }

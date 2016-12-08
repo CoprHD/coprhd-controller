@@ -5,13 +5,23 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.Comparator;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.CuratorEvent;
+import org.apache.curator.framework.api.CuratorEventType;
+import org.apache.curator.framework.api.CuratorListener;
+import org.apache.curator.framework.recipes.queue.QueueSerializer;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.curator.utils.EnsurePath;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -24,15 +34,6 @@ import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.CuratorEvent;
-import org.apache.curator.framework.api.CuratorEventType;
-import org.apache.curator.framework.api.CuratorListener;
-import org.apache.curator.framework.recipes.queue.QueueSerializer;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
-import org.apache.curator.utils.EnsurePath;
-import org.apache.curator.utils.ZKPaths;
 
 /**
  * ZK backed distributed queue implementation. Differs from Netflix Curator distributed queue
@@ -387,7 +388,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             final String lockPath = ZKPaths.makePath(_lockPath, child);
             try {
                 _zkClient.create().withMode(CreateMode.EPHEMERAL).forPath(lockPath);
-                _log.info("processChildren(): Created lock zNode {} for Queue {}", child, _queuePath);
+                _log.info("processChildren(): Created lock zNode {} for Queue {}; lockpath is {}", child, _queuePath, lockPath);
                 spawnWork(child);
             } catch (KeeperException.NodeExistsException nee) {
                 _log.info("processChildren(): For Queue: {}, ZNodes already exist", _queuePath, nee);
@@ -409,5 +410,21 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             return null;
         }
         return tmparray[2];
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.coordinator.client.service.DistributedQueue#getQueuedItems()
+     */
+    @Override
+    public List<T> getQueuedItems() throws Exception {
+        List<T> items = new ArrayList<T>();
+        List<String> children = _zkClient.getChildren().forPath(_queuePath);
+        for (String childNode : children) {
+            String path = ZKPaths.makePath(_queuePath, childNode);
+            byte[] data = _zkClient.getData().forPath(path);
+            T savedItem = _serializer.deserialize(data);
+            items.add(savedItem);
+        }
+        return items;
     }
 }

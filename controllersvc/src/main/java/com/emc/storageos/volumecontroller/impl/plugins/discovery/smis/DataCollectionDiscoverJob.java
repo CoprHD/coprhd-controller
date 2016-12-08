@@ -6,13 +6,14 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.io.Serializable;
 
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Job for Discover.
@@ -91,6 +92,45 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
     public boolean isActiveJob(DbClient dbClient) {
         DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
+    }
+    
+    @Override
+    public boolean matches(DataCollectionJob o) {
+        if (o == null || !(o instanceof DataCollectionDiscoverJob)) {
+            return false;
+        }
+        
+        DataCollectionDiscoverJob other = (DataCollectionDiscoverJob) o;
+        
+        String thisResource = null;
+        String otherResource = null;
+        String thisType = null;
+        String otherType = null;
+        
+        if (this._completer != null) {
+            thisResource = this._completer.getId().toString();
+            thisType = this._completer.getJobType();
+        }
+        
+        if (other._completer != null) {
+            otherResource = other._completer.getId().toString();
+            otherType = other._completer.getJobType();
+        }
+        
+        return StringUtils.equals(thisResource, otherResource) && StringUtils.equals(thisType, otherType);
+    }
+    
+    @Override
+    public String toString() {
+        String resource = null;
+        String type = null;
+        
+        if (this._completer != null) {
+            resource = this._completer.getId().toString();
+            type = this._completer.getJobType();
+        }
+        
+        return String.format("%s job for resource %s", (type==null?"null":type), (resource==null?"null":resource));
     }
 
 }

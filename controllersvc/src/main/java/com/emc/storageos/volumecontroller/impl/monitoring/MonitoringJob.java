@@ -8,11 +8,12 @@ package com.emc.storageos.volumecontroller.impl.monitoring;
 import java.io.Serializable;
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.DataObject;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -120,6 +121,41 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
     public boolean isActiveJob(DbClient dbClient) {
         DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
+    }
+    
+    @Override
+    public boolean matches(DataCollectionJob o) {
+        if (o == null || !(o instanceof MonitoringJob)) {
+            return false;
+        }
+        
+        MonitoringJob other = (MonitoringJob) o;
+        
+        String thisResource = null;
+        String otherResource = null;
+        String thisType = null;
+        String otherType = null;
+        String thisDeviceType = null;
+        String otherDeviceType = null;
+        
+        if (this._completer != null) {
+            thisResource = this._completer.getId().toString();
+            thisType = this._completer.getJobType();
+        }
+        
+        if (other.getCompleter() != null) {
+            otherResource = other.getCompleter().getId().toString();
+            otherType = other.getCompleter().getJobType();
+        }
+        
+        if (this._deviceType != null) {
+            thisDeviceType = this._deviceType.toString();
+        }
+        if (other._deviceType != null) {
+            thisDeviceType = other._deviceType.toString();
+        }
+        
+        return StringUtils.equals(thisResource, otherResource) && StringUtils.equals(thisType, otherType) && StringUtils.equals(thisDeviceType, otherDeviceType);
     }
 
 }

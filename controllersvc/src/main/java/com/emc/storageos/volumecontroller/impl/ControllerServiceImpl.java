@@ -26,15 +26,14 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
-import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -54,14 +53,14 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJobSerializer;
 import com.emc.storageos.volumecontroller.impl.job.QueueJobTracker;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJobConsumer;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionArrayAffinityJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionDiscoverJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobSerializer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionArrayAffinityJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -676,22 +675,33 @@ public class ControllerServiceImpl implements ControllerService {
      */
     public static void enqueueDataCollectionJob(DataCollectionJob job) throws Exception {
         String jobType = job.getType();
+        DistributedQueue<DataCollectionJob> queue = null;
         if (jobType.equals(CS_DISCOVERY)) {
-            _computeDiscoverJobQueue.put(job);
+            queue = _computeDiscoverJobQueue;
         } else if (jobType.equals(ARRAYAFFINITY_DISCOVERY)) {
-            _arrayAffinityDiscoverJobQueue.put(job);
+            queue = _arrayAffinityDiscoverJobQueue;
         }
         else if (isDiscoveryJobTypeSupported(jobType)) {
-            _discoverJobQueue.put(job);
+            queue = _discoverJobQueue;
         }
         else if (jobType.equals(SCANNER)) {
-            _scanJobQueue.put(job);
+            queue = _scanJobQueue;
         }
         else if (jobType.equals(MONITORING)) {
-            _monitoringJobQueue.put(job);
+            queue = _monitoringJobQueue;
         } else if (jobType.equals(METERING)) {
-            _meteringJobQueue.put(job);
+            queue = _meteringJobQueue;
+        } else {
+            _log.error("Invalid job type " + jobType + " submitted; Job cannot not be queued: " + job.systemString());
         }
+        List<DataCollectionJob> queuedJobs = queue.getQueuedItems();
+        for (DataCollectionJob queuedJob : queuedJobs) {
+            if (queuedJob.matches(job)) {
+                _log.warn("Job is already on the queue and will not be re-queued: " + job.toString());
+                return;
+            }
+        }
+        queue.put(job);
         _log.info("Queued " + jobType + " job for " + job.systemString());
 
     }

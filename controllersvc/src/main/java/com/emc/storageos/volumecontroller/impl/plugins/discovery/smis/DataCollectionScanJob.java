@@ -124,4 +124,10 @@ public class DataCollectionScanJob extends DataCollectionJob implements Serializ
         return false;
     }
 
+    @Override
+    public boolean matches(DataCollectionJob o) {
+        // TODO : no good way to compare scanning jobs since one job runs multiple scans
+        return false;
+    }
+
 }

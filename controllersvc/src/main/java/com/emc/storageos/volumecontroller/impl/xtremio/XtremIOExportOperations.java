@@ -564,9 +564,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ArrayListMultimap<String, Initiator> groupInitiatorsByIG = XtremIOProvUtils.mapInitiatorToInitiatorGroup(
                     storage.getSerialNumber(), initiators,
                     null, xioClusterName, client);
-
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiators);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
-                    .removeVolumes(storage, exportMask.getId(), initiators);
+                    .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
             initiatorsValidator.validate();
 
@@ -719,8 +723,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     null, xioClusterName, client);
             ArrayListMultimap<String, Initiator> knownInitiatorsToIGMap = ArrayListMultimap.create();
             // DU validations for removing volumes from IG.
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiators);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator
-                    .removeVolumes(storage, exportMask.getId(), initiators);
+                    .removeVolumes(ctx);
             initiatorsValidator.setInitiatorToIGMap(groupInitiatorsByIG);
             initiatorsValidator.setKnownInitiatorToIGMap(knownInitiatorsToIGMap);
             initiatorsValidator.validate();
@@ -833,10 +842,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     if (removeInitiator) {
                         _log.info("Removing requested intiators from IG instead of deleting LunMap"
                                 + " as the IG contains other Host's initiators belonging to same Cluster.");
-                        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                        ctx = new ExportMaskValidationContext();
                         ctx.setStorage(storage);
                         ctx.setExportMask(exportMask);
                         ctx.setBlockObjects(volumes, dbClient);
+                        ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
                         // DU validation when removing initiators
                         XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
                         volumeValidator.setIgNames(groupInitiatorsByIG.keySet());

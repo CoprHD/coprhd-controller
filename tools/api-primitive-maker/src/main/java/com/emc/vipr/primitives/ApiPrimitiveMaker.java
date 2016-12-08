@@ -90,7 +90,8 @@ public final class ApiPrimitiveMaker {
      * 
      * @return a JavaFile representing java source code for the primitive
      */
-    public static Iterable<JavaFile> makePrimitives(List<ApiService> services) {
+    public static Iterable<JavaFile> makePrimitives(
+            final List<ApiService> services) {
 
         final Builder<JavaFile> builder = ImmutableList.<JavaFile> builder();
 
@@ -104,10 +105,6 @@ public final class ApiPrimitiveMaker {
                     _log.info("Method "
                             + method.apiService.getFqJavaClassName() + "::"
                             + method.javaMethodName + " is deprecated");
-                } else if (null == method.brief || method.brief.isEmpty()) {
-                    _log.error("No brief description for "
-                            + method.apiService.getFqJavaClassName() + "::"
-                            + method.javaMethodName);
                 } else {
                     builder.add(makePrimitive(method));
                 }
@@ -128,12 +125,13 @@ public final class ApiPrimitiveMaker {
      */
     private static JavaFile makePrimitive(final ApiMethod method) {
         final String name = makePrimitiveName(method);
+        final String friendlyName = makeFriendlyName(name, method);
 
         TypeSpec primitive = TypeSpec.classBuilder(name)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .superclass(ViPRPrimitive.class).addMethods(METHODS)
-                .addMethod(makeConstructor(name)).addFields(makeFields(method))
-                .build();
+                .addMethod(makeConstructor(name))
+                .addFields(makeFields(method, friendlyName)).build();
 
         return JavaFile.builder(PACKAGE, primitive).build();
     }
@@ -147,10 +145,12 @@ public final class ApiPrimitiveMaker {
      * @return List of static fields in the primitive
      * 
      */
-    private static Iterable<FieldSpec> makeFields(final ApiMethod method) {
+    private static Iterable<FieldSpec> makeFields(final ApiMethod method,
+            final String friendlyName) {
+
         return ImmutableList
                 .<FieldSpec> builder()
-                .add(makeStringConstant("FRIENDLY_NAME", method.brief))
+                .add(makeStringConstant("FRIENDLY_NAME", friendlyName))
                 .add(makeStringConstant("DESCRIPTION", method.description))
                 .add(makeStringConstant("SUCCESS_CRITERIA",
                         makeSuccessCriteria(method)))
@@ -161,7 +161,7 @@ public final class ApiPrimitiveMaker {
     }
 
     /**
-     * Make the JSON template for the REST request bodu
+     * Make the JSON template for the REST request body
      * 
      * @param input
      *            The api class that is the request entity
@@ -536,6 +536,15 @@ public final class ApiPrimitiveMaker {
                 + StringUtils
                         .toUpperCase(method.javaMethodName.substring(0, 1))
                 + method.javaMethodName.substring(1);
+    }
+
+    private static String makeFriendlyName(final String name,
+            final ApiMethod method) {
+        if (null == method.brief || method.brief.isEmpty()) {
+            return name;
+        } else {
+            return method.brief;
+        }
     }
 
     private static String makeParameterName(final String prefix,

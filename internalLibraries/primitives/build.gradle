@@ -4,12 +4,3 @@ dependencies {
   compile library(guava)
   compile library(reflections)
 }
-
-sourceSets {
-  main {
-    java {
-      srcDir 'src/main/generated/'
-    }
-  }
-}
-

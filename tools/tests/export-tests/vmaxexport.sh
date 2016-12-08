@@ -1908,7 +1908,6 @@ test_35() {
     runcmd export_group delete $PROJECT/${expname}3
     verify_export ${expname}2 -x- 6 2 2,3
     verify_export ${expname}3 ${HOST2} gone
-    verify_export ${expname}4 ${HOST3} 2 1 5
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-6"
     verify_export ${expname}2 -x- 6 4 0,1,2,3

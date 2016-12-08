@@ -244,8 +244,8 @@ test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
 
-    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update\
-                               failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                                failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 

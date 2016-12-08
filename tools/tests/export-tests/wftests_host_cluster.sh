@@ -244,11 +244,10 @@ test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
 
-    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
+    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update\
+                               failure_004_final_step_in_workflow_complete"
 
-
-    failure_injections="${common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
@@ -326,13 +325,15 @@ test_host_remove_initiator() {
                 
         # Zzzzzz
         sleep 2
+     
+        if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
         
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
-        
-        # Try and remove an initiator from the host, this should fail during updateExport()
-        fail initiator delete ${host}/${init1}
-        
+            # Try and remove an initiator from the host, this should fail during updateExport()
+            fail initiator delete ${host}/${init1}
+        fi
+ 
         # Zzzzzz
         secho "Sleeping for 5..."
         sleep 5

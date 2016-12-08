@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.workflow.WorkflowService;
 
@@ -41,21 +42,27 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
         try {
             if (getConsistencyGroupURI() != null) {
                 BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, getConsistencyGroupURI());
-                
-                if (status == Operation.Status.error) {
-                    _log.error(String.format("Delete of Consistency group %s failed. Cleaning up the BlockConsistencyGroup object - "
+                boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(getOpId());
+                if (status == Operation.Status.error && isRollback) {
+                    _log.error(String.format(
+                            "Delete of Consistency group %s failed. Since this is during rollback, cleaning up the BlockConsistencyGroup object - "
                             + "replicationGroupName [%s], keepRGName [%s], markInactive [%s] ", consistencyGroup.getLabel(),
                             replicationGroupName, keepRGName, markInactive));
-                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storageSystem, replicationGroupName, keepRGName, markInactive,
-                            dbClient);
+                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storageSystem, replicationGroupName, markInactive, dbClient);
                     dbClient.updateObject(consistencyGroup);
                 }
-                 
-
-                super.complete(dbClient, status, coded);
 
                 switch (status) {
                     case error:
+                        if (isRollback && (coded instanceof ServiceError)) {
+                            ServiceError error = (ServiceError) coded;
+                            String originalMessage = error.getMessage();
+                            String additionMessage = String.format(
+                                    "Rollback encountered problems cleaning up consistency group %s on storage system %s and may require manual clean up",
+                                    replicationGroupName, storageSystem.toString());
+                            String updatedMessage = String.format("%s\n%s", originalMessage, additionMessage);
+                            error.setMessage(updatedMessage);
+                        }
                         dbClient.error(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId(),
                                 coded);
                         break;
@@ -66,6 +73,7 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
                 recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(), eventType(status),
                         status, eventMessage(status, consistencyGroup));
             }
+            super.complete(dbClient, status, coded);
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupDelete {}, for task " + getOpId(), getId(), e);
         }

@@ -452,8 +452,22 @@ public class BlockConsistencyGroupUtils {
         return cgURIs; 
     }
 
+    /**
+     * Method to clean up a consistency group after an operation succeeds or fails.
+     * 
+     * @param consistencyGroup
+     *            consistency group
+     * @param storageId
+     *            storage system
+     * @param replicationGroupName
+     *            replication group name
+     * @param markInactive
+     *            whether you can mark it as inactive as part of cleanup (delete the CG itself)
+     * @param dbClient
+     *            dbclient
+     */
     public static void cleanUpCG(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
-            Boolean keepRGName, Boolean markInactive, DbClient dbClient) {
+            Boolean markInactive, DbClient dbClient) {
         // Remove the replication group name from the SystemConsistencyGroup field
         if (replicationGroupName != null) {
             consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);

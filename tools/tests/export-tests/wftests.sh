@@ -1739,7 +1739,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -2205,9 +2205,14 @@ test_4() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
+    fi 
+
+    if [ "${SS}" = "vnx" ]
+    then
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
@@ -2308,7 +2313,7 @@ test_5() {
 
     if [ "${SS}" = "vnx" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

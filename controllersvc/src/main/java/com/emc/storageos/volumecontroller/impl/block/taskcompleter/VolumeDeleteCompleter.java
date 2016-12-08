@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +21,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 
 public class VolumeDeleteCompleter extends VolumeTaskCompleter {
     private static final Logger _log = LoggerFactory
@@ -60,6 +60,10 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
             for (Volume volume : volumes) {
                 switch (status) {
                     case error:
+                        // Pattern for rollback quality:
+                        // If the step is a rollback step and we did receive an error, we want to notify the
+                        // user of the potential resource(s) that were not cleaned-up as a by-product of this
+                        // failure, so we will add such information into the incoming service code message.
                         if (isRollingBack() && (coded instanceof ServiceError)) {
                             ServiceError error = (ServiceError) coded;
                             String originalMessage = error.getMessage();

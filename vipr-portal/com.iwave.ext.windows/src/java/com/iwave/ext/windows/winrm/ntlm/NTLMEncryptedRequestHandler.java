@@ -12,8 +12,8 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.iwave.ext.windows.winrm.EncryptedRequestHandler;
-import com.iwave.ext.windows.winrm.RepeatableEntity;
+import com.iwave.ext.windows.winrm.encryption.EncryptedRequestHandler;
+import com.iwave.ext.windows.winrm.entity.RepeatableEntity;
 import com.iwave.ext.windows.winrm.ntlm.state.NTLMState;
 
 /**
@@ -90,9 +90,12 @@ public class NTLMEncryptedRequestHandler implements EncryptedRequestHandler {
      */
     private void logResponse(HttpResponse response) {
         StringBuilder builder = new StringBuilder();
+        builder.append("\n");
         builder.append("<Response>");
+        builder.append("\n");
         for (Header header : response.getAllHeaders()) {
             builder.append("<Header>").append(header.getName()).append(": ").append(header.getValue()).append("</Header>");
+            builder.append("\n");
         }
         if (response.getEntity() != null) {
             if (!response.getEntity().isRepeatable()) {
@@ -107,6 +110,7 @@ public class NTLMEncryptedRequestHandler implements EncryptedRequestHandler {
                 builder.append("There was an exception while attempting to read the response entity.");
             }
         }
+        builder.append("\n");
         builder.append("</Response>");
         LOG.debug(builder.toString());
     }

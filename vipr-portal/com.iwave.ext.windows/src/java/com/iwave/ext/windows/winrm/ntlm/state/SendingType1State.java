@@ -33,10 +33,14 @@ public final class SendingType1State extends NTLMState {
     @Override
     public boolean accepts(HttpRequest request) {
         // We only accept HttpRequests that are sending an NTLM type 1 message
+    	try {
         NTLMMessage message = NTLMUtils.getNTLMMessage(request);
         if (message != null && message.getMessageType() == NTLMType1Message.TYPE) {
             return true;
         }
+    	} catch (Exception e) {
+    		
+    	}
         return false;
     }
 

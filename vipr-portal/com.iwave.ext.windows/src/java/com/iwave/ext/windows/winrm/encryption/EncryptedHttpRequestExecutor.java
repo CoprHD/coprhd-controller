@@ -91,6 +91,7 @@ public class EncryptedHttpRequestExecutor extends HttpRequestExecutor {
         }
         EncryptedRequestHandler handler = handlers.get(host);
         if (handler == null || !handler.accepts(message)) {
+        	handler = null;
             handlers.remove(host);
             for (EncryptedRequestHandler h : getAvailableHandlers()) {
                 if (h.accepts(message)) {

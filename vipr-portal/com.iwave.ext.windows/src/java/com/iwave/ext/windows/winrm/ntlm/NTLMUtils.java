@@ -518,7 +518,8 @@ public final class NTLMUtils {
                 // Strip NEGOTIATE from the beginning of the message, and then use that to build the NTLMMessage
                 return NTLMMessage.parse(getRaw(header));
             } catch (Exception e) {
-                LOG.error("Error extracting NTLM message from: " + header.getValue(), e);
+                LOG.error("Error extracting NTLM message from: " + header.getValue() + "Ignoring and proceeding to process it as a non-NTLM message");
+                LOG.error("-############-" + "\n" + e);
             }
         }
         return null;

@@ -4867,7 +4867,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 completer.addExportMaskToRemove(exportMask.getId());
             }
 
-            // TODO this comment wording is so confusing (all this should be handled by the completer)
             // we DO want to remove initiator(s) from the requested ExportGroup.initiators
             // but we DON't want to remove them from any ExportMask because it is
             // in use by other ExportGroups

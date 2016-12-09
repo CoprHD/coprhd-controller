@@ -87,6 +87,8 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
                                 exportMask.addInitiator(existingInitiator);
                                 exportMask.addToUserCreatedInitiators(existingInitiator);
                                 exportMask.removeFromExistingInitiators(existingInitiator);
+                                logger.info("Initiator {} is being moved from existing to userCreated for the Mask {}", portName,
+                                        exportMask.forDisplay());
                                 updateObject = true;
                             }
                         }

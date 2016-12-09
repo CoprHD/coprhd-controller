@@ -76,6 +76,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobS
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -94,6 +95,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -634,20 +636,39 @@ public class HostService extends TaskResourceService {
 
         if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
-        } else {
-            String taskId = UUID.randomUUID().toString();
-            Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
-                    ResourceOperationTypeEnum.DELETE_HOST);
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
-            }
-            _dbClient.persistObject(host);
-            auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
-                    host.auditParameters());
-            return toTask(host, taskId, op);
         }
+        ComputeElement computeElement = null;
+        Volume bootVolume = null;
+    
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
+ 
+        if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
+            if (host.getComputeElement() != null){
+                computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+            }
+            if (host.getBootVolumeId() != null){
+                bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+            }
+            if (computeElement != null || bootVolume != null) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element or boot volume association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element or boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            } else {
+                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement or boot volume associations found. Will proceed with deactivation.");
+            }
+        }
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
+                ResourceOperationTypeEnum.DELETE_HOST);
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+        }
+        _dbClient.persistObject(host);
+        auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
+                host.auditParameters());
+        return toTask(host, taskId, op);
+        
     }
 
     private boolean hostHasPendingTasks(URI id) {

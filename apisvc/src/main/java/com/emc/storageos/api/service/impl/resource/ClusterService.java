@@ -495,4 +495,32 @@ public class ClusterService extends TaskResourceService {
 
         return list;
     }
+
+    /**
+     * Updates the shared export groups of the give cluster
+     *
+     * @param id the URN of a ViPR cluster
+     *
+     * @return the representation of the updated cluster.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-shared-exports")
+    public TaskResourceRep updateClusterSharedExports(@PathParam("id") URI id) {
+        // query the cluster
+        Cluster cluster = queryObject(Cluster.class, id, true);
+
+        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, null, cluster.auditParameters());
+
+        String taskId = UUID.randomUUID().toString();
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
+                ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+        controller.synchronizeSharedExports(cluster.getId(), taskId);
+        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, op.getStatus(), cluster.auditParameters());
+
+        return toTask(cluster, taskId, op);
+    }
 }

@@ -979,9 +979,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
     validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
     allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
+    viprLibParentIDs = ["viprrest", "viprLib", "#"]
 
     function selectDir(event, data) {
-        if ("viprrest" === data.node.parent || "viprLib" === data.node.parent || "#" === data.node.parent) {
+        if($.inArray(data.node.parent, viprLibParentIDs) > -1) {
             // ViPR Library nodes - disable all buttons
             $.each(allActions, function( index, value ) {
                 $('#'+value).prop("disabled",true);

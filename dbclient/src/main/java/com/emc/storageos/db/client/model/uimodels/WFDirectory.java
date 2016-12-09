@@ -58,21 +58,13 @@ public class WFDirectory extends ModelObject {
         _workflows = workflows;
     }
 
-    public void addWorkflow(String workflowID) {
-        getWorkflows().add(workflowID);
-    }
-
-    public void removeWorkflow(String workflowID) {
-        getWorkflows().remove(workflowID);
-    }
-
-    public void addWorkflows(Set<URI> workflowIDs) {
+    public void addWorkflows(final Set<URI> workflowIDs) {
         for (URI u : workflowIDs) {
             getWorkflows().add(u.toString());
         }
     }
 
-    public void removeWorkflows(Set<URI> workflowIDs) {
+    public void removeWorkflows(final Set<URI> workflowIDs) {
         for (URI u : workflowIDs) {
             getWorkflows().remove(u.toString());
         }

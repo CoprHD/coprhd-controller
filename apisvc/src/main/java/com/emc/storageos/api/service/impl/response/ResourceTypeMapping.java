@@ -89,7 +89,6 @@ import static com.emc.storageos.model.ResourceTypeEnum.WF_DIRECTORY;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.uimodels.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,6 +150,14 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogImage;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
 public class ResourceTypeMapping {

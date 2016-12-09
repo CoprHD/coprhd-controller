@@ -66,7 +66,7 @@ test_host_add_initiator() {
 
         # Verify the initiator does not exist in the ExportGroup
         add_init="false"
-        if [[ $(export_contains $exclusive_export $fake_pwwn1) ]]; then
+        if [[ $(export_contains ${PROJECT}/$exclusive_export $fake_pwwn1) ]]; then
             echo "Add initiator to host test failed. Initiator "${fake_pwwn1}" already exists" 
             
             # Report results
@@ -106,7 +106,7 @@ test_host_add_initiator() {
         fi
     
         # Verify the initiator has been added to the ExportGroup
-        if [[ $(export_contains $exclusive_export $fake_pwwn1) ]]; then
+        if [[ $(export_contains ${PROJECT}/$exclusive_export $fake_pwwn1) ]]; then
             add_init="true"
             echo "Verified that initiator "${fake_pwwn1}" has been added to export"
         else
@@ -622,7 +622,14 @@ test_move_non_clustered_host_to_cluster() {
     test_name="test_move_non_clustered_host_to_cluster"
     failure="only_one_test"
     echot "Test test_move_non_clustered_host_to_cluster"
-    host=fakehost-${RANDOM}
+    random_number=${RANDOM}
+    host1=fakehost1-${random_number}
+    host2=fakehost2-${random_number}
+    project1=${PROJECT}
+    project2=fakeproject-${random_number}
+    volume1=${VOLNAME}-1
+    volume2=${VOLNAME}-2-${random_number}  
+    cluster1=fakecluster-${random_number}
     
     cfs="ExportGroup ExportMask Network Host Initiator"
 
@@ -633,20 +640,29 @@ test_move_non_clustered_host_to_cluster() {
     
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
+    fake_pwwn2=`randwwn`
+    fake_nwwn2=`randwwn`
 
-    cluster1=fakecluster-${RANDOM}
+    # Create a second project
+    runcmd project create $project2 --tenant $TENANT 
 
     # Add initator WWNs to the network
-    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
+    runcmd transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
+    runcmd transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
             
-    # Create fake host
-    runcmd hosts create $host $TENANT Esx ${host}.lss.emc.com --port 1
-        
-    # Create new initators and add to fakehost
-    runcmd initiator create $host FC ${fake_pwwn1} --node ${fake_nwwn1}
+    # Create fake hosts
+    runcmd hosts create $host1 $TENANT Esx ${host1}.lss.emc.com --port 1
+    runcmd hosts create $host2 $TENANT Esx ${host2}.lss.emc.com --port 1
+            
+    # Create new initators and add to fake hosts
+    runcmd initiator create $host1 FC ${fake_pwwn1} --node ${fake_nwwn1}
+    runcmd initiator create $host2 FC ${fake_pwwn2} --node ${fake_nwwn2}
     
     # Create the fake cluster
     runcmd cluster create ${cluster1} $TENANT    
+
+    # Create a second volume for the new project
+    runcmd volume create ${volume2} ${project2} ${NH} ${VPOOL_BASE} 1GB
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${host_cluster_failure_injections}"
 
@@ -662,25 +678,28 @@ test_move_non_clustered_host_to_cluster() {
         reset_counts
         item=${RANDOM}
         mkdir -p results/${item}
-        cluster1_export=clusterexport-${item}
+        cluster1_export1=clusterexport1-${item}
+        cluster1_export2=clusterexport2-${item}
 
         snap_db 1 ${cfs}
 
         # Run the cluster export group create command
-        runcmd export_group create $PROJECT ${cluster1_export} $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters ${TENANT}/${cluster1}
+        runcmd export_group create $project1 ${cluster1_export1} $NH --type Cluster --volspec ${project1}/${volume1} --clusters ${TENANT}/${cluster1}
+        runcmd export_group create $project2 ${cluster1_export2} $NH --type Cluster --volspec ${project2}/${volume2} --clusters ${TENANT}/${cluster1}
 
         snap_db 2 ${cfs}
 
         move_host="false"
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            # Move the host to first cluster
-            runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}
+            # Move the hosts to cluster - adds hosts to both ExportGroups           
+            runcmd hosts update ${host1} --cluster ${TENANT}/${cluster1}
+            runcmd hosts update ${host2} --cluster ${TENANT}/${cluster1}
         else    
-            # Turn on failure at a specific point
+            # Turn failure injection off
             set_artificial_failure ${failure}
-            
+
             # Move the host to the cluster
-            fail hosts update ${host} --cluster ${TENANT}/${cluster1}
+            fail hosts update ${host1} --cluster ${TENANT}/${cluster1} 
     
             # Snap the DB after rollback
             snap_db 3 ${cfs}
@@ -690,16 +709,35 @@ test_move_non_clustered_host_to_cluster() {
                 
             # Rerun the command
             set_artificial_failure none
+            
+            # Add the first host to the cluster 
+            runcmd hosts update ${host1} --cluster ${TENANT}/${cluster1}
 
-            # Retry move the host to first cluster
-            runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}           
+            snap_db 4 ${cfs}
+
+            # Turn on failure again
+            set_artificial_failure ${failure}
+
+            # Move the second host to the cluster
+            fail hosts update ${host2} --cluster ${TENANT}/${cluster1}
+
+            snap_db 5 ${cfs}
+
+            # Validate nothing was left behind
+            validate_db 4 5 ${cfs}
+
+            # Turn failure injection off
+            set_artificial_failure none
+
+            # Retry move the second host to cluster
+            runcmd hosts update ${host2} --cluster ${TENANT}/${cluster1}          
         fi
 
-        if [[ $(export_contains $cluster1_export $host) ]]; then
+        if [[ $(export_contains $project1/$cluster1_export1 $host1) && $(export_contains $project2/$cluster1_export2 $host1) && $(export_contains $project1/$cluster1_export1 $host2) && $(export_contains $project2/$cluster1_export2 $host2) ]]; then
             move_host="true"
-            echo "Host" ${host} "has been successfully moved to cluster" ${cluster1}
+            echo "Host" ${host1} "and" ${host2} "have been successfully moved to cluster" ${cluster1}
         else
-            echo "Failed to move host" ${host} "to cluster" ${cluster1}  
+            echo "Failed to move host" ${host1} "and" ${host2} "to cluster" ${cluster1}  
             
             # Report results
             incr_fail_count
@@ -710,14 +748,15 @@ test_move_non_clustered_host_to_cluster() {
         fi    
 
         if [ ${move_host} = "true"  ]; then
-            # Also removes the export group/mask
-            runcmd hosts update ${host} --cluster null
+            # Also removes the export groups/mask
+            runcmd hosts update ${host1} --cluster null
+            runcmd hosts update ${host2} --cluster null
         fi
         
-        snap_db 4 ${cfs}  
+        snap_db 6 ${cfs}  
 
         # Validate that nothing was left behind
-        validate_db 1 4 ${cfs}          
+        validate_db 1 6 ${cfs}          
 
         # Report results
         report_results ${test_name} ${failure}
@@ -727,6 +766,7 @@ test_move_non_clustered_host_to_cluster() {
 # Searches an ExportGroup for a given value. Returns 0 if the value is found,
 # 1 if the value is not found.
 # usage: if [ $(export_contains $export_group_name $search_value) ]; then
+# export_name should be composed of project/export_name    
 export_contains() {
     export_name=$1
     search_value=$2

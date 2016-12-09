@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,7 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.services.util.Exec;
 
 /**
- * Runs Orchestration Shell script or Ansible Playbook Tasks.
+ * Runs Orchestration Shell script or Ansible Playbook.
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */
@@ -138,7 +137,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     //If nothing is given by user default to localhost
 
     private String getHostFile() throws IOException {
-        final boolean isHostFilePresent = true;
+        final boolean isHostFilePresent = false;
         String hosts;
         if (isHostFilePresent) {
             hosts = "/opt/storageos/ansi/hosts";
@@ -155,80 +154,45 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return hosts;
     }
 
-    private Exec.Result buildAndExecute(final String ansiblePath, final String ips, final String user, final String playbook, final String extraVars, final String limit,
-                                        final String tags, final ImmutableList.Builder<String> builder) {
-
-        if (ansiblePath != null && ansiblePath.isEmpty()) {
-            builder.add(ansiblePath);
-        } else {
-            logger.error("Without ansible path cannot run playbook");
-
-            return null;
-        }
-
-        if (ips != null && !ips.isEmpty())
-            builder.add("-i").add(ips);
-
-        if (user != null && !user.isEmpty())
-            builder.add("-u").add(user);
-
-        if (playbook !=null && !playbook.isEmpty()) {
-            builder.add(playbook);
-        } else {
-            logger.error("Cannot run playbook without a playbook name");
-
-            return null;
-        }
-
-        if (extraVars != null && !extraVars.isEmpty())
-            builder.add(OrchestrationServiceConstants.EXTRA_VARS).add(extraVars);
-
-        if (limit != null && !limit.isEmpty())
-            builder.add("-l").add(limit);
-
-        if (tags != null && !tags.isEmpty())
-            builder.add("-t").add(tags);
-
-        final ImmutableList<String> cmdList = builder.build();
-        final String[] cmds = cmdList.toArray(new String[cmdList.size()]);
-
-        for (int i=0; i<cmds.length; i++) {
-            logger.info("cmd:{}", cmds[i]);
-        }
-
-        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
-    }
-
     //TODO Implement for limit, tags
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String user, final String ip, final String playbook, final String ansiblePath,
                                          final String extraVars) {
-        logger.info("executing remote ansi ip:{} playbook:{} ansiblePath:{} extravar:{} user:{}", ip, playbook, ansiblePath, extraVars, user);
-
-        final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add(OrchestrationServiceConstants.SHELL_LOCAL_BIN).add(user + "@" + ip);
-
         //TODO get it from param
         final String targetNodeIps = null;
         final String targetNodeUser = null;
 
-        return buildAndExecute(ansiblePath, targetNodeIps, targetNodeUser, playbook, extraVars, null, null, builder);
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(ansiblePath, playbook);
+        final String[] cmds = cmd.setPrefix(OrchestrationServiceConstants.SHELL_LOCAL_BIN+ " " +user + "@" + ip)
+                .setHostFile(targetNodeIps)
+                .setUser(targetNodeUser)
+                .setLimit(null)
+                .setTags(null)
+                .setExtraVars(extraVars)
+                .build();
+
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
     //Execute Ansible playbook on given nodes. Playbook in local node
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
-        logger.info("local Ansible Execution ips:{} extra var:{} path:{}, user:{}", ips, extraVars, playbook, user);
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, playbook);
+        final String[] cmds = cmd.setHostFile(ips).setUser(user)
+                .setLimit(null)
+                .setTags(null)
+                .setExtraVars(extraVars)
+                .build();
 
-        final ImmutableList.Builder<String> builder = ImmutableList.builder();
-
-        return buildAndExecute(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, ips, user, playbook, extraVars, null, null, builder);
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
+
 
     //Execute Ansible playbook on localhost
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
-        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, playbook);
+        final String[] cmds = cmd.build();
 
-        return buildAndExecute(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, null, null, playbook, extraVars, null, null, builder);
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {
@@ -280,6 +244,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         if (!result.exitedNormally())
             logger.error("Failed to cleanup:{} error:{}", path, result.getStdError());
 
-        return result;
+        //cleanup order context dir
+        final String[] cmd = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION,
+                OrchestrationServiceConstants.PATH + orderDir};
+
+        return Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
     }
 }

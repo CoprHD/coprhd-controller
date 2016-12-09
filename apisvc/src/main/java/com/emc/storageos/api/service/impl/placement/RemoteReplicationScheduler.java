@@ -209,22 +209,7 @@ public class RemoteReplicationScheduler implements Scheduler {
                 count--;
             }
         }
-
-//        List<Recommendation> sourceVolumeRecommendations = new ArrayList<>();
-//        for (Recommendation recommendation : sourceRecommendationsForPools) {
-//            int count = recommendation.getResourceCount();
-//            while (count > 0) {
-//                Recommendation volumeRecommendation = new Recommendation();
-//                volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
-//                volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
-//                volumeRecommendation.setVirtualArray(vArray.getId());
-//                volumeRecommendation.setVirtualPool(vPool);
-//                volumeRecommendation.setResourceCount(1);
-//                sourceVolumeRecommendations.add(volumeRecommendation);
-//            //    volumeRecommendations.add(volumeRecommendation);
-//                count--;
-//            }
-//        }
+        _log.info("Recommendations for source RR volumes: {}", sourceVolumeRecommendations);
 
         // Create recommendation for each target volume. Use source volume recommendations as underlying recommendations.
         int sourceVolumeRecommendationIndex = 0;
@@ -249,6 +234,8 @@ public class RemoteReplicationScheduler implements Scheduler {
                 count--;
             }
         }
+
+        _log.info("Recommendations for target RR volumes: {}", volumeRecommendations);
 
         return volumeRecommendations;
     }

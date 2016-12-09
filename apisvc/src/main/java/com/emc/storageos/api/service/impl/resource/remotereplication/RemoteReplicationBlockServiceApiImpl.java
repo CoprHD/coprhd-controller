@@ -75,7 +75,7 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         List<VolumeDescriptor> existingDescriptors = new ArrayList<>();
         List<Recommendation> sourceVolumeRecommendations = getSourceVolumeRecommendations(volRecommendations);
         List<VolumeDescriptor> sourceVolumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                param.getName()+"_SOURCE", size, project, varray, vpool, sourceVolumeRecommendations, taskList, task, capabilities,
+                param.getName(), size, project, varray, vpool, sourceVolumeRecommendations, taskList, task, capabilities,
                 Volume.PersonalityTypes.SOURCE);
         _log.info("Source volume descriptors: {}", sourceVolumeDescriptors);
         List<URI> sourceVolumeURIs = VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors);

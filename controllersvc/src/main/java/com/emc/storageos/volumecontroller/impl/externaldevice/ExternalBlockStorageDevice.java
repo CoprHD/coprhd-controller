@@ -1728,28 +1728,36 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         _log.info("Create group replication pairs in group {}\n" +
                 "for remote replication pairs: {}", systemReplicationPairs.get(0).getReplicationGroup(), systemReplicationPairs);
 
-        // prepare driver replication pairs and call driver
-        List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
-        prepareDriverRemoteReplicationPairs(systemReplicationPairs, driverRRPairs);
+        try {
+            // prepare driver replication pairs and call driver
+            List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+            prepareDriverRemoteReplicationPairs(systemReplicationPairs, driverRRPairs);
 
-        // call driver
-        RemoteReplicationDriver driver = getDriver(systemReplicationPairs.get(0));
-        DriverTask task = driver.createGroupReplicationPairs(Collections.unmodifiableList(driverRRPairs), null);
-        // todo: need to implement support for async case.
-        if (task.getStatus() == DriverTask.TaskStatus.READY) {
-            // store system pairs in database
-            for (int i=0; i<driverRRPairs.size(); i++) {
-                systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
+            // call driver
+            RemoteReplicationDriver driver = getDriver(systemReplicationPairs.get(0));
+            DriverTask task = driver.createGroupReplicationPairs(Collections.unmodifiableList(driverRRPairs), null);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // store system pairs in database
+                for (int i=0; i<driverRRPairs.size(); i++) {
+                    systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
+                }
+                dbClient.createObject(systemReplicationPairs);
+                String msg = String.format("createGroupReplicationPairs -- Created group replication pairs: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed(
+                 driverRRPairs.get(0).getReplicationGroupNativeId(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
             }
-            dbClient.createObject(systemReplicationPairs);
-            String msg = String.format("createGroupReplicationPairs -- Created group replication pairs: %s .", task.getMessage());
-            _log.info(msg);
-            taskCompleter.ready(dbClient);
-        } else {
-            String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs: %s .", task.getMessage());
+        } catch (Exception e) {
+            String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs");
             _log.error(errorMsg);
             ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed(
-             driverRRPairs.get(0).getReplicationGroupNativeId(), errorMsg);
+                    systemReplicationPairs.get(0).getReplicationGroup().toString(), errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
     }

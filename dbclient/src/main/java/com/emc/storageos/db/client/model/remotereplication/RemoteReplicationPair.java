@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.Volume;
@@ -100,7 +101,7 @@ public class RemoteReplicationPair extends DataObject {
         setChanged("replicationState");
     }
 
-    @RelationIndex(cf = "SourceElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
+    @NamedRelationIndex(cf = "SourceElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
     @Name("sourceElement")
     public NamedURI getSourceElement() {
         return sourceElement;
@@ -111,7 +112,7 @@ public class RemoteReplicationPair extends DataObject {
         setChanged("sourceElement");
     }
 
-    @RelationIndex(cf = "TargetElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
+    @NamedRelationIndex(cf = "TargetElementOfReplicationPairIndex", type = DataObject.class, types = {Volume.class, FileShare.class})
     @Name("targetElement")
     public NamedURI getTargetElement() {
         return targetElement;

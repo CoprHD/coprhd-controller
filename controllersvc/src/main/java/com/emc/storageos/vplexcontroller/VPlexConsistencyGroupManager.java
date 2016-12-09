@@ -135,11 +135,12 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
         if ((!cg.created(vplexURI)) || (willBeRemovedByEarlierStep)) {
             // If the CG doesn't exist at all.
             log.info("Consistency group not created.");
+            String stepId = workflow.createStepId();
             // Create a step to create the CG.
             nextStep = workflow.createStep(CREATE_CG_STEP,
                     String.format("VPLEX %s creating consistency group %s", vplexURI, cgURI),
                     nextStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
-                    createCGMethod(vplexURI, cgURI, volumeList), rollbackMethodNullMethod(), null);
+                    createCGMethod(vplexURI, cgURI, volumeList), rollbackCreateCGMethod(cgURI, stepId), stepId);
             log.info("Created step for consistency group creation.");
         } else {
             // See if the CG is created but contains no volumes.
@@ -157,6 +158,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 // we are adding, so we need to add a step to ensure
                 // the visibility and cluster info for the CG is
                 // correct.
+
                 nextStep = workflow.createStep(SET_CG_PROPERTIES_STEP, String.format(
                         "Setting consistency group %s properties", cgURI), nextStep,
                         vplexURI, vplexSystem.getSystemType(), this.getClass(),
@@ -174,6 +176,76 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
         log.info(String.format("Created step for adding volumes to the consistency group %s", cgURI.toString()));
 
         return nextStep;
+    }
+
+    /**
+     * Create the workflow method to rollback a CG creation on a VPLEX system.
+     *
+     * @param cgURI The consistency group URI
+     * @param createStepId The step that created the CG.
+     *
+     * @return A reference to the workflow method
+     */
+    private Workflow.Method rollbackCreateCGMethod(URI cgURI, String createStepId) {
+        return new Workflow.Method(RB_CREATE_CG_METHOD_NAME, cgURI, createStepId);
+    }
+
+    /**
+     * Method call when we need to rollback the deletion of a consistency group.
+     *
+     * @param cgURI The consistency group URI
+     * @param deleteStepId The step that deleted the CG.
+     * @param stepId The step id.
+     */
+    public void rollbackCreateCG(URI cgURI, String createStepId, String stepId) {
+        try {
+            // Update step state to executing.
+            WorkflowStepCompleter.stepExecuting(stepId);
+            log.info("Updated workflow step to executing");
+
+            // Get the rollback data.
+            Object rbDataObj = workflowService.loadStepData(createStepId);
+            if (rbDataObj == null) {
+                // Update step state to done.
+                log.info("CG was not created, nothing to do.");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
+            VPlexCGRollbackData rbData = (VPlexCGRollbackData) rbDataObj;
+
+            URI vplexSystemURI = rbData.getVplexSystemURI();
+            String cgName = rbData.getCgName();
+            String clusterName = rbData.getClusterName();
+            StorageSystem vplexSystem = getDataObject(StorageSystem.class,
+                    vplexSystemURI, dbClient);
+
+            // Get the VPlex API client.
+            VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem,
+                    dbClient);
+            log.info("Got VPlex API client for VPlex system {}", vplexSystemURI);
+
+            // Update step state to executing.
+            WorkflowStepCompleter.stepExecuting(stepId);
+            log.info(String.format("Executing workflow step rollbackCreateCG. Storage System: %s, CG Name: %s, Cluster Name: %s",
+                    vplexSystemURI, cgName, clusterName));
+
+            // Make a call to the VPlex API client to delete the consistency group.
+            client.deleteConsistencyGroup(cgName);
+            log.info(String.format("Deleted consistency group %s", cgName));
+
+            cleanUpVplexCG(vplexSystemURI, cgURI, cgName, false);
+            // Update step state to done.
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (VPlexApiException vae) {
+            log.error("Exception rolling back VPLEX consistency group creation: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(stepId, vae);
+        } catch (Exception ex) {
+            log.error("Exception rolling back VPLEX consistency group creation: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP.getName();
+            ServiceError serviceError = VPlexApiException.errors.deleteCGFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
     }
 
     /**
@@ -256,6 +328,14 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             // Now we can create the consistency group.
             client.createConsistencyGroup(cgName, clusterName, isDistributed);
             log.info("Created VPLEX consistency group.");
+
+            // Create the rollback data in case this needs to be deleted.
+            VPlexCGRollbackData rbData = new VPlexCGRollbackData();
+            rbData.setVplexSystemURI(vplexURI);
+            rbData.setCgName(cgName);
+            rbData.setClusterName(clusterName);
+            rbData.setIsDistributed(new Boolean(getIsCGDistributed(client, cgName, clusterName)));
+            workflowService.storeStepData(stepId, rbData);
 
             // Now update the CG in the DB.
             cg.setVirtualArray(vaURI);

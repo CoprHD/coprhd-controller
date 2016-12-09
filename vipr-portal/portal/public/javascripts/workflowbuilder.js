@@ -800,7 +800,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
     $scope.workflowTabs = {};
 
-    $scope.addTab = function addTab(tabid) {
+    $scope.addTab = function (tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
       $scope.$apply();
     }
@@ -938,7 +938,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     }
 
     function createDir(event, data) {
-        if ("file" != data.node.type) {
+        if ("file" !== data.node.type) {
             $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
                 data.instance.set_id(data.node, resp.data.id);
             });
@@ -951,7 +951,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     };
 
     function deleteDir(event, data) {
-        if ("file" != data.node.type) {
+        if ("file" !== data.node.type) {
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }
         else {
@@ -960,26 +960,24 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     };
 
     function renameDir(event, data) {
-        console.log(data.node.id);
         // Identifying if node is not saved to DB yet and creating it.
         if (!(data.node.id).startsWith("urn")) {
             createDir(event, data);
         }
         else {
-            if ("file" != data.node.type) {
+            if ("file" !== data.node.type) {
                 $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
             }
             else {
-                console.log("edit workflow")
                 $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
             }
         }
     };
 
-    validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
-    validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
-    allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
-    viprLibParentIDs = ["viprrest", "viprLib", "#"]
+    var validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
+    var validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
+    var allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
+    var viprLibParentIDs = ["viprrest", "viprLib", "#"]
 
     function selectDir(event, data) {
         if($.inArray(data.node.parent, viprLibParentIDs) > -1) {
@@ -1289,7 +1287,6 @@ function addFolder() {
     var ref = $('#jstree_demo').jstree(true),
         sel = ref.get_selected();
     if(!sel.length) { return false; }
-    console.log(sel);
     sel = sel[0];
     sel = ref.create_node(sel);
     if(sel) {
@@ -1301,7 +1298,6 @@ function addWorkflow() {
     var ref = $('#jstree_demo').jstree(true),
         sel = ref.get_selected();
     if(!sel.length) { return false; }
-    console.log(sel);
     sel = sel[0];
     sel = ref.create_node(sel, {"type":"file"});
     if(sel) {
@@ -1330,6 +1326,5 @@ function previewWorkflow() {
     if(!sel.length) { return false; }
     sel = sel[0];
     var tabID = "tab_"+sel;
-    console.log(angular.element('#builderController').scope());
     angular.element('#builderController').scope().addTab(tabID);
 }

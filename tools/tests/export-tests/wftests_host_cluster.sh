@@ -254,9 +254,9 @@ test_host_remove_initiator() {
 
     # Create volume
     random_number=${RANDOM}    
-    volume=${VOLNAME}-${random_number}
-    runcmd volume create ${volume} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-        
+    volume1=${VOLNAME}-${random_number}
+    runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+
     for failure in ${failure_injections}
     do
         echot "Running host_remove_initiator with failure scenario: ${failure}..."
@@ -266,8 +266,11 @@ test_host_remove_initiator() {
         column_family="Volume ExportGroup ExportMask"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
-        host=fakehost${random_number}
-        exportgroup=exportgroup${random_number}
+        host1=fakehost1-${random_number}
+        host2=fakehost2-${random_number}
+        cluster1=fakecluster1-${random_number}
+        exportgroup1=exportgroup1-${random_number}
+        exportgroup2=exportgroup2-${random_number}
         
         # Snap DB
         snap_db 1 ${column_family}
@@ -287,51 +290,60 @@ test_host_remove_initiator() {
         run transportzone add $NH/${FC_ZONE_A} ${init2}
         run transportzone add $NH/${FC_ZONE_A} ${init3}
         run transportzone add $NH/${FC_ZONE_A} ${init4}
+        
+         # Create fake cluster
+        runcmd cluster create ${cluster1} $TENANT
             
-        # Create fake host
-        runcmd hosts create $host $TENANT Other ${host}.lss.emc.com --port 1       
+        # Create fake hosts and add them to cluster
+        runcmd hosts create $host1 $TENANT Other ${host1}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}
+        runcmd hosts create $host2 $TENANT Other ${host2}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}       
         
         # Create new initators and add to fakehost
-        runcmd initiator create $host FC ${init1} --node ${node1}
-        runcmd initiator create $host FC ${init2} --node ${node2}
-        runcmd initiator create $host FC ${init3} --node ${node3}
-        runcmd initiator create $host FC ${init4} --node ${node4}
-        
+        runcmd initiator create $host1 FC ${init1} --node ${node1}
+        runcmd initiator create $host1 FC ${init2} --node ${node2}
+        runcmd initiator create $host2 FC ${init3} --node ${node3}
+        runcmd initiator create $host2 FC ${init4} --node ${node4}
+    
         # Zzzzzz
         sleep 2
         
-        # Export the volume to the fake host    
-        runcmd export_group create $PROJECT ${exportgroup} $NH --type Host --volspec ${PROJECT}/${volume} --hosts "${host}"
+        # Export the volume to an exlusive (aka Host) export for host1
+        runcmd export_group create ${PROJECT} ${exportgroup2} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts "${host1}"
+        # Export the volume to a shared (aka Cluster) export for cluster1   
+        runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}        
+                                
+        # List of all export groups being used
+        exportgroups="${PROJECT}/${exportgroup1} ${PROJECT}/${exportgroup2}"
         
-        # Double check the export group to ensure the initiators are present
-        foundinit1=`export_group show $PROJECT/${exportgroup} | grep ${init1}`
-        foundinit2=`export_group show $PROJECT/${exportgroup} | grep ${init2}`
-        foundinit3=`export_group show $PROJECT/${exportgroup} | grep ${init3}`
-        foundinit4=`export_group show $PROJECT/${exportgroup} | grep ${init4}`    
-        
-        if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
-            # Fail, initiators should have been added to the export group
-            echo "+++ FAIL - Some initiators were not found on the export group...fail."
-    	    # Report results
-    	    incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                exit 1
+        for eg in ${exportgroups}
+        do
+            # Double check export group to ensure the hosts and initiators are present
+            foundinit1=`export_group show ${eg} | grep ${init1}`
+            foundinit2=`export_group show ${eg} | grep ${init2}`            
+            foundhost1=`export_group show ${eg} | grep ${host1}`            
+            
+            if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundhost1}" = "" ]]; then
+                # Fail, hosts and initiators should have been added to the export group
+                echo "+++ FAIL - Some hosts and host initiators were not found on ${eg}...fail."
+                # Report results
+                incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]
+                then
+                    report_results ${test_name} ${failure}
+                    exit 1
+                fi
+            else
+                echo "+++ SUCCESS - All hosts and host initiators present on ${eg}"   
             fi
-        else
-            echo "+++ SUCCESS - All initiators from host present on export group"   
-        fi
-                
-        # Zzzzzz
-        sleep 2
-     
+        done
+                                    
+        
         if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
         
             # Try and remove an initiator from the host, this should fail during updateExport()
-            fail initiator delete ${host}/${init1}
+            fail initiator delete ${host1}/${init1}
         fi
  
         # Zzzzzz
@@ -341,45 +353,47 @@ test_host_remove_initiator() {
         # Rerun the command
         set_artificial_failure none 
                
-        # Delete two initiators from the host...these should now be auto-removed from the export group 
-        runcmd initiator delete ${host}/${init1}
-        runcmd initiator delete ${host}/${init2}
+        # Delete initiator from the host...it should now be auto-removed from the export groups 
+        runcmd initiator delete ${host1}/${init1}
         
         # Zzzzzz
         secho "Sleeping for 5..."
         sleep 5
+
+        for eg in ${exportgroups}
+        do
+            # Ensure that initiator 1 has been removed
+            foundinit1=`export_group show ${eg} | grep ${init1}`            
+            
+            if [[ "${foundinit1}" != "" ]]; then
+                # Fail, initiator 1 should be removed
+                echo "+++ FAIL - Expected host initiators were not removed from the export group ${eg}."
+                # Report results
+                incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]
+                then
+                    report_results ${test_name} ${failure}
+                    exit 1
+                fi
+            else
+                echo "+++ SUCCESS - Expected host initiators removed from export group ${eg}." 
+            fi                                     
+        done
+            
+        # Cleanup export groups  
+        runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
+        runcmd export_group delete ${PROJECT}/${exportgroup1}            
+        runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume1}                                     
+        runcmd export_group delete ${PROJECT}/${exportgroup2}
         
-        # Ensure that initiator 1 and 2 have been removed
-        foundinit1=`export_group show $PROJECT/${exportgroup} | grep ${init1}`
-        foundinit2=`export_group show $PROJECT/${exportgroup} | grep ${init2}`
-        foundinit3=`export_group show $PROJECT/${exportgroup} | grep ${init3}`
-        foundinit4=`export_group show $PROJECT/${exportgroup} | grep ${init4}`
-    
-        if [[ "${foundinit1}" != "" || "${foundinit2}" != "" ]]; then
-            # Fail, initiators 1 and 2 should be removed and initiators 3 and 4 should still be present
-            echo "+++ FAIL - Expected host initiators were not removed from the export group."
-            # Report results
-            incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                exit 1
-            fi
-        else
-            echo "+++ SUCCESS - All expected host initiators removed from export group" 
-        fi
-        
-        # Cleanup    
-        # 1. Unexport the volume
-        # 2. Delete the export group
-        # 3. Delete the host initiators
-        # 4. Delete the host
-        runcmd export_group update ${PROJECT}/${exportgroup} --remVols ${PROJECT}/${volume}                      
-        runcmd export_group delete ${PROJECT}/${exportgroup}    
-        sleep 5
-        runcmd initiator delete ${host}/${init3}
-        runcmd initiator delete ${host}/${init4}
-        runcmd hosts delete ${host}
+        # Cleanup everything else
+        runcmd cluster delete ${TENANT}/${cluster1}
+        runcmd initiator delete ${host1}/${init1}
+        runcmd initiator delete ${host1}/${init2}
+        runcmd initiator delete ${host2}/${init3}
+        runcmd initiator delete ${host2}/${init4}
+        runcmd hosts delete ${host1}
+        runcmd hosts delete ${host2}
         
         # Snap DB
         snap_db 2 ${column_family}
@@ -391,8 +405,8 @@ test_host_remove_initiator() {
         report_results ${test_name} ${failure}
     done
     
-    # Cleanup the volume
-    runcmd volume delete ${PROJECT}/${volume} --wait 
+    # Cleanup volumes
+    runcmd volume delete ${PROJECT}/${volume1} --wait
 }
 
 test_move_clustered_host_to_another_cluster() {

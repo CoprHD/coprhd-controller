@@ -172,6 +172,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
@@ -5530,7 +5531,8 @@ public class BlockService extends TaskResourceService {
     /**
      * Validate volume being expanded is not an SRDF volume with snapshots attached,
      * which isn't handled.
-     *
+     * Also make sure that the SRDF Copy Mode is not Active.
+     * 
      * @param volume
      *            -- Volume being expanded
      * @throws Exception
@@ -5559,6 +5561,9 @@ public class BlockService extends TaskResourceService {
                 if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)
                         || BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)) {
                     throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(targetVolume.getLabel());
+                }
+                if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
+                    throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
                 }
             }
         }

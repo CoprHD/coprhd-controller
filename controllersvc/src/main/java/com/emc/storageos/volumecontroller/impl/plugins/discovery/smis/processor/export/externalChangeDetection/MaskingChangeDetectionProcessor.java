@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StorageSystem.DiscoveryModules;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.StringSetUtil;

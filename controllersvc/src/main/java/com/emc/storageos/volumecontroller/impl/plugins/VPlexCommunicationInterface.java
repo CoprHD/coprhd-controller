@@ -616,13 +616,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         } else  if ((null != accessProfile.getnamespace())
                 && (accessProfile.getnamespace()
-                        .equals(StorageSystem.Discovery_Namespaces.DETECT_MASKING_CHANGES
+                        .equals(StorageSystem.Discovery_Namespaces.DETECT
                                 .toString()))) {
             //discover only the vplex storage views and detect changes and raise event.
             
         } else  if ((null != accessProfile.getnamespace())
                 && (accessProfile.getnamespace()
-                        .equals(StorageSystem.Discovery_Namespaces.RESOLVE_MASKING_CHANGES
+                        .equals(StorageSystem.Discovery_Namespaces.RESOLVE
                                 .toString()))) {
           //discover only the vplex storage views and resolve changes and raise event.
         }

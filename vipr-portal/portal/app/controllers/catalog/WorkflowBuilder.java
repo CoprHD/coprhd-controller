@@ -201,10 +201,17 @@ public class WorkflowBuilder extends Controller {
 
     public static void editWorkflowName(final String id, final String newName) {
         try {
-            final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
-            param.setDocument(new OrchestrationWorkflowDocument());
-            param.getDocument().setName(newName);
-            getCatalogClient().orchestrationPrimitives().editWorkflow(new URI(id), param);
+            URI workflowURI = new URI(id);
+            OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient().orchestrationPrimitives().getWorkflow(workflowURI);
+            if (null != orchestrationWorkflowRestRep) {
+                final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
+                param.setDocument(orchestrationWorkflowRestRep.getDocument());
+                param.getDocument().setName(newName);
+                getCatalogClient().orchestrationPrimitives().editWorkflow(workflowURI, param);
+            }
+            else {
+                flash.error("Workflow " + id + "not found");
+            }
         }
         catch (Exception e) {
             Logger.error(e.getMessage());

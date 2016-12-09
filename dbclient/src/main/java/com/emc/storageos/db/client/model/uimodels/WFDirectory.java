@@ -41,7 +41,7 @@ public class WFDirectory extends ModelObject {
         return _parent;
     }
 
-    public void setParent(URI parent) {
+    public void setParent(final URI parent) {
         _parent = parent;
         setChanged("parent");
     }
@@ -54,7 +54,7 @@ public class WFDirectory extends ModelObject {
         return _workflows;
     }
 
-    public void setWorkflows(StringSet workflows) {
+    public void setWorkflows(final StringSet workflows) {
         _workflows = workflows;
     }
 

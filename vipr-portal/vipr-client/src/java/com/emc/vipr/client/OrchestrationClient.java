@@ -57,6 +57,10 @@ public class OrchestrationClient {
         return client.getURI(OrchestrationWorkflowList.class, builder.build());
     }
 
+    public OrchestrationWorkflowRestRep getWorkflow(final URI id) {
+        return client.get(OrchestrationWorkflowRestRep.class, PathConstants.OE_WORKFLOW, id);
+    }
+
     public OrchestrationWorkflowRestRep createWorkflow(final OrchestrationWorkflowCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
         return client.postURI(OrchestrationWorkflowRestRep.class,param, builder.build());

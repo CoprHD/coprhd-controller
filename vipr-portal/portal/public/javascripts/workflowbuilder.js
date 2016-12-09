@@ -974,40 +974,41 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         }
     };
 
+    var validActionsOnMyLib = ["addFolder", "addWorkflow"]
     var validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
     var validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
     var allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
-    var viprLibParentIDs = ["viprrest", "viprLib", "#"]
+    var viprLibIDs = ["viprrest", "viprLib"]
 
+    var validActions = [];
     function selectDir(event, data) {
-        if($.inArray(data.node.parent, viprLibParentIDs) > -1) {
+        // If current node is vipr library or its parent is vipr library, disable all
+        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
             // ViPR Library nodes - disable all buttons
-            $.each(allActions, function( index, value ) {
-                $('#'+value).prop("disabled",true);
-            });
+            validActions = [];
+        }
+        else if("myLib" === data.node.id) {
+            // My Library root
+            validActions = validActionsOnMyLib;
         }
         else if ("file" === data.node.type) {
             // Workflows
-            $.each(allActions, function( index, value ) {
-                if($.inArray(value, validActionsOnWorkflow)!== -1) {
-                    $('#'+value).prop("disabled",false);
-                }
-                else {
-                    $('#'+value).prop("disabled",true);
-                }
-            });
+            validActions = validActionsOnWorkflow;
         }
         else {
-            // Other directories
-            $.each(allActions, function( index, value ) {
-                if($.inArray(value, validActionsOnDirectory)!== -1) {
-                    $('#'+value).prop("disabled",false);
-                }
-                else {
-                    $('#'+value).prop("disabled",true);
-                }
-            });
+            // Other directories in My Library
+            validActions = validActionsOnDirectory;
         }
+
+        // Enable all validActions, disable others
+        $.each(allActions, function( index, value ) {
+            if($.inArray(value, validActions)!== -1) {
+                $('#'+value).prop("disabled",false);
+            }
+            else {
+                $('#'+value).prop("disabled",true);
+            }
+        });
     };
 })
 

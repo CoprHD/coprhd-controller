@@ -5,7 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +23,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
@@ -35,8 +37,14 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 public class ExportHLUProcessor extends StorageProcessor {
     private Logger logger = LoggerFactory.getLogger(ExportHLUProcessor.class);
+    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private List<Object> args;
     private DbClient dbClient;
+    private PartitionManager partitionManager;
+
+    public void setPartitionManager(PartitionManager partitionManager) {
+        this.partitionManager = partitionManager;
+    }
 
     @Override
     public void processResult(
@@ -53,38 +61,29 @@ public class ExportHLUProcessor extends StorageProcessor {
             logger.info("Masking view: {}", maskingViewPath.toString());
             UnManagedExportMask uem = getUnManagedExportMask(maskingViewPath);
             if (uem == null) {
-                logger.error("Skipping HLU discovery as the unmananged export mask with path {} doesn't exist in ViPR",
+                logger.error("Skipping HLU discovery as there is no unmananged export mask found for masking path {}",
                         maskingViewPath.toString());
                 return;
             }
 
             protocolControllerForUnitInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             protocolControllerForUnitInstances = protocolControllerForUnitInstanceChunks.getResponses();
-            Map<String, String> knownVolumes = new HashMap<String, String>();
-            Map<String, String> unmanagedVolumes = new HashMap<String, String>();
+            List<UnManagedVolume> unmanagedVolumes = new ArrayList<>();
 
-            processMaskHLUs(protocolControllerForUnitInstances, knownVolumes, unmanagedVolumes);
+            processMaskHLUs(protocolControllerForUnitInstances, uem, unmanagedVolumes);
 
             while (!protocolControllerForUnitInstanceChunks.isEnd()) {
                 logger.info("Processing Next ProtocolControllerForUnit Chunk of size {}", BATCH_SIZE);
                 protocolControllerForUnitInstanceChunks = client.getInstancesWithPath(maskingViewPath,
                         protocolControllerForUnitInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
-                processMaskHLUs(protocolControllerForUnitInstanceChunks.getResponses(), knownVolumes, unmanagedVolumes);
+                processMaskHLUs(protocolControllerForUnitInstanceChunks.getResponses(), uem, unmanagedVolumes);
             }
 
-            // update UnManagedExportMask with new data and persist
-            boolean updated = false;
-            if (!knownVolumes.isEmpty()) {
-                uem.getKnownVolumeUrisWithHLU().replace(knownVolumes);
-                updated = true;
-            }
+            // persist updated unmannaged volumes
             if (!unmanagedVolumes.isEmpty()) {
-                uem.getUnmanagedVolumeUrisWithHLU().replace(unmanagedVolumes);
-                updated = true;
+                partitionManager.updateInBatches(unmanagedVolumes, BATCH_SIZE, dbClient, UNMANAGED_VOLUME);
             }
-            if (updated) {
-                dbClient.updateObject(uem);
-            }
+
         } catch (Exception e) {
             logger.error("Extracting HLU for exported Volumes failed", e);
         } finally {
@@ -105,11 +104,11 @@ public class ExportHLUProcessor extends StorageProcessor {
      * Extract HLU for ProtocolControllerForUnit Instances.
      *
      * @param protocolControllerForUnitInstances the ProtocolControllerForUnit instances
-     * @param knownVolumes the known volumes
-     * @param unmanagedVolumes the unmanaged volumes
+     * @param uem the UnMananged ExportMask
+     * @param unmanagedVolumes the unmanaged volumes to be updated
      */
     private void processMaskHLUs(CloseableIterator<CIMInstance> protocolControllerForUnitInstances,
-            Map<String, String> knownVolumes, Map<String, String> unmanagedVolumes) {
+            UnManagedExportMask uem, List<UnManagedVolume> unmanagedVolumes) {
         while (protocolControllerForUnitInstances.hasNext()) {
             CIMInstance protocolControllerForUnitInstance = protocolControllerForUnitInstances.next();
             try {
@@ -120,25 +119,25 @@ public class ExportHLUProcessor extends StorageProcessor {
                 String volume = protocolControllerForUnitInstance.getPropertyValue(SmisConstants.CP_DEPENDENT).toString();
                 CIMObjectPath volumePath = new CIMObjectPath(volume);
                 logger.debug("Volume path: {}", volumePath.toString());
-                // Check if storage volume exists in DB
-                String nativeGuid = getVolumeNativeGuid(volumePath);
-                Volume storageVolume = checkStorageVolumeExistsInDB(nativeGuid, dbClient);
-                if (storageVolume != null) {
-                    logger.debug("Volume: {}, HLU: {}", storageVolume.getId(), hlu);
-                    knownVolumes.put(storageVolume.getId().toString(), hlu.toString());
-                } else {
-                    // Check if unmanaged volume exists in DB
-                    nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
-                    UnManagedVolume umv = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
-                    if (umv != null) {
-                        logger.debug("Unmanaged volume: {}, HLU: {}", umv.getId(), hlu);
-                        unmanagedVolumes.put(umv.getId().toString(), hlu.toString());
-                    } else {
-                        logger.debug("Neither Volume nor UnManaged Volume found for {}", nativeGuid);
+
+                // Check if unmanaged volume exists in DB
+                String nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
+                UnManagedVolume umv = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
+                if (umv != null) {
+                    logger.info("HLU {} found for Unmanaged volume {}", hlu, umv.getId());
+                    StringSet hluMappings = umv.getVolumeInformation()
+                            .get(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name());
+                    if (hluMappings == null) {
+                        hluMappings = new StringSet();
+                        umv.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hluMappings);
                     }
+                    hluMappings.add(uem.getMaskName() + "=" + hlu.toString());
+                    unmanagedVolumes.add(umv);
+                } else {
+                    logger.debug("No UnManaged Volume found in DB for {}", nativeGuid);
                 }
             } catch (Exception e) {
-                logger.debug("Exception occurred while processing ProtocolControllerForUnit {}",
+                logger.warn("Exception occurred while processing ProtocolControllerForUnit {}",
                         protocolControllerForUnitInstance.getObjectPath().toString());
             }
         }

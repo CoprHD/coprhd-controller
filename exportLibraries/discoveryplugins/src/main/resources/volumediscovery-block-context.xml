@@ -643,7 +643,9 @@
 	</bean>
 
 	<bean id="exportHLUProcessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportHLUProcessor" />
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportHLUProcessor">
+		<property name="partitionManager" ref="partitionManager" />
+	</bean>
 
 
 	<!-- SMI Call to get CIMObject Path for the System -->

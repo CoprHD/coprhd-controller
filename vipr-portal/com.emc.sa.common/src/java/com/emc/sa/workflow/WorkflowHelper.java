@@ -66,6 +66,11 @@ public final class WorkflowHelper {
         if(document.getDescription() != null) {
             oeWorkflow.setDescription(document.getDescription());
         }
+
+        if(document.getName() != null) {
+            oeWorkflow.setName(document.getName());
+            oeWorkflow.setLabel(document.getName());
+        }
         
         oeWorkflow.setSteps(toStepsJson(document.getSteps()));
         return oeWorkflow;

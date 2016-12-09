@@ -17,11 +17,15 @@
 package com.emc.vipr.client;
 
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 import javax.ws.rs.core.UriBuilder;
+import java.net.URI;
 
 /**
  * Client for OE APIs - primitives, workflows
@@ -51,5 +55,18 @@ public class OEClient {
     public OrchestrationWorkflowList getWorkflows() {
         UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
         return client.getURI(OrchestrationWorkflowList.class, builder.build());
+    }
+
+    public OrchestrationWorkflowRestRep createWorkflow(final OrchestrationWorkflowCreateParam param) {
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
+        return client.postURI(OrchestrationWorkflowRestRep.class,param, builder.build());
+    }
+
+    public OrchestrationWorkflowRestRep editWorkflow(final URI id, final OrchestrationWorkflowUpdateParam param) {
+        return client.put(OrchestrationWorkflowRestRep.class,param,PathConstants.OE_WORKFLOW,id);
+    }
+
+    public void deleteWorkflow(final URI id) {
+        client.post(String.class,PathConstants.OE_WORKFLOW_DELETE,id);
     }
 }

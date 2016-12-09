@@ -18,6 +18,10 @@ package controllers.catalog;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.model.orchestration.internal.Primitive;
@@ -26,6 +30,8 @@ import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
+import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -40,6 +46,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 import static util.BourneUtil.getCatalogClient;
 
@@ -110,7 +118,9 @@ public class WorkflowBuilder extends Controller {
             // add workflows that are under this node
             if (null != wfDirectoryRestRep.getWorkflows()) {
                 for (URI u : wfDirectoryRestRep.getWorkflows()) {
-                    topLevelNodes.add(new Node(u.toString(), oeId2NameMap.get(u), node.id, NODE_TYPE_FILE));
+                    if (oeId2NameMap.containsKey(u)) {
+                        topLevelNodes.add(new Node(u.toString(), oeId2NameMap.get(u), node.id, NODE_TYPE_FILE));
+                    }
                 }
             }
             topLevelNodes.add(node);
@@ -124,7 +134,7 @@ public class WorkflowBuilder extends Controller {
 
     public static void editWFDirName(String id, String newName) {
         try {
-            WFDirectoryParam param = new WFDirectoryParam();
+            WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
             param.setName(newName);
             getCatalogClient().wfDirectories().edit(new URI(id), param);
         }
@@ -154,6 +164,65 @@ public class WorkflowBuilder extends Controller {
             param.setParent(parentURI);
             WFDirectoryRestRep wfDirectoryRestRep = getCatalogClient().wfDirectories().create(param);
             renderJSON(wfDirectoryRestRep);
+        }
+        catch (Exception e) {
+            Logger.error(e.getMessage());
+        }
+    }
+
+    public static void createWorkflow(final String workflowName, final String dirID) {
+        try {
+            // Create workflow with just name
+            final OrchestrationWorkflowCreateParam param = new OrchestrationWorkflowCreateParam();
+            final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
+            document.setName(workflowName);
+            param.setDocument(document);
+            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient().oePrimitives().createWorkflow(param);
+
+            // Add this workflowid to directory
+            if (null != orchestrationWorkflowRestRep) {
+                final WFDirectoryUpdateParam wfDirectoryParam = new WFDirectoryUpdateParam();
+                final Set<URI> addWorkflows = new HashSet<URI>();
+                addWorkflows.add(orchestrationWorkflowRestRep.getId());
+                wfDirectoryParam.setWorkflows(new WFDirectoryWorkflowsUpdateParam(addWorkflows, null));
+                getCatalogClient().wfDirectories().edit(new URI(dirID), wfDirectoryParam);
+            }
+            else {
+                flash.error("Error creating workflow");
+            }
+
+            renderJSON(orchestrationWorkflowRestRep);
+        }
+        catch (Exception e) {
+            Logger.error(e.getMessage());
+            flash.error("Error creating workflow");
+        }
+    }
+
+    public static void editWorkflowName(final String id, final String newName) {
+        try {
+            final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
+            param.setDocument(new OrchestrationWorkflowDocument());
+            param.getDocument().setName(newName);
+            getCatalogClient().oePrimitives().editWorkflow(new URI(id), param);
+        }
+        catch (Exception e) {
+            Logger.error(e.getMessage());
+        }
+    }
+
+    public static void deleteWorkflow(final String workflowID, final String dirID) {
+        try {
+            final URI workflowURI = new URI(workflowID);
+            // Delete workflow
+            getCatalogClient().oePrimitives().deleteWorkflow(workflowURI);
+
+            // Delete this reference in WFDirectory
+            final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
+            final Set<URI> removeWorkflows = new HashSet<URI>();
+            removeWorkflows.add(workflowURI);
+            param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null, removeWorkflows));
+            getCatalogClient().wfDirectories().edit(new URI(dirID), param);
         }
         catch (Exception e) {
             Logger.error(e.getMessage());

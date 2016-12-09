@@ -31,11 +31,11 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryList;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,7 +180,7 @@ public class WFDirectoryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     @Path("/{id}")
-    public WFDirectoryRestRep updateWFDirectory(@PathParam("id") URI id, WFDirectoryParam param) {
+    public WFDirectoryRestRep updateWFDirectory(@PathParam("id") URI id, WFDirectoryUpdateParam param) {
         WFDirectory wfDirectory = wfDirectoryManager.getWFDirectoryById(id);
         //update object
         // label cannot be null/empty
@@ -189,8 +189,11 @@ public class WFDirectoryService extends TaggedResource {
         }
         // Parent can be null for top level folder
         wfDirectory.setParent(param.getParent());
-        // Workflows can be null or empty (if user wants to remove all workflows from a folder)
-        wfDirectory.setWorkflows(StringSetUtil.uriListToStringSet(param.getWorkflows()));
+        if (null != param.getWorkflows()) {
+            wfDirectory.addWorkflows(param.getWorkflows().getAdd());
+            wfDirectory.removeWorkflows(param.getWorkflows().getRemove());
+        }
+        log.debug(wfDirectory.getWorkflows().toString());
         wfDirectoryManager.updateWFDirectory(wfDirectory);
         return map(wfDirectory);
     }

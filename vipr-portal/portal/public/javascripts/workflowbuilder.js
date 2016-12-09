@@ -800,7 +800,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
     $scope.workflowTabs = {};
 
-    function addTab(tabid) {
+    $scope.addTab = function addTab(tabid) {
       $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
       $scope.$apply();
     }
@@ -851,8 +851,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
                 }
             },
             "plugins": [
-                "contextmenu", "search",
-                "state", "types", "wholerow"
+                "search", "state", "types", "wholerow"
             ],
             "search" : {
                   'case_sensitive' : false,
@@ -925,7 +924,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     //TODO: do error handling on all actions
     $('#jstree_demo').on("rename_node.jstree", renameDir);
     $('#jstree_demo').on("delete_node.jstree", deleteDir);
-    $('#jstree_demo').on("create_node.jstree", createDir);
+    $('#jstree_demo').on("select_node.jstree", selectDir);
 
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
@@ -940,13 +939,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
     function createDir(event, data) {
         if ("file" != data.node.type) {
-            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.parent})).then(function (resp) {
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
                 data.instance.set_id(data.node, resp.data.id);
             });
         }
         else {
-            //TODO: create workflow (API pending)
-            console.log("create workflow pending")
+            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).then(function (resp) {
+                data.instance.set_id(data.node, resp.data.id);
+            });
         }
     };
 
@@ -955,18 +955,59 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }
         else {
-            //TODO: delete workflow (API pending)
-            console.log("delete workflow pending")
+            $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
         }
     };
 
     function renameDir(event, data) {
-        if ("file" != data.node.type) {
-            $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
+        console.log(data.node.id);
+        // Identifying if node is not saved to DB yet and creating it.
+        if (!(data.node.id).startsWith("urn")) {
+            createDir(event, data);
         }
         else {
-            //TODO: edit workflow (API pending)
-            console.log("edit workflow pending")
+            if ("file" != data.node.type) {
+                $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
+            }
+            else {
+                console.log("edit workflow")
+                $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
+            }
+        }
+    };
+
+    validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
+    validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
+    allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
+
+    function selectDir(event, data) {
+        if ("viprrest" === data.node.parent || "viprLib" === data.node.parent || "#" === data.node.parent) {
+            // ViPR Library nodes - disable all buttons
+            $.each(allActions, function( index, value ) {
+                $('#'+value).prop("disabled",true);
+            });
+        }
+        else if ("file" === data.node.type) {
+            // Workflows
+            $.each(allActions, function( index, value ) {
+                if($.inArray(value, validActionsOnWorkflow)!== -1) {
+                    $('#'+value).prop("disabled",false);
+                }
+                else {
+                    $('#'+value).prop("disabled",true);
+                }
+            });
+        }
+        else {
+            // Other directories
+            $.each(allActions, function( index, value ) {
+                if($.inArray(value, validActionsOnDirectory)!== -1) {
+                    $('#'+value).prop("disabled",false);
+                }
+                else {
+                    $('#'+value).prop("disabled",true);
+                }
+            });
         }
     };
 })
@@ -1241,3 +1282,53 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         }
 
 });
+
+// Methods for JSTree actions
+function addFolder() {
+    var ref = $('#jstree_demo').jstree(true),
+        sel = ref.get_selected();
+    if(!sel.length) { return false; }
+    console.log(sel);
+    sel = sel[0];
+    sel = ref.create_node(sel);
+    if(sel) {
+        ref.edit(sel);
+    }
+}
+
+function addWorkflow() {
+    var ref = $('#jstree_demo').jstree(true),
+        sel = ref.get_selected();
+    if(!sel.length) { return false; }
+    console.log(sel);
+    sel = sel[0];
+    sel = ref.create_node(sel, {"type":"file"});
+    if(sel) {
+        ref.edit(sel);
+    }
+}
+
+function editNode() {
+    var ref = $('#jstree_demo').jstree(true),
+        sel = ref.get_selected();
+    if(!sel.length) { return false; }
+    sel = sel[0];
+    ref.edit(sel);
+};
+
+function deleteNode() {
+    var ref = $('#jstree_demo').jstree(true),
+        sel = ref.get_selected();
+    if(!sel.length) { return false; }
+    ref.delete_node(sel);
+};
+
+function previewWorkflow() {
+    var ref = $('#jstree_demo').jstree(true),
+        sel = ref.get_selected();
+    if(!sel.length) { return false; }
+    sel = sel[0];
+    var tabID = "tab_"+sel;
+    console.log(angular.element('#builderController').scope());
+    angular.element('#builderController').scope().addTab(tabID);
+}

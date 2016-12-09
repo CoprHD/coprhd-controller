@@ -37,14 +37,6 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
-    #{field 'schedulePolicy.snapshotPattern'}
-      %{
-        field.required = true
-        field.fieldKey = 'schedulePolicy.snapshotPattern'
-      }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    
     <!-- - -->
     #{field 'schedulePolicy.scheduleTime'}
     #{Form.controlGroup field:field, width:4}
@@ -152,19 +144,7 @@
     #{/Form.controlGroup}
   #{/field}
 
-  *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
-  #{if tenantOptions}
-    #{collapse 'vpool.group.accessControl', icon:'user'}
-        #{field 'vpool.enableTenants'}
-          #{Form.booleanCheckBoxControlGroup field:field /}
-        #{/field}
-      <div data-source="vpool_enableTenants" data-show="true">
-        #{field 'vpool.tenants'}
-          #{Form.selectManyControlGroup field:field, options:tenantOptions /}
-        #{/field}
-      </div>
-    #{/collapse}
-  #{/if}   
+    
 
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}

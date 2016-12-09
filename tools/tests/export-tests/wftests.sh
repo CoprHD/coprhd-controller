@@ -922,9 +922,9 @@ prerun_setup() {
     smisprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ];
     then
-	ZONE_CHECK=0
-	SIM=1;
-	echo "Shutting off zone check for simulator environment"
+	   ZONE_CHECK=0
+	   SIM=1;
+	   echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -1106,7 +1106,10 @@ vmax2_setup() {
     SMISPASS=0
 
     if [ "${SIM}" = "1" ]; then
-	vmax2_sim_setup
+	   vmax2_sim_setup
+    else
+        VMAX_PROVIDER_NAME=VMAX2-PROVIDER-HW
+        VMAX_NATIVEGUID=${VMAX2_DUTEST_NATIVEGUID}
     fi
  
     # do this only once
@@ -1162,7 +1165,9 @@ vmax3_setup() {
     SMISPASS=0
 
     if [ "${SIM}" = "1" ]; then
-	vmax3_sim_setup
+	   vmax3_sim_setup
+    else
+        VMAX_PROVIDER_NAME=VMAX3-PROVIDER-HW
     fi
  
    # do this only once
@@ -1739,7 +1744,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "Description:" | grep -v "Additional" | grep -v -e '^$' | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
     done
 }      
 

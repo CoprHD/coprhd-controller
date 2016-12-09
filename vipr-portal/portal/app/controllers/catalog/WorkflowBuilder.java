@@ -94,7 +94,7 @@ public class WorkflowBuilder extends Controller {
     public static void getWFDirectories() {
         // GET workflow ids and names
         Map<URI, String> oeId2NameMap = new HashMap<URI, String>();
-        OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient().oePrimitives().getWorkflows();
+        OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient().orchestrationPrimitives().getWorkflows();
         if (null != orchestrationWorkflowList && null != orchestrationWorkflowList.getWorkflows()) {
             for (NamedRelatedResourceRep o : orchestrationWorkflowList.getWorkflows()) {
                 oeId2NameMap.put(o.getId(), o.getName());
@@ -177,7 +177,7 @@ public class WorkflowBuilder extends Controller {
             final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
             document.setName(workflowName);
             param.setDocument(document);
-            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient().oePrimitives().createWorkflow(param);
+            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient().orchestrationPrimitives().createWorkflow(param);
 
             // Add this workflowid to directory
             if (null != orchestrationWorkflowRestRep) {
@@ -204,7 +204,7 @@ public class WorkflowBuilder extends Controller {
             final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
             param.setDocument(new OrchestrationWorkflowDocument());
             param.getDocument().setName(newName);
-            getCatalogClient().oePrimitives().editWorkflow(new URI(id), param);
+            getCatalogClient().orchestrationPrimitives().editWorkflow(new URI(id), param);
         }
         catch (Exception e) {
             Logger.error(e.getMessage());
@@ -215,7 +215,7 @@ public class WorkflowBuilder extends Controller {
         try {
             final URI workflowURI = new URI(workflowID);
             // Delete workflow
-            getCatalogClient().oePrimitives().deleteWorkflow(workflowURI);
+            getCatalogClient().orchestrationPrimitives().deleteWorkflow(workflowURI);
 
             // Delete this reference in WFDirectory
             final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
@@ -232,7 +232,7 @@ public class WorkflowBuilder extends Controller {
     // Get Primitives and add them to directory list
     private static void addPrimitives(List<Node> topLevelNodes) {
         try {
-            PrimitiveList primitiveList = getCatalogClient().oePrimitives().getPrimitives();
+            PrimitiveList primitiveList = getCatalogClient().orchestrationPrimitives().getPrimitives();
             if (null == primitiveList) {
                 return;
             }

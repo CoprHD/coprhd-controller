@@ -30,11 +30,11 @@ import java.net.URI;
 /**
  * Client for OE APIs - primitives, workflows
  */
-public class OEClient {
+public class OrchestrationClient {
     private final ViPRCatalogClient2 parent;
     private final RestClient client;
 
-    public OEClient(final ViPRCatalogClient2 parent, final RestClient client) {
+    public OrchestrationClient(final ViPRCatalogClient2 parent, final RestClient client) {
         this.parent = parent;
         this.client = client;
     }

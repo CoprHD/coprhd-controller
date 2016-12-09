@@ -1105,6 +1105,7 @@ public class DbClientImpl implements DbClient {
 
             StackTraceElement[] elements = Thread.currentThread().getStackTrace();
             StringBuffer sb = new StringBuffer("Persisting obj: " + dobj.getId() + "\n");
+            sb.append("InActive: " + ((DataObject) obj).getInactive() + "\n");
             sb.append("====================================================================================================\n");
             for (int i = 0; i < elements.length; i++) {
                 if (elements[i].getClassName().contains("storageos")) {

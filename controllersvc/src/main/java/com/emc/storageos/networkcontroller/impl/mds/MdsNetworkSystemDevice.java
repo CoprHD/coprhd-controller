@@ -218,7 +218,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 // Both fabricId and fabricWwn supplied; fabricId matches vsan containing WWN
                 Integer vsanId = new Integer(fabricId);
                 vsanWwnMap = dialog.getVsanWwns(new Integer(fabricId));
-                if (vsanWwnMap.get(vsanId).equals(fabricWwn)) {
+                String vsanwwn = vsanWwnMap.get(vsanId);
+                if (null != vsanwwn && vsanwwn.equals(fabricWwn)) {
                     return vsanId;
                 }
             } catch (Exception ex) {

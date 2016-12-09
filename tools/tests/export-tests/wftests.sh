@@ -1801,15 +1801,15 @@ test_1() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_005_BlockDeviceController.createVolumes_before_device_create \
                                failure_006_BlockDeviceController.createVolumes_after_device_create \
-                               failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
-                               failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+                               failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
 	# which depends on vplex project, not the other way around.
-	storage_failure_injections="failure_004_final_step_in_workflow_complete:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
-                                    failure_004_final_step_in_workflow_complete:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
+	storage_failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
+                                    failure_004:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
@@ -1822,7 +1822,7 @@ test_1() {
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
-	storage_failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool \
+	storage_failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool \
 	                            failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
@@ -1835,17 +1835,29 @@ test_1() {
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
+    if [ "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_004:failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume \
+                                    failure_004:failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume"
+    fi
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+    # failure_injections="failure_004:failure_040 failure_004:failure_041"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	cfs="Volume ExportGroup ExportMask"
+    else
+	cfs="Volume"
+    fi
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
-      cfs="Volume ExportGroup ExportMask"
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 1 with failure scenario: ${failure}..."
       reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -1883,7 +1895,7 @@ test_1() {
       set_artificial_failure none
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
-      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
           # Unity is expected to fail because the array doesn't like duplicate LUN names
           fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
@@ -1924,46 +1936,68 @@ test_2() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_005_BlockDeviceController.createVolumes_before_device_create \
                                failure_006_BlockDeviceController.createVolumes_after_device_create \
-                               failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
-                               failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+                               failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
+	# which depends on vplex project, not the other way around.
+	storage_failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
+                                    failure_004:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
+                                    failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
+                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
                                     failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
                                     failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
     fi
 
-    if [ "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
-                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+    fi
+
+    if [ "${SS}" = "vnx" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" ]
+    if [ "${SS}" = "xio" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers \
-                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries \
-                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
-                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+	storage_failure_injections="failure_004:failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume \
+                                    failure_004:failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+    else
+	cfs="Volume BlockConsistencyGroup"
+    fi
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 2 with failure scenario: ${failure}..."
       item=${RANDOM}
-      cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 2 with failure scenario: ${failure}..."
       reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -1972,8 +2006,7 @@ test_2() {
       set_artificial_failure ${failure}
 
       # Create a new CG
-      randval=${RANDOM}
-      CGNAME=wf-test2-cg-${randval}
+      CGNAME=wf-test2-cg-${item}
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Check the state of the volume that doesn't exist
@@ -2015,7 +2048,7 @@ test_2() {
       set_artificial_failure none
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
-      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
           # Unity is expected to fail because the array doesn't like duplicate LUN names
           fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
@@ -2075,7 +2108,8 @@ test_3() {
 
     if [ "${SS}" = "unity" ]
     then
-	storage_failure_injections="failure_022 failure_023"
+	storage_failure_injections="failure_022_VNXeStorageDevice_CreateVolume_before_async_job \
+                                    failure_023_VNXeStorageDevice_CreateVolume_after_async_job"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2083,12 +2117,18 @@ test_3() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
 
+    if [ "${SS}" = "vplex" ]
+    then
+	cfs="Volume ExportGroup ExportMask"
+    else
+	cfs="Volume ExportGroup ExportMask"
+    fi
+
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 3 with failure scenario: ${failure}..."
       item=${RANDOM}
-      cfs="Volume ExportGroup ExportMask"
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 3 with failure scenario: ${failure}..."
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       project=${PROJECT}-${item}
@@ -2169,27 +2209,39 @@ test_4() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
+    fi 
+
+    if [ "${SS}" = "vnx" ]
+    then
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
+                                    failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
+                                    failure_004:failure_020_Export_zoneRollback_before_delete \
+                                    failure_004:failure_021_Export_zoneRollback_after_delete"
     fi
 
     if [ "${SS}" = "unity" ]; then
-      storage_failure_injections="failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+      storage_failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
+                                  failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
+                                  failure_004:failure_020_Export_zoneRollback_before_delete \
+                                  failure_004:failure_021_Export_zoneRollback_after_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020"
+    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 4 with failure scenario: ${failure}..."
       item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 4 with failure scenario: ${failure}..."
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2265,7 +2317,7 @@ test_5() {
 
     if [ "${SS}" = "vnx" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2275,9 +2327,9 @@ test_5() {
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 5 with failure scenario: ${failure}..."
       item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 5 with failure scenario: ${failure}..."
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2343,7 +2395,7 @@ test_6() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
     then
-	storage_failure_injections="failure_004:failure_017"
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2353,9 +2405,9 @@ test_6() {
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 6 with failure scenario: ${failure}..."
       item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 6 with failure scenario: ${failure}..."
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2427,7 +2479,9 @@ test_7() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_004:failure_016 failure_004:failure_024 failure_004:failure_025"
+	storage_failure_injections="failure_004:failure_016_Export_doRemoveInitiator \
+                                    failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2437,9 +2491,9 @@ test_7() {
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 7 with failure scenario: ${failure}..."
       item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 7 with failure scenario: ${failure}..."
       cfs="ExportGroup ExportMask"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2531,8 +2585,8 @@ test_8() {
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement \
-                                    failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
-                                    failure_004_final_step_in_workflow_complete:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
+                                    failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                                    failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -2544,13 +2598,13 @@ test_8() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
+    # failure_injections="failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"
 
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 1 with failure scenario: ${failure}..."
       item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 1 with failure scenario: ${failure}..."
       cfs="Volume ExportGroup ExportMask"
       reset_counts
       mkdir -p results/${item}
@@ -2595,7 +2649,7 @@ test_8() {
       runcmd storagedevice discover_all
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
-      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004_final_step_in_workflow_complete:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
           # Unity is expected to fail because the array doesn't like duplicate LUN names
           fail -with_error "LUN with this name already exists" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
@@ -2640,7 +2694,6 @@ test_9() {
     then
 	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
                                     failure_010_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation"
-	return
     fi
 
     if [ "${SS}" = "unity" ]
@@ -2679,19 +2732,24 @@ test_9() {
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
 
+    if [ "${SS}" = "vplex" ]
+    then
+	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+    else
+	cfs="Volume BlockConsistencyGroup"
+    fi
+
     for failure in ${failure_injections}
     do
-      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-      secho "Running Test 9 with failure scenario: ${failure}..."
       item=${RANDOM}
-      cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 9 with failure scenario: ${failure}..."
       reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
 
       # Create a new CG
-      randval=${RANDOM}
-      CGNAME=wf-test2-cg-${randval}
+      CGNAME=wf-test2-cg-${item}
 
       # Check the state of the volume that doesn't exist
       snap_db 1 ${cfs}

@@ -4815,9 +4815,9 @@ public class BlockService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param vid
-     *            Volume identifier
      * @param id
+     *            Volume identifier
+     * @param pid
      *            the URN of a ViPR ProtectionSet
      *
      * @brief Show protection set
@@ -4825,12 +4825,12 @@ public class BlockService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{vid}/protection/protection-sets/{id}")
+    @Path("/{id}/protection/protection-sets/{pid}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public ProtectionSetRestRep getProtectionSet(@PathParam("vid") URI vid, @PathParam("id") URI id) {
-        validateProtectionSetUri(vid, id);
-        _log.info("Getting protection set for ID: " + id);
-        ProtectionSet protectionSet = queryProtectionSetResource(id);
+    public ProtectionSetRestRep getProtectionSet(@PathParam("id") URI id, @PathParam("pid") URI pid) {
+        validateProtectionSetUri(id, pid);
+        _log.info("Getting protection set for ID: " + pid);
+        ProtectionSet protectionSet = queryProtectionSetResource(pid);
         _log.info("Protection set status: " + protectionSet.getProtectionStatus());
         return map(protectionSet);
     }
@@ -4851,7 +4851,6 @@ public class BlockService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/protection/addJournalCapacity")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
         ArgValidator.checkFieldNotNull(param, "volume_create");
 

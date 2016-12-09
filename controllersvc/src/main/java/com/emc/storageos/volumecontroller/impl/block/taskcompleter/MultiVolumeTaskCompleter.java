@@ -43,9 +43,18 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
         }
     }
 
-    public VolumeTaskCompleter addVolumeCompleter(VolumeTaskCompleter completer) {
+    /**
+     * For the same volume contained its its own single completer and in this multi-volume completer,
+     * only one completer should delegate to inform the workflow service of completion. This disables
+     * the single completer in the case of a multi-volume completer.
+     * 
+     * @param completer
+     *            single volume completer
+     * @return completer to add to the
+     */
+    public void addVolumeCompleter(VolumeTaskCompleter completer) {
         completer.setNotifyWorkflow(false); // This completer will take care of notifying workflow
-        return _volumeTaskCompleterMap.put(completer.getId(), completer);
+        _volumeTaskCompleterMap.put(completer.getId(), completer);
     }
 
     /**

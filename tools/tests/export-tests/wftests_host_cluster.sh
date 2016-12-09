@@ -244,11 +244,10 @@ test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
 
-    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
-                               failure_002_host_export_ComputeSystemControllerImpl.updateExportGroup_after_update"
+    common_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update\
+                               failure_004_final_step_in_workflow_complete"
 
-
-    failure_injections="${common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
@@ -326,13 +325,15 @@ test_host_remove_initiator() {
                 
         # Zzzzzz
         sleep 2
+     
+        if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
         
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
-        
-        # Try and remove an initiator from the host, this should fail during updateExport()
-        fail initiator delete ${host}/${init1}
-        
+            # Try and remove an initiator from the host, this should fail during updateExport()
+            fail initiator delete ${host}/${init1}
+        fi
+ 
         # Zzzzzz
         secho "Sleeping for 5..."
         sleep 5
@@ -730,19 +731,24 @@ export_contains() {
 test_cluster_remove_host() {
     test_name="test_cluster_remove_host"
     echot "Test cluster_remove_host Begins"
+    
+    # Turn off validation, shouldn't need to do this but until we have
+    # all the updates for export simplification it may be a necessary
+    # evil.
+    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                 failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
                                 failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
-                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
-                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&1 \
                                 failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"    
+    #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"    
 
     # Create volumes
     random_number=${RANDOM}        
@@ -809,11 +815,10 @@ test_cluster_remove_host() {
         
         # Export the volume to the fake cluster    
         runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
-        #runcmd export_group create ${PROJECT2} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT2}/${volume2} --clusters ${TENANT}/${cluster1}
+        runcmd export_group create ${PROJECT2} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT2}/${volume2} --clusters ${TENANT}/${cluster1}
         
         # List of all export groups being used
-        #exportgroups="${PROJECT}/${exportgroup1} ${PROJECT2}/${exportgroup2}"
-        exportgroups="${PROJECT}/${exportgroup1}"
+        exportgroups="${PROJECT}/${exportgroup1} ${PROJECT2}/${exportgroup2}"
         
         for eg in ${exportgroups}
         do
@@ -927,8 +932,8 @@ test_cluster_remove_host() {
             # Cleanup export groups  
             runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
             runcmd export_group delete ${PROJECT}/${exportgroup1}            
-            #runcmd export_group update ${PROJECT2}/${exportgroup2} --remVols ${PROJECT2}/${volume2}                                     
-            #runcmd export_group delete ${PROJECT2}/${exportgroup2}
+            runcmd export_group update ${PROJECT2}/${exportgroup2} --remVols ${PROJECT2}/${volume2}                                     
+            runcmd export_group delete ${PROJECT2}/${exportgroup2}
         fi    
         
         # Cleanup all

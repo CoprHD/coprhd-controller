@@ -1,14 +1,9 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection;
 
-import static com.google.common.collect.Collections2.transform;
+
 
 import java.net.URI;
-import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +13,6 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
@@ -26,44 +20,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.ZoneInfo;
-import com.emc.storageos.db.client.model.ZoneInfoMap;
-import com.emc.storageos.db.client.model.StoragePort.TransportType;
-import com.emc.storageos.db.client.model.StorageSystem.DiscoveryModules;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
-import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.google.common.base.Joiner;
+
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 
 public class MaskingResolveChangesProcessor extends Processor {
@@ -100,18 +79,16 @@ public class MaskingResolveChangesProcessor extends Processor {
         
         try {
             CIMObjectPath path = this.getObjectPathfromCIMArgument(_args, keyMap);
-            Map<String, List<URI>> subNamespaces = (Map<String, List<URI>>) keyMap.get(Constants.SUBNAMESPACES);
-            if (null == subNamespaces ||
-                    !subNamespaces.containsKey(DiscoveryModules.MASKING) || subNamespaces.get(DiscoveryModules.MASKING.name()).isEmpty()) {
-               _logger.info("Skipping Detection of masking views");
-               return;
-            }
+            
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            List<URI> maskUris = subNamespaces.get(DiscoveryModules.MASKING.name());
-            _logger.info("Masking views to get processed :{}", Joiner.on("@@").join(maskUris));
-            if (null == maskUris) {
-                _logger.warn("Resolve namespace received 0 masks to process");
+            String maskName = getCIMPropertyValue(path, SmisConstants.CP_DEVICE_ID);
+            
+            @SuppressWarnings("deprecation")
+            List<URI> maskUriList = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getExportMaskByNameConstraint(maskName));
+            if (null == maskUriList || maskUriList.isEmpty()) {
+                _logger.warn("Storage System doesn't have any export masks in ViPR database");
                 return;
             }
             response = (EnumerateResponse<CIMInstance>) resultObj;
@@ -130,13 +107,18 @@ public class MaskingResolveChangesProcessor extends Processor {
             
             //Replace the storage Ports with export mask storage Ports.
             //Replace the Initiator Ports with export mask initiator Ports.
-             ExportMask mask = dbClient.queryObject(ExportMask.class, maskUris.get(0));
+             ExportMask mask = dbClient.queryObject(ExportMask.class, maskUriList.get(0));
              
+            
              //Replace Storage Ports
              List<StoragePort> storagePorts = new ArrayList<StoragePort>();
              if (null == mask.getStoragePorts()) {
                  mask.setStoragePorts(new StringSet());
              }
+             
+             SetView<String> addedPorts = Sets.difference(knownPortSet, mask.getStoragePorts());
+             SetView<String> removedPorts = Sets.difference(mask.getStoragePorts(), knownPortSet);
+             
              mask.getStoragePorts().replace(knownPortSet);
              storagePorts = DataObjectUtils.iteratorToList(_dbClient.queryIterativeObjects(StoragePort.class,
                      StringSetUtil.stringSetToUriList(mask.getStoragePorts())));
@@ -146,6 +128,10 @@ public class MaskingResolveChangesProcessor extends Processor {
              if(null == mask.getInitiators()) {
                  mask.setInitiators(new StringSet());
              }
+             
+             SetView<String> addedInis = Sets.difference(knownIniSet, mask.getInitiators());
+             SetView<String> removedInis= Sets.difference(mask.getInitiators(), knownIniSet);
+             
              mask.getInitiators().replace(knownIniSet);
              initiators = DataObjectUtils.iteratorToList(_dbClient.queryIterativeObjects(Initiator.class,
                      StringSetUtil.stringSetToUriList(mask.getInitiators())));
@@ -166,22 +152,13 @@ public class MaskingResolveChangesProcessor extends Processor {
                  //Raise Event to user, that the re-discovery of the Storage Array didn't bring in the changed ports.
              }
             
-             
-             updateZoningMap(mask, initiators, storagePorts);
+             //This takes care of updating the zone map and zone references
+             updateZoningMap(mask, removedInis, removedPorts);
             
 
-            // CTRL - 8918 - always update the mask with new initiators and volumes.
-       /*     mask.replaceNewWithOldResources(knownIniSet, knownNetworkIdSet, knownVolumeSet, knownPortSet);
-
-            // get zones and store them?
-            updateZoningMap(mask, matchedInitiators, matchedPorts);
-
-            updateVplexBackendVolumes(mask, matchedInitiators);
-
-            updateRecoverPointVolumes(mask, matchedInitiators);*/
-            
+         
         } catch (Exception e) {
-            _logger.error("something failed", e);
+            _logger.error("Exception resolving the masking changes", e);
         } finally {
             if (it != null) {
                 it.close();
@@ -197,26 +174,25 @@ public class MaskingResolveChangesProcessor extends Processor {
         }
     }
 
-    private void updateZoningMap(ExportMask mask, List<Initiator> initiators, List<StoragePort> storagePorts) {
+    private void updateZoningMap(ExportMask mask, Set<String> removedInitiators, Set<String> removedPorts) {
         NetworkDeviceController networkDeviceController = (NetworkDeviceController)
                 _keyMap.get(Constants.networkDeviceController);
         try {
-            ZoneInfoMap zoningMap = networkDeviceController.getInitiatorsZoneInfoMap(initiators, storagePorts);
-            for (ZoneInfo zoneInfo : zoningMap.values()) {
-                _logger.info("Found zone: {} for initiator {} and port {}", new Object[] { zoneInfo.getZoneName(),
-                        zoneInfo.getInitiatorWwn(), zoneInfo.getPortWwn() });
-            }
-            if (mask.getZoningMap() == null) {
-                mask.setZoningMap(new StringSetMap());
-            }
-            mask.getZoningMap().replace(zoningMap);
-            
+            networkDeviceController.refreshZoningMap(mask, removedInitiators, removedPorts, true, true);
         } catch (Exception ex) {
-            _logger.error("Failed to get the zoning map for mask {}", mask.getMaskName());
-            mask.setZoningMap(null);
+            _logger.error("Failed to update  zoning map for mask {}", mask.getMaskName());
         }
     }
 
+    /**
+     * 
+     * @param it
+     * @param knownIniSet
+     * @param knownPortSet
+     * @param userAddedInitiators
+     * @param unknownIniSet
+     * @param unknownPortSet
+     */
    private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it,Set<String> knownIniSet,
            Set<String> knownPortSet, Map<String,String> userAddedInitiators, Set<String> unknownIniSet,
            Set<String> unknownPortSet) {

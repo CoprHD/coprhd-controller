@@ -2276,7 +2276,7 @@ public class NetworkDeviceController implements NetworkController {
             Long start = System.currentTimeMillis();
             // get the current zones in the network system for initiators and ports
             List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
-            ZoneInfoMap zoneInfoMap = getInitiatorsZoneInfoMap(initiators, storagePorts);
+            ZoneInfoMap currentZoneInfoFromFabric = getInitiatorsZoneInfoMap(initiators, storagePorts);
 
             // Get the full sets of initiators and ports affected. They will be used to find the FCZoneReferences to refresh
             // These sets include new initiators and ports, existing ones that did not change, as well as removed ones
@@ -2289,23 +2289,23 @@ public class NetworkDeviceController implements NetworkController {
 
             // Make a copy of the zoning mask - Zones have already been removed for removed initiators, put them back
             // This zoning map will be used to do diff between old and new and to get zone references
-            StringSetMap allZonesMap = new StringSetMap();
+            StringSetMap expectedZonesInfoInDatabase = new StringSetMap();
             StringSetMap tempMap = exportMask.getZoningMap() == null ? new StringSetMap() : exportMask.getZoningMap();
             for (String key : tempMap.keySet()) {
                 // when the zoning map is removed prematurely, this ports set is empty but not null
                 if (removedInitiators.contains(key) && (tempMap.get(key) == null || tempMap.get(key).isEmpty())) {
                     // this was prematurely cleared, we will assume all ports
                     // were zoned to make sure we clean up all FCZoneReferences
-                    allZonesMap.put(key, new StringSet(removedPorts));
+                    expectedZonesInfoInDatabase.put(key, new StringSet(removedPorts));
                     if (exportMask.getStoragePorts() != null) {
-                        allZonesMap.get(key).addAll(exportMask.getStoragePorts());
+                        expectedZonesInfoInDatabase.get(key).addAll(exportMask.getStoragePorts());
                     }
                 } else {
-                    allZonesMap.put(key, new StringSet(tempMap.get(key)));
+                    expectedZonesInfoInDatabase.put(key, new StringSet(tempMap.get(key)));
                 }
             }
             // get all the zone references that exist in the database for this export mask.
-            Map<String, List<FCZoneReference>> existingRefs = getZoneReferences(allZonesMap, allInitiators, allStoragePorts);
+            Map<String, List<FCZoneReference>> existingRefs = getZoneReferences(expectedZonesInfoInDatabase, allInitiators, allStoragePorts);
 
             // initialize results collections
             List<ZoneInfo> addedZoneInfos = new ArrayList<ZoneInfo>();
@@ -2319,7 +2319,7 @@ public class NetworkDeviceController implements NetworkController {
             if (exportMask.getZoningMap() == null) {
                 exportMask.setZoningMap(new StringSetMap());
             }
-            for (Entry<String, ZoneInfo> entry : zoneInfoMap.entrySet()) {
+            for (Entry<String, ZoneInfo> entry : currentZoneInfoFromFabric.entrySet()) {
                 zoneInfo = entry.getValue();
                 initId = zoneInfo.getInitiatorId();
                 portId = zoneInfo.getPortId();
@@ -2328,7 +2328,7 @@ public class NetworkDeviceController implements NetworkController {
                     _log.debug("Zoning between initiator {} and port {} did not change",
                             zoneInfo.getInitiatorWwn(), zoneInfo.getPortWwn());
                     // This is accounted for, let's remove it from our diff map
-                    allZonesMap.remove(initId, portId);
+                    expectedZonesInfoInDatabase.remove(initId, portId);
                     // add the zone info so that it can be updated for changes like zone name change
                     updatedZoneInfos.add(zoneInfo);
                 } else {
@@ -2343,17 +2343,17 @@ public class NetworkDeviceController implements NetworkController {
                         addedZoneInfos.add(zoneInfo);
                     }
                     // This zone is not expected to be in the diff map, but try anyway
-                    allZonesMap.remove(initId, portId);
+                    expectedZonesInfoInDatabase.remove(initId, portId);
                 }
             }
 
             // If anything is remaining zones in the diff zoning map, these were removed in the network system
             Initiator initiator = null;
             StoragePort port = null;
-            for (String key : allZonesMap.keySet()) {
+            for (String key : expectedZonesInfoInDatabase.keySet()) {
                 initiator = DataObjectUtils.findInCollection(allInitiators, key);
-                if (allZonesMap.get(key) != null && !allZonesMap.get(key).isEmpty()) {
-                    for (String val : allZonesMap.get(key)) {
+                if (expectedZonesInfoInDatabase.get(key) != null && !expectedZonesInfoInDatabase.get(key).isEmpty()) {
+                    for (String val : expectedZonesInfoInDatabase.get(key)) {
                         port = DataObjectUtils.findInCollection(allStoragePorts, val);
                         _log.info("Zone between initiator {} and port {} was removed from the network system" +
                                 " or no longer belongs to this mask.", key, val);

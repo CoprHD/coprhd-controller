@@ -133,8 +133,8 @@
     
     <!-- SMI-S Calls to run Masking Detection Changes -->
 
-    <bean id="maskingChangeDetectionProcessor"
-        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingChangeDetectionProcessor">
+    <bean id="maskingChangeResolveProcessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingResolveChangesProcessor">
         <property name="partitionManager" ref="partitionManager"/>
     </bean>
     
@@ -159,7 +159,7 @@
         <property name="instance" ref="cimClient" />
         <property name="result" value="" />
         <property name="method" value="associators" />
-        <property name="processor" ref="maskingChangeDetectionProcessor" />
+        <property name="processor" ref="maskingChangeResolveProcessor" />
         <property name="message" value="Invoking associators to get Export information."/>
     </bean>
 

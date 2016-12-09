@@ -73,9 +73,10 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
                 recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(), eventType(status),
                         status, eventMessage(status, consistencyGroup));
             }
-            super.complete(dbClient, status, coded);
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupDelete {}, for task " + getOpId(), getId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

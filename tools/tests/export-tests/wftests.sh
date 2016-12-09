@@ -1109,6 +1109,7 @@ vmax2_setup() {
 	   vmax2_sim_setup
     else
         VMAX_PROVIDER_NAME=VMAX2-PROVIDER-HW
+        VMAX_NATIVEGUID=${VMAX2_DUTEST_NATIVEGUID}
     fi
  
     # do this only once
@@ -1119,18 +1120,18 @@ vmax2_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VMAX_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VMAX2_DUTEST_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
     do
 	run storagedevice deregister ${id}
 	run storagedevice delete ${id}
     done
 
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THIN_ONLY
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
 
     common_setup
 
@@ -1146,7 +1147,7 @@ vmax2_setup() {
 	--expandable true                       \
 	--neighborhoods $NH                    
 
-    run cos update block $VPOOL_BASE --storage ${VMAX2_DUTEST_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
 }
 
 vmax3_sim_setup() {

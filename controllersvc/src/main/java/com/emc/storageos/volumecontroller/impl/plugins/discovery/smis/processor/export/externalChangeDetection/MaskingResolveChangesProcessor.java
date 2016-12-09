@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2008-2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection;
 
 

@@ -8,7 +8,7 @@
 		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
 		<property name="nsList">
 			<map>
-				<entry key="resolve-mask" value-ref="resolveMaskingChanges"/>
+				<entry key="resolve-masking" value-ref="resolveMaskingChanges"/>
 				
 			</map>
 		</property>

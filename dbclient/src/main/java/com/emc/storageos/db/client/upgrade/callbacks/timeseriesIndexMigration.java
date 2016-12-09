@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.netflix.astyanax.Keyspace;
@@ -33,9 +34,9 @@ public class timeseriesIndexMigration extends BaseCustomMigrationCallback {
                 new ColumnFamily<String, IndexColumnName>("TenantToOrder", StringSerializer.get(),
                         IndexColumnNameSerializer.get());
 
-        ColumnFamily<String, TimeSeriesIndexColumnName> newCf = new ColumnFamily<String, TimeSeriesIndexColumnName>(
-                        "AllOrdersByTimeStamp", StringSerializer.get(),
-                        TimeSeriesColumnNameSerializer.get());
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+        ColumnField field = doType.getColumnField(Order.SUBMITTED);
+        ColumnFamily<String, TimeSeriesIndexColumnName> newCf = field.getIndexCF();
         MutationBatch mutationBatch = ks.prepareMutationBatch();
         try {
             long n = 0;

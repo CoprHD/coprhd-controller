@@ -6,8 +6,10 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.Column;
@@ -17,14 +19,10 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
-import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
-import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
-import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class UserToOrdersMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(UserToOrdersMigration.class);
@@ -42,8 +40,9 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
 
             keyspace = ks;
             constraint = c;
-            cf = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>("UserToOrdersByTimeStamp",
-                    StringSerializer.get(), ClassNameTimeSeriesSerializer.get());
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
+            cf = field.getIndexCF();
             mutationBatch = ks.prepareMutationBatch();
             pageCount = constraint.getPageCount();
         }

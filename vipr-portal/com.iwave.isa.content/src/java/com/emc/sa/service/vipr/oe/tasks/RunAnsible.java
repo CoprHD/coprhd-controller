@@ -150,7 +150,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         }
 
         if (hosts == null || hosts.isEmpty())
-            hosts = "localhost";
+            hosts = "localhost,";
 
         return hosts;
     }

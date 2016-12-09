@@ -796,6 +796,7 @@
                     ]
                   };
 
+var treeID = "#jstree_demo";
 angular.module("portalApp").controller('builderController', function($scope, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.workflowTabs = {};
@@ -820,10 +821,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
     function initializeJsTree(dirJSON){
         $(".search-input").keyup(function() {
             var searchString = $(this).val();
-            $('#jstree_demo').jstree('search', searchString);
+            $(treeID).jstree('search', searchString);
         });
 
-        $('#jstree_demo').jstree({
+        $(treeID).jstree({
             "core": {
                 "animation": 0,
                 "check_callback": true,
@@ -859,7 +860,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             },
             "contextmenu" : {
                  "items": function($node) {
-                     var tree = $("#jstree_demo").jstree(true);
+                     var tree = $(treeID).jstree(true);
                      return {
                          "Create": {
                              "separator_before": false,
@@ -922,9 +923,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
     // jstree actions
     //TODO: do error handling on all actions
-    $('#jstree_demo').on("rename_node.jstree", renameDir);
-    $('#jstree_demo').on("delete_node.jstree", deleteDir);
-    $('#jstree_demo').on("select_node.jstree", selectDir);
+    $(treeID).on("rename_node.jstree", renameDir);
+    $(treeID).on("delete_node.jstree", deleteDir);
+    $(treeID).on("select_node.jstree", selectDir);
 
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
@@ -1285,7 +1286,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
 // Methods for JSTree actions
 function addFolder() {
-    var ref = $('#jstree_demo').jstree(true),
+    var ref = $(treeID).jstree(true),
         sel = ref.get_selected();
     if(!sel.length) { return false; }
     sel = sel[0];
@@ -1296,7 +1297,7 @@ function addFolder() {
 }
 
 function addWorkflow() {
-    var ref = $('#jstree_demo').jstree(true),
+    var ref = $(treeID).jstree(true),
         sel = ref.get_selected();
     if(!sel.length) { return false; }
     sel = sel[0];
@@ -1307,7 +1308,7 @@ function addWorkflow() {
 }
 
 function editNode() {
-    var ref = $('#jstree_demo').jstree(true),
+    var ref = $(treeID).jstree(true),
         sel = ref.get_selected();
     if(!sel.length) { return false; }
     sel = sel[0];
@@ -1315,17 +1316,14 @@ function editNode() {
 };
 
 function deleteNode() {
-    var ref = $('#jstree_demo').jstree(true),
+    var ref = $(treeID).jstree(true),
         sel = ref.get_selected();
     if(!sel.length) { return false; }
     ref.delete_node(sel);
 };
 
-function previewWorkflow() {
-    var ref = $('#jstree_demo').jstree(true),
-        sel = ref.get_selected();
-    if(!sel.length) { return false; }
-    sel = sel[0];
-    var tabID = "tab_"+sel;
+function openWorkflow() {
+    var selectedNodeText = $(treeID).jstree(true).get_selected(true)[0].text;
+    var tabID = "tab_"+selectedNodeText;
     angular.element('#builderController').scope().addTab(tabID);
 }

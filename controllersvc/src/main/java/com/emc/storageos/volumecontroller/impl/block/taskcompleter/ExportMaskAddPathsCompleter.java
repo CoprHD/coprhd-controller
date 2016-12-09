@@ -6,18 +6,14 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -45,11 +41,18 @@ public class ExportMaskAddPathsCompleter extends ExportTaskCompleter{
             if (status == Operation.Status.ready) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, getMask());
                 if (newTargets != null && !newTargets.isEmpty()) {
-                // update storage ports
-                    exportMask.getStoragePorts().addAll(StringSetUtil.uriListToSet(newTargets));
+                    for (URI target : newTargets) {
+                        exportMask.addTarget(target);
+                    }
                 }
                 if(newInitiators != null && !newInitiators.isEmpty()) {
-                    exportMask.getInitiators().addAll(StringSetUtil.uriListToSet(newInitiators));
+                    for (URI initiatorURI : newInitiators) {
+                        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+                        if (initiator != null && !initiator.getInactive()) {
+                            exportMask.addInitiator(initiator);
+                            exportMask.addToUserCreatedInitiators(initiator);
+                        }
+                    }
                 }
                 
                 dbClient.updateObject(exportMask);

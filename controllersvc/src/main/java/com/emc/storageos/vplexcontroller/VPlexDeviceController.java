@@ -4266,11 +4266,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         if (exportMask.getStoragePorts().contains(target.toString())) {
                             continue;
                         }
-                        // Don't add any ports not listed as a target in the Export Masks zoningMap
+                        // Log any ports not listed as a target in the Export Masks zoningMap
                         Set<String> zoningMapTargets = BlockStorageScheduler
                                 .getTargetIdsFromAssignments(exportMask.getZoningMap());
                         if (!zoningMapTargets.contains(target.toString())) {
-                            continue;
+                            _log.info(String.format("Target %s not in zoning map", target));
                         }
                         // Build the PortInfo structure for the port to be added
                         StoragePort port = getDataObject(StoragePort.class, target, _dbClient);
@@ -4437,12 +4437,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             filteredTargetURIs.addAll(zoningMapTargetURIs);
                         }
                     } else {
-                        // Don't add any ports not listed as a target in the Export Masks zoningMap
+                        // Log any ports not in the zoning map.
                         for (URI targetURI : targetURIs) {
+                            filteredTargetURIs.add(targetURI);
                             if (zoningMapTargetURIs.contains(targetURI)) {
-                                filteredTargetURIs.add(targetURI);
-                            }
-
+                                _log.info(String.format("Target %s not in zoning map", targetURI));
+                            }   
                         }
                     }
                 }
@@ -13475,7 +13475,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Set<URI> targetsToBeRetained = ExportMaskUtils.getAllPortsInZoneMap(adjustedPaths);
             targetsToBeRemoved.removeAll(targetsToBeRetained);
             List<URI> portsToBeRemoved = new ArrayList<URI>(targetsToBeRemoved);
-            _log.info("Ports to be removed: " + portsToBeRemoved.toString());
+            _log.info("Targets to be removed: " + portsToBeRemoved.toString());
             _log.info("Initiators to be removed: " + initiatorsToBeRemoved.toString());
 
             // Call either storageViewRemoveInitiators or storageViewRemoveStoragePorts

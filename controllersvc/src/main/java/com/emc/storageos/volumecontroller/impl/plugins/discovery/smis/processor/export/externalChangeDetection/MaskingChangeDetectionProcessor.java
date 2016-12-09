@@ -173,70 +173,7 @@ public class MaskingChangeDetectionProcessor extends Processor {
         }
     }
     
-    /*
-     * private void
-     * processingStoragePortsAndInitiators(CloseableIterator<CIMInstance>
-     * responses, Set<String> unknowInitiaorsFromArray, Set<String>
-     * unknownStoragePortsFromArray , ExportMask mask) { while
-     * (responses.hasNext()) { CIMInstance instance = responses.next(); switch
-     * (instance.getClassName()) {
-     * 
-     * case SmisConstants.CP_SYMM_FCSCSI_PROTOCOL_ENDPOINT: case
-     * SmisConstants.CP_SYMM_ISCSI_PROTOCOL_ENDPOINT: String portNetworkId =
-     * this.getCIMPropertyValue(instance, SmisConstants.CP_NAME); if
-     * (portNetworkId == null) { portNetworkId =
-     * this.getCIMPropertyValue(instance, SmisConstants.CP_PERMANENT_ADDRESS); }
-     * _logger.info("Found Storage Port {}",portNetworkId);
-     * 
-     * if (WWNUtility.isValidNoColonWWN(portNetworkId)) { portNetworkId =
-     * WWNUtility.getWWNWithColons(portNetworkId);
-     * 
-     * } else if (WWNUtility.isValidWWN(portNetworkId)) { portNetworkId =
-     * portNetworkId.toUpperCase();
-     * 
-     * } else if (portNetworkId.matches(ISCSI_PATTERN) &&
-     * (iSCSIUtility.isValidIQNPortName(portNetworkId) ||
-     * iSCSIUtility.isValidEUIPortName(portNetworkId))) { // comes from SMI-S in
-     * the following format just want the first part //
-     * "iqn.1992-04.com.emc:50000973f0065980,t,0x0001" portNetworkId =
-     * portNetworkId.split(",")[0];
-     * 
-     * } else { _logger.warn("Invalid Port {} found ", portNetworkId); continue;
-     * }
-     * 
-     * // check if a storage port exists for this id in ViPR if so, add to
-     * _storagePorts StoragePort knownStoragePort =
-     * NetworkUtil.getStoragePort(portNetworkId, _dbClient); if (null !=
-     * knownStoragePort &&
-     * mask.getStoragePorts().contains(knownStoragePort.getId().toString())) {
-     * storagePortToURI.put(knownStoragePort.getId(), portNetworkId);
-     * 
-     * } else { unknownStoragePortsFromArray.add(portNetworkId); } break;
-     * 
-     * case SmisConstants.CP_SE_STORAGE_HARDWARE_ID:
-     * 
-     * String initiatorNetworkId = this.getCIMPropertyValue(instance,
-     * SmisConstants.CP_STORAGE_ID);
-     * _logger.info("Found Initiator ID :{}",initiatorNetworkId); if
-     * (WWNUtility.isValidNoColonWWN(initiatorNetworkId)) { initiatorNetworkId =
-     * WWNUtility.getWWNWithColons(initiatorNetworkId); } else if
-     * (WWNUtility.isValidWWN(initiatorNetworkId)) { initiatorNetworkId =
-     * initiatorNetworkId.toUpperCase(); } else if
-     * (initiatorNetworkId.matches(ISCSI_PATTERN) &&
-     * (iSCSIUtility.isValidIQNPortName(initiatorNetworkId) || iSCSIUtility
-     * .isValidEUIPortName(initiatorNetworkId))) { } else {
-     * _logger.warn(" This is not a valid FC or iSCSI network id format, skipping"
-     * ); continue; }
-     * 
-     * Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId,
-     * _dbClient); if (null != knownInitiator) {
-     * _logger.info("   found an initiator in ViPR on host " +
-     * knownInitiator.getHostName());
-     * initiatorPortToURI.put(knownInitiator.getId(), initiatorNetworkId); }
-     * else { unknowInitiaorsFromArray.add(initiatorNetworkId); }
-     * 
-     * break; default: break; } } }
-     */
+   
     
     /*
      * (non-Javadoc)

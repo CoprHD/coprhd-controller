@@ -2091,9 +2091,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
             // If the mask does not contain the exact set of initiators that we're trying to
             // export to, then we need to put it in the set of masks that have a partial match
-            if (!exportMask.hasExactlyTheseInitiators(portNames)) {
-                partialMasks.add(exportMaskURI);
-            }
+          //  if (!exportMask.hasExactlyTheseInitiators(portNames)) {
+              //  partialMasks.add(exportMaskURI);
+            //}
 
             // Determine which ExportMasks are equivalent in terms of attributes, other than
             // the number of volumes that they contain. The preference is for the rules
@@ -2425,9 +2425,5 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
-    @Override
-    public void test() {
-        // TODO Auto-generated method stub
-        
-    }
+   
 }

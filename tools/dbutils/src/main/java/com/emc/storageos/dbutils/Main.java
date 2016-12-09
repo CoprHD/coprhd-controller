@@ -489,7 +489,6 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         System.out.println("Start to collect performance info");
-        /*
         deleteDbutilsPidFile();
         changeLogFileOwner();
         if (args.length == 0) {
@@ -520,7 +519,6 @@ public class Main {
             }
             System.exit(CommandHandler.repairDb(args));
         }
-        */
 
         try {
             // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
@@ -531,30 +529,8 @@ public class Main {
             _client.init();
 
             // migrateMyOrderIndexes();
-            migrateAllOrderIndexes();
+            // migrateAllOrderIndexes();
 
-/*
-            List<URI> ids = new ArrayList();
-            URI uri = new URI("urn:storageos:Order:b1c0eaca-725f-416d-aa6a-9cfcefa4f8f9:vdc1");
-            ids.add(uri);
-
-            List<Order> orders = _client._dbClient.queryObject(Order.class, ids, true);
-            Order order = orders.get(0);
-            log.info("lby1 order={}", order);
-
-            _client._dbClient.markForDeletion(order);
-            orders = _client._dbClient.queryObject(Order.class, ids, true);
-            if (!orders.isEmpty()) {
-                log.info("lby2 order={}", orders.get(0));
-            }
-
-            orders = _client._dbClient.queryObject(Order.class, ids, false);
-            if (!orders.isEmpty()) {
-                log.info("lby3 order={}", orders.get(0));
-            }
-*/
-
-/*
             CommandHandler handler = null;
             boolean result = false;
 
@@ -623,7 +599,6 @@ public class Main {
                     throw new IllegalArgumentException("Invalid command ");
             }
             handler.process(_client);
-            */
         } catch (Exception e) {
             System.err.println("Exception e=" + e);
             log.error("Exception e=", e);

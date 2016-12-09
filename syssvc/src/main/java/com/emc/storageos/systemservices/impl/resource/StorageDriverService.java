@@ -535,6 +535,16 @@ public class StorageDriverService {
         }
     }
 
+    private void precheckForDriverName(String name) {
+        for (int i = 0; i < name.length(); i ++) {
+            char c = name.charAt(i);
+            if (c != '_' && !Character.isLetter(c) && !Character.isDigit(c)) {
+                throw APIException.internalServerErrors
+                        .installDriverPrecheckFailed("driver name should only contain letter, digit or underline");
+            }
+        }
+    }
+
     private StorageDriverMetaData parseDriverMetaData(File driverFile) {
         String driverFilePath = driverFile.getAbsolutePath();
         Properties props = new Properties();
@@ -568,6 +578,7 @@ public class StorageDriverService {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(
                     String.format("driver name is longger than %s", MAX_DISPLAY_STRING_LENGTH));
         }
+        precheckForDriverName(driverName);
         metaData.setDriverName(driverName);
         // check driver version and format
         String driverVersion = props.getProperty(DRIVER_VERSION);

@@ -23,6 +23,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -50,16 +51,35 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
     }
     
     public List<NamedElement> findAllNames() {
-        final List<URI> ids = client.findAllIds(clazz);
+        return prepareNamedElementFromURI(client.findAllIds(clazz));
+    }
+
+    public List<NamedElement> findAllNamesByStatus(final OrchestrationWorkflowStatus status) {
+        return prepareNamedElementFromURI(findIDsByStatus(status));
+    }
+
+    private List<URI> findIDsByStatus(final OrchestrationWorkflowStatus status) {
+        final List<URI> out = Lists.newArrayList();
+        if (null != status) {
+            final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATE, status.toString());
+            if (results != null) {
+                for (NamedElement namedElement : results) {
+                    out.add(namedElement.getId());
+                }
+            }
+        }
+        return out;
+    }
+
+    private List<NamedElement> prepareNamedElementFromURI(final List<URI> ids) {
         final Iterator<OrchestrationWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
         final List<NamedElement> results = new ArrayList<NamedElement>();
-        
+
         while(it.hasNext()) {
             final OrchestrationWorkflow element = it.next();
             results.add(NamedElement.createElement(element.getId(), element.getLabel()));
         }
-        
+
         return results;
     }
-
 }

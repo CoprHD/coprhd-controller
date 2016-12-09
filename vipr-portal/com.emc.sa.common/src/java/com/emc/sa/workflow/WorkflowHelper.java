@@ -75,6 +75,11 @@ public final class WorkflowHelper {
         oeWorkflow.setSteps(toStepsJson(document.getSteps()));
         return oeWorkflow;
     }
+
+    public static OrchestrationWorkflow updateState(final OrchestrationWorkflow oeWorkflow, final String state) {
+        oeWorkflow.setState(state);
+        return oeWorkflow;
+    }
     
     public static OrchestrationWorkflowDocument toWorkflowDocument(final OrchestrationWorkflow workflow) throws JsonParseException, JsonMappingException, IOException {
         final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();

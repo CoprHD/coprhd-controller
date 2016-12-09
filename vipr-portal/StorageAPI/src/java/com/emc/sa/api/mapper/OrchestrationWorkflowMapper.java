@@ -55,6 +55,7 @@ public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkfl
         
         try {
             to.setDocument(WorkflowHelper.toWorkflowDocument(from));
+            to.setState(from.getState());
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error deserializing workflow", e);
         }

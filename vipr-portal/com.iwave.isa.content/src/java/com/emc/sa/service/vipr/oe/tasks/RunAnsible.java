@@ -155,7 +155,31 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return hosts;
     }
 
-    private Exec.Result buildAndExecute(final String extraVars, final String limit, final String tags, final ImmutableList.Builder<String> builder) {
+    private Exec.Result buildAndExecute(final String ansiblePath, final String ips, final String user, final String playbook, final String extraVars, final String limit,
+                                        final String tags, final ImmutableList.Builder<String> builder) {
+
+        if (ansiblePath != null && ansiblePath.isEmpty()) {
+            builder.add(ansiblePath);
+        } else {
+            logger.error("Without ansible path cannot run playbook");
+
+            return null;
+        }
+
+        if (ips != null && !ips.isEmpty())
+            builder.add("-i").add(ips);
+
+        if (user != null && !user.isEmpty())
+            builder.add("-u").add(user);
+
+        if (playbook !=null && !playbook.isEmpty()) {
+            builder.add(playbook);
+        } else {
+            logger.error("Cannot run playbook without a playbook name");
+
+            return null;
+        }
+
         if (extraVars != null && !extraVars.isEmpty())
             builder.add(OrchestrationServiceConstants.EXTRA_VARS).add(extraVars);
 
@@ -182,9 +206,13 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         logger.info("executing remote ansi ip:{} playbook:{} ansiblePath:{} extravar:{} user:{}", ip, playbook, ansiblePath, extraVars, user);
 
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add(OrchestrationServiceConstants.SHELL_LOCAL_BIN).add(user + "@" + ip).add(ansiblePath).add(playbook);
+        builder.add(OrchestrationServiceConstants.SHELL_LOCAL_BIN).add(user + "@" + ip);
 
-        return buildAndExecute(extraVars, null, null, builder);
+        //TODO get it from param
+        final String targetNodeIps = null;
+        final String targetNodeUser = null;
+
+        return buildAndExecute(ansiblePath, targetNodeIps, targetNodeUser, playbook, extraVars, null, null, builder);
     }
 
     //Execute Ansible playbook on given nodes. Playbook in local node
@@ -192,22 +220,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         logger.info("local Ansible Execution ips:{} extra var:{} path:{}, user:{}", ips, extraVars, playbook, user);
 
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN).add("-i").add(ips);
 
-        if (user != null)
-            builder.add("-u").add(user);
-
-        builder.add(playbook);
-
-        return buildAndExecute(extraVars, null, null, builder);
+        return buildAndExecute(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, ips, user, playbook, extraVars, null, null, builder);
     }
 
     //Execute Ansible playbook on localhost
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN).add(playbook);
 
-        return buildAndExecute(extraVars, null, null, builder);
+        return buildAndExecute(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, null, null, playbook, extraVars, null, null, builder);
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {

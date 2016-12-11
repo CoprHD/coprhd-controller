@@ -10,15 +10,16 @@ import java.util.*;
 import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.db.client.constraint.impl.*;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.ClassNameTimeSeries;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.ContainmentPrefixConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.PrefixConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
@@ -128,17 +129,92 @@ public class BourneDbClient implements DBClientWrapper {
 
         DataObjectType doType = TypeMap.getDoType(clazz);
 
-        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value,
-                startTime, endTime);
+        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value);
+                // startTime, endTime);
 
         return queryNamedElementsByConstraint(constraint, maxCount);
     }
 
-    public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
+    @Override
+    public List<NamedElement> findOrdersByAlternateId(String columnField, String userId,
+                                                      long startTime, long endTime, int maxCount)
             throws DataAccessException {
-        LOG.debug("findByTimeRange({}, {})", new Object[] { clazz, columnField });
-        DecommissionedConstraint constraint = DecommissionedConstraint.Factory.getTimeConstraint(clazz, columnField, startTime, endTime);
-        return queryNamedElementsByConstraint(constraint);
+
+        LOG.info("lbyb1: findOrdersByAlternateId(columnField={}, userId={}, maxCount={})",
+                new Object[] { columnField, userId, maxCount});
+
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+
+        AlternateIdConstraint constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(columnField),
+                userId, startTime, endTime);
+
+        return queryNamedElementsByConstraint(constraint, maxCount);
+    }
+
+    @Override
+    public long getOrderCount(String userId, String fieldName, long startTime, long endTime) {
+
+        LOG.info("lbyb2: getOrderCount(userId={} cf={}, startTime={}, endTime={})",
+                new Object[] {userId, fieldName, startTime, endTime});
+
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+
+        ClassNameTimeSeriesConstraintImpl constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(fieldName),
+                userId, startTime, endTime);
+        DbClientImpl dbclient = (DbClientImpl)getDbClient();
+        constraint.setKeyspace(dbclient.getLocalKeyspace());
+
+        try {
+            return constraint.count();
+        }catch (ConnectionException e) {
+            throw new DataAccessException(e);
+        }
+    }
+
+    @Override
+    public Map<String, Long> getOrderCount(List<URI> tids, String fieldName, long startTime, long endTime) {
+
+        LOG.info("lbyb2: getOrderCount(tids={} cf={}, startTime={}, endTime={})",
+                new Object[] {tids, fieldName, startTime, endTime});
+
+        Map<String, Long> counts = new HashMap();
+
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+
+        for (URI tid : tids) {
+            String tenantId = tid.toString();
+            TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(tenantId,
+                    doType.getColumnField(fieldName), startTime, endTime);
+
+            DbClientImpl dbclient = (DbClientImpl) getDbClient();
+            constraint.setKeyspace(dbclient.getLocalKeyspace());
+
+            try {
+                counts.put(tenantId, constraint.count());
+            } catch (ConnectionException e) {
+                throw new DataAccessException(e);
+            }
+        }
+
+        return counts;
+    }
+
+
+    @Override
+    public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime,
+                                                       int maxCount)
+            throws DataAccessException {
+        LOG.info("findAllOrdersByTimeRange(tid={} columnField={}, startTime={} endTime={} maxCount={})",
+                new Object[]{tid, columnField, startTime, endTime, maxCount});
+
+        DataObjectType doType = TypeMap.getDoType(Order.class);
+        long startTimeInMS = startTime.getTime();
+        long endTimeInMS = endTime.getTime();
+        TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(tid.toString(), doType.getColumnField(columnField),
+                startTimeInMS, endTimeInMS);
+        List<NamedElement> allOrderIds = queryNamedElementsByConstraint(constraint, maxCount);
+
+        return allOrderIds;
     }
 
     protected List<NamedElement> queryNamedElementsByConstraint(Constraint constraint) {
@@ -248,9 +324,7 @@ public class BourneDbClient implements DBClientWrapper {
 
     @Override
     public <T extends DataObject> void delete(List<T> models) throws DataAccessException {
-        for (T model : models) {
-            delete(model);
-        }
+        getDbClient().markForDeletion(models);
     }
 
     public void setDbClient(DbClient dbClient) {

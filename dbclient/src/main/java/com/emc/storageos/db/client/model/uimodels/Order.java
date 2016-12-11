@@ -8,6 +8,8 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.valid.EnumType;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Calendar;
@@ -15,8 +17,10 @@ import java.util.Date;
 
 @Cf("Order")
 public class Order extends ModelObject implements TenantDataObject {
+    private static final Logger log = LoggerFactory.getLogger(Order.class);
 
     public static final String SUBMITTED_BY_USER_ID = "submittedByUserId";
+    public static final String SUBMITTED = "indexed";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
     public static final String EXECUTION_STATE_ID = "executionStateId";
     public static final String SUMMARY = "summary";
@@ -123,7 +127,7 @@ public class Order extends ModelObject implements TenantDataObject {
         setChanged(ORDER_STATUS);
     }
 
-    @AlternateId("UserToOrders")
+    @ClassNameTimeSeries("UserToOrdersByTimeStamp")
     @Name(SUBMITTED_BY_USER_ID)
     public String getSubmittedByUserId() {
         return submittedByUserId;
@@ -198,7 +202,7 @@ public class Order extends ModelObject implements TenantDataObject {
      * @return
      */
     @Name("indexed")
-    @DecommissionedIndex("timeseriesIndex")
+    @TimeSeriesAlternateId("AllOrdersByTimeStamp")
     public Boolean getIndexed() {
         return indexed;
     }

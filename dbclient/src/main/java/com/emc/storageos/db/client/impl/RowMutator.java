@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -25,14 +24,16 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
+import com.emc.storageos.db.exceptions.DatabaseException;
+
 /**
  * Encapsulates batch queries for record and index updates
  */
-public class RowMutator {
+public class RowMutator<T extends CompositeIndexColumnName> {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
-    private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
+    private Map<String, Map<String, ColumnListMutation<T>>> _cfIndexMap;
     private UUID _timeUUID;
     private long _timeStamp;
     private MutationBatch _mutationBatch;
@@ -54,8 +55,8 @@ public class RowMutator {
         _mutationBatch.setTimestamp(_timeStamp).withAtomicBatch(true);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
-        _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
-        
+        _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<T>>>();
+
         this.retryFailedWriteWithLocalQuorum = retryWithLocalQuorum;
     }
 
@@ -96,14 +97,16 @@ public class RowMutator {
      * @param key
      * @return
      */
-    public ColumnListMutation<IndexColumnName> getIndexColumnList(
-            ColumnFamily<String, IndexColumnName> cf, String key) {
-        Map<String, ColumnListMutation<IndexColumnName>> rowMap = _cfIndexMap.get(cf.getName());
+    public ColumnListMutation<T> getIndexColumnList(
+            ColumnFamily<String, T> cf, String key) {
+        Map<String, ColumnListMutation<T>> rowMap = _cfIndexMap.get(cf.getName());
+
         if (rowMap == null) {
-            rowMap = new HashMap<String, ColumnListMutation<IndexColumnName>>();
+            rowMap = new HashMap<String, ColumnListMutation<T>>();
             _cfIndexMap.put(cf.getName(), rowMap);
         }
-        ColumnListMutation<IndexColumnName> row = rowMap.get(key);
+
+        ColumnListMutation<T> row = rowMap.get(key);
         if (row == null) {
             row = _mutationBatch.withRow(cf, key);
             rowMap.put(key, row);
@@ -131,24 +134,25 @@ public class RowMutator {
      * @param mutator
      * @throws ConnectionException
      */
-    private void executeMutatorWithRetry(MutationBatch mutator) throws ConnectionException{
-        if (!mutator.isEmpty()) {
-            try {
+    private void executeMutatorWithRetry(MutationBatch mutator) throws ConnectionException {
+        if (mutator.isEmpty()) {
+            return;
+        }
+
+        try {
+            mutator.execute();
+        } catch (TimeoutException | TokenRangeOfflineException | OperationTimeoutException ex) {
+            // change consistency level and retry once with LOCAL_QUORUM
+            ConsistencyLevel currentConsistencyLevel = keyspace.getConfig().getDefaultWriteConsistencyLevel();
+            if (retryFailedWriteWithLocalQuorum && currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
+                mutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                 mutator.execute();
-            } catch (TimeoutException | TokenRangeOfflineException | OperationTimeoutException ex) {
-                // change consistency level and retry once with LOCAL_QUORUM
-                ConsistencyLevel currentConsistencyLevel = keyspace.getConfig().getDefaultWriteConsistencyLevel();
-                if (retryFailedWriteWithLocalQuorum && currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
-                    mutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    mutator.execute();
-                    log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
-                    ((AstyanaxConfigurationImpl)keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    _mutationBatch.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                } else {
-                    throw ex;
-                }
+                log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
+                ((AstyanaxConfigurationImpl)keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+                _mutationBatch.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+            } else {
+                throw ex;
             }
         }
     }
-    
 }

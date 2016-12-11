@@ -17,7 +17,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class ScopedLabelDbIndex extends DbIndex {
+public class ScopedLabelDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(ScopedLabelDbIndex.class);
 
     // minimum number of characters required for prefix indexing

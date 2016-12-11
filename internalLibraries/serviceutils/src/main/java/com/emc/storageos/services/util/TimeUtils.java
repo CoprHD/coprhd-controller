@@ -89,8 +89,26 @@ public class TimeUtils {
             Date current = getCurrentDate();
             String formattedDate = dateFormat.format(current);
             return source.replace(DATE_TIME_PATTERN, formattedDate);
-        } else {
-            return source;
+        }
+
+        return source;
+    }
+
+    /**
+     * Validates that the specified end time comes after the specified start
+     * time. Note that it is OK for the start/end times to be null. It just
+     * means they were not specified in the request.
+     *
+     * @param startTime The requested start time or null.
+     * @param endTime The requested end time or null.
+     * @throws APIException When the passed end time comes before the
+     *             passed start time.
+     */
+    public static void validateTimestamps(Date startTime, Date endTime) {
+        if ((startTime != null) && (endTime != null)) {
+            if (endTime.before(startTime)) {
+                throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
+            }
         }
     }
 }

@@ -143,6 +143,18 @@ public class DuplicatedIndexCFDetector {
             this.fieldTypeClass = fieldTypeClass;
         }
 
+        public String getIndex() {
+            return index;
+        }
+
+        public String getCf() {
+            return cf;
+        }
+
+        public String getFieldTypeClass() {
+            return fieldTypeClass;
+        }
+
         @Override
         public int hashCode() {
             final int prime = 31;

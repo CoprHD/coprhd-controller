@@ -12,14 +12,14 @@
          field.optionProperties - beside item label, there are other properties which each item needs to conserve in UI, similar to table row object. 
                                   This is an array of property names.  The actual data is store in item's jquery data("optionObject") for later retrieval.
          
-  This is a common layout for a select many control.  The control should be wrapped in a #{field} tag, and the options
+  This is a common layout for a select list control.  The control should be wrapped in a #{field} tag, and the options
   must be specified within the tag.  Each option has a value and label, which default to 'id' and 'name' respectively.
   The value and label properties may be overriden using the 'valueProperty' and 'labelProperty' properties on the field.
   The value type defaults to Long, but may be overridden using the 'valueType' property. 
   
   #{field 'fromModels'}
     %{ field.options = someReferenceData; }%
-    #{Form.selectReadOnly field:field/}
+    #{Form.selectList field:field/}
   #{/field}
   
   #{field 'fromMap'}
@@ -31,7 +31,7 @@
       field.valueProperty = 'key'; // Key from the map
       field.labelProperty = 'value'; // Value from the map
     }%
-    #{Form.selectReadOnly field:field/}
+    #{Form.selectList field:field/}
   #{/}
   
   #{field 'fromStringMap'}
@@ -44,7 +44,7 @@
       field.valueProperty = 'key'; // Key from the map
       field.labelProperty = 'value'; // Value from the map
     }%
-    #{Form.selectReadOnly field:field/}
+    #{Form.selectList field:field/}
   #{/}
 }*
 %{
@@ -58,7 +58,7 @@
   disabled = field.disabled ?: false
 }%
 <script type="text/javascript">
- var ${field.id} = new SelectReadOnly('#${field.id}'); 
+ var ${field.id} = new SelectList('#${field.id}'); 
  $(document).ready(function() {
    var searchField = $("#${field.id}Search");
    searchField.keyup(function() {
@@ -71,24 +71,24 @@
    //
    // show/hide search component in list box with more items than the search threshold
    //
-   var selectReadOnlyContent = $('#${field.id}');
-   var selectReadOnlyParentControl = selectReadOnlyContent.closest('div.selectReadOnly');
-   showSearchBox(selectReadOnlyContent.find("input:checkbox").length > searchThreshold);
+   var selectListContent = $('#${field.id}');
+   var selectListParentControl = selectListContent.closest('div.selectList');
+   showSearchBox(selectListContent.find("input:checkbox").length > searchThreshold);
    
    //
-   // trgger listener when new item is added or removed from selectReadOnly.  Then,
+   // trgger listener when new item is added or removed from selectList.  Then,
    // show the search if there are more checkboxes than the threshold. Hide, otherwise.
    //
-   selectReadOnlyContent.on('DOMNodeInserted DOMNodeRemoved', function () {
-      showSearchBox(selectReadOnlyContent.find("input:checkbox").length > searchThreshold);
+   selectListContent.on('DOMNodeInserted DOMNodeRemoved', function () {
+      showSearchBox(selectListContent.find("input:checkbox").length > searchThreshold);
    });
    
    function showSearchBox( show ) {
-       var disabled = selectReadOnlyParentControl.data('disabled') == 'disabled';
+       var disabled = selectListParentControl.data('disabled') == 'disabled';
        if ( show && !disabled) {
-           selectReadOnlyParentControl.find('.selectReadOnlySearch').show();           
+           selectListParentControl.find('.selectListSearch').show();           
        } else {
-           selectReadOnlyParentControl.find('.selectReadOnlySearch').hide();           
+           selectListParentControl.find('.selectListSearch').hide();           
        }
    }
  }); 
@@ -101,8 +101,8 @@
  })(); 
    
 </script>
-<div class="selectReadOnly ${cssClass} ${disabled ? "disabled" : ""}"#{if disabled} data-disabled="disabled"#{/if}>
-  <div id="${field.id}" name="${field.name}" class="selectReadOnlyContent"#{Form.extraAtts atts:field.atts/}>
+<div class="selectList ${cssClass} ${disabled ? "disabled" : ""}"#{if disabled} data-disabled="disabled"#{/if}>
+  <div id="${field.id}" name="${field.name}" class="selectListContent"#{Form.extraAtts atts:field.atts/}>
   #{list items:field.options, as:'option'}
     %{ checkboxId = "${field.id}${option[valueProperty]?.htmlId()}" }%
     <div class="checkbox">

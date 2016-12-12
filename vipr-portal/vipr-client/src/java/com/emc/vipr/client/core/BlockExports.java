@@ -19,9 +19,11 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPortAllocateParam;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.block.export.PortAllocatePreviewRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.vipr.client.Task;
@@ -297,5 +299,20 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     @Override
     public ExportGroupSearchBuilder search() {
         return new ExportGroupSearchBuilder(this);
+    }
+    
+    /**
+     * TODO: write summary
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/port-allocate-preview</tt>
+     *
+     * @param 
+     * @return 
+     */
+    public PortAllocatePreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPortAllocateParam input) {
+        //UriBuilder builder = client.uriBuilder(baseUrl);
+        
+        //return postTask(input, getIdUrl() + "/expand", id);
+        return client.post(PortAllocatePreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
     }
 }

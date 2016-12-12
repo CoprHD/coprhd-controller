@@ -63,15 +63,18 @@
            items:{
                 addedPorts:{
                     type:"assetType.vipr.exportPathAddedPorts",
-                    select: "many"
+                    select: "list",
+                    required: false
                 },
                 removedPorts:{
                     type:"assetType.vipr.exportPathRemovedPorts",
-                    select: "many"
+                    select: "list",
+                    required: false
                 },
                 affectedExports:{
                     type:"assetType.vipr.exportPathAffectedExports",
-                    select: "many"
+                    select: "list",
+                    required: false
                 }
     	    }
         }

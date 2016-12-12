@@ -71,9 +71,15 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPortAllocateParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
+import com.emc.storageos.model.block.export.PortAllocatePreviewRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
+import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -702,8 +708,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathPorts")
-    @AssetDependencies({ "host", "storageSystem" })
-    public List<AssetOption> getPorts(AssetOptionsContext ctx) {
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getPorts(AssetOptionsContext ctx, URI hostOrClusterId) {
         List<AssetOption> options = Lists.newArrayList();
         options.add(new AssetOption("Port01", "Port01"));
         options.add(new AssetOption("Port02", "Port02"));
@@ -714,38 +720,97 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathAddedPorts")
-    @AssetDependencies({ "host", "storageSystem" })
-    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx) {
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId) {
+        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        options.add(new AssetOption("Port01", "Port01"));
-        options.add(new AssetOption("Port02", "Port02"));
-        options.add(new AssetOption("Port03", "Port03"));
-        options.add(new AssetOption("Port04", "Port04"));
-        options.add(new AssetOption("Port05", "Port05"));
+        
+        ExportPortAllocateParam param = new ExportPortAllocateParam();
+        ExportPathParameters exportPathParameters = new ExportPathParameters();
+        
+        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, null, null);
+        URI exportId = exports.isEmpty() ? null : exports.get(0).getId();
+        
+        param.setStorageSystem(uri("urn:storageos:StorageSystem:15db0b1e-a6bf-4f57-a76f-d957be7ba854:vdc1"));
+        
+        param.setExportPathParameters(exportPathParameters);
+        PortAllocatePreviewRestRep portPreview = client.blockExports().getExportPathAdjustmentPreview(exportId, param);
+        
+        List<InitiatorPortMapRestRep> addedList = portPreview.getAddedPaths();
+        
+        for (InitiatorPortMapRestRep added : addedList) {
+            InitiatorRestRep initiator = added.getInitiator();
+            List<NamedRelatedResourceRep> ports = added.getStoragePorts();
+            
+            String portList = new String();
+            for (NamedRelatedResourceRep port : ports) {
+                portList += port.getName();
+            }
+            String label = getMessage("exportPathAdjustment.addedPorts", initiator.getHostName(), initiator.getName(), portList);
+            options.add(new AssetOption(initiator.getHostName(), label));
+        }
+        
         return options;
     }
     
     @Asset("exportPathRemovedPorts")
-    @AssetDependencies({ "host", "storageSystem" })
-    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx) {
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId) {
+        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        options.add(new AssetOption("Port01", "Port01"));
-        options.add(new AssetOption("Port02", "Port02"));
-        options.add(new AssetOption("Port03", "Port03"));
-        options.add(new AssetOption("Port04", "Port04"));
-        options.add(new AssetOption("Port05", "Port05"));
+        
+        ExportPortAllocateParam param = new ExportPortAllocateParam();
+        ExportPathParameters exportPathParameters = new ExportPathParameters();
+        
+        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, null, null);
+        URI exportId = exports.isEmpty() ? null : exports.get(0).getId();
+        
+        param.setStorageSystem(uri("urn:storageos:StorageSystem:15db0b1e-a6bf-4f57-a76f-d957be7ba854:vdc1"));
+        
+        param.setExportPathParameters(exportPathParameters);
+        PortAllocatePreviewRestRep portPreview = client.blockExports().getExportPathAdjustmentPreview(exportId, param);
+        
+        List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
+        
+        for (InitiatorPortMapRestRep removed : removedList) {
+            InitiatorRestRep initiator = removed.getInitiator();
+            List<NamedRelatedResourceRep> ports = removed.getStoragePorts();
+            
+            String portList = new String();
+            for (NamedRelatedResourceRep port : ports) {
+                portList += port.getName();
+            }
+            String label = getMessage("exportPathAdjustment.removedPorts", initiator.getHostName(), initiator.getName(), portList);
+            options.add(new AssetOption(initiator.getHostName(), label));
+        }
+        
         return options;
     }
     
     @Asset("exportPathAffectedExports")
-    @AssetDependencies({ "host", "storageSystem" })
-    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx) {
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId) {
+        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        options.add(new AssetOption("Port01", "Port01"));
-        options.add(new AssetOption("Port02", "Port02"));
-        options.add(new AssetOption("Port03", "Port03"));
-        options.add(new AssetOption("Port04", "Port04"));
-        options.add(new AssetOption("Port05", "Port05"));
+        
+        ExportPortAllocateParam param = new ExportPortAllocateParam();
+        ExportPathParameters exportPathParameters = new ExportPathParameters();
+        
+        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, null, null);
+        URI exportId = exports.isEmpty() ? null : exports.get(0).getId();
+        
+        param.setStorageSystem(uri("urn:storageos:StorageSystem:15db0b1e-a6bf-4f57-a76f-d957be7ba854:vdc1"));
+        
+        param.setExportPathParameters(exportPathParameters);
+        PortAllocatePreviewRestRep portPreview = client.blockExports().getExportPathAdjustmentPreview(exportId, param);
+        
+        List<NamedRelatedResourceRep> affectedList = portPreview.getAffectedExportGroups();
+        
+        for (NamedRelatedResourceRep affected : affectedList) {
+            String label = getMessage("exportPathAdjustment.affectedExports", affected.getName());
+            options.add(new AssetOption(affected.getName(), label));
+        }
+        
         return options;
     }
 

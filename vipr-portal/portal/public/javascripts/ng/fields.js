@@ -292,7 +292,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
     },
     /**
      * @ngdoc directive
-     * @name fields.directive:selectReadOnly
+     * @name fields.directive:selectList
      *
      * @description
      * Creates a multi-select checkbox list with filtering support.
@@ -307,7 +307,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      <example module="fields">
      <file name="index.html">
      <div ng-controller='FieldsCtrl' v-field='storage' type='array'>
-     <select-none options="options"></select-none>{{field.value}}
+     <select-list options="options"></select-list>{{field.value}}
      </div>
      </file>
      <file name="script.js">
@@ -317,8 +317,8 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      </file>
      </example>
      */
-    selectReadOnly: function(tag, $timeout, translate) {
-        return tag('selectReadOnly', {
+    selectList: function(tag, $timeout, translate) {
+        return tag('selectList', {
             require: "^vField",
             defaults: {searchThreshold: 4, change: null, valueProperty: 'id', labelProperty: 'name'},
             scope: {options: '=', selected: '&', disabled: '=ngDisabled'},

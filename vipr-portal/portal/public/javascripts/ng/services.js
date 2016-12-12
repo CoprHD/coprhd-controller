@@ -145,8 +145,8 @@ angular.module("services", []).directive({
 	                    if (item.select == 'many') {
 	                    	type = '<select-many>';
 	                    }
-	                    else if (item.select == "readOnly") {
-	                    	type = '<select-read-only>';
+	                    else if (item.select == "list") {
+	                    	type = '<select-list>';
 	                    }
 	                    else {
 	                    	type = '<select-one>';

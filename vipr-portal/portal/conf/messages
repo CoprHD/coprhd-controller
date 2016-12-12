@@ -4878,7 +4878,7 @@ gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created 
 
 
 # Port Rebalancing 
-PortRebalancing.preview.title=Port Rebalancing Preview
+PortRebalancing.preview.title=Export Path Adjustment Preview
 PortRebalancing.addedPort=Added Ports
 PortRebalancing.removedPort=Removed Ports
 PortRebalancing.affectedExports=Affected Exports

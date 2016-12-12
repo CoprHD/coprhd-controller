@@ -15,7 +15,11 @@ import com.sun.jersey.api.client.ClientResponse;
 public class StorageDriverUtils {
 
     public static StorageDriverRestRep getDriver(String name) {
-        return getViprClient().storageDriver().getDriver(name);
+        try {
+            return getViprClient().storageDriver().getDriver(name);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static StorageDriverList getDrivers() {

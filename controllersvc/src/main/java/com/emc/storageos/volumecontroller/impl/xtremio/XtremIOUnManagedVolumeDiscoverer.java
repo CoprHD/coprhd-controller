@@ -306,6 +306,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 "");
                     }
 
+                    if (isExported) {
+                        for (List<Object> lunMapEntries : volume.getLunMaps()) {
+                            Double hlu = (Double) lunMapEntries.get(2);
+                            log.info("Found HLU {}", hlu);
+                            unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),
+                                    String.valueOf(hlu));
+                        }
+                    }
                     boolean hasReplicas = false;
                     if (hasSnaps) {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();

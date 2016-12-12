@@ -9,9 +9,14 @@ import static util.BourneUtil.getViprClient;
 import java.io.File;
 
 import com.emc.storageos.model.storagedriver.StorageDriverList;
+import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class StorageDriverUtils {
+
+    public static StorageDriverRestRep getDriver(String name) {
+        return getViprClient().storageDriver().getDriver(name);
+    }
 
     public static StorageDriverList getDrivers() {
         return getViprClient().storageDriver().getDrivers();

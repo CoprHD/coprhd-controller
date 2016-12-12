@@ -9,6 +9,7 @@ import java.io.File;
 import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.model.storagedriver.StorageDriverList;
+import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
@@ -22,6 +23,10 @@ public class StorageDriver {
 
     public StorageDriver(RestClient client) {
         this.client = client;
+    }
+
+    public StorageDriverRestRep getDriver(String name) {
+        return client.get(StorageDriverRestRep.class, PathConstants.STORAGE_DRIVER_GET_URL, name);
     }
 
     public StorageDriverList getDrivers() {

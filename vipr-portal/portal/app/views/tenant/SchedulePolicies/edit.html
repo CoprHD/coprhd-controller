@@ -154,12 +154,12 @@
 
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
   #{if tenantOptions}
-    #{collapse 'vpool.group.accessControl', icon:'user'}
-        #{field 'vpool.enableTenants'}
+    #{collapse 'schedulePolicy.group.accessControl', icon:'user'}
+        #{field 'schedulePolicy.enableTenants'}
           #{Form.booleanCheckBoxControlGroup field:field /}
         #{/field}
-      <div data-source="vpool_enableTenants" data-show="true">
-        #{field 'vpool.tenants'}
+      <div data-source="schedulePolicy_enableTenants" data-show="true">
+        #{field 'schedulePolicy.tenants'}
           #{Form.selectManyControlGroup field:field, options:tenantOptions /}
         #{/field}
       </div>

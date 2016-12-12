@@ -10,6 +10,8 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.auth.ACLAssignmentChanges;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyAssignResp;
 import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
@@ -23,7 +25,8 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
-public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicyRestRep> implements TaskResources<FilePolicyRestRep> {
+public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicyRestRep>
+        implements TaskResources<FilePolicyRestRep>, ACLResources {
 
     public FileProtectionPolicies(ViPRCoreClient parent, RestClient client) {
 
@@ -143,6 +146,16 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
     @Override
     public Task<FilePolicyRestRep> getTask(URI id, URI taskId) {
         return doGetTask(id, taskId);
+    }
+
+    @Override
+    public List<ACLEntry> getACLs(URI id) {
+        return doGetACLs(id);
+    }
+
+    @Override
+    public List<ACLEntry> updateACLs(URI id, ACLAssignmentChanges aclChanges) {
+        return doUpdateACLs(id, aclChanges);
     }
 
 }

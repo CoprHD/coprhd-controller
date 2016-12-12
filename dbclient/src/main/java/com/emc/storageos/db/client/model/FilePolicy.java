@@ -12,7 +12,7 @@ import java.net.URI;
  *
  */
 @Cf("FilePolicy")
-public class FilePolicy extends DataObject {
+public class FilePolicy extends DataObjectWithACLs {
 
     private static final long serialVersionUID = 1L;
 

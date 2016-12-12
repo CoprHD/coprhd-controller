@@ -7,20 +7,27 @@ package controllers.tenant;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
+import com.emc.vipr.client.core.ACLResources;
+import com.emc.vipr.client.core.FileProtectionPolicies;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -28,6 +35,7 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
+import jobs.vipr.TenantsCall;
 import models.datatable.ScheculePoliciesDataTable;
 import play.Logger;
 import play.data.binding.As;
@@ -39,6 +47,9 @@ import play.mvc.Util;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StringOption;
+import util.TenantUtils;
+import util.VirtualPoolUtils;
+import util.builders.ACLUpdateBuilder;
 import util.datatable.DataTablesSupport;
 
 @With(Common.class)
@@ -86,6 +97,7 @@ public class SchedulePolicies extends ViprResourceController {
         schedulePolicy.tenantId = Models.currentAdminTenant();
         addRenderArgs();
         addDateTimeRenderArgs();
+        addTenantOptionsArgs();
         render("@edit", schedulePolicy);
     }
 
@@ -97,6 +109,7 @@ public class SchedulePolicies extends ViprResourceController {
 
             addRenderArgs();
             addDateTimeRenderArgs();
+            addTenantOptionsArgs();
 
             render(schedulePolicy);
         } else {
@@ -168,6 +181,13 @@ public class SchedulePolicies extends ViprResourceController {
 
     }
 
+    private static void addTenantOptionsArgs() {
+
+        if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
+            renderArgs.put("tenantOptions", new TenantsCall().asPromise());
+        }
+    }
+
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(SchedulePolicyForm schedulePolicy) {
         if (schedulePolicy == null) {
@@ -189,6 +209,9 @@ public class SchedulePolicies extends ViprResourceController {
             FilePolicyParam input = updatePolicyParam(schedulePolicy);
             getViprClient().fileProtectionPolicies().update(schedulePolicyRestRep.getId(), input);
         }
+        // Update the ACLs
+        FileProtectionPolicies filePolicies = getViprClient().fileProtectionPolicies();
+        schedulePolicy.saveTenantACLs(filePolicies);
         flash.success(MessagesUtils.get("projects.saved", schedulePolicy.policyName));
         if (StringUtils.isNotBlank(schedulePolicy.referrerUrl)) {
             redirect(schedulePolicy.referrerUrl);
@@ -326,6 +349,10 @@ public class SchedulePolicies extends ViprResourceController {
         public String scheduleHour;
         public String scheduleMin;
 
+        public boolean enableTenants;
+
+        public List<String> tenants;
+
         /*
          * public SchedulePolicyForm form(SchedulePolicyRestRep restRep) {
          * 
@@ -416,6 +443,9 @@ public class SchedulePolicies extends ViprResourceController {
                 this.expiration = "EXPIRE_TIME";
             }
 
+            // Get the ACLs
+            FileProtectionPolicies fileProtectionPolicies = getViprClient().fileProtectionPolicies();
+            loadTenantACLs(fileProtectionPolicies);
             return this;
 
         }
@@ -430,6 +460,48 @@ public class SchedulePolicies extends ViprResourceController {
 
             if (policyName == null || policyName.isEmpty()) {
                 Validation.addError(formName + ".policyName", MessagesUtils.get("schedulePolicy.policyName.error.required"));
+            }
+        }
+
+        /**
+         * Loads the tenant ACL information from the provided ACLResources.
+         * 
+         * @param resources
+         *            the resources from which to load the ACLs.
+         */
+        protected void loadTenantACLs(ACLResources resources) {
+            this.tenants = Lists.newArrayList();
+
+            URI policyId = ResourceUtils.uri(id);
+            if (policyId != null) {
+                for (ACLEntry acl : resources.getACLs(policyId)) {
+                    if (StringUtils.isNotBlank(acl.getTenant())) {
+                        this.tenants.add(acl.getTenant());
+                    }
+                }
+            }
+            this.enableTenants = !tenants.isEmpty();
+        }
+
+        /**
+         * Saves the tenant ACL information using the provided ACLResources.
+         * 
+         * @param resources
+         *            the resources on which to save the tenant ACLs.
+         */
+        protected void saveTenantACLs(ACLResources resources) {
+            // Only allow a user than can read all tenants and update ACLs do this
+            if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
+                URI policyId = ResourceUtils.uri(id);
+                if (policyId != null) {
+                    Set<String> tenantIds = Sets.newHashSet();
+                    if (isTrue(enableTenants) && (tenants != null)) {
+                        tenantIds.addAll(tenants);
+                    }
+                    ACLUpdateBuilder builder = new ACLUpdateBuilder(resources.getACLs(policyId));
+                    builder.setTenants(tenantIds);
+                    resources.updateACLs(policyId, builder.getACLUpdate());
+                }
             }
         }
 

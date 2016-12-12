@@ -104,8 +104,4 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
 	public boolean isValid() {
         return this._altId!=null && !this._altId.isEmpty();
 	}
-
-    public void migrate(String cfName) {
-
-    }
 }

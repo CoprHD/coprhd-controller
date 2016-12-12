@@ -97,7 +97,6 @@ public class RowMutator<T extends CompositeIndexColumnName> {
      * @param key
      * @return
      */
-    //public ColumnListMutation<IndexColumnName> getIndexColumnList(
     public ColumnListMutation<T> getIndexColumnList(
             ColumnFamily<String, T> cf, String key) {
         Map<String, ColumnListMutation<T>> rowMap = _cfIndexMap.get(cf.getName());

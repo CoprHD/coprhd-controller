@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.emc.storageos.db.exceptions.DatabaseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +110,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
                 queryOnePage(result);
                 return;
             }
-        } catch (ConnectionException e)  {
+        } catch (ConnectionException e) {
             log.info("Query failed e=", e);
             throw DatabaseException.retryables.connectionFailed(e);
         }

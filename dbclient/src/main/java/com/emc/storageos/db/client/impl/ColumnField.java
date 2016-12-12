@@ -698,8 +698,6 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         Annotation[] annotations = readMethod.getAnnotations();
 
         ColumnFamily<String, IndexColumnName> indexCF = null;
-        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> indexCF2 = null;
-        ColumnFamily<String, TimeSeriesIndexColumnName> indexCF3 = null;
         int minPrefixChars;
 
         boolean isLazyLoadable = false;

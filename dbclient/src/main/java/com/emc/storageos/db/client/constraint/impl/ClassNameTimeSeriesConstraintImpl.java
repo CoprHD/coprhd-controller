@@ -19,9 +19,8 @@ import com.netflix.astyanax.query.RowQuery;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
-import com.emc.storageos.db.client.model.DataObject;
-
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
+import com.emc.storageos.db.client.model.DataObject;
 
 public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameTimeSeriesIndexColumnName> implements AlternateIdConstraint {
     private static final Logger log = LoggerFactory.getLogger(ClassNameTimeSeriesConstraintImpl.class);

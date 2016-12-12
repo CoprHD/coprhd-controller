@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.emc.storageos.db.client.impl.*;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -671,7 +670,7 @@ public class SchemaUtil {
                         modified = true;
                     }
                 }
-                else if (cfGcGrace != null && cfd.getGcGraceSeconds() != cfGcGrace) {
+                else if (cfGcGrace != null && cfd.getGcGraceSeconds() != cfGcGrace.intValue()) {
                     _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
                     cfd.setGcGraceSeconds(cfGcGrace.intValue());
                     modified = true;
@@ -1032,8 +1031,8 @@ public class SchemaUtil {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        final String cfname = def.getName();
-        _log.info("Admding CF: {} stack=", cfname, new Throwable());
+        String cfname = def.getName();
+        _log.info("Adding CF: {}", cfname);
         try {
             return pool.executeWithFailover(
                     new AbstractOperationImpl<String>(

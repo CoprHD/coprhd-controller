@@ -22,7 +22,6 @@ public interface OrderManager {
 
     public void updateOrder(Order order);
 
-    //public void deleteOrder(Order order);
     public void deleteOrder(URI orderId, String tenantID);
 
     public List<Order> getOrders(URI tenantId);

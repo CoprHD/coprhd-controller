@@ -1,9 +1,13 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.api.utils;
+
+import java.io.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.*;
 
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 

@@ -7,6 +7,9 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.constraint.impl.ClassNameTimeSeriesConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.TimeSeriesConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
@@ -78,8 +81,6 @@ import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.util.EndpointUtility;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Constraint for querying a record by alias

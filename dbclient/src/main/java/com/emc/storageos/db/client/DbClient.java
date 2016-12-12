@@ -232,7 +232,7 @@ public interface DbClient {
      * @param constraint one of available constraints from constraint package
      * @param result out parameter where query results will be added to
      * @param startId where the query starts
-     * @param maxCount the max number of resources returned by one query
+     * @param maxCount the max number of resources returned by this query
      * 
      * @throws DatabaseException TODO
      */

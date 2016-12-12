@@ -12,8 +12,6 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -36,6 +34,7 @@ public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
 
     protected void runQuery() {
         _currentIt = null;
+
         ColumnList<T2> result;
 
         try {

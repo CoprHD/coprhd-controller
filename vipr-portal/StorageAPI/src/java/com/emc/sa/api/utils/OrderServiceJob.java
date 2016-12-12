@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.api.utils;
 
 import java.io.IOException;
@@ -8,9 +12,6 @@ import java.net.URI;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Created by brian on 16-11-18.
- */
 public class OrderServiceJob implements Serializable {
 
     private static final long serialVersionUID = -3470928289876091965L;

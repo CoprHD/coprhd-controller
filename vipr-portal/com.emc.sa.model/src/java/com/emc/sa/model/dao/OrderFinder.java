@@ -112,8 +112,6 @@ public class OrderFinder extends TenantModelFinder<Order> {
         return client.getOrderCount(tids, Order.SUBMITTED, startTime, endTime);
     }
 
-
-
     public List<Order> findByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
         if (tenantId == null) {
             return Lists.newArrayList();

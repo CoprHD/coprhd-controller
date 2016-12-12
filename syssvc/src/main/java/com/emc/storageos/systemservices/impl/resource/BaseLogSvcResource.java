@@ -71,7 +71,6 @@ public abstract class BaseLogSvcResource {
         return mediaType;
     }
 
-
     /**
      * Verifies a valid severity level is passed in the request and returns the
      * appropriate LogSeverity enumeration.

@@ -247,11 +247,12 @@ test_host_remove_initiator() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+    #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
-
+    failure_injections="${HAPPY_PATH_TEST_INJECTION}"
+    
     # Create volume
     random_number=${RANDOM}    
     volume1=${VOLNAME}-${random_number}
@@ -308,12 +309,13 @@ test_host_remove_initiator() {
         sleep 2
         
         # Export the volume to an exlusive (aka Host) export for host1
-        runcmd export_group create ${PROJECT} ${exportgroup2} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts "${host1}"
+        runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts "${host1}"
         # Export the volume to a shared (aka Cluster) export for cluster1   
-        runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}        
+        runcmd export_group create ${PROJECT} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}        
                                 
         # List of all export groups being used
         exportgroups="${PROJECT}/${exportgroup1} ${PROJECT}/${exportgroup2}"
+        #exportgroups="${PROJECT}/${exportgroup1}"
         
         for eg in ${exportgroups}
         do
@@ -387,8 +389,7 @@ test_host_remove_initiator() {
         runcmd export_group delete ${PROJECT}/${exportgroup2}
         
         # Cleanup everything else
-        runcmd cluster delete ${TENANT}/${cluster1}
-        runcmd initiator delete ${host1}/${init1}
+        runcmd cluster delete ${TENANT}/${cluster1}        
         runcmd initiator delete ${host1}/${init2}
         runcmd initiator delete ${host2}/${init3}
         runcmd initiator delete ${host2}/${init4}

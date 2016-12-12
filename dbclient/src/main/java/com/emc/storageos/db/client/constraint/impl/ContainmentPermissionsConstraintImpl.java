@@ -6,17 +6,19 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
+
 import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 
 /**
  * ContainmentPermissions constraint. For example:

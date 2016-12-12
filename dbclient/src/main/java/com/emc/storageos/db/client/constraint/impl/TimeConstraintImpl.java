@@ -4,25 +4,22 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
+import java.net.URI;
+import java.util.Date;
+
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.util.RangeBuilder;
+import com.netflix.astyanax.util.TimeUUIDUtils;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.util.RangeBuilder;
-import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.Date;
-
 /**
  * Constraint to query indexed columns on a start/end time. This uses the same
  * index as DecomissionedConstraintImpl but is designed to work on other column
@@ -30,7 +27,6 @@ import java.util.Date;
  * between this time period.
  */
 public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implements DecommissionedConstraint {
-    private static final Logger log = LoggerFactory.getLogger(TimeConstraintImpl.class);
     private static final long MILLIS_TO_MICROS = 1000L;
     private static final int DEFAULT_PAGE_SIZE = 100;
     private Keyspace keyspace;
@@ -60,17 +56,6 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
         this.entityType = clazz;
     }
 
-    public TimeConstraintImpl(String cfName, String key, Boolean value) {
-        this.cf = new ColumnFamily<String, IndexColumnName>(cfName, StringSerializer.get(),
-                IndexColumnNameSerializer.get());;
-        indexSerializer = IndexColumnNameSerializer.get();
-
-        rowKey = key;
-        this.startTimeMicros = 0;
-        this.endTimeMicros = System.currentTimeMillis()*MILLIS_TO_MICROS;
-        this.value = value;
-    }
-
     public String getIndexKey() {
         return rowKey;
     }
@@ -97,7 +82,6 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
 
     @Override
     public <T> void execute(final QueryResult<T> result) {
-        log.info("lbyx2 value={}", value);
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
@@ -158,13 +142,10 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
     public RowQuery<String, IndexColumnName> genQuery() {
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
-            log.info("lbyx0 pageCount={}", pageCount);
             query = keyspace.prepareQuery(cf).getKey(rowKey)
                     .autoPaginate(true)
-                    //.withColumnRange(new RangeBuilder().setLimit(pageCount).build());
                     .withColumnRange(new RangeBuilder().build());
         } else {
-            log.info("lbyx1 pageCount={} rowKey={} value={}", pageCount, rowKey, value);
             query = keyspace.prepareQuery(cf).getKey(rowKey)
                     .autoPaginate(true)
                     .withColumnRange(

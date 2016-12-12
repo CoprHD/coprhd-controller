@@ -6,7 +6,6 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.impl.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,12 +14,12 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.impl.*;
 
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -52,8 +51,6 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
             try {
                 n++;
                 URI id = URI.create(column.getName().getTwo());
-                // long timeInMicros = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
-
                 ClassNameTimeSeriesIndexColumnName col = new ClassNameTimeSeriesIndexColumnName(column.getName().getOne(), id.toString(),column.getName().getTimeUUID());
                 mutationBatch.withRow(cf, constraint.getAltId()).putEmptyColumn(col, null);
                 if ( n % pageCount == 0) {

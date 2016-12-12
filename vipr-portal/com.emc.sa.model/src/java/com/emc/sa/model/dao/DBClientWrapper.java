@@ -26,15 +26,12 @@ public interface DBClientWrapper {
 
     public <T extends DataObject> List<T> findByIds(Class<T> clazz, List<URI> ids) throws DataAccessException;
 
-    // public <T extends DataObject> List<T> queryObjectField(Class<T> clazz, String fieldName, List<URI> ids) throws IOException;
-    // public <T> void queryByConstraint(Constraint constraint, Constraint.QueryResult<T> result) throws IOException;
-
     public <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id) throws DataAccessException;
 
     public <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix)
             throws DataAccessException;
 
-    public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
+   public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
             String labelPrefix) throws DataAccessException;
 
     public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value)
@@ -44,7 +41,6 @@ public interface DBClientWrapper {
                                                                        long startTime, long endTime, int maxCount)
             throws DataAccessException;
 
-    //public <T extends DataObject> List<NamedElement> findOrdersByAlternateId(Class<T> clazz, String columnField, String value,
     public List<NamedElement> findOrdersByAlternateId(String columnField, String value, long startTime, long endTime,
                                                       int maxCount) throws DataAccessException;
 
@@ -52,7 +48,6 @@ public interface DBClientWrapper {
 
     public Map<String, Long> getOrderCount(List<URI> tids, String value, long startTime, long endTime) throws DataAccessException;
 
-    //public <T extends DataObject> List<NamedElement> findAllOrdersByTimeRange(Class<T> clazz, String columnField, Date startTime,
     public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime, int maxCount)
             throws DataAccessException;
 

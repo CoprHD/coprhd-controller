@@ -361,10 +361,10 @@ public class DataObjectType {
         while (fieldIt.hasNext()) {
             ColumnField field = fieldIt.next();
             // we deal only with primitive types only, no StringSets, etc types are allowed
-            if (!field.getDependentFields().isEmpty() && object.isChanged(field.getName())) {
-                List<ColumnField> fields = field.getDependentFields();
-                //for (ColumnField depField : field.getDependentFields()) {
-                for (ColumnField depField : fields) {
+            if (!field.getDependentFields().isEmpty() &&
+                    object.isChanged(field.getName())) {
+                List<ColumnField> depFields = field.getDependentFields();
+                for (ColumnField depField :  depFields) {
                     if (!object.isChanged(depField.getName())) {
                         depColumns.put(depField.getName(), depField);
                     }

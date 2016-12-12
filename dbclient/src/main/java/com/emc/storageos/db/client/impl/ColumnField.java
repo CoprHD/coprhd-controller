@@ -18,16 +18,44 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
+
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
+import com.emc.storageos.db.client.model.AbstractSerializableNestedObject;
+import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.ClockIndependent;
+import com.emc.storageos.db.client.model.ClockIndependentValue;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DecommissionedIndex;
+import com.emc.storageos.db.client.model.Encrypt;
+import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.Id;
+import com.emc.storageos.db.client.model.IndexByKey;
+import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedRelationIndex;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PermissionsIndex;
+import com.emc.storageos.db.client.model.PrefixIndex;
+import com.emc.storageos.db.client.model.Relation;
+import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelIndex;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Ttl;
+import com.emc.storageos.db.client.model.AggregatedIndex;
+import com.emc.storageos.db.client.model.ClassNameTimeSeries;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
+import com.emc.storageos.db.client.model.TimeSeriesAlternateId;
+import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * Column / data object field type metadata
@@ -147,7 +175,6 @@ public class ColumnField <T extends CompositeIndexColumnName> {
      * 
      * @return
      */
-    //public ColumnFamily<String, IndexColumnName> getIndexCF() {
     public ColumnFamily<String, T> getIndexCF() {
         return _index.getIndexCF();
     }
@@ -729,13 +756,15 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                         IndexColumnNameSerializer.get());
                 _index = new AltIdDbIndex(indexCF);
             } else if (a instanceof ClassNameTimeSeries) {
-                indexCF2 = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(((ClassNameTimeSeries) a).value(), StringSerializer.get(),
+                ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> newIndexCF =
+                        new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(((ClassNameTimeSeries) a).value(), StringSerializer.get(),
                         ClassNameTimeSeriesSerializer.get());
-                _index = new ClassNameTimeSeriesDBIndex(indexCF2);
+                _index = new ClassNameTimeSeriesDBIndex(newIndexCF);
             } else if (a instanceof TimeSeriesAlternateId) {
-                indexCF3 = new ColumnFamily<String, TimeSeriesIndexColumnName>(((TimeSeriesAlternateId) a).value(), StringSerializer.get(),
+                ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF=
+                        new ColumnFamily<String, TimeSeriesIndexColumnName>(((TimeSeriesAlternateId) a).value(), StringSerializer.get(),
                         TimeSeriesColumnNameSerializer.get());
-                _index = new TimeSeriesDbIndex(indexCF3);
+                _index = new TimeSeriesDbIndex(newIndexCF);
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());

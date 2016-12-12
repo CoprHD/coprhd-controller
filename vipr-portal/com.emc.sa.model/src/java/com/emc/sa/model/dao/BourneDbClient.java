@@ -7,16 +7,16 @@ package com.emc.sa.model.dao;
 import java.net.URI;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.ClassNameTimeSeries;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class BourneDbClient implements DBClientWrapper {
-
     private static final Logger LOG = LoggerFactory.getLogger(BourneDbClient.class);
 
     private DbClient dbClient;
@@ -207,11 +206,6 @@ public class BourneDbClient implements DBClientWrapper {
         LOG.info("findAllOrdersByTimeRange(tid={} columnField={}, startTime={} endTime={} maxCount={})",
                 new Object[]{tid, columnField, startTime, endTime, maxCount});
 
-        //DecommissionedConstraint constraint = DecommissionedConstraint.Factory.getTimeConstraint(clazz, columnField, startTime, endTime);
-        // return queryNamedElementsByConstraint(constraint);
-
-        //List<NamedElement> allOrderIds = new ArrayList(maxCount);
-
         DataObjectType doType = TypeMap.getDoType(Order.class);
         long startTimeInMS = startTime.getTime();
         long endTimeInMS = endTime.getTime();
@@ -329,11 +323,6 @@ public class BourneDbClient implements DBClientWrapper {
 
     @Override
     public <T extends DataObject> void delete(List<T> models) throws DataAccessException {
-        /*
-        for (T model : models) {
-            delete(model);
-        }
-        */
         getDbClient().markForDeletion(models);
     }
 

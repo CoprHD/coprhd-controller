@@ -485,6 +485,7 @@ public class OrderManagerImpl implements OrderManager {
         client.delete(order);
     }
 
+
     public List<Order> getOrders(URI tenantId) {
         return client.orders().findAll(tenantId.toString());
     }

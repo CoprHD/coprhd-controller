@@ -4,7 +4,6 @@
  */
 package com.emc.sa.model.dao;
 
-import java.net.ConnectException;
 import java.net.URI;
 import java.util.Date;
 import java.util.List;
@@ -12,7 +11,9 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.commons.lang.StringUtils;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -20,8 +21,6 @@ import com.emc.sa.model.util.TenantUtils;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OrderFinder extends TenantModelFinder<Order> {
     private static final Logger log = LoggerFactory.getLogger(OrderFinder.class);
@@ -114,24 +113,12 @@ public class OrderFinder extends TenantModelFinder<Order> {
     }
 
 
-    /*
-    public List<NamedElement> findIdsByTimeRange(Date startTime, Date endTime, int maxCount) {
-        //return client.findAllOrdersByTimeRange(Order.class, "indexed", startTime, endTime, maxCount);
-        return client.findAllOrdersByTimeRange(Order.SUBMITTED, startTime, endTime, maxCount);
-        // return client.findAllOrdersByTimeRange(Order.SUBMITTED_BY_USER_ID, startTime, endTime, maxCount);
-    }
-
-    public List<Order> findByTimeRange(Date startTime, Date endTime, int maxCount) {
-        List<NamedElement> orderIds = findIdsByTimeRange(startTime, endTime, maxCount);
-        return findByIds(toURIs(orderIds));
-    }
-    */
 
     public List<Order> findByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
         if (tenantId == null) {
             return Lists.newArrayList();
         }
-        //return TenantUtils.filter(findByTimeRange(startTime, endTime, maxCount), tenantId.toString());
+
         List<NamedElement> orderIds = client.findAllOrdersByTimeRange(tenantId, Order.SUBMITTED, startTime, endTime, maxCount);
         return findByIds(toURIs(orderIds));
     }

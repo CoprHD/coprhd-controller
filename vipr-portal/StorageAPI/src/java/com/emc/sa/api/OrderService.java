@@ -4,15 +4,6 @@
  */
 package com.emc.sa.api;
 
-import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
-import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
-import static com.emc.sa.api.mapper.OrderMapper.map;
-import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
-import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
-import static com.emc.storageos.db.client.URIUtil.uri;
-import static com.emc.storageos.db.client.URIUtil.asString;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
@@ -20,11 +11,12 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -41,18 +33,21 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.google.common.collect.Lists;
+
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
+import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.exceptions.DatabaseException;
+
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.vipr.model.catalog.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.zookeeper.KeeperException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.OrderFilter;
 import com.emc.sa.api.mapper.OrderMapper;
@@ -66,12 +61,20 @@ import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
 import com.emc.sa.util.TextUtils;
+
+import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
+import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
+import static com.emc.sa.api.mapper.OrderMapper.map;
+import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
+import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
+import static com.emc.storageos.db.client.URIUtil.uri;
+import static com.emc.storageos.db.client.URIUtil.asString;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
-import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -86,8 +89,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
+
 import com.emc.vipr.client.catalog.impl.SearchConstants;
-import com.google.common.collect.Lists;
 
 @DefaultPermissions(
         readRoles = {},
@@ -273,7 +276,6 @@ public class OrderService extends CatalogTaggedResourceService {
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
-
         log.info("lbyc00");
         StorageOSUser user = getUserFromContext();
         String tenantId = user.getTenantId();
@@ -315,7 +317,7 @@ public class OrderService extends CatalogTaggedResourceService {
                         SearchConstants.ORDER_STATUS_PARAM + " or " + SearchConstants.START_TIME_PARAM + " or "
                                 + SearchConstants.END_TIME_PARAM);
             }
-            int maxCount = 6000;
+            int maxCount = -1;
             List<String> c= parameters.get(SearchConstants.ORDER_MAX_COUNT);
             if (c != null) {
                 String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
@@ -643,7 +645,7 @@ public class OrderService extends CatalogTaggedResourceService {
      * @throws DatabaseException when a DB error occurs
      */
     @GET
-    @Path("")
+    @Path("/my-orders")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderBulkRep getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
@@ -654,6 +656,8 @@ public class OrderService extends CatalogTaggedResourceService {
 
         log.info("lby0:starTime={} endTime={} maxCount={} user={}",
                 new Object[] {startTimeStr, endTimeStr, maxCount, user.getName()});
+        log.info("user={}", user.getName());
+
         int max = Integer.parseInt(maxCount);
         long startTimeInMS = 0;
         long endTimeInMS = System.currentTimeMillis();
@@ -694,6 +698,26 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         return orderList;
+    }
+
+
+    /**
+     * Gets the list of orders for current user
+     *
+     * @brief List Orders
+     * @return a list of orders
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public OrderList getUserOrders() throws DatabaseException {
+
+        StorageOSUser user = getUserFromContext();
+
+        List<Order> orders = orderManager.getUserOrders(user, 0, System.currentTimeMillis(), -1);
+
+        return toOrderList(orders);
     }
 
     /**

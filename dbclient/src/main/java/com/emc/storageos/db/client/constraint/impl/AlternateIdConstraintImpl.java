@@ -7,9 +7,6 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -24,13 +21,10 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-
-
 /**
  * Alternate ID constraint implementation
  */
 public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> implements AlternateIdConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
 
     private final ColumnFamily<String, IndexColumnName> _altIdCf;
     private final String _altId;
@@ -51,8 +45,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
         super(altId);
         indexSerializer = IndexColumnNameSerializer.get();
 
-        _altIdCf = new ColumnFamily<String, IndexColumnName>(indexCFName, StringSerializer.get(),
-                IndexColumnNameSerializer.get());
+        _altIdCf = new ColumnFamily<String, IndexColumnName>(indexCFName, StringSerializer.get(), IndexColumnNameSerializer.get());
         _altId = altId;
         _entryType = entryType;
     }
@@ -96,7 +89,6 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
     protected URI getURI(Column<IndexColumnName> col) {
         return URI.create(col.getName().getTwo());
     }
-
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {

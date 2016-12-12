@@ -23,6 +23,7 @@ import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * Abstract base for all containment queries
@@ -129,8 +130,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
         result.setResult(it);
     }
 
-    protected <T3> QueryHitIterator<T3, T> getQueryHitIterator(RowQuery<String, T> query,
-                                                          final QueryResult<T3> result) {
+    protected <T3> QueryHitIterator<T3, T> getQueryHitIterator(RowQuery<String, T> query, final QueryResult<T3> result) {
         final ConstraintImpl constraint = this;
         QueryHitIterator<T3, T> it = new QueryHitIterator<T3, T>(query) {
             @Override
@@ -176,7 +176,6 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
             builder.greaterThanEquals(prefix)
                     .lessThanEquals(prefix)
                     .limit(pageCount);
-
         } else {
             builder.withPrefix(prefix)
                     .greaterThan(startId)

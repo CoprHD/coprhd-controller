@@ -3121,7 +3121,7 @@ public interface BadRequestExceptions {
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException driverNameNotFound();
+    public BadRequestException driverNameNotFound(String name);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUninstallDriverInUse(final String driverName);

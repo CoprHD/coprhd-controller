@@ -136,7 +136,29 @@ public class StorageDriverService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/{driverName}")
+    public StorageDriverRestRep getSingleStorageDriver(@PathParam("driverName") String name) {
+        List<StorageDriverRestRep> drivers = queryStorageDriver(name);
+        if (drivers.isEmpty()) {
+            throw APIException.badRequests.driverNameNotFound(name);
+        }
+        return drivers.get(0);
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StorageDriverList getStorageDrivers() {
+        StorageDriverList driverList = new StorageDriverList();
+        driverList.setDrivers(queryStorageDriver(null));
+        return driverList;
+    }
+
+    /**
+     * 
+     * @return driver specified by the name; return all drivers if name is null
+     */
+    private List<StorageDriverRestRep> queryStorageDriver(String name) {
         Set<String> usedProviderTypes = getUsedStorageProviderTypes();
         Set<String> usedSystemTypes = getUsedStorageSystemTypes();
 
@@ -145,6 +167,10 @@ public class StorageDriverService {
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
+            String driverName = type.getDriverName();
+            if (name != null && !name.equals(driverName)) {
+                continue;
+            }
             if (type.getIsNative() == null || type.getIsNative() == true) {
                 // bypass native storage types
                 continue;
@@ -157,7 +183,7 @@ public class StorageDriverService {
                     type.setDriverStatus(IN_USE);
                 }
             }
-            String driverName = type.getDriverName();
+            
             if (driverMap.containsKey(driverName)) {
                 StorageDriverRestRep driverRestRep = driverMap.get(driverName);
                 driverRestRep.getSupportedTypes().add(type.getStorageTypeDispName());
@@ -168,9 +194,9 @@ public class StorageDriverService {
                 driverMap.put(type.getDriverName(), StorageDriverMapper.map(type));
             }
         }
-        StorageDriverList driverList = new StorageDriverList();
-        driverList.getDrivers().addAll(driverMap.values());
-        return driverList;
+        List<StorageDriverRestRep> drivers = new ArrayList<StorageDriverRestRep>();
+        drivers.addAll(driverMap.values());
+        return drivers;
     }
 
     protected Set<String> getUsedStorageProviderTypes() {
@@ -279,7 +305,7 @@ public class StorageDriverService {
 
         Set<String> driverNames = getAllDriverNames();
         if (!driverNames.contains(driverName)) {
-            throw APIException.badRequests.driverNameNotFound();
+            throw APIException.badRequests.driverNameNotFound(driverName);
         }
 
         precheckForEnv();

@@ -1,7 +1,12 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.model;
-import com.emc.storageos.db.client.upgrade.AddIndexMigrationCallback;
 
 import java.lang.annotation.*;
+
+import com.emc.storageos.db.client.upgrade.AddIndexMigrationCallback;
 
 /**
  * Alternate ID field marker

@@ -1,25 +1,27 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.constraint.impl;
 
-import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
 
-/**
- * Alternate ID constraint implementation
- */
 public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameTimeSeriesIndexColumnName> implements AlternateIdConstraint {
     private static final Logger log = LoggerFactory.getLogger(ClassNameTimeSeriesConstraintImpl.class);
 

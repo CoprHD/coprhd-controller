@@ -22,7 +22,7 @@ import com.emc.storageos.db.client.model.DataObject;
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */
-public class DecommissionedConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
+public class DecommissionedConstraintImpl extends ConstraintImpl<IndexColumnName> implements DecommissionedConstraint {
     private static final Logger log = LoggerFactory.getLogger(DecommissionedConstraintImpl.class);
 
     private Keyspace _keyspace;
@@ -38,6 +38,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
      */
     public DecommissionedConstraintImpl(Class<? extends DataObject> clazz, ColumnField field, long timeStart) {
         super(clazz, field, timeStart);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         throwIfNoInactiveIndex(field);
 
@@ -90,10 +91,10 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     @Override
     protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
         query.autoPaginate(true);
-        FilteredQueryHitIterator<T> it;
+        FilteredQueryHitIterator<T, IndexColumnName> it;
         if (_timeToStartFrom > 0) {
             // time slice - get only older than _timeToStartFrom
-            it = new FilteredQueryHitIterator<T>(query) {
+            it = new FilteredQueryHitIterator<T, IndexColumnName>(query) {
                 @Override
                 protected T createQueryHit(Column<IndexColumnName> column) {
                     return result.createQueryHit(URI.create(column.getName().getTwo()));
@@ -111,7 +112,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
             };
         } else {
             // no time slicing - get all
-            it = new FilteredQueryHitIterator<T>(query) {
+            it = new FilteredQueryHitIterator<T, IndexColumnName>(query) {
                 @Override
                 protected T createQueryHit(Column<IndexColumnName> column) {
                     return result.createQueryHit(URI.create(column.getName().getTwo()));

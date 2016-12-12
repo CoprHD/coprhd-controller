@@ -43,7 +43,7 @@ public class IndexCleaner {
      * 
      * @param mutator
      * @param doType
-     * @param listToClean
+     * @param listToCleanRef
      */
     public void cleanIndex(RowMutator mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
         /*
@@ -68,7 +68,8 @@ public class IndexCleaner {
                 Column<CompositeColumnName> column = cols.get(i);
                 ColumnField field = doType.getColumnField(column.getName().getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
-                for (ColumnField depField : field.getDependentFields()) {
+                List<ColumnField> depFields = field.getDependentFields();
+                for (ColumnField depField : depFields) {
                     dependentFields.put(depField.getName(), depField);
                 }
             }
@@ -81,7 +82,7 @@ public class IndexCleaner {
         // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
         removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList) listToClean, true);
 
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     public void removeColumnAndIndex(RowMutator mutator, DataObjectType doType, RemovedColumnsList listToClean) {
@@ -100,7 +101,7 @@ public class IndexCleaner {
             }
         }
 
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList,
@@ -156,7 +157,7 @@ public class IndexCleaner {
                 field.getIndex().setIndexCF(currentIndexCF);
             }
         }
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     /**
@@ -164,10 +165,9 @@ public class IndexCleaner {
      * 
      * @param mutator
      * @param doType
-     * @param listToClean
+     * @param listToCleanRef
      */
-    public void cleanIndexAsync(final RowMutator mutator,
-            final DataObjectType doType,
+    public void cleanIndexAsync(final RowMutator mutator, final DataObjectType doType,
             final SoftReference<IndexCleanupList> listToCleanRef) {
         _indexCleanerExe.submit(new Callable<Object>() {
             @Override

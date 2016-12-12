@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.SizeUtil;
+import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -672,6 +673,18 @@ public class ArgValidator {
             }
         }
         return false;
+    }
+
+    /**
+     * Check the format of the endpoint wwn entered.
+     * 
+     * @param wwn
+     *            wwn field
+     */
+    public static void checkFieldValidWwn(String wwn) {
+        if (!WwnUtils.isValidEndpoint(wwn)) {
+            throw APIException.badRequests.invalidParameterWwnBadFormat(wwn);
+        }
     }
 
 }

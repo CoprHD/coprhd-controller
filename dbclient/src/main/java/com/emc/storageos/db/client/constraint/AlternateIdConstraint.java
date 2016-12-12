@@ -7,7 +7,13 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.constraint.impl.ClassNameTimeSeriesConstraintImpl;
+import com.emc.storageos.db.client.constraint.impl.TimeSeriesConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AuthnProvider;
@@ -73,12 +79,14 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
  * Constraint for querying a record by alias
  */
 public interface AlternateIdConstraint extends Constraint {
+    final Logger log = LoggerFactory.getLogger(AlternateIdConstraint.class);
     /**
      * Factory for creating alternate ID constraint
      */
@@ -345,6 +353,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getVirtualArrayStoragePortsConstraint(String varrayId) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
+        }
+        
+        public static AlternateIdConstraint getStoragePortsForStorageSystemConstraint(String storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(StoragePort.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageSystem);
         }
 
         public static AlternateIdConstraint getImplicitVirtualArrayStoragePoolsConstraint(String varrayId) {
@@ -770,6 +783,18 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
+        }
+
+        public static AlternateIdConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
+            return new ClassNameTimeSeriesConstraintImpl(field, user, startTimeInMS, endTimeInMS);
+        }
+
+        public static AlternateIdConstraint getOrders(URI tid, long startTimeInMS, long endTimeInMS) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField(Order.SUBMITTED);
+            return new TimeSeriesConstraintImpl(tid.toString(), field, startTimeInMS, endTimeInMS);
         }
     }
 }

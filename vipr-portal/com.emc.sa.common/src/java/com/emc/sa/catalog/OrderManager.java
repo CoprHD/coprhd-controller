@@ -7,6 +7,7 @@ package com.emc.sa.catalog;
 import java.net.URI;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -27,9 +28,13 @@ public interface OrderManager {
 
     public List<Order> getUserOrders(StorageOSUser user, long startTime, long endTime, int maxCount);
 
+    public long getOrderCount(StorageOSUser user, long startTime, long endTime);
+
+    public Map<String, Long> getOrderCount(List<URI> tids, long startTime, long endTime);
+
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus);
 
-    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime);
+    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount);
 
     public List<ExecutionLog> getOrderExecutionLogs(Order order);
 

@@ -1588,7 +1588,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected Set<String> mergeWithExportGroupMaskURIs(ExportGroup exportGroup,
             Collection<Set<URI>> maskURIs) {
         Set<String> set = new HashSet<String>();
-        if (exportGroup != null && maskURIs != null &&
+        if (maskURIs != null) {
+            for (Set<URI> entry : maskURIs) {
+                Collection<String> uris = Collections2.transform(entry,
+                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
+                set.addAll(uris);
+            }
+        }
+        if (exportGroup != null &&
                 exportGroup.getExportMasks() != null) {
             Set<String> exportGroupMaskNames = new HashSet<String>();
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
@@ -1596,12 +1603,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 exportGroupMaskNames.add(exportMask.getMaskName());
                 set.add(exportMask.getId().toString());
             }
-
-            for (Set<URI> entry : maskURIs) {
-                Collection<String> uris = Collections2.transform(entry,
-                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
-                set.addAll(uris);
-            }
+            set.addAll(exportGroup.getExportMasks());
             Iterator<String> currMaskIter = set.iterator();
             while (currMaskIter.hasNext()) {
                 URI currMaskURI = URI.create(currMaskIter.next());
@@ -2150,8 +2152,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected Map<URI, Boolean> flagInitiatorsThatArePartOfAFullList(ExportGroup exportGroup,
             List<URI> initiatorURIs) {
         Map<URI, Boolean> initiatorFlagMap = new HashMap<URI, Boolean>();
-        // We only care about Host and Cluster exports for this processing
-        if (exportGroup.forCluster() || exportGroup.forHost()) {
+        /**
+         * TODO Should not remove volume from mask for the EG remove initiator call.
+         */
+        // We only care about Host exports for this processing
+        if (exportGroup.forHost()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
             Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
@@ -2211,7 +2216,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Initiator initiator, List<String> portsForComputeResource) {
         boolean result = false;
         if (exportGroup.forHost() || exportGroup.forCluster()) {
-            result = mask.hasExactlyTheseInitiators(portsForComputeResource);
+            result = ExportMaskUtils.hasExactlyTheseInitiators(mask, portsForComputeResource, _dbClient);
         } else if (mask.hasInitiator(initiator.getId().toString()) || mask.hasExistingInitiator(initiator)) {
             result = true;
         }
@@ -2243,12 +2248,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Set<URI> partialMasks) {
         Set<String> foundPorts = new HashSet<>();
         if (exportGroup.forHost() || exportGroup.forCluster()) {
-            if (mask.hasExactlyTheseInitiators(portsForComputeResource)) {
+            if (ExportMaskUtils.hasExactlyTheseInitiators(mask, portsForComputeResource, _dbClient)) {
                 return true;
             }
 
             // Make sure the mask in question contains only ports in the compute resource in order to qualify
-            if (mask.hasAnyInitiators() && mask.hasExactlySubsetOfTheseInitiators(portsForComputeResource)) {
+            if (mask.hasAnyInitiators() && ExportMaskUtils.hasExactlySubsetOfTheseInitiators(mask, portsForComputeResource, _dbClient)) {
                 // Specifically for cluster: Either we have a mask that already works for multiple hosts (the case of
                 // cluster),
                 // but maybe not all of the hosts in the cluster, or this mask is a non-cascaded IG mask that only works
@@ -2284,7 +2289,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 // hosts
                 // when a cluster export is requested and a cluster masking view is available.
                 if (!exportGroup.forCluster() || !maskAppliesToMultipleHosts(otherMask)) {
-                    if (otherMask.hasAnyInitiators() && otherMask.hasExactlySubsetOfTheseInitiators(portsForComputeResource)) {
+                    if (otherMask.hasAnyInitiators()
+                            && ExportMaskUtils.hasExactlySubsetOfTheseInitiators(otherMask, portsForComputeResource, _dbClient)) {
                         partialMasks.add(otherMask.getId());
                         foundPorts.addAll(ExportUtils.getExportMaskAllInitiatorPorts(otherMask, _dbClient));
                     }

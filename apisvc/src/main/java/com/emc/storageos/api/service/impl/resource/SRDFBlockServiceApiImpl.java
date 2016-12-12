@@ -51,7 +51,6 @@ import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -74,7 +73,6 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -442,15 +440,22 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume.setAccessState(VolumeAccessState.NOT_READY.name());
         }
 
+        URI storageSystemUri = null;
         if (!remote) {
-            volume.setStorageController(placement.getSourceStorageSystem());
+            storageSystemUri = placement.getSourceStorageSystem();
+            volume.setStorageController(storageSystemUri);
             volume.setPool(placement.getSourceStoragePool());
         } else {
-            volume.setStorageController(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
-                    .get(varray.getId()).getTargetStorageDevice());
+            storageSystemUri = ((SRDFRecommendation) placement).getVirtualArrayTargetMap()
+                    .get(varray.getId()).getTargetStorageDevice();
+            volume.setStorageController(storageSystemUri);
             volume.setPool(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStoragePool());
         }
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+        String systemType = storageSystem.checkIfVmax3() ? 
+                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+        volume.setSystemType(systemType);
 
         volume.setOpStatus(new OpStatusMap());
         Operation op = new Operation();

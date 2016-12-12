@@ -1320,20 +1320,10 @@ public class NetworkScheduler {
             StringMap volumeMap = mask.getVolumes();
             if (volumeMap == null) {
                 // it should not happen, log
-                _log.info(String.format("There is no volume in the export mask %s, skip", mask.getLabel()));
+                _log.info(String.format("There is no volume in the export mask %s, skip", mask.getMaskName()));
                 continue;
             } else {
-                Set<String> vols = volumeMap.keySet();
-                for (String volId : vols) {
-                    URI volURI = URI.create(volId);
-                    Volume volume = dbClient.queryObject(Volume.class, volURI);
-                    if (volume != null) {
-                        URI systemURI = volume.getStorageController();
-                        if (systemURI.equals(storageSystemURI)) {
-                            volumes.add(volURI);
-                        }
-                    }
-                }
+                volumes.addAll(StringSetUtil.stringSetToUriList(volumeMap.keySet()));
             }
         }
         

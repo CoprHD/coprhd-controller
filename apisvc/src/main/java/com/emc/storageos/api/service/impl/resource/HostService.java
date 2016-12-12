@@ -111,6 +111,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.UnManagedExportMaskList;
 import com.emc.storageos.model.block.UnManagedVolumeList;
+import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
@@ -335,6 +336,62 @@ public class HostService extends TaskResourceService {
                 host.auditParameters());
 
         return doDiscoverHost(host, taskId);
+    }
+
+    /**
+     * Sync a host with a storage System.
+     *
+     * @param id
+     *            The URI of the host.
+     * @param storageId
+     *            The URI of the Storage system.
+     * @prereq none
+     * @brief sync host
+     * @return TaskResourceRep (asynchronous call)
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/sync/{storageId}")
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep syncHost(@PathParam("id") URI id, @PathParam("storageId") URI storageId) {
+        ArgValidator.checkFieldUriType(id, Host.class, "id");
+        ArgValidator.checkFieldUriType(storageId, Host.class, "id");
+        Host host = queryObject(Host.class, id, true);
+        StorageSystem ss = queryObject(StorageSystem.class, storageId, true);
+       
+
+        UnManagedVolumeService service = new UnManagedVolumeService();
+        
+
+        VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
+
+        // set the host
+        exportIngestParam.setHost(id);
+
+        // set the unmanaged volume list
+
+        List<URI> uriList = new ArrayList<URI>();
+        UnManagedVolumeList list = getUnmanagedVolumes(id);
+        for (RelatedResourceRep resourece : list.getUnManagedVolumes()) {
+            
+            uriList.add(resourece.getId());
+        }
+        exportIngestParam.setUnManagedVolumes(uriList);
+        //to do
+        // set the varry
+
+        // set the vpool
+
+        // after the vpool simplification. vpool will be broken into different part.
+        // like cos,storage Port. etc
+        // and these part can be grouped to satisfy the volume property.
+
+        // set the project
+
+        // ser the tenant
+
+        service.ingestExportedVolumes(exportIngestParam);
+        return doDiscoverHost(host, null);
     }
 
     /**

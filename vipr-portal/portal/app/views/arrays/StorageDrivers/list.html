@@ -103,6 +103,23 @@ $(document).ready(function() {
     var dataTable = table.storageDrivers.dataTable.getDataTable();
     var itemsJson = #{jsAction @itemsJson(':ids')/};
     watchDriverStatus(dataTable, itemsJson);
+    // eliminate outdated alerts
+    window.setInterval(function() {
+        var currentTable = table.storageDrivers.dataTable.getDataTable();
+        var data = currentTable.fnGetData();
+        var eliminateAlert = true;
+        for (var i = 0; i < data.length; i++) {
+            var row = data[i];
+            var status = row['status'];
+            console.info("status of " + row['id'] + " is " + status);
+            if ($.inArray(status, ['INSTALLING', 'UNINSTALLING', 'UPGRADING'])) {
+                break;
+            }
+        }
+        if (eliminateAlert) {
+            $('.alert-success').hide();
+        }
+    }, 5000);
 });
 </script>
 

@@ -306,8 +306,9 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * <p>
      * API Call: <tt>POST /block/exports/{id}/port-allocate-preview</tt>
      *
-     * @param 
-     * @return 
+     * @param id
+     * @param input
+     * @return Port Allocate Preview
      */
     public PortAllocatePreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPortAllocateParam input) {
         //UriBuilder builder = client.uriBuilder(baseUrl);

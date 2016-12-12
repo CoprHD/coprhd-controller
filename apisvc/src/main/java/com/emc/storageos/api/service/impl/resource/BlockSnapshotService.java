@@ -211,9 +211,15 @@ public class BlockSnapshotService extends TaskResourceService {
      * If this snapshot was created from a volume that is part of a consistency group,
      * then all the related snapshots will be deactivated, as well.
      * 
+     * If "?type=VIPR_ONLY" is added to the path, it will delete snapshot only from ViPR data base and leaves the snapshot on storage array
+     * as it is.
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the snapshot on array and ViPR data base.
+     * VIPR_ONLY : Deletes the snapshot only from ViPR data base and leaves the snapshot on array as it is.
+     * 
      * @prereq none
      * @param id the URN of a ViPR snapshot
-     * @param type the type of deletion
+     * @param type the type of deletion {@link DefaultValue} FULL
      * @brief Delete snapshot
      * @return Snapshot information
      */

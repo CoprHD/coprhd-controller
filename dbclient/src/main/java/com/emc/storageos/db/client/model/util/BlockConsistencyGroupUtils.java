@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.util;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.base.Preconditions;
 
 public class BlockConsistencyGroupUtils {
     /**
@@ -468,6 +470,7 @@ public class BlockConsistencyGroupUtils {
      */
     public static void cleanUpCG(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
             Boolean markInactive, DbClient dbClient) {
+        checkNotNull(consistencyGroup, "consistency group must be non-null");
         // Remove the replication group name from the SystemConsistencyGroup field
         if (replicationGroupName != null) {
             consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);

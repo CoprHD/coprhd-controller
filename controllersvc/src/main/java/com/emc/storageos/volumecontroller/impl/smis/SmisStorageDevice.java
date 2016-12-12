@@ -1779,8 +1779,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
                         consistencyGroupId, systemURI));
                 // Clean up the system consistency group references
-                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
-                _dbClient.updateObject(consistencyGroup);
+                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
                 return;
             }
 
@@ -1825,9 +1824,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
 
             // Clean up the system consistency group references
-            BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
-
-            _dbClient.updateObject(consistencyGroup);
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
         } catch (Exception e) {
             _log.error("Failed to delete consistency group: ", e);
             serviceError = DeviceControllerErrors.smis.methodFailed("doDeleteConsistencyGroup", e.getMessage());

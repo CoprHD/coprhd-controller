@@ -505,4 +505,25 @@ public class BlockConsistencyGroupUtils {
             }
         }
     }
+
+    /**
+     * Method to clean up a consistency group after an operation succeeds or fails.  Also persists any changes to the
+     * database.
+     *
+     * @param consistencyGroup
+     *            consistency group
+     * @param storageId
+     *            storage system
+     * @param replicationGroupName
+     *            replication group name
+     * @param markInactive
+     *            whether you can mark it as inactive as part of cleanup (delete the CG itself)
+     * @param dbClient
+     *            dbclient
+     */
+    public static void cleanUpCGAndUpdate(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
+                                          Boolean markInactive, DbClient dbClient) {
+        cleanUpCG(consistencyGroup, storageId, replicationGroupName, markInactive, dbClient);
+        dbClient.updateObject(consistencyGroup);
+    }
 }

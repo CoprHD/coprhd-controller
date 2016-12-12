@@ -76,6 +76,14 @@ function shortURI(uriId) {
     return uriIdArray[2] "-" uriIdArray[3];
 }
 
+function makeZoneKey(initiatorWwn, portWwn) {
+    initwwn = initiatorWwn;
+    gsub(":", "", initwwn);
+    portwwn = portWwn;
+    gsub(":", "", portwwn);
+    return initwwn  "_"  portwwn;
+}
+
 
 BEGIN	{
     debug=0;
@@ -148,12 +156,38 @@ BEGIN	{
 	    portToWwn[port] = networkId;
 	}
     }
+    # Make a zone pwwnKey to zoneName map.
+    for (zref in zrefs) {
+        if (zref ~ "zoneName") {
+	    zname = zrefs[zref];
+	    sub("zoneName", "", zref);
+	    gsub(invalidURICharRegex, "", zref);
+	    zoneToName[zref] = zname;
+	}
+    }
+    for (zref in zrefs) {
+        if (zref ~ "pwwnKey") {
+	    pwwnKey = zrefs[zref];
+	    sub("pwwnKey", "", zref);
+	    gsub(invalidURICharRegex, "", zref);
+	    zname=zoneToName[zref];
+	    pwwnKeyToZoneName[pwwnKey] = zname;
+	    if (zref in zoneToCount) {
+	        pwwnKeyToCount[pwwnKey]++;
+	    } else {
+	        pwwnKeyToCount[pwwnKey] = 1;
+	    }
+	}
+    }
     if (debug) {
         for (port in portToName) {
             printf("%s-->%s\n", port, portToName[port]);
         }
         for (port in portToWwn) {
             printf("%s-->%s\n", port, portToWwn[port]);
+        }
+        for (pwwnKey in pwwnKeyToZoneName) {
+	    printf("%s-->%s\n", pwwnKey, pwwnKeyToZoneName[pwwnKey]);
         }
     }
 
@@ -193,6 +227,7 @@ BEGIN	{
 		    sub(listEndRegex, "", storagePorts);
 		    #print "storagePorts", storagePorts;
 		    split(zoneMap, zoneMapTerms, "], ");
+		    printf("Hostname ... Initiator WWN ... Port Name ... Zone Name ... Count\n");
 		    for (zoneMapTermId in zoneMapTerms) {
 		        zoneMapTerm = zoneMapTerms[zoneMapTermId];
 			initiatorId=zoneMapTerm;
@@ -214,11 +249,16 @@ BEGIN	{
 			     portid=portTerms[portTermId];
 			     gsub(" ", "", portid);
 			     portName=portToName[portid];
+			     portWwn=portToWwn[portid];
+			     zoneKey = makeZoneKey(initiatorWwn, portWwn);
+			     gsub(" ", "", zoneKey);
+			     zoneName = pwwnKeyToZoneName[zoneKey];
+			     zoneCount = pwwnKeyToCount[zoneKey];
 			     if (storagePorts !~ shortURI(portid)) {
 			          printf("%s ERROR port %s not in storagePorts %s\n", initiatorstr, shortURI(portid), storagePorts);   
 			     }
 			     #printf("port %s %s\n", portid, portName);
-			     printf("%s %s %s\n", initiatorstr, shortURI(portid), portName);
+			     printf("%s %s %s %s %d\n", initiatorstr, shortURI(portid), portName, zoneName, zoneCount);
 			}
 		    }
 		    #initiators=mask["initiators"];

@@ -88,6 +88,24 @@ function renderButtonBar(o,val) {
 }
 </script>
 
+<script type="text/javascript">
+function watchDriverStatus(datatable, itemsJson) {
+    var fields = ['driverName', 'driverVersion', 'supportedStorageSystems', 'type', 'defaultNonSslPort',
+                  'defaultSslPort', 'status', 'actions'];
+    var fieldToWatch = 'status';
+    var triggerValues = ['INSTALLING', 'UNINSTALLING', 'UPGRADING'];
+    var triggerStableValues =  ['READY', 'IN_USE'];
+
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerStableValues, fields, 60000);
+}
+$(document).ready(function() {
+    var dataTable = table.storageDrivers.dataTable.getDataTable();
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDriverStatus(dataTable, itemsJson);
+});
+</script>
+
 #{DataTable.header titleKey:'storageDrivers.list.title' /}
 #{DataTable.crudTable id:'storageDrivers',
                       dataTable:dataTable,

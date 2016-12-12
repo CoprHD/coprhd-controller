@@ -33,6 +33,7 @@ public class StorageDriverDataTable extends DataTable {
         public String defaultNonSslPort;
         public String defaultSslPort;
         public String status;
+        public String id;
 
         public StorageDriverInfo() {
         }
@@ -45,6 +46,7 @@ public class StorageDriverDataTable extends DataTable {
             this.defaultNonSslPort = driver.getNonSslPort();
             this.defaultSslPort = driver.getSslPort();
             this.status = driver.getDriverStatus();
+            this.id = driver.getDriverName();
         }
     }
 }

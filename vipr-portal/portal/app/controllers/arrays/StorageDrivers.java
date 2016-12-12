@@ -6,6 +6,8 @@ package controllers.arrays;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
@@ -18,6 +20,7 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.StorageDriverDataTable;
 import models.datatable.StorageDriverDataTable.StorageDriverInfo;
+import play.data.binding.As;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StorageDriverUtils;
@@ -83,5 +86,28 @@ public class StorageDrivers extends ViprResourceController {
         StorageDriverUtils.upgradeDriver(driverFile, driverName, force);
         flash.success(MessagesUtils.get(UPGRADE_INIT_SUCCESS));
         list();
+    }
+
+    public static void itemsJson(@As(",") String[] ids) {
+        List<String> uuids = Arrays.asList(ids);
+        itemsJson(uuids);
+    }
+
+    private static void itemsJson(List<String> names) {
+        List<StorageDriverRestRep> drivers = new ArrayList<StorageDriverRestRep>();
+        for (String name : names) {
+            StorageDriverRestRep driver = StorageDriverUtils.getDriver(name);
+            if (driver != null) {
+                drivers.add(driver);
+            }
+        }
+        performItemsJson(drivers, new JsonItemOperation());
+    }
+
+    static class JsonItemOperation implements ResourceValueOperation<StorageDriverInfo, StorageDriverRestRep> {
+        @Override
+        public StorageDriverInfo performOperation(StorageDriverRestRep driver) throws Exception {
+            return new StorageDriverInfo(driver);
+        }
     }
 }

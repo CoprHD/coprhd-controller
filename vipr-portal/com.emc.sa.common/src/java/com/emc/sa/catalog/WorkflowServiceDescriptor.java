@@ -21,6 +21,7 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,12 +65,19 @@ public class WorkflowServiceDescriptor {
         if(results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
-        return mapWorkflowToServiceDescriptor(results.get(0));
+        OrchestrationWorkflow orchestrationWorkflow = results.get(0);
+        // Return service only if its PUBLISHED
+        if (!OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getState())) {
+            log.debug("Not returning workflow service because its state ({}) is not published", orchestrationWorkflow.getState());
+            return null;
+        }
+        return mapWorkflowToServiceDescriptor(orchestrationWorkflow);
     }
 
+    // This method will only return service descriptors for PUBLISHED workflwos
     public Collection<ServiceDescriptor> listDescriptors() {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
-        List<NamedElement> oeElements = orchestrationWorkflowManager.list();
+        List<NamedElement> oeElements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.PUBLISHED);
         if (null != oeElements) {
             OrchestrationWorkflow oeWorkflow;
             for(NamedElement oeElement: oeElements) {

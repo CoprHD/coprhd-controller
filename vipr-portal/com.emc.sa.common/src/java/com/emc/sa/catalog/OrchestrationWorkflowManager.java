@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 
 public interface OrchestrationWorkflowManager {
 
@@ -31,7 +32,8 @@ public interface OrchestrationWorkflowManager {
     public Iterator<OrchestrationWorkflow> getSummaries(final List<URI> ids);
     public void save(final OrchestrationWorkflow workflow);
     public void delete(final OrchestrationWorkflow workflow);
-
+    public boolean hasCatalogServices(final String name);
+    public List<NamedElement> listByStatus(final OrchestrationWorkflowStatus status);
     
     
 }

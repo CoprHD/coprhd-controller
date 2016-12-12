@@ -16,29 +16,26 @@
  */
 package com.emc.vipr.model.catalog;
 
+
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Rest representation for WF directory create
+ * Rest representation for WF directory update
  */
-@XmlRootElement(name = "wf_directory_create")
-public class WFDirectoryParam {
+@XmlRootElement(name = "wf_directory_update")
 
+public class WFDirectoryUpdateParam {
     private String name;
     private URI parent;
-    private List<URI> workflows;
+    private WFDirectoryWorkflowsUpdateParam workflows;
 
-    @XmlElement(required =true)
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -46,20 +43,16 @@ public class WFDirectoryParam {
         return parent;
     }
 
-    public void setParent(URI parent) {
+    public void setParent(final URI parent) {
         this.parent = parent;
     }
 
-    @XmlElementWrapper(name = "workflows")
-    @XmlElement(name = "workflow")
-    public List<URI> getWorkflows() {
-        if (workflows == null) {
-            workflows = new ArrayList<>();
-        }
+    @XmlElement(name = "workflow_changes")
+    public WFDirectoryWorkflowsUpdateParam getWorkflows() {
         return workflows;
     }
 
-    public void setWorkflows(List<URI> workflows) {
+    public void setWorkflows(final WFDirectoryWorkflowsUpdateParam workflows) {
         this.workflows = workflows;
     }
 }

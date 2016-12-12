@@ -21,15 +21,21 @@ import static util.BourneUtil.getCatalogClient;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.With;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.primitives.Primitive;
@@ -38,6 +44,8 @@ import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
+import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.gson.annotations.SerializedName;
 
 import controllers.Common;
@@ -56,10 +64,9 @@ public class WorkflowBuilder extends Controller {
         render();
     }
 
-
     private static class Node {
         private String id;
-        private String  text;
+        private String text;
         @SerializedName("parent")
         private String parentID;
         private PrimitiveRestRep data;
@@ -85,9 +92,12 @@ public class WorkflowBuilder extends Controller {
     public static void getWFDirectories() {
         // GET workflow ids and names
         Map<URI, String> oeId2NameMap = new HashMap<URI, String>();
-        OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient().oePrimitives().getWorkflows();
-        if (null != orchestrationWorkflowList && null != orchestrationWorkflowList.getWorkflows()) {
-            for (NamedRelatedResourceRep o : orchestrationWorkflowList.getWorkflows()) {
+        OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient()
+                .orchestrationPrimitives().getWorkflows();
+        if (null != orchestrationWorkflowList
+                && null != orchestrationWorkflowList.getWorkflows()) {
+            for (NamedRelatedResourceRep o : orchestrationWorkflowList
+                    .getWorkflows()) {
                 oeId2NameMap.put(o.getId(), o.getName());
             }
         }
@@ -97,19 +107,23 @@ public class WorkflowBuilder extends Controller {
         List<Node> topLevelNodes = new ArrayList<Node>();
         Node node;
         String nodeParent;
-        for (WFDirectoryRestRep wfDirectoryRestRep: wfBulkRep.getWfDirectories()) {
-            if ( null == wfDirectoryRestRep.getParent()) {
+        for (WFDirectoryRestRep wfDirectoryRestRep : wfBulkRep
+                .getWfDirectories()) {
+            if (null == wfDirectoryRestRep.getParent()) {
                 nodeParent = MY_LIBRARY_ROOT;
-            }
-            else {
+            } else {
                 nodeParent = wfDirectoryRestRep.getParent().getId().toString();
             }
-            node = new Node(wfDirectoryRestRep.getId().toString(), wfDirectoryRestRep.getName(), nodeParent);
+            node = new Node(wfDirectoryRestRep.getId().toString(),
+                    wfDirectoryRestRep.getName(), nodeParent);
 
             // add workflows that are under this node
             if (null != wfDirectoryRestRep.getWorkflows()) {
                 for (URI u : wfDirectoryRestRep.getWorkflows()) {
-                    topLevelNodes.add(new Node(u.toString(), oeId2NameMap.get(u), node.id, NODE_TYPE_FILE));
+                    if (oeId2NameMap.containsKey(u)) {
+                        topLevelNodes.add(new Node(u.toString(), oeId2NameMap
+                                .get(u), node.id, NODE_TYPE_FILE));
+                    }
                 }
             }
             topLevelNodes.add(node);
@@ -123,11 +137,10 @@ public class WorkflowBuilder extends Controller {
 
     public static void editWFDirName(String id, String newName) {
         try {
-            WFDirectoryParam param = new WFDirectoryParam();
+            WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
             param.setName(newName);
             getCatalogClient().wfDirectories().edit(new URI(id), param);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -135,8 +148,7 @@ public class WorkflowBuilder extends Controller {
     public static void deleteWFDir(String id) {
         try {
             getCatalogClient().wfDirectories().delete(new URI(id));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -148,13 +160,85 @@ public class WorkflowBuilder extends Controller {
             // Ignoring root parent
             URI parentURI = null;
             if (null != parent) {
-                parentURI = MY_LIBRARY_ROOT.equals(parent) ? null : new URI(parent);
+                parentURI = MY_LIBRARY_ROOT.equals(parent) ? null : new URI(
+                        parent);
             }
             param.setParent(parentURI);
-            WFDirectoryRestRep wfDirectoryRestRep = getCatalogClient().wfDirectories().create(param);
+            WFDirectoryRestRep wfDirectoryRestRep = getCatalogClient()
+                    .wfDirectories().create(param);
             renderJSON(wfDirectoryRestRep);
+        } catch (Exception e) {
+            Logger.error(e.getMessage());
         }
-        catch (Exception e) {
+    }
+
+    public static void createWorkflow(final String workflowName,
+            final String dirID) {
+        try {
+            // Create workflow with just name
+            final OrchestrationWorkflowCreateParam param = new OrchestrationWorkflowCreateParam();
+            final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
+            document.setName(workflowName);
+            param.setDocument(document);
+            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                    .orchestrationPrimitives().createWorkflow(param);
+
+            // Add this workflowid to directory
+            if (null != orchestrationWorkflowRestRep) {
+                final WFDirectoryUpdateParam wfDirectoryParam = new WFDirectoryUpdateParam();
+                final Set<URI> addWorkflows = new HashSet<URI>();
+                addWorkflows.add(orchestrationWorkflowRestRep.getId());
+                wfDirectoryParam
+                        .setWorkflows(new WFDirectoryWorkflowsUpdateParam(
+                                addWorkflows, null));
+                getCatalogClient().wfDirectories().edit(new URI(dirID),
+                        wfDirectoryParam);
+            } else {
+                flash.error("Error creating workflow");
+            }
+
+            renderJSON(orchestrationWorkflowRestRep);
+        } catch (Exception e) {
+            Logger.error(e.getMessage());
+            flash.error("Error creating workflow");
+        }
+    }
+
+    public static void editWorkflowName(final String id, final String newName) {
+        try {
+            URI workflowURI = new URI(id);
+            OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                    .orchestrationPrimitives().getWorkflow(workflowURI);
+            if (null != orchestrationWorkflowRestRep) {
+                final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
+                param.setDocument(orchestrationWorkflowRestRep.getDocument());
+                param.getDocument().setName(newName);
+                getCatalogClient().orchestrationPrimitives().editWorkflow(
+                        workflowURI, param);
+            } else {
+                flash.error("Workflow " + id + "not found");
+            }
+        } catch (Exception e) {
+            Logger.error(e.getMessage());
+        }
+    }
+
+    public static void deleteWorkflow(final String workflowID,
+            final String dirID) {
+        try {
+            final URI workflowURI = new URI(workflowID);
+            // Delete workflow
+            getCatalogClient().orchestrationPrimitives().deleteWorkflow(
+                    workflowURI);
+
+            // Delete this reference in WFDirectory
+            final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
+            final Set<URI> removeWorkflows = new HashSet<URI>();
+            removeWorkflows.add(workflowURI);
+            param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null,
+                    removeWorkflows));
+            getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        } catch (Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -162,27 +246,29 @@ public class WorkflowBuilder extends Controller {
     // Get Primitives and add them to directory list
     private static void addPrimitives(List<Node> topLevelNodes) {
         try {
-            PrimitiveList primitiveList = getCatalogClient().oePrimitives().getPrimitives();
+            PrimitiveList primitiveList = getCatalogClient()
+                    .orchestrationPrimitives().getPrimitives();
             if (null == primitiveList) {
                 return;
             }
-            for (PrimitiveRestRep primitiveRestRep : primitiveList.getPrimitives()) {
+            for (PrimitiveRestRep primitiveRestRep : primitiveList
+                    .getPrimitives()) {
                 String parent;
                 String primitiveName = primitiveRestRep.getName();
                 Primitive primitive = PrimitiveHelper.get(primitiveName);
                 if (primitive instanceof ViPRPrimitive) {
                     parent = VIPR_PRIMITIVE_ROOT;
-                }
-                else {
+                } else {
                     // Default grouping: "ViPR Library"
                     parent = VIPR_LIBRARY_ROOT;
                 }
-                Node node = new Node(primitive.getClass().getSimpleName(), primitiveRestRep.getFriendlyName(), parent, NODE_TYPE_FILE);
+                Node node = new Node(primitive.getClass().getSimpleName(),
+                        primitiveRestRep.getFriendlyName(), parent,
+                        NODE_TYPE_FILE);
                 node.data = primitiveRestRep;
                 topLevelNodes.add(node);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e.getMessage());
         }
     }

@@ -54,8 +54,6 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Path("")
     public ServiceDescriptorList getServiceDescriptors() {
         Collection<ServiceDescriptor> descriptors = this.serviceDescriptors.listDescriptors(Locale.getDefault());
-
-        // Adding  workflows (TODO: add only published)
         descriptors.addAll(workflowServiceDescriptor.listDescriptors());
 
         List<ServiceDescriptorRestRep> serviceDescriptors = Lists.newArrayList();

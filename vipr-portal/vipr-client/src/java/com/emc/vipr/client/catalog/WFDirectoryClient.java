@@ -23,6 +23,7 @@ import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
@@ -46,7 +47,7 @@ public class WFDirectoryClient {
         return client.postURI(WFBulkRep.class, bulkIdParam, builder.build());
     }
 
-    public WFDirectoryRestRep edit(URI id, WFDirectoryParam param) {
+    public WFDirectoryRestRep edit(URI id, WFDirectoryUpdateParam param) {
         return client.put(WFDirectoryRestRep.class,param,PathConstants.WF_DIRECTORY,id);
     }
 

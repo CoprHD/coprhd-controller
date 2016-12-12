@@ -754,22 +754,6 @@ public class OrderService extends CatalogTaggedResourceService {
             endTimeInMS = endTime.getTime();
         }
 
-        /*
-        ZonedDateTime now = ZonedDateTime.now();
-        log.info("lbyt0: now={}", now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
-
-        if (!startTimeStr.isEmpty()) {
-            ZonedDateTime startTime = ZonedDateTime.parse(startTimeStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
-            startTimeInMS = startTime.toInstant().toEpochMilli();
-        }
-
-        long endTimeInMS = System.currentTimeMillis();
-        if (!endTimeStr.isEmpty()) {
-            ZonedDateTime endTime = ZonedDateTime.parse(endTimeStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
-            endTimeInMS = endTime.toInstant().toEpochMilli();
-        }
-        */
-
         log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
 
         if (startTimeInMS > endTimeInMS) {

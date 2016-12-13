@@ -31,7 +31,17 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private boolean isSecretKey = false;
     private String managedBy;
     private boolean isNative = true;
-    
+    private boolean supportAutoTierPolicy;
+
+    @XmlElement(name = "support_autotier_policy")
+    public boolean isSupportAutoTierPolicy() {
+        return supportAutoTierPolicy;
+    }
+
+    public void setSupportAutoTierPolicy(boolean supportAutoTierPolicy) {
+        this.supportAutoTierPolicy = supportAutoTierPolicy;
+    }
+
     public StorageSystemTypeRestRep() {
     }
 

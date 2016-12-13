@@ -36,6 +36,7 @@ public class StorageDriverMapper {
         type.setIsDefaultSsl(driver.isEnableSsl());
         type.setSslPort(Long.toString(driver.getSslPort()));
         type.setNonSslPort(Long.toString(driver.getNonSslPort()));
+        type.setSupportAutoTierPolicy(driver.isSupportAutoTierPolicy());
         type.setDriverClassName(driver.getDriverClassName());
         types.add(type);
 
@@ -55,6 +56,7 @@ public class StorageDriverMapper {
             provider.setIsDefaultSsl(driver.isEnableSsl());
             provider.setSslPort(Long.toString(driver.getSslPort()));
             provider.setNonSslPort(Long.toString(driver.getNonSslPort()));
+            provider.setSupportAutoTierPolicy(driver.isSupportAutoTierPolicy());
             provider.setDriverClassName(driver.getDriverClassName());
             type.setManagedBy(provider.getStorageTypeId());
             types.add(provider);
@@ -76,6 +78,7 @@ public class StorageDriverMapper {
         rep.setDefaultSslOn(type.getIsDefaultSsl());
         rep.setSslPort(type.getSslPort());
         rep.setNonSslPort(type.getNonSslPort());
+        rep.setSupportAutoTierPolicy(type.getSupportAutoTierPolicy());
         return rep;
     }
 }

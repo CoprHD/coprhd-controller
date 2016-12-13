@@ -25,6 +25,7 @@ public class StorageDriverRestRep extends DataObjectRestRep {
     private boolean defaultSslOn;
     private String sslPort;
     private String nonSslPort;
+    private boolean supportAutoTierPolicy;
 
     @XmlElement(name = "driver_name")
     public String getDriverName() {
@@ -117,5 +118,14 @@ public class StorageDriverRestRep extends DataObjectRestRep {
 
     public void setNonSslPort(String nonSslPort) {
         this.nonSslPort = nonSslPort;
+    }
+
+    @XmlElement(name = "support_autotier_policy")
+    public boolean isSupportAutoTierPolicy() {
+        return supportAutoTierPolicy;
+    }
+
+    public void setSupportAutoTierPolicy(boolean supportAutoTierPolicy) {
+        this.supportAutoTierPolicy = supportAutoTierPolicy;
     }
 }

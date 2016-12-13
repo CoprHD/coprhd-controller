@@ -456,6 +456,7 @@ public class SystemsMapper {
 		to.setSslPort(from.getSslPort());
 		to.setDriverClassName(from.getDriverClassName());
         to.setIsSecretKey(from.getIsSecretKey());
+        to.setSupportAutoTierPolicy(from.getSupportAutoTierPolicy());
         if (from.getManagedBy() != null) {
             to.setManagedBy(from.getManagedBy());
         }
@@ -484,6 +485,7 @@ public class SystemsMapper {
 		to.setSslPort(from.getSslPort());
 		to.setDriverClassName(from.getDriverClassName());
         to.setIsSecretKey(from.getIsSecretKey());
+        to.setSupportAutoTierPolicy(from.getSupportAutoTierPolicy());
         if (from.getManagedBy() != null) {
             to.setManagedBy(from.getManagedBy());
         }

@@ -98,6 +98,7 @@ public class StorageDriverService {
     private static final String NON_SSL_PORT = "non_ssl_port";
     private static final String SSL_PORT = "ssl_port";
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
+    private static final String SUPPORT_AUTO_TIER_POLICY = "support_auto_tier_policy";
     private static final int DRIVER_VERSION_NUM_SIZE = 4;
     private static final Set<String> VALID_META_TYPES = new HashSet<String>(
             Arrays.asList(new String[] { "block", "file", "block_and_file", "object" }));
@@ -689,6 +690,15 @@ public class StorageDriverService {
                     .installDriverPrecheckFailed("driver_class_name field value is not provided");
         }
         metaData.setDriverClassName(driverClassName);
+        // check if support auto-tier policy
+        String supportAutoTierStr = props.getProperty(SUPPORT_AUTO_TIER_POLICY);
+        if (StringUtils.isNotEmpty(supportAutoTierStr)) {
+            boolean supportAutoTierPolicy = Boolean.valueOf(supportAutoTierStr);
+            metaData.setSupportAutoTierPolicy(supportAutoTierPolicy);
+        } else {
+            // default to false
+            metaData.setSupportAutoTierPolicy(false);
+        }
         metaData.setDriverFileName(driverFile.getName());
         log.info("Parsed result from jar file: {}", metaData.toString());
         return metaData;

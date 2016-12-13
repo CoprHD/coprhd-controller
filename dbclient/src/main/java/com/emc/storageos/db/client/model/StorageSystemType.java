@@ -5,8 +5,6 @@
 
 package com.emc.storageos.db.client.model;
 
-import java.net.URI;
-
 /**
  * Class represents Storage System Types.
  */
@@ -48,6 +46,7 @@ public class StorageSystemType extends DataObject {
     private String driverStatus;
     private Boolean isNative;
     private String managedBy;
+    private Boolean supportAutoTierPolicy = false;
 
     // Type of Storage System Types
     public static enum META_TYPE {
@@ -146,6 +145,15 @@ public class StorageSystemType extends DataObject {
     public void setIsNative(Boolean isNative) {
         this.isNative = isNative;
         setChanged("isNative");
+    }
+    @Name("supportAutoTierPolicy")
+    public Boolean getSupportAutoTierPolicy() {
+        return supportAutoTierPolicy;
+    }
+
+    public void setSupportAutoTierPolicy(Boolean supportAutoTierPolicy) {
+        this.supportAutoTierPolicy = supportAutoTierPolicy;
+        setChanged("supportAutoTierPolicy");
     }
 
     @Name("storageTypeName")

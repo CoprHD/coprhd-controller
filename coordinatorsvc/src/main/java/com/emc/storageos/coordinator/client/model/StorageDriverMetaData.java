@@ -31,6 +31,7 @@ public class StorageDriverMetaData {
     private static final String KEY_NON_SSL_PORT = "nonSslPort";
     private static final String KEY_DRIVER_CLASS_NAME = "driverClassName";
     private static final String KEY_DRIVER_FILE_NAME = "driverFileName";
+    private static final String KEY_SUPPORT_AUTOTIER_POLICY = "supportAutoTierPolicy";
 
     private static final Logger log = LoggerFactory.getLogger(StorageDriverMetaData.class);
 
@@ -60,6 +61,7 @@ public class StorageDriverMetaData {
     private long nonSslPort;
     private String driverClassName;
     private String driverFileName;
+    private boolean supportAutoTierPolicy;
 
     public String getDriverName() {
         return driverName;
@@ -157,6 +159,14 @@ public class StorageDriverMetaData {
         this.driverFileName = driverFileName;
     }
 
+    public boolean isSupportAutoTierPolicy() {
+        return supportAutoTierPolicy;
+    }
+
+    public void setSupportAutoTierPolicy(boolean supportAutoTierPolicy) {
+        this.supportAutoTierPolicy = supportAutoTierPolicy;
+    }
+
     // configuration converters
     public Configuration toConfiguration() {
         ConfigurationImpl config = new ConfigurationImpl();
@@ -186,6 +196,7 @@ public class StorageDriverMetaData {
         config.setConfig(KEY_ENABLE_SSL, String.valueOf(enableSsl));
         config.setConfig(KEY_SSL_PORT, String.valueOf(sslPort));
         config.setConfig(KEY_NON_SSL_PORT, String.valueOf(nonSslPort));
+        config.setConfig(KEY_SUPPORT_AUTOTIER_POLICY, String.valueOf(supportAutoTierPolicy));
 
         if (driverClassName != null) {
             config.setConfig(KEY_DRIVER_CLASS_NAME, driverClassName);
@@ -221,6 +232,10 @@ public class StorageDriverMetaData {
             if (nonSslPortStr != null) {
                 nonSslPort = Long.valueOf(nonSslPortStr);
             }
+            String supportAutoTierStr = config.getConfig(KEY_SUPPORT_AUTOTIER_POLICY);
+            if (supportAutoTierStr != null) {
+                supportAutoTierPolicy = Boolean.valueOf(supportAutoTierStr);
+            }
             driverClassName = config.getConfig(KEY_DRIVER_CLASS_NAME);
             driverFileName = config.getConfig(KEY_DRIVER_FILE_NAME);
         } catch (Exception e) {
@@ -242,6 +257,7 @@ public class StorageDriverMetaData {
                .append(", enableSsl=").append(enableSsl)
                .append(", sslPort=").append(sslPort)
                .append(", nonSslPort=").append(nonSslPort)
+               .append(", supportAutoTierPolicy").append(supportAutoTierPolicy)
                .append(", driverClassName=").append(driverClassName)
                .append(", driverFileName=").append(driverFileName);
         return builder.toString();

@@ -110,7 +110,6 @@ GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
 *       /storagearrays/ports/{id}               arrays.StorageSystems.ports
 *       /storagearrays/{action}                 arrays.StorageSystems.{action}
 
-GET     /storagedrivers/edit/{id}           arrays.StorageSystemTypes.edit
 GET     /storagedrivers/list                   arrays.StorageDrivers.list
 *       /storagedrivers/{action}               arrays.StorageDrivers.{action}
 

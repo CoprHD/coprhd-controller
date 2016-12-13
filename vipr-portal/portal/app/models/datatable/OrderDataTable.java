@@ -82,11 +82,7 @@ public class OrderDataTable extends DataTable {
         List<OrderInfo> orderInfos = Lists.newArrayList();
         if (orderRestReps != null) {
             for (OrderRestRep orderRestRep : orderRestReps) {
-              //add to 6K orders for mockup only
-                for (int i = 1; i <= 6000; i++) {
-                    orderRestRep.setOrderNumber(String.valueOf(i));
                 orderInfos.add(new OrderInfo(orderRestRep));
-                }
             }
         }
         return orderInfos;

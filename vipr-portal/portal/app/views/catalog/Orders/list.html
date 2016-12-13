@@ -1,26 +1,7 @@
 #{extends 'main.html' /} #{set navSelected: ['nav.orders',
 'nav.catalog', 'nav.viewOrders'] /}
 
-<!-- <div class="col-sm-6 controls">
-	<div class="row col-gap-sm">
-		<div class="col-xs-5">
-			<date-picker ng-model="myOrder.startDate" close="true"></date-picker>
-			<input type="hidden" name="myOrder.startDate" id="startDateVal" 
-				value="{{myOrder.startDate}}" />
-		</div>
-		<div class="col-xs-5">
-			<date-picker ng-model="myOrder.endDate" close="true"></date-picker>
-			<input type="hidden" name="myOrder.endDate" id="endDateVal" 
-				value="{{myOrder.endDate}}" />
-		</div>
-		<div class="col-xs-2">
-			<button type="button" id="submitBtn" class="btn btn-primary" onclick="updateDateRange()">
-				<span v-icon="filter"></span> {{'system.logs.update' | t}}
-			</button>
-		</div>
-	</div>
-</div> -->
-#{DataTable.header titleKey:'orders.title'/} 
+#{DataTable.header titleKey:'myOrders.title'/}
 
 <div class="max-days-selector" 
 #{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if} 
@@ -40,24 +21,22 @@
   
   <label class="description forRange">&{"orders.startDate"}:</label>
   <div class="control forRange" style="width:150px;">
-      <date-picker ng-model="scheduler.startDate" close="true"></date-picker>
-      <input type="hidden" name="scheduler.startDate" value="2016-10-31"/>
+      <date-picker ng-model="myOrder.startDate" close="true"></date-picker>
+      <input type="hidden" name="myOrder.startDate" value="{{myOrder.startDate}}"/>
    </div>
   
    <label class="description forRange">&{"orders.endDate"}:</label>
    <div class="control forRange" style="width:150px;">
-      <date-picker ng-model="scheduler.endDate" close="true"></date-picker>
-      <input type="hidden" name="scheduler.endDate" value="{{scheduler.endDate}}"/>
+      <date-picker ng-model="myOrder.endDate" close="true"></date-picker>
+      <input type="hidden" name="myOrder.endDate" value="{{myOrder.endDate}}"/>
    </div>
   
   <div class="clearfix"></div>
   
 </div>
 
-<!-- TODO for mockup only, from listJson to allOrdersJson-->
 #{DataTable.table
-id:'orders', dataTable:dataTable, source:@allOrdersJson(),
-cssClass:'editableRows', options: ['fnServerParams': 'addParams']/}
+id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows', options: ['fnServerParams': 'addParams']/}
 <script type="text/javascript">
 table.orders.dataTable.afterCreate(function(dataTable) {
     var itemsJson = #{jsAction @itemsJson(':ids')/};

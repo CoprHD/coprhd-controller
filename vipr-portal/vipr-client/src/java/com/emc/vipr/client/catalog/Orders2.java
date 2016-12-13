@@ -179,7 +179,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     /**
      * Return list of the current user's orders
      * <p>
-     * API Call: <tt>GET /catalog/orders/myorders</tt>
+     * API Call: <tt>GET /catalog/orders/my-orders</tt>
      *
      * @param startTime
      * @param endTime
@@ -188,6 +188,28 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      */
     public List<OrderRestRep> getUserOrders(String startTime, String endTime, String maxCount) {
         return listUserOrders2(startTime, endTime, maxCount);
+    }
+
+    /**
+     * Gets the number of orders within a time range for current user
+     *
+     * <p>
+     * API Call: <tt>GET /catalog/orders/my-order-count</tt>
+     *
+     * @param startTime
+     * @param endTime
+     * @return
+     */
+    public OrderCount getUserOrdersCount(String startTime, String endTime) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_MY_COUNT);
+        if (startTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
+        }
+        if (endTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
+        }
+        OrderCount orderCount = client.getURI(OrderCount.class, uriBuilder.build());
+        return orderCount;
     }
 
     /**

@@ -3109,7 +3109,7 @@ recentServices.title=Recently Used Services
 recentOrders.title=Recent Orders
 allOrders.title=All Orders
 
-orders.title=My Orders
+myOrders.title=My Orders
 orders.status=Status
 orders.number=Number
 orders.service=Service
@@ -3129,6 +3129,7 @@ orders.nDays=%d Days
 orders.startDate=Start Date
 orders.endDate=End Date
 requestSearch.placeholder=Search for Orders...
+orders.hint=%s orders were found based on current filter.  Returning maximum of %s entries.
 
 catalog.corrupted-service.title=Corrupted Service
 catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.

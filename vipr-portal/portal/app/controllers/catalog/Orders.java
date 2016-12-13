@@ -138,8 +138,6 @@ public class Orders extends OrderExecution {
         renderArgs.put("startDate", params.get("startDate"));
         renderArgs.put("endDate", params.get("endDate"));
         addMaxDaysRenderArgs();
-        flash.put("warning", "Totally 9700 orders are found in database, "
-                + "but only 6000 entries are loaded and displayed here for performance concern.");//for mockup
         render(dataTable);
     }
 

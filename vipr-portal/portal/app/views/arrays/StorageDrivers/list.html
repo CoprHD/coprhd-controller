@@ -112,6 +112,7 @@ $(document).ready(function() {
             var row = data[i];
             var status = row['status'];
             if ($.inArray(status, ['INSTALLING', 'UNINSTALLING', 'UPGRADING'])) {
+                eliminateAlert = false;
                 break;
             }
         }

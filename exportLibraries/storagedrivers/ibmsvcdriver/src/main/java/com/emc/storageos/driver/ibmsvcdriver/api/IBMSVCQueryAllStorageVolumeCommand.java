@@ -59,10 +59,10 @@ public class IBMSVCQueryAllStorageVolumeCommand extends
                 storageVolume.setNativeId(volumeData[0]);
                 storageVolume.setDisplayName(volumeData[1]);
                 storageVolume.setDeviceLabel(volumeData[1]);
-                storageVolume.setAllocatedCapacity(IBMSVCDriverUtils.extractFloat(volumeData[7]));
+                storageVolume.setAllocatedCapacity(IBMSVCDriverUtils.convertGBtoBytes(volumeData[7]));
                 storageVolume.setAccessStatus(AccessStatus.READ_WRITE);
-                storageVolume.setProvisionedCapacity(IBMSVCDriverUtils.extractFloat(volumeData[7]));
-                storageVolume.setRequestedCapacity(IBMSVCDriverUtils.extractFloat(volumeData[7]));
+                storageVolume.setProvisionedCapacity(IBMSVCDriverUtils.convertGBtoBytes(volumeData[7]));
+                storageVolume.setRequestedCapacity(IBMSVCDriverUtils.convertGBtoBytes(volumeData[7]));
                 storageVolume.setWwn(volumeData[13]);
                 int spaceEfficientCount = Integer.parseInt(volumeData[17]);
                 if (spaceEfficientCount > 0)

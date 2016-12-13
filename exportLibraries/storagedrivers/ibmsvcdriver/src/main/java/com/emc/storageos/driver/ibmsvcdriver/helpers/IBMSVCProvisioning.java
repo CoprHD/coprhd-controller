@@ -782,7 +782,7 @@ public class IBMSVCProvisioning {
     private StoragePort getStoragePortById(List<StoragePort> nodeStoragePortList, Character id) throws IBMSVCDriverException{
         try{
             for (StoragePort nodeStoragePort : nodeStoragePortList){
-                if(nodeStoragePort.getNativeId() != null && nodeStoragePort.getNativeId().charAt(11) == id){
+                if(nodeStoragePort.getNativeId() != null && nodeStoragePort.getNativeId().charAt(10) == id){
                     return nodeStoragePort;
                 }
             }

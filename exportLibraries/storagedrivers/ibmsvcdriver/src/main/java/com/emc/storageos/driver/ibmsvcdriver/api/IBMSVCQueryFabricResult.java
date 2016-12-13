@@ -18,6 +18,9 @@ public class IBMSVCQueryFabricResult {
 
     List<IBMSVCFabricConnectivity> fabricConnectivityList;
 
+    List<String> initiatorList;
+    List<String> targetList;
+
     private boolean isSuccess;
 
     private String errorString;
@@ -25,6 +28,8 @@ public class IBMSVCQueryFabricResult {
     public IBMSVCQueryFabricResult() {
         super();
         this.fabricConnectivityList = new ArrayList<IBMSVCFabricConnectivity>();
+        this.initiatorList = new ArrayList<>();
+        this.targetList = new ArrayList<>();
     }
 
     public List<IBMSVCFabricConnectivity> getFabricConnectivityList() {
@@ -55,6 +60,28 @@ public class IBMSVCQueryFabricResult {
         this.errorString = errorString;
     }
 
+    public List<String> getInitiatorList() {
+        return initiatorList;
+    }
 
+    public void setInitiatorList(List<String> initiatorList) {
+        this.initiatorList = initiatorList;
+    }
+
+    public List<String> getTargetList() {
+        return targetList;
+    }
+
+    public void setTargetList(List<String> targetList) {
+        this.targetList = targetList;
+    }
+
+    public void addTarget(String target) {
+        this.targetList.add(target);
+    }
+
+    public void addInitiator(String initiator) {
+        this.initiatorList.add(initiator);
+    }
 
 }

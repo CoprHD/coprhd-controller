@@ -135,6 +135,9 @@ public class Orders extends OrderExecution {
         Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
+        dataTable.setStartDate(params.get("startDate"));
+        dataTable.setEndDate(params.get("endDate"));
+        renderArgs.put("orderCount", dataTable.fetchCount());
         renderArgs.put("startDate", params.get("startDate"));
         renderArgs.put("endDate", params.get("endDate"));
         addMaxDaysRenderArgs();
@@ -151,6 +154,8 @@ public class Orders extends OrderExecution {
     }
 
     public static void itemsJson(@As(",") String[] ids) {
+        Logger.info("hlj, start to call itemsJson()");
+        Logger.info("ids: {}", ids);
         List<OrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {

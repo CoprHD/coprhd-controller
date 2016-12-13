@@ -2,6 +2,7 @@
 'nav.catalog', 'nav.viewOrders'] /}
 
 #{DataTable.header titleKey:'myOrders.title'/}
+${orderCount}
 
 <div class="max-days-selector" 
 #{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if} 
@@ -58,6 +59,7 @@ function updateDateRange() {
 }
 
 $(document).ready(function() {
+    console.info("${orderCount}");
     var requestMaxDays = "${maxDays}";
     if(requestMaxDays != 0) {
         $(".forRange").hide();
@@ -69,7 +71,7 @@ $(document).ready(function() {
             $(".forRange").show();
             $('.max-days-selector').css({'width': '780px', 'margin-left': '-650px', 'margin-right':'170px'});
         } else {
-            var url = #{jsAction @allOrders()/}()+"?maxDays="+maxDays;
+            var url = #{jsAction @list()/}()+"?maxDays="+maxDays;
             window.location.href = url;
         }
     });

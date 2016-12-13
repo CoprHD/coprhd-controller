@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import com.emc.vipr.model.catalog.OrderCount;
 import play.Logger;
 import models.security.UserInfo;
 import util.OrderUtils;
@@ -86,6 +87,20 @@ public class OrderDataTable extends DataTable {
             }
         }
         return orderInfos;
+    }
+
+    public OrderCount fetchCount() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date start = null;
+        Date end = null;
+        //just for test
+        try {
+            start = sdf.parse(startDate);
+            end = sdf.parse(endDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return OrderUtils.getUserOrdersCount(start, end);
     }
 
     public static class OrderInfo {

@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -48,7 +49,7 @@ public class MaskingChangeDetectionProcessor extends Processor {
     private EnumerateResponse<CIMInstance> responses;
     private Logger _logger = LoggerFactory.getLogger(MaskingChangeDetectionProcessor.class);
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "deprecation" })
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         /**
@@ -100,10 +101,13 @@ public class MaskingChangeDetectionProcessor extends Processor {
             }
             
             Set<String> initiatorPortsInMask = new HashSet<String>();
-            
+            URI initiatorToSelectExportGroup = null; 
             if (null != exportMask.getInitiators()) {
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
                         StringSetUtil.stringSetToUriList(exportMask.getInitiators()));
+                if (null == initiatorToSelectExportGroup) {
+                    initiatorToSelectExportGroup = initiators.get(0).getId();
+                }
                 if (null != exportMask.getExistingInitiators()) {
                     initiatorPortsInMask.addAll(exportMask.getExistingInitiators());
                 }
@@ -113,11 +117,15 @@ public class MaskingChangeDetectionProcessor extends Processor {
                 
             }
             
+          
+            
             _logger.info("Storage Ports in Array : {} , Database : {}", Joiner.on("@@").join(storagePortsFromArray),
                     Joiner.on("@@").join(storagePortsInMask));
             _logger.info("Initiator Ports in Array : {} , Database : {}", Joiner.on("@@").join(initiatorsFromArray),
                     Joiner.on("@@").join(initiatorPortsInMask));
             
+            //TODO : Storage Ports have :format, butportsFromArray doesn't have the same,
+            //Right now not fixing this in order to raise events by default.
             SetView<String> storagePortsDiff = Sets.difference(storagePortsInMask, storagePortsFromArray);
             SetView<String> initiatorPortsDiff = Sets.difference(initiatorPortsInMask, initiatorsFromArray);
             
@@ -125,11 +133,21 @@ public class MaskingChangeDetectionProcessor extends Processor {
             // Else, if there is a change in # storage Ports, raise events.
             if (!storagePortsDiff.isEmpty() || storagePortsInMask.size() != storagePortsFromArray.size()
                     || !initiatorPortsDiff.isEmpty() || initiatorPortsInMask.size() != initiatorsFromArray.size()) {
-                String message = ExportChangeDetectionProperties.getMessage("Masking.PortsChanged", maskName, storagePortsInMask,
-                        storagePortsFromArray, initiatorPortsInMask, initiatorsFromArray);
-                EventUtils.createActionableEvent(_dbClient, EventCode.MASKING_PORTS_CHANGED, null, maskName, message, "warning",
-                        exportMask, maskUriList, EventUtils.refreshExportMasks, new Object[] { maskUriList,
-                                StorageSystem.Discovery_Namespaces.RESOLVE});
+                
+                List<URI> exportGroups = _dbClient.queryByConstraint(AlternateIdConstraint.
+                        Factory.getExportGroupInitiatorConstraint(initiatorToSelectExportGroup.toString()));
+                
+                if (null != exportGroups && !exportGroups.isEmpty()) {
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroups.get(0));
+                    
+                    String message = ExportChangeDetectionProperties.getMessage("Masking.storagePortChanged", maskName, storagePortsInMask,
+                            storagePortsFromArray, initiatorPortsInMask, initiatorsFromArray);
+                    //Host belongs to a tenant, hence taking the first export Group
+                    EventUtils.createActionableEvent(_dbClient, EventCode.MASKING_PORTS_CHANGED,exportGroup.getTenant().getURI() , maskName, message, "warning",
+                            exportMask, maskUriList, "refreshExports", new Object[] { maskUriList,
+                                    StorageSystem.Discovery_Namespaces.RESOLVE.name()});
+                }
+                
             }
             
         } catch (Exception e) {

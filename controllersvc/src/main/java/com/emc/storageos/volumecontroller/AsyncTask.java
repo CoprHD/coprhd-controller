@@ -40,7 +40,7 @@ public class AsyncTask implements Serializable {
         _id = id;
         _opId = opId;
         _namespace = namespace;
-        namespaceParams = namespaceParams;
+        this.namespaceParams = namespaceParams;
     }
 
     // use this constructor for all purposes other than the above.

@@ -1776,7 +1776,10 @@ public class ExportGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep deactivateExportGroup(@PathParam("id") URI groupId)
             throws ControllerException {
-        String task = UUID.randomUUID().toString();
+        
+        return refreshExportGroup(groupId);
+        
+      /*  String task = UUID.randomUUID().toString();
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
@@ -1815,7 +1818,7 @@ public class ExportGroupService extends TaskResourceService {
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
 
-        return toTask(exportGroup, task, op);
+        return toTask(exportGroup, task, op);*/
     }
     
     /**

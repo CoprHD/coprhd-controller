@@ -86,7 +86,7 @@ public class MaskingResolveChangesProcessor extends Processor {
             CIMObjectPath path = this.getObjectPathfromCIMArgument(_args, keyMap);
             
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
-            DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
+            _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             String maskName = getCIMPropertyValue(path, SmisConstants.CP_DEVICE_ID);
             
             @SuppressWarnings("deprecation")
@@ -112,7 +112,7 @@ public class MaskingResolveChangesProcessor extends Processor {
             
             //Replace the storage Ports with export mask storage Ports.
             //Replace the Initiator Ports with export mask initiator Ports.
-             ExportMask mask = dbClient.queryObject(ExportMask.class, maskUriList.get(0));
+             ExportMask mask = _dbClient.queryObject(ExportMask.class, maskUriList.get(0));
              
             
              //Replace Storage Ports

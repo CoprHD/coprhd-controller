@@ -692,7 +692,9 @@ public class DataCollectionJobScheduler {
                 (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
-                Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
+                Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))
+                || Discovery_Namespaces.DETECT.name().equalsIgnoreCase(namespace) ||
+                Discovery_Namespaces.RESOLVE.name().equalsIgnoreCase(namespace)) {
             _logger.info(namespace + " discovery has been requested by the user, scheduling now...");
             return true;
         }

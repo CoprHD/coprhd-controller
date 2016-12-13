@@ -492,6 +492,14 @@
        </map>
        </property>
     </bean>
+    
+     <bean id="storageSystemService" class="com.emc.storageos.api.service.impl.resource.StorageSystemService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+                    <property name="retryAttempts" value="5"/>
+     </bean>
+     
     <bean id="application" class="com.emc.storageos.api.service.impl.resource.StorageApplication">
         <property name="resource">
             <set>
@@ -624,12 +632,7 @@
                     <property name="nameGenerator" ref="defaultNameGenerator"/>
                     <property name="fileScheduler" ref="filescheduler"/>
                 </bean>
-                <bean id="storageSystemService" class="com.emc.storageos.api.service.impl.resource.StorageSystemService">
-                    <property name="dbClient" ref="dbclient"/>
-                    <property name="coordinator" ref="coordinator"/>
-                    <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
-                    <property name="retryAttempts" value="5"/>
-                </bean>
+                <ref bean="storageSystemService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ProtectionSystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -672,6 +675,7 @@
                     </property>
                     <property name="modelClient" ref="modelClient"></property>
                     <property name="blockStorageScheduler" ref="blockstoragescheduler"/>
+                    <property name="storageSystemService" ref="storageSystemService"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.MonitoringService">
                     <property name="dbClient" ref="dbclient"/>

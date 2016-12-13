@@ -8,7 +8,7 @@
 		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
 		<property name="nsList">
 			<map>
-				<entry key="detect-mask" value-ref="detectMaskingChanges"/>
+				<entry key="detect-masking" value-ref="detectMaskingChanges"/>
 				
 			</map>
 		</property>
@@ -33,6 +33,26 @@
 		   </list>
 		</property> 
     </bean>
+    
+    <!-- Common for vnxBlock & VMAX -->
+	<bean id="block"
+		class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
+		<property name="executor" ref="executor" />
+		<property name="namespaces" ref="namespaces" />
+	</bean>
+
+	<bean id="commandgenerator"
+		class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+		<property name="util" ref="smiutility" />
+	</bean>
+
+	<bean id="executor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
+
+		<property name="util" ref="smiutility" />
+		<property name="generator" ref="commandgenerator" />
+	</bean>
+    
     
     
     <!-- SMI Call to get CIMObject Path for the System -->
@@ -128,14 +148,14 @@
 	
 	<bean id="maskingPathChangeProcessor"
         class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingPathChangeProcessor">
-        <property name="partitionManager" ref="partitionManager"/>
+        
     </bean>
     
     <!-- SMI-S Calls to run Masking Detection Changes -->
 
     <bean id="maskingChangeDetectionProcessor"
         class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.externalChangeDetection.MaskingChangeDetectionProcessor">
-        <property name="partitionManager" ref="partitionManager"/>
+        
     </bean>
     
      <bean id="detectChanges" class="com.emc.storageos.plugins.common.domainmodel.Operation">

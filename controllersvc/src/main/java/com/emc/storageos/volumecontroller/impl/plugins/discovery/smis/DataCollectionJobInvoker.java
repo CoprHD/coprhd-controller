@@ -81,6 +81,7 @@ class DataCollectionJobInvoker {
             // Discovery-vnxFile | Discovery-block | Discovery-host |
             // Discovery-vcenter
             String contextkey = _accessProfile.getProfileName() + "-" + contextDeviceType;
+            _logger.info("Context key : {}", contextkey);
             if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equals(_accessProfile.getProfileName())) {
                 if (_accessProfile.getProps() != null) {
                     String hosts = _accessProfile.getProps().get(Constants.HOST_IDS);

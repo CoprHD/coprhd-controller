@@ -43,7 +43,7 @@ public class EventUtils {
     public static String addInitiatorDecline = "addInitiatorDecline";
     
     //ExternalChangeDetection
-    public static String refreshExportMasks = "refreshExportMasks";
+    public static String refreshExportMasks = "refreshExports";
 
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
             EventCode.HOST_INITIATOR_DELETE);

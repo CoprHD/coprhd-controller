@@ -6,6 +6,8 @@
 
     <util:map id="configinfo" map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
         <entry key="Discovery-block-all" value="discovery-block-context.xml" />
+        <entry key="Discovery-block-detect" value="discovery-block-detect.xml" />
+        <entry key="Discovery-block-resolve" value="discovery-block-resolve.xml" />
         <entry key="Discovery-block-unmanaged_volumes" value="volumediscovery-block-context.xml" />
         <entry key="Discovery-block-block_snapshots" value="snapshotdiscovery-block-context.xml" />
         <entry key="ArrayAffinity-block-host" value="arrayaffinitydiscovery-block-host-context.xml" />

@@ -1998,6 +1998,11 @@ public class StorageSystemService extends TaskResourceService {
 
             return false;
         }
+        
+        if (Discovery_Namespaces.DETECT.name().equalsIgnoreCase(nameSpace) ||
+                Discovery_Namespaces.RESOLVE.name().equalsIgnoreCase(nameSpace)) {
+            return true;
+        }
 
         // VNXe and Unity storage system supports both block and file type unmanaged objects discovery
         if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType()) ||

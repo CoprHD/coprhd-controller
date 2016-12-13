@@ -705,8 +705,8 @@ public class ActionableEventExecutor {
      *  
      * @param maskURI
      */
-    public void refreshExports(List<URI> maskURIs, String namespace) {
-        if (this.storageSystemService == null) return;
+    public TaskResourceRep refreshExports(List<URI> maskURIs, String namespace, URI eventId) {
+        if (this.storageSystemService == null) return null;
         
         Iterator<ExportMask> exportMasksItr = _dbClient.queryIterativeObjects(ExportMask.class, maskURIs);
         
@@ -728,8 +728,9 @@ public class ActionableEventExecutor {
             List<DiscoverNamespaceParam> dsParams = new ArrayList<DiscoverNamespaceParam>();
             dsParams.add(nsParam);
             param.setNamespaceParams(dsParams);
-            storageSystemService.discoverSystem(entry.getKey(), namespace, param);
+            return storageSystemService.discoverSystem(entry.getKey(), namespace, param);
         }
+        return null;
         
     }
 

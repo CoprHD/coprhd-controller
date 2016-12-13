@@ -36,9 +36,9 @@ public class MaskingPathChangeProcessor extends Processor {
         try {
             Map<String, List<URI>> subNamespaces = (Map<String, List<URI>>) keyMap.get(Constants.SUBNAMESPACES);
             if (null == subNamespaces ||
-                    !subNamespaces.containsKey(DiscoveryModules.MASKING) || subNamespaces.get(DiscoveryModules.MASKING.name()).isEmpty()) {
+                    !subNamespaces.containsKey(DiscoveryModules.MASKING.name()) || subNamespaces.get(DiscoveryModules.MASKING.name()).isEmpty()) {
                _logger.info("Skipping Detection of masking views");
-               return;
+              // return;
             }
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
@@ -49,6 +49,7 @@ public class MaskingPathChangeProcessor extends Processor {
                 return;
             }
             String serialID = (String) keyMap.get(Constants._serialID);
+            _logger.info("Serial ID : {}", serialID);
             Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             /**
              * Loop through each export Mask, get its entry from database. Check
@@ -64,8 +65,8 @@ public class MaskingPathChangeProcessor extends Processor {
                     List<URI> maskUri = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getExportMaskByNameConstraint(maskName));
                     if (null == maskUri || maskUri.isEmpty()) {
-                        _logger.debug("Mask {} Not found in DB", maskName);
-                    } else if (maskUris.contains(maskUri)) {
+                        _logger.info("Mask {} Not found in DB", maskName);
+                    } else if (maskUris.contains(maskUri.get(0))) {
                         _logger.info("Mask {} found will be added to detect or resolve changes", maskName);
                         addPath(keyMap, operation.getResult(), path);
                     }

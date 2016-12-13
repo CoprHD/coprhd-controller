@@ -35,7 +35,7 @@ public class ExportChangeDetectionProperties {
         }
 
         public static String getMessage(String key, Object... arguments) {
-            String message = ComputeSystemDialogProperties.getString(key);
+            String message = ExportChangeDetectionProperties.getString(key);
             return MessageFormat.format(message, arguments);
         }
     

@@ -385,9 +385,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_041);
                         }
                     }
-                    volume.setInactive(true);
-                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    dbClient.persistObject(volume);
                 } catch (Exception e) {
                     _log.error("Error during volume {} delete.", volume.getLabel(), e);
                     failedVolumes.put(volume.getLabel(), ControllerUtils.getMessage(e));

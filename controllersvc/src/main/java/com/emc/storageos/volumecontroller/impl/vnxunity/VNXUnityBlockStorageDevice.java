@@ -344,12 +344,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
             }
 
-            // TODO: This'll likely need to move to the completer OR the update object needs to also be done in the
-            // exception blocks
-            for (Volume vol : volumes) {
-                vol.setInactive(true);
-                dbClient.updateObject(vol);
-            }
             for (URI pool : updateStoragePools) {
                 VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, pool, null);
             }

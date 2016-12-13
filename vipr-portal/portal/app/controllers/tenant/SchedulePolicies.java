@@ -82,13 +82,13 @@ public class SchedulePolicies extends ViprResourceController {
 
     @FlashException(value = "list", keep = true)
     public static void listJson() {
-        FilePolicyListRestRep filePolicies = getViprClient().fileProtectionPolicies().listFilePolicies();
-        List<ScheculePoliciesDataTable.FileProtectionPolicy> listPolicies = Lists.newArrayList();
-        for (NamedRelatedResourceRep policy : filePolicies.getFilePolicies()) {
-            listPolicies.add(new ScheculePoliciesDataTable.FileProtectionPolicy(
+        FilePolicyListRestRep viprSchedulePolicies = getViprClient().fileProtectionPolicies().listFilePolicies();
+        List<ScheculePoliciesDataTable.FileProtectionPolicy> scheculePolicies = Lists.newArrayList();
+        for (NamedRelatedResourceRep policy : viprSchedulePolicies.getFilePolicies()) {
+            scheculePolicies.add(new ScheculePoliciesDataTable.FileProtectionPolicy(
                     getViprClient().fileProtectionPolicies().getFilePolicy(policy.getId())));
         }
-        renderJSON(DataTablesSupport.createJSON(listPolicies, params));
+        renderJSON(DataTablesSupport.createJSON(scheculePolicies, params));
     }
 
     @FlashException(value = "list", keep = true)
@@ -184,7 +184,7 @@ public class SchedulePolicies extends ViprResourceController {
     private static void addTenantOptionsArgs() {
 
         if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
-            renderArgs.put("tenantOptions", new TenantsCall().asPromise());
+            addDataObjectOptions("tenantOptions", new TenantsCall().asPromise());
         }
     }
 

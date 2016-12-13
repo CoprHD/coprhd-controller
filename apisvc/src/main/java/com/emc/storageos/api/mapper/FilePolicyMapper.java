@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.api.mapper;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -53,7 +51,9 @@ public class FilePolicyMapper {
 
         URI vpoolURI = from.getFilePolicyVpool();
         if (!NullColumnValueGetter.isNullURI(vpoolURI)) {
-            resp.setVpool(toRelatedResource(ResourceTypeEnum.FILE_VPOOL, vpoolURI));
+            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+            resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
+                    vpoolURI, vpool.getLabel()));
         }
         Boolean appliedToAllFS = from.isApplyToAllFS();
         if (appliedToAllFS != null) {

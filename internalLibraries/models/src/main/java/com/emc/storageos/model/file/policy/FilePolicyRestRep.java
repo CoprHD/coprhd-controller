@@ -9,7 +9,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlRootElement(name = "file_policy")
 public class FilePolicyRestRep extends DataObjectRestRep {
@@ -26,7 +25,7 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private List<NamedRelatedResourceRep> assignedResources;
 
-    private RelatedResourceRep vpool;
+    private NamedRelatedResourceRep vpool;
 
     private ScheduleRestRep schedule;
 
@@ -60,7 +59,7 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "vpool")
-    public RelatedResourceRep getVpool() {
+    public NamedRelatedResourceRep getVpool() {
         return vpool;
     }
 
@@ -75,7 +74,7 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         return assignedResources;
     }
 
-    @XmlElement(name = "name")
+    @XmlElement(name = "type")
     public String getType() {
         return type;
     }
@@ -101,7 +100,7 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         this.appliedAt = appliedAt;
     }
 
-    public void setVpool(RelatedResourceRep vpool) {
+    public void setVpool(NamedRelatedResourceRep vpool) {
         this.vpool = vpool;
     }
 

@@ -41,11 +41,13 @@ public class ExportMaskRemovePathsCompleter extends ExportTaskCompleter{
             if (status == Operation.Status.ready) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, getMask());
                 if (removedTargets != null && !removedTargets.isEmpty()) {
-                // update storage ports
-                    exportMask.getStoragePorts().removeAll(StringSetUtil.uriListToSet(removedTargets));
+                    for (URI target : removedTargets) {
+                        exportMask.removeTarget(target);
+                    }
                 }
                 if(removedInitiators != null && !removedInitiators.isEmpty()) {
-                    exportMask.getInitiators().removeAll(StringSetUtil.uriListToSet(removedInitiators));
+                    exportMask.removeInitiatorURIs(removedInitiators);
+                    exportMask.removeFromUserAddedInitiatorsByURI(removedInitiators);
                 }
                 
                 dbClient.updateObject(exportMask);

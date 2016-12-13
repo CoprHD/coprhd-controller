@@ -1012,7 +1012,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
             Volume volume = volumes.get(0);
-            _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_005);
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,

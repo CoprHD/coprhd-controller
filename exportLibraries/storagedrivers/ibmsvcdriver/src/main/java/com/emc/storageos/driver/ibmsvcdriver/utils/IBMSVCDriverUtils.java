@@ -73,7 +73,7 @@ public class IBMSVCDriverUtils {
     public static long extractFloat(String str) {
         Matcher matcher = Pattern.compile("\\d+\\.\\d+").matcher(str);
 
-        if (str.equals("0"))
+        if (str.equals("0") || str.equals("0.00MB"))
             return 0;
         if (!matcher.find())
             throw new NumberFormatException("For input string [" + str + "]");

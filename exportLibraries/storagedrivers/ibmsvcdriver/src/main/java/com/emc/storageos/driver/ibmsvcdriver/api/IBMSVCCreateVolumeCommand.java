@@ -24,12 +24,30 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
             new ParsePattern("Virtual Disk, id \\[(\\d+)\\], successfully created", CREATE_VOLUME_SUCCESS),
     };
 
+    /**
+     * Constructor
+     * @param volumeName Name of Volume to be created on IBM SVC
+     * @param volumeSize Size of Volume
+     * @param storagePoolName
+     * @param formatBeforeUse
+     * @param createMirrorCopy
+     * @param thinlyProvisioned
+     */
     public IBMSVCCreateVolumeCommand(String volumeName, String volumeSize, String storagePoolName,
                                      boolean formatBeforeUse, boolean createMirrorCopy, boolean thinlyProvisioned) {
+
+        boolean compressed = false;
+
         addArgument("svctask mkvdisk -cache readwrite -vtype striped");
         addArgument("-iogrp io_grp0");
 
         if (volumeName != null && (!volumeName.equals(""))) {
+
+            if(volumeName.contains("_compressed")){
+                compressed = true;
+                volumeName = volumeName.replace("_compressed","");
+            }
+
             addArgument(String.format("-name %s", volumeName));
         }
 
@@ -52,10 +70,17 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
 
         if (thinlyProvisioned) {
             addArgument("-autoexpand");
-            addArgument("-grainsize 256");
+            if (!compressed){
+                addArgument("-grainsize 256");
+            }
             addArgument("-rsize 2%");
             addArgument("-warning 80%");
         }
+
+        if (compressed){
+            addArgument("-compressed");
+        }
+
         results = new IBMSVCCreateVolumeResult();
         results.setProvisionedCapacity(volumeSize);
         results.setAllocatedCapacity(volumeSize);

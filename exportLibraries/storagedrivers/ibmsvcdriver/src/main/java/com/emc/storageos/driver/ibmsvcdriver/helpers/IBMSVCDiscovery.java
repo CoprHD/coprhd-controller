@@ -15,6 +15,7 @@ import com.emc.storageos.driver.ibmsvcdriver.api.*;
 import com.emc.storageos.driver.ibmsvcdriver.connection.ConnectionInfo;
 import com.emc.storageos.driver.ibmsvcdriver.connection.ConnectionManager;
 import com.emc.storageos.driver.ibmsvcdriver.connection.SSHConnection;
+import com.emc.storageos.driver.ibmsvcdriver.exceptions.IBMSVCDriverException;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCClusterNode;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCDriverTask;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCStorageDriver;
@@ -22,6 +23,7 @@ import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCConstants;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverUtils;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
+import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.*;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -37,6 +39,10 @@ public class IBMSVCDiscovery {
      * Connection Manager for managing connection pool
      */
     private ConnectionManager connectionManager = null;
+    private Registry driverRegistry;
+
+    Map<String, HostExportInfo> hostExportCache = new HashMap<>();
+    Map<String, List<StoragePort>> storagePortsCache = new HashMap<>();
 
     /**
      * Constructor
@@ -55,6 +61,15 @@ public class IBMSVCDiscovery {
         String taskID = String.format("%s+%s+%s", IBMSVCConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTask task = new IBMSVCDriverTask(taskID);
         return task;
+    }
+
+    /**
+     * Sets the persistence store.
+     *
+     * @param driverRegistry The driver persistence registry.
+     */
+    public void setDriverRegistry(Registry driverRegistry) {
+        this.driverRegistry = driverRegistry;
     }
 
     /**
@@ -192,7 +207,7 @@ public class IBMSVCDiscovery {
                         storagePool.setSupportedDriveTypes(supportedDriveTypes);
 
                         Set<StoragePool.Protocols> supportedProtocols = new HashSet<>();
-                        supportedProtocols.add(StoragePool.Protocols.iSCSI);
+                        //supportedProtocols.add(StoragePool.Protocols.iSCSI);
                         supportedProtocols.add(StoragePool.Protocols.FC);
                         storagePool.setProtocols(supportedProtocols);
 
@@ -222,20 +237,16 @@ public class IBMSVCDiscovery {
                         task.setMessage(String.format("Processing storage pool %s failed : ", storagePool.getPoolName())
                                 + resultStoragePool.getErrorString());
                         overallTaskState = DriverTask.TaskStatus.FAILED;
-                        //task.setStatus(DriverTask.TaskStatus.FAILED);
                     }
                 }
 
                 task.setMessage(String.format("All storage pool discovery for the storage system %s completed.",
                         storageSystem.getIpAddress()));
-                //task.setStatus(DriverTask.TaskStatus.READY);
-
             } else {
                 _log.error(String.format("All storage pool discovery for the storage system failed %s\n",
                         resultAllStoragePool.getErrorString()), resultAllStoragePool.isSuccess());
                 task.setMessage(String.format("All storage pool discovery for the storage system %s failed : ",
                         storageSystem.getIpAddress()) + resultAllStoragePool.getErrorString());
-                //task.setStatus(DriverTask.TaskStatus.FAILED);
                 overallTaskState = DriverTask.TaskStatus.FAILED;
             }
 
@@ -244,7 +255,6 @@ public class IBMSVCDiscovery {
                     storageSystem.getSystemName());
             task.setMessage(String.format("Unable to query the Storage Pools information for the host %s",
                     storageSystem.getSystemName()) + e.getMessage());
-            //task.setStatus(DriverTask.TaskStatus.FAILED);
             overallTaskState = DriverTask.TaskStatus.FAILED;
             e.printStackTrace();
         } finally {
@@ -281,7 +291,7 @@ public class IBMSVCDiscovery {
 
             Map<String, Object> result = new HashMap<>();
 
-            discoverStoragePorts(connection, storageSystem.getNativeId(), storagePorts, result);
+            discoverStoragePorts(connection, storageSystem.getNativeId(), storagePorts, result, null);
 
             task.setMessage(result.get("message").toString());
             overallTaskState = (DriverTask.TaskStatus) result.get("overallTaskState");
@@ -307,7 +317,13 @@ public class IBMSVCDiscovery {
     }
 
 
-    private void discoverStoragePorts(SSHConnection connection, String storageSystemId, List<StoragePort> storagePorts, Map<String, Object> result){
+    private void discoverStoragePorts(SSHConnection connection, String storageSystemId, List<StoragePort> storagePorts, Map<String, Object> result, Map<String, List<StoragePort>> storagePortsCache){
+
+        if(storagePortsCache != null && storagePortsCache.containsKey(storageSystemId)){
+            List<StoragePort> cachedStoragePorts = storagePortsCache.get(storageSystemId);
+            storagePorts.addAll(cachedStoragePorts);
+            return;
+        }
 
         IBMSVCQueryAllClusterNodeResult resultClusterNodes = IBMSVCCLI.queryAllClusterNodes(connection);
 
@@ -372,7 +388,15 @@ public class IBMSVCDiscovery {
             //task.setStatus(DriverTask.TaskStatus.FAILED);
             result.put("overallTaskState", DriverTask.TaskStatus.FAILED);
         }
+
+        // Cache the result
+        if(storagePortsCache != null){
+            storagePortsCache.put(storageSystemId, storagePorts);
+        }
+
+
     }
+
 
     /**
      * Discover Storage Host Components
@@ -478,6 +502,10 @@ public class IBMSVCDiscovery {
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes,
                                         MutableInt token) {
 
+        // Reset Cache
+        this.hostExportCache = new HashMap<>();
+        this.storagePortsCache = new HashMap<>();
+
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
 
         _log.info("getStorageVolumes() information for storage system {}, name {} - start",
@@ -551,7 +579,10 @@ public class IBMSVCDiscovery {
 
     public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
 
+        String storageSystemID = volume.getStorageSystemId();
         Map<String, HostExportInfo> volumeExportInfo = new HashMap<>();
+
+
 
         _log.info("getVolumeExportInfoForHosts() information for storage system {}, volume id {} - start",
                 volume.getStorageSystemId(), volume.getNativeId());
@@ -571,61 +602,12 @@ public class IBMSVCDiscovery {
                 List<StoragePort> allStoragePorts = new ArrayList<>();
                 Map<String, Object> result = new HashMap<>();
 
-                discoverStoragePorts(connection, volume.getStorageSystemId(), allStoragePorts, result);
+                discoverStoragePorts(connection, volume.getStorageSystemId(), allStoragePorts, result, storagePortsCache);
 
-                //For each host the volume is mapped to
+                //For each host the volume is mapped to get Host Export Info
                 for (IBMSVCHost host : resultVolumeHostMapping.getHostList()) {
-                    _log.info(String.format("Processing host export info %s.\n", host.getHostName()));
-
-                    List<String> storageObjectNativeIds;
-                    List<Initiator> initiators;
-                    List<StoragePort> targets;
-
-                    IBMSVCQueryHostVolMapResult queryHostVolMapResult = IBMSVCCLI.queryHostVolMap(connection, host.getHostId());
-                    if(queryHostVolMapResult.isSuccess()){
-                        storageObjectNativeIds = new ArrayList<>(queryHostVolMapResult.getVolHluMap().keySet());
-                    }else{
-                        throw new Exception(String.format("Unable to query host volume map for host %s - %s" , host.getHostName(), queryHostVolMapResult.getErrorString()));
-                    }
-
-                    _log.info(String.format("Volumes for host %s - %s .%n", host.getHostName(), storageObjectNativeIds));
-
-                    IBMSVCQueryHostInitiatorResult queryHostInitiatorResult = IBMSVCCLI.queryHostInitiator(connection, host.getHostId());
-
-                    if(queryHostInitiatorResult.isSuccess()){
-                        initiators = queryHostInitiatorResult.getHostInitiatorList();
-                    }else{
-                        throw new Exception(String.format("Unable to query initiators for host %s - %s" , host.getHostName(), queryHostInitiatorResult.getErrorString()));
-                    }
-
-                    _log.info(String.format("Initiators for host %s - %s .%n", host.getHostName(), initiators));
-
-                    // Attempt to get target list from fabric connectivity. If host is already connected to array via fabric
-                    IBMSVCQueryFabricResult queryFabricResult = IBMSVCCLI.queryFabricConnectivity(connection, host.getHostName());
-
-                    if(queryFabricResult.isSuccess() && queryFabricResult.getTargetList() != null && queryFabricResult.getTargetList().size() > 0){
-                        List<String> targetList = queryFabricResult.getTargetList();
-                        targets = filterStoragePorts(allStoragePorts, targetList);
-                    }else{
-                        //Get target ports using customer specific logic
-                        IBMSVCProvisioning ibmsvcProvisioningHelper = new IBMSVCProvisioning();
-                        List<StoragePort> storagePorts = ibmsvcProvisioningHelper.identifyStoragePortListForHost(connection, host.getHostName());
-                        targets = matchStoragePorts(allStoragePorts, storagePorts);
-                    }
-
-                    _log.info(String.format("Targets for host %s - %s .%n", host.getHostName(), targets));
-
-                    String hostName = host.getHostName();
-                    //Remove underscore if it is present. IBM SVC does not accept hostname that starts with a digit. So hostname as IP addresses are prefixed with an underscore.
-                    // TODO: Look into this. What about host names with neither FQDN or ip address? Does ViPR accept those?
-                    if(hostName.charAt(0) == '_'){
-                        hostName = hostName.replaceFirst("_", "");
-                    }
-                    HostExportInfo hostExportInfo = new HostExportInfo(hostName, storageObjectNativeIds, initiators, targets);
-
-                    volumeExportInfo.put(hostName, hostExportInfo);
-
-                    _log.info(String.format("Processed host export info %s.\n", host.getHostName()));
+                    HostExportInfo hostExportInfo = getHostExportInfo(connection, host,  allStoragePorts, hostExportCache);
+                    volumeExportInfo.put(hostExportInfo.getHostName(), hostExportInfo);
                 }
 
 
@@ -652,7 +634,84 @@ public class IBMSVCDiscovery {
         //return null;
     }
 
+    /**
+     * Get Host Export Info
+     * @param connection SSH Connection
+     * @param host IBM SVC Host
+     * @param allStoragePorts List of all storage ports
+     * @return hostExportInfo
+     * @throws IBMSVCDriverException
+     */
+    private HostExportInfo getHostExportInfo(SSHConnection connection, IBMSVCHost host,  List<StoragePort> allStoragePorts, Map<String, HostExportInfo> hostExportCache )throws IBMSVCDriverException{
 
+        String hostName = host.getHostName();
+        //Remove underscore if it is present. IBM SVC does not accept hostname that starts with a digit. So hostname as IP addresses are prefixed with an underscore.
+        // TODO: Look into this. What about host names with neither FQDN or ip address? Does ViPR accept those?
+        if(hostName.charAt(0) == '_'){
+            hostName = hostName.replaceFirst("_", "");
+        }
+
+        // Get hostExportInfo from Cache if possible
+        if(hostExportCache.containsKey(hostName)){
+            return hostExportCache.get(hostName);
+        }
+
+        _log.info(String.format("Processing host export info %s.\n", host.getHostName()));
+
+        List<String> storageObjectNativeIds;
+        List<Initiator> initiators;
+        List<StoragePort> targets;
+
+        IBMSVCQueryHostVolMapResult queryHostVolMapResult = IBMSVCCLI.queryHostVolMap(connection, host.getHostId());
+        if(queryHostVolMapResult.isSuccess()){
+            storageObjectNativeIds = new ArrayList<>(queryHostVolMapResult.getVolHluMap().keySet());
+        }else{
+            throw new IBMSVCDriverException(String.format("Unable to query host volume map for host %s - %s" , host.getHostName(), queryHostVolMapResult.getErrorString()));
+        }
+
+        _log.info(String.format("Volumes for host %s - %s .%n", host.getHostName(), storageObjectNativeIds));
+
+        IBMSVCQueryHostInitiatorResult queryHostInitiatorResult = IBMSVCCLI.queryHostInitiator(connection, host.getHostId());
+
+        if(queryHostInitiatorResult.isSuccess()){
+            initiators = queryHostInitiatorResult.getHostInitiatorList();
+        }else{
+            throw new IBMSVCDriverException(String.format("Unable to query initiators for host %s - %s" , host.getHostName(), queryHostInitiatorResult.getErrorString()));
+        }
+
+        _log.info(String.format("Initiators for host %s - %s .%n", host.getHostName(), initiators));
+
+        // Attempt to get target list from fabric connectivity. If host is already connected to array via fabric
+        IBMSVCQueryFabricResult queryFabricResult = IBMSVCCLI.queryFabricConnectivity(connection, host.getHostName());
+
+        if(queryFabricResult.isSuccess() && queryFabricResult.getTargetList() != null && queryFabricResult.getTargetList().size() > 0){
+            List<String> targetList = queryFabricResult.getTargetList();
+            targets = filterStoragePorts(allStoragePorts, targetList);
+        }else{
+            //Get target ports using customer specific logic
+            IBMSVCProvisioning ibmsvcProvisioningHelper = new IBMSVCProvisioning();
+            List<StoragePort> storagePorts = ibmsvcProvisioningHelper.identifyStoragePortListForHost(connection, host.getHostName());
+            targets = matchStoragePorts(allStoragePorts, storagePorts);
+        }
+
+        _log.info(String.format("Targets for host %s - %s .%n", host.getHostName(), targets));
+
+
+        HostExportInfo hostExportInfo = new HostExportInfo(hostName, storageObjectNativeIds, initiators, targets);
+
+        // Store host info in cache
+        hostExportCache.put(hostName, hostExportInfo);
+
+        _log.info(String.format("Processed host export info %s.\n", host.getHostName()));
+        return hostExportInfo;
+    }
+
+    /**
+     * Filter storage ports from a string list
+     * @param allStoragePorts All Storage Ports
+     * @param targetPortList Target Storage Ports
+     * @return
+     */
     private List<StoragePort> filterStoragePorts(List<StoragePort> allStoragePorts, List<String> targetPortList){
 
         List<StoragePort> filteredStoragePort = new ArrayList<>();
@@ -669,6 +728,12 @@ public class IBMSVCDiscovery {
 
     }
 
+    /**
+     * Filter storage ports from another port list
+     * @param allStoragePorts
+     * @param targetPortList
+     * @return
+     */
     private List<StoragePort> matchStoragePorts(List<StoragePort> allStoragePorts, List<StoragePort> targetPortList){
 
         List<StoragePort> filteredStoragePort = new ArrayList<>();

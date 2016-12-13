@@ -111,7 +111,6 @@ $(document).ready(function() {
         for (var i = 0; i < data.length; i++) {
             var row = data[i];
             var status = row['status'];
-            console.info("status of " + row['id'] + " is " + status);
             if ($.inArray(status, ['INSTALLING', 'UNINSTALLING', 'UPGRADING'])) {
                 break;
             }

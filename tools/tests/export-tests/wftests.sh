@@ -2471,8 +2471,10 @@ test_7() {
     echot "Test 7 Begins"
     expname=${EXPORT_GROUP_NAME}t7
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
-
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_004:failure_016_Export_doRemoveInitiator \
+                               failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2480,9 +2482,7 @@ test_7() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_004:failure_016_Export_doRemoveInitiator \
-                                    failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+	storage_failure_injections=""
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

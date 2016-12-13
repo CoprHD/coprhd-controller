@@ -216,4 +216,5 @@ public class PathConstants {
     public static final String EXPORT_PATH_PARAMS_URL = "/block/export-path-parameters";
     public static final String EXPORT_PATH_PARAMS_BY_ID_URL = "/block/export-path-parameters/{id}";
 
+    public static final String PATH_PARAMS__DEACTIVATE_BY_ID_URL = EXPORT_PATH_PARAMS_BY_ID_URL + "/deactivate";
 }

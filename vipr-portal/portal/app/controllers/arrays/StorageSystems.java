@@ -749,19 +749,26 @@ public class StorageSystems extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
     
+    private static void renderNumPathsArgs(){
+        renderArgs.put(
+                "numPathsOptions",
+                StringOption.options(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+                        "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" }, false));
+    }
+    
    // @FlashException(value = "portGroups", keep = true)
-    public static void addPortGroup(String storageSystemId, String name) {
-       // ExportPathParamsDataTable dataTable = new ExportPathParamsDataTable();
-        //StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
-        //PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
-        renderArgs.put("storageSystemId", storageSystemId);
-        //PortGroupForm portGroup = new PortGroupForm();
+    public static void addPortGroup(String storageSystemId) {
         
-        ExportPathParameters input = new ExportPathParameters();//createExportPathParams(portGroup);
-        input.setName(name);
-        ExportPathParametersRestRep resp =getViprClient().exportPathParameters().create(input, "true");
-        editPortGroup(resp.getId().toString(),storageSystemId);
-        //render("@editPortGroup", portGroup, portDataTable,portSelectionDataTable);
+        PortGroupForm portGroup = new PortGroupForm();//createExportPathParams();//new ExportPathParameters();//
+        ExportPathParamsDataTable dataTable = new ExportPathParamsDataTable();
+        StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
+        PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
+        renderArgs.put("storageSystemId", storageSystemId);
+        renderNumPathsArgs();
+        //ExportPathParametersRestRep resp =getViprClient().exportPathParameters().create(input, "true");
+        ///editPortGroup(resp.getId().toString(),storageSystemId);
+        render("@editPortGroup",portGroup, portDataTable, portSelectionDataTable);
+       
     }
     
     //@FlashException(value = "portGroups", keep = true)
@@ -769,6 +776,7 @@ public class StorageSystems extends ViprResourceController {
         ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(id));
         renderArgs.put("storageSystemId", storageSystemId);
         renderArgs.put("pathParamId", id);
+        renderNumPathsArgs();
         ExportPathParamsDataTable dataTable = new ExportPathParamsDataTable();
         StoragePortsDataTable portDataTable = dataTable.new StoragePortsDataTable();
         PortSelectionDataTable portSelectionDataTable = dataTable.new PortSelectionDataTable();
@@ -784,27 +792,27 @@ public class StorageSystems extends ViprResourceController {
 
     }
     @FlashException("portGroups")
-    public static void deletePortGroup(@As(",") String[] ids) {
+    public static void deletePortGroup(@As(",") String[] ids,String storageSystemId) {
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
                 getViprClient().exportPathParameters().delete(uri(id));
             }
             flash.success(MessagesUtils.get("exportPathParameters.deleted"));
         }
-        list();
+        portGroups(storageSystemId);
     }
     
     @FlashException(keep = true, referrer = { "create", "editPortGroup" })
-    public static void savePortGroup(PortGroupForm portGroup) {
+    public static void savePortGroup(PortGroupForm portGroup,String storageSystemId) {
         if (portGroup == null) {
             Logger.error("No port group parameters passed");
             badRequest("No port group parameters passed");
             return;
         }
-        portGroup.validate("portGroup");
+       /* portGroup.validate("portGroup");
         if (Validation.hasErrors()) {
             Common.handleError();
-        }
+        }*/
         portGroup.id = params.get("id");
         if (portGroup.isNew()) {
             
@@ -815,8 +823,8 @@ public class StorageSystems extends ViprResourceController {
             ExportPathUpdateParams input = updateExportPathParams(portGroup);
             getViprClient().exportPathParameters().update(exportPathParametersRestRep.getId(), input);
         }
-        flash.success(MessagesUtils.get("projects.saved", portGroup.name));
-        list();
+        flash.success(MessagesUtils.get("portGroup.saved", portGroup.name));
+        portGroups(storageSystemId);
     }
     
     public static ExportPathParameters createExportPathParams( PortGroupForm portGroup ) {
@@ -845,6 +853,13 @@ public class StorageSystems extends ViprResourceController {
     
     @FlashException(referrer = { "editPortGroup" })
     public static void addPorts(String pathParamId,String storageSystemId, @As(",") String[] ids) {
+        
+        if(pathParamId == null){
+            ExportPathParameters input = new ExportPathParameters();
+           // input.setName(portGroupN);
+           // input.setDescription(portGroupD);
+            getViprClient().exportPathParameters().create(input, "true");
+        }
       ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
         List<URI> portsInDb = exportPathParametersRestRep.getStoragePorts();
             List<URI> portsToAdd = Lists.newArrayList();
@@ -893,7 +908,7 @@ public class StorageSystems extends ViprResourceController {
     public static void storagePortsJson(String pathParamId) {
         List<StoragePortInfo> results = Lists.newArrayList();
         
-        if (pathParamId != null) {
+        if (pathParamId != null && !"null".equals(pathParamId)) {
             ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
             List<URI> storagePortUris = exportPathParametersRestRep.getStoragePorts();
             

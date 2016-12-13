@@ -262,7 +262,7 @@ public class WorkflowBuilder extends Controller {
                     // Default grouping: "ViPR Library"
                     parent = VIPR_LIBRARY_ROOT;
                 }
-                Node node = new Node(primitiveRestRep.getName().substring(primitiveRestRep.getName().lastIndexOf(".") + 1).trim(),
+                Node node = new Node(primitive.getClass().getSimpleName(),
                         primitiveRestRep.getFriendlyName(), parent,
                         NODE_TYPE_FILE);
                 node.data = primitiveRestRep;

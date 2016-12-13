@@ -1035,7 +1035,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
                 doFailTask(Volume.class, volumeURIs, opId, serviceError);
                 WorkflowStepCompleter.stepFailed(opId, serviceError);
-                setVolumesInactive(volumes);
+                _dbClient.markForDeletion(volumes);
             } else {
                 _log.info("Workflow is null which means that the workflow has already completed. Not performing any error handling");
             }
@@ -1187,20 +1187,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
 
         List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
-        setVolumesInactive(volumes);
-    }
-
-    /**
-     * Convenience method to set the volumes to inactive
-     * 
-     * @param volumes
-     *            volume objects
-     */
-    private void setVolumesInactive(List<Volume> volumes) {
-        for (Volume volume : volumes) {
-            volume.setInactive(true);
-        }
-        _dbClient.updateObject(volumes);
+        _dbClient.markForDeletion(volumes);
     }
 
     /**

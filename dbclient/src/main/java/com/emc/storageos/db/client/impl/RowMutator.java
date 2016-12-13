@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +34,7 @@ public class RowMutator {
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
-    private UUID _timeUUID;
-    private long _timeStamp;
+    private AtomicLong _timeStamp = new AtomicLong();
     private MutationBatch _mutationBatch;
     private Keyspace keyspace;
     private boolean retryFailedWriteWithLocalQuorum = false;
@@ -47,11 +47,10 @@ public class RowMutator {
      */
     public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
         this.keyspace = keyspace;
-        _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
-        _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
+        _timeStamp.set(TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros()));
 
         _mutationBatch = keyspace.prepareMutationBatch();
-        _mutationBatch.setTimestamp(_timeStamp).withAtomicBatch(true);
+        _mutationBatch.setTimestamp(_timeStamp.get()).withAtomicBatch(true);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
@@ -60,11 +59,7 @@ public class RowMutator {
     }
 
     public UUID getTimeUUID() {
-        return _timeUUID;
-    }
-
-    public long getTimeStamp() {
-        return _timeStamp;
+    	return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp.incrementAndGet());
     }
 
     /**

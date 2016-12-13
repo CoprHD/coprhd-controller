@@ -5,6 +5,9 @@
 package com.emc.storageos.db.server;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +29,7 @@ import com.netflix.astyanax.cql.CqlStatementResult;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class RowMutationTest extends DbsvcTestBase {
 	private RowMutator rowMutator;
@@ -154,5 +158,18 @@ public class RowMutationTest extends DbsvcTestBase {
 		Rows<String, IndexColumnName> rows = result.getRows(indexCF);
         
         Assert.assertEquals(rows.size(), 1);        
+    }
+    
+    @Test
+    public void testTimeUUID() {
+        Set<String> uuidSet = new HashSet<String>();
+        for (int i = 0; i < 100; i++) {
+            UUID uuid = rowMutator.getTimeUUID();
+            System.out.println(TimeUUIDUtils.getMicrosTimeFromUUID(uuid) + ":" + uuid);
+            if (uuidSet.contains(uuid.toString())) {
+            	Assert.fail("time uuid is duplicated from RowMutator");
+            }
+            uuidSet.add(uuid.toString());
+        }
     }
 }

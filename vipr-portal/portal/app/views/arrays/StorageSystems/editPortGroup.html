@@ -11,13 +11,13 @@
 #{alerts/}
 
 #{form @savePortGroup(), id:'portGroup', class:'form form-horizontal', autocomplete:"off"}
- 
+
     #{field 'portGroup.id'}
       <input type="hidden" name="id" value="${field.value}">
     #{/field}  
  
   #{field 'storageSystemId'}
-      <input type="hidden" name="${storageSystemId}" value="${storageSystemId}">
+      <input type="hidden" name="storageSystemId" value="${storageSystemId}">
    #{/field}
     
     #{field 'portGroup.name'}
@@ -26,42 +26,24 @@
         field.required = true
         field.fieldKey = 'portGroup.name'
       }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    #{field 'portGroup.description'}
-      %{
-        field.required = true
-        field.fieldKey = 'portGroup.description'
-      }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    #{field 'portGroup.maxPaths'}
-      %{
-        field.fieldKey = 'portGroup.maxPaths'
-      }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    #{field 'portGroup.minPaths'}
-      %{
-        field.fieldKey = 'portGroup.minPaths'
-      }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    #{field 'portGroup.pathsPerInitiator'}
-      %{
-        field.fieldKey = 'portGroup.pathsPerInitiator'
-      }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    #{field 'portGroup.maxInitiatorsPerPort'}
-      %{
-        field.fieldKey = 'portGroup.maxInitiatorsPerPort'
-      }%
+        <input type="hidden" name="portGroupN" >
       #{Form.inputTextControlGroup field:field /}
     #{/field}
     
-  #{Form.saveCancelButtonBar size:'large', cancelHref:@portGroups(storageSystemId)/}
-#{/form}
+    #{field 'portGroup.description'}
+      %{
+        field.fieldKey = 'portGroup.description'
+      }%
+       <input type="hidden" name="portGroupD">
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+%{
+  formFields = ['pathParamId': portGroup.id]
+  if (storageSystemId) {
+    formFields['storageSystemId'] = storageSystemId
+  }
+}%
 
 #{DataTable.header titleKey:'portGroup.storagePorts.title'/}
 #{DataTable.table id:'storagePorts', 
@@ -74,18 +56,47 @@
 
   #{/DataTable.buttonBar}
 #{/DataTable.table}
+<BR><BR>
+  <div class="panel-group">
+<div class="storagePoolCriteria">
+ #{collapse 'portGroup.pathParams', icon:'random'}
+   
+      #{field 'portGroup.maxPaths'}
+       %{
+        field.fieldKey = 'portGroup.maxPaths'
+       }%
+       #{Form.selectOneControlGroup field:field, options:numPathsOptions, cssClass:'span4' /}
+      #{/field}
+      #{field 'portGroup.minPaths'}
+       %{
+        field.fieldKey = 'portGroup.minPaths'
+       }%
+       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:portGroup.minPaths /}
+      #{/field}
+      #{field 'portGroup.pathsPerInitiator'}
+       %{
+        field.fieldKey = 'portGroup.pathsPerInitiator'
+       }%
+       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:portGroup.pathsPerInitiator /}
+      #{/field}
 
-%{
-  formFields = ['pathParamId': portGroup.id]
-  if (storageSystemId) {
-    formFields['storageSystemId'] = storageSystemId
-  }
-}%
+      #{field 'portGroup.maxInitiatorsPerPort'}
+       %{
+        field.fieldKey = 'portGroup.maxInitiatorsPerPort'
+       }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+ #{/collapse}
+</div>
+</div>
+#{Form.saveCancelButtonBar size:'large', cancelHref:@portGroups(storageSystemId)/}
+#{/form}
+
 
 #{DataTable.formAction @deletePorts(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
 #{DataTable.formAction @addPorts(), id:'addArrayPortsForm', table:'arrayPorts', fields:formFields/}
    <input type="hidden" name="pathParamId" value="${pathParamId}">
-   <input type="hidden" name="storageSystemId" value="${storageSystemId}">
+   <input type="hidden" name="storageSystemId" id="sysId" value="${storageSystemId}">
 #{Modal.dialog id:'addStoragePortsDialog', cssClass:'extra-wide'}
   #{Modal.body}
     
@@ -113,5 +124,16 @@ function showAddStoragePortsDialog() {
     table.arrayPorts.dataTable.updateSelectedFooter();
     table.arrayPorts.dataTable.reset();
     $('#addStoragePortsDialog').modal();
+}
+
+function submitPorts(){
+	var name =	document.getElementById("portGroup_name").value;
+	
+	var desc = document.getElementById("portGroup_description").value;
+	var sysId = document.getElementById("sysId").value;
+	//alert(document.getElementById("portGroupN").value);
+	document.getElementById("sysId").value = sysId + "~~~"+name+"~~~"+desc;
+	alert(document.getElementById("sysId").value);
+	document.getElementById("addArrayPortsForm").submit();
 }
 </script>

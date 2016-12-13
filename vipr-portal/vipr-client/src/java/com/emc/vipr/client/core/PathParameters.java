@@ -29,13 +29,13 @@ public class PathParameters extends AbstractCoreBulkResources<ExportPathParamete
     /**
      * Deletes the given Export Path Params or Port group by ID.
      * <p>
-     * API Call: <tt>DELETE /block/export-path-parameters/{id}</tt>
+     * API Call: <tt>POST /block/export-path-parameters/{id}/deactivate</tt>
      * 
      * @param id
      *            the ID of Export Path Params or Port group to deactivate.
      */
     public void delete(URI id) {
-        client.delete(String.class, PathConstants.EXPORT_PATH_PARAMS_BY_ID_URL, id);
+        client.post(String.class, PathConstants.PATH_PARAMS__DEACTIVATE_BY_ID_URL, id);
     }
 
     /**

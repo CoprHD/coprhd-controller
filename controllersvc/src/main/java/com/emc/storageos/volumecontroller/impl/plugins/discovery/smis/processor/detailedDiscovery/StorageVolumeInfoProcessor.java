@@ -700,6 +700,18 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
             }
 
+            // Set Export Mask HLUs
+            Map<String, StringSet> volumeToExportMasksHLUMap =
+                    (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP);
+            if (volumeToExportMasksHLUMap != null && volumeToExportMasksHLUMap.containsKey(unManagedVolumeNativeGuid)) {
+                StringSet volumeHLUs = volumeToExportMasksHLUMap.get(unManagedVolumeNativeGuid);
+                if (unManagedVolumeInformation.get(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString()) == null) {
+                    unManagedVolumeInformation.put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), volumeHLUs);
+                } else {
+                    unManagedVolumeInformation.get(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString()).replace(volumeHLUs);
+                }
+            }
+
             // Set SLOName only for VMAX3 exported volumes
             if (system.checkIfVmax3()) {
                 // If there are no slonames defined for a pool or no slo

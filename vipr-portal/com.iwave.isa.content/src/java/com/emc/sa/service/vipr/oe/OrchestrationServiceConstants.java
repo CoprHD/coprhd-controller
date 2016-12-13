@@ -30,15 +30,25 @@ public final class OrchestrationServiceConstants {
     public static final String WF_ID = "WorkflowId";
 
     //SuccessCriteria Constants
-    public static final String ERROR_CODE = "errorCode";
     public static final String RETURN_CODE = "returnCode";
     public static final String TASK = "task";
+
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
-    public static final String VIPR_REST_URI = "{scheme}://{endPoint}:{port}{path}";
 
     public enum restMethods {
         GET, POST, PUT, DELETE;
     }
+
+
+    //Ansible Constants
+    public static final String ANSIBLE_LOCAL_BIN = "/usr/bin/ansible-playbook";
+    public static final String SHELL_LOCAL_BIN = "/usr/bin/ssh";
+    public static final String PATH = "/opt/storageos/";
+    public static final String EXTRA_VARS = "--extra-vars";
+    public static final String UNTAR = "tar";
+    public static final String UNTAR_OPTION = "-zxvf";
+    public static final String REMOVE = "/bin/rm";
+    public static final String REMOVE_OPTION = "-rf";
 
     public enum InputType {
         FROM_USER("InputFromUser"),
@@ -74,7 +84,9 @@ public final class OrchestrationServiceConstants {
     public enum StepType {
         VIPR_REST("ViPR REST API"),
         REST("REST API"),
-        ANSIBLE("Ansible Script"),
+        LOCAL_ANSIBLE("Local Ansible"),
+        REMOTE_ANSIBLE("Remote Ansible"),
+        SHELL_SCRIPT("Shell Script"),
         START("Start"),
         END("End");
 

@@ -14,9 +14,10 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.input;
 
 import java.net.URI;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -94,6 +95,19 @@ public abstract class BasicInputParameter<T> extends InputParameter {
         }
     }
     
+    public static class LongParameter extends  BasicInputParameter<Long> {
+        
+        public LongParameter(final String name, final boolean required, final Long defaultValue) {
+            super(name, required, defaultValue);
+        }
+        
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.LONG;
+        }
+    }
+    
     public static class URIParameter extends  BasicInputParameter<URI> {
         
         public URIParameter(final String name, final boolean required, final URI defaultValue) {
@@ -106,7 +120,20 @@ public abstract class BasicInputParameter<T> extends InputParameter {
             return ParameterType.URI;
         }
     }
-    
+
+    public static class BooleanParameter extends  BasicInputParameter<Boolean> {
+        
+        public BooleanParameter(final String name, final boolean required, final Boolean defaultValue) {
+            super(name, required, defaultValue);
+        }
+        
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.BOOLEAN;
+        }
+    }
+
     public static class NameValueListParameter extends BasicInputParameter<Map<String, String>> {
 
         public NameValueListParameter(String name, boolean required,
@@ -118,6 +145,21 @@ public abstract class BasicInputParameter<T> extends InputParameter {
         @XmlElement(name = "type")
         public ParameterType getType() {
             return ParameterType.NAME_VALUE_LIST;
+        }
+        
+    }
+    
+    public static class DateTimeParameter extends BasicInputParameter<Calendar> {
+
+        public DateTimeParameter(String name, boolean required,
+                Calendar defaultValue) {
+            super(name, required, defaultValue);
+        }
+        
+        @Override 
+        @XmlElement(name = "type")
+        public ParameterType getType() {
+            return ParameterType.DATETIME;
         }
         
     }

@@ -181,24 +181,20 @@
                    ]
                 };
 
-
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
-
-    $rootScope.$on("addWorkflowTab", function(event, args){
-       addTab(args);
+    $rootScope.$on("addWorkflowTab", function(event, id, name){
+       addTab(id,name);
     });
 
     $scope.workflowTabs = {};
 
-    function addTab(tabid) {
-      $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
-      $scope.$apply();
+    function addTab(id,name) {
+      $scope.workflowTabs[id] = { id:id, name:name, href:'#'+id };
     }
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
         $(".nav-tabs li").children('a').first().click();
     };
-
 })
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
@@ -252,8 +248,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 }
             },
             "plugins": [
-                "contextmenu", "search",
-                "state", "types", "wholerow"
+                "search", "state", "types", "wholerow"
             ],
             "search" : {
                   'case_sensitive' : false,
@@ -342,49 +337,132 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     //TODO: do error handling on all actions
     jstreeContainer.on("rename_node.jstree", renameDir);
     jstreeContainer.on("delete_node.jstree", deleteDir);
-    jstreeContainer.on("create_node.jstree", createDir);
-
-
+    jstreeContainer.on("select_node.jstree", selectDir);
 
     // This method will create tab view for workflows
     function previewNode(node) {
-        var tabID = "tab_"+node.id;
-        $rootScope.$emit("addWorkflowTab", tabID);
+        $rootScope.$emit("addWorkflowTab", node.id,node.text);
     }
 
     function createDir(event, data) {
-        if ("file" != data.node.type) {
-            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.parent})).then(function (resp) {
+        if ("file" !== data.node.type) {
+            $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
                 data.instance.set_id(data.node, resp.data.id);
             });
         }
         else {
-            //TODO: create workflow (API pending)
-            console.log("create workflow pending")
+            $http.get(routes.Workflow_create({"workflowName": data.node.text,"dirID": data.node.parent})).then(function (resp) {
+                data.instance.set_id(data.node, resp.data.id);
+            });
         }
     };
 
     function deleteDir(event, data) {
-        if ("file" != data.node.type) {
+        if ("file" !== data.node.type) {
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }
         else {
-            //TODO: delete workflow (API pending)
-            console.log("delete workflow pending")
+            $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
         }
     };
 
     function renameDir(event, data) {
-        if ("file" != data.node.type) {
-            $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
+        // Identifying if node is not saved to DB yet and creating it.
+        if (!(data.node.id).startsWith("urn")) {
+            createDir(event, data);
         }
         else {
-            //TODO: edit workflow (API pending)
-            console.log("edit workflow pending")
+            if ("file" !== data.node.type) {
+                $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
+            }
+            else {
+                $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
+            }
         }
     };
 
+    var validActionsOnMyLib = ["addFolder", "addWorkflow"]
+    var validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
+    var validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
+    var allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
+    var viprLibIDs = ["viprrest", "viprLib"]
+
+    var validActions = [];
+    function selectDir(event, data) {
+        // If current node is vipr library or its parent is vipr library, disable all
+        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
+            // ViPR Library nodes - disable all buttons
+            validActions = [];
+        }
+        else if("myLib" === data.node.id) {
+            // My Library root
+            validActions = validActionsOnMyLib;
+        }
+        else if ("file" === data.node.type) {
+            // Workflows
+            validActions = validActionsOnWorkflow;
+        }
+        else {
+            // Other directories in My Library
+            validActions = validActionsOnDirectory;
+        }
+
+        // Enable all validActions, disable others
+        $.each(allActions, function( index, value ) {
+            if($.inArray(value, validActions)!== -1) {
+                $('#'+value).prop("disabled",false);
+            }
+            else {
+                $('#'+value).prop("disabled",true);
+            }
+        });
+    };
+
+
+    // Methods for JSTree actions
+    $scope.addFolder = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        sel = sel[0];
+        sel = ref.create_node(sel);
+        if(sel) {
+            ref.edit(sel);
+        }
+    }
+
+    $scope.addWorkflow = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        sel = sel[0];
+        sel = ref.create_node(sel, {"type":"file"});
+        if(sel) {
+            ref.edit(sel);
+        }
+    }
+
+    $scope.editNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        sel = sel[0];
+        ref.edit(sel);
+    };
+
+    $scope.deleteNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        ref.delete_node(sel);
+    };
+
+    $scope.openWorkflow = function() {
+        var selectedNode = jstreeContainer.jstree(true).get_selected(true)[0];
+        $rootScope.$emit("addWorkflowTab", selectedNode.id.replace(/:/g,'') ,selectedNode.text);
+    }
 })
+
 .controller('tabController', function($element, $scope, $compile, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer');

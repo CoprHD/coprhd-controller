@@ -16,7 +16,6 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
 import com.google.gson.annotations.SerializedName;
 import javax.xml.bind.annotation.XmlElement;
 
@@ -28,7 +27,7 @@ public class OutputParameterRestRep {
     @SerializedName("name")
     private String name;
     @SerializedName("type")
-    private ParameterType type;
+    private String type;
     @SerializedName("table")
     private String table;
     
@@ -42,11 +41,11 @@ public class OutputParameterRestRep {
     }
     
     @XmlElement(name = "type")
-    public ParameterType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ParameterType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

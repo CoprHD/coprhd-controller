@@ -14,22 +14,27 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.input;
 
+import com.emc.storageos.primitives.Parameter;
 
 /**
- *  Base class for a primitive that represents a ViPR API call
+ * Base class for input parameters
  */
-public abstract class ViPRPrimitive extends Primitive {
-    
-    public ViPRPrimitive(String name, String friendlyName, String description,
-            String successCriteria, InputParameter[] input,
-            OutputParameter[] output) {
-        super(name, friendlyName, description, successCriteria, input, output);
+public abstract class InputParameter implements Parameter {
+    private final String name;
+    public InputParameter(final String name) {
+        this.name = name;
     }
-
-    public abstract String path();
-    public abstract String method();
-    public abstract String body();
     
+    @Override
+    public String getName() {
+        return name;
+    }
+    
+    public abstract boolean isBasicInputParameter();
+    public abstract BasicInputParameter<?> asBasicInputParameter();
+    
+    public abstract boolean isTableInputParameter();
+    public abstract TableInputParameter asTableInputParameter();
 }

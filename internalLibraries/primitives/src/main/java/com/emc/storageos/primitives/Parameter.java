@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives;
 
 
 /**
@@ -24,9 +24,15 @@ public interface Parameter {
     public enum ParameterType {
         STRING,
         INTEGER,
+        LONG,
+        SHORT, 
+        DOUBLE,
         URI,
+        BOOLEAN,
+        DATETIME, 
+        DATE, 
         NAME_VALUE_LIST,
-        TABLE
+        TABLE 
     }
     
     public String getName();

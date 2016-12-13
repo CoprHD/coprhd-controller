@@ -2,4 +2,5 @@ dependencies {
     compile project(":com.emc.sa.engine")
     compile project(":com.emc.sa.common")
     compile project(":vipr-client")
+    compile project(":primitives")
 }

@@ -16,7 +16,6 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
@@ -30,7 +29,7 @@ public class InputParameterRestRep {
     @SerializedName("default_value")
     private List<String> defaultValue;
     @SerializedName("type")
-    private ParameterType type;
+    private String type;
     
     @XmlElement(name = "name")
     public String getName() {
@@ -60,11 +59,11 @@ public class InputParameterRestRep {
     }
 
     @XmlElement(name = "type")
-    public ParameterType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ParameterType type) {
+    public void setType(final String type) {
         this.type = type;
     }
 }

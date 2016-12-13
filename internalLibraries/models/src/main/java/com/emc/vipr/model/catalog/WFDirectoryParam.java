@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Rest representation for WF directory create and update params
+ * Rest representation for WF directory create
  */
 @XmlRootElement(name = "wf_directory_create")
 public class WFDirectoryParam {

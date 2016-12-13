@@ -14,25 +14,29 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
 
-/**
- * Base class for input parameters
- */
-public abstract class InputParameter implements Parameter {
-    private final String name;
-    public InputParameter(final String name) {
-        this.name = name;
+package com.emc.sa.service.vipr.oe.tasks;
+
+public final class OrchestrationTaskResult {
+
+    private final String out;
+    private final String err;
+    private final int returnCode;
+
+    public OrchestrationTaskResult(final String out, final String err, final int returnCode) {
+        this.out = out;
+        this.err = err;
+        this.returnCode = returnCode;
     }
-    
-    @Override
-    public String getName() {
-        return name;
+    public String getOut() {
+        return out;
     }
-    
-    public abstract boolean isBasicInputParameter();
-    public abstract BasicInputParameter<?> asBasicInputParameter();
-    
-    public abstract boolean isTableInputParameter();
-    public abstract TableInputParameter asTableInputParameter();
+
+    public String getErr() {
+        return err;
+    }
+
+    public int getReturnCode() {
+        return returnCode;
+    }
 }

@@ -14,10 +14,13 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives;
 
 import java.util.Arrays;
 import java.util.List;
+
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
 
 
 

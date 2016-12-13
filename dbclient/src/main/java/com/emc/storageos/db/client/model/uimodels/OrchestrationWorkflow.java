@@ -19,6 +19,7 @@ package com.emc.storageos.db.client.model.uimodels;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.model.valid.EnumType;
 
 /**
  * DB model to represent an orchestration engine workflow document
@@ -29,11 +30,20 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
     public static final String NAME = "name";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";
+    public static final String STATE = "state";
 
     
     private String name;
     private String description;
     private String steps;
+    private String state = OrchestrationWorkflowStatus.NONE.toString();
+
+    public enum OrchestrationWorkflowStatus {
+        NONE,
+        VALID,
+        INVALID,
+        PUBLISHED
+    }
 
 
     @Name(NAME)
@@ -73,5 +83,16 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
         // TODO Auto-generated method stub
         return null;
     }
-    
+
+    @AlternateId("OrchestrationWorkflowStatusIndex")
+    @EnumType(OrchestrationWorkflowStatus.class)
+    @Name(STATE)
+    public String getState() {
+        return state == null? OrchestrationWorkflowStatus.NONE.toString() : state;
+    }
+
+    public void setState(final String state) {
+        this.state = state;
+        setChanged(STATE);
+    }
 }

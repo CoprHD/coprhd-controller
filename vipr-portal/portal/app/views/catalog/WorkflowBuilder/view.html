@@ -7,25 +7,50 @@
 #{script 'workflowbuilder.js'/}
 #{script 'jstree.min.js'/}
 
-<div ng-controller="builderController" class="row">
-
+<div id="builderController" ng-controller="builderController" class="row">
     <div class="builder-column">
-
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
-            <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home">Home</a></li>
-            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.id}}<button class="close" ng-click="closeTab(workflowTab.id)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
+            <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home"><span class="glyphicon glyphicon-home "></span>&nbsp;Workflow Library</a></li>
+            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}<button class="close" ng-click="closeTab(workflowTab.id)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
         </ul>
 
         <div class="tab-content">
             <div class="tab-pane active" id="home">
-                Welcome!
-                <div ng-controller="treeController" id="theSidebar" class="sidebar" >
-                    <div class="home-sidebar">
+                <div class="col-md-3">
+                    <div ng-controller="treeController" id="theSidebar" class="sidebar" >
+                        <div class="tree_buttons" style="padding-bottom: 10px; padding-top: 10px;padding-right: 10px;float: right">
+                            <button id="addFolder" type="button" class="btn btn-xs btn-primary add" value="Add Folder" title="Add Folder" ng-click="addFolder();" disabled>
+                                <span class="glyphicon glyphicon-folder-close "></span>
+                            </button>
+                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success add" value="Add Workflow" title="Add Workflow" ng-click="addWorkflow();" disabled>
+                                <span class="glyphicon glyphicon-plus "></span>
+                            </button>
+                            <button id="deleteNode" type="button" class="btn btn-xs btn-danger delete" value="Delete" title="Delete" ng-click="deleteNode();" disabled>
+                                <span class="glyphicon glyphicon-trash "></span>
+                            </button>
+                            <button id="editNode" type="button" class="btn btn-xs btn-warning edit" value="Edit" title="Edit" ng-click="editNode();" disabled>
+                                <span class="glyphicon glyphicon-pencil "></span>
+                            </button>
+                            <button id="previewWorkflow"  type="button" class="btn btn-xs btn-default info" value="Preview" title="Preview" disabled>
+                                <span class="glyphicon glyphicon-eye-open "></span>
+                            </button>
+                            <button id="openEditor"  type="button" class="btn btn-xs btn-default info" value="Open" title="Open" ng-click="openWorkflow()" disabled>
+                                <span class="glyphicon glyphicon-new-window "></span>
+                            </button>
+                        </div>
                         <div>
                             <input class="search-input form-control" placeholder="search..."></input>
                         </div>
-                        <div id="jstree_demo" >
+                        <div style="overflow: auto; height:90%; padding: 10px;">
+                            <div id="jstree_demo" >
+                            </div>
                         </div>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div style="height:80vh; border:1px solid #000; padding:20px;">Workflow preview TODO</div>
+                    <div style="padding:10px;">
+                        <p><strong>My Workflow description</strong><br>Updated on 10/10/10</p>
                     </div>
                 </div>
             </div>

@@ -25,7 +25,9 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 
 
 @Component
@@ -58,6 +60,11 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
+    public List<NamedElement> listByStatus(final OrchestrationWorkflowStatus status) {
+        return client.orchestrationWorkflows().findAllNamesByStatus(status);
+    }
+
+    @Override
     public Iterator<OrchestrationWorkflow> getSummaries(List<URI> ids) {
         return client.orchestrationWorkflows().findSummaries(ids);
     }
@@ -70,5 +77,14 @@ public class OrchestrationWorkflowManagerImpl implements
     @Override
     public void delete(final OrchestrationWorkflow workflow) {
         client.delete(workflow);
+    }
+
+    @Override
+    public boolean hasCatalogServices(final String name) {
+        final List<CatalogService> catalogServices = client.catalogServices().findByBaseService(name);
+        if (null != catalogServices && !catalogServices.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 }

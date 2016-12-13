@@ -6,9 +6,9 @@ package com.emc.sa.api;
 
 import static com.emc.sa.api.mapper.ServiceDescriptorMapper.map;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Collection;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -18,6 +18,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.catalog.ServiceDescriptorUtil;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.storageos.security.authorization.ACL;
@@ -37,9 +39,12 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Autowired
     private ServiceDescriptors serviceDescriptors;
 
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
     /**
      * List service descriptors
-     * 
+     *
      * @prereq none
      * @brief List service descriptors
      * @return List of service descriptors
@@ -49,6 +54,7 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Path("")
     public ServiceDescriptorList getServiceDescriptors() {
         Collection<ServiceDescriptor> descriptors = this.serviceDescriptors.listDescriptors(Locale.getDefault());
+        descriptors.addAll(workflowServiceDescriptor.listDescriptors());
 
         List<ServiceDescriptorRestRep> serviceDescriptors = Lists.newArrayList();
         for (ServiceDescriptor descriptor : descriptors) {
@@ -61,7 +67,7 @@ public class ServiceDescriptorService extends CatalogResourceService {
 
     /**
      * Retrieve service descriptors
-     * 
+     *
      * @prereq none
      * @brief Retrieve service descriptor
      * @return Service descriptor
@@ -70,9 +76,7 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{serviceId}")
     public ServiceDescriptorRestRep getServiceDescriptor(@PathParam("serviceId") String serviceId) {
-        ServiceDescriptor descriptor = this.serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
-
+        ServiceDescriptor descriptor = ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, serviceId);
         return map(descriptor);
     }
-
 }

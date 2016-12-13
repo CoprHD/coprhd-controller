@@ -31,13 +31,13 @@ import com.emc.storageos.model.orchestration.InputParameterRestRep;
 import com.emc.storageos.model.orchestration.OutputParameterRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter;
-import com.emc.storageos.model.orchestration.internal.BasicOutputParameter;
-import com.emc.storageos.model.orchestration.internal.InputParameter;
-import com.emc.storageos.model.orchestration.internal.OutputParameter;
-import com.emc.storageos.model.orchestration.internal.Primitive;
-import com.emc.storageos.model.orchestration.internal.PrimitiveHelper;
-import com.emc.storageos.model.orchestration.internal.TableOutputParameter;
+import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.PrimitiveHelper;
+import com.emc.storageos.primitives.input.BasicInputParameter;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+import com.emc.storageos.primitives.output.TableOutputParameter;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -119,7 +119,7 @@ public class PrimitiveService {
             if(parameter.isBasicInputParameter()) {
                 InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
                 inputParamRestRep.setName(parameter.getName());
-                inputParamRestRep.setType(parameter.getType());
+                inputParamRestRep.setType(parameter.getType().name());
                 BasicInputParameter<?> inputParam = parameter.asBasicInputParameter();
                 inputParamRestRep.setRequired(inputParam.getRequired());
                 if( null != inputParam.getDefaultValue() ) {
@@ -140,14 +140,14 @@ public class PrimitiveService {
                 BasicOutputParameter outputParam = parameter.asBasicOutputParameter();
                 OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
                 parameterRestRep.setName(outputParam.getName());
-                parameterRestRep.setType(outputParam.getType());
+                parameterRestRep.setType(outputParam.getType().name());
                 outputRestRep.add(index++, parameterRestRep);
             } else {
                 TableOutputParameter outputParam = parameter.asTableOutputParameter();
                 for( final BasicOutputParameter column : outputParam.getColumns()) {
                     OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
                     parameterRestRep.setName(column.getName());
-                    parameterRestRep.setType(column.getType());
+                    parameterRestRep.setType(column.getType().name());
                     parameterRestRep.setTable(outputParam.getName());
                     outputRestRep.add(index++, parameterRestRep);
                 }

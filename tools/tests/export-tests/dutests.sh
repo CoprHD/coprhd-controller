@@ -864,6 +864,8 @@ prerun_setup() {
 	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
 	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
+    
+    set_validation_check true
 }
 
 # get the device ID of a created volume
@@ -1436,7 +1438,11 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" ]; then
-	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+        if [ $isNetworkDiscovered -eq 0 ]; then
+            secho "Discovering Brocade SAN Switch ..."
+            run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        fi
     fi
 
     ${SS}_setup
@@ -1490,7 +1496,15 @@ test_0() {
     verify_export ${expname}1 ${HOST1} 2 1
     # Paranoia check, verify if maybe we picked up an old mask.  Exit if we did.
     verify_maskname  ${expname}1 ${HOST1}
-    runcmd export_group delete $PROJECT/${expname}1
+    if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+        fail export_group delete $PROJECT/${expname}1
+        verify_export ${expname}1 ${HOST1} 2 1
+        set_validation_check false
+        runcmd export_group delete $PROJECT/${expname}1
+        set_validation_check true
+    else 
+        runcmd export_group delete $PROJECT/${expname}1
+    fi
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
@@ -1535,6 +1549,12 @@ test_1() {
     # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
+    if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+        # this test is just testing workflow suspension, 
+        # so turn off validation for device types that fail safe
+        set_validation_check false
+    fi
+    
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1
     resultcmd=`export_group delete $PROJECT/${expname}1`
@@ -1555,6 +1575,10 @@ test_1() {
     runcmd workflow resume $workflow
     # Follow the task
     runcmd task follow $task
+
+    if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+        set_validation_check true
+    fi
 
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
@@ -1606,6 +1630,12 @@ test_2() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
+    if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+        # this test is just testing workflow suspension, 
+        # so turn off validation for device types that fail safe
+        set_validation_check false
+    fi
+
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1
     resultcmd=`export_group delete $PROJECT/${expname}1`
@@ -1633,6 +1663,10 @@ test_2() {
     runcmd workflow resume $workflow
     # Follow the task
     runcmd task follow $task
+
+    if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+        set_validation_check true
+    fi
 
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
@@ -1726,7 +1760,15 @@ test_3() {
     set_suspend_on_class_method "none"
 
     # Try the export operation again
-    runcmd export_group delete $PROJECT/${expname}1
+    if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+        fail export_group delete $PROJECT/${expname}1
+        verify_export ${expname}1 ${HOST1} 2 1
+        set_validation_check false
+        runcmd export_group delete $PROJECT/${expname}1
+        set_validation_check true
+    else 
+        runcmd export_group delete $PROJECT/${expname}1
+    fi
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
@@ -1768,8 +1810,8 @@ test_4() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Run the export group command.  Expect it to fail with validation
-	fail export_group delete $PROJECT/${expname}1
-
+	    fail export_group delete $PROJECT/${expname}1
+        
         # Run the export group command.  Expect it to fail with validation
         fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
@@ -1792,9 +1834,9 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
+        echo "export group command failed outright"
+        cleanup
+        finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1839,9 +1881,9 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
+        echo "export group command failed outright"
+        cleanup
+        finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1879,15 +1921,21 @@ test_4() {
 
         # Turn off suspend of export after orchestration
         set_suspend_on_class_method "none"
-
-        # Delete the export group
-        runcmd export_group delete $PROJECT/${expname}1
+        
+        if [ "$FAILS_SAFE_ON_DELETE_EXPORT_GROUP" -eq "1" ]; then
+            # run without validation because that's not what we're testing here
+            set_validation_check false
+            runcmd export_group delete $PROJECT/${expname}1
+            set_validation_check true
+        else 
+            runcmd export_group delete $PROJECT/${expname}1
+        fi
 
     else
-	# For XIO, extra initiator of different host but same cluster results in delete initiator call
-	sleep 60
-	verify_export ${expname}1 ${HOST1} 1 2
-	# Now remove the volumes from the storage group (masking view)
+        # For XIO, extra initiator of different host but same cluster results in delete initiator call
+        sleep 60
+        verify_export ${expname}1 ${HOST1} 1 2
+        # Now remove the volumes from the storage group (masking view)
         device_id=`get_device_id ${PROJECT}/${VOLNAME}-1`
         arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
         device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
@@ -3815,6 +3863,31 @@ randwwn() {
    echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
 }
 
+# configuration for which system types may require some special handling in tests
+FAILS_SAFE_ON_REMOVE_INITS=0
+FAILS_SAFE_ON_REMOVE_VOLS=0
+FAILS_SAFE_ON_DELETE_EXPORT_GROUP=0
+
+setup_flags() {
+    if [ ${SS} = "vplex" ]; then
+        FAILS_SAFE_ON_REMOVE_INITS=1
+    fi
+    if [ ${SS} = "vplex" ]; then
+        FAILS_SAFE_ON_REMOVE_VOLS=1
+    fi
+    if [ ${SS} = "vplex" ]; then
+        FAILS_SAFE_ON_DELETE_EXPORT_GROUP=1
+    fi
+
+    # for initiatl debug only sdf
+    echo "DEVICES_THAT_FAIL_SAFE_ON_REMOVE_INITS: $DEVICES_THAT_FAIL_SAFE_ON_REMOVE_INITS"
+    echo "DEVICES_THAT_FAIL_SAFE_ON_REMOVE_VOLS: $DEVICES_THAT_FAIL_SAFE_ON_REMOVE_VOLS"
+    echo "DEVICES_THAT_FAIL_SAFE_ON_DELETE_EXPORT_GROUP: $DEVICES_THAT_FAIL_SAFE_ON_DELETE_EXPORT_GROUP"
+    echo "FAILS_SAFE_ON_REMOVE_INITS: $FAILS_SAFE_ON_REMOVE_INITS"
+    echo "FAILS_SAFE_ON_REMOVE_VOLS: $FAILS_SAFE_ON_REMOVE_VOLS"
+    echo "FAILS_SAFE_ON_DELETE_EXPORT_GROUP: $FAILS_SAFE_ON_DELETE_EXPORT_GROUP"
+}
+
 # ============================================================
 # -    M A I N
 # ============================================================
@@ -3863,6 +3936,8 @@ case $SS in
     Usage
     ;;
 esac
+
+setup_flags
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}

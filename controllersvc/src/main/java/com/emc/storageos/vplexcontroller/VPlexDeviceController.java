@@ -2950,6 +2950,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Entering exportGroupDelete");
         ExportDeleteCompleter completer = null;
         try {
+
             completer = new ExportDeleteCompleter(export, opId);
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplex, _dbClient);
             ExportGroup exportGroup = null;
@@ -2968,6 +2969,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Attempting to delete ExportGroup " + exportGroup.getGeneratedName()
                     + " on VPLEX " + vplexSystem.getLabel());
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", false, opId);
+
+            StringBuffer errorMessages = new StringBuffer();
+            boolean isValidationNeeded = validatorConfig.isValidationEnabled()
+                    && !ExportUtils.checkIfExportGroupIsRP(exportGroup);
+            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex);
             if (exportMasks.isEmpty()) {
@@ -3013,6 +3019,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     boolean existingInitiators = exportMask.hasAnyExistingInitiators();
 
                     boolean removeVolumes = false;
+                    boolean removeInitiators = false;
                     List<URI> volumeURIList = new ArrayList<URI>();
 
                     if (!otherExportGroups.isEmpty()) {
@@ -3049,6 +3056,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
 
+                        if (!existingVolumes) {
+                            removeInitiators = true;
+                        }
+
                     } else {
                         _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
                         Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, exportMask.getId());
@@ -3057,6 +3068,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                         exportMask.getMaskName(), export),
                                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
                                 this.getClass(), storageViewExecuteMethod, null, null);
+                    }
+
+                    if (isValidationNeeded && (removeVolumes || removeInitiators)) {
+                        if (removeVolumes) {
+                            errorMessages.append("Volumes (" + volumeURIList + ") ");
+                        }
+                        if (removeVolumes && removeInitiators) {
+                            errorMessages.append("and ");
+                        }
+                        if (removeInitiators) {
+                            errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
+                        }
+                        errorMessages.append("would be removed from ExportMask " + exportMask.forDisplay() + ". ");
                     }
 
                     if (removeVolumes) {
@@ -3071,6 +3095,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 vplexSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
                                 null, null);
 
+                    }
+
+                    if (removeInitiators) {
+                        _log.info("removing initiators: " + exportMask.getInitiators());
+                        Workflow.Method removeInitiatorMethod = ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(vplexSystem.getId(),
+                                export, URIUtil.toURIList(exportMask.getInitiators()));
+
+                        storageViewStepId = workflow.createStep("storageViewRemoveInitiators",
+                                String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
+                                storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
+                                ExportWorkflowEntryPoints.class, removeInitiatorMethod, null, null);
                     }
 
                     _log.info("determining which volumes to remove from ExportMask " + exportMask.getMaskName());
@@ -3099,6 +3134,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         _networkDeviceController.getClass(), zoningExecuteMethod, null, null);
             }
 
+            String message = errorMessages.toString();
+            if (isValidationNeeded && !message.isEmpty()) {
+                _log.error("Error Message {}", errorMessages);
+
+                throw DeviceControllerException.exceptions.deleteExportGroupValidationError(
+                        exportGroup.forDisplay(),
+                        vplexSystem.forDisplay(),
+                        message);
+            }
+            
             // Start the workflow
             workflow.executePlan(completer, "Successfully deleted ExportMasks for ExportGroup: " + export);
 

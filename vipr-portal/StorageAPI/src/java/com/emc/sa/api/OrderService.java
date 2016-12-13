@@ -857,8 +857,12 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      *
-     * @brief Deactivate Order
-     * @return OK if deactivation completed successfully
+     * @brief delete orders (that can be deleted) within a time range
+     * @param startTime the start time of the range (exclusive)
+     * @param endTime the end time of the range (inclusive)
+     * @param tenantIDs if not empty, it's a list of tenant IDs separated by ',' which means delete orders (that can be deleted)
+     *                  under those tenants
+     * @return OK if n completed successfully
      * @throws DatabaseException when a DB error occurs
      */
     @DELETE

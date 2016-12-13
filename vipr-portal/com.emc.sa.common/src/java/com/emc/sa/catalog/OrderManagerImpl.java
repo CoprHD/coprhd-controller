@@ -423,14 +423,7 @@ public class OrderManagerImpl implements OrderManager {
             throw APIException.badRequests.orderNotInTenant(order.getId(), tenantId);
         }
 
-        log.info("lbyj2");
-        long now = System.currentTimeMillis();
-
-        log.info("lbyj3");
-        long createdTime = order.getCreationTime().getTimeInMillis();
-
-        log.info("lbyj4");
-        if (now - createdTime < 30*24*60*60*1000) {
+        if (createdWithinOneMonth(order)) {
             throw APIException.badRequests.orderWithinOneMonth(order.getId());
         }
 
@@ -439,7 +432,19 @@ public class OrderManagerImpl implements OrderManager {
         if (!status.canBeDeleted()) {
             throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
         }
+
         log.info("lbyj6");
+    }
+
+    private boolean createdWithinOneMonth(Order order) {
+        log.info("lbyj2");
+        long now = System.currentTimeMillis();
+
+        log.info("lbyj3");
+        long createdTime = order.getCreationTime().getTimeInMillis();
+
+        log.info("lbyj4");
+        return (now - createdTime) < 30*24*60*60*1000;
     }
 
     public void deleteOrder(URI orderId, String tenantId) {
@@ -481,7 +486,6 @@ public class OrderManagerImpl implements OrderManager {
         }
 
         client.delete(state);
-
         client.delete(order);
     }
 

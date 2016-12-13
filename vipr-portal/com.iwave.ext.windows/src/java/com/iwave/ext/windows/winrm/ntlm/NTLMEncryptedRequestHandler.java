@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import org.apache.commons.codec.binary.Hex;
@@ -18,9 +23,6 @@ import com.iwave.ext.windows.winrm.ntlm.state.NTLMState;
 
 /**
  * This class handles the specifics of ensuring that the request/response match the NTLM specifications.
- * 
- * @author Jason Forand
- *
  */
 public class NTLMEncryptedRequestHandler implements EncryptedRequestHandler {
 

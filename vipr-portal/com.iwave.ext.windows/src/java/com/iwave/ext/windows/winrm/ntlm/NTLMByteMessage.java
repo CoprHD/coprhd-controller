@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import java.util.ArrayList;
@@ -5,9 +10,6 @@ import java.util.List;
 
 /**
  * This class exists to take care of the creation of an NTLM Header.
- * 
- * @author Jason Forand
- *
  */
 public class NTLMByteMessage {
 

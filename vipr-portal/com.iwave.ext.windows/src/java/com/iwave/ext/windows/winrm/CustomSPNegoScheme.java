@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2016 Dell EMC Software
  * All Rights Reserved
  */
+
 package com.iwave.ext.windows.winrm;
 
 import java.util.Locale;

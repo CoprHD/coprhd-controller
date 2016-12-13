@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import java.util.Arrays;
@@ -21,8 +26,6 @@ import javax.crypto.spec.SecretKeySpec;
  * 16       SEQUENCE        sequence
  * 20       Encrypted payload
  * </pre>
- * 
- * @author Jason Forand
  *
  */
 public class NTLMCrypt {

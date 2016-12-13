@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.http.HttpClientConnection;
@@ -11,9 +16,6 @@ import com.iwave.ext.windows.winrm.ntlm.NTLMUtils;
 /**
  * This is the state that we will be in immediately after receiving the initial negotiate message and prior to sending a type
  * 1 message. We will only accept HttpRequests that have an NTLM type 1 message.
- * 
- * @author Jason Forand
- *
  */
 public final class SendingType1State extends NTLMState {
 

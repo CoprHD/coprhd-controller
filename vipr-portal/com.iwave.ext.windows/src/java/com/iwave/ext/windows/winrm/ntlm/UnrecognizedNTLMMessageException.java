@@ -1,9 +1,12 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 /**
  * Local type of exception so that we know something went wrong internally.
- * 
- * @author Jason Forand
  *
  */
 public class UnrecognizedNTLMMessageException extends Exception {

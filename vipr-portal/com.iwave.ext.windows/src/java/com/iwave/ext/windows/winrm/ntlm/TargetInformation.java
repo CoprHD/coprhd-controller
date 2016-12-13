@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import java.util.Arrays;
@@ -9,9 +14,6 @@ import org.apache.commons.codec.CharEncoding;
 
 /**
  * A structure representing target information. https://msdn.microsoft.com/en-us/library/cc236646.aspx
- * 
- * @author Jason Forand
- *
  */
 public class TargetInformation {
 

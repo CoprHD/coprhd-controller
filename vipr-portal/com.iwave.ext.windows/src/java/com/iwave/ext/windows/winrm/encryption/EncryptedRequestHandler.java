@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.encryption;
 
 import org.apache.http.HttpClientConnection;
@@ -9,8 +14,6 @@ import org.apache.http.protocol.HttpContext;
 /**
  * Describes the steps that must be taken when encrypting/decrypting an HttpRequest. Depending on the protocol, the entire
  * request needs to be re-written.
- * 
- * @author Jason Forand
  *
  */
 public interface EncryptedRequestHandler {

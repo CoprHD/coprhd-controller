@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.commons.codec.CharEncoding;
@@ -22,8 +27,6 @@ import com.iwave.ext.windows.winrm.ntlm.TargetInformation;
 /**
  * This is the state that we will be in immediately after sending after receiving a type 2 message and prior to sending a
  * type 3 message. It will only accept an HttpRequest that has an NTLM type 3 message.
- * 
- * @author Jason Forand
  *
  */
 public final class SendingType3State extends NTLMState {

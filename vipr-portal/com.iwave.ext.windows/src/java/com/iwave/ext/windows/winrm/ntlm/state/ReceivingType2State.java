@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.http.HttpClientConnection;
@@ -12,9 +17,6 @@ import com.iwave.ext.windows.winrm.ntlm.TargetInformation;
 /**
  * This is the state that we will be in immediately after sending a type 1 message while we wait for a type 2 message. We
  * will only accept Http Responses that have an NTLM type 2 message.
- * 
- * @author Jason Forand
- *
  */
 public final class ReceivingType2State extends NTLMState {
 

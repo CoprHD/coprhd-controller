@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import java.nio.ByteBuffer;
@@ -12,8 +17,6 @@ import com.iwave.ext.windows.winrm.Pair;
  * This class contains the common elements of an NTLM message. Additionally it holds the functionality to convert from a byte
  * array header to an ntlm message and vice-versa. One of the things that is important to note is that every value in the
  * arrays is in little endian format.
- * 
- * @author Jason Forand
  *
  */
 public abstract class NTLMMessage {

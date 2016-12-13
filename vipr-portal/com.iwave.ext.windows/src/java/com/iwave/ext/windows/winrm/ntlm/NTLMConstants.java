@@ -1,10 +1,12 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 /**
  * Class for constants used in NTLM.
- * 
- * @author Jason Forand
- *
  */
 public final class NTLMConstants {
 

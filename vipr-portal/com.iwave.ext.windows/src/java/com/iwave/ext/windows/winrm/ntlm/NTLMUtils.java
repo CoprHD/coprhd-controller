@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import java.nio.charset.Charset;
@@ -32,10 +37,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A collection of useful methods and constants for use by the NTLM protocol.
- * 
- * @author Jason Forand
- *
- */
+  */
 public final class NTLMUtils {
 
     /**

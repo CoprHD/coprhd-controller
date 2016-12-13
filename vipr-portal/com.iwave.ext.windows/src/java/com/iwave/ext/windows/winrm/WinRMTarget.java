@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2016 Dell EMC Software
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm;
@@ -89,6 +89,8 @@ public class WinRMTarget {
         this.password = password;
     }
 
+    
+    //TODO: Remove this method, probably no longer needed.
     /**
      * This will normalize a windows style username into the appropriate format for Kerberos. Windows usernames are
      * specified as <i>DOMAIN\\username</i>, but kerberos requires the names to be <i>username@DOMAIN</i>.
@@ -216,13 +218,12 @@ public class WinRMTarget {
         return null; // No Description, or it's empty
     }
 
-    protected CloseableHttpClient getClient() {
+    protected CloseableHttpClient getClient() throws HttpException {
         if (client == null) {
             try {
 				client = createHttpClient();
 			} catch (HttpException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw e;
 			}
         }
         return client;
@@ -267,7 +268,7 @@ public class WinRMTarget {
     	try {
 			httpClient.setConnectionManager(createClientConnectionManager());
 		} catch (Exception e) {
-			//TODO: handle error
+			throw new HttpException(e.getMessage());
 		}
     	httpClient.setDefaultAuthSchemeRegistry(authSchemeRegistry);   	
     	return httpClient.build();
@@ -288,8 +289,7 @@ public class WinRMTarget {
         	return (new PoolingHttpClientConnectionManager(registry));
 
         } catch (Exception e) {
-            //TODO: handle SSL validation error
-        	throw e;
+        	throw new HttpException(e.getMessage());
         }
     }
 

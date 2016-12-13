@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.http.HttpClientConnection;
@@ -20,8 +25,6 @@ import org.apache.http.protocol.HttpContext;
  * </pre>
  * 
  * Our state machine will start when receiving the 401.
- * 
- * @author Jason Forand
  *
  */
 public abstract class NTLMState {

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.http.Header;
@@ -19,9 +24,6 @@ import com.iwave.ext.windows.winrm.ntlm.NTLMEncryptedEntity;
 /**
  * This state will ping-pong back and forth with DecryptingState in order to continue encrypting/decrypting messages. We need
  * to encrypt all requests
- * 
- * @author Jason Forand
- *
  */
 public class EncryptingState extends NTLMState {
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm;
 
 import static com.iwave.ext.windows.winrm.ntlm.NTLMConstants.BOUNDARY_PREFIX;
@@ -39,8 +44,6 @@ import org.apache.http.message.BasicNameValuePair;
  * --Encrypted Boundary--
  * </pre>
  * 
- * @author Jason Forand
- *
  */
 public class NTLMDecryptedEntity extends HttpEntityWrapper {
 

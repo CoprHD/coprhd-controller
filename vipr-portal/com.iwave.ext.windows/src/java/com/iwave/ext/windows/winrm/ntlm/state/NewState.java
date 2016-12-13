@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.http.Header;
@@ -12,8 +17,6 @@ import org.apache.http.protocol.HttpContext;
 /**
  * This state is our starting state. It will only move to the next state if it processes an HttpResponse that has the header
  * WWW-Authenticate: Negotiate
- * 
- * @author Jason Forand
  *
  */
 public final class NewState extends NTLMState {

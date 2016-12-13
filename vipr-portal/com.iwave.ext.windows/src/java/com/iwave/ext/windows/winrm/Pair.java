@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm;
 
 import java.io.Serializable;
@@ -5,8 +10,6 @@ import java.io.Serializable;
 /**
  * This class is a container for two related objects. One (or even both...) of
  * the objects can be <tt>null</tt>.
- * 
- * @author Olivier Phenix
  * 
  * @param <A>
  *            Any Object.

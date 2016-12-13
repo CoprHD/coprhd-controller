@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 Dell EMC Software
+ * All Rights Reserved
+ */
+
 package com.iwave.ext.windows.winrm.ntlm.state;
 
 import org.apache.http.Header;
@@ -15,9 +20,6 @@ import com.iwave.ext.windows.winrm.ntlm.NTLMUtils;
  * This state will ping-pong back and forth with EncryptingState in order to continue encrypting/decrypting messages. We will
  * know that the message needs to be decrypted because there will be a header with an element
  * protocol=application/HTTP-SPNEGO-session-encrypted
- * 
- * @author Jason Forand
- *
  */
 public final class DecryptingState extends NTLMState {
 

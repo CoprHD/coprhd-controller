@@ -21,6 +21,8 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
+import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -48,23 +50,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-            for (URI volumeURI : _volumes) {
-                BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-                _log.info("export_volume_remove: completed");
-                recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
-                        eventMessage(status, volume, exportGroup), exportGroup, volume);
-                if (status.name().equals(Operation.Status.ready.name())) {
-                    exportGroup.removeVolume(volumeURI);
-                }
-            }
-
-            if (null != _exportMasksToRemove) {
-                for (URI exportMaskUri : _exportMasksToRemove) {
-                    exportGroup.removeExportMask(exportMaskUri);
-                }
-            }
-
-            ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
 
             Operation operation = new Operation();
             switch (status) {
@@ -72,6 +57,22 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     operation.error(coded);
                     break;
                 case ready:
+                    for (URI volumeURI : _volumes) {
+                        BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
+                        _log.info("export_volume_remove: completed");
+                        recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
+                                eventMessage(status, volume, exportGroup), exportGroup, volume);
+                        exportGroup.removeVolume(volumeURI);
+                    }
+
+                    if (null != _exportMasksToRemove) {
+                        for (URI exportMaskUri : _exportMasksToRemove) {
+                            exportGroup.removeExportMask(exportMaskUri);
+                        }
+                    }
+
+                    ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
+
                     operation.ready();
                     break;
                 case suspended_no_error:
@@ -83,11 +84,12 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                 default:
                     break;
             }
-            exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            dbClient.updateObject(exportGroup);
             
             // Check to see if Export Group needs to be cleaned up
             ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
+
+            exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
+            dbClient.updateObject(exportGroup);
 
             _log.info(String.format("Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

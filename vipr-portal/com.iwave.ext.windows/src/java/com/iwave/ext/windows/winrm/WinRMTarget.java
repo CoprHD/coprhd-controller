@@ -253,7 +253,7 @@ public class WinRMTarget {
     	requestConfig.setSocketTimeout(DEFAULT_CONNECTION_TIMEOUT);
     	httpClient.setDefaultRequestConfig(requestConfig.build());
     	
-    	//Set the request executor. The EncryptedHttpRequestExecutor is a custom request executor that is capable to encryption and works
+    	//Set the request executor. The EncryptedHttpRequestExecutor is a custom request executor that is capable of encryption and works
     	//using the Windows NTLM authentication scheme.
     	httpClient.setRequestExecutor(new EncryptedHttpRequestExecutor());
     	

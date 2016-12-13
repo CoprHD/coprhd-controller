@@ -14,7 +14,7 @@
         <a class="closebtn" ng-click="closeMenu()">&times;</a>
         <div id="stepInputPage" ng-if="activePage==0">
             <h3>Edit Inputs/Outputs</h3>
-            <h4>{{stepData.id}} - {{stepData.type}}</h4>
+            <h4>{{stepData.id}}</h4>
             <p>{{stepData.description}}</p>
 
             <div class="panel panel-default panel-collapse">
@@ -29,7 +29,7 @@
                     <div class="panel-body sidenav-panel">
                         <table>
                             <tr>
-                                <td><strong>friendly_name</strong></td>
+                                <td><strong>name</strong></td>
                                 <td><strong>type</strong></td>
                                 <td><strong>required</strong></td>
                                 <td><strong>default_value</strong></td>
@@ -38,7 +38,7 @@
                                 <td><strong>group</strong></td>
                             </tr>
                             <tr ng-repeat="input in stepData.input">
-                                <td>{{ input.friendly_name }}</td>
+                                <td>{{ input.name }}</td>
                                 <td><input ng-model="input.type" /></td>
                                 <td><input ng-model="input.required" /></td>
                                 <td><input ng-model="input.default_value" /></td>

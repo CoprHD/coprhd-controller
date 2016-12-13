@@ -305,14 +305,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
                                 "");
                     }
-
+                    StringSet hluMappings = new StringSet();
                     if (isExported) {
                         for (List<Object> lunMapEntries : volume.getLunMaps()) {
                             Double hlu = (Double) lunMapEntries.get(2);
                             log.info("Found HLU {}", hlu);
-                            unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),
-                                    String.valueOf(hlu));
+                            List<Object> igDetails = (List<Object>)lunMapEntries.get(0);
+                            hluMappings.add(igDetails.get(1)+ "=" +hlu.toString());
                         }
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),hluMappings);
                     }
                     boolean hasReplicas = false;
                     if (hasSnaps) {

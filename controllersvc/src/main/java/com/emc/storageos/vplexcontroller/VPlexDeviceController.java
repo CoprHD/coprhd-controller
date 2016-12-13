@@ -3242,7 +3242,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 } else {
                     List<URI> volumeURIs = new ArrayList<URI>();
                     if (exportMask.getUserAddedVolumes() != null && !exportMask.getUserAddedVolumes().isEmpty()) {
-                        StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values());
+                        volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values());
                     }
                     List<Initiator> initiators = new ArrayList<>();
                     if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {

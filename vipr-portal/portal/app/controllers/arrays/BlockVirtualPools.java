@@ -122,7 +122,7 @@ public class BlockVirtualPools extends ViprResourceController {
         List<String> result = new ArrayList<String>();
         StorageSystemTypeList types = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : types.getStorageSystemTypes()) {
-            if (type.isNative() || !type.isSupportAutoTierPolicy()) {
+            if (type.isNative() || type.getIsSmiProvider() || !type.isSupportAutoTierPolicy()) {
                 continue;
             }
             result.add(type.getStorageTypeName());

@@ -1298,6 +1298,11 @@ project.owner.error.invalid=Not a valid username.
 
 schedulepolicies.policyName=Name
 schedulepolicies.policyType=Type
+schedulepolicies.appliedAt=Applied At
+schedulepolicies.vPools=vPool(s)
+schedulepolicies.projects=Project(s)
+schedulepolicies.priority=Priority
+schedulepolicies.description=Description
 schedulepolicies.list.title=File Protection Policies
 schedulepolicies.deleted=File Protection Policies deleted successfully.
 schedulepolicies.deleteConfirm=Are you sure you want to delete these Policies?

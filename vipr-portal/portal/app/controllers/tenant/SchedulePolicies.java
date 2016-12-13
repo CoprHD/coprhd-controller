@@ -408,7 +408,6 @@ public class SchedulePolicies extends ViprResourceController {
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
             this.frequency = restRep.getSchedule().getFrequency();
-            this.scheduleTime = restRep.getSchedule().getTime();
 
             if (restRep.getSchedule().getDayOfMonth() != null) {
                 this.scheduleDayOfMonth = restRep.getSchedule().getDayOfMonth();
@@ -428,15 +427,20 @@ public class SchedulePolicies extends ViprResourceController {
             if (restRep.getSchedule() != null) {
                 this.repeat = restRep.getSchedule().getRepeat();
             }
-            String[] hoursMin = this.scheduleTime.split(":");
-            if (hoursMin.length > 1) {
-                this.scheduleHour = hoursMin[0];
-                String[] minWithStrings = hoursMin[1].split(" ");
-                if (minWithStrings.length > 0) {
-                    this.scheduleMin = minWithStrings[0];
-                }
 
+            if (restRep.getSchedule() != null && restRep.getSchedule().getTime() != null) {
+                this.scheduleTime = restRep.getSchedule().getTime();
+                String[] hoursMin = this.scheduleTime.split(":");
+                if (hoursMin.length > 1) {
+                    this.scheduleHour = hoursMin[0];
+                    String[] minWithStrings = hoursMin[1].split(" ");
+                    if (minWithStrings.length > 0) {
+                        this.scheduleMin = minWithStrings[0];
+                    }
+
+                }
             }
+
             if (this.expireType == null || "never".equals(this.expireType)) {
                 this.expiration = "NEVER";
             } else {

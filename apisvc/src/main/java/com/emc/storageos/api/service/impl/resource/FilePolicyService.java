@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapFilePolicy;
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
@@ -42,6 +43,8 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.auth.ACLAssignmentChanges;
+import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyAssignResp;
 import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
@@ -289,6 +292,53 @@ public class FilePolicyService extends TaskResourceService {
             return assignFilePolicyToFS(param, filepolicy);
         }
         return null;
+    }
+
+    /**
+     * Add or remove individual File Policy ACL entry(s). Request body must include at least one add or remove operation.
+     * 
+     * @param id the URN of a ViPR File Policy
+     * @param changes ACL assignment changes
+     * @brief Add or remove ACL entries from file store VirtualPool
+     * @return No data returned in response body
+     */
+    @PUT
+    @Path("/{id}/acl")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    public ACLAssignments updateAcls(@PathParam("id") URI id,
+            ACLAssignmentChanges changes) {
+        // return updateAclsOnVirtualPool(VirtualPool.Type.file, id, changes);
+
+        FilePolicy policy = queryResource(id);
+        ArgValidator.checkEntityNotNull(policy, id, isIdEmbeddedInURL(id));
+        _permissionsHelper.updateACLs(policy, changes,
+                new PermissionsHelper.UsageACLFilter(_permissionsHelper));
+        _dbClient.updateObject(policy);
+        return getAclsOnPolicy(id);
+    }
+
+    /**
+     * Get File Policy ACLs
+     * 
+     * @param id the URN of a ViPR FilePolicy
+     * @brief Show ACL entries for File policy
+     * @return ACL Assignment details
+     */
+    @GET
+    @Path("/{id}/acl")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ACLAssignments getAcls(@PathParam("id") URI id) {
+        return getAclsOnPolicy(id);
+    }
+
+    protected ACLAssignments getAclsOnPolicy(URI id) {
+        FilePolicy policy = queryResource(id);
+        ArgValidator.checkEntityNotNull(policy, id, isIdEmbeddedInURL(id));
+        ACLAssignments response = new ACLAssignments();
+        response.setAssignments(_permissionsHelper.convertToACLEntries(policy.getAcls()));
+        return response;
     }
 
     /**

@@ -46,6 +46,7 @@ public class FilePolicyMapper {
         schedule.setDayOfMonth(from.getScheduleDayOfMonth());
         schedule.setFrequency(from.getScheduleFrequency());
         schedule.setRepeat(from.getScheduleRepeat());
+        schedule.setTime(from.getScheduleTime());
 
         resp.setSchedule(schedule);
 

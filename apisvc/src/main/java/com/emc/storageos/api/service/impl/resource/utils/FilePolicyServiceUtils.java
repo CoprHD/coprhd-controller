@@ -61,7 +61,7 @@ public class FilePolicyServiceUtils {
 
             // validating schedule time
             String period = " PM";
-            int hour, minute;
+            int hour = 0, minute = 0;
             boolean isValid = true;
             if (policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");

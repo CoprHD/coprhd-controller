@@ -243,6 +243,12 @@ approve_pending_event() {
 test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
+    
+    # Turn off validation, shouldn't need to do this but until we have
+    # all the updates for export simplification it may be a necessary
+    # evil.
+    secho "Turning ViPR validation temporarily OFF (needed for now)"
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
@@ -253,10 +259,13 @@ test_host_remove_initiator() {
     #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
     failure_injections="${HAPPY_PATH_TEST_INJECTION}"
     
-    # Create volume
-    random_number=${RANDOM}    
-    volume1=${VOLNAME}-${random_number}
+    random_number=${RANDOM}
+        
+    # Create two volumes
+    volume1=${VOLNAME}-1-${random_number}
+    volume2=${VOLNAME}-2-${random_number}    
     runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
     for failure in ${failure_injections}
     do
@@ -311,7 +320,7 @@ test_host_remove_initiator() {
         # Export the volume to an exlusive (aka Host) export for host1
         runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts "${host1}"
         # Export the volume to a shared (aka Cluster) export for cluster1   
-        runcmd export_group create ${PROJECT} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}        
+        runcmd export_group create ${PROJECT} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster1}        
                                 
         # List of all export groups being used
         exportgroups="${PROJECT}/${exportgroup1} ${PROJECT}/${exportgroup2}"
@@ -385,7 +394,7 @@ test_host_remove_initiator() {
         # Cleanup export groups  
         runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
         runcmd export_group delete ${PROJECT}/${exportgroup1}            
-        runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume1}                                     
+        runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}                                     
         runcmd export_group delete ${PROJECT}/${exportgroup2}
         
         # Cleanup everything else
@@ -408,6 +417,11 @@ test_host_remove_initiator() {
     
     # Cleanup volumes
     runcmd volume delete ${PROJECT}/${volume1} --wait
+    runcmd volume delete ${PROJECT}/${volume2} --wait
+    
+    # Turn off validation back on
+    secho "Turning ViPR validation ON"
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 }
 
 test_move_clustered_host_to_another_cluster() {
@@ -790,6 +804,7 @@ test_cluster_remove_host() {
     # Turn off validation, shouldn't need to do this but until we have
     # all the updates for export simplification it may be a necessary
     # evil.
+    secho "Turning ViPR validation temporarily OFF (needed for now)"
     syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
@@ -1014,4 +1029,8 @@ test_cluster_remove_host() {
     runcmd volume delete ${PROJECT}/${volume1} --wait
     runcmd volume delete ${PROJECT2}/${volume2} --wait 
     runcmd project delete ${PROJECT2}
+    
+    # Turn off validation back on
+    secho "Turning ViPR validation ON"
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 }

@@ -47,10 +47,12 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -292,7 +294,22 @@ public class ClusterService extends TaskResourceService {
 
         if (ComputeSystemHelper.isClusterInExport(_dbClient, cluster.getId()) && !detachStorage) {
             throw APIException.badRequests.resourceHasActiveReferences(Cluster.class.getSimpleName(), id);
+        } else if (resourceHasPendingTasks(id)) {
+            throw APIException.badRequests
+                    .resourceCannotBeDeleted("Cluster has another operation in progress.  " + cluster.getLabel());
         } else {
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, id, Host.class, "cluster");
+            List<Host> hosts = _dbClient.queryObject(Host.class, clusterHosts);
+            if (null != hosts && !hosts.isEmpty()) {
+                for (Host host : hosts) {
+                    if (resourceHasPendingTasks(host.getId())) {
+                        // throw exception and do not proceed with
+                        // cluster delete...
+                        throw APIException.badRequests.resourceCannotBeDeleted(
+                                "Cluster has host(s) with another operation in progress.  " + cluster.getLabel());
+                    }
+                }
+            }
             String taskId = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                     ResourceOperationTypeEnum.DELETE_CLUSTER);
@@ -522,5 +539,23 @@ public class ClusterService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, op.getStatus(), cluster.auditParameters());
 
         return toTask(cluster, taskId, op);
+    }
+
+    /**
+     * Verify if the given resource has pending/running tasks associated.
+     * @param id URI of resource to check for task
+     *
+     * @return true if resource has tasks running/pending else false.
+     */
+    private boolean resourceHasPendingTasks(URI id) {
+        boolean hasPendingTasks = false;
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        for (Task task : taskList) {
+            if (task.isPending()) {
+                hasPendingTasks = true;
+                break;
+            }
+        }
+        return hasPendingTasks;
     }
 }

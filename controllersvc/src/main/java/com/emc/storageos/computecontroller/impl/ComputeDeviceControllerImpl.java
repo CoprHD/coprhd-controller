@@ -632,10 +632,22 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             log.info("cluster is not synced to vcenter");
             return waitFor;
         }
+        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
+        // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
+        if (null != clusterHosts && clusterHosts.isEmpty()) {
+            VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
+                    cluster.getVcenterDataCenter());
+            log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),
+                    vcenterDataCenter.getLabel());
+            waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER, "If synced with vCenter, remove the cluster", waitFor,
+                    clusterId, clusterId.toString(), this.getClass(),
+                    new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()), null,
+                    null);
+            return waitFor;
+        }
 
         boolean hasDiscoveredHosts = false;
         boolean hasProvisionedHosts = false;
-        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         List<Host> hosts = _dbClient.queryObject(Host.class, clusterHosts);
         for (Host host : hosts) {
             if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {

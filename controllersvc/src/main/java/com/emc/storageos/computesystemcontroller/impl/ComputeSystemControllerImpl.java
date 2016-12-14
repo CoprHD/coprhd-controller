@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +63,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -128,6 +130,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
     private static final String UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP = "UpdateHostAndInitiatorClusterNamesStep";
     private static final String UPDATE_DATASTORE_NAME_STEP = "UpdateDatastoreNameStep";
+    private static final String METHOD_UPDATE_DATASTORE_NAME_STEP = "MethodUpdateDatastoreNameStep";
+    
 
     private static final String VERIFY_DATASTORE_STEP = "VerifyDatastoreStep";
 
@@ -280,46 +284,70 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             throws ControllerException{
         TaskCompleter completer = null;
         try {
-            _log.info("Processing DataStore rename - Creating Workflow ");
             completer = new VolumeUpdateCompleter(volume, taskId);
+            String newToken = UUID.randomUUID().toString();
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DATASTORE_NAME_CHANGE_WF_NAME, true, taskId);
-            String waitFor = null;
-            waitFor = addStepForDatastoreRename(workflow, waitFor, volume, datastore, vcenterURI);
-            workflow.executePlan(completer, "Success", null, null, null, null);
-        } catch (Exception ex) {
-            String message = "processDatastoreName caught an exception.";
-            _log.error(message, ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            completer.error(_dbClient, serviceError);
+                    DATASTORE_NAME_CHANGE_WF_NAME, true, newToken);
+            
+            addStepForDatastoreRename(workflow, null, volume, datastore, vcenterURI);
+            String successMessage = String.format("Workflow of Datastore rename successfully created");
+            workflow.executePlan(completer, successMessage);
+        } catch (InternalException e) {
+            _log.error("Operation failed with Exception: ", e);
+            if (completer != null) {
+                completer.error(_dbClient, e);
+            }
+        } catch (Exception e) {
+            _log.error("Operation failed with Exception: ", e);
+            if (completer != null) {
+                completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
+            }
         }
     }
     
     public String addStepForDatastoreRename(Workflow workflow, String waitFor, URI volume,
             URI datastore, URI vcenterURI) {
-        _log.info("Adding step for updating datastore in volume");
-            waitFor = workflow.createStep(UPDATE_DATASTORE_NAME_STEP,
-                    String.format("Updating datastore name"), waitFor,
+        String stepId = workflow.createStepId();
+        Workflow.Method updateDatastoreNameMethod = new Workflow.Method(METHOD_UPDATE_DATASTORE_NAME_STEP, volume, datastore, vcenterURI);
+        workflow.createStep(UPDATE_DATASTORE_NAME_STEP,
+                    "Update datastore name subtask" , waitFor,
                     volume, volume.getPath(),
                     this.getClass(),
-                    updateDatastoreNameMethod(volume, datastore, vcenterURI),
-                    null, null);
-        return waitFor;
-    }
-    
-    public Workflow.Method updateDatastoreNameMethod(URI volume, URI datastore, URI vcenter) {
-        return new Workflow.Method("updateDatastoreName", volume, datastore, vcenter);
+                    updateDatastoreNameMethod,
+                    null, stepId);
+        _log.info(String.format("Added update datastore name step [%s] in workflow", stepId));
+        return UPDATE_DATASTORE_NAME_STEP;
     }
 
-    public void updateDatastoreName(URI volume, URI datastore, URI vcenterURI, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
-        _log.info("Found vCenter " + vcenter.getLabel());
-        VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
-        ComputeSystemHelper.updateDatastoreName(_dbClient, volume, datastore, vcenterAPI);
-        _log.info("Completed step for updating datastore in volume");
-        WorkflowStepCompleter.stepSucceded(stepId);
+    public boolean updateDatastoreName(URI volume, URI datastore, URI vcenterURI, String stepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
+            _log.info("Found vCenter " + vcenter.getLabel());
+            VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
+            ComputeSystemHelper.updateDatastoreName(_dbClient, volume, datastore, vcenterAPI);
+            _log.info("Completed step for updating datastore in volume");
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e) {
+            stepFailed(stepId, e, "UpdateDatastoreNameStep");
+            return false;
+        }
+        return true;       
     }
+    
+    private boolean stepFailed(final String token, final Exception e, final String step) throws WorkflowException {
+        if (e != null) {
+            _log.error(String.format("Step: %s failed: Exception:", step), e);
+        }
+
+        if (e instanceof ServiceCoded) {
+            WorkflowStepCompleter.stepFailed(token, (ServiceCoded) e);
+            return false;
+        }
+        WorkflowStepCompleter.stepFailed(token,  DeviceControllerException.errors.jobFailed(e));
+        return false;
+    }
+
 
     /**
      * Gets all export groups that contain references to the provided host or initiators

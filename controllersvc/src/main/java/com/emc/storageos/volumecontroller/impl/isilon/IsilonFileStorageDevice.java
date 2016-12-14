@@ -1510,14 +1510,42 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
         // add the new from the array.
-        ExportRule exportRule = extraExportRuleFromArray(storage, args);
-        if (exportAdd != null) {
-            exportAdd.add(exportRule);
-        } else {
-            exportAdd = new ArrayList<ExportRule>();
-            exportAdd.add(exportRule);
-        }
+        Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
 
+        if (!arrayExportRuleMap.isEmpty()) {
+            if (exportModify != null) {
+                // merge the end point for which sec flavor is common.
+                for (ExportRule exportRule : exportModify) {
+                    ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                    if (arrayExportRule != null) {
+                        Set<String> readOnlyRule = new HashSet<>();
+
+                        readOnlyRule.addAll(arrayExportRule.getReadOnlyHosts());
+                        readOnlyRule.addAll(exportRule.getReadOnlyHosts());
+                        exportRule.setReadOnlyHosts(readOnlyRule);
+
+                        Set<String> readWriteRule = new HashSet<>();
+                        readWriteRule.addAll(arrayExportRule.getReadWriteHosts());
+                        readWriteRule.addAll(exportRule.getReadWriteHosts());
+                        exportRule.setReadWriteHosts(readWriteRule);
+
+                        Set<String> rootRule = new HashSet<>();
+                        rootRule.addAll(arrayExportRule.getRootHosts());
+                        rootRule.addAll(exportRule.getRootHosts());
+                        exportRule.setRootHosts(rootRule);
+
+                    }
+                }
+                // now add the remaining export rule
+                exportModify.addAll(arrayExportRuleMap.values());
+
+            } else {
+                // if exportModify is null then create a new object and add
+                exportModify = new ArrayList<ExportRule>();
+                exportModify.addAll(arrayExportRuleMap.values());
+
+            }
+        }
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();
         List<ExportRule> exportsToModify = new ArrayList<>();
@@ -1622,74 +1650,95 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    private ExportRule extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+    private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
 
-        String resumeToken = null;
+        Map<String, ExportRule> exportRuleMap = new HashMap<>();
+
         // gey the all the export from the storage system.
-        IsilonApi.IsilonList<IsilonExport> exportsList = new IsilonApi.IsilonList<IsilonExport>();
-        _log.info("discover AllExports for file system ", args.getFileSystemPath());
+        List<IsilonExport> exportsList = new ArrayList<IsilonExport>();
+        // Calculate Export Path
         IsilonApi isi = getIsilonDevice(storage);
-        do {
-            IsilonApi.IsilonList<IsilonExport> isilonExports = isi.listExports(resumeToken,
-                    args.getFileSystemPath());
-            exportsList.addList(isilonExports.getList());
-            resumeToken = isilonExports.getToken();
-        } while (resumeToken != null);
-
         Set<String> arrayReadOnlyHost = new HashSet<>();
         Set<String> arrayReadWriteHost = new HashSet<>();
         Set<String> arrayRootHost = new HashSet<>();
 
-        for (IsilonExport export : exportsList.getList()) {
-
-            arrayReadOnlyHost.addAll(export.getReadOnlyClients());
-            arrayReadWriteHost.addAll(export.getReadWriteClients());
-            arrayRootHost.addAll(export.getRootClients());
-
-        }
-
-        List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
         Set<String> dbReadOnlyHost = new HashSet<>();
         Set<String> dbReadWriteHost = new HashSet<>();
         Set<String> dbRootHost = new HashSet<>();
 
-        for (ExportRule exportRule : existingDBExportRule) {
-            dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
-            dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
-            dbRootHost.addAll(exportRule.getRootHosts());
-        }
-
-        Set<String> arrayExtraReadOnlyHost = new HashSet<>();
-        Set<String> arrayExtraReadWriteHost = new HashSet<>();
-        Set<String> arrayExtraRootHost = new HashSet<>();
-
-        for (String host : arrayReadOnlyHost) {
-            boolean isNotExist = dbReadOnlyHost.add(host);
-            if (isNotExist) {
-                arrayExtraReadOnlyHost.add(host);
+        List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+        for (ExportRule exportRule : existingDBExportRules) {
+            if (exportRule.getReadOnlyHosts() != null) {
+                dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }
-        }
-
-        for (String host : arrayReadWriteHost) {
-            boolean isNotExist = dbReadOnlyHost.add(host);
-            if (isNotExist) {
-                arrayExtraReadWriteHost.add(host);
+            if (exportRule.getReadWriteHosts() != null) {
+                dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
             }
-        }
-
-        for (String host : arrayRootHost) {
-            boolean isNotExist = dbReadOnlyHost.add(host);
-            if (isNotExist) {
-                arrayExtraRootHost.add(host);
+            if (exportRule.getRootHosts() != null) {
+                dbRootHost.addAll(exportRule.getRootHosts());
             }
+
+            String isilonExportId = exportRule.getDeviceExportId();
+            if (isilonExportId != null) {
+                IsilonExport isilonExport = null;
+                String zoneName = getZoneName(args.getvNAS());
+                if (zoneName != null) {
+                    isilonExport = isi.getExport(isilonExportId, zoneName);
+                } else {
+                    isilonExport = isi.getExport(isilonExportId);
+                }
+                exportsList.add(isilonExport);
+
+                arrayReadOnlyHost.addAll(isilonExport.getReadOnlyClients());
+                arrayReadWriteHost.addAll(isilonExport.getReadWriteClients());
+                arrayRootHost.addAll(isilonExport.getRootClients());
+
+            }
+
+            boolean changeFound = false;
+            Set<String> arrayExtraReadOnlyHost = new HashSet<>();
+            Set<String> arrayExtraReadWriteHost = new HashSet<>();
+            Set<String> arrayExtraRootHost = new HashSet<>();
+            for (String host : arrayReadOnlyHost) {
+                boolean isNotExist = dbReadOnlyHost.add(host);
+                if (isNotExist) {
+                    arrayExtraReadOnlyHost.add(host);
+                    changeFound = true;
+                }
+            }
+
+            for (String host : arrayReadWriteHost) {
+                boolean isNotExist = dbReadWriteHost.add(host);
+                if (isNotExist) {
+                    arrayExtraReadWriteHost.add(host);
+                    changeFound = true;
+                }
+            }
+
+            for (String host : arrayRootHost) {
+                boolean isNotExist = dbRootHost.add(host);
+                if (isNotExist) {
+                    arrayExtraRootHost.add(host);
+                    changeFound = true;
+
+                }
+            }
+
+            if (changeFound) {
+                ExportRule extraRuleFromArray = new ExportRule();
+                extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
+                extraRuleFromArray.setAnon(exportRule.getAnon());
+                extraRuleFromArray.setSecFlavor(exportRule.getSecFlavor());
+                extraRuleFromArray.setExportPath(exportRule.getExportPath());
+                extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
+                extraRuleFromArray.setReadWriteHosts(arrayExtraReadWriteHost);
+                extraRuleFromArray.setRootHosts(arrayExtraRootHost);
+                exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
+            }
+
         }
 
-        ExportRule extraRuleFromArray = new ExportRule();
-        extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
-        extraRuleFromArray.setReadWriteHosts(arrayExtraReadOnlyHost);
-        extraRuleFromArray.setRootHosts(arrayExtraReadOnlyHost);
-
-        return extraRuleFromArray;
+        return exportRuleMap;
 
     }
 

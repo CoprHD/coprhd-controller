@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,17 +17,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
-import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportRemoveVolumeCompleter.class);

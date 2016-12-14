@@ -1486,10 +1486,13 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
     {
-        
+        String workflowKey = "exportMaskExportPathAdjustment";
+        if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+            return;
+        }
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(),
-                "exportMaskPortRebalance", true, token);
+                workflowKey, false, token);
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
@@ -1510,6 +1513,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
             } else {
                 taskCompleter.ready(_dbClient);
             }

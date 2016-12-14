@@ -1265,7 +1265,7 @@ vplex_sim_setup() {
     case "$VPLEX_MODE" in 
         local)
             secho "Setting up the virtual pool for local VPLEX provisioning"
-            run cos create block $VPOOL_BASE true                            \
+            run cos create block $VPOOL_BASE false                            \
                              --description 'vpool-for-vplex-local-volumes'      \
                              --protocols FC                                     \
                              --numpaths 2                                       \
@@ -1277,9 +1277,7 @@ vplex_sim_setup() {
                              --max_mirrors 0                                    \
                              --expandable true 
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX7_NATIVEGUID
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"

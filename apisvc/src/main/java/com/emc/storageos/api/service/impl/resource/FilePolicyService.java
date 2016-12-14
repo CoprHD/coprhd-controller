@@ -52,6 +52,7 @@ import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -341,6 +342,30 @@ public class FilePolicyService extends TaskResourceService {
         return response;
     }
 
+    @PUT
+    @Path("/{id}")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    public FilePolicyCreateResp updateFilePolicy(@PathParam("id") URI id, FilePolicyParam param) {
+
+        FilePolicy policy = queryResource(id);
+        ArgValidator.checkEntityNotNull(policy, id, isIdEmbeddedInURL(id));
+
+        // check policy type is valid or not
+        ArgValidator.checkFieldValueFromEnum(param.getPolicyType(), "policy_type",
+                EnumSet.allOf(FilePolicyType.class));
+
+        _log.info("file policy updation started -- ");
+        if (param.getPolicyType().equals(FilePolicyType.file_replication.name())) {
+            return updateFileReplicationPolicy(policy, param);
+
+        } else if (param.getPolicyType().equals(FilePolicyType.file_snapshot.name())) {
+            return updateFileSnapshotPolicy(policy, param);
+        }
+        return null;
+    }
+
     /**
      * Replication Policy Checks and creation.
      * 
@@ -426,6 +451,134 @@ public class FilePolicyService extends TaskResourceService {
 
         return new FilePolicyCreateResp(fileSnapshotPolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 fileSnapshotPolicy.getId()), fileSnapshotPolicy.getLabel());
+    }
+
+    /**
+     * Update the replication policy.
+     * 
+     * @param fileReplicationPolicy
+     * @param param
+     * @return
+     */
+    private FilePolicyCreateResp updateFileReplicationPolicy(FilePolicy fileReplicationPolicy, FilePolicyParam param) {
+        StringBuilder errorMsg = new StringBuilder();
+
+        // validate and update common parameters!!
+        updatePolicyCommonParameters(fileReplicationPolicy, param);
+
+        // validate and update replication parameters!!!
+        if (param.getReplicationPolicyParams() != null) {
+            FileReplicationPolicyParam replParam = param.getReplicationPolicyParams();
+
+            if (replParam.getReplicationCopyMode() != null && !replParam.getReplicationCopyMode().isEmpty()) {
+                ArgValidator.checkFieldValueFromEnum(param.getReplicationPolicyParams().getReplicationCopyMode(), "replicationCopyMode",
+                        EnumSet.allOf(FilePolicy.FileReplicationCopyMode.class));
+                fileReplicationPolicy.setFileReplicationCopyMode(replParam.getReplicationCopyMode());
+            }
+
+            if (replParam.getReplicationType() != null && !replParam.getReplicationType().isEmpty()) {
+                ArgValidator.checkFieldValueFromEnum(replParam.getReplicationType(), "replicationType",
+                        EnumSet.allOf(FilePolicy.FileReplicationType.class));
+                // <TODO>
+                // Dont change the replication type, if policy was applied to storage resources!!
+
+                fileReplicationPolicy.setFileReplicationType(replParam.getReplicationType());
+            }
+
+        }
+
+        this._dbClient.updateObject(fileReplicationPolicy);
+        // <TODO>
+        // If policy was applied on storage system resources
+        // then, Change all existing/applied policy parameters!!!
+        // and return task as response to this api
+        _log.info("Policy {} updated successfully", fileReplicationPolicy);
+        return new FilePolicyCreateResp(fileReplicationPolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
+                fileReplicationPolicy.getId()), fileReplicationPolicy.getLabel());
+    }
+
+    /**
+     * Update snapshot policy.
+     * 
+     * @param param
+     * @param fileSnapshotPolicy
+     * @return
+     */
+    private FilePolicyCreateResp updateFileSnapshotPolicy(FilePolicy fileSnapshotPolicy, FilePolicyParam param) {
+        StringBuilder errorMsg = new StringBuilder();
+
+        // validate and update common parameters!!
+        updatePolicyCommonParameters(fileSnapshotPolicy, param);
+
+        // Validate snapshot policy expire parameters..
+        if (param.getSnapshotPolicyPrams().getSnapshotExpireParams() != null) {
+            FilePolicyServiceUtils.validateSnapshotPolicyParam(param.getSnapshotPolicyPrams());
+
+            if (param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType() != null) {
+                fileSnapshotPolicy.setSnapshotExpireType(param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType());
+            }
+            if (!SnapshotExpireType.NEVER.toString().equalsIgnoreCase(
+                    param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType())) {
+                fileSnapshotPolicy.setSnapshotExpireTime((long) param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireValue());
+            }
+        } else {
+            errorMsg.append("Required parameter snapshot_expire was missing or empty");
+            _log.error("Failed to update snapshot policy due to {} ", errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyScheduleParam(param.getPolicyName(), errorMsg.toString());
+        }
+
+        this._dbClient.createObject(fileSnapshotPolicy);
+
+        // <TODO>
+        // If policy was applied on storage system resources
+        // then, Change all existing/applied policy parameters!!!
+        // and return task as response to this api
+        _log.info("Snapshot policy {} updated successfully", fileSnapshotPolicy);
+
+        return new FilePolicyCreateResp(fileSnapshotPolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
+                fileSnapshotPolicy.getId()), fileSnapshotPolicy.getLabel());
+    }
+
+    private boolean updatePolicyCommonParameters(FilePolicy existingPolicy, FilePolicyParam param) {
+        StringBuilder errorMsg = new StringBuilder();
+
+        // Validate replication policy schedule parameters
+        if (param.getPolicySchedule() != null) {
+            boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
+                    param.getPolicySchedule(), existingPolicy, errorMsg);
+            if (!isValidSchedule && errorMsg.length() > 0) {
+                _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyScheduleParam(param.getPolicyName(), errorMsg.toString());
+            }
+            if (param.getPolicySchedule().getScheduleFrequency() != null &&
+                    !param.getPolicySchedule().getScheduleFrequency().isEmpty()) {
+                existingPolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
+            }
+        }
+
+        // validate replication type and copy mode parameters
+        if (param.getPolicyType() != null && !param.getPolicyType().isEmpty()) {
+            if (!param.getPolicyType().equalsIgnoreCase(existingPolicy.getFilePolicyType())) {
+                _log.error("Policy type can not be changed to {} ", param.getPolicyType());
+                throw APIException.badRequests.invalidFilePolicyType(param.getPolicyType());
+            }
+
+        }
+
+        // Verify and updated the policy name!!!
+        if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()
+                && !existingPolicy.getLabel().equalsIgnoreCase(param.getPolicyName())) {
+            checkForDuplicateName(param.getPolicyName(), FilePolicy.class);
+            existingPolicy.setLabel(param.getPolicyName());
+            existingPolicy.setFilePolicyName(param.getPolicyName());
+        }
+
+        if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
+            existingPolicy.setFilePolicyDescription(param.getPolicyDescription());
+        }
+
+        return true;
+
     }
 
     /**

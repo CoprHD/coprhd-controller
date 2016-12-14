@@ -1,10 +1,14 @@
 package com.emc.storageos.model.file.policy;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "file_policy")
 public class FilePolicyRestRep extends DataObjectRestRep {
@@ -19,7 +23,9 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private String appliedAt;
 
-    private RelatedResourceRep vpool;
+    private List<NamedRelatedResourceRep> assignedResources;
+
+    private NamedRelatedResourceRep vpool;
 
     private ScheduleRestRep schedule;
 
@@ -53,7 +59,7 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "vpool")
-    public RelatedResourceRep getVpool() {
+    public NamedRelatedResourceRep getVpool() {
         return vpool;
     }
 
@@ -62,11 +68,39 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         return appliedAt;
     }
 
+    @XmlElementWrapper(name = "assigned_resources")
+    @XmlElement(name = "resource")
+    public List<NamedRelatedResourceRep> getAssignedResources() {
+        return assignedResources;
+    }
+
+    @XmlElement(name = "type")
+    public String getType() {
+        return type;
+    }
+
+    @XmlElement(name = "description")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setAssignedResources(List<NamedRelatedResourceRep> assignedResources) {
+        this.assignedResources = assignedResources;
+    }
+
     public void setAppliedAt(String appliedAt) {
         this.appliedAt = appliedAt;
     }
 
-    public void setVpool(RelatedResourceRep vpool) {
+    public void setVpool(NamedRelatedResourceRep vpool) {
         this.vpool = vpool;
     }
 
@@ -90,22 +124,11 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         this.schedule = schedule;
     }
 
-    @XmlElement(name = "name")
-    public String getType() {
-        return type;
-    }
-
-    @XmlElement(name = "description")
-    public String getDescription() {
-        return description;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
+    public void addAssignedResource(NamedRelatedResourceRep resource) {
+        if (assignedResources == null) {
+            assignedResources = new ArrayList<NamedRelatedResourceRep>();
+        }
+        assignedResources.add(resource);
     }
 
     @Override
@@ -135,6 +158,11 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         if (appliedAt != null) {
             builder.append("appliedAt=");
             builder.append(appliedAt);
+            builder.append(", ");
+        }
+        if (assignedResources != null) {
+            builder.append("assignedResources=");
+            builder.append(assignedResources);
             builder.append(", ");
         }
         if (vpool != null) {

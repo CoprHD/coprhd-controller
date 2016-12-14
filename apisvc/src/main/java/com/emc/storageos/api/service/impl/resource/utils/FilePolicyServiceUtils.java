@@ -49,7 +49,7 @@ public class FilePolicyServiceUtils {
         if (policyScheduleparams != null) {
 
             // check schedule frequency is valid or not
-            ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency(), "schedule_frequency",
+            ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency().toUpperCase(), "schedule_frequency",
                     EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
             // validating schedule repeat period
@@ -61,7 +61,7 @@ public class FilePolicyServiceUtils {
 
             // validating schedule time
             String period = " PM";
-            int hour, minute;
+            int hour = 0, minute = 0;
             boolean isValid = true;
             if (policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
@@ -142,7 +142,7 @@ public class FilePolicyServiceUtils {
         boolean isValidSnapshotExpire = false;
 
         // check snapshot expire type is valid or not
-        ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType(), "expire_type",
+        ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
                 EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
 
         isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());

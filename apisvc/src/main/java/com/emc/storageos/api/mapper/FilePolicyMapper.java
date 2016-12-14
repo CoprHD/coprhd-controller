@@ -4,13 +4,21 @@
  */
 package com.emc.storageos.api.mapper;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
-
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
@@ -20,7 +28,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRes
 
 public class FilePolicyMapper {
 
-    public static FilePolicyRestRep map(FilePolicy from) {
+    public static FilePolicyRestRep map(FilePolicy from, DbClient dbClient) {
 
         FilePolicyRestRep resp = new FilePolicyRestRep();
 
@@ -38,12 +46,15 @@ public class FilePolicyMapper {
         schedule.setDayOfMonth(from.getScheduleDayOfMonth());
         schedule.setFrequency(from.getScheduleFrequency());
         schedule.setRepeat(from.getScheduleRepeat());
+        schedule.setTime(from.getScheduleTime());
 
         resp.setSchedule(schedule);
 
         URI vpoolURI = from.getFilePolicyVpool();
         if (!NullColumnValueGetter.isNullURI(vpoolURI)) {
-            resp.setVpool(toRelatedResource(ResourceTypeEnum.FILE_VPOOL, vpoolURI));
+            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+            resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
+                    vpoolURI, vpool.getLabel()));
         }
         Boolean appliedToAllFS = from.isApplyToAllFS();
         if (appliedToAllFS != null) {
@@ -53,6 +64,45 @@ public class FilePolicyMapper {
         String appliedAt = from.getApplyAt();
         if (NullColumnValueGetter.isNotNullValue(appliedAt)) {
             resp.setAppliedAt(appliedAt);
+            StringSet assignedResources = from.getAssignedResources();
+            if (assignedResources != null && !assignedResources.isEmpty()) {
+                List<URI> resourceURIs = new ArrayList<URI>();
+                for (Iterator<String> iterator = assignedResources.iterator(); iterator.hasNext();) {
+                    String resourceId = iterator.next();
+                    resourceURIs.add(URI.create(resourceId));
+                }
+                if (!resourceURIs.isEmpty()) {
+
+                    FilePolicyApplyLevel level = FilePolicyApplyLevel.valueOf(appliedAt);
+                    Class<? extends DataObject> clazz = null;
+                    switch (level) {
+                        case file_system:
+                            clazz = FileShare.class;
+                            break;
+                        case vpool:
+                            clazz = VirtualPool.class;
+                            break;
+                        case project:
+                            clazz = Project.class;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (clazz != null) {
+                        Iterator<? extends DataObject> resourceIterator = dbClient.queryIterativeObjects(clazz, resourceURIs);
+                        while (resourceIterator.hasNext()) {
+                            DataObject dataObject = resourceIterator.next();
+                            if (FilePolicyApplyLevel.vpool == level) {
+                                resp.addAssignedResource(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
+                                        dataObject.getId(), dataObject.getLabel()));
+                            } else {
+                                resp.addAssignedResource(DbObjectMapper.toNamedRelatedResource(dataObject));
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         String policyType = from.getFilePolicyType();

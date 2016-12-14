@@ -15,6 +15,23 @@ get_host_cluster() {
     echo `cluster list ${tenant} | grep ${clusterid} | awk '{print $1}'`
 }
 
+create_volume_and_datastore() {
+    # tenant volname datastorename varray vpool project vcenter datacenter cluster
+    tenant=$1
+    volname=$2
+    datastorename=$3
+
+    virtualarray=`neighborhood list | grep ${4} | awk '{print $3}'`
+    virtualpool=`cos list block | grep ${5} | awk '{print $3}'`
+    project=`project list --tenant emcworld | grep ${6} | awk '{print $4}'`
+ 
+    vcenter=`vcenter list ${tenant} | grep ${7} | awk '{print $5}'`
+    datacenter=`datacenter list ${7} | grep ${8} | awk '{print $4}'`
+    cluster=`cluster list emcworld | grep ${9} | awk '{print $4}'`
+
+    echo `catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}`
+}
+
 # Test - Host Add Initiator
 #
 # Happy path/failure test for add initiator to a host that is part of an exclusive and shared export group.

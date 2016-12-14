@@ -1963,7 +1963,7 @@ public class ExportUtils {
                 }
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, entry.getKey());
 
-                if (null != exportMask) {
+                if (null != exportMask && !exportMask.getInactive()) {
                     // Remove the volumes from the Export Mask.
                     exportMask.removeVolumes(volumeURIList);
                     for (URI volumeURI : volumeURIList) {
@@ -1979,13 +1979,21 @@ public class ExportUtils {
                     }
 
                     // if the ExportMask no longer has any user added volumes,
-                    // remove it from any ExportGroups it's associated with,
-                    // and mark the ExportMask for deletion
+                    // remove it from any other ExportGroups it's associated with
+                    // besides the exportGroupUri argument given to this method,
+                    // and mark the ExportMask for deletion.  the caller should
+                    // do the work of removing the ExportMask from the ExportGroup
+                    // it's working on because it likely has other operations that
+                    // need to be saved as well to the ExportGroup.
                     if (!exportMask.hasAnyUserAddedVolumes()) {
                         _log.info("updating ExportGroups containing this ExportMask");
                         List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
                         for (ExportGroup eg : exportGroups) {
-                            // only update ExportGroups besides the exportGroupUri argument
+                            // only update ExportGroups besides the exportGroupUri argument --
+                            // The reason being that the caller (the completer class) has an 
+                            // ExportGroup object loaded from the database for that URI already, 
+                            // and has already called removeExportMask. We don't want to update 
+                            // it here and then save it again at the end of the complete method.
                             if (!eg.getId().equals(exportGroupUri)) {
                                 _log.info("Removing mask from ExportGroup " + eg.getGeneratedName());
                                 eg.removeExportMask(exportMask.getId());

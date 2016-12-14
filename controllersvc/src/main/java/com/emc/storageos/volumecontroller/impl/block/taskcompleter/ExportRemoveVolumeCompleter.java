@@ -48,9 +48,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                 _log.info("export_volume_remove: completed");
                 recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
                         eventMessage(status, volume, exportGroup), exportGroup, volume);
-                if (status.name().equals(Operation.Status.ready.name())) {
-                    exportGroup.removeVolume(volumeURI);
-                }
             }
 
             Operation operation = new Operation();
@@ -59,6 +56,9 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     operation.error(coded);
                     break;
                 case ready:
+                    for (URI volumeURI : _volumes) {
+                        exportGroup.removeVolume(volumeURI);
+                    }
 
                     if (null != _exportMasksToRemove) {
                         for (URI exportMaskUri : _exportMasksToRemove) {

@@ -3628,7 +3628,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                     vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
                             previousStep, vplex.getId(), vplex.getSystemType(),
-                            this.getClass(), storageViewRemoveVolume, null, null);
+                            this.getClass(), storageViewRemoveVolume, rollbackMethodNullMethod(), null);
 
                     // Add zoning step for removing volumes
                     List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
@@ -3716,7 +3716,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                     vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
                             previousStep, vplex.getId(), vplex.getSystemType(),
-                            this.getClass(), storageViewRemoveVolume, null, null);
+                            this.getClass(), storageViewRemoveVolume, rollbackMethodNullMethod(), null);
 
                     // Add zoning step for removing volumes
                     List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
@@ -4892,7 +4892,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                         vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
                                 lastStep, vplex.getId(), vplex.getSystemType(),
-                                this.getClass(), storageViewRemoveVolume, null, null);
+                                this.getClass(), storageViewRemoveVolume, rollbackMethodNullMethod(), null);
                         
                         // Add zoning step for removing volumes
                         List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
@@ -5107,7 +5107,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                     vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
                             lastStep, vplex.getId(), vplex.getSystemType(),
-                            this.getClass(), storageViewRemoveVolume, null, null);
+                            this.getClass(), storageViewRemoveVolume, rollbackMethodNullMethod(), null);
                     
                     // Add zoning step for removing volumes
                     List<NetworkZoningParam> zoningParamB = NetworkZoningParam.convertExportMasksToNetworkZoningParam(

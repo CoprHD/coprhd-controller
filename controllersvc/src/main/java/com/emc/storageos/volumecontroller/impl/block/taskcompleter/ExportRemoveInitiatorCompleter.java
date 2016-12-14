@@ -51,11 +51,10 @@ public class ExportRemoveInitiatorCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+            List<Initiator> initiatorsToRemove = new ArrayList<Initiator>();
             for (URI initiatorURI : _initiatorURIs) {
                 Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
-                if (status == Operation.Status.ready) {
-                    exportGroup.removeInitiator(initiator);
-                }
+                initiatorsToRemove.add(initiator);
                 _log.info("export_initiator_remove: completed");
                 _log.info(String.format("Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                         getId().toString(), getOpId(), status.name()));
@@ -69,6 +68,10 @@ public class ExportRemoveInitiatorCompleter extends ExportTaskCompleter {
                     operation.error(coded);
                     break;
                 case ready:
+
+                    for (Initiator initiator : initiatorsToRemove) {
+                        exportGroup.removeInitiator(initiator);
+                    }
 
                     if (null != _exportMasksToRemove) {
                         for (URI exportMaskUri : _exportMasksToRemove) {

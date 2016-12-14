@@ -852,15 +852,17 @@ public class StorageSystems extends ViprResourceController {
     }
     
     @FlashException(referrer = { "editPortGroup" })
-    public static void addPorts(String pathParamId,String storageSystemId, @As(",") String[] ids) {
-        
-        if(pathParamId == null){
+    public static void addPorts(String pathParamId,String storageSystemId, String portIds, String pgName, String pgDesc) {
+         
+        if(pathParamId == null || "".equals(pathParamId)){
             ExportPathParameters input = new ExportPathParameters();
-           // input.setName(portGroupN);
-           // input.setDescription(portGroupD);
-            getViprClient().exportPathParameters().create(input, "true");
+            input.setName(pgName);
+            input.setDescription(pgDesc);
+            ExportPathParametersRestRep rep = getViprClient().exportPathParameters().create(input, "true");
+            pathParamId = rep.getId().toString();
         }
-      ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
+        String [] ids = portIds.split(",");
+        ExportPathParametersRestRep exportPathParametersRestRep = getViprClient().exportPathParameters().get(uri(pathParamId));
         List<URI> portsInDb = exportPathParametersRestRep.getStoragePorts();
             List<URI> portsToAdd = Lists.newArrayList();
             for (String value : ids) {

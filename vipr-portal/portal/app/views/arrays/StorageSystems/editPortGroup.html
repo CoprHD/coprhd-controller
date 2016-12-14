@@ -17,7 +17,7 @@
     #{/field}  
  
   #{field 'storageSystemId'}
-      <input type="hidden" name="storageSystemId" value="${storageSystemId}">
+      <input type="hidden" name="storageSystemId" id="sysId" value="${storageSystemId}">
    #{/field}
     
     #{field 'portGroup.name'}
@@ -94,9 +94,14 @@
 
 
 #{DataTable.formAction @deletePorts(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
-#{DataTable.formAction @addPorts(), id:'addArrayPortsForm', table:'arrayPorts', fields:formFields/}
+<!-- #{DataTable.formAction @addPorts(), id:'addArrayPortsForm', table:'arrayPorts', fields:formFields/} -->
+
+ #{form @addPorts(), id:'addArrayPortsForm', class:'form form-horizontal', autocomplete:"off"}
    <input type="hidden" name="pathParamId" value="${pathParamId}">
-   <input type="hidden" name="storageSystemId" id="sysId" value="${storageSystemId}">
+   <input type="hidden" name="storageSystemId"  value="${storageSystemId}">
+    <input type="hidden" name="pgName" id="pgName">
+  <input type="hidden" name="pgDesc" id="pgDesc">
+  <input type="hidden" name="portIds" id="portIds">
 #{Modal.dialog id:'addStoragePortsDialog', cssClass:'extra-wide'}
   #{Modal.body}
     
@@ -109,12 +114,12 @@
                       options: ['iDisplayLength': '8'] /}
   #{/Modal.body}
   #{Modal.footer}
-    #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addArrayPortsForm', 
-                  data:['enabled':'selected', 'table':'arrayEndpoints']/}
+    #{Form.button name:'button.add', class:'primary', icon:'plus', action:'submitPorts()', 
+                  data:['enabled':'selected', 'table':'arrayPorts']/}
     #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
   #{/Modal.footer}
 #{/Modal.dialog}
-
+#{/form}
 
 </div>
 <script type="text/javascript">
@@ -130,10 +135,22 @@ function submitPorts(){
 	var name =	document.getElementById("portGroup_name").value;
 	
 	var desc = document.getElementById("portGroup_description").value;
-	var sysId = document.getElementById("sysId").value;
+	//var sysId = document.getElementById("sysId").value;
 	//alert(document.getElementById("portGroupN").value);
-	document.getElementById("sysId").value = sysId + "~~~"+name+"~~~"+desc;
-	alert(document.getElementById("sysId").value);
+	document.getElementById("pgName").value = name;
+	document.getElementById("pgDesc").value = desc;
+		
+	var checkboxes = document.getElementsByName('selected');
+    var portIds = "";
+    for (var i=0, n=checkboxes.length;i<n;i++) {
+      if (checkboxes[i].checked) {
+       	  var port = checkboxes[i].value;
+       	      portIds = portIds + port;
+       	      portIds = portIds + ",";
+      }
+    }
+    document.getElementById("portIds").value = portIds;
 	document.getElementById("addArrayPortsForm").submit();
 }
+
 </script>

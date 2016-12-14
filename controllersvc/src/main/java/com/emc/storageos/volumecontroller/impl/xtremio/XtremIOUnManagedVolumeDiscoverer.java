@@ -310,8 +310,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         for (List<Object> lunMapEntries : volume.getLunMaps()) {
                             Double hlu = (Double) lunMapEntries.get(2);
                             log.info("Found HLU {}", hlu);
-                            List<Object> igDetails = (List<Object>)lunMapEntries.get(0);
-                            igHLUMap.put(igDetails.get(1).toString(), hlu.toString()); //key value IG-HLU
+                            List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                            igHLUMap.put(igDetails.get(1).toString(), hlu.toString()); // key value IG-HLU
                         }
                     }
                     boolean hasReplicas = false;

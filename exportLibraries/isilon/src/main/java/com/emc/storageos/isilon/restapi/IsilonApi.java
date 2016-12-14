@@ -685,6 +685,15 @@ public class IsilonApi {
     }
 
     /**
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSnapshotSchedule> getSnapshotSchedules() throws IsilonException {
+        return list(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedules", IsilonSnapshotSchedule.class, "");
+    }
+
+    /**
      * Generic get resource
      * 
      * @param url
@@ -1973,6 +1982,16 @@ public class IsilonApi {
      */
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
+    }
+
+    /**
+     * Get All Replication Policies information from the Isilon array
+     * 
+     * @return IsilonList<IsilonSyncPolicy>
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
+        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
     }
 
     /**

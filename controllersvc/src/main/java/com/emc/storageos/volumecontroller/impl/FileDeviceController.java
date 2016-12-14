@@ -4349,22 +4349,35 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    /**
-     * 
-     * @param sourceFileSystem
-     * @param targetFileSystem
-     * @param filePolicy
-     * @param taskId
-     */
-    public void applyReplicationPolicy(URI sourceFileSystem, URI targetFileSystem, FilePolicy filePolicy, String taskId) {
+    public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) {
+
+        FileShare fsObj = null;
+        StorageSystem storageObj = null;
         try {
-            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, sourceFileSystem);
-            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+            fsObj = _dbClient.queryObject(FileShare.class, sourceFS);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
+            Project project = _dbClient.queryObject(Project.class, fsObj.getProject());
+            storageObj = _dbClient.queryObject(StorageSystem.class, fsObj.getStorageDevice());
             FileDeviceInputOutput args = new FileDeviceInputOutput();
+
+            List<FilePolicy> fileReplicationPolicies = new ArrayList<FilePolicy>();
+            List<FilePolicy> fileSnapshotPolicies = new ArrayList<FilePolicy>();
+
+            for (FilePolicy policy : filePolicies) {
+                if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication)) {
+                    fileReplicationPolicies.add(policy);
+                } else if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot)) {
+                    fileSnapshotPolicies.add(policy);
+                }
+            }
             args.setOpId(taskId);
-            args.addFSFileObject(sourceFileShare);
+            args.setFileReplicationPolicies(fileReplicationPolicies);
+            args.setFileSnapshotPolicies(fileSnapshotPolicies);
+            args.addFSFileObject(fsObj);
+            args.setVPool(vpool);
+            args.setProject(project);
             WorkflowStepCompleter.stepExecuting(taskId);
-            BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyReplicationPolicy(storageObj, args, filePolicy);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
 
         } catch (Exception e) {
 

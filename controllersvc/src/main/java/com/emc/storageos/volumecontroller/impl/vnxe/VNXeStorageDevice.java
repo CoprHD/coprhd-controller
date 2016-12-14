@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
-import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -2612,7 +2611,7 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public BiosCommandResult doApplyReplicationPolicy(StorageSystem storageObj, FileDeviceInputOutput args, FilePolicy filePolicy) {
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
     }

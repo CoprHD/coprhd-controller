@@ -33,6 +33,12 @@ public class FilePolicyAssignParam implements Serializable {
     // File System assignment parameters.
     private FilePolicyFileSystemAssignParam fileSystemAssignParams;
 
+    /**
+     * Level at which policy has to applied.
+     * Valid values are vpool, project, file_system
+     * 
+     * @return
+     */
     @XmlElement(required = true, name = "apply_at")
     public String getApplyAt() {
         return this.applyAt;

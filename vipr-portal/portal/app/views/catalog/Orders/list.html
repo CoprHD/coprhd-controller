@@ -28,7 +28,7 @@ ${orderCount}
   
    <label class="description forRange">&{"orders.endDate"}:</label>
    <div class="control forRange" style="width:150px;">
-      <date-picker ng-model="myOrder.endDate" close="true"></date-picker>
+      <date-picker ng-model="myOrder.endDate" close="true" data-min="01/15/2013" min="01/15/2013"  max="today"></date-picker>
       <input type="hidden" name="myOrder.endDate" value="{{myOrder.endDate}}"/>
    </div>
   
@@ -77,3 +77,8 @@ $(document).ready(function() {
     });
 });
 </script>
+<style type="text/css">
+    .forRange input[readonly]{
+        background-color: #fff;
+    }
+</style>

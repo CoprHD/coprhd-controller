@@ -22,14 +22,14 @@ ${orderCount}
   
   <label class="description forRange">&{"orders.startDate"}:</label>
   <div class="control forRange" style="width:150px;">
-      <date-picker ng-model="myOrder.startDate" close="true"></date-picker>
-      <input type="hidden" name="myOrder.startDate" value="{{myOrder.startDate}}"/>
+      <date-picker ng-model="rangeStartDate" close="true"></date-picker>
+      <input type="hidden" name="rangeStartDate" value="{{rangeStartDate}}"/>
    </div>
   
    <label class="description forRange">&{"orders.endDate"}:</label>
    <div class="control forRange" style="width:150px;">
-      <date-picker ng-model="myOrder.endDate" close="true" data-min="01/15/2013" min="01/15/2013"  max="today"></date-picker>
-      <input type="hidden" name="myOrder.endDate" value="{{myOrder.endDate}}"/>
+      <date-picker ng-model="rangeEndDate" close="true"></date-picker>
+      <input type="hidden" name="rangeEndDate" value="{{rangeEndDate}}"/>
    </div>
   
   <div class="clearfix"></div>

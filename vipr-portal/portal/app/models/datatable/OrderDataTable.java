@@ -8,10 +8,12 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 import com.emc.vipr.model.catalog.OrderCount;
+
 import play.Logger;
 import models.security.UserInfo;
 import util.OrderUtils;
@@ -87,6 +89,12 @@ public class OrderDataTable extends DataTable {
             }
         }
         return orderInfos;
+    }
+    
+    public static Date getDateDaysAgo(int daysAgo) {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -daysAgo);
+        return cal.getTime();
     }
 
     public OrderCount fetchCount() {

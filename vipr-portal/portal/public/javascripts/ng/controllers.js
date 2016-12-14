@@ -1554,11 +1554,18 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 });
 
-angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
+angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
+	console.info($scope);
+	var dateFormat = "YYYY-MM-DD";
+	
+	var dateDaysAgo = $scope.dateDaysAgo;
+	var current = new Date().getTime();
+	
     angular.element("#myOrderSelector").ready(function () {
+    	console.info("in MyOrdersCtrl myOrderSelector");
         $scope.$apply(function () {
-            $scope.myOrder.startDate = "2016-12-16";
-            $scope.myOrder.endDate = "2016-12-17";
+            $scope.rangeStartDate = formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = formatDate(current, dateFormat);
         });
     });
 

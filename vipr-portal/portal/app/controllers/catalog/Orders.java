@@ -110,6 +110,7 @@ public class Orders extends OrderExecution {
         }
 
         renderArgs.put("maxDays", maxDays);
+        renderArgs.put("dateDaysAgo", OrderDataTable.getDateDaysAgo(maxDays));
         renderArgs.put("maxDaysOptions", options);
     }
 
@@ -141,6 +142,7 @@ public class Orders extends OrderExecution {
         renderArgs.put("startDate", params.get("startDate"));
         renderArgs.put("endDate", params.get("endDate"));
         addMaxDaysRenderArgs();
+        Common.copyRenderArgsToAngular();
         render(dataTable);
     }
 

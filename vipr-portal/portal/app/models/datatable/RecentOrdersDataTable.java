@@ -45,9 +45,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
     }
 
     protected Date calculateStartTime() {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, -maxAgeInDays);
-        return cal.getTime();
+        return this.getDateDaysAgo(maxAgeInDays);
     }
 
     protected Date now() {

@@ -36,7 +36,6 @@ public class ExportHLUProcessor extends StorageProcessor {
     private Logger logger = LoggerFactory.getLogger(ExportHLUProcessor.class);
     private List<Object> args;
     private DbClient dbClient;
-    private Map<String, StringSet> volumeToExportMasksHLUMap = null;
 
     @Override
     public void processResult(
@@ -47,6 +46,9 @@ public class ExportHLUProcessor extends StorageProcessor {
 
         dbClient = (DbClient) keyMap.get(Constants.dbClient);
         WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
+        @SuppressWarnings("unchecked")
+        Map<String, StringSet> volumeToExportMasksHLUMap =
+                (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP);
         CIMObjectPath maskingViewPath = null;
         try {
             maskingViewPath = getObjectPathfromCIMArgument(args, keyMap);
@@ -61,7 +63,6 @@ public class ExportHLUProcessor extends StorageProcessor {
             protocolControllerForUnitInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             protocolControllerForUnitInstances = protocolControllerForUnitInstanceChunks.getResponses();
 
-            volumeToExportMasksHLUMap = getVolumeToExportMasksHLUMap(keyMap);
             processMaskHLUs(protocolControllerForUnitInstances, uem, volumeToExportMasksHLUMap);
 
             while (!protocolControllerForUnitInstanceChunks.isEnd()) {
@@ -142,24 +143,6 @@ public class ExportHLUProcessor extends StorageProcessor {
             }
         }
         return null;
-    }
-
-    /**
-     * Gets the volume to export masks hlu map.
-     *
-     * @param keyMap the key map
-     * @return the volume to export masks hlu map
-     */
-    protected Map<String, StringSet> getVolumeToExportMasksHLUMap(Map<String, Object> keyMap) {
-        // find or create the UnManagedVolume -> Mask HLUs tracking data structure in the key map
-        volumeToExportMasksHLUMap =
-                (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP);
-        if (volumeToExportMasksHLUMap == null) {
-            volumeToExportMasksHLUMap = new HashMap<String, StringSet>();
-            keyMap.put(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP, volumeToExportMasksHLUMap);
-        }
-
-        return volumeToExportMasksHLUMap;
     }
 
     @Override

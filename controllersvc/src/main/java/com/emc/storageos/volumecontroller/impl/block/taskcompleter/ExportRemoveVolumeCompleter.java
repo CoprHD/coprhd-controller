@@ -50,6 +50,15 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+            for (URI volumeURI : _volumes) {
+                BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
+                _log.info("export_volume_remove: completed");
+                recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
+                        eventMessage(status, volume, exportGroup), exportGroup, volume);
+                if (status.name().equals(Operation.Status.ready.name())) {
+                    exportGroup.removeVolume(volumeURI);
+                }
+            }
 
             Operation operation = new Operation();
             switch (status) {
@@ -57,13 +66,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     operation.error(coded);
                     break;
                 case ready:
-                    for (URI volumeURI : _volumes) {
-                        BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-                        _log.info("export_volume_remove: completed");
-                        recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
-                                eventMessage(status, volume, exportGroup), exportGroup, volume);
-                        exportGroup.removeVolume(volumeURI);
-                    }
 
                     if (null != _exportMasksToRemove) {
                         for (URI exportMaskUri : _exportMasksToRemove) {

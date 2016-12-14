@@ -1942,7 +1942,7 @@ public class ExportUtils {
     }
 
     /**
-     * Handle the ExportMask Volume removal based on the _exportMaskToRemovedVolumeMap.
+     * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.
      * 
      * @param dbClient a reference to the database client
      * @param exportMaskToRemovedVolumeMap a map of ExportMask URI to Volume URIs to be removed

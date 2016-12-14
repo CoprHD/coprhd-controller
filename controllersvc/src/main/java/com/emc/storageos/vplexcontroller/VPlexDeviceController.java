@@ -3252,7 +3252,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
-                    List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values());
+                    List<URI> volumeURIs = new ArrayList<URI>();
+                    if (exportMask.getUserAddedVolumes() != null) { 
+                        volumeURIs.addAll(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
+                    }
                     List<Initiator> initiators = new ArrayList<>();
                     if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
                         List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values());
@@ -9397,9 +9400,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         ExportPathUpdater updater = new ExportPathUpdater(_dbClient);
         try {
+            String workflowKey = "exportGroupChangePathParams";
+            if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+                return;
+            }
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
-                    "exportGroupChangePathParams", true, token);
+                    workflowKey, true, token);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
@@ -9416,6 +9423,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("The changePathParams workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
             } else {
                 taskCompleter.ready(_dbClient);
             }

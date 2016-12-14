@@ -3210,11 +3210,17 @@ public class ExportGroupService extends TaskResourceService {
             varray = exportGroup.getVirtualArray();
         }
         
+        // Validate the hosts, if supplied.
+        for (URI hostId : param.getHosts()) {
+            // Throw exception of thoe hostId is invalid
+            queryObject(Host.class, hostId, true);
+        }
+        
         // Get the initiators and validate the ExportMasks are usable.
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
-        validatePortAllocate(exportGroup, initiators, system, varray, response, existingPathMap);
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap);
         
         try {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
@@ -3236,8 +3242,9 @@ public class ExportGroupService extends TaskResourceService {
                 }
                 response.getAdjustedPaths().add(zone);
             }
+            addRetainedPathsFromHosts(response, existingPathMap, param.getHosts());
             Collections.sort(response.getAdjustedPaths(), response.new InitiatorPortMapRestRepComparator());
-            calculateRemovedPaths(response, zoningMap, exportGroup, system, varray);
+            calculateRemovedPaths(response, zoningMap, exportGroup, system, varray, param.getHosts());
             return response;
         } catch (ControllerException ex) {
             _log.error(ex.getLocalizedMessage());
@@ -3245,6 +3252,36 @@ public class ExportGroupService extends TaskResourceService {
         }
     }
     
+    /**
+     * Add the existing paths from hosts that will not be provisioned into the rest response.
+     * @param response -- The ExportPathsAdjustmentPreviewResponse being constructed
+     * @param existingPathMap -- A map of initiator URI string to a set of port URI strings representing existing paths.
+     * @param hosts --Set of host URIs
+     */
+    private void addRetainedPathsFromHosts(ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPathMap, Set<URI> hosts) {
+        // If there are not specified hosts, then we do not need to add any paths for unprovisioned hosts since
+        // all hosts will be provisioned.
+        if (hosts.isEmpty()) {
+            return;
+        }
+        // Look at each initiator in the existing paths map, and if it is not for one of
+        // the hosts that is to be provisioned (specified in hosts), then add in the
+        // existing paths for the initiator.
+        for (String initiatorId : existingPathMap.keySet()) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+            if (initiator == null || initiator.getInactive() || hosts.contains(initiator.getHost())) {
+                continue;
+            }
+            InitiatorPortMapRestRep zone = new InitiatorPortMapRestRep();
+            zone.setInitiator(HostMapper.map(initiator));
+            for (String portId : existingPathMap.get(initiatorId)) {
+                StoragePort port = queryObject(StoragePort.class, URI.create(portId), false);
+                zone.getStoragePorts().add(toNamedRelatedResource(port, port.getPortName()));
+            }
+            response.getAdjustedPaths().add(zone);
+        }
+    }
+
     /**
      * Traverse the list of ExportMasks looking for StorageSystem matches and calculate the removed paths.
      * This is done by comparing the zoningMap containing the new paths with each ExportMasks's zoningMap,
@@ -3254,9 +3291,10 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup -- Export Group on which provisioning was initiated
      * @param system -- StorageSystem
      * @param varray -- Virtual Array URI
+     * @param hosts -- For cluster export group, the hosts that are being processed
      */
     private void calculateRemovedPaths(ExportPathsAdjustmentPreviewRestRep response, Map<URI, List<URI>> zoningMap, 
-            ExportGroup exportGroup, StorageSystem system, URI varray) {
+            ExportGroup exportGroup, StorageSystem system, URI varray, Set<URI> hosts) {
         // Find the Export Masks for this Storage System 
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         for (ExportMask exportMask : exportMasks) {
@@ -3264,6 +3302,7 @@ public class ExportGroupService extends TaskResourceService {
             if (!ExportMaskUtils.exportMaskInVarray(_dbClient,  exportMask,  varray)) {
                 continue;
             }
+           
             // Get the zoning map from the exportMask, and compare it with the zoningMap newly allocated.
             // Remove all entries that are in the new zoningMap (and thus will be kept and not deleted)
             StringSetMap maskZoningMap = exportMask.getZoningMap();
@@ -3287,6 +3326,11 @@ public class ExportGroupService extends TaskResourceService {
                 }
                 InitiatorPortMapRestRep zone = new InitiatorPortMapRestRep();
                 Initiator initiator = queryObject(Initiator.class, URI.create(maskInitiator), false);
+                if (exportGroup.getType().equals(ExportGroupType.Cluster.name())
+                        && !hosts.isEmpty() && !hosts.contains(initiator.getHost())) {
+                    // If a Cluster export and not in the hosts list, don't process any removes for the initiator
+                    continue;
+                }
                 zone.setInitiator(HostMapper.map(initiator));
                 for (String maskPort : maskPorts) {
                     StoragePort port = queryObject(StoragePort.class, URI.create(maskPort), false);
@@ -3301,22 +3345,34 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validates the ExportMask configuration for a port allocation preview.
      * Throws bad request exception if any ExportMask for the Storage System has existing initiators
-     * or initiators that are not in the ExportGroup.
+     * or initiators that are not in the ExportGroup. If a set of hosts to be processed is specified
+     * for a Cluster, removes any initiators not associated with those hosts.
      * @param group -- ExportGroup
      * @param initiators -- List of initiators from the Export Group
      * @param system - Storage System
      * @param varray - Virtual array
+     * @param hosts -- if ExportGroup is type CLUSTER, filter initiators by supplied hosts if any
      * @param response - OUT PortAllocationPreviewRestRep used to hold list of other affected Export Groups
      * @param existingPaths -- OUT parameter that is populated with existing paths
      */
-    private void validatePortAllocate(ExportGroup exportGroup, List<Initiator> initiators, 
-            StorageSystem system, URI varray, ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
+    private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
+            StorageSystem system, URI varray, Set<URI> hosts,
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Make a map of Export Group initiator URI to Initiator Object
         Map<URI, Initiator> initiatorMap = new HashMap<URI, Initiator>();
+        List<Initiator> initiatorsToRemove = new ArrayList<Initiator>();
         for (Initiator initiator : initiators) {
-            initiatorMap.put(initiator.getId(), initiator);
+            if (!exportGroup.getType().equals(ExportGroupType.Cluster.name()) 
+                    || hosts.isEmpty() || hosts.contains(initiator.getHost())) {
+                initiatorMap.put(initiator.getId(), initiator);
+            } else {
+                // Initiator did not match the specified hosts
+                initiatorsToRemove.add(initiator);
+            }
         }
+        // Remove any initiators not retained because of hosts specification
+        initiators.removeAll(initiatorsToRemove);
         // Find the Export Masks for this Storage System 
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         for (ExportMask exportMask : exportMasks) {
@@ -3330,12 +3386,40 @@ public class ExportGroupService extends TaskResourceService {
                 throw APIException.badRequests.externallyAddedInitiators(
                         exportMask.getMaskName(), exportMask.getExistingInitiators().toString());
             }
+            
+            // Populate the existing paths map.
+            StringSetMap zoningMap = exportMask.getZoningMap();
+            if (zoningMap != null) {
+                for (String initiator : zoningMap.keySet()) {
+                    if (zoningMap.get(initiator).isEmpty()) {
+                        // No ports for the initiator, inconsistent
+                        continue;
+                    }
+                    if (!existingPaths.keySet().contains(initiator)) {
+                        existingPaths.put(initiator, new StringSet());
+                    }
+                    existingPaths.get(initiator).addAll(zoningMap.get(initiator));
+                }    
+            } else {
+                // We need to construct existing paths based on the cross product of initiators and ports.
+                zoningMap = ExportMaskUtils.buildZoningMapFromInitiatorsAndPorts(exportMask, varray, _dbClient);
+            }
+                
             Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
             Set<String> additionalInitiators = new HashSet<String>();
+            boolean hasMatchingInitiator = false;
             for (Initiator maskInitiator : maskInitiators) {
-                if (!initiatorMap.keySet().contains(maskInitiator.getId())) {
+                if (initiatorMap.keySet().contains(maskInitiator.getId())) {
+                    hasMatchingInitiator = true;
+                }
+                if (!exportGroup.getInitiators().contains(maskInitiator.getId().toString())) {
                     additionalInitiators.add(maskInitiator.getInitiatorPort());
                 }
+            }
+            // We may not have any matching initiators if the user specified a set of
+            // hosts and this host wasn't present. If not, we just skip this mask.
+            if (!hasMatchingInitiator) {
+                continue;
             }
             if (!additionalInitiators.isEmpty()) {
                 _log.info("ExportMask has additional initiators: ", exportMask.getMaskName());
@@ -3350,24 +3434,8 @@ public class ExportGroupService extends TaskResourceService {
                     response.getAffectedExportGroups().add(toNamedRelatedResource(assocGroup, assocGroup.getLabel()));
                 }
             }
-            
-            // Populate the existing paths.
-            StringSetMap zoningMap = exportMask.getZoningMap();
-            if (zoningMap != null) {
-                for (String initiator : zoningMap.keySet()) {
-                    if (zoningMap.get(initiator).isEmpty()) {
-                        // No ports for the initiator, inconsistent
-                        continue;
-                    }
-                    if (!existingPaths.keySet().contains(initiator)) {
-                        existingPaths.put(initiator, new StringSet());
-                    }
-                    existingPaths.get(initiator).addAll(zoningMap.get(initiator));
-                }
-            }
         }
     }
-    
     
     /**
      * Export paths adjustment
@@ -3411,7 +3479,7 @@ public class ExportGroupService extends TaskResourceService {
             varray = exportGroup.getVirtualArray();
         }
 
-        validatePortRebalanceRequest(exportGroup, system, param);
+        validatePathAdjustment(exportGroup, system, param);
         Boolean wait = param.getWaitBeforeRemovePaths();
         if (wait == null) {
             wait = false;
@@ -3455,13 +3523,13 @@ public class ExportGroupService extends TaskResourceService {
     }
     
     /**
-     * Validate the port rebalance request parameters
+     * Validate the path adjustment request parameters
      * 
      * @param exportGroup
      * @param system
      * @param param
      */
-    private void validatePortRebalanceRequest(ExportGroup exportGroup, StorageSystem system, ExportPathsAdjustmentParam param) {
+    private void validatePathAdjustment(ExportGroup exportGroup, StorageSystem system, ExportPathsAdjustmentParam param) {
         String systemType = system.getSystemType();
         if (!Type.vmax.name().equalsIgnoreCase(systemType) &&
             !Type.vplex.name().equalsIgnoreCase(systemType)) {

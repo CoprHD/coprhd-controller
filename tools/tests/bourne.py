@@ -5207,7 +5207,7 @@ class Bourne:
             s = 'error'
         return (o, s)
 
-    def export_group_realloc(self, groupId, systemId, varrayId, useExisting, pathParam):
+    def export_group_pathadj_preview(self, groupId, systemId, varrayId, useExisting, pathParam, hosts):
         parms = {}
 
 	# Optionally add path parameters
@@ -5219,13 +5219,15 @@ class Bourne:
         parms['storage_system'] = systemId
         if useExisting:
             parms['use_existing_paths'] = 'true'
+        if hosts:
+            parms['hosts'] = hosts;
 
         if(BOURNE_DEBUG == '1'):
 	    print str(parms)
         o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
         return o
 
-    def export_group_rebalance(self, groupId, parms):
+    def export_group_pathadj(self, groupId, parms):
         if(BOURNE_DEBUG == '1'):
 	    print str(parms)
         o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)

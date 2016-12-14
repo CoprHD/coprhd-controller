@@ -211,6 +211,7 @@ BEGIN	{
 		sub(listEndRegex, "", exportMasks);
 		split(exportMasks, masklist, ", ");
 		# For each mask in the EG
+		printf("Hostname ... Initiator WWN ... Port Name ... Zone Name ... Count\n");
 		for (maskid in masklist) {
                     getobj(masks, masklist[maskid], mask);
 		    storageDevice = mask["storageDevice"];
@@ -227,7 +228,6 @@ BEGIN	{
 		    sub(listEndRegex, "", storagePorts);
 		    #print "storagePorts", storagePorts;
 		    split(zoneMap, zoneMapTerms, "], ");
-		    printf("Hostname ... Initiator WWN ... Port Name ... Zone Name ... Count\n");
 		    for (zoneMapTermId in zoneMapTerms) {
 		        zoneMapTerm = zoneMapTerms[zoneMapTermId];
 			initiatorId=zoneMapTerm;

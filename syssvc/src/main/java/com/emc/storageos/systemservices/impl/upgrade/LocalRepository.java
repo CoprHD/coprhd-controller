@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.upgrade;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
@@ -40,6 +41,7 @@ import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.Strings;
 
 public class LocalRepository {
@@ -479,12 +481,10 @@ public class LocalRepository {
     }
 
     public void removeStorageDriver(String driverName) {
-        File driverFile = new File(StorageDriverManager.DRIVER_DIR + driverName);
-        if (!driverFile.exists()) {
-            return;
-        }
-        if (!driverFile.delete()) {
-            _log.error("Failed to remove storage driver {}", driverName);
+        try {
+            FileUtils.deleteFile(StorageDriverManager.DRIVER_DIR + driverName);
+        } catch (IOException e) {
+            _log.error("Error happened when deleting driver {}", driverName, e);
         }
     }
 

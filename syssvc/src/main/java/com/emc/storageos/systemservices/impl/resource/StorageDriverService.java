@@ -459,7 +459,7 @@ public class StorageDriverService {
             if (targetInfo == null) {
                 targetInfo = new StorageDriversInfo();
             }
-            List<StorageSystemType> types = this.filterTypesByDriver(driverName);
+            List<StorageSystemType> types = filterTypesByDriver(driverName);
             for (StorageSystemType type : types) {
                 type.setDriverStatus(StorageSystemType.STATUS.UPGRADING.toString());
                 dbClient.updateObject(type);

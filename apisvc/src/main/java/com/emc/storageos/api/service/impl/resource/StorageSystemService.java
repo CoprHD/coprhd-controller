@@ -279,7 +279,7 @@ public class StorageSystemService extends TaskResourceService {
     public TaskResourceRep createStorageSystem(StorageSystemRequestParam param) throws Exception {
 
         if (!isControllerServiceOnline()) {
-            _log.warn("Controller services are not started yet");
+            _log.error("Controller services are not started yet");
             throw APIException.serviceUnavailable.controllerServiceUnavailable();
         }
 

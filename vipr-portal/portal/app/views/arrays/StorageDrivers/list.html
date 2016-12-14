@@ -111,7 +111,7 @@ $(document).ready(function() {
         for (var i = 0; i < data.length; i++) {
             var row = data[i];
             var status = row['status'];
-            if ($.inArray(status, ['INSTALLING', 'UNINSTALLING', 'UPGRADING'])) {
+            if ($.inArray(status, ['INSTALLING', 'UNINSTALLING', 'UPGRADING']) > -1) {
                 eliminateAlert = false;
                 break;
             }

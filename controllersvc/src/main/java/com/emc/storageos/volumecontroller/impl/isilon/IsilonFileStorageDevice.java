@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
@@ -47,6 +48,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -61,6 +63,7 @@ import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
+import com.emc.storageos.isilon.restapi.IsilonSnapshotSchedule;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -1403,7 +1406,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2567,30 +2570,166 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doApplyReplicationPolicy(StorageSystem storageObj, FileDeviceInputOutput args, FilePolicy filePolicy) {
-        FileShare fs = args.getFs();
-        IsilonApi isi = getIsilonDevice(storageObj);
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         IsilonSyncPolicy policy = null;
-        try {
-            policy = isi.getReplicationPolicy(filePolicy.getFilePolicyName());
-            if (policy != null) {
-                // policy already there, return the success
-                return BiosCommandResult.createSuccessfulResult();
-            }
-        } catch (IsilonException e) {
-            // Policy is not present so we have to apply the policy
-            policy = new IsilonSyncPolicy();
-            policy.setName(filePolicy.getFilePolicyName());
-            /*
-             * Create the source,target path based on the policy type(vpool,project,filesystem)
-             * policy.setEnabled(enabled);
-             * policy.setSourceRootPath(sourceRootPath);
-             * policy.setTargetHost(targetHost);
-             * policy.setTargetPath(targetPath);
-             */
+        FileShare sourceFS = args.getFs();
+        List<String> targetfileUris = new ArrayList<String>();
+        targetfileUris.addAll(sourceFS.getMirrorfsTargets());
+        FileShare targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+        IsilonApi isi = getIsilonDevice(storageObj);
 
-            isi.createReplicationPolicy(policy);
+        List<FilePolicy> replicationPolicies = args.getFileReplicationPolicies();
+        if (!replicationPolicies.isEmpty()) {
+            ArrayList<IsilonSyncPolicy> isiReplicationPolicies = isi.getReplicationPolicies().getList();
+            for (FilePolicy replicationPolicy : replicationPolicies) {
+                StorageSystem targetCluster = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+                String sourceRootPath = generatePathForPolicy(replicationPolicy, sourceFS);
+                String targetPath = generatePathForPolicy(replicationPolicy, targetFS);
+                checkForReplicationPolicyOnIsilon(isiReplicationPolicies, replicationPolicy, sourceRootPath, targetPath,
+                        targetCluster.getIpAddress());
+                policy = new IsilonSyncPolicy();
+                policy.setName(replicationPolicy.getFilePolicyName());
+                policy.setEnabled(true);
+                isi.createReplicationPolicy(policy);
+            }
+        }
+
+        List<FilePolicy> snapshotPolicies = args.getFileSnapshotPolicies();
+        if (!snapshotPolicies.isEmpty()) {
+            ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies = isi.getSnapshotSchedules().getList();
+            for (FilePolicy snapshotPolicy : snapshotPolicies) {
+                String path = generatePathForPolicy(snapshotPolicy, sourceFS);
+                if (isiSnapshotPolicies != null && !isiSnapshotPolicies.isEmpty()
+                        && isSnapshotScheduleExistsOnIsilon(isiSnapshotPolicies, path)) {
+                    _log.info("File Policy {} is already applied and running.", snapshotPolicy.toString());
+                    continue;
+                } else {
+                    String snapshotScheduleName = snapshotPolicy.getFilePolicyName();
+                    String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
+                    String ScheduleValue = getIsilonPolicySchedule(snapshotPolicy);
+                    Integer expireValue = getIsilonSnapshotExpireValue(snapshotPolicy);
+                    _log.info("File Policy  name : {} creation started", snapshotScheduleName);
+                    try {
+                        isi.createSnapshotSchedule(snapshotScheduleName, args.getFileSystemPath(), ScheduleValue, pattern, expireValue);
+                    } catch (IsilonException e) {
+                        _log.error("create file policy failed.", e);
+                        return BiosCommandResult.createErrorResult(e);
+                    }
+                }
+            }
         }
         return BiosCommandResult.createSuccessfulResult();
+
     }
+
+    private static IsilonSyncPolicy checkForReplicationPolicyOnIsilon(ArrayList<IsilonSyncPolicy> isiPolicies, FilePolicy filePolicy,
+            String sourceRootPath, String targetPath, String targetSystemIP) {
+        IsilonSyncPolicy isiMatchedPolicy = null;
+
+        for (IsilonSyncPolicy isiPolicy : isiPolicies) {
+            if (isiPolicy.getSourceRootPath().equals(sourceRootPath) || isiPolicy.getTargetHost().equals(targetSystemIP)) {
+                isiMatchedPolicy = isiPolicy;
+                break;
+            }
+        }
+        if (isiMatchedPolicy != null && isiMatchedPolicy.getTargetPath().equals(targetPath)) {
+
+        }
+        return isiMatchedPolicy;
+    }
+
+    private String generatePathForPolicy(FilePolicy filePolicy, FileShare fileShare) {
+        String policyPath = "";
+        if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.vpool)
+                || filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.project)) {
+            String vpool = _dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool()).getLabel();
+            String project = _dbClient.queryObject(Project.class, fileShare.getProject()).getLabel();
+
+            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.vpool)) {
+                policyPath = fileShare.getNativeId().split(vpool)[0] + vpool;
+            } else if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.project)) {
+                policyPath = fileShare.getNativeId().split(project)[0] + project;
+            }
+        } else {
+            policyPath = fileShare.getNativeId();
+        }
+
+        return policyPath;
+    }
+
+    private static boolean isSnapshotScheduleExistsOnIsilon(ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies, String path) {
+        for (IsilonSnapshotSchedule isiSnapshotPolicy : isiSnapshotPolicies) {
+            if (isiSnapshotPolicy.getPath().equals(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String getIsilonPolicySchedule(FilePolicy policy) {
+        StringBuilder builder = new StringBuilder();
+
+        ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policy.getScheduleFrequency().toUpperCase());
+        switch (scheduleFreq) {
+
+            case DAYS:
+                builder.append("every ");
+                builder.append(policy.getScheduleRepeat());
+                builder.append(" days at ");
+                builder.append(policy.getScheduleTime());
+                break;
+            case WEEKS:
+                builder.append("every ");
+                builder.append(policy.getScheduleRepeat());
+                builder.append(" weeks on ");
+                builder.append(policy.getScheduleDayOfWeek());
+                builder.append(" at ");
+                builder.append(policy.getScheduleTime());
+                break;
+            case MONTHS:
+                builder.append("the ");
+                builder.append(policy.getScheduleDayOfMonth());
+                builder.append(" every ");
+                builder.append(policy.getScheduleRepeat());
+                builder.append(" month at ");
+                builder.append(policy.getScheduleTime());
+                break;
+            default:
+                _log.error("Not a valid schedule frequency: " + policy.getScheduleFrequency().toLowerCase());
+                return null;
+
+        }
+        return builder.toString();
+
+    }
+
+    private Integer getIsilonSnapshotExpireValue(FilePolicy policy) {
+        Long seconds = 0L;
+        String snapshotExpire = policy.getSnapshotExpireType();
+        if (snapshotExpire != null && !snapshotExpire.isEmpty()) {
+            Long expireValue = policy.getSnapshotExpireTime();
+            SnapshotExpireType expireType = SnapshotExpireType.valueOf(snapshotExpire.toUpperCase());
+            switch (expireType) {
+                case HOURS:
+                    seconds = TimeUnit.HOURS.toSeconds(expireValue);
+                    break;
+                case DAYS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue);
+                    break;
+                case WEEKS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
+                    break;
+                case MONTHS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
+                    break;
+                case NEVER:
+                    return null;
+                default:
+                    _log.error("Not a valid expire type: " + expireType);
+                    return null;
+            }
+        }
+        return seconds.intValue();
+    }
+
 }

@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -110,7 +111,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String VERIFY_MOUNT_DEPENDENCIES_METHOD = "verifyMountDependencies";
     private static final String CHECK_IF_EXPORT_IS_MOUNTED = "CheckIfExportIsMounted";
 
-    private static final String APPLY_REPLICATION_POLICY_METHOD = "applyReplicationPolicy";
+    private static final String APPLY_FILE_POLICY_METHOD = "applyFilePolicy";
 
     /*
      * (non-Javadoc)
@@ -147,11 +148,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // First, call the FileDeviceController to add its methods.
             waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
                     fileDescriptors, taskId);
-            // second, call create replication link or pair
-            waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
-                    fileDescriptors, taskId);
-                    // third, check for policies that has to applied on this file system..
-                    // waitFor = addStepsForApplyingPolicies(workflow, waitFor, fileDescriptors, taskId);
+
+            /*
+             * // second, call create replication link or pair
+             * waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
+             * fileDescriptors, taskId);
+             */
+
+            // second, check for policies that has to applied on this file system..
+            waitFor = addStepsForApplyingPolicies(workflow, waitFor, fileDescriptors);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -1438,56 +1443,24 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 stepDescription, systemTarget, args);
     }
 
-    /*    *//**
-             * 
-             * @param workflow
-             * @param waitFor
-             * @param fileDescriptors
-             * @param taskId
-             * @return
-             *//*
-               * public String addStepsForApplyingPolicies(Workflow workflow, String waitFor,
-               * List<FileDescriptor> fileDescriptors, String taskId) {
-               * FileShare sourceFileShare = null;
-               * FileShare targetFileShare = null;
-               * List<URI> fileShareURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
-               * List<FileShare> fileShares = s_dbClient.queryObject(FileShare.class, fileShareURIs);
-               * 
-               * for (FileShare fileShare : fileShares) {
-               * if (fileShare.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.name())) {
-               * sourceFileShare = fileShare;
-               * } else {
-               * targetFileShare = fileShare;
-               * }
-               * }
-               * // Since API is not ready so, hard coding ...
-               * FilePolicyProfile policyProfile = s_dbClient.queryObject(FilePolicyProfile.class,
-               * URIUtil.uri("urn:storageos:FilePolicyProfile:a83c8274-3343-4fbb-9222-12c0b0bc9e28:vdc1"));
-               * StringSet policies = policyProfile.getProfilePolicies();
-               * List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
-               * for (String policy : policies) {
-               * filePolicies.add(s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(policy)));
-               * }
-               * 
-               * for (FilePolicy filePolicy : filePolicies) {
-               * 
-               * if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-               * String stepDescription = String.format("applying replication policy : %s ", filePolicy);
-               * String applyReplicationPolicyStep = workflow.createStepId();
-               * Object[] args = new Object[] { sourceFileShare.getId(), targetFileShare.getId(), filePolicy };
-               * _fileDeviceController.createMethod(workflow, waitFor, APPLY_REPLICATION_POLICY_METHOD, applyReplicationPolicyStep,
-               * stepDescription, sourceFileShare.getStorageDevice(), args);
-               * }
-               * 
-               * if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
-               * // Method for applying snapshot policy..
-               * }
-               * if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_quota.name())) {
-               * // Method for applying quota policy..
-               * }
-               * }
-               * return null;
-               * }
-               */
+    public String addStepsForApplyingPolicies(Workflow workflow, String waitFor, List<FileDescriptor> fileDescriptors) {
+
+        FileDescriptor sourceDescriptors = FileDescriptor
+                .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
+        FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
+
+        List<FilePolicy> filePolicies = FileOrchestrationUtils.getAllApplicablePolices(s_dbClient, sourceFS.getVirtualPool(),
+                sourceFS.getProject());
+
+        if (filePolicies != null && !filePolicies.isEmpty()) {
+
+            String stepDescription = String.format("applying file policies at different levels");
+            String applyFilePolicyStep = workflow.createStepId();
+            Object[] args = new Object[] { sourceFS.getId(), filePolicies };
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
+                    stepDescription, sourceFS.getStorageDevice(), args);
+        }
+        return waitFor;
+    }
 
 }

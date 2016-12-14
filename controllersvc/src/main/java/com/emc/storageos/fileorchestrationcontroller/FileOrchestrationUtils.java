@@ -16,7 +16,9 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ShareACL;
@@ -264,5 +266,34 @@ public class FileOrchestrationUtils {
             }
         }
         return shareACLMap;
+    }
+
+    /**
+     * 
+     * @param dbClient
+     * @param vpool
+     * @param project
+     * @return List<FilePolicy>
+     */
+    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, NamedURI project) {
+        List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
+        List<URI> policyIds = dbClient.queryByType(FilePolicy.class, true);
+        List<FilePolicy> filepolicies = dbClient.queryObject(FilePolicy.class, policyIds);
+
+        for (FilePolicy filePolicy : filepolicies) {
+            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.vpool.name())
+                    && filePolicy.getAssignedResources().contains(vpool.toString())) {
+                filePolicies.add(filePolicy);
+            }
+            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.project.name())
+                    && filePolicy.getAssignedResources().contains(project.toString()) && filePolicy.getFilePolicyVpool().equals(vpool)) {
+                filePolicies.add(filePolicy);
+            }
+            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.file_system.name())
+                    && filePolicy.isApplyToAllFS() && filePolicy.getFilePolicyVpool().equals(vpool)) {
+                filePolicies.add(filePolicy);
+            }
+        }
+        return filePolicies;
     }
 }

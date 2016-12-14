@@ -65,7 +65,7 @@ public class FilePolicy extends DataObject {
     private URI filePolicyVpool;
 
     /**
-     * TRUE means: if policy has to be applied on all file system coming under specified vpool/project, at the time of
+     * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
      * provisioning.
      * FALSE means : policy has to applied on the specific file system chosen at the time of provisioning..
      */

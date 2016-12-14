@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -85,6 +86,10 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
     private List<NfsACE> nfsAclsToModify = new ArrayList<>();
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
+
+    // New Addition for File Policy Work
+    private List<FilePolicy> fileReplicationPolicies;
+    private List<FilePolicy> fileSnapshotPolicies;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -1035,6 +1040,22 @@ public class FileDeviceInputOutput {
 
     public void setvNAS(VirtualNAS vNAS) {
         this.vNAS = vNAS;
+    }
+
+    public List<FilePolicy> getFileReplicationPolicies() {
+        return fileReplicationPolicies;
+    }
+
+    public void setFileReplicationPolicies(List<FilePolicy> fileReplicationPolicies) {
+        this.fileReplicationPolicies = fileReplicationPolicies;
+    }
+
+    public List<FilePolicy> getFileSnapshotPolicies() {
+        return fileSnapshotPolicies;
+    }
+
+    public void setFileSnapshotPolicies(List<FilePolicy> fileSnapshotPolicies) {
+        this.fileSnapshotPolicies = fileSnapshotPolicies;
     }
 
 }

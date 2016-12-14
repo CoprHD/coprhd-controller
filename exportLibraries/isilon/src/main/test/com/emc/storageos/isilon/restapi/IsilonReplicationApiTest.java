@@ -6,6 +6,7 @@ package com.emc.storageos.isilon.restapi;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
@@ -61,6 +62,23 @@ public class IsilonReplicationApiTest {
                 + _client.getReplicationPolicy("testpolicy").toString());
     }
 
+    public static void testGetReplicationPolicies() throws Exception {
+        System.out.println("Get Replication Policy info.");
+        ArrayList<IsilonSyncPolicy> policies = _client.getReplicationPolicies().getList();
+        for (IsilonSyncPolicy policy : policies) {
+            System.out.println(policy.getSourceRootPath());
+            System.out.println(policy.getSchedule());
+        }
+    }
+
+    public static void testGetSnapshotSchedules() throws Exception {
+        System.out.println("Get Snapshot schedules info.");
+        ArrayList<IsilonSnapshotSchedule> schedules = _client.getSnapshotSchedules().getList();
+        for (IsilonSnapshotSchedule schedule : schedules) {
+            System.out.println(schedule.toString());
+        }
+    }
+
     public static void testGetTargetPolicy() throws Exception {
         System.out.println("Get Replication Policy info.");
         System.out.println(" Replication Policy : " + _client.getTargetReplicationPolicy("mudit_policy")
@@ -111,8 +129,10 @@ public class IsilonReplicationApiTest {
     }
 
     public static void main(String args[]) throws Exception {
-        IsilonReplicationApiTest.setup();
 
+        IsilonReplicationApiTest.setup();
+        // IsilonReplicationApiTest.testGetReplicationPolicies();
+        IsilonReplicationApiTest.testGetSnapshotSchedules();
         // IsilonReplicationApiTest.testlicenseInfo();
         // IsilonReplicationApiTest.testGetReplicationPolicy();
         // IsilonReplicationApiTest.testCreateReplicationPolicy();

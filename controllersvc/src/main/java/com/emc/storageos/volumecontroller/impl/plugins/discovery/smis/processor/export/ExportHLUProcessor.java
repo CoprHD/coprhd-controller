@@ -48,7 +48,7 @@ public class ExportHLUProcessor extends StorageProcessor {
         WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
         @SuppressWarnings("unchecked")
         Map<String, StringSet> volumeToExportMasksHLUMap =
-                (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP);
+                (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_EXPORT_MASK_HLUS_MAP);
         CIMObjectPath maskingViewPath = null;
         try {
             maskingViewPath = getObjectPathfromCIMArgument(args, keyMap);

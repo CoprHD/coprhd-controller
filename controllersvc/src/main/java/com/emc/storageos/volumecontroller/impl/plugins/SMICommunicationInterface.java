@@ -483,7 +483,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP, snapshotToSynchronizationAspectMap);
 
         Map<String, StringSet> volumeToExportMasksHLUMap = new HashMap<String, StringSet>();
-        _keyMap.put(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP, volumeToExportMasksHLUMap);
+        _keyMap.put(Constants.UN_VOLUME_EXPORT_MASK_HLUS_MAP, volumeToExportMasksHLUMap);
     }
 
     private void initIBMDiscoveryKeyMap(AccessProfile accessProfile) {

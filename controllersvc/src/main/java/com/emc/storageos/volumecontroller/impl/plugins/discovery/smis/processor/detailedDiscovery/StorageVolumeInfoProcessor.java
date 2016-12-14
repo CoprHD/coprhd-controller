@@ -703,7 +703,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // Set Export Mask HLUs
             @SuppressWarnings("unchecked")
             Map<String, StringSet> volumeToExportMasksHLUMap =
-                    (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_MASK_EXPORT_HLUS_MAP);
+                    (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_EXPORT_MASK_HLUS_MAP);
             if (volumeToExportMasksHLUMap != null && volumeToExportMasksHLUMap.containsKey(unManagedVolumeNativeGuid)) {
                 unManagedVolumeInformation.put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),
                         volumeToExportMasksHLUMap.get(unManagedVolumeNativeGuid)); // replace() does not work

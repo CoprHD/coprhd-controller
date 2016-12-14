@@ -209,6 +209,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap = new HashMap<String, List<UnManagedVolume>>();
         Map<String, StringSet> igKnownVolumesMap = new HashMap<String, StringSet>();
+        Map<String, String> igHLUMap = new HashMap<String, String>();
 
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
@@ -305,15 +306,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
                                 "");
                     }
-                    StringSet hluMappings = new StringSet();
                     if (isExported) {
                         for (List<Object> lunMapEntries : volume.getLunMaps()) {
                             Double hlu = (Double) lunMapEntries.get(2);
                             log.info("Found HLU {}", hlu);
                             List<Object> igDetails = (List<Object>)lunMapEntries.get(0);
-                            hluMappings.add(igDetails.get(1)+ "=" +hlu.toString());
+                            igHLUMap.put(igDetails.get(1).toString(), hlu.toString()); //key value IG-HLU
                         }
-                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),hluMappings);
                     }
                     boolean hasReplicas = false;
                     if (hasSnaps) {
@@ -388,7 +387,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         // Next discover the unmanaged export masks
         discoverUnmanagedExportMasks(storageSystem.getId(), igUnmanagedVolumesMap, igKnownVolumesMap, xtremIOClient, xioClusterName,
-                dbClient, partitionManager);
+                dbClient, partitionManager, igHLUMap);
     }
 
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
@@ -463,11 +462,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * @param xtremIOClient
      * @param dbClient
      * @param partitionManager
+     * @param igHLUMap TODO
      * @throws Exception
      */
     private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap,
             Map<String, StringSet> igKnownVolumesMap, XtremIOClient xtremIOClient, String xioClusterName,
-            DbClient dbClient, PartitionManager partitionManager)
+            DbClient dbClient, PartitionManager partitionManager, Map<String, String> igHLUMap)
                     throws Exception {
         unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
         unManagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
@@ -480,6 +480,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
         StringSet knownFCStoragePortUris = new StringSet();
         StringSet knownIPStoragePortUris = new StringSet();
         List<StoragePort> matchedFCPorts = new ArrayList<StoragePort>();
+        StringSet hostHlu = new StringSet();
+        Map<String, String> hostoIGMap = new HashMap<String, String>();
 
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -567,6 +569,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
             mask.setStorageSystemUri(systemId);
             // set the host name as the mask name
             mask.setMaskName(hostname);
+            for (String hostIG: hostIGs) {
+                hostoIGMap.put(hostname, hostIG);
+            }
+
+            for(String key: igHLUMap.keySet()) {
+                if (hostoIGMap.get(hostname).equals(key)) {
+                hostHlu.add(hostname+"="+igHLUMap.get(key));
+                }
+            }
 
             allCurrentUnManagedExportMaskUris.add(mask.getId());
             for (String igName : hostIGs) {
@@ -610,6 +621,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         if (hostUnManagedVol != null) {
                             mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                             unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+                            hostUnManagedVol.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
                         }
                     }
                 }

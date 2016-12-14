@@ -616,27 +616,27 @@ public class ControllerServiceImpl implements ControllerService {
         for (StorageSystemType type : types) {
             String typeName = type.getStorageTypeName();
             String metaType = type.getMetaType();
-            if (StringUtils.equals(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
-                String className = type.getDriverClassName();
-                // provider and managed system should use the same driver instance
-                if (cachedDriverInstances.containsKey(className)) {
-                    blockDeviceDrivers.put(typeName, cachedDriverInstances.get(className));
-                    _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
-                    continue;
-                }
-                String mainClassName = type.getDriverClassName();
-                try {
-                    AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
-                    blockDeviceDrivers.put(typeName, driverInstance);
-                    cachedDriverInstances.put(className, driverInstance);
-                    _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
-                } catch (Exception e) {
-                    _log.error("Error happened when instantiating class {}", mainClassName);
-                }
-            } else {
-                // TODO for now sees we only support block type driver
+            if (!StringUtils.equals(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
+                // TODO for now it seems that we only support block type driver
                 // In future, to support file/object or other type, we need add more codes here
                 _log.info("Skip load info of {}, for its type is {} which is not supported for now", typeName, metaType);
+                continue;
+            }
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                blockDeviceDrivers.put(typeName, cachedDriverInstances.get(className));
+                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                blockDeviceDrivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName);
             }
         }
     }
@@ -647,7 +647,7 @@ public class ControllerServiceImpl implements ControllerService {
         Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            if (type.getIsNative() == null ||type.getIsNative() == true) {
+            if (type.getIsNative() == null || type.getIsNative()) {
                 continue;
             }
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {

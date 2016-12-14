@@ -172,32 +172,41 @@ public class StorageDriverService {
             if (name != null && !name.equals(driverName)) {
                 continue;
             }
-            if (type.getIsNative() == null || type.getIsNative() == true) {
+            if (type.getIsNative() == null || type.getIsNative()) {
                 // bypass native storage types
                 continue;
             }
 
-            if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
-                type.setDriverStatus(READY);
-                if (usedProviderTypes.contains(type.getStorageTypeName())
-                        || usedSystemTypes.contains(type.getStorageTypeName())) {
-                    type.setDriverStatus(IN_USE);
-                }
-            }
-            
-            if (driverMap.containsKey(driverName)) {
-                StorageDriverRestRep driverRestRep = driverMap.get(driverName);
-                driverRestRep.getSupportedTypes().add(type.getStorageTypeDispName());
-                if (!(IN_USE.equals(driverRestRep.getDriverStatus()) && READY.equals(type.getDriverStatus()))) {
-                    driverRestRep.setDriverStatus(type.getDriverStatus());
-                }
-            } else {
-                driverMap.put(type.getDriverName(), StorageDriverMapper.map(type));
-            }
+            setTypeDriverStatus(type, usedProviderTypes, usedSystemTypes);
+            setDriverIntoMap(driverName, type, driverMap);
         }
         List<StorageDriverRestRep> drivers = new ArrayList<StorageDriverRestRep>();
         drivers.addAll(driverMap.values());
         return drivers;
+    }
+
+    private void setDriverIntoMap(String driverName, StorageSystemType type, Map<String, StorageDriverRestRep> driverMap) {
+        if (driverMap.containsKey(driverName)) {
+            StorageDriverRestRep driverRestRep = driverMap.get(driverName);
+            driverRestRep.getSupportedTypes().add(type.getStorageTypeDispName());
+            if (!(IN_USE.equals(driverRestRep.getDriverStatus()) && READY.equals(type.getDriverStatus()))) {
+                driverRestRep.setDriverStatus(type.getDriverStatus());
+            }
+        } else {
+            driverMap.put(type.getDriverName(), StorageDriverMapper.map(type));
+        }
+    }
+
+    private void setTypeDriverStatus(StorageSystemType type, Set<String> usedProviderTypes,
+            Set<String> usedSystemTypes) {
+        if (!StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
+            return;
+        }
+        type.setDriverStatus(READY);
+        if (usedProviderTypes.contains(type.getStorageTypeName())
+                || usedSystemTypes.contains(type.getStorageTypeName())) {
+            type.setDriverStatus(IN_USE);
+        }
     }
 
     protected Set<String> getUsedStorageProviderTypes() {
@@ -311,23 +320,10 @@ public class StorageDriverService {
 
         precheckForEnv();
 
-        Set<String> usedProviderTypes = getUsedStorageProviderTypes();
-        Set<String> usedSystemTypes = getUsedStorageSystemTypes();
-        List<StorageSystemType> types = listStorageSystemTypes();
-        List<StorageSystemType> toUninstallTypes = new ArrayList<StorageSystemType>();
-        for (StorageSystemType type : types) {
-            if (!StringUtils.equals(driverName, type.getDriverName())) {
-                continue;
-            }
-            toUninstallTypes.add(type);
-        }
+        List<StorageSystemType> toUninstallTypes = filterTypesByDriver(driverName);
 
-        for (StorageSystemType type : toUninstallTypes) {
-            if (usedProviderTypes.contains(type.getStorageTypeName())
-                    || usedSystemTypes.contains(type.getStorageTypeName())) {
-                throw APIException.badRequests.cantUninstallDriverInUse(driverName);
-            }
-        }
+
+        precheckForDriverStatus(toUninstallTypes, driverName);
 
         InterProcessLock lock = getStorageDriverOperationLock();
         try {
@@ -359,6 +355,29 @@ public class StorageDriverService {
             }
         }
 
+    }
+
+    private List<StorageSystemType> filterTypesByDriver(String driverName) {
+        List<StorageSystemType> types = listStorageSystemTypes();
+        List<StorageSystemType> toUninstallTypes = new ArrayList<StorageSystemType>();
+        for (StorageSystemType type : types) {
+            if (!StringUtils.equals(driverName, type.getDriverName())) {
+                continue;
+            }
+            toUninstallTypes.add(type);
+        }
+        return toUninstallTypes;
+    }
+
+    private void precheckForDriverStatus(List<StorageSystemType> toUninstallTypes, String driverName) {
+        Set<String> usedProviderTypes = getUsedStorageProviderTypes();
+        Set<String> usedSystemTypes = getUsedStorageSystemTypes();
+        for (StorageSystemType type : toUninstallTypes) {
+            if (usedProviderTypes.contains(type.getStorageTypeName())
+                    || usedSystemTypes.contains(type.getStorageTypeName())) {
+                throw APIException.badRequests.cantUninstallDriverInUse(driverName);
+            }
+        }
     }
 
     private File saveToTmpDir(String fileName, InputStream uploadedInputStream) {
@@ -440,11 +459,8 @@ public class StorageDriverService {
             if (targetInfo == null) {
                 targetInfo = new StorageDriversInfo();
             }
-            List<StorageSystemType> types = listStorageSystemTypes();
+            List<StorageSystemType> types = this.filterTypesByDriver(driverName);
             for (StorageSystemType type : types) {
-                if (!StringUtils.equals(driverName, type.getDriverName())) {
-                    continue;
-                }
                 type.setDriverStatus(StorageSystemType.STATUS.UPGRADING.toString());
                 dbClient.updateObject(type);
                 // remove old driver file name from target list
@@ -505,6 +521,13 @@ public class StorageDriverService {
                 "new version (%s) should be later than the old one (%s)", newVersionStr, oldVersionStr));
     }
 
+    private void precheckForDupField(String existingValue, String newValue, String fieldName) {
+        if (StringUtils.equals(existingValue, newValue)) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    String.format("Duplicate %s: %s", fieldName, newValue));
+        }
+    }
+
     private void precheckForMetaData(StorageDriverMetaData metaData, boolean upgrade, boolean force) {
         List<StorageSystemType> types = listStorageSystemTypes();
         Set<String> drivers = new HashSet<String>();
@@ -518,51 +541,39 @@ public class StorageDriverService {
                     compareVersion(oldVersion, newVersion);
                 }
             } else {
-                if (StringUtils.equals(type.getDriverName(), metaData.getDriverName())) {
-                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                            String.format("Duplicate driver name: %s", metaData.getDriverName()));
-                }
-                if (StringUtils.equals(type.getStorageTypeName(), metaData.getStorageName())) {
-                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                            String.format("Duplicate storage name: %s", metaData.getStorageName()));
-                }
-                if (StringUtils.equals(type.getStorageTypeDispName(), metaData.getStorageDisplayName())) {
-                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                            String.format("Duplicate storage display name: %s", metaData.getStorageDisplayName()));
-                }
-                if (StringUtils.equals(type.getStorageTypeName(), metaData.getProviderName())) {
-                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                            String.format("Duplicate provider name: %s", metaData.getProviderName()));
-                }
-                if (StringUtils.equals(type.getStorageTypeDispName(), metaData.getProviderDisplayName())) {
-                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                            String.format("Duplicate provider display name: %s", metaData.getProviderDisplayName()));
-                }
-                if (StringUtils.equals(type.getDriverClassName(), metaData.getDriverClassName())) {
-                    throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                            String.format("Duplicate driver class name", metaData.getDriverClassName()));
-                }
+                precheckForDupField(type.getDriverName(), metaData.getDriverName(), "driver name");
+                precheckForDupField(type.getStorageTypeName(), metaData.getStorageName(), "storage name");
+                precheckForDupField(type.getStorageTypeDispName(), metaData.getStorageDisplayName(), "display name");
+                precheckForDupField(type.getStorageTypeName(), metaData.getProviderName(), "provider name");
+                precheckForDupField(type.getStorageTypeDispName(), metaData.getProviderDisplayName(), "provider display name");
+                precheckForDupField(type.getDriverClassName(), metaData.getDriverClassName(), "driver class name");
             }
-
-            if (StringUtils.equals(type.getDriverFileName(), metaData.getDriverFileName())) {
-                throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                        String.format("Duplicate driver file name", metaData.getDriverClassName()));
-            }
+            precheckForDupField(type.getDriverFileName(), metaData.getDriverFileName(), "driver file name");
             drivers.add(type.getDriverName());
         }
-
         if (upgrade && !driverNameExists) {
             throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(
                     String.format("Can't find specified driver name: %s", metaData.getDriverName()));
         }
-
         if (!upgrade && drivers.size() >= MAX_DRIVER_NUMBER) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(String
                     .format("Can't install more drivers as max driver number %s has been reached", MAX_DRIVER_NUMBER));
         }
     }
 
+    private void precheckForNotEmptyField(String fieldName, String value) {
+        if (StringUtils.isEmpty(value)) {
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed(String.format("%s field value is not provided", fieldName));
+        }
+    }
+
     private void precheckForDriverName(String name) {
+        precheckForNotEmptyField("driver_name", name);
+        if (name.length() > MAX_DISPLAY_STRING_LENGTH) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    String.format("driver name is longger than %s", MAX_DISPLAY_STRING_LENGTH));
+        }
         for (int i = 0; i < name.length(); i ++) {
             char c = name.charAt(i);
             if (c != '_' && !Character.isLetter(c) && !Character.isDigit(c)) {
@@ -572,8 +583,30 @@ public class StorageDriverService {
         }
     }
 
-    private StorageDriverMetaData parseDriverMetaData(File driverFile) {
-        String driverFilePath = driverFile.getAbsolutePath();
+    private void precheckForDriverVersion(String driverVersion) {
+        precheckForNotEmptyField("driver_version", driverVersion);
+        if (!Pattern.compile(DRIVER_VERSION_PATTERN).matcher(driverVersion).find()) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    "driver_version field value should be four numbers concatenated by dot");
+        }
+    }
+
+    private void precheckForProviderName(String providerName, String providerDisplayName,
+            StorageDriverMetaData metaData) {
+        if (StringUtils.isNotEmpty(providerName) && StringUtils.isNotEmpty(providerDisplayName)) {
+            metaData.setProviderName(providerName);
+            metaData.setProviderDisplayName(providerDisplayName);
+        } else if (StringUtils.isEmpty(providerName) && StringUtils.isEmpty(providerDisplayName)) {
+            // This driver doesn't support provider, which is allowed, so do
+            // nothing
+        } else {
+            // This is ambiguous input, which should cause exception
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    "provider_name and provider_display_name fields values should be both providerd or not");
+        }
+    }
+
+    private Properties extractPropsFromFile(String driverFilePath) {
         Properties props = new Properties();
         try {
             ZipFile zipFile = new ZipFile(driverFilePath);
@@ -592,65 +625,43 @@ public class StorageDriverService {
             // use precheck error for now
             throw APIException.internalServerErrors.installDriverPrecheckFailed(e.getMessage());
         }
+        if (props.isEmpty()) {
+            log.error("Didn't find metadata.properties file or file is empty");
+            throw APIException.internalServerErrors
+                    .installDriverPrecheckFailed("Didn't find metadata.properties file or file is empty");
+        }
         log.info("Have successfully load meta data properties from JAR file");
+        return props;
+    }
+
+    private StorageDriverMetaData parseDriverMetaData(File driverFile) {
+        String driverFilePath = driverFile.getAbsolutePath();
+        Properties props = extractPropsFromFile(driverFilePath);
 
         StorageDriverMetaData metaData = new StorageDriverMetaData();
         // check driver name
         String driverName = props.getProperty(DRIVER_NAME);
-        if (StringUtils.isEmpty(driverName)) {
-            throw APIException.internalServerErrors
-                    .installDriverPrecheckFailed("driver_name field value is not provided");
-        }
-        if (driverName.length() > MAX_DISPLAY_STRING_LENGTH) {
-            throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                    String.format("driver name is longger than %s", MAX_DISPLAY_STRING_LENGTH));
-        }
         precheckForDriverName(driverName);
         metaData.setDriverName(driverName);
         // check driver version and format
         String driverVersion = props.getProperty(DRIVER_VERSION);
-        if (StringUtils.isEmpty(driverVersion)) {
-            throw APIException.internalServerErrors
-                    .installDriverPrecheckFailed("driver_version field value is not provided");
-        }
-        if (!Pattern.compile(DRIVER_VERSION_PATTERN).matcher(driverVersion).find()) {
-            throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                    "driver_version field value should be four numbers concatenated by dot");
-        }
+        precheckForDriverVersion(driverVersion);
         metaData.setDriverVersion(driverVersion);
         // check storage name
         String storageName = props.getProperty(STORAGE_NAME);
-        if (StringUtils.isEmpty(storageName)) {
-            throw APIException.internalServerErrors
-                    .installDriverPrecheckFailed("storage_name field value is not provided");
-        }
+        precheckForNotEmptyField("storage_name", storageName);
         metaData.setStorageName(storageName);
         // check storage display name
         String storageDisplayName = props.getProperty(STORAGE_DISPLAY_NAME);
-        if (StringUtils.isEmpty(storageDisplayName)) {
-            throw APIException.internalServerErrors
-                    .installDriverPrecheckFailed("storage_display_name field value is not provided");
-        }
+        precheckForNotEmptyField("storage_display_name", storageDisplayName);
         metaData.setStorageDisplayName(storageDisplayName);
         // check provider name and provider display name
         String providerName = props.getProperty(PROVIDER_NAME);
         String providerDisplayName = props.getProperty(PROVIDER_DISPLAY_NAME);
-        if (StringUtils.isNotEmpty(providerName) && StringUtils.isNotEmpty(providerDisplayName)) {
-            metaData.setProviderName(providerName);
-            metaData.setProviderDisplayName(providerDisplayName);
-        } else if (StringUtils.isEmpty(providerName) && StringUtils.isEmpty(providerDisplayName)) {
-            // This driver doesn't support provider, which is allowed, so do
-            // nothing
-        } else {
-            // This is ambiguous input, which should cause exception
-            throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                    "provider_name and provider_display_name fields values should be both providerd or not");
-        }
+        precheckForProviderName(providerName, providerDisplayName, metaData);
         // check meta type
         String metaType = props.getProperty(STORAGE_META_TYPE);
-        if (!isValidMetaType(metaType)) {
-            throw APIException.internalServerErrors.installDriverPrecheckFailed("meta_type field value is not valid");
-        }
+        precheckForMetaType(metaType);
         metaData.setMetaType(metaType.toUpperCase());
         // check enable_ssl
         String enableSslStr = props.getProperty(ENABLE_SSL);
@@ -685,10 +696,7 @@ public class StorageDriverService {
         }
         // check driver class name
         String driverClassName = props.getProperty(DRIVER_CLASS_NAME);
-        if (StringUtils.isEmpty(driverClassName)) {
-            throw APIException.internalServerErrors
-                    .installDriverPrecheckFailed("driver_class_name field value is not provided");
-        }
+        precheckForNotEmptyField("driver_class_name", driverClassName);
         metaData.setDriverClassName(driverClassName);
         // check if support auto-tier policy
         String supportAutoTierStr = props.getProperty(SUPPORT_AUTO_TIER_POLICY);
@@ -778,6 +786,12 @@ public class StorageDriverService {
         return lock;
     }
 
+    private void precheckForMetaType(String metaType) {
+        if (!isValidMetaType(metaType)) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed("meta_type field value is not valid");
+        }
+    }
+
     private boolean isValidMetaType(String metaType) {
         if (StringUtils.isEmpty(metaType)) {
             return false;
@@ -796,7 +810,7 @@ public class StorageDriverService {
     }
 
     private void auditOperation(OperationTypeEnum type, String status, String stage, Object... descparams) {
-        this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, type, System.currentTimeMillis(), status, stage,
+        auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, type, System.currentTimeMillis(), status, stage,
                 descparams);
 
     }

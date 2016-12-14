@@ -90,7 +90,7 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
         Iterator<StorageSystemType> it = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
             StorageSystemType type = it.next();
-            if (type.getIsNative() == null || type.getIsNative() == true) {
+            if (type.getIsNative() == null || type.getIsNative()) {
                 continue;
             }
             if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {

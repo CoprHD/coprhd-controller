@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1603,10 +1604,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isControlNodesDriversSynced(StorageDriversInfo target, Map<Service, StorageDriversInfo> infos) {
-        if (target == null) {
-            target = new StorageDriversInfo();
+        Set<String> targetDrivers = new HashSet<String>();
+        if (target != null) {
+            targetDrivers = target.getInstalledDrivers();
         }
-        Set<String> targetDrivers = target.getInstalledDrivers();
         for (Entry<Service, StorageDriversInfo> info : infos.entrySet()) {
             String nodeName = info.getKey().getId();
             Set<String> installedDrivers = info.getValue().getInstalledDrivers();

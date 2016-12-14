@@ -81,7 +81,7 @@ public class StorageDriverManager {
     private Waiter waiter = new Waiter();
     private LocalRepository localRepo = LocalRepository.getInstance();
 
-    Map<String, StorageDriverMetaData> upgradingDriverMap;
+    private Map<String, StorageDriverMetaData> upgradingDriverMap;
 
     @Autowired
     private AuditLogManager auditMgr;
@@ -123,17 +123,10 @@ public class StorageDriverManager {
         return types;
     }
 
-    private void updateMetaData() {
-        Site activeSite = drUtil.getActiveSite();
-        List<StorageDriversInfo> infos = getDriversInfo(activeSite.getUuid());
-        if (activeSite.getNodeCount() != infos.size()) {
-            log.warn("No all nodes are online, skip updating meta data");
-            return;
-        }
-
-        boolean needRestart = false;
-
+    private boolean updateInstallMetadata(List<StorageDriversInfo> infos) {
         List<StorageSystemType> installingTypes = queryDriversByStatus(StorageSystemType.STATUS.INSTALLING);
+        List<StorageSystemType> finishedTypes = new ArrayList<StorageSystemType>();
+        boolean needRestart = false;
         log.info("Installing storage system types: {}", concatStorageSystemTypeNames(installingTypes));
         for (StorageSystemType type : installingTypes) {
             boolean finished = true;
@@ -146,12 +139,22 @@ public class StorageDriverManager {
             if (finished) {
                 type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
                 dbClient.updateObject(type);
+                finishedTypes.add(type);
                 log.info("update status from installing to active for {}", type.getStorageTypeName());
                 needRestart = true;
             }
         }
+        for (String driver : extractDrivers(finishedTypes)) {
+            auditCompleteOperation(OperationTypeEnum.INSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                    driver);
+        }
+        return needRestart;
+    }
 
+    private boolean updateUninstallMetadata(List<StorageDriversInfo> infos) {
         List<StorageSystemType> uninstallingTypes = queryDriversByStatus(StorageSystemType.STATUS.UNISNTALLING);
+        List<StorageSystemType> finishedTypes = new ArrayList<StorageSystemType>();
+        boolean needRestart = false;
         log.info("Uninstalling storage system types: {}", concatStorageSystemTypeNames(uninstallingTypes));
         for (StorageSystemType type : uninstallingTypes) {
             boolean finished = true;
@@ -163,13 +166,23 @@ public class StorageDriverManager {
             }
             if (finished) {
                 dbClient.removeObject(type);
+                finishedTypes.add(type);
                 log.info("Remove {}", type.getStorageTypeName());
                 needRestart = true;
             }
         }
+        for (String driver : extractDrivers(finishedTypes)) {
+            auditCompleteOperation(OperationTypeEnum.UNINSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                    driver);
+        }
+        return needRestart;
+    }
 
-        Map<String, StorageDriverMetaData> toInsertNewMetaDatas = new HashMap<String, StorageDriverMetaData>();
+    private boolean updateUpgradeMetadata(List<StorageDriversInfo> infos) {
         List<StorageSystemType> upgradingTypes = queryDriversByStatus(StorageSystemType.STATUS.UPGRADING);
+        List<StorageSystemType> finishedTypes = new ArrayList<StorageSystemType>();
+        boolean needRestart = false;
+        Map<String, StorageDriverMetaData> toInsertNewMetaDatas = new HashMap<String, StorageDriverMetaData>();
         log.info("Upgrading storage system types: {}", concatStorageSystemTypeNames(upgradingTypes));
         for (StorageSystemType type : upgradingTypes) {
             String driverName = type.getDriverName();
@@ -201,6 +214,7 @@ public class StorageDriverManager {
                 if (finished) {
                     type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
                     dbClient.updateObject(type);
+                    finishedTypes.add(type);
                     log.info("DriverUpgradephase2: mark active for {}", type.getStorageTypeName());
                     needRestart = true;
                 }
@@ -227,21 +241,25 @@ public class StorageDriverManager {
             log.info("DriverUpgradePhase1: trigger downloading for new driver files listed above");
             coordinatorClient.setTargetInfo(info);
         }
+        for (String driver : extractDrivers(finishedTypes)) {
+            auditCompleteOperation(OperationTypeEnum.UPGRADE_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
+                    driver);
+        }
+        return needRestart;
+    }
 
-        if (needRestart) {
+    private void updateMetaData() {
+        Site activeSite = drUtil.getActiveSite();
+        List<StorageDriversInfo> infos = getDriversInfo(activeSite.getUuid());
+        if (activeSite.getNodeCount() != infos.size()) {
+            log.warn("No all nodes are online, skip updating meta data");
+            return;
+        }
+        boolean installFinished = updateInstallMetadata(infos);
+        boolean uninstallFinished = updateUninstallMetadata(infos);
+        boolean upgradeFinished = updateUpgradeMetadata(infos);
+        if (installFinished || uninstallFinished || upgradeFinished) {
             restartControllerServices();
-            for (String driver : extractDrivers(installingTypes)) {
-                auditCompleteOperation(OperationTypeEnum.INSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
-                        driver);
-            }
-            for (String driver : extractDrivers(uninstallingTypes)) {
-                auditCompleteOperation(OperationTypeEnum.UNINSTALL_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
-                        driver);
-            }
-            for (String driver : extractDrivers(upgradingTypes)) {
-                auditCompleteOperation(OperationTypeEnum.UPGRADE_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
-                        driver);
-            }
         }
     }
 
@@ -457,49 +475,52 @@ public class StorageDriverManager {
      * notification thread
      */
     private void checkAndUpdate() {
-        EXECUTOR.execute(new Runnable() {
-            @Override
-            public void run() {
-                initializeLocalAndTargetInfo();
+        EXECUTOR.execute(new DriverOperationRunner());
+    }
 
-                upgradingDriverMap = getUpgradeDriverMetaDataMap();
+    class DriverOperationRunner implements Runnable {
 
-                // remove drivers and restart controller service
-                Set<String> toRemove = minus(localDriverFiles, targetDriverFiles);
-                Set<String> toDownload = minus(targetDriverFiles, localDriverFiles);
+        @Override
+        public void run() {
+            initializeLocalAndTargetInfo();
 
-                if (!toRemove.isEmpty()) {
-                    removeDrivers(toRemove);
-                }
+            upgradingDriverMap = getUpgradeDriverMetaDataMap();
 
-                if (!toDownload.isEmpty()) {
-                    downloadDrivers(toDownload);
-                }
+            // remove drivers and restart controller service
+            Set<String> toRemove = minus(localDriverFiles, targetDriverFiles);
+            Set<String> toDownload = minus(targetDriverFiles, localDriverFiles);
 
-                // After download/remove drivers, update progress to ZK
-                updateLocalDriversList();
+            if (!toRemove.isEmpty()) {
+                removeDrivers(toRemove);
+            }
 
-                // Active site need to update medata and restart all controller
-                // services
-                if (drUtil.isActiveSite()) {
-                    InterProcessLock lock = null;
-                    try {
-                        lock = getLock(DRIVERS_UPDATE_LOCK);
-                        updateMetaData();
-                    } catch (Exception e) {
-                        log.error("error happend when updating driver info", e);
-                    } finally {
-                        if (lock != null) {
-                            try {
-                                lock.release();
-                            } catch (Exception ignore) {
-                                log.warn("lock release failed");
-                            }
+            if (!toDownload.isEmpty()) {
+                downloadDrivers(toDownload);
+            }
+
+            // After download/remove drivers, update progress to ZK
+            updateLocalDriversList();
+
+            // Active site need to update medata and restart all controller
+            // services
+            if (drUtil.isActiveSite()) {
+                InterProcessLock lock = null;
+                try {
+                    lock = getLock(DRIVERS_UPDATE_LOCK);
+                    updateMetaData();
+                } catch (Exception e) {
+                    log.error("error happend when updating driver info", e);
+                } finally {
+                    if (lock != null) {
+                        try {
+                            lock.release();
+                        } catch (Exception ignore) {
+                            log.warn("lock release failed");
                         }
                     }
                 }
             }
-        });
+        }
     }
 
     private InterProcessLock getLock(String name) throws Exception {

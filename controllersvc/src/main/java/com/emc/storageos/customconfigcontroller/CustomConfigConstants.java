@@ -69,6 +69,8 @@ public interface CustomConfigConstants {
     public String ISILON_SYSTEM_ACCESS_ZONE = "system_access_zone";
     public String ISILON_USER_ACCESS_ZONE = "user_access_zone";
     public String ISILON_CUSTOM_DIR_PATH = "custom_dir_path";
+    public String ISILON_NO_DIR = "no_dir";
+    public String ISILON_DIR_NAME = "dir_name";
 
     public String PORT_ALLOCATION_INITIATOR_CEILLING = "PortAllocationInitiatorCeiling";
     public String PORT_ALLOCATION_VOLUME_CEILLING = "PortAllocationVolumeCeiling";

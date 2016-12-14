@@ -343,51 +343,52 @@ public class RecoverPointClient {
 
             for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
                     .getClustersConfigurations()) {
-            	try {
-	                // TODO: Support multiple management IPs per site
-	                String siteIP = siteSettings.getManagementIPs().get(0).getIp();
-	                String siteName = siteSettings.getClusterName();
-	                if (siteIP == null) {
-	                    throw RecoverPointException.exceptions.cannotDetermineMgmtIPSite(siteName);
-	                }
-	
-	                List<RpaConfiguration> rpaList = siteSettings.getRpasConfigurations();
-	                discoveredSite = new RPSite();
-	                discoveredSite.setSiteName(siteName);
-	                discoveredSite.setSiteManagementIPv4(siteIP);
-	                discoveredSite.setSiteVersion(functionalAPI.getRecoverPointVersion().getVersion());
-	                discoveredSite.setSiteVolumes(functionalAPI.getClusterSANVolumes(siteSettings.getCluster(), true));
-	                discoveredSite.setInternalSiteName(siteSettings.getInternalClusterName());
-	                discoveredSite.setSiteUID(siteSettings.getCluster().getId());
-	                if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
-	                    localSiteName = siteName;
-	                }
-	                discoveredSite.setNumRPAs(rpaList.size());
-	
-	                String siteGUID = installationId + ":" + siteSettings.getCluster().getId();
-	                logger.info("SITE GUID:  " + siteGUID);
-	                discoveredSite.setSiteGUID(siteGUID);
-	                if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
-	                    logger.info("Discovered local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
-	                            + discoveredSite.getSiteVersion() + ", num RPAs: "
-	                            + discoveredSite.getNumRPAs());
-	
-	                } else {
-	                    logger.info("Discovered non-local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
-	                            + discoveredSite.getSiteVersion()
-	                            + ", num RPAs: " + discoveredSite.getNumRPAs());
-	                }
-	
-	                returnSiteSet.add(discoveredSite);
-            	} catch (FunctionalAPIInternalError_Exception | FunctionalAPIActionFailedException_Exception fe) {
-            		StringBuffer buf = new StringBuffer();
-            		buf.append(String.format("Internal Error during discover of RP Cluster %s, Skipping discovery of this site.", localSiteName));
-            		if (fe != null) {
-            			buf.append('\n');
-            			buf.append(String.format("Exception returned : %s", fe.getMessage()));
-            		}  
-            		logger.warn(buf.toString());
-        	    }
+                try {
+                    // TODO: Support multiple management IPs per site
+                    String siteIP = siteSettings.getManagementIPs().get(0).getIp();
+                    String siteName = siteSettings.getClusterName();
+                    if (siteIP == null) {
+                        throw RecoverPointException.exceptions.cannotDetermineMgmtIPSite(siteName);
+                    }
+
+                    List<RpaConfiguration> rpaList = siteSettings.getRpasConfigurations();
+                    discoveredSite = new RPSite();
+                    discoveredSite.setSiteName(siteName);
+                    discoveredSite.setSiteManagementIPv4(siteIP);
+                    discoveredSite.setSiteVersion(functionalAPI.getRecoverPointVersion().getVersion());
+                    discoveredSite.setSiteVolumes(functionalAPI.getClusterSANVolumes(siteSettings.getCluster(), true));
+                    discoveredSite.setInternalSiteName(siteSettings.getInternalClusterName());
+                    discoveredSite.setSiteUID(siteSettings.getCluster().getId());
+                    if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
+                        localSiteName = siteName;
+                    }
+                    discoveredSite.setNumRPAs(rpaList.size());
+
+                    String siteGUID = installationId + ":" + siteSettings.getCluster().getId();
+                    logger.info("SITE GUID:  " + siteGUID);
+                    discoveredSite.setSiteGUID(siteGUID);
+                    if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
+                        logger.info("Discovered local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
+                                + discoveredSite.getSiteVersion() + ", num RPAs: "
+                                + discoveredSite.getNumRPAs());
+
+                    } else {
+                        logger.info("Discovered non-local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
+                                + discoveredSite.getSiteVersion()
+                                + ", num RPAs: " + discoveredSite.getNumRPAs());
+                    }
+
+                    returnSiteSet.add(discoveredSite);
+                } catch (FunctionalAPIInternalError_Exception | FunctionalAPIActionFailedException_Exception fe) {
+                    StringBuffer buf = new StringBuffer();
+                    buf.append(String.format("Internal Error during discover of RP Cluster %s, Skipping discovery of this site.",
+                            localSiteName));
+                    if (fe != null) {
+                        buf.append('\n');
+                        buf.append(String.format("Exception returned : %s", fe.getMessage()));
+                    }
+                    logger.warn(buf.toString());
+                }
             }
 
             // 99% of unlicensed RP system errors will be caught here
@@ -395,7 +396,7 @@ public class RecoverPointClient {
                 throw RecoverPointException.exceptions.siteNotLicensed(localSiteName);
             }
 
-            return returnSiteSet;            
+            return returnSiteSet;
         } catch (RecoverPointException e) {
             throw e;
         } catch (Exception e) {
@@ -2677,7 +2678,6 @@ public class RecoverPointClient {
             for (ConsistencyGroupCopyUID existingProductionCopyUID : productionCopiesUIDs) {
                 List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
                 ConsistencyGroupLinkSettings linkSettings = null;
-                String existingProductionCopyName = functionalAPI.getGroupCopyName(existingProductionCopyUID);
 
                 for (ConsistencyGroupCopySettings copySetting : copySettings) {
                     // We need to set the link settings for all orphaned copies. Orphaned copies
@@ -2686,7 +2686,8 @@ public class RecoverPointClient {
                             !RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
 
-                        logger.info(String.format("Attempting to prepare link between %s and %s.", newProductionCopyName, copyName));
+                        logger.info(String.format("Checking to see if there is an active link between %s and %s.", newProductionCopyName,
+                                copyName));
 
                         // Check to see if a link setting already exists for the link between the 2 copies
                         linkSettings = findLinkSettings(
@@ -2694,18 +2695,26 @@ public class RecoverPointClient {
                                 newProductionCopyName, copyName);
 
                         if (linkSettings == null) {
-                            // Link settings for the source/target copies does not exist so we need to create one
-                            // Find the corresponding link settings prior to the failover.
-
-                            linkSettings = findLinkSettings(
-                                    cgLinkSettings, existingProductionCopyUID.getGlobalCopyUID(), copySetting.getCopyUID()
-                                            .getGlobalCopyUID(),
-                                    existingProductionCopyName, copyName);
+                            // Link settings for the source/target copies does not exist so we need to create one. Just grab the
+                            // first link settings that's available and base the new link off of that.
+                            linkSettings = cgLinkSettings.get(0);
 
                             if (linkSettings != null) {
+                                ConsistencyGroupCopyUID firstCopyUID = new ConsistencyGroupCopyUID();
+                                firstCopyUID.setGlobalCopyUID(linkSettings.getGroupLinkUID().getFirstCopy());
+                                firstCopyUID.setGroupUID(linkSettings.getGroupLinkUID().getGroupUID());
+
+                                ConsistencyGroupCopyUID secondCopyUID = new ConsistencyGroupCopyUID();
+                                secondCopyUID.setGlobalCopyUID(linkSettings.getGroupLinkUID().getSecondCopy());
+                                secondCopyUID.setGroupUID(linkSettings.getGroupLinkUID().getGroupUID());
+
+                                String firstCopyName = functionalAPI.getGroupCopyName(firstCopyUID);
+                                String secondCopyName = functionalAPI.getGroupCopyName(secondCopyUID);
+
                                 logger.info(String
-                                        .format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
-                                                newProductionCopyName, copyName, existingProductionCopyName, copyName));
+                                        .format("Generating new link settings between [%s] and [%s] based on existing link settings between copy [%s] and [%s].",
+                                                newProductionCopyName, copyName, firstCopyName, secondCopyName));
+
                                 ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();
                                 // Set the link copies appropriately
                                 GlobalCopyUID sourceCopy = newProductionCopyUID.getGlobalCopyUID();
@@ -3122,8 +3131,8 @@ public class RecoverPointClient {
             ConsistencyGroupCopyUID standbyProdCopy = RecoverPointUtils.getStandbyProductionCopy(cgSettings, state);
 
             if (standbyProdCopy != null) {
-                String stanbyProdCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
-                logger.info(String.format("Determined that standby production copy %s exists in CG %s.", stanbyProdCopyName,
+                String standbyProdCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
+                logger.info(String.format("Determined that standby production copy %s exists in CG %s.", standbyProdCopyName,
                         volume.getRpProtectionName()));
                 return true;
             }
@@ -3615,19 +3624,21 @@ public class RecoverPointClient {
 
         // we can't call validateAddConsistencyGroupCopy here because during a swap operation, it throws an exception
         // which is just a warning that a full sweep will be required. There didn't seem to be a way to catch
-        // just the warning and let other errors propegate as errors.
-        logger.info("Add Production copy (no validation): " + copyParams.toString());
+        // just the warning and let other errors propagate as errors.
+        logger.info(String.format("Add Production copy %s (no validation): ", copyParams.getName(), copyParams.toString()));
         functionalAPI.addConsistencyGroupCopy(copySettingsParam);
 
         // add journals
         for (CreateVolumeParams journalVolume : copyParams.getJournals()) {
-            logger.info("Adding Journal : " + journalVolume.toString() + " for Production copy : " + copyParams.getName());
+            logger.info(String.format("Adding Journal for Production copy %s : %s", copyParams.getName(), journalVolume.toString()));
             functionalAPI.addJournalVolume(copyUid,
                     RecoverPointUtils.getDeviceID(allSites, journalVolume.getInternalSiteName(), journalVolume.getWwn()));
         }
 
         if (rSets != null) {
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgUID);
+            // Keep track of volumes added so we don't add the same one again. Prevents an exception from being thrown.
+            List<String> volumesAdded = new ArrayList<String>();
             for (CreateRSetParams rSet : rSets) {
                 ReplicationSetUID rSetUid = null;
                 if (rSet != null && rSet.getName() != null && !rSet.getName().isEmpty()) {
@@ -3640,10 +3651,12 @@ public class RecoverPointClient {
                 }
                 if (rSetUid != null) {
                     for (CreateVolumeParams volume : rSet.getVolumes()) {
-                        if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())) {
-                            logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, copyParams.toString()));
+                        if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())
+                                && !volumesAdded.contains(volume.getWwn())) {
+                            logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, volume.toString()));
                             functionalAPI.addUserVolume(copyUid, rSetUid,
                                     RecoverPointUtils.getDeviceID(allSites, volume.getInternalSiteName(), volume.getWwn()));
+                            volumesAdded.add(volume.getWwn());
                         }
                     }
                 }

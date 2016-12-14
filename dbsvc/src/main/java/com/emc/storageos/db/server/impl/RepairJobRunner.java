@@ -71,7 +71,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
     /**
      * Max wait time in minutes for each range repair. Terminate the job
      */
-    private int _maxWaitInMinutes = 30;
+    private int _maxWaitInMinutes = 90;
 
     /**
      * Start execution time of the job. For time estimation of remaining repair
@@ -342,6 +342,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
     public void handleNotification(Notification notification, Object handback) {
         lock.lock();
         try {
+        	_log.info("Notification type: {}", notification.getType(), notification.getMessage());
             if ("repair".equals(notification.getType())) {
                 int[] status = (int[]) notification.getUserData();
                 if (status.length == 2) {
@@ -353,8 +354,10 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                     if (status[1] == ActiveRepairService.Status.SESSION_FAILED.ordinal()) {
                         _log.info("Repair cmd={} failed", status[0]);
                         _success = false;
-                    } else if (status[1] == ActiveRepairService.Status.FINISHED.ordinal()) {
-
+                        repairRangeDone = true;
+                        finished.signal();
+                    } else if (status[1] == ActiveRepairService.Status.FINISHED.ordinal() ||
+                    		(_aborted && status[1] == ActiveRepairService.Status.SESSION_SUCCESS.ordinal())) {
                         _log.info("Repair cmd={} finished", status[0]);
                         if (_aborted) {
                             _success = false;

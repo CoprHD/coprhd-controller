@@ -20,4 +20,9 @@ public class FileNfsACLUpdateParams extends NfsACLUpdateParams {
 
     }
 
+    @Override
+    public String toString() {
+        return super.toString();
+    }
+
 }

@@ -102,6 +102,13 @@ public class JaxbClassProcessor {
                         }
                     }
 
+                    // process JsonProperty annotation
+                    String jsonName = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.JsonProperty_Annotation,
+                            KnownAnnotations.Value_Element, null);
+                    if (jsonName != null) {
+                        methodDescriptor.jsonName = jsonName;
+                    }
+
                     addFieldType(method.returnType(), methodDescriptor);
                     addValidValues(method, methodDescriptor);
 

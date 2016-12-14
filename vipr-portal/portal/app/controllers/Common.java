@@ -80,13 +80,23 @@ public class Common extends Controller {
         {
             put("/orders/submitOrder","mountPoint", PATH_SANITIZER);
             put("/orders/submitOrder","mountPath", PATH_SANITIZER);
+
             put("/ldap/save","ldapSources.managerDn", PATH_SANITIZER);
             put("/usergroup/save","userGroup.name", PATH_SANITIZER);
+
             put("/config/passwords","user", PATH_SANITIZER);
             put("/config","system_connectemc_smtp_username", PATH_SANITIZER);
             put("/config","system_update_username", PATH_SANITIZER);
             put("/config","backup_external_location_username", PATH_SANITIZER);
-            
+
+            put("/storagesystems/save","storageArray.userName", PATH_SANITIZER);
+            put("/storageproviders/save","smisProvider.userName", PATH_SANITIZER);
+            put("/dataprotectionsystems/save","dataProtectionSystem.userName", PATH_SANITIZER);
+            put("/sanswitches/save","sanSwitch.userName", PATH_SANITIZER);
+            put("/compute.computeimageservers/save","computeImageServers.userName", PATH_SANITIZER);
+            put("/compute.computesystems/save","computeSystems.userName", PATH_SANITIZER);
+            put("/hosts/save","host.username", PATH_SANITIZER);
+            put("/vCenters/save","vCenter.username", PATH_SANITIZER);
         }
     };
 

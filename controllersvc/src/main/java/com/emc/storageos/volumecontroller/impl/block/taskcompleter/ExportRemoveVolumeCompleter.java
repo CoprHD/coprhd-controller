@@ -86,12 +86,11 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                 default:
                     break;
             }
-            
-            // Check to see if Export Group needs to be cleaned up
-            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
-
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.updateObject(exportGroup);
+
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
 
             _log.info(String.format("Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

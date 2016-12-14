@@ -8,13 +8,17 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -33,10 +37,14 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
@@ -53,12 +61,17 @@ import com.iwave.ext.vmware.VCenterAPI;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
+import com.vmware.vim25.mo.Datacenter;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeSystemHelper {
 
     private static final Logger _log = LoggerFactory.getLogger(ComputeSystemHelper.class);
+    private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+    private static String ISA_NAMESPACE = "vipr";
+    private static String ISA_SEPARATOR = ":";
+    private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
 
     /**
      * This function is to retrieve the children of a given class.
@@ -563,6 +576,73 @@ public class ComputeSystemHelper {
         dbClient.updateObject(host);
         updateInitiatorClusterName(dbClient, clusterURI, hostURI);
     }
+
+    /**
+     * Update the datastore name in volume
+     * 
+     * @param dbClient
+     *            dbclient
+     * @param clusterURI
+     *            the cluster that the host is being assigned to
+     * @param hostURI
+     *            the host id
+     */
+    public static void updateDatastoreName(DbClient dbClient, URI volume, URI datastore, VCenterAPI vcenterAPI) {
+        Volume volumeobj = dbClient.queryObject(Volume.class, volume);
+        Datastore changedDatastore = null;
+        String datastoreId = datastore.toString();
+        //get the datastore that is changed
+        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+            for (Datastore ds : vcenterAPI.listDatastores(dc)) {
+                String dsUri = ds.getInfo().getUrl();
+                if (dsUri != null && dsUri.equals(datastoreId))
+                    changedDatastore = ds;
+            }
+        }
+        _log.info("Found changed Datastore =  " + changedDatastore.getInfo().getUrl());
+        //change the value of tag with new datastore name
+        ScopedLabel newSl = new ScopedLabel();
+        if (volumeobj.getTag() != null) {
+            ScopedLabelSet tagSet = volumeobj.getTag();
+            Iterator<ScopedLabel> tagIter = tagSet.iterator();
+            while (tagIter.hasNext()) {
+                ScopedLabel sl = tagIter.next();
+                String tagValue = sl.getLabel();
+                if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE))) {
+                    String oldDatastoreName = getDatastoreName(tagValue);
+                    String newDatastoreName = changedDatastore != null ? changedDatastore.getName() : null;
+                    if (oldDatastoreName != null && newDatastoreName != null && !oldDatastoreName.equals(newDatastoreName)) {
+                        tagValue = tagValue.replaceAll(oldDatastoreName, newDatastoreName);
+                        newSl.setScope(sl.getScope());
+                        newSl.setLabel(tagValue); 
+                    }
+                    volumeobj.getTag().remove(sl);
+                    dbClient.updateObject(volumeobj);
+                }
+            }
+        }
+        _log.info("Updating Volume tag for volume wwn  =  " + volumeobj.getWWN());
+        if (volumeobj.getTag() != null) {
+            volumeobj.getTag().add(newSl);
+        } else {
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            tagSet.add(newSl);
+            volumeobj.setTag(tagSet);
+        }
+        dbClient.updateObject(volumeobj);
+        _log.info("Updated Volume tag with datastore name "+ changedDatastore.getName());
+    }
+
+    public static String getDatastoreName(String tag) {
+        if (tag != null) {
+            Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
+            if (matcher.matches()) {
+                return matcher.group(2);
+            }
+        }
+        return null;
+    }
+    
 
     /**
      * Update the hosts vcenter datacenter reference

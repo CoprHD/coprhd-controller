@@ -114,15 +114,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             HashMap<Datacenter, Datastore[]> datacenterDatastoreMap = (HashMap<Datacenter, Datastore[]>) getDatastores(vcenter);
             List<VcenterDataCenter> oldDatacenters = new ArrayList<VcenterDataCenter>();
             Iterables.addAll(oldDatacenters, getDatacenters(vcenter));
-            List<Cluster> oldClusters = new ArrayList<Cluster>();
-            for(VcenterDataCenter oldDatacenter: oldDatacenters){
-                Iterables.addAll(oldClusters, getClusters(oldDatacenter));
-            }
             List<Host> oldHosts = new ArrayList<Host>();
             for (VcenterDataCenter oldDatacenter : oldDatacenters){
                 Iterables.addAll(oldHosts, getHosts(oldDatacenter));
             }           
-            processDatastoreRename(datacenterDatastoreMap, oldClusters, oldHosts, vcenter);
+            processDatastoreRename(datacenterDatastoreMap, oldHosts, vcenter);
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);

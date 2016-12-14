@@ -683,6 +683,29 @@ public class ActionableEventExecutor {
     }
     
     /**
+     * Get details for the datastore rename method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moving vcenters
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return list of event details
+     */
+    @SuppressWarnings("unused")           // Invoked using reflection for the event framework
+    public List<String> vcenterDatastoreRenameDetails(URI volume, String newDatastoreName, URI changedDatstore, URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        if (volumeObj != null && newDatastoreName != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDetails", newDatastoreName));
+            result.add(volumeObj.getLabel());
+        }
+        return result;
+    }
+
+    
+    /**
      * Method to rename a datastore and update the volume tag.
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
@@ -694,9 +717,13 @@ public class ActionableEventExecutor {
      * @param eventId the event id
      * @return task for updating the datastore name
      */
-    public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, Datastore changedDatstore, URI eventId) {
-        
-        return null;
+    public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, URI changedDatastore, URI vcenterURI, URI eventId) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
+                ResourceOperationTypeEnum.UPDATE_DATA_STORE);
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        computeController.processDatastoreName(eventId, volume, taskId, changedDatastore, vcenterURI);
+        return toTask(volumeObj, taskId, op);
     }
     
     /**

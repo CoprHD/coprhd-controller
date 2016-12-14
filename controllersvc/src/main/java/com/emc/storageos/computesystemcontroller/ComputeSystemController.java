@@ -132,6 +132,9 @@ public interface ComputeSystemController extends Controller {
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 
     public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException;
+    
+    public void processDatastoreName(URI eventId, URI volume, String taskId, URI datastore, URI vcenterURI)
+            throws ControllerException;
 
     /**
      * Synchronize the cluster's export groups by following steps:

@@ -574,8 +574,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             this.getClass(),
                             updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                     addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                            updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                    addedClusters, removedClusters, addedHosts, removedHosts, removedInitiators, addedInitiators), null);
+                            updateExportGroupRollbackMethod(export.getId()), null);
                 }
             }
         }
@@ -1528,10 +1527,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_042);
-            
+
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
 
             // Test mechanism to invoke a failure. No-op on production systems.

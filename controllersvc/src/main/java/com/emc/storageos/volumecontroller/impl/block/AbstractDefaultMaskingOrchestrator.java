@@ -2152,8 +2152,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected Map<URI, Boolean> flagInitiatorsThatArePartOfAFullList(ExportGroup exportGroup,
             List<URI> initiatorURIs) {
         Map<URI, Boolean> initiatorFlagMap = new HashMap<URI, Boolean>();
-        // We only care about Host and Cluster exports for this processing
-        if (exportGroup.forCluster() || exportGroup.forHost()) {
+        /**
+         * TODO Should not remove volume from mask for the EG remove initiator call.
+         */
+        // We only care about Host exports for this processing
+        if (exportGroup.forHost()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
             Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);

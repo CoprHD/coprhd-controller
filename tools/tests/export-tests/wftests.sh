@@ -1742,7 +1742,7 @@ snap_db() {
     for cf in ${column_families}
     do
       # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "varray = URI: null" | grep -v "Description:" | grep -v "Additional" | grep -v -e '^$' | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
+      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "StringSet \[\]" | grep -v "varray = URI: null" | grep -v "Description:" | grep -v "Additional" | grep -v -e '^$' | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
     done
 }      
 
@@ -2469,8 +2469,10 @@ test_7() {
     echot "Test 7 Begins"
     expname=${EXPORT_GROUP_NAME}t7
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
-
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_004:failure_016_Export_doRemoveInitiator \
+                               failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2478,9 +2480,7 @@ test_7() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_004:failure_016_Export_doRemoveInitiator \
-                                    failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+	storage_failure_injections=""
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

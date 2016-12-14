@@ -1554,6 +1554,16 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 });
 
+angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
+    angular.element("#myOrderSelector").ready(function () {
+        $scope.$apply(function () {
+            $scope.myOrder.startDate = "2016-12-16";
+            $scope.myOrder.endDate = "2016-12-17";
+        });
+    });
+
+});
+
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
     $scope.pad = function(number) {
        return (number < 10 ? '0' : '') + number

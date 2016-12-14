@@ -4,7 +4,7 @@
 #{DataTable.header titleKey:'myOrders.title'/}
 ${orderCount}
 
-<div class="max-days-selector" 
+<div class="max-days-selector" ng-controller="MyOrdersCtrl" id="myOrderSelector"
 #{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if} 
 #{else} style="margin-left: -170px;margin-right:170px" #{/else}
 >

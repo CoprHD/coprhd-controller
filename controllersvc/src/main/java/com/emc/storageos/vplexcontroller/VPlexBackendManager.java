@@ -1051,7 +1051,7 @@ public class VPlexBackendManager {
         Map<URI, String> initiatorSwitchMap = null;
         Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap = null;
         Map<URI, List<StoragePort>> storageports = getStoragePorts(portGroups);
-        PlacementUtils.getSwitchfoForInititaorsStoragePorts(_initiators, storageports, _dbClient, array,
+        PlacementUtils.getSwitchNameForInititaorsStoragePorts(_initiators, storageports, _dbClient, array, 
                 initiatorSwitchMap, switchStoragePortsMap);
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
@@ -1524,8 +1524,8 @@ public class VPlexBackendManager {
      */
     private Map<URI, Map<String, Integer>> getSwitchToMaxPortNumberMap(StorageSystem array) {
         Map<URI, Map<String, Integer>> result = new HashMap<URI, Map<String, Integer>>();
-        boolean isSwitchAffinityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
-                DiscoveredDataObject.Type.vplex);
+        boolean isSwitchAffinityEnabled = BlockStorageScheduler.isSwitchAffinityAllocationEnabled(
+                DiscoveredDataObject.Type.vplex.name());
         if(!isSwitchAffinityEnabled) {
             _log.info("Switch affinity for port allocation is disabled");
             return result;

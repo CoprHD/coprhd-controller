@@ -428,7 +428,7 @@ public class StoragePortsAllocator {
      * @param allowFewerPorts
      *            -- If true, do not fail if fewer ports can be allocated than requested.
      * @param switchToMaxPortNumber
-     *            -- The map of switch name to the max port number could be allocated in the switch
+     *            -- The map of switch name to the max port number could be allocated
      * @return
      * @throws DeviceControllerException if not enough ports are allocated
      */
@@ -985,6 +985,8 @@ public class StoragePortsAllocator {
      *            The number of ports requested to be allocated.
      * @param allowFewerPorts
      *            If set, allow fewer ports to be allocated than numPorts requested.
+     * @param switchToMaxPortNumber 
+     *            The map of switch name to storage port numbers to be allocated for the network
      * @return
      * @throws PlacementException if not enough ports are allocated
      */

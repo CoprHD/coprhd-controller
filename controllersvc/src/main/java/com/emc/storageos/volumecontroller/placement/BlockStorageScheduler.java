@@ -79,7 +79,8 @@ public class BlockStorageScheduler {
     private DbClient _dbClient;
     private PortMetricsProcessor _portMetricsProcessor;
     private NetworkScheduler _networkScheduler;
-
+    private static CustomConfigHandler customConfigHandler;
+    
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
@@ -95,7 +96,10 @@ public class BlockStorageScheduler {
             _networkScheduler = networkScheduler;
         }
     }
-
+    
+    public void setCustomConfigHandler(CustomConfigHandler configHandler) {
+        customConfigHandler = configHandler;
+    }
     /**
      * Invoke placement to select storage ports for export, and then
      * to assign specific storage ports to specific initiators.
@@ -383,8 +387,7 @@ public class BlockStorageScheduler {
         // We need to align the masking of volumes to hosts to the same ports as the RP masking view.
         portUsageMap = filterStoragePortsForRPVMAX(system.getId(), networkMap, varray, portUsageMap, volumeURIs);
         
-        boolean isSwitchLocalityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
-                DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        boolean isSwitchLocalityEnabled = isSwitchAffinityAllocationEnabled(system.getSystemType());
         _log.info(String.format("The switch affinity is %s .", isSwitchLocalityEnabled));
 
         // Loop through all the required Networks, allocating ports as necessary.
@@ -773,6 +776,7 @@ public class BlockStorageScheduler {
      * @param allocator The StoragePortsAllocator to use
      * @param previouslyAllocatedPorts A set of previously allocated ports in this Network
      * @param allowFewerPorts Boolean if true allows allocating fewer ports than requested
+     * @param switchToMaxPortNumber The map of switch name to storage port numbers to be allocated for the network
      * @return List of the allocated ports in an order for good redundancy.
      * @throws PlacementException
      */
@@ -2037,7 +2041,9 @@ public class BlockStorageScheduler {
                     // Assign the storage ports on a per host basis.
                     for (Map.Entry<URI, Map<URI, List<Initiator>>> entry : hostsToNetToInitiators.entrySet()) {
                         URI hostURI = entry.getKey();
+                        // The map of switch name to Initiators per network
                         Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = null;
+                        // The map of swtich name to storage ports per network
                         Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = null;
                         Map<URI, List<Initiator>> initiatorByNetMap = entry.getValue();
                         PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
@@ -2274,6 +2280,25 @@ public class BlockStorageScheduler {
             }
         }
         return result;
+    }
+    
+    /**
+     * Check whether switch locality is enabled.
+     * 
+     * @return
+     */
+    static public Boolean isSwitchAffinityAllocationEnabled(String systemType) {
+        Boolean switchLocalityAllocationEnabled = false;
+
+        try {
+            switchLocalityAllocationEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.PORT_ALLOCATION_SWITCH_AFFINITY_ENABLED,
+                            systemType, null));
+        } catch (Exception e) {
+            _log.warn("exception while getting custom config value", e);
+        }
+        return switchLocalityAllocationEnabled;
     }
     
 }

@@ -14,6 +14,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -43,8 +45,7 @@ public class PlacementUtils {
             Map<URI, List<StoragePort>> storagePortsMap, DbClient dbClient, StorageSystem system, 
             Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet,
             Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet) {
-        boolean isSwitchAffinityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
-                DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        boolean isSwitchAffinityEnabled = BlockStorageScheduler.isSwitchAffinityAllocationEnabled(system.getSystemType());
         if (!isSwitchAffinityEnabled) {
             return;
         }
@@ -149,12 +150,11 @@ public class PlacementUtils {
      * @param initiatorSwitchMap OUTPUT map of initiator to switch name
      * @param switchStoragePortsMap OUPTUT map of switch name to list of storage ports
      */
-    public static void getSwitchfoForInititaorsStoragePorts(List<Initiator> initiators, 
+    public static void getSwitchNameForInititaorsStoragePorts(List<Initiator> initiators, 
             Map<URI, List<StoragePort>> storagePorts, DbClient dbClient, StorageSystem system, 
             Map<URI, String> initiatorSwitchMap,
             Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNetMap) {
-        boolean isSwitchAffinityEnabled = PortMetricsProcessor.isSwitchAffinityAllocationEnabled(
-                DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        boolean isSwitchAffinityEnabled = BlockStorageScheduler.isSwitchAffinityAllocationEnabled(system.getSystemType());
         if (!isSwitchAffinityEnabled) {
             return;
         }
@@ -191,4 +191,5 @@ public class PlacementUtils {
         }
         
     }
+    
 }

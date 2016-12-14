@@ -1466,26 +1466,6 @@ public class PortMetricsProcessor {
         }
         return portMetricsAllocationEnabled;
     }
-
-    /**
-     * Check whether switch locality is enabled.
-     * 
-     * @return
-     * @see storageos-properties-config.def
-     */
-    static public Boolean isSwitchAffinityAllocationEnabled(StorageSystem.Type systemType) {
-        Boolean switchLocalityAllocationEnabled = false;
-
-        try {
-            switchLocalityAllocationEnabled = Boolean.valueOf(
-                    customConfigHandler.getComputedCustomConfigValue(
-                            CustomConfigConstants.PORT_ALLOCATION_SWITCH_AFFINITY_ENABLED,
-                            getStorageSystemTypeName(systemType), null));
-        } catch (Exception e) {
-            _log.debug(e.getMessage());
-        }
-        return switchLocalityAllocationEnabled;
-    }
     
     /**
      * ViPR allocate port based on collected usage metrics, used initiator and volume. The ports which are being heavily used and

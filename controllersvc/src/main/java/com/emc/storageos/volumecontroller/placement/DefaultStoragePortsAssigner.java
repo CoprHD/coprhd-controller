@@ -500,6 +500,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 List<StoragePort> allocatedPorts = null;
                 Map<String, List<Initiator>>switchInitiators = null;
                 String switchUsed = null;
+                // Set the initiator and allocated storage ports with the switch affinity
                 if (switchToInitiatorsByNet != null && !switchToInitiatorsByNet.isEmpty() &&
                         switchToStoragePortsByNet != null &&  !switchToStoragePortsByNet.isEmpty()) {
                     // Find the initiators and storage ports are connected to the same switch.
@@ -523,6 +524,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     }
                 } 
                 if (initiator == null) {
+                    // No switch affinity initiator/ allocated storage ports found, get the first initiator in the list, 
+                    // and the allocated ports for this network
                     initiator = entry.getValue().get(0);
                     allocatedPorts = netToAllocatedPorts.get(entry.getKey());
                 }

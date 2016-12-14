@@ -634,7 +634,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
-        if (null != clusterHosts && clusterHosts.isEmpty()) {
+        if (null == clusterHosts || clusterHosts.isEmpty()) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
             log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),

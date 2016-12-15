@@ -211,7 +211,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
         Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap = new HashMap<String, List<UnManagedVolume>>();
         Map<String, StringSet> igKnownVolumesMap = new HashMap<String, StringSet>();
         Map<String, Map<String,String>> volumeIGHLUMap = new HashMap<String, Map<String,String>>();
-        Map<String,String> igHLUMap = new HashMap<String, String>();
 
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
@@ -309,6 +308,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 "");
                     }
                     if (isExported) {
+                        Map<String,String> igHLUMap = new HashMap<String, String>();
                         for (List<Object> lunMapEntries : volume.getLunMaps()) {
                             Double hlu = (Double) lunMapEntries.get(2);
                             log.info("Found HLU {}", hlu);
@@ -483,8 +483,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
         StringSet knownFCStoragePortUris = new StringSet();
         StringSet knownIPStoragePortUris = new StringSet();
         List<StoragePort> matchedFCPorts = new ArrayList<StoragePort>();
-        StringSet hostHlu = new StringSet();
-        Map<String, String> igHLUMap = new HashMap<String, String>();
 
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -587,11 +585,17 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
 
                         String nativeGuid = hostUnManagedVol.getNativeGuid();
-                        igHLUMap = volumeIGHLUMap.get(nativeGuid);
+                        Map<String, String> igHLUMap = volumeIGHLUMap.get(nativeGuid);
                         if (igHLUMap != null) {
                             String hlu = igHLUMap.get(igName);
                             if (StringUtils.isNotEmpty(hlu)) {
+                                StringSet hostHlu = new StringSet();
                                 hostHlu.add(hostname + "=" + hlu);
+                                StringSet existingHostHlu = (StringSet) hostUnManagedVol.getVolumeInformation().get(
+                                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP);
+                                if (existingHostHlu != null) {
+                                    hostHlu.addAll(existingHostHlu);
+                                }
                                 hostUnManagedVol.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
                             }
                         }

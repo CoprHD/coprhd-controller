@@ -309,10 +309,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
-    public void setNoBoot(URI computeSystemId, URI computeElementId, URI hostId, boolean waitForServerRestart)
+    private void setNoBoot(URI computeSystemId, URI computeElementId, URI hostId, boolean waitForServerRestart)
             throws InternalException {
 
-        log.info("setNoBoot");
+        log.info("Compute Element %s is being set to No Boot", computeElementId);
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
 
         getDevice(cs.getSystemType()).setNoBoot(cs, computeElementId, hostId, waitForServerRestart);

@@ -1012,7 +1012,11 @@ public class UcsComputeDevice implements ComputeDevice {
                         computeElement.getDn(), LsServer.class);
             }
         } catch (ClientGeneralException e) {
-            throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElementId.toString(), e);
+            if (computeElement == null){
+                throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElementId.toString(), e);
+            } else {
+                throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElement.getLabel(), e);
+            }
         }
 
     }

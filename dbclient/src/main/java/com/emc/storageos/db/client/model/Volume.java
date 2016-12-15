@@ -95,6 +95,9 @@ public class Volume extends BlockObject implements ProjectResource {
     private StringSet volumeGroupIds;
     // Compression ratio of the volume if it is compressed
     private String _compressedRatio = null;
+    // VPLEX virtual volumes only: Name reference of replication group 
+    // that this Volume's backing Volumes belong to.
+    private String _backingReplicationGroupInstance;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -1127,4 +1130,15 @@ public class Volume extends BlockObject implements ProjectResource {
         this._compressedRatio = compressionRatio;
         setChanged("compressionRatio");
     }
+
+    @Name("backingReplicationGroupInstance")
+    public String getBackingReplicationGroupInstance() {
+        return _backingReplicationGroupInstance;
+    }
+
+    public void setBackingReplicationGroupInstance(String backingReplicationGroupInstance) {
+        _backingReplicationGroupInstance = backingReplicationGroupInstance;
+        setChanged("backingReplicationGroupInstance");
+    }
+
 }

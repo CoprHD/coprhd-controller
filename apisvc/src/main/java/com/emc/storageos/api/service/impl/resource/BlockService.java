@@ -1258,6 +1258,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vPool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vPool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vPool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vPool.getMultivolumeConsistency() != null && vPool.getMultivolumeConsistency()) {

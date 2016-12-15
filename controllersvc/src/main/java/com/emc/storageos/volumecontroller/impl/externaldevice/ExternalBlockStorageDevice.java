@@ -1768,8 +1768,38 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void deleteReplicationPair(URI replicationPair, TaskCompleter taskCompleter) {
+    public void deleteReplicationPairs(List<URI> replicationPairs, TaskCompleter taskCompleter) {
+        _log.info("Delete replication pairs: \n" +
+                           "\t\t {}", replicationPairs);
 
+        try {
+            // prepare driver replication pairs and call driver
+            List<RemoteReplicationPair> systemReplicationPairs = dbClient.queryObject(RemoteReplicationPair.class, replicationPairs);
+            List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+            prepareDriverRemoteReplicationPairs(systemReplicationPairs, driverRRPairs);
+
+            // call driver
+            RemoteReplicationDriver driver = getDriver(systemReplicationPairs.get(0));
+            DriverTask task = driver.deleteReplicationPairs(Collections.unmodifiableList(driverRRPairs));
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // delete system replication pairs in database
+                dbClient.markForDeletion(systemReplicationPairs);
+                String msg = String.format("deleteReplicationPairs -- Deleted replication pairs: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("deleteReplicationPairs -- Failed to delete replication pairs: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.deleteRemoteReplicationPairsFailed(errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String errorMsg = String.format("deleteReplicationPairs -- Failed to delete replication pairs: %s", replicationPairs);
+            _log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteRemoteReplicationPairsFailed(errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
     }
 
     @Override
@@ -1911,7 +1941,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     /**
-     * Builds driver repliction pairs from system replication pairs.
+     * Builds driver replication pairs from system replication pairs.
      * @param systemReplicationPairs system replication pairs (input)
      * @param driverRRPairs driver replication pairs (output)
      */

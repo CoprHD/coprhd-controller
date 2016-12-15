@@ -16,6 +16,8 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -48,6 +50,15 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
 
     @Override
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs, String deletionType) {
+        // We get URIs of source volumes. Get rrPairs with these sources and get targets.
+        // Build descriptors for source and target block volumes.
+        // Build descriptors for rr source volumes (to be processed by rr device controller)
+        List<RemoteReplicationPair> remoteReplicationPairs = new ArrayList<>();
+        for (URI volumeURI : volumeURIs) {
+            List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volumeURI, RemoteReplicationPair.class, "sourceElement");
+            remoteReplicationPairs.addAll(rrPairs);
+        }
+
         return null;
     }
 
@@ -202,6 +213,18 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         _dbClient.updateObject(volumes);
 
         return volumeDescriptors;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws InternalException
+     */
+    @Override
+    public void deleteVolumes(final URI systemURI, final List<URI> volumeURIs,
+                              final String deletionType, final String task) throws InternalException {
+        _log.info("Request to delete {} volume(s) with Remote Replication Protection", volumeURIs.size());
+        super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
 
 }

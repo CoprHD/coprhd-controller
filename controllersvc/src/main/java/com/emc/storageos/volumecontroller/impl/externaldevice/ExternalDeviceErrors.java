@@ -77,4 +77,7 @@ public interface ExternalDeviceErrors {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_GROUP_REMOTE_REPLICATION_PAIR_ERROR)
     public ServiceError createGroupRemoteReplicationPairsFailed(String groupId, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_REMOTE_REPLICATION_PAIR_ERROR)
+    public ServiceError deleteRemoteReplicationPairsFailed(String errorMsg);
 }

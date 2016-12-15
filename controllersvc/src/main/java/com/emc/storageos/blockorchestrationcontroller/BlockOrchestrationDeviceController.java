@@ -196,6 +196,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _srdfDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
 
+            s_logger.info("Checking for Remote Replication steps");
+            // Call the RemoteReplicationDeviceController to add its methods if there are remotely protected SB SDK
+            // volumes.
+            waitFor = _remoteReplicationDeviceController.addStepsForDeleteVolumes(
+                    workflow, waitFor, volumes, taskId);
+
             // Next, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);

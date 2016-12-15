@@ -6345,8 +6345,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // commits are successful.
                 VPlexVirtualVolumeInfo updatedVirtualVolumeInfo = migrationInfoList.get(0).getVirtualVolumeInfo();
 
-                // Will be non-null if the VPLEX volume was manually
-                // renamed after commit.
+                // update any properties that were changed after migration including deviceLabel, nativeGuid, and nativeId.
+                // also, if the updated volume isn't thin-enabled, it is thin-capable, and the target vpool supports thin
+                // provisioning, then a call should be made to the VPLEX to flip the thin-enabled flag on for this volume.
                 if (updatedVirtualVolumeInfo != null) {
                     _log.info(String.format("New virtual volume is %s", updatedVirtualVolumeInfo.toString()));
 

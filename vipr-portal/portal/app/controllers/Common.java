@@ -88,6 +88,7 @@ public class Common extends Controller {
             put("/config","system_connectemc_smtp_username", PATH_SANITIZER);
             put("/config","system_update_username", PATH_SANITIZER);
             put("/config","backup_external_location_username", PATH_SANITIZER);
+            put("/site/save","disasterRecovery.userName", PATH_SANITIZER);
 
             put("/storagesystems/save","storageArray.userName", PATH_SANITIZER);
             put("/storageproviders/save","smisProvider.userName", PATH_SANITIZER);

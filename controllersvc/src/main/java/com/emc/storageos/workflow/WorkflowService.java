@@ -2190,20 +2190,13 @@ public class WorkflowService implements WorkflowController {
                 if (rollBackStarted) {
                     _log.info(String.format("Rollback initiated workflow %s", uri));
                 } else {
-                    // We were unable to initiate rollback for some reason, this is an error.
-                    WorkflowState state = workflow.getWorkflowStateFromSteps();
-                    switch (state) {
-                        case SUCCESS:
-                            completer.ready(_dbClient);
-                            ;
-                            break;
-                        default:
-                            WorkflowException ex = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
-                            completer.error(_dbClient, ex);
-                            ;
-                    }
+                    // We were unable to initiate rollback, probably because there is no rollback handler somehwere
+                    // Initiate end processing on the workflow, which will release the workflowLock.
+                    doWorkflowEndProcessing(workflow, false, workflowLock);
+                    workflowLock = null;
                 }
             } finally {
+                completer.ready(_dbClient);
                 unlockWorkflow(workflow, workflowLock);
             }
         } catch (WorkflowException ex) {

@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +30,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 
 public class ExportHLUProcessor extends StorageProcessor {
     private Logger logger = LoggerFactory.getLogger(ExportHLUProcessor.class);
@@ -73,7 +73,9 @@ public class ExportHLUProcessor extends StorageProcessor {
             }
 
         } catch (Exception e) {
-            logger.error("Extracting HLU for exported Volumes failed", e);
+            String errMsg = "Extracting HLU for exported Volumes failed: " + e.getMessage();
+            logger.error(errMsg, e);
+            throw SmisException.exceptions.hluRetrievalFailed(errMsg, e);
         } finally {
             if (null != protocolControllerForUnitInstances) {
                 protocolControllerForUnitInstances.close();

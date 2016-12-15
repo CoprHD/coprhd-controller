@@ -55,6 +55,9 @@ public class FilePolicy extends DataObjectWithACLs {
     // Snapshot expire at
     private Long snapshotExpireTime;
 
+    // Snapshot name pattern
+    private String snapshotNamePattern;
+
     // File Replication type
     private String fileReplicationType;
 
@@ -226,6 +229,16 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setSnapshotExpireTime(Long snapshotExpireTime) {
         this.snapshotExpireTime = snapshotExpireTime;
         setChanged("snapshotExpireTime");
+    }
+
+    @Name("snapshotNamePattern")
+    public String getSnapshotNamePattern() {
+        return this.snapshotNamePattern;
+    }
+
+    public void setSnapshotNamePattern(String snapshotNamePattern) {
+        this.snapshotNamePattern = snapshotNamePattern;
+        setChanged("snapshotNamePattern");
     }
 
     @Name("accessTenants")

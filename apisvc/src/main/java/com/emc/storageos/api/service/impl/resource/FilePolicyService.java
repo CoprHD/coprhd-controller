@@ -394,6 +394,7 @@ public class FilePolicyService extends TaskResourceService {
         fileReplicationPolicy.setLabel(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyType(param.getPolicyType());
+        fileReplicationPolicy.setPriority(param.getPriority());
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             fileReplicationPolicy.setFilePolicyDescription(param.getPolicyDescription());
         }
@@ -442,6 +443,7 @@ public class FilePolicyService extends TaskResourceService {
         }
         fileSnapshotPolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
         fileSnapshotPolicy.setSnapshotExpireType(param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType());
+        fileSnapshotPolicy.setSnapshotNamePattern(param.getSnapshotPolicyPrams().getSnapshotNamePattern());
         if (!param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType()
                 .equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
             fileSnapshotPolicy.setSnapshotExpireTime((long) param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireValue());
@@ -465,6 +467,10 @@ public class FilePolicyService extends TaskResourceService {
 
         // validate and update common parameters!!
         updatePolicyCommonParameters(fileReplicationPolicy, param);
+
+        if (param.getPriority() != null) {
+            fileReplicationPolicy.setPriority(param.getPriority());
+        }
 
         // validate and update replication parameters!!!
         if (param.getReplicationPolicyParams() != null) {
@@ -527,6 +533,9 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyScheduleParam(param.getPolicyName(), errorMsg.toString());
         }
 
+        if (param.getSnapshotPolicyPrams().getSnapshotNamePattern() != null) {
+            fileSnapshotPolicy.setSnapshotNamePattern(param.getSnapshotPolicyPrams().getSnapshotNamePattern());
+        }
         this._dbClient.createObject(fileSnapshotPolicy);
 
         // <TODO>

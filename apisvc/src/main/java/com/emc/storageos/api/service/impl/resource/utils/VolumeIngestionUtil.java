@@ -3374,7 +3374,7 @@ public class VolumeIngestionUtil {
      */
     public static Integer findHlu(UnManagedVolume unManagedVolume, String exportMaskName) {
 
-        // TODO currently only the VPLEX discovery process is creating
+        // TODO currently only the VPLEX, VMAX discovery process is creating
         // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
         // unmanaged volume discovery services if the HLU is found to be required.
         // By default, if no mapping is found, a LUN_UNASSIGNED (-1) will be returned.
@@ -3398,7 +3398,7 @@ public class VolumeIngestionUtil {
                             if (null != hluStr && !hluStr.isEmpty()) {
                                 try {
                                     hlu = Integer.valueOf(hluStr);
-                                    _logger.info("found hlu {} for {} in export mask "
+                                    _logger.info("found HLU {} for {} in export mask "
                                             + exportMaskName, hlu,
                                             unManagedVolume.getLabel());
                                 } catch (NumberFormatException ex) {

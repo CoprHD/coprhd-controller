@@ -25,13 +25,10 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -94,8 +91,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * 
      * Finds the next available HLU for cluster export by querying the cluster's hosts'
      * used HLUs and updates the volumeHLU map with free HLUs.
-     * If it is a host export where the host belongs to a cluster, then the exclusive export
-     * to this host should be assigned with cluster's next free HLU number.
      *
      * @param storage the storage system
      * @param exportGroup the export group
@@ -104,42 +99,24 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      */
     public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
-        List<URI> clusterInitiators = null;
-        if (volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+        if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                 && ExportUtils.isFindFreeHLUSupportedForStorage(storage)) {
             _log.info("Find and update free HLUs for Cluster Export START..");
-            if (exportGroup.forCluster()) {
-                clusterInitiators = initiatorURIs;
-            } else if (exportGroup.forHost()) {
-                /**
-                 * If the host belongs to a cluster, then the exclusive export to this host
-                 * should be assigned with cluster's next free HLU number.
-                 */
-                String hostStr = exportGroup.getHosts().iterator().next();
-                Host host = _dbClient.queryObject(Host.class, URI.create(hostStr));
-                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                    _log.info("Host {} is part of Cluster", host.getHostName());
-                    // get all the hosts' initiators for this cluster
-                    clusterInitiators = ExportUtils.getAllInitiatorsForCluster(host.getCluster(), _dbClient);
-                }
-            }
+            /**
+             * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+             * Add all hosts's HLUs to a Set.
+             * Get the maximum allowed HLU for the storage array.
+             * Calculate the free lowest available HLUs.
+             * Update the new values in the VolumeHLU Map.
+             */
+            Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
 
-            if (clusterInitiators != null) {
-                /**
-                 * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
-                 * Add all hosts's HLUs to a Set.
-                 * Get the maximum allowed HLU for the storage array.
-                 * Calculate the free lowest available HLUs.
-                 * Update the new values in the VolumeHLU Map.
-                 */
-                Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+            Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
 
-                Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+            Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
-                Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+            ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
 
-                ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
-            }
             _log.info("Find and update free HLUs for Cluster Export END.");
         } else {
             _log.info("Find and update free HLUs for Cluster Export not required");
@@ -181,21 +158,20 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void validateHLUForLunViolations(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
-        if (exportGroup.forCluster()) {
-            // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-            List<URI> clusterInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-            Set<Integer> clusterUsedHlus = findHLUsForClusterHosts(storage, exportGroup, clusterInitiators);
+        // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
+        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
+            Collection<String> egHlus = exportGroup.getVolumes().values();
+            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
             Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
-            newHostUsedHlus.retainAll(clusterUsedHlus);
+            newHostUsedHlus.retainAll(clusterHlus);
             if (!newHostUsedHlus.isEmpty()) {
                 _log.info("Conflicting HLUs: {}", newHostUsedHlus);
-                if (exportGroup.getVolumes() != null) {
-                    for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-                        Integer hlu = Integer.valueOf(entry.getValue());
-                        if (newHostUsedHlus.contains(hlu)) {
-                            volumeHluPair.put(entry.getKey(), hlu);
-                        }
+                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                    Integer hlu = Integer.valueOf(entry.getValue());
+                    if (newHostUsedHlus.contains(hlu)) {
+                        volumeHluPair.put(entry.getKey(), hlu);
                     }
                 }
                 throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);

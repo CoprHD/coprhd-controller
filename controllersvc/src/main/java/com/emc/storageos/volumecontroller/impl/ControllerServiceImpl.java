@@ -582,32 +582,11 @@ public class ControllerServiceImpl implements ControllerService {
             _log.info("No out-of-tree driver is installed, keep driver info remained as loaded from Spring context");
             return;
         }
+        initDriverManager(types);
+        initExternalBlockStorageDevice(types);
+    }
 
-        // init storageDriverManager instance
-        StorageDriverManager driverManager = (StorageDriverManager) getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
-        for (StorageSystemType type : types) {
-            String typeName = type.getStorageTypeName();
-            String driverName = type.getDriverName();
-            if (type.getIsSmiProvider()) {
-                driverManager.getStorageProvidersMap().put(driverName, typeName);
-                _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
-                continue;
-            }
-            driverManager.getStorageSystemsMap().put(driverName, typeName);
-            if (type.getManagedBy() != null) {
-                driverManager.getProviderManaged().add(typeName);
-            } else {
-                driverManager.getDirectlyManaged().add(typeName);
-            }
-            if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.FILE.toString())) {
-                driverManager.getFileSystems().add(typeName);
-            } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
-                driverManager.getBlockSystems().add(typeName);
-            }
-            _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
-        }
-
-        // init externalBlockStorageDevice instance
+    private void initExternalBlockStorageDevice(List<StorageSystemType> types) {
         ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
         // key: storage system type name, value: driver instance
         Map<String, AbstractStorageDriver> blockDeviceDrivers = blockDevice.getDrivers();
@@ -638,6 +617,31 @@ public class ControllerServiceImpl implements ControllerService {
             } catch (Exception e) {
                 _log.error("Error happened when instantiating class {}", mainClassName);
             }
+        }
+    }
+
+    private void initDriverManager(List<StorageSystemType> types) {
+        StorageDriverManager driverManager = (StorageDriverManager) getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        for (StorageSystemType type : types) {
+            String typeName = type.getStorageTypeName();
+            String driverName = type.getDriverName();
+            if (type.getIsSmiProvider()) {
+                driverManager.getStorageProvidersMap().put(driverName, typeName);
+                _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
+                continue;
+            }
+            driverManager.getStorageSystemsMap().put(driverName, typeName);
+            if (type.getManagedBy() != null) {
+                driverManager.getProviderManaged().add(typeName);
+            } else {
+                driverManager.getDirectlyManaged().add(typeName);
+            }
+            if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.FILE.toString())) {
+                driverManager.getFileSystems().add(typeName);
+            } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                driverManager.getBlockSystems().add(typeName);
+            }
+            _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
         }
     }
 

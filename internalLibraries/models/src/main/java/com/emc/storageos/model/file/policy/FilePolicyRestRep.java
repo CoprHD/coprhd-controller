@@ -33,6 +33,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private SnapshotSettingsRestRep snapshotSettings;
 
+    private String priority;
+
     @XmlElement(name = "schedule")
     public ScheduleRestRep getSchedule() {
         return schedule;
@@ -82,6 +84,15 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     @XmlElement(name = "description")
     public String getDescription() {
         return description;
+    }
+
+    @XmlElement(name = "priority")
+    public String getPriority() {
+        return priority;
+    }
+
+    public String setPriority(String priority) {
+        return this.priority = priority;
     }
 
     public void setType(String type) {

@@ -64,6 +64,9 @@ public class FilePolicy extends DataObjectWithACLs {
     // File Policy associated Virtual Pool - this is being used for project and file system policy
     private URI filePolicyVpool;
 
+    // Policy priority Low/High
+    private String priority;
+
     /**
      * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
      * provisioning.
@@ -263,5 +266,14 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setFilePolicyVpool(URI filePolicyVpool) {
         this.filePolicyVpool = filePolicyVpool;
         setChanged("filePolicyVpool");
+    }
+
+    @Name("priority")
+    public String getPriority() {
+        return priority;
+    }
+
+    public String setPriority(String priority) {
+        return this.priority = priority;
     }
 }

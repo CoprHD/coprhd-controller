@@ -19,6 +19,7 @@ import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
@@ -125,6 +126,22 @@ public class SchedulePolicies extends ViprResourceController {
         policyTypeOptions.add(new StringOption("file_snapshot", MessagesUtils.get("schedulePolicy.snapshot")));
         policyTypeOptions.add(new StringOption("file_replication", MessagesUtils.get("schedulePolicy.replication")));
         renderArgs.put("policyTypeOptions", policyTypeOptions);
+
+        List<StringOption> replicationTypeOptions = Lists.newArrayList();
+        replicationTypeOptions.add(new StringOption("replication_remote", MessagesUtils.get("schedulePolicy.replicationRemote")));
+        replicationTypeOptions.add(new StringOption("replication_local", MessagesUtils.get("schedulePolicy.replicationLocal")));
+        renderArgs.put("replicationTypeOptions", replicationTypeOptions);
+
+        List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
+        replicationCopyTypeOptions.add(new StringOption("replication_async", MessagesUtils.get("schedulePolicy.replicationAsync")));
+        replicationCopyTypeOptions.add(new StringOption("replication_semisync", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
+        replicationCopyTypeOptions.add(new StringOption("replication_sync", MessagesUtils.get("schedulePolicy.replicationSync")));
+        renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
+
+        List<StringOption> policyPriorityOptions = Lists.newArrayList();
+        policyPriorityOptions.add(new StringOption("priority_hign", MessagesUtils.get("schedulePolicy.priorityHigh")));
+        policyPriorityOptions.add(new StringOption("priority_low", MessagesUtils.get("schedulePolicy.priorityLow")));
+        renderArgs.put("policyPriorityOptions", policyPriorityOptions);
 
     }
 
@@ -353,6 +370,14 @@ public class SchedulePolicies extends ViprResourceController {
 
         public List<String> tenants;
 
+        // Replication policy specific fields
+        // Replication type local / remote
+        public String replicationType;
+        // Replication copy type - sync / async / demi-sync
+        public String replicationCopyType;
+        // Replication policy priority low /high
+        public String priority;
+
         /*
          * public SchedulePolicyForm form(SchedulePolicyRestRep restRep) {
          * 
@@ -445,6 +470,21 @@ public class SchedulePolicies extends ViprResourceController {
                 this.expiration = "NEVER";
             } else {
                 this.expiration = "EXPIRE_TIME";
+            }
+
+            if (restRep.getPriority() != null) {
+                this.priority = restRep.getPriority();
+            }
+
+            // Update replication fileds
+            if (restRep.getReplicationSettings() != null) {
+                ReplicationSettingsRestRep replSetting = restRep.getReplicationSettings();
+                if (replSetting.getMode() != null) {
+                    this.replicationCopyType = replSetting.getMode();
+                }
+                if (replSetting.getType() != null) {
+                    this.replicationType = replSetting.getType();
+                }
             }
 
             // Get the ACLs

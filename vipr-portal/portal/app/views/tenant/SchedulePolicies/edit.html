@@ -37,6 +37,8 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
+    
+    #{if schedulePolicy.policyType == "file_snapshot"}
     #{field 'schedulePolicy.snapshotPattern'}
       %{
         field.required = true
@@ -44,6 +46,19 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
+    #{/if}
+    
+    #{if schedulePolicy.policyType == "file_replication"}
+     #{field 'schedulePolicy.replicationType'}
+       #{Form.selectOneControlGroup field:field, options:replicationTypeOptions, select:schedulePolicy.replicationType, cssClass:'span3' /}
+     #{/field}
+      #{field 'schedulePolicy.replicationCopyType'}
+       #{Form.selectOneControlGroup field:field, options:replicationCopyTypeOptions, select:schedulePolicy.policyTypereplicationCopyType, cssClass:'span3' /}
+     #{/field}
+      #{field 'schedulePolicy.priority'}
+       #{Form.selectOneControlGroup field:field, options:policyPriorityOptions, select:schedulePolicy.priority, cssClass:'span3' /}
+     #{/field}
+    #{/if}
     
     <!-- - -->
     #{field 'schedulePolicy.scheduleTime'}
@@ -125,6 +140,8 @@
     #{/Form.controlGroup}
   #{/field}
   
+  *{ expire parameters belongs to snapshot policy }*
+   #{if schedulePolicy.policyType == "file_snapshot"}
    #{field 'schedulePolicy.expiration'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%
@@ -151,7 +168,8 @@
       
     #{/Form.controlGroup}
   #{/field}
-
+  #{/if}
+  
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
   #{if tenantOptions}
     #{collapse 'schedulePolicy.group.accessControl', icon:'user'}

@@ -1110,4 +1110,19 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         return task;
     }
 
+    @Override
+    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        List<String> nativeIds = new ArrayList<>();
+        replicationPairs.stream().forEach(p->nativeIds.add(p.getNativeId()));
+        String msg = String.format("%s: %s --- deleted replication pairs %s.", driverName, "deleteReplicationPairs", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
 }

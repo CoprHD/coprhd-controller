@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
@@ -158,7 +159,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     @Override
     public String addStepsForCreateVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         List<VolumeDescriptor> rrDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
+                new VolumeDescriptor.Type[]{VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
                         VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET}, new VolumeDescriptor.Type[] {});
         if (rrDescriptors.isEmpty()) {
             _log.info("No Remote Replication Steps required");
@@ -183,34 +184,54 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         StorageSystem system = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
         List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
-                String stepId = workflow.createStep(null,
-                        String.format("Creating remote replication links for source-target pairs: %s", getVolumePairs(sourceURIs, targetURIs)),
-                        waitFor, volume.getStorageController(), system.getSystemType(),
-                        this.getClass(),
-                        createRemoteReplicationLinksMethod(system.getSystemType(), sourceDescriptors, targetDescriptors),
-                        rollbackCreateRemoteReplicationLinksMethod(system.getSystemType(), sourceDescriptors, targetDescriptors), null);
+        String stepId = workflow.createStep(null,
+                String.format("Creating remote replication links for source-target pairs: %s", getVolumePairs(sourceURIs, targetURIs)),
+                waitFor, null,   // volume.getStorageController(): pairs are not storage system objects, passing null
+                system.getSystemType(),
+                this.getClass(),
+                createRemoteReplicationLinksMethod(system.getSystemType(), sourceDescriptors, targetDescriptors),
+                rollbackCreateRemoteReplicationLinksMethod(system.getSystemType(), sourceDescriptors, targetDescriptors), null);
         return stepId;
     }
 
     @Override
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        List<VolumeDescriptor> rrDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
-                        VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET}, new VolumeDescriptor.Type[] {});
-        if (rrDescriptors.isEmpty()) {
+        List<VolumeDescriptor> sourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE);
+        if (sourceDescriptors.isEmpty()) {
             _log.info("No Remote Replication Steps required");
             return waitFor;
         }
 
-        List<VolumeDescriptor> sourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE);
-        List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET);
-
         _log.info("Adding steps to delete remote replication links for volumes");
-       // waitFor = deleteRemoteReplicationLinksSteps(workflow, waitFor, sourceDescriptors, targetDescriptors);
-       // return waitFor;
-        return null;
+
+        // Get rr pairs for the source volumes
+        List<URI> volumeURIs = new ArrayList<>();
+        volumeDescriptors.stream().forEach(n->volumeURIs.add(n.getVolumeURI()));
+
+        List<RemoteReplicationPair> remoteReplicationPairs = new ArrayList<>();
+        for (URI volumeURI : volumeURIs) {
+            List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volumeURI, RemoteReplicationPair.class, "sourceElement");
+            remoteReplicationPairs.addAll(rrPairs);
+        }
+
+        _log.info("Remote replication pairs to delete: {}", remoteReplicationPairs);
+        List<URI> pairURIs = new ArrayList<>();
+        remoteReplicationPairs.stream().forEach(p -> pairURIs.add(p.getId()));
+        // all volumes belong to the same device type
+        VolumeDescriptor descriptor = sourceDescriptors.get(0);
+        Volume volume = dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+
+        // For remote pairs storage system URI is not important. Should we pass null instead of system URI?
+        String stepId = workflow.createStep(null,
+                String.format("Deleting remote replication links for source-target pairs: %s", remoteReplicationPairs),
+                waitFor, null,  // pairs span two systems, passing null
+                system.getSystemType(),
+                this.getClass(),
+                deleteRemoteReplicationLinksMethod(pairURIs),
+                null, null);
+        return stepId;
     }
 
     @Override
@@ -251,6 +272,11 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     @Override
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         return null;
+    }
+
+    public Workflow.Method deleteRemoteReplicationLinksMethod(List<URI> rrPairs) {
+
+        return new Workflow.Method("deleteReplicationPairs", rrPairs);
     }
 
     public Workflow.Method createRemoteReplicationLinksMethod(String systemType, List<VolumeDescriptor> sourceDescriptors, List<VolumeDescriptor> targetDescriptors) {

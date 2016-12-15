@@ -4,6 +4,7 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,15 +52,55 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
     @Override
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs, String deletionType) {
         // We get URIs of source volumes. Get rrPairs with these sources and get targets.
-        // Build descriptors for source and target block volumes.
+        // Build block descriptors for source and target block volumes (to be processed by block device controller)
         // Build descriptors for rr source volumes (to be processed by rr device controller)
+
+        // List of remote replication pairs with specified source volumes
         List<RemoteReplicationPair> remoteReplicationPairs = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
             List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volumeURI, RemoteReplicationPair.class, "sourceElement");
             remoteReplicationPairs.addAll(rrPairs);
         }
 
-        return null;
+        // Get target volumes from remote replication pairs
+        List<URI> targetVolumeURIs = new ArrayList<>();
+        remoteReplicationPairs.stream().forEach(n -> targetVolumeURIs.add(n.getTargetElement().getURI()));
+
+        // Build block descriptors for source and target volumes
+        List<VolumeDescriptor> sourceVolumeDescriptors = new ArrayList<>();
+        volumeURIs.stream().forEach(uri -> sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                systemURI, uri, null, null)));
+        _log.info("Source volume descriptors: \n \t\t {}", sourceVolumeDescriptors);
+
+        // Target volumes may belong to different storage systems.
+        List<Volume> targetVolumes = _dbClient.queryObject(Volume.class, targetVolumeURIs);
+        Map<URI, List<URI>> targetSystemToVolumeMap = new HashMap<>();
+        for (Volume volume : targetVolumes) {
+            List<URI> targetURIs = targetSystemToVolumeMap.get(volume.getStorageController());
+            if ( targetURIs == null) {
+                targetURIs = new ArrayList<>();
+                targetSystemToVolumeMap.put(volume.getStorageController(), targetURIs);
+            }
+            targetURIs.add(volume.getId());
+        }
+
+        List<VolumeDescriptor> targetVolumeDescriptors = new ArrayList<>();
+        for (URI sysURI : targetSystemToVolumeMap.keySet()) {
+            targetSystemToVolumeMap.get(sysURI).stream().forEach(uri -> targetVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                    sysURI, uri, null, null)));
+        }
+        _log.info("Target volume descriptors: \n \t\t {}", targetVolumeDescriptors);
+
+        // Build descriptors for source remote replication volumes
+        List<VolumeDescriptor> sourceRRVolumeDescriptors = new ArrayList<>();
+        volumeURIs.stream().forEach(uri -> sourceRRVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
+                systemURI, uri, null, null)));
+        _log.info("Remote replication source volume descriptors: \n \t\t {}", sourceVolumeDescriptors);
+
+        List<VolumeDescriptor> result = new ArrayList<>(sourceVolumeDescriptors);
+        result.addAll(targetVolumeDescriptors);
+        result.addAll(sourceRRVolumeDescriptors);
+        return result;
     }
 
     @Override

@@ -166,7 +166,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
             Collection<String> initiatorNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
-            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, (List<String>) initiatorNames, false);
+            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(initiatorNames), false);
 
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
             newHostUsedHlus.retainAll(clusterHlus);

@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -34,10 +35,12 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public abstract class ExportTaskCompleter extends TaskCompleter {
 
+    private static final long serialVersionUID = 1L;
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
     private Map<String, String> _altVarrayMap;
+    private Map<URI, StringSetMap> _exportMaskToZoningMapMap;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -86,11 +89,20 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         updateWorkflowStatus(status, coded);
 
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+        Map<URI, ExportMask> exportMaskCache = null;
         switch (status) {
             case ready:
                 if (_altVarrayMap != null && !_altVarrayMap.isEmpty()) {
                     for (Entry<String, String> entry : _altVarrayMap.entrySet()) {
                         exportGroup.putAltVirtualArray(entry.getKey(), entry.getValue());
+                    }
+                }
+                if (_exportMaskToZoningMapMap != null && !_exportMaskToZoningMapMap.isEmpty()) {
+                    for (Entry<URI, StringSetMap> entry : _exportMaskToZoningMapMap.entrySet()) {
+                        ExportMask exportMask = getExportMask(exportMaskCache, entry.getKey(), dbClient);
+                        if (exportMask != null) {
+                            exportMask.addZoningMap(entry.getValue());
+                        }
                     }
                 }
                 break;
@@ -100,6 +112,49 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         if (exportGroup.isChanged()) {
             dbClient.updateObject(exportGroup);
         }
+        persistExportMaskCache(exportMaskCache, dbClient);
+    }
+
+    /**
+     * Persist the ExportMasks in the supplied ExportMask cache.
+     * 
+     * @param exportMaskCache a mapping of ExportMask URI to ExportMask object
+     * @param dbClient a reference to the database client
+     */
+    protected void persistExportMaskCache(Map<URI, ExportMask> exportMaskCache, DbClient dbClient) {
+        if (exportMaskCache != null && !exportMaskCache.isEmpty()) {
+            for (ExportMask exportMask : exportMaskCache.values()) {
+                dbClient.updateObject(exportMask);
+            }
+        }
+    }
+
+    /**
+     * Gets an ExportMask object by URI from the supplied cache, or loads one
+     * from the database if not found in the cache.
+     * 
+     * @param exportMaskCache a Map of URIs to loaded ExportMask objects
+     * @param exportMaskUri the ExportMask URI to look for
+     * @param dbClient a reference to the database client
+     * @return the ExportMask for the given URI from cache,
+     *         or null if not found in the database
+     */
+    protected ExportMask getExportMask(Map<URI, ExportMask> exportMaskCache, URI exportMaskUri, DbClient dbClient) {
+        if (exportMaskCache == null) {
+            exportMaskCache = new HashMap<URI, ExportMask>();
+        }
+
+        ExportMask exportMask = exportMaskCache.get(exportMaskUri);
+        if (exportMask == null) {
+            exportMask = dbClient.queryObject(ExportMask.class, exportMaskUri);
+            if (exportMask != null && !exportMask.getInactive()) {
+                exportMaskCache.put(exportMaskUri, exportMask);
+            } else {
+                return null;
+            }
+        }
+
+        return exportMask;
     }
 
     /**
@@ -131,7 +186,8 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 case DELETE_EXPORT_GROUP:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup
                             .getLabel(), exportGroup.getId().toString(), exportGroup.getVirtualArray()
-                            .toString(), exportGroup.getProject().toString());
+                                    .toString(),
+                            exportGroup.getProject().toString());
                     break;
                 case ADD_EXPORT_INITIATOR:
                 case DELETE_EXPORT_INITIATOR:
@@ -166,23 +222,23 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
      */
     protected boolean hasActiveMasks(DbClient dbClient, ExportGroup exportGroup) {
 
-    	List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);    	
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
         for (ExportMask exportMask : exportMasks) {
             if (exportMask != null && !exportMask.getInactive()) {
                 _logger.info("this ExportGroup has active masks: " + exportGroup.getGeneratedName());
                 return true;
             }
-        }       
+        }
 
         _logger.info("this ExportGroup does not have any remaining active masks: "
                 + exportGroup.getGeneratedName());
         return false;
     }
-    
+
     /**
-     * Add storage system to alternate varray mapping to be applied to the
-     * export group on successful completion.
-     *  
+     * Add a StorageSystem to alternate VirtualArray mapping to be applied to the
+     * ExportGroup on successful completion.
+     * 
      * @param storageSystemUri storage system URI for the key
      * @param varrayUri varray URI for the value
      */
@@ -190,8 +246,21 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         if (_altVarrayMap == null) {
             _altVarrayMap = new HashMap<String, String>();
         }
-        
+
         _altVarrayMap.put(storageSystemUri, varrayUri);
     }
 
+    /**
+     * Add an ExportMask to zoning map entry to applied on successful completion.
+     * 
+     * @param exportMaskUri URI of the ExportMask to update
+     * @param zoningMapEntries a zoning map StringSetMap to set on the ExportMask
+     */
+    public void addExportMaskZoningMapMapping(URI exportMaskUri, StringSetMap zoningMapEntries) {
+        if (_exportMaskToZoningMapMap == null) {
+            _exportMaskToZoningMapMap = new HashMap<URI, StringSetMap>();
+        }
+
+        _exportMaskToZoningMapMap.put(exportMaskUri, zoningMapEntries);
+    }
 }

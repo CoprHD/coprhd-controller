@@ -143,6 +143,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.TaskLockingCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
@@ -3972,7 +3973,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                     if (!initiators.isEmpty()) {
                         previousStep = addStepsForAddInitiators(
-                                workflow, vplex, exportGroup, varrayURI,
+                                workflow, completer, vplex, exportGroup, varrayURI,
                                 initURIs, initiators, hostURI, previousStep, opId);
                     }
                 }
@@ -4016,7 +4017,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- step id for our operation
      * @return StepId of last step generated
      */
-    private String addStepsForAddInitiators(Workflow workflow, StorageSystem vplex,
+    private String addStepsForAddInitiators(Workflow workflow, ExportTaskCompleter completer, StorageSystem vplex,
             ExportGroup exportGroup, URI varrayURI, List<URI> hostInitiatorURIs,
             List<Initiator> initiators, URI hostURI, String previousStepId, String opId) throws Exception {
         String lastStepId = null;
@@ -4091,8 +4092,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
                     initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);
             List<URI> newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-            exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
-            _dbClient.updateObject(exportMask);
+            completer.addExportMaskZoningMapMapping(exportMask.getId(), 
+                    BlockStorageScheduler.getZoneMapFromAssignments(assignments));
 
             _log.info(String.format("Adding targets %s for host %s",
                     newTargetURIs.toString(), hostURI.toString()));
@@ -9499,6 +9500,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
                 initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, token);
         List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
+        // TODO
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.updateObject(exportMask);
 

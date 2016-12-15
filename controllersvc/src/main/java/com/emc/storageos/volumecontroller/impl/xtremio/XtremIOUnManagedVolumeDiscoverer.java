@@ -624,7 +624,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         if (hostUnManagedVol != null) {
                             mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                             unManagedExportVolumesToUpdate.add(hostUnManagedVol);
-                            hostUnManagedVol.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
                         }
                     }
                 }

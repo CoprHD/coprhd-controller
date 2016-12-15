@@ -588,13 +588,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
                         String nativeGuid = hostUnManagedVol.getNativeGuid();
                         igHLUMap = volumeIGHLUMap.get(nativeGuid);
-                        String hlu = igHLUMap.get(igName);
-
-                        if (StringUtils.isNotEmpty(hlu)) {
-                            hostHlu.add(hostname+"="+hlu);
-                            hostUnManagedVol.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
+                        if (igHLUMap != null) {
+                            String hlu = igHLUMap.get(igName);
+                            if (StringUtils.isNotEmpty(hlu)) {
+                                hostHlu.add(hostname + "=" + hlu);
+                                hostUnManagedVol.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
+                            }
                         }
-
                         if (isVplexBackendMask) {
                             log.info("marking unmanaged Xtremio volume {} as a VPLEX backend volume",
                                     hostUnManagedVol.getLabel());

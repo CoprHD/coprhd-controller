@@ -1866,8 +1866,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // If possible, do the HA side export. To do this we must have both
             // HA side initiators, and volumes accessible from the HA side.
             if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
-                exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
-                _dbClient.updateObject(exportGroup);
+                createCompleter.addAltVarrayMapping(vplex.toString(), haVarray.toString());
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
@@ -3375,8 +3374,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // and there are volumes to be added to the ha varray, do so.
             if (haVarray != null && varrayToInitiators.get(haVarray) != null
                     && varrayToVolumes.get(haVarray) != null) {
-                exportGroup.putAltVirtualArray(vplexURI.toString(), haVarray.toString());
-                _dbClient.updateObject(exportGroup);
+                completer.addAltVarrayMapping(vplexURI.toString(), haVarray.toString());
                 assembleExportMasksWorkflow(vplexURI, exportURI, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
@@ -3940,8 +3938,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     varrayToVolumes.remove(exportGroup.getVirtualArray());
                     if (!varrayToVolumes.isEmpty()) {
                         URI haVarray = VPlexUtil.pickHAVarray(varrayToVolumes);
-                        exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
-                        _dbClient.updateObject(exportGroup);
+                        completer.addAltVarrayMapping(vplex.toString(), haVarray.toString());
                     }
                 }
             }

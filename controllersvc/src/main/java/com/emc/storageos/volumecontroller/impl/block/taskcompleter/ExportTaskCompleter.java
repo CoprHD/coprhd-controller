@@ -6,7 +6,10 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
+    private Map<String, String> _altVarrayMap;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -80,6 +84,22 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         updateWorkflowStatus(status, coded);
+
+        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+        switch (status) {
+            case ready:
+                if (_altVarrayMap != null && !_altVarrayMap.isEmpty()) {
+                    for (Entry<String, String> entry : _altVarrayMap.entrySet()) {
+                        exportGroup.putAltVirtualArray(entry.getKey(), entry.getValue());
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        if (exportGroup.isChanged()) {
+            dbClient.updateObject(exportGroup);
+        }
     }
 
     /**
@@ -158,4 +178,20 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 + exportGroup.getGeneratedName());
         return false;
     }
+    
+    /**
+     * Add storage system to alternate varray mapping to be applied to the
+     * export group on successful completion.
+     *  
+     * @param storageSystemUri storage system URI for the key
+     * @param varrayUri varray URI for the value
+     */
+    public void addAltVarrayMapping(String storageSystemUri, String varrayUri) {
+        if (_altVarrayMap == null) {
+            _altVarrayMap = new HashMap<String, String>();
+        }
+        
+        _altVarrayMap.put(storageSystemUri, varrayUri);
+    }
+
 }

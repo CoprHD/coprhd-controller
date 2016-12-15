@@ -599,6 +599,7 @@ public abstract class TaskCompleter implements Serializable {
                         : DeviceControllerException.errors.unforeseen(), null);
             }
         }
+    }
 
     @Override
     public String toString() {

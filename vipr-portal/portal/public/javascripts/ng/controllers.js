@@ -1555,18 +1555,30 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
 });
 
 angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
+	var ORDER_MY_LIST = routes.Order_list();
 	console.info($scope);
 	var dateFormat = "YYYY-MM-DD";
 	
 	var dateDaysAgo = $scope.dateDaysAgo;
+	var startDate = $scope.startDate;
+	var endDate = $scope.endDate;
 	var current = new Date().getTime();
 	
     angular.element("#myOrderSelector").ready(function () {
-    	console.info("in MyOrdersCtrl myOrderSelector");
         $scope.$apply(function () {
-            $scope.rangeStartDate = formatDate(dateDaysAgo, dateFormat);
-            $scope.rangeEndDate = formatDate(current, dateFormat);
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
         });
+    });
+    
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+    	//TODO: check the end date should be not later than today
+    	if(oldVal === undefined) return;
+    	console.info("vals "+newVal+"\t|"+oldVal);
+        var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+        			"&endDate="+encodeURIComponent($scope.rangeEndDate);
+        console.info(url);
+        window.location.href = url;
     });
 
 });

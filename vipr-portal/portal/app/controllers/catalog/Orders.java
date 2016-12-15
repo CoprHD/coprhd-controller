@@ -97,7 +97,11 @@ public class Orders extends OrderExecution {
     private static void addMaxDaysRenderArgs() {
         Integer maxDays = params.get("maxDays", Integer.class);
         if (maxDays == null) {
-            maxDays = 1;
+            if (params.get("startDate") != null && params.get("endDate") != null) {
+                maxDays = 0;
+            } else {
+                maxDays = 1;
+            }
         }
         int[] days = { 1, 7, 14, 30, 90, 0 };
         List<StringOption> options = Lists.newArrayList();
@@ -138,7 +142,9 @@ public class Orders extends OrderExecution {
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setStartDate(params.get("startDate"));
         dataTable.setEndDate(params.get("endDate"));
-        //renderArgs.put("orderCount", dataTable.fetchCount());
+        if (params.get("startDate") != null && params.get("endDate") != null) { 
+            renderArgs.put("orderCount", dataTable.fetchCount());
+        }
         renderArgs.put("startDate", params.get("startDate"));
         renderArgs.put("endDate", params.get("endDate"));
         addMaxDaysRenderArgs();

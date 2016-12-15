@@ -83,6 +83,8 @@ var routes = {
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},
+  
+  Order_list: #{jsAction @catalog.Orders.list() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},

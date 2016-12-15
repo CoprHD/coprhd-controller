@@ -2,8 +2,6 @@
 'nav.catalog', 'nav.viewOrders'] /}
 
 #{DataTable.header titleKey:'myOrders.title'/}
-${orderCount}
-
 <div class="max-days-selector" ng-controller="MyOrdersCtrl" id="myOrderSelector"
 #{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if} 
 #{else} style="margin-left: -170px;margin-right:170px" #{/else}
@@ -47,15 +45,7 @@ table.orders.dataTable.afterCreate(function(dataTable) {
 function addParams(aoData) {
     aoData.push({"name":"startDate", "value":"${startDate}"});
     aoData.push({"name":"endDate", "value":"${endDate}"});
-    aoData.push({"name":"maxDays", "value": 90}); //only for mockup
-}
-
-function updateDateRange() {
-	var startDate = $("#startDateVal").val();
-	var endDate = $("#endDateVal").val();
-	console.info(startDate+"\t"+endDate);
-	var url = #{jsAction @list()/}()+"?startDate="+startDate+"&endDate="+endDate;
-    window.location.href = url;
+    aoData.push({"name":"maxDays", "value": "${maxDays}"});
 }
 
 $(document).ready(function() {

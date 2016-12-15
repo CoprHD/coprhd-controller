@@ -292,14 +292,15 @@ approve_pending_event() {
 
 # Test Host Remove Initiator
 #
-# 1. Add manual host
-# 2. Add 4 initiators to the host
-# 3. Add these 4 initiators to the network assigned to your virtual array
-# 4. Create and export a volume to this host
-# 5. Verify that all 4 initiators are in the export group for this host
-# 6. Remove 2 initiators from the host
-# 7. Monitor the export group update task and verify the export group contains only 2 initiators when complete
-# 8. Clean up
+# 1. Create 2 volumes
+# 2. Create 2 hosts with 2 initiators each
+# 3. Create a cluster
+# 4. Add both hosts to cluster
+# 5. Export vol1 to host1 (exclusive export)
+# 6. Export vol2 to cluster1 (shared export)
+# 7. Remove 1 initiator from host1
+# 8. Expect that both export groups should be updated and have that initiator removed
+# 9. Clean up
 test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
@@ -313,11 +314,10 @@ test_host_remove_initiator() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
-    #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"
+    #failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"    
     
     random_number=${RANDOM}
         
@@ -383,8 +383,7 @@ test_host_remove_initiator() {
         runcmd export_group create ${PROJECT} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster1}        
                                 
         # List of all export groups being used
-        exportgroups="${PROJECT}/${exportgroup1} ${PROJECT}/${exportgroup2}"
-        #exportgroups="${PROJECT}/${exportgroup1}"
+        exportgroups="${PROJECT}/${exportgroup1} ${PROJECT}/${exportgroup2}"        
         
         for eg in ${exportgroups}
         do

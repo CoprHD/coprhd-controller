@@ -12,7 +12,7 @@ import com.emc.storageos.model.storagedriver.StorageDriverList;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 import com.sun.jersey.api.client.ClientResponse;
 
-public class StorageDriverUtils {
+public final class StorageDriverUtils {
 
     private StorageDriverUtils() {}
 

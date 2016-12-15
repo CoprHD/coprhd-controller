@@ -220,32 +220,41 @@ public class StorageDriverManager {
                 }
             }
         }
-        // Last one deletes data in zk, inserts it into db, and triggers downloading of new driver file
-        if (!toInsertNewMetaDatas.isEmpty()) {
-            StorageDriversInfo info = coordinatorClient.getTargetInfo(StorageDriversInfo.class);
-            if (info == null) {
-                info = new StorageDriversInfo();
-            }
-            for (StorageDriverMetaData metaData : toInsertNewMetaDatas.values()) {
-                List<StorageSystemType> types = StorageDriverMapper.map(metaData);
-                for (StorageSystemType type : types) {
-                    type.setIsNative(false);
-                    type.setDriverStatus(StorageSystemType.STATUS.UPGRADING.toString());
-                }
-                log.info("DriverUpgradePhase1: Delete metadata from zk and insert it into db: {}", metaData.toString());
-                dbClient.createObject(types);
-                coordinatorClient.removeServiceConfiguration(metaData.toConfiguration());
-                info.getInstalledDrivers().add(metaData.getDriverFileName());
-            }
-            // update target list, trigger new driver downloading
-            log.info("DriverUpgradePhase1: trigger downloading for new driver files listed above");
-            coordinatorClient.setTargetInfo(info);
-        }
+        insertMetadata(toInsertNewMetaDatas);
         for (String driver : extractDrivers(finishedTypes)) {
             auditCompleteOperation(OperationTypeEnum.UPGRADE_STORAGE_DRIVER, AuditLogManager.AUDITLOG_SUCCESS,
                     driver);
         }
         return needRestart;
+    }
+
+    /**
+     * During upgrade, the last node who finished uninstalling old driver takes responsibility
+     * to fetch meta data of new driver from ZK (and delete) and store it into DB, and then add
+     * new driver file name to target list, to trigger all nodes to download it.
+     */
+    private void insertMetadata(Map<String, StorageDriverMetaData> toInsertNewMetaDatas) {
+        if (toInsertNewMetaDatas.isEmpty()) {
+            return;
+        }
+        StorageDriversInfo info = coordinatorClient.getTargetInfo(StorageDriversInfo.class);
+        if (info == null) {
+            info = new StorageDriversInfo();
+        }
+        for (StorageDriverMetaData metaData : toInsertNewMetaDatas.values()) {
+            List<StorageSystemType> types = StorageDriverMapper.map(metaData);
+            for (StorageSystemType type : types) {
+                type.setIsNative(false);
+                type.setDriverStatus(StorageSystemType.STATUS.UPGRADING.toString());
+            }
+            log.info("DriverUpgradePhase1: Delete metadata from zk and insert it into db: {}", metaData.toString());
+            dbClient.createObject(types);
+            coordinatorClient.removeServiceConfiguration(metaData.toConfiguration());
+            info.getInstalledDrivers().add(metaData.getDriverFileName());
+        }
+        // update target list, trigger new driver downloading
+        log.info("DriverUpgradePhase1: trigger downloading for new driver files listed above");
+        coordinatorClient.setTargetInfo(info);
     }
 
     private void updateMetaData() {

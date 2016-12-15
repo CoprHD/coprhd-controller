@@ -17,6 +17,8 @@ import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 
 public class StorageDriverMapper {
 
+    private StorageDriverMapper() {}
+
     /**
      * @return supported StorageSystemTypes by this driver. The first is the
      *         storage system, and the second is storage provider if there is

@@ -628,10 +628,10 @@ public class ComputeUtils {
         return true;
     }
 
-    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI vcp, int numHosts) {
-        ComputeElementListRestRep resp = client.computeVpools().getMatchedComputeElements(vcp);
-        int size = resp.getList().size();
-        return size < numHosts ? false : true;
+    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts) {
+        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
+        int numAvailableBlades = resp.getAvailableMatchedComputeElements().size();
+        return numAvailableBlades < numHosts ? false : true;
     }
 
     public static boolean isValidIpAddress(String ipAddress) {

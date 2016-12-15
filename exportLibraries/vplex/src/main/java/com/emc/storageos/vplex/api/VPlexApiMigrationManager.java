@@ -1435,7 +1435,6 @@ public class VPlexApiMigrationManager {
         // Update the virtual volume information and set it
         // into the migration info.
         virtualVolumeInfo.updateNameOnMigrationCommit(updatedVirtualVolumeName);
-        migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
     }
     
     /**

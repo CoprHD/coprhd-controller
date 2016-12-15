@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.util;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.base.Preconditions;
 
 public class BlockConsistencyGroupUtils {
     /**
@@ -450,5 +452,81 @@ public class BlockConsistencyGroupUtils {
         }
         
         return cgURIs; 
+    }
+
+    /**
+     * Method to clean up a consistency group after an operation succeeds or fails.
+     * 
+     * @param consistencyGroup
+     *            consistency group
+     * @param storageId
+     *            storage system
+     * @param replicationGroupName
+     *            replication group name
+     * @param markInactive
+     *            whether you can mark it as inactive as part of cleanup (delete the CG itself)
+     * @param dbClient
+     *            dbclient
+     */
+    public static void cleanUpCG(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
+            Boolean markInactive, DbClient dbClient) {
+        checkNotNull(consistencyGroup, "consistency group must be non-null");
+        // Remove the replication group name from the SystemConsistencyGroup field
+        if (replicationGroupName != null) {
+            consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageId), replicationGroupName);
+        }
+        /*
+         * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+         * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+         */
+        List<URI> referencedArrays = getLocalSystems(consistencyGroup, dbClient);
+        boolean cgReferenced = false;
+        for (URI storageSystemUri : referencedArrays) {
+            StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
+            if (cgs != null && !cgs.isEmpty()) {
+                cgReferenced = true;
+                break;
+            }
+        }
+
+        if (!cgReferenced) {
+            // Remove the LOCAL type
+            StringSet cgTypes = consistencyGroup.getTypes();
+            cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+            consistencyGroup.setTypes(cgTypes);
+
+            StringSet requestedTypes = consistencyGroup.getRequestedTypes();
+            requestedTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+            consistencyGroup.setRequestedTypes(requestedTypes);
+
+            // Remove the referenced storage system as well, but only if there are no other types
+            // of storage systems associated with the CG.
+            if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, dbClient)) {
+                consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+                // Update the consistency group model
+                consistencyGroup.setInactive(markInactive);
+            }
+        }
+    }
+
+    /**
+     * Method to clean up a consistency group after an operation succeeds or fails.  Also persists any changes to the
+     * database.
+     *
+     * @param consistencyGroup
+     *            consistency group
+     * @param storageId
+     *            storage system
+     * @param replicationGroupName
+     *            replication group name
+     * @param markInactive
+     *            whether you can mark it as inactive as part of cleanup (delete the CG itself)
+     * @param dbClient
+     *            dbclient
+     */
+    public static void cleanUpCGAndUpdate(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
+                                          Boolean markInactive, DbClient dbClient) {
+        cleanUpCG(consistencyGroup, storageId, replicationGroupName, markInactive, dbClient);
+        dbClient.updateObject(consistencyGroup);
     }
 }

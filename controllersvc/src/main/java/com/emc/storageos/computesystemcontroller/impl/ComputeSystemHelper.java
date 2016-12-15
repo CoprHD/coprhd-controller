@@ -599,7 +599,6 @@ public class ComputeSystemHelper {
                     changedDatastore = ds;
             }
         }
-        _log.info("Found changed Datastore =  " + changedDatastore.getInfo().getUrl());
         //change the value of tag with new datastore name
         ScopedLabel newSl = new ScopedLabel();
         if (volumeobj.getTag() != null) {
@@ -621,7 +620,6 @@ public class ComputeSystemHelper {
                 }
             }
         }
-        _log.info("Updating Volume tag for volume wwn  =  " + volumeobj.getWWN());
         if (volumeobj.getTag() != null) {
             volumeobj.getTag().add(newSl);
         } else {
@@ -630,7 +628,6 @@ public class ComputeSystemHelper {
             volumeobj.setTag(tagSet);
         }
         dbClient.updateObject(volumeobj);
-        _log.info("Updated Volume tag with datastore name "+ changedDatastore.getName());
     }
 
     public static String getDatastoreName(String tag) {

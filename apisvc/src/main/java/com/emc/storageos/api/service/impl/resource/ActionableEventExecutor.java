@@ -720,7 +720,7 @@ public class ActionableEventExecutor {
     public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, URI changedDatastore, URI vcenterURI, URI eventId) {
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
-                ResourceOperationTypeEnum.UPDATE_DATA_STORE);
+                ResourceOperationTypeEnum.UPDATE_DATA_STORE_NAME);
         Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
         computeController.processDatastoreName(eventId, volume, taskId, changedDatastore, vcenterURI);
         return toTask(volumeObj, taskId, op);

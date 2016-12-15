@@ -159,7 +159,7 @@ public enum ResourceOperationTypeEnum {
     REASSIGN_VARRAY_ACL("REPLACE VARRAY ACL", "overwrite varray acls"),
     CREATE_NETWORK("CREATE NETWORK", "create network operation"),
     CREATE_DATA_STORE("CREATE DATASTORE", "create data store operation"),
-    UPDATE_DATA_STORE("UPDATE DATASTORE", "update data store operation"),
+    UPDATE_DATA_STORE_NAME("UPDATE DATASTORE NAME", "update data store name operation"),
     DELETE_DATA_STORE("DELETE DATASTORE", "delete data store operation"),
     CREATE_SECRET_KEY("CREATE SECRET KEY", "create a secret key for a user"),
     DELETE_SECRET_KEY("DELETE SECRET KEY", "delete a user's secret key"),

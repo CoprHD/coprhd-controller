@@ -50,4 +50,7 @@ public interface WorkflowExceptions {
      */
     @DeclareServiceCode(ServiceCode.WORKFLOW_INVALID_ARGUMENTS)
     public WorkflowException workflowTaskIdInUse(String taskId);
+
+    @DeclareServiceCode(ServiceCode.WORKFLOW_INVOKED_FAILURE)
+    public WorkflowException workflowInvokedFailure(final String failureInvoked);
 }

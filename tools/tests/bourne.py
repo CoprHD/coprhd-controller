@@ -142,6 +142,13 @@ URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
 URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
 
+URI_EVENT                   = URI_VDC    + "/events"
+URI_EVENT_GET               = URI_EVENT    + '/{0}'
+URI_EVENT_LIST              = URI_EVENT  + '?tenant={0}'
+URI_EVENT_DELETE            = URI_EVENT_GET + "/deactivate"
+URI_EVENT_APPROVE           = URI_EVENT_GET + "/approve"
+URI_EVENT_DECLINE           = URI_EVENT_GET + "/decline"
+
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
 URI_IPSEC_KEY               = '/ipsec/key'
@@ -365,6 +372,7 @@ URI_IPINTERFACE_DEREGISTER      = URI_SERVICES_BASE   + '/compute/ip-interfaces/
 URI_IPINTERFACES_BULKGET        = URI_SERVICES_BASE   + '/compute/ip-interfaces/bulk'
 URI_VCENTERS                    = URI_SERVICES_BASE   + '/compute/vcenters'
 URI_VCENTER                     = URI_SERVICES_BASE   + '/compute/vcenters/{0}'
+URI_VCENTER_DISCOVER            = URI_VCENTER         + '/discover'
 URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
@@ -8216,6 +8224,22 @@ class Bourne:
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))
 
+    def vcenter_show_task(self, vcenter, task):
+        uri_vcenter_task = URI_VCENTER + '/tasks/{1}'
+        return self.api('GET', uri_vcenter_task.format(vcenter, task))
+
+    def vcenter_discover(self, name):
+        uri = self.vcenter_query(name)
+        o = self.api('POST', URI_VCENTER_DISCOVER.format(uri))
+        self.assert_is_dict(o)
+        try:
+            sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.vcenter_show_task)
+            s = sync['state']
+            m = sync['message']
+        except:
+            print o
+        return (o, s, m)
+
     def vcenter_delete(self, name):
         uri = self.vcenter_query(name)
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_VCENTER.format(uri)))
@@ -8328,12 +8352,19 @@ class Bourne:
     def host_update(self, uri, cluster):
         clusterURI = None
         if (cluster):
-            clusterURI = self.cluster_query(cluster)
-
+        	if (cluster == 'null'):
+        		clusterURI = "null"
+        	else:	
+        		clusterURI = self.cluster_query(cluster)
+            
         parms = {
-                    'cluster' : clusterURI
+        	'cluster' : clusterURI
         }
-        return self.api('PUT', URI_HOST.format(uri), parms);
+  
+        o =  self.api('PUT', URI_HOST.format(uri), parms)
+        self.assert_is_dict(o)         
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s) 
 
     def host_list(self, tenant):
         uri = self.__tenant_id_from_label(tenant)
@@ -8374,13 +8405,54 @@ class Bourne:
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_HOST.format(uri)))
 
     def initiator_show_tasks(self, uri):
-	uri_initiator_task = URI_INITIATORS + '/tasks'
-	return self.api('GET', uri_initiator_task.format(uri))
+        uri_initiator_task = URI_INITIATORS + '/tasks'
+        return self.api('GET', uri_initiator_task.format(uri))
 
     def initiator_show_task(self, uri, task):
-	uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
-	return self.api('GET', uri_initiator_task.format(uri, task))
+        uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
+        return self.api('GET', uri_initiator_task.format(uri, task))
+    
+    def host_show_task(self, uri, task):
+        uri_host_task = URI_HOST + '/tasks/{1}'
+        return self.api('GET', uri_host_task.format(uri, task))
 
+    #
+    # Actionable Events
+    #
+    def event_show(self, uri):
+        return self.api('GET', URI_EVENT_GET.format(uri))
+
+    def event_delete(self, uri):
+        return self.api('POST', URI_EVENT_DELETE.format(uri))
+
+    def event_show_task(self, event, task):
+        return self.api('GET', URI_TASK_GET.format(task))
+
+    def event_approve(self, uri):
+        o = self.api('POST', URI_EVENT_APPROVE.format(uri))
+        self.assert_is_dict(o)
+        try:
+            tr_list = o['task']
+            for tr in tr_list:
+              sync = self.api_sync_2(tr['resource']['id'], tr['id'], self.event_show_task)
+              s = sync['state']
+              m = sync['message']
+        except:
+            print o
+        return (o, s, m)
+
+    def event_decline(self, uri):
+        return self.api('POST', URI_EVENT_DECLINE.format(uri))
+
+    def event_list(self, tenant):
+        uri = self.__tenant_id_from_label(tenant)
+        o = self.api('GET', URI_EVENT_LIST.format(uri))
+        if (not o):
+            return {}
+        return o['event']
+
+
+    
     #
     # Compute Resources - host initiator
     #
@@ -8422,8 +8494,11 @@ class Bourne:
     def initiator_delete(self, name):
         (host, label) = name.split('/', 1)
         hostUri = self.host_query(host)
-        uri = self.initiator_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_INITIATOR.format(uri)))
+        uri = self.initiator_query(name)        
+        o =  self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_INITIATOR.format(uri)))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        return (o, s)
 
     def initiator_register(self, name):
         uri = self.initiator_query(name)

@@ -185,15 +185,24 @@ def cos_update_pools(args):
     # Filter the pool, so that only those array pools that match the CoS are in the
     # update list
     pools = []
-    for it in args.pools.split(','):
-        storagepool_uri = bourne.storagepool_query(it);
-        if (storagepool_uri in matched_pool_uris):
-            pooladd.append(storagepool_uri)
-        else:
-            raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
+    if (args.add):
+        for it in args.add.split(','):
+            storagepool_uri = bourne.storagepool_query(it);
+            if (storagepool_uri in matched_pool_uris):
+                pooladd.append(storagepool_uri)
+            else:
+                raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
+
+    if (args.rem):
+        for it in args.rem.split(','):
+            storagepool_uri = bourne.storagepool_query(it);
+            if (storagepool_uri in matched_pool_uris):
+                poolrem.append(storagepool_uri)
+            else:
+                raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
 
     if (args.name):
-        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, None, None, None, None, None, None)
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, None, None, None, None, None, None, None)
     
 
 def cos_delete(args):
@@ -336,7 +345,7 @@ except:
 
 # cos <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | allow | errorhandling)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | allow | errorhandling | update | update_pools)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # cos create label
@@ -444,7 +453,8 @@ update.add_argument('--compressionEnabled', help='Enable Compression on VMAX All
 update_pools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 update_pools.add_argument('type',   help = 'type of cos, {file | block | object}, default=file', default='file')
 update_pools.add_argument('name',   help = 'name of cos to be deleted')
-update_pools.add_argument('pools',  help = 'Comma delimited list of storage pool URIs')
+update_pools.add_argument('--add',  help = 'Comma delimited list of storage pool URIs')
+update_pools.add_argument('--rem',  help = 'Comma delimited list of storage pool URIs')
 
 # cos delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

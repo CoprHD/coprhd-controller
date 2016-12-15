@@ -145,8 +145,13 @@ public class Common extends Controller {
                 return;
             }
 
-            String[] data = params.getAll(param);
+            // skip xss sanitation for fields which name contains username
+            if (param.toLowerCase().contains("username")) {
+                Logger.debug("skip sanitation for " + param);
+                return;
+            }
 
+            String[] data = params.getAll(param);
             if ((data != null) && (data.length > 0)) {
                 String sanitizer = (String)XSS_SANITIZERS.get(request.path,param);
                 Logger.debug("Cleaning data for " + param);

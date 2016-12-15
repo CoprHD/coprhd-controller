@@ -74,16 +74,7 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
 
         if (exportMask != null) {
             // Update the initiator tracking containers
-            // Add only the initiators that we created and added. Currently only VMAX will fill in these initiators.
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
-            if (getUserAddedInitiatorURIs() != null && !getUserAddedInitiatorURIs().isEmpty()) {
-                exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, getUserAddedInitiatorURIs()));
-            } else if (!Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
-                // Fall-back, add all initiators. Currently only VMAX cherry-picks specific initiators that
-                // are user-added based on the initiators that it found on the array. Other arrays need to
-                // fall back to the original way of tracking user added initiators, which is to add all of them.
-                exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, _initiatorURIs));
-            }
+            exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, _initiatorURIs));
 
             // Save the initiators to the ExportMask
             for (URI initiatorURI : _initiatorURIs) {

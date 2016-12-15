@@ -1510,7 +1510,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
         try {
-            // add the new from the array.
+            // add the new export rule from the array into the update request.
             Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
 
             if (!arrayExportRuleMap.isEmpty()) {
@@ -1552,7 +1552,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            _log.error("Not able to fetch latest endpoint from backend array.", e);
+            _log.error("Not able to fetch latest Export rule from backend array.", e);
 
         }
         // To be processed export rules
@@ -1659,14 +1659,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+    /**
+     * Get the export rule which are present in arry but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return map with security flavor and export rule
+     */
     private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
 
+        // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
-
-        // gey the all the export from the storage system.
         List<IsilonExport> exportsList = new ArrayList<IsilonExport>();
-        // Calculate Export Path
-        IsilonApi isi = getIsilonDevice(storage);
+
         Set<String> arrayReadOnlyHost = new HashSet<>();
         Set<String> arrayReadWriteHost = new HashSet<>();
         Set<String> arrayRootHost = new HashSet<>();
@@ -1675,7 +1680,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Set<String> dbReadWriteHost = new HashSet<>();
         Set<String> dbRootHost = new HashSet<>();
 
+        // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+
+        // get the all the export from the storage system.
+        IsilonApi isi = getIsilonDevice(storage);
         for (ExportRule exportRule : existingDBExportRules) {
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
@@ -1704,6 +1713,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             }
 
+            // find out the change between array and CoprHD database.
             boolean changeFound = false;
             Set<String> arrayExtraReadOnlyHost = new HashSet<>();
             Set<String> arrayExtraReadWriteHost = new HashSet<>();

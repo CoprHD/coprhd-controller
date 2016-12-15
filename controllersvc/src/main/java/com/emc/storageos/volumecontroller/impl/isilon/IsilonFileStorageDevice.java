@@ -1509,42 +1509,51 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
-        // add the new from the array.
-        Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+        try {
+            // add the new from the array.
+            Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
 
-        if (!arrayExportRuleMap.isEmpty()) {
-            if (exportModify != null) {
-                // merge the end point for which sec flavor is common.
-                for (ExportRule exportRule : exportModify) {
-                    ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
-                    if (arrayExportRule != null) {
-                        Set<String> readOnlyRule = new HashSet<>();
+            if (!arrayExportRuleMap.isEmpty()) {
+                if (exportModify != null) {
+                    // merge the end point for which sec flavor is common.
+                    for (ExportRule exportRule : exportModify) {
+                        ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                        if (arrayExportRule != null) {
 
-                        readOnlyRule.addAll(arrayExportRule.getReadOnlyHosts());
-                        readOnlyRule.addAll(exportRule.getReadOnlyHosts());
-                        exportRule.setReadOnlyHosts(readOnlyRule);
+                            if (exportRule.getReadOnlyHosts() != null) {
+                                exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                            } else {
+                                exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
 
-                        Set<String> readWriteRule = new HashSet<>();
-                        readWriteRule.addAll(arrayExportRule.getReadWriteHosts());
-                        readWriteRule.addAll(exportRule.getReadWriteHosts());
-                        exportRule.setReadWriteHosts(readWriteRule);
+                            }
+                            if (exportRule.getReadWriteHosts() != null) {
+                                exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                            } else {
+                                exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
 
-                        Set<String> rootRule = new HashSet<>();
-                        rootRule.addAll(arrayExportRule.getRootHosts());
-                        rootRule.addAll(exportRule.getRootHosts());
-                        exportRule.setRootHosts(rootRule);
+                            }
+                            if (exportRule.getRootHosts() != null) {
+                                exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                            } else {
+                                exportRule.setRootHosts(arrayExportRule.getRootHosts());
 
+                            }
+                        }
                     }
+                    // now add the remaining export rule
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                } else {
+                    // if exportModify is null then create a new export rule and add
+                    exportModify = new ArrayList<ExportRule>();
+                    exportModify.addAll(arrayExportRuleMap.values());
+
                 }
-                // now add the remaining export rule
-                exportModify.addAll(arrayExportRuleMap.values());
-
-            } else {
-                // if exportModify is null then create a new object and add
-                exportModify = new ArrayList<ExportRule>();
-                exportModify.addAll(arrayExportRuleMap.values());
-
             }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            _log.error("Not able to fetch latest endpoint from backend array.", e);
+
         }
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();

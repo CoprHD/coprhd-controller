@@ -1389,12 +1389,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         // Segregate by device and loop over each VPLEX system.
+        // Sort the volumes by its system, and consistency group
+        Map<URI, Set<URI>> cgVolsMap = new HashMap<URI, Set<URI>>();
         Map<URI, List<VolumeDescriptor>> vplexMap = VolumeDescriptor.getDeviceMap(vplexVolumes);
         for (URI vplexURI : vplexMap.keySet()) {
             List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
             List<URI> forgetVolumeURIs = new ArrayList<URI>();
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+                boolean inCG = false;
+                if (!NullColumnValueGetter.isNullURI(vplexVolume.getConsistencyGroup())) {
+                    inCG = true;
+                }
                 if (null == vplexVolume.getAssociatedVolumes()) {
                     _log.warn("VPLEX volume {} has no backend volumes. It was possibly ingested 'Virtual Volume Only'.", 
                             vplexVolume.forDisplay());
@@ -1403,7 +1409,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         forgetVolumeURIs.add(URI.create(forgetVolumeId));
                     }
                 }
-
+                if (inCG) {
+                    Set<URI> cgVols = cgVolsMap.get(vplexVolume.getConsistencyGroup());
+                    if (cgVols == null) {
+                        cgVols = new HashSet<URI>();
+                        cgVolsMap.put(vplexVolume.getConsistencyGroup(), cgVols);
+                    }
+                    cgVols.add(vplexVolumeURI);
+                    cgVols.addAll(forgetVolumeURIs);
+                }
                 // Adding the VPLEX mirror backend volume to forgetVolumeURIs
                 if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
                     for (String mirrorId : vplexVolume.getMirrors()) {
@@ -1433,6 +1447,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 markVolumesInactiveMethod(allVplexVolumeURIs),
                 markVolumesInactiveMethod(allVplexVolumeURIs), null);
+
+
+        if (cgVolsMap.isEmpty()) {
+            return waitFor;
+        }
+        Volume vol = getDataObject(Volume.class, allVplexVolumeURIs.get(0), _dbClient);
+        ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
+
+        for (URI cgURI : cgVolsMap.keySet()) {
+            // find member volumes in the group
+            List<Volume> volumeList = new ArrayList<Volume>();
+            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, cgVolsMap.get(cgURI), true);
+            while (volumeIterator.hasNext()) {
+                volumeList.add(volumeIterator.next());
+            }
+            Volume firstVol = volumeList.get(0);
+            URI storage = firstVol.getStorageController();
+            // delete replication group from array
+            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
+                _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
+                waitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, waitFor, storage, cgURI, false);
+            }
+        }
 
         return waitFor;
     }
@@ -1522,6 +1559,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createForgetVolumesMethod(vplexSystemURI, nativeVolumeInfoList), null, null);
     }
 
+    private void addStepsToDeleteVplexCG(Workflow workflow, URI vplexSystemURI,
+            List<URI> volumeURIs, String waitFor) {
+
+    }
     /**
      * Gets the native volume information required by the VPLEX client for
      * the passed backend volumes.

@@ -151,6 +151,69 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     }
 
     @Override
+    public String addStepsForDeleteConsistencyGroup(Workflow workflow, String waitFor, URI vplexSystemURI, URI cgURI, boolean markInactive)
+            throws ControllerException {
+        // Get the CG.
+        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
+
+        // Add step to delete local. There should only be a local for
+        // VPLEX CGs and there should be either one or two depending upon
+        // if the volumes in the CG are local or distributed.
+        if (cg.checkForType(Types.LOCAL)) {
+            List<URI> localSystemUris = BlockConsistencyGroupUtils
+                    .getLocalSystems(cg, dbClient);
+            for (URI localSystemUri : localSystemUris) {
+                StorageSystem localSystem = getDataObject(StorageSystem.class,
+                        localSystemUri, dbClient);
+                String localCgName = cg.getCgNameOnStorageSystem(localSystemUri);
+                Workflow.Method deleteCGMethod = new Workflow.Method(
+                        DELETE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI, Boolean.FALSE);
+                Workflow.Method rollbackDeleteCGMethod = new Workflow.Method(
+                        CREATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI);
+                waitFor = workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(
+                        "Deleting Consistency Group %s on local system %s", localCgName,
+                        localSystemUri.toString()), null, localSystemUri, localSystem.getSystemType(),
+                        BlockDeviceController.class, deleteCGMethod, rollbackDeleteCGMethod, null);
+            }
+        }
+
+        // We need to examine the association of VPlex systems to VPlex CGs that
+        // have been created. We can't depend on the Volume's in the CG to determine
+        // the VPlex systems and CG names because there may not be any volumes in the CG
+        // at this point.
+        if (BlockConsistencyGroupUtils.referencesVPlexCGs(cg, dbClient)) {
+            for (StorageSystem storageSystem : BlockConsistencyGroupUtils.getVPlexStorageSystems(cg, dbClient)) {
+                URI vplexSystemUri = storageSystem.getId();
+
+                // Iterate over the VPlex consistency groups that need to be
+                // deleted.
+                Map<String, String> vplexCgsToDelete = new HashMap<String, String>();
+                for (String clusterCgName : cg.getSystemConsistencyGroups().get(vplexSystemUri.toString())) {
+                    String cgName = BlockConsistencyGroupUtils.fetchCgName(clusterCgName);
+                    String clusterName = BlockConsistencyGroupUtils.fetchClusterName(clusterCgName);
+
+                    if (!vplexCgsToDelete.containsKey(cgName)) {
+                        vplexCgsToDelete.put(cgName, clusterName);
+                    }
+                }
+
+                for (Map.Entry<String, String> vplexCg : vplexCgsToDelete.entrySet()) {
+                    String stepId = workflow.createStepId();
+                    Workflow.Method deletCGRollbackMethod = rollbackDeleteCGMethod(cgURI, stepId);
+                    // Create the steps in the workflow to delete the consistency
+                    // group. Note that we assume the consistency group does not
+                    // contain any volumes. Currently, the API service does not allow
+                    // this, and so this should never be called otherwise.
+                    waitFor = addStepForRemoveVPlexCG(workflow, stepId, waitFor, storageSystem,
+                            cgURI, vplexCg.getKey(), vplexCg.getValue(), markInactive, deletCGRollbackMethod);
+                }
+            }
+        }
+
+        return waitFor;
+    }
+
+    @Override
     public void deleteConsistencyGroup(Workflow workflow, URI vplexURI, URI cgURI, String opId)
             throws ControllerException {
         try {
@@ -160,62 +223,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             // Add step to delete local. There should only be a local for
             // VPLEX CGs and there should be either one or two depending upon
             // if the volumes in the CG are local or distributed.
-            String waitFor = null;
-            if (cg.checkForType(Types.LOCAL)) {
-                List<URI> localSystemUris = BlockConsistencyGroupUtils
-                        .getLocalSystems(cg, dbClient);
-                boolean localCGsDeleted = false;
-                for (URI localSystemUri : localSystemUris) {
-                    StorageSystem localSystem = getDataObject(StorageSystem.class,
-                            localSystemUri, dbClient);
-                    String localCgName = cg.getCgNameOnStorageSystem(localSystemUri);
-                    Workflow.Method deleteCGMethod = new Workflow.Method(
-                            DELETE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI, Boolean.FALSE);
-                    Workflow.Method rollbackDeleteCGMethod = new Workflow.Method(
-                            CREATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI);
-                    workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(
-                            "Deleting Consistency Group %s on local system %s", localCgName,
-                            localSystemUri.toString()), null, localSystemUri, localSystem.getSystemType(),
-                            BlockDeviceController.class, deleteCGMethod, rollbackDeleteCGMethod, null);
-                    localCGsDeleted = true;
-                }
-                if (localCGsDeleted) {
-                    waitFor = DELETE_LOCAL_CG_STEP;
-                }
-            }
-
-            // We need to examine the association of VPlex systems to VPlex CGs that
-            // have been created. We can't depend on the Volume's in the CG to determine
-            // the VPlex systems and CG names because there may not be any volumes in the CG
-            // at this point.
-            if (BlockConsistencyGroupUtils.referencesVPlexCGs(cg, dbClient)) {
-                for (StorageSystem storageSystem : BlockConsistencyGroupUtils.getVPlexStorageSystems(cg, dbClient)) {
-                    URI vplexSystemUri = storageSystem.getId();
-
-                    // Iterate over the VPlex consistency groups that need to be
-                    // deleted.
-                    Map<String, String> vplexCgsToDelete = new HashMap<String, String>();
-                    for (String clusterCgName : cg.getSystemConsistencyGroups().get(vplexSystemUri.toString())) {
-                        String cgName = BlockConsistencyGroupUtils.fetchCgName(clusterCgName);
-                        String clusterName = BlockConsistencyGroupUtils.fetchClusterName(clusterCgName);
-
-                        if (!vplexCgsToDelete.containsKey(cgName)) {
-                            vplexCgsToDelete.put(cgName, clusterName);
-                        }
-                    }
-
-                    for (Map.Entry<String, String> vplexCg : vplexCgsToDelete.entrySet()) {
-                        String stepId = workflow.createStepId();
-                        Workflow.Method deletCGRollbackMethod = rollbackDeleteCGMethod(cgURI, stepId);
-                        // Create the steps in the workflow to delete the consistency
-                        // group. Note that we assume the consistency group does not
-                        // contain any volumes. Currently, the API service does not allow
-                        // this, and so this should never be called otherwise.
-                        waitFor = addStepForRemoveVPlexCG(workflow, stepId, waitFor, storageSystem,
-                                cgURI, vplexCg.getKey(), vplexCg.getValue(), Boolean.TRUE, deletCGRollbackMethod);
-                    }
-                }
-            }
+            addStepsForDeleteConsistencyGroup(workflow, null, vplexURI, cgURI, true);
 
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
                     Arrays.asList(cgURI), opId, null);

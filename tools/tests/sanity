@@ -585,6 +585,10 @@ ssleep() {
     sleep $1
 }
 
+set_validation_check() {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop validation_check $1
+}
+
 srdf_ssh(){
     SRDF_SSH_ERROR=0
     SRDF_SSH_RESULT=""
@@ -2852,7 +2856,11 @@ vplex_tests()
         run blockmirror deactivate $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 
         echo "**** Deleting VPLEX exports"
+        # this is likely a shared export group, so we need to turn validation_check flag off
+        # so that the volumes added by sanity will be removed without a validation exception thrown.
+        set_validation_check false
         run export_group delete $PROJECT/$hname-1$host
+        set_validation_check true
         # run export_group delete $PROJECT/$hname-2$host
 
         echo "**** Deleting VPLEX volumes"

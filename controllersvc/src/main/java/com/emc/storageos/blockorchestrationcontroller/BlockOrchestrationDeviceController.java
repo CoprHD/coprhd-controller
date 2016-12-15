@@ -91,7 +91,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_VOLUMES_WF_NAME, false, taskId);
+                    CREATE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create Volume");

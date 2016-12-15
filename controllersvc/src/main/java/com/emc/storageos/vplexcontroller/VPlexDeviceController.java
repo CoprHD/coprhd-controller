@@ -3701,7 +3701,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                         // Create a step to fire the completer removing initiators.
                         Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
-                        workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", previousStep, vplexURI,
+                        previousStep = workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", previousStep, vplexURI,
                                 vplex.getSystemType(),
                                 this.getClass(), fireCompleter, null, completerStepId);
 

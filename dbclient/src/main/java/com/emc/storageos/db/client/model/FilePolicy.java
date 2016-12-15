@@ -82,7 +82,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum FileReplicationCopyMode {
-        SYNC, ASYNC;
+        SYNC, ASYNC, SEMISYNC;
     }
 
     public static enum ScheduleFrequency {

@@ -114,19 +114,19 @@ public class SchedulePolicies extends ViprResourceController {
         renderArgs.put("policyTypeOptions", policyTypeOptions);
 
         List<StringOption> replicationTypeOptions = Lists.newArrayList();
-        replicationTypeOptions.add(new StringOption("replication_remote", MessagesUtils.get("schedulePolicy.replicationRemote")));
-        replicationTypeOptions.add(new StringOption("replication_local", MessagesUtils.get("schedulePolicy.replicationLocal")));
+        replicationTypeOptions.add(new StringOption("REMOTE", MessagesUtils.get("schedulePolicy.replicationRemote")));
+        replicationTypeOptions.add(new StringOption("LOCAL", MessagesUtils.get("schedulePolicy.replicationLocal")));
         renderArgs.put("replicationTypeOptions", replicationTypeOptions);
 
         List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
-        replicationCopyTypeOptions.add(new StringOption("replication_async", MessagesUtils.get("schedulePolicy.replicationAsync")));
-        replicationCopyTypeOptions.add(new StringOption("replication_semisync", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
-        replicationCopyTypeOptions.add(new StringOption("replication_sync", MessagesUtils.get("schedulePolicy.replicationSync")));
+        replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
+        replicationCopyTypeOptions.add(new StringOption("SEMISYNC", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
+        replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
         List<StringOption> policyPriorityOptions = Lists.newArrayList();
-        policyPriorityOptions.add(new StringOption("priority_hign", MessagesUtils.get("schedulePolicy.priorityHigh")));
-        policyPriorityOptions.add(new StringOption("priority_low", MessagesUtils.get("schedulePolicy.priorityLow")));
+        policyPriorityOptions.add(new StringOption("HIGH", MessagesUtils.get("schedulePolicy.priorityHigh")));
+        policyPriorityOptions.add(new StringOption("LOW", MessagesUtils.get("schedulePolicy.priorityLow")));
         renderArgs.put("policyPriorityOptions", policyPriorityOptions);
 
     }

@@ -31,6 +31,7 @@ public class OrderServiceJob implements Serializable {
     private long nOrdersDeletedWithinPeriod = 0;
     private long startTimeInThisRound = 0;
 
+    //used for deserialize from the distributed queue
     public OrderServiceJob() {
     }
 

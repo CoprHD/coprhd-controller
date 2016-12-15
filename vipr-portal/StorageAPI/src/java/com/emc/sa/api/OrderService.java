@@ -318,9 +318,9 @@ public class OrderService extends CatalogTaggedResourceService {
                                 + SearchConstants.END_TIME_PARAM);
             }
             int maxCount = -1;
-            List<String> c= parameters.get(SearchConstants.ORDER_MAX_COUNT);
+            List<String> c= parameters.get(SearchConstants.MAX_COUNT);
             if (c != null) {
-                String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
+                String maxCountParam = parameters.get(SearchConstants.MAX_COUNT).get(0);
                 maxCount = Integer.parseInt(maxCountParam);
             }
 
@@ -462,7 +462,6 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            //orderManager.deleteOrder(order);
             orderManager.deleteOrder(order.getId(), "");
         }
 
@@ -586,10 +585,19 @@ public class OrderService extends CatalogTaggedResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN })
     @Path("/export")
-    public Response exportOrders( @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
-                                  @QueryParam(LogRequestParam.END_TIME) String endTimeStr,
-                                  @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) throws Exception {
-        log.info("lbyk:export orders startTime={}, endTime={}", startTimeStr, endTimeStr);
+    public Response exportOrders( @DefaultValue("") @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
+                                  @DefaultValue("") @QueryParam(LogRequestParam.END_TIME) String endTimeStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
+            throws Exception {
+        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={}",
+                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr});
+
+        if (!tenantIDsStr.isEmpty() && !orderIDsStr.isEmpty()) {
+            Throwable cause = new Throwable("Both tenant and order IDs are empty");
+            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
+        }
+
 
         // Validate the passed start and end times are valid.
         Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
@@ -605,7 +613,8 @@ public class OrderService extends CatalogTaggedResourceService {
             log.info("Setting start time to yesterday {} ", startTime);
         }
 
-        List<URI> tids= getTenantIDs(tenantIDs);
+        final List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
+        List<URI> orderIDs = toIDs(SearchConstants.ORDER_IDS, orderIDsStr);
 
         final long startTimeInMS = startTime.getTime();
         final long endTimeInMS = endTime.getTime();
@@ -649,7 +658,7 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderBulkRep getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
-                               @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
+                               @DefaultValue("-1") @QueryParam(SearchConstants.MAX_COUNT) String maxCount)
             throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();
@@ -806,7 +815,7 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lbya0:starTime={} endTime={} maxCount={} user={}",
                 new Object[] {startTimeStr, endTimeStr, user.getName()});
 
-        List<URI> tids= getTenantIDs(tenantIDs);
+        List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
 
         long startTimeInMS = 0;
         long endTimeInMS = TimeUtils.getCurrentTime();
@@ -836,20 +845,17 @@ public class OrderService extends CatalogTaggedResourceService {
         return resp;
     }
 
-    private List<URI> getTenantIDs(@DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) {
-        if (tenantIDs.isEmpty()) {
-            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
-        }
-
-        String[] tenantIDsInStr = tenantIDs.split(",");
+    private List<URI> toIDs(String parameterName, String idsStr) {
         List<URI> ids = new ArrayList();
+
+        String[] idsInStr = idsStr.split(",");
         try {
-            for (String id : tenantIDsInStr) {
+            for (String id : idsInStr) {
                 URI uri = new URI(id);
                 ids.add(uri);
             }
         }catch(URISyntaxException e) {
-            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDs, e);
+            throw APIException.badRequests.invalidParameter(parameterName, idsStr, e);
         }
 
         return ids;
@@ -858,30 +864,49 @@ public class OrderService extends CatalogTaggedResourceService {
     /**
      *
      * @brief delete orders (that can be deleted) within a time range
-     * @param startTime the start time of the range (exclusive)
-     * @param endTime the end time of the range (inclusive)
-     * @param tenantIDs if not empty, it's a list of tenant IDs separated by ',' which means delete orders (that can be deleted)
-     *                  under those tenants
-     * @return OK if n completed successfully
-     * @throws DatabaseException when a DB error occurs
+     * @param startTimeStr the start time of the range (exclusive)
+     * @param endTimeStr the end time of the range (inclusive)
+     * @param tenantIDsStr if not empty, it's a list of tenant IDs separated by ','
+     *                     which means delete orders (that can be deleted) under those tenants
+     * @param orderIDsStr if not empty, it's a list of order IDs separated by ','
+     *                    which are the IDs of orders to be deleted
+     *                    Note: either tenantIDsStr or orderIDsStr should be empty
+     * @return OK if a background job is submitted successfully
      */
     @DELETE
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTime,
-                                 @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTime,
-                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) {
+    public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+                                 @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
+                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr) {
         StorageOSUser user = getUserFromContext();
 
-        log.info("lby0:starTime={} endTime={} tid={} user={}", new Object[] {startTime, endTime, tenantIDs, user.getName()});
+        log.info("lby0:starTime={} endTime={} tids={} user={}",
+                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, user.getName()});
 
-        long now = System.currentTimeMillis();
-        long startTimeInMacros = startTime.isEmpty() ? 0 : Long.parseLong(startTime)*1000;
-        long endTimeInMacros = startTime.isEmpty() ? now : Long.parseLong(endTime)*1000;
+        long startTimeInMS = 0;
+        long endTimeInMS = System.currentTimeMillis();
 
-        List<URI> tids = getTenantIDs(tenantIDs);
-        OrderServiceJob job = new OrderServiceJob(startTimeInMacros, endTimeInMacros, tids);
+        if (!startTimeStr.isEmpty()) {
+            Date startTime = getDateTimestamp(startTimeStr);
+            startTimeInMS = startTime.getTime();
+        }
+
+        if (!endTimeStr.isEmpty()) {
+            Date endTime = getDateTimestamp(endTimeStr);
+            endTimeInMS = endTime.getTime();
+        }
+
+        if (startTimeInMS > endTimeInMS) {
+            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
+        }
+
+        List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
+
+        log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
+
+        OrderServiceJob job = new OrderServiceJob(startTimeInMS*1000, endTimeInMS*1000, tids);
         try {
             queue.put(job);
         }catch (Exception e) {

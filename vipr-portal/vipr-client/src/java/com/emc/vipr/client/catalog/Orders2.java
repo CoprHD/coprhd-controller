@@ -155,7 +155,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
         }
         if (maxCount != null) {
-            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_MAX_COUNT, maxCount);
+            uriBuilder = uriBuilder.queryParam(SearchConstants.MAX_COUNT, maxCount);
         }
         OrderList response = client.getURI(OrderList.class, uriBuilder.build());
         return response.getOrders();
@@ -170,7 +170,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
         }
         if (maxCount != null) {
-            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_MAX_COUNT, maxCount);
+            uriBuilder = uriBuilder.queryParam(SearchConstants.MAX_COUNT, maxCount);
         }
         OrderBulkRep response = client.getURI(OrderBulkRep.class, uriBuilder.build());
         return response.getOrders();

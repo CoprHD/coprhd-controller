@@ -23,13 +23,27 @@ create_volume_and_datastore() {
 
     virtualarray=`neighborhood list | grep ${4} | awk '{print $3}'`
     virtualpool=`cos list block | grep ${5} | awk '{print $3}'`
-    project=`project list --tenant emcworld | grep ${6} | awk '{print $4}'`
+    project=`project list --tenant ${tenant} | grep "${6} " | awk '{print $4}'`
  
     vcenter=`vcenter list ${tenant} | grep ${7} | awk '{print $5}'`
     datacenter=`datacenter list ${7} | grep ${8} | awk '{print $4}'`
-    cluster=`cluster list emcworld | grep ${9} | awk '{print $4}'`
-
+    cluster=`cluster list ${tenant} | grep ${9} | awk '{print $4}'`
+    
+    echo "=== catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}"
     echo `catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}`
+}
+
+delete_volume_and_datastore() {
+    # tenant datastorename vcenter datacenter cluster
+    tenant=$1   
+    datastorename=$2
+ 
+    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
+    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`
+    
+    echo "=== catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
+    echo `catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
 }
 
 # Test - Host Add Initiator
@@ -348,10 +362,10 @@ test_host_remove_initiator() {
     do
         echot "Running host_remove_initiator with failure scenario: ${failure}..."
         
+        random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
         column_family="Volume ExportGroup ExportMask"
-        random_number=${RANDOM}
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -913,10 +927,10 @@ test_cluster_remove_host() {
     do
         echot "Running cluster_remove_host with failure scenario: ${failure}..."
         
+        random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"
-        random_number=${RANDOM}
+        column_family="Volume ExportGroup ExportMask"        
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -1105,6 +1119,254 @@ test_cluster_remove_host() {
     runcmd volume delete ${PROJECT}/${volume1} --wait
     runcmd volume delete ${PROJECT2}/${volume2} --wait 
     runcmd project delete ${PROJECT2}
+    
+    # Turn off validation back on
+    secho "Turning ViPR validation ON"
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
+}
+
+# Test Cluster Remove Discovered Host
+
+test_cluster_remove_discovered_host() {
+    test_name="test_cluster_remove_discovered_host"
+    echot "Test cluster_remove_discovered_host Begins"
+    
+    # Turn off validation, shouldn't need to do this but until we have
+    # all the updates for export simplification it may be a necessary
+    # evil.
+    
+#    secho "Turning ViPR validation temporarily OFF (needed for now)"
+    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    failure_injections=""    
+       
+    # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
+    host1="host11"
+    host2="host12"
+    host3="host21"
+    host4="host22"
+    cluster1="cluster-1"
+    cluster2="cluster-2"
+    vcenter="vcenter1"
+    datacenter="DC-Simulator-1"
+    
+    random_number=${RANDOM}        
+    
+    # Create a second project
+    PROJECT2=${PROJECT}-${RANDOM}
+    runcmd project create ${PROJECT2} --tenant $TENANT
+    
+    # Create two volumes and datastores
+    volume1=${VOLNAME}-1-${random_number}
+    volume2=${VOLNAME}-2-${random_number}
+    datastore1="fakedatastore1"-${random_number}
+    datastore2="fakedatastore2"-${random_number}
+    create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
+    #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
+        
+    delete_volume_and_datastore $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+        
+    for failure in ${failure_injections}
+    do
+        echot "Running cluster_remove_host with failure scenario: ${failure}..."
+        
+        random_number=${RANDOM}
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        column_family="Volume ExportGroup ExportMask"        
+        mkdir -p results/${random_number}       
+        exportgroup1=exportgroup1-${random_number}
+        exportgroup2=exportgroup2-${random_number}        
+        
+        # Snap DB
+        snap_db 1 ${column_family}
+            
+#        # Create new random WWNs for nodes and initiators
+#        node1=`randwwn 20 C1`
+#        node2=`randwwn 20 C2`
+#        node3=`randwwn 20 C3`
+#        node4=`randwwn 20 C4`
+#        init1=`randwwn 10 C1`
+#        init2=`randwwn 10 C2`
+#        init3=`randwwn 10 C3`
+#        init4=`randwwn 10 C4`
+#        
+#        # Add initator WWNs to the network
+#        run transportzone add $NH/${FC_ZONE_A} ${init1}
+#        run transportzone add $NH/${FC_ZONE_A} ${init2}
+#        run transportzone add $NH/${FC_ZONE_A} ${init3}
+#        run transportzone add $NH/${FC_ZONE_A} ${init4}
+#        
+#         # Create fake cluster
+#        runcmd cluster create ${cluster1} $TENANT
+#            
+#        # Create fake hosts and add them to cluster
+#        runcmd hosts create $host1 $TENANT Other ${host1}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}
+#        runcmd hosts create $host2 $TENANT Other ${host2}.lss.emc.com --port 1 --cluster ${TENANT}/${cluster1}       
+#        
+#        # Create new initators and add to fakehost
+#        runcmd initiator create $host1 FC ${init1} --node ${node1}
+#        runcmd initiator create $host1 FC ${init2} --node ${node2}
+#        runcmd initiator create $host2 FC ${init3} --node ${node3}
+#        runcmd initiator create $host2 FC ${init4} --node ${node4}
+#    
+#        # Zzzzzz
+#        sleep 2
+        
+        # Export the volume to the fake cluster    
+        runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+        runcmd export_group create ${PROJECT2} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT2}/${volume2} --clusters ${TENANT}/${cluster1}
+        
+        # List of all export groups being used
+        exportgroups="${PROJECT}/${exportgroup1} ${PROJECT2}/${exportgroup2}"
+        
+        for eg in ${exportgroups}
+        do
+            # Double check export group to ensure the hosts and initiators are present
+            foundinit1=`export_group show ${eg} | grep ${init1}`
+            foundinit2=`export_group show ${eg} | grep ${init2}`
+            foundinit3=`export_group show ${eg} | grep ${init3}`
+            foundinit4=`export_group show ${eg} | grep ${init4}`
+            foundhost1=`export_group show ${eg} | grep ${host1}`
+            foundhost2=`export_group show ${eg} | grep ${host2}`
+            
+            if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
+                # Fail, hosts and initiators should have been added to the export group
+                echo "+++ FAIL - Some hosts and host initiators were not found on ${eg}...fail."
+                # Report results
+                incr_fail_count
+                if [ "${NO_BAILING}" != "1" ]
+                then
+                    report_results ${test_name} ${failure}
+                    exit 1
+                fi
+            else
+                echo "+++ SUCCESS - All hosts and host initiators present on ${eg}"   
+            fi
+        done
+            
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                        
+        if [[ "${failure}" == *"deleteExportGroup"* ]]; then
+            # Delete export group
+            secho "Delete export group path..."
+            
+            # Try and remove both hosts from cluster, first should pass and second should fail
+            runcmd hosts update $host1 --cluster null
+            
+            # Happy path would mean there is no fail, otherwise we should expect a failure
+            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then            
+                fail hosts update $host2 --cluster null
+            fi
+        
+            # Rerun the command with no failures
+            set_artificial_failure none 
+            runcmd hosts update $host2 --cluster null
+            
+            # Zzzzzz
+            sleep 5
+            
+            for eg in ${exportgroups}
+            do
+                # Ensure that export group has been removed
+                fail export_group show ${eg}
+                
+                echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
+                foundeg=`export_group show ${eg} | grep ${eg}`
+                
+                if [ "${foundeg}" != "" ]; then
+                    # Fail, export group should be removed
+                    echo "+++ FAIL - Expected export group ${eg} was not deleted."
+                    # Report results
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]
+                    then
+                        report_results ${test_name} ${failure}
+                        exit 1
+                    fi
+                else
+                    echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
+                fi
+            done
+                        
+        else
+            # Update export group
+            secho "Update export group path..."
+            
+            # Happy path would mean there is no fail, otherwise we should expect a failure
+            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+                # Try and remove one host from cluster, this should fail
+                fail hosts update $host1 --cluster null
+            fi
+        
+            # Rerun the command with no failures
+            set_artificial_failure none 
+            runcmd hosts update $host1 --cluster null
+            
+            # Zzzzzz
+            sleep 5
+            
+            for eg in ${exportgroups}
+            do
+                # Ensure that initiator 1 and 2 and host1 have been removed
+                foundinit1=`export_group show ${eg} | grep ${init1}`
+                foundinit2=`export_group show ${eg} | grep ${init2}`
+                foundhost1=`export_group show ${eg} | grep ${host1}`
+                
+                if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
+                    # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
+                    echo "+++ FAIL - Expected host and host initiators were not removed from the export group ${eg}."
+                    # Report results
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]
+                    then
+                        report_results ${test_name} ${failure}
+                        exit 1
+                    fi
+                else
+                    echo "+++ SUCCESS - Expected host and host initiators removed from export group ${eg}." 
+                fi                                     
+            done
+            
+            # Cleanup export groups  
+            runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
+            runcmd export_group delete ${PROJECT}/${exportgroup1}            
+            runcmd export_group update ${PROJECT2}/${exportgroup2} --remVols ${PROJECT2}/${volume2}                                     
+            runcmd export_group delete ${PROJECT2}/${exportgroup2}
+        fi    
+        
+        # Add hosts back to clusters
+        runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
+        
+#        # Cleanup all
+#        runcmd cluster delete ${TENANT}/${cluster1}
+#        runcmd initiator delete ${host1}/${init1}
+#        runcmd initiator delete ${host1}/${init2}
+#        runcmd initiator delete ${host2}/${init3}
+#        runcmd initiator delete ${host2}/${init4}
+#        runcmd hosts delete ${host1}
+#        runcmd hosts delete ${host2}
+        
+        # Snap DB
+        snap_db 2 ${column_family}
+        
+        # Validate DB
+        validate_db 1 2 ${column_family}
+
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+    
+     # Cleanup volumes
+    #runcmd volume delete ${PROJECT}/${volume1} --wait
+    #runcmd volume delete ${PROJECT2}/${volume2} --wait 
+    #runcmd project delete ${PROJECT2}
     
     # Turn off validation back on
     secho "Turning ViPR validation ON"

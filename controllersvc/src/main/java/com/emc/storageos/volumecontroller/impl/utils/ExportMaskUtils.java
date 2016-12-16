@@ -1347,6 +1347,7 @@ public class ExportMaskUtils {
      */
     public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
         ExportMask exportMask = null;
+        ExportMask result = null;
         URIQueryResultList uriQueryList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(name), uriQueryList);
@@ -1357,10 +1358,11 @@ public class ExportMaskUtils {
                     exportMask.getStorageDevice().equals(storageSystemId)) {
                 // We're expecting there to be only one export mask of a
                 // given name for any storage array.
+                result = exportMask;
                 break;
             }
         }
-        return exportMask;
+        return result;
     }
 
     /**

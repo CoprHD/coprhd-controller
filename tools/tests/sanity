@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -88,8 +88,29 @@ QUICK=0
 SS=${3}
 if [ ${SS} = "vplex" ]; then
     VPLEX_QUICK_PARAM=${4:-'normal'}
-    AUTH=${5:-ldap}
-    EXTRA_PARAM=${6}
+    if [ $VPLEX_QUICK_PARAM = 'quick' ]; then
+        QUICK=1
+    fi
+
+    # The VPLEX quick parameter can also choose xio vs. vnx
+    if [ "$VPLEX_QUICK_PARAM" = "xio" ]; then
+        VPLEX_USE_XIO=1
+    fi
+    if [ "$VPLEX_QUICK_PARAM" = "vnx" -o "$VPLEX_QUICK_PARAM" = "quick" ]; then
+        VPLEX_USE_XIO=0
+    fi
+
+    VPLEX_INGEST_PARAM=${5:-'noingest'}
+    if [ "$VPLEX_INGEST_PARAM" != 'noingest' ]; then
+        # all, exported, or unexported
+        VPLEX_INGEST_PARAM=${6}
+        shift
+    fi
+    echo "VPLEX_QUICK_PARAM is $VPLEX_QUICK_PARAM"
+    echo "VPLEX_USE_XIO is $VPLEX_USE_XIO"
+    echo "VPLEX_INGEST_PARAM is ingest $VPLEX_INGEST_PARAM"
+    AUTH=${6:-ldap}
+    EXTRA_PARAM=${7}
 elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
@@ -102,6 +123,22 @@ elif [ ${SS} = "xtremio" ]; then
     XIO_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
+elif [ ${SS} = "snapvx" ]; then
+    SNAPVX_QUICK_PARAM=${4:-'noquick'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+
+    if [ ${SNAPVX_QUICK_PARAM} = "quick" ]; then
+        QUICK=1
+    fi
+elif [ ${SS} = "srdf" ]; then
+    SRDF_QUICK_PARAM=${4:-'noquick'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+
+    if [ ${SRDF_QUICK_PARAM} = "quick" ]; then
+        QUICK=1
+    fi
 elif [ ${SS} = "vdc" ]; then
     VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
     VDC_ENDPOINT_B=${4:-$VDC_DEFAULT_ENDPOINT}
@@ -420,7 +457,7 @@ COS_UNITYBLOCK_CG=cosunity_cg
 COS_ARRAYAFFINITY=cos_arrayaffinity
 COS_ARRAYAFFINITY_VMAX=cos_arrayaffinity_vmax
 COS_ARRAYAFFINITY_VNX=cos_arrayaffinity_vnx
-HOST_ARRAYAFFINITY=arrayaffinity
+HOST_ARRAYAFFINITY=$hostbase
 HOST_ARRAYAFFINITY_FQDN=${HOST_ARRAYAFFINITY}.lss.emc.com
 HOST_ARRAYAFFINITY_URI=""
 
@@ -542,6 +579,10 @@ SRDF_RDF_CREATE_RETRY=1 # number of times for retry in case of group name/number
 ssleep() {
     secho "Sleeping $1 seconds"
     sleep $1
+}
+
+set_validation_check() {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop validation_check $1
 }
 
 srdf_ssh(){
@@ -859,19 +900,16 @@ cisco_mds_quick_setup_once()
 
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
-   
-#    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
-#    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
+    
     FC_ZONE_A=VSAN_11
     FC_ZONE_B=VSAN_12
     FCTZ_A=$NH/$FC_ZONE_A
     FCTZ_B=$NH2/$FC_ZONE_B
 
-
     run transportzone assign VSAN_11 $NH
     run transportzone assign VSAN_12 $NH2
 
-#   add ports to VSAN_11
+    # add ports to VSAN_11
     run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1
     run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A2
     run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A3
@@ -1737,14 +1775,32 @@ srdf_setup()
 
 srdf_setup_once()
 {
-    srdf_network_setup
+    if [ "$SRDF_QUICK_PARAM" = "quick" ]; then
+        secho "Test with simulator"
 
-    SRDF_PROJECT=$(srdf_generate_rdfg_name)
-    # create RDF group first, SRDF_PROJECT may be changed in the call
-    srdf_create_rdfg
-    srdf_sleep
-    # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
-    ssleep 300
+        SRDF_SLEEPING_SECONDS=1
+        SRDF_PROJECT=SRDF$(shuf -i 1-29 -n 1)
+        V3_SRDF_VARRAY=nh
+
+	SRDF_V3_VMAXA_SMIS_IP=${VMAX3_SIMULATOR_SMIS_IP}
+	SRDF_V3_VMAXA_SMIS_PORT=${VMAX3_SIMULATOR_SMIS_PORT}
+	SRDF_V3_VMAXA_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
+	SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
+	SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
+
+	project_setup
+	zone_setup
+    else
+        srdf_network_setup
+
+        secho "Executing SRDF group setup"
+        SRDF_PROJECT=$(srdf_generate_rdfg_name)
+        # create RDF group first, SRDF_PROJECT may be changed in the call
+        srdf_create_rdfg
+        srdf_sleep
+        # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
+        ssleep 300
+    fi
 
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
@@ -1754,14 +1810,15 @@ srdf_setup_once()
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
-    smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+
+    if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
+        smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
+        run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+    fi
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
     # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
-    smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
 
     run storagedevice discover_all --ignore_error
     #discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
@@ -1771,12 +1828,13 @@ srdf_setup_once()
 }
 
 srdf_network_setup() {
+    secho "SRDF network setup"
+
     # Do once
     nsys=`networksystem list | wc -l`
     [ "$nsys" -gt 0 ] && return;
 
     #Discover the Brocade SAN switch.
-    secho "SRDF network setup"
     #brocade_setup_once
 
     run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
@@ -1907,17 +1965,19 @@ srdf_common_setup() {
     #zone_setup - for CDP use NH as the protection neighborhood as well
     echo 'Adding endpoints to transport zone'
     # TODO: Try to get rid of this; these should be in the network already.
-    for storageport in ${SRDF_VMAXA_STORAGEPORTS}
-    do 
-      run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
-    done
-    echo 'Done adding endpoints to network'
-    run transportzone assign ${SRDF_VMAXB_VSAN} $NH
-    for storageport in ${SRDF_VMAXB_STORAGEPORTS}
-    do 
-      run transportzone add ${NH}/${SRDF_VMAXB_VSAN} ${storageport}
-    done
-    echo 'Done adding endpoints to network'
+    if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
+        for storageport in ${SRDF_VMAXA_STORAGEPORTS}
+        do
+          run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
+        done
+        echo 'Done adding endpoints to network'
+        run transportzone assign ${SRDF_VMAXB_VSAN} $NH
+        for storageport in ${SRDF_VMAXB_STORAGEPORTS}
+        do
+          run transportzone add ${NH}/${SRDF_VMAXB_VSAN} ${storageport}
+        done
+        echo 'Done adding endpoints to network'
+    fi
 
     srdf_v3_varray_setup
     # srdf_cos_setup
@@ -2013,7 +2073,7 @@ srdf_v3_cos_setup()
     
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
     run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
-	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' true \
+	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' false \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -2025,8 +2085,7 @@ srdf_v3_cos_setup()
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
-    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
-	
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT
 	
 	## ASYNCHRONOUS
 	
@@ -2113,9 +2172,10 @@ srdf_v3_cos_change()
    echo "Created volume, now sleeping..."
    srdf_sleep
    echo "Changing cos..."
+
    # Workaround for COP-25718, remove the cos update once it is fixed
-   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched true
-   run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+   run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
 
    run volume change_cos $SRDF_PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
    echo "Changed cos"
@@ -2123,8 +2183,6 @@ srdf_v3_cos_change()
    echo "Deleting volume"
    run volume delete $SRDF_PROJECT/${srdfvolumecc} --wait
    run_noundo blockconsistencygroup delete $cg
-   # Workaround for COP-25718, remove the cos update once it is fixed
-   run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --use_matched false
 }
 
 srdf_cos_change_meta()
@@ -2182,6 +2240,10 @@ srdf_basic_active_test()
    srdfvolume="${SRDF_VOLUME}_active"
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
+   # rediscover storage systems for RDF group mode getting updated
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
+
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
@@ -2189,7 +2251,7 @@ srdf_basic_active_test()
 
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
-   storagedevice discover_all --ignore_error
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
    run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
@@ -2207,10 +2269,7 @@ srdf_tests()
    echo 'About to run basic SRDF active test'
    sleep 60
    srdf_basic_active_test
-   echo 'About to run V3 SRDF cos change test'
-   sleep 60
-   srdf_v3_cos_change
-   
+
    echo 'About to run basic SRDF async test'
    sleep 60
    srdf_basic_async_test
@@ -2219,14 +2278,21 @@ srdf_tests()
    srdf_basic_sync_test
    
    echo 'About to run SRDF cos change test'
-   sleep 60
    #srdf_cos_change
    # echo 'About to run SRDF cos change test for meta volume'
    # sleep 60
    # srdf_cos_change_meta
 
-   echo 'About to remove RDF group using symcli'
-   srdf_run_symrdf removegrp
+   echo 'About to run V3 SRDF cos change test'
+   sleep 60
+   srdf_v3_cos_change
+
+   if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
+       echo 'About to remove RDF group using symcli'
+       sleep 60
+       srdf_run_symrdf removegrp
+   fi
+
    echo 'Done Running SRDF tests'
 }
 
@@ -2446,7 +2512,7 @@ consistencygroup_block_cos_setup()
 vplex_cos_setup()
 {
     run cos create block cosvplexlocal true                   \
-                     --description 'Local-CoS-for-VPlex'      \
+                     --description 'Local-Vpool-for-VPLEX'      \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -2458,57 +2524,60 @@ vplex_cos_setup()
 
     run cos allow cosvplexlocal block $TENANT
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX3_NATIVEGUID
-	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
-	run cos create block vplexdistbackingvpool true                   \
-                     --description 'Local-backing-vpool-for-VPlex'      \
-                     --protocols FC                           \
-                     --numpaths 2                             \
-                     --provisionType 'Thin'                   \
-                     --neighborhoods $NH2                     \
-                     --expandable false 
+        run cos create block vplexdistbackingvpool true                   \
+                         --description 'Local-backing-vpool-for-VPLEX'      \
+                         --protocols FC                           \
+                         --numpaths 2                             \
+                         --provisionType 'Thin'                   \
+                         --neighborhoods $NH2                     \
+                         --expandable false 
 
     else
-	run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
-	if [ "$AUTH" != 'ipv6' ] ; then
-	    run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
-	fi
-	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+        run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
+        else 
+        run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        fi
+        if [ "$AUTH" != 'ipv6' ] ; then
+                if [ $VPLEX_USE_XIO -eq 1 ]; then
+                run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
+                else
+                run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+                fi
+        fi
+        run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
 
     run cos allow cosvplexlocal block $TENANT
+
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX5_NATIVEGUID
-	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX6_NATIVEGUID
-	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX7_NATIVEGUID
+        run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX5_NATIVEGUID
 
-	run cos allow vplexdistbackingvpool block $TENANT
+        run cos allow vplexdistbackingvpool block $TENANT
 
-	run cos create block cosvplexdist true                          \
-                     --description 'Distributed-CoS-for-VPlex'      \
-                     --protocols FC                                 \
-                     --numpaths 2                                   \
-                     --provisionType 'Thin'                         \
-                     --highavailability vplex_distributed           \
-                     --neighborhoods $NH $NH2                       \
-                     --haNeighborhood $NH2                          \
-	             --haCos vplexdistbackingvpool                  \
-                     --max_snapshots 1                              \
-                     --max_mirrors 1                                \
-                     --mirror_cos cosvplexlocal                     \
-                     --expandable false
+        run cos create block cosvplexdist true                          \
+                         --description 'Distributed-Vpool-for-VPLEX'      \
+                         --protocols FC                                 \
+                         --numpaths 2                                   \
+                         --provisionType 'Thin'                         \
+                         --highavailability vplex_distributed           \
+                         --neighborhoods $NH $NH2                       \
+                         --haNeighborhood $NH2                          \
+                         --haCos vplexdistbackingvpool                  \
+                         --max_snapshots 1                              \
+                         --max_mirrors 1                                \
+                         --mirror_cos cosvplexlocal                     \
+                         --expandable false
 
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+        run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+        run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
     else
-	run cos create block cosvplexdist true                          \
-                     --description 'Distributed-CoS-for-VPlex'      \
+        run cos create block cosvplexdist true                          \
+                     --description 'Distributed-Vpool-for-VPLEX'      \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \
@@ -2520,9 +2589,13 @@ vplex_cos_setup()
                      --mirror_cos cosvplexlocal                     \
                      --expandable false
 
-	run cos allow cosvplexdist block $TENANT
-	run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
+        run cos allow cosvplexdist block $TENANT
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+            run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
+        else
+            run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+        fi
+        run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
 }
 
@@ -2531,99 +2604,123 @@ vplex_setup()
     vplex_setup_once
 }
 
+vplex_sim_variable_setup()
+{
+    VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
+    VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
+    VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
+    VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX5_NATIVEGUID
+    CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
+}
+
 vplex_setup_once()
 {
     if [ "$AUTH" == 'ipv6' ] ; then
-	echo "Setting up VPLEX environment for IPv6"
-	# Discover the storage systems 
-	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	run storagedevice discover_all
-	storagedevice list
-	storageport list $VPLEX_VNX1_NATIVEGUID
-	storageport list $VPLEX_VMAX_NATIVEGUID
-	storageport list $VPLEX_GUID
+        echo "Setting up VPLEX environment for IPv6"
+        # Discover the storage systems 
+        run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        run storagedevice discover_all
+        storagedevice list
+        storageport list $VPLEX_VNX1_NATIVEGUID
+        storageport list $VPLEX_VMAX_NATIVEGUID
+        storageport list $VPLEX_GUID
 
-	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
-	# The arrays are assigned to individual varrays as well.
-	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
+        # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+        run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+        run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+        run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+        run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+        # The arrays are assigned to individual varrays as well.
+        run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
+        echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
-	# Discover the storage systems 
-	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
-	smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
+        # Discover the storage systems 
+        echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
+        smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?
+        run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
 
-	echo "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
-	storageprovider show $VPLEX_SIM_DEV_NAME &> /dev/null && return $?
-	run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
-	run storagedevice discover_all
+        echo "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
+        storageprovider show $VPLEX_SIM_DEV_NAME &> /dev/null && return $?
+        run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
+        run storagedevice discover_all
 
-	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-A --addvarrays $NH
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-B --addvarrays $NH
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-A --addvarrays $NH2
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-B --addvarrays $NH2
+        # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-A --addvarrays $NH
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-B --addvarrays $NH
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-A --addvarrays $NH2
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-B --addvarrays $NH2
 
-	# The arrays are assigned to individual varrays as well.
-	run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH
+        # The arrays are assigned to individual varrays as well.
+        run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
 
-	run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-	run storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $NH2
-	run storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $NH2
+        vplex_sim_variable_setup
+        vplex_cos_setup
 
-	vplex_cos_setup
-	VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-	CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
         echo "Done setting up VPLEX environment..."
     else
-	echo "Setting up VPLEX environment for IPv4"
+        echo "Setting up VPLEX environment for IPv4"
 
-	#Discover the Brocade SAN switch.
-	brocade_setup_once
+        #Discover the Brocade SAN switch.
+        brocade_setup_once
 
-	# Discover the storage systems 
-	echo "Discovering Storage Assets"
-	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
-	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
-	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	run storagedevice discover_all
-	storagedevice list
-	storageport list $VPLEX_VNX1_NATIVEGUID --v
-	storageport list $VPLEX_VMAX_NATIVEGUID --v
-	storageport list $VPLEX_VNX2_NATIVEGUID --v
-	storageport list $VPLEX_GUID --v
-	sleep 90
-	storageport list $VPLEX_GUID --v
+        # Discover the storage systems 
+        echo "Discovering Storage Assets"
+        smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
+        run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
 
-	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
-	storageport list $VPLEX_GUID --v
-	# The arrays are assigned to individual varrays as well.
-	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
-	vplex_cos_setup
-	storageport list $VPLEX_GUID --v
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+            run storageprovider create $VPLEX_XIO1_SMIS_DEV_NAME $VPLEX_XIO1_SMIS_IP $VPLEX_XIO1_SMIS_PORT $VPLEX_XIO1_SMIS_USER "$VPLEX_XIO1_SMIS_PASSWD" xtremio
+            run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
+        else
+            run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
+            run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
+            storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+        fi
+
+        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        run storagedevice discover_all
+        storagedevice list
+
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+            storageport list $VPLEX_XIO1_NATIVEGUID --v
+            storageport list $VPLEX_XIO2_NATIVEGUID --v
+        else
+            storageport list $VPLEX_VNX1_NATIVEGUID --v
+            storageport list $VPLEX_VMAX_NATIVEGUID --v
+            storageport list $VPLEX_VNX2_NATIVEGUID --v
+        fi
+
+        storageport list $VPLEX_VMAX_NATIVEGUID --v
+        storageport list $VPLEX_GUID --v
+
+        # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+        run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+        run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+        run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+        run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+        storageport list $VPLEX_GUID --v
+
+        # The arrays are assigned to individual varrays as well.
+        if [ $VPLEX_USE_XIO -eq 1 ]; then
+            run storageport update $VPLEX_XIO1_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
+        else
+            run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+        fi
+
+        run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
+        vplex_cos_setup
+        storageport list $VPLEX_GUID --v
     fi
 }
 
@@ -2632,124 +2729,148 @@ vplex_setup_once()
 #
 vplex_tests()
 {
+    if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+        vplex_sim_variable_setup
+    fi
+
     storageport list $VPLEX_GUID --v
+
     if [ "$AUTH" != 'ipv6' ] ; then
-	echo "**** Executing VPLEX tests"
+        echo "**** Executing VPLEX tests"
 
-	hname=$(hostname)
-	if [ $hname = "standalone" ]; then
-	    hname=$SHORTENED_HOST
-	fi
-	echo "hostname is $hname"
-	
-	localVolume1=$hname-${RANDOM}-VPlexLocal1
-	localVolume2=$hname-${RANDOM}-VPlexLocal2
-	localMirror1=$hname-${RANDOM}-VPlexLocalMirror1
-	localMirror2=$hname-${RANDOM}-VPlexLocalMirror2
-	sourceSideSuffix=-0
-	localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
-	distVolume1=$hname-${RANDOM}-VPlexDist1
-	distSrcLocalMirror1=$hname-${RANDOM}-srcLocalMirror1
-	distSnapshot=$hname-${RANDOM}-VPlexDist1Snap
-	distVolume2=$hname-${RANDOM}-VPlexDist2
-	distSrcLocalMirror2=$hname-${RANDOM}-srcLocalMirror2
-	host=$PROJECT.lss.emc.com
-	hostLbl=$PROJECT
-	PWWN1=10:00:00:E0:7E:00:00:0F
-	WWNN1=20:00:00:E0:7E:00:00:0F
-	PWWN2=10:00:00:90:FA:18:0E:99
-	WWNN2=20:00:00:90:FA:18:0E:99
+        hname=$(hostname)
+        if [ $hname = "standalone" ]; then
+            hname=$SHORTENED_HOST
+        fi
+        echo "hostname is $hname"
 
-	echo "**** Creating VPLEX local volumes"
-	run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
-	run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --count=2
-	
-	echo "**** Creating VPLEX local mirrors"
-	run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
-	run blockmirror attach  $PROJECT/$localVolume2-1 $localMirror2 1
+        localVolume1=$hname-${RANDOM}-VPlexLocal1
+        localVolume2=$hname-${RANDOM}-VPlexLocal2
+        localVolume3=$hname-${RANDOM}-VPlexLocal3
+        localMirror1=$hname-${RANDOM}-VPlexLocalMirror1
+        localMirror2=$hname-${RANDOM}-VPlexLocalMirror2
+        sourceSideSuffix=-0
+        localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+        distVolume1=$hname-${RANDOM}-VPlexDist1
+        distSrcLocalMirror1=$hname-${RANDOM}-srcLocalMirror1
+        distSnapshot=$hname-${RANDOM}-VPlexDist1Snap
+        distVolume2=$hname-${RANDOM}-VPlexDist2
+        distSrcLocalMirror2=$hname-${RANDOM}-srcLocalMirror2
+        host=$PROJECT.lss.emc.com
+        hostLbl=$PROJECT
+        PWWN1=10:00:00:E0:7E:00:00:0F
+        WWNN1=20:00:00:E0:7E:00:00:0F
+        PWWN2=10:00:00:90:FA:18:0E:99
+        WWNN2=20:00:00:90:FA:18:0E:99
 
-	echo "**** Deleting VPLEX local mirror, waiting 20 seconds first..."
-	sleep 20
-	run blockmirror deactivate  $PROJECT/$localVolume2-1 $localMirror2$sourceSideSuffix
+        echo "**** Creating VPLEX local volumes"
+        run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
+        run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE
+        run volume create $localVolume3 $PROJECT $NH cosvplexlocal $BLK_SIZE
 
-	echo "**** Creating VPLEX distributed volumes"
-	run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
-	run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
+        echo "**** Creating VPLEX local mirrors"
+        run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
+        run blockmirror attach  $PROJECT/$localVolume2 $localMirror2 1
 
-	echo "**** Creating local mirrors for the Distributed volumes on the source side"
-	run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
-	run blockmirror attach  $PROJECT/$distVolume2 $distSrcLocalMirror2 1
-	
-	echo "**** Deleting local mirror for the VPLEX Distributed volume, waiting 20 seconds first..."
-	sleep 20
-	run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
-	
-	echo "**** Volumes created so far, before export testing starts:"
-	run volume list $PROJECT
-	
-	echo "**** Creating host"
-	run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
-	
-	echo "**** Creating initiators"
-	run initiator create $hostLbl FC $PWWN1 --node $WWNN1
-	run initiator create $hostLbl FC $PWWN2 --node $WWNN2
-	
-	echo "**** Adding WWNs to Network"
-	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
-	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
-	
-	echo "**** Exporting VPLEX volumes to host in varray " $NH
-	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2-1
-	
-	# echo "**** Exporting VPLEX volumes to host in varray " $NH2
+        echo "**** Creating VPLEX distributed volumes"
+        run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
+        run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
+
+        echo "**** Creating local mirrors for the Distributed volumes on the source side"
+        run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
+        run blockmirror attach  $PROJECT/$distVolume2 $distSrcLocalMirror2 1
+
+        echo "**** Creating VPLEX local volume snapshot"
+        run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
+        blocksnapshot list $PROJECT/$localVolume1
+        blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
+
+        echo "**** Creating VPLEX distributed volume snapshot"
+        run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
+        blocksnapshot list $PROJECT/$distVolume1
+        blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
+
+        if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "unexported" ] ; then
+            vplex_ingest_unexported
+            # volume names would have changed after ingestion, based on backend vol with -0 suffix
+            localVolume2="$localVolume2$sourceSideSuffix"
+            localVolume3="$localVolume3$sourceSideSuffix"
+        fi
+        
+        echo "**** Creating host"
+        run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+
+        echo "**** Creating initiators"
+        run initiator create $hostLbl FC $PWWN1 --node $WWNN1
+        run initiator create $hostLbl FC $PWWN2 --node $WWNN2
+
+        echo "**** Adding WWNs to Network"
+        run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
+        run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
+
+        echo "**** Exporting VPLEX volumes to host in varray " $NH
+        run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+        run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2
+        run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1
+        run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2
+        run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume3
+
+        # echo "**** Exporting VPLEX volumes to host in varray " $NH2
         # run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
-	echo "Exports for $distVolume1"
-	volume exports $PROJECT/$distVolume1 --v
-	echo "Exports for $distVolume2"
-	volume exports $PROJECT/$distVolume2 --v
-	echo "Exports for $localVolume1"
-	volume exports $PROJECT/$localVolume1 --v
-	echo "Exports for $localVolume2-1"
-	volume exports $PROJECT/$localVolume1 --v
-	
-	echo "**** Creating VPLEX volume snapshots"
-	run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
-	blocksnapshot list $PROJECT/$localVolume1
-	blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
-	run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
-	blocksnapshot list $PROJECT/$distVolume1
-	blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
+        echo "Exports for $distVolume1"
+        volume exports $PROJECT/$distVolume1 --v
+        echo "Exports for $distVolume2"
+        volume exports $PROJECT/$distVolume2 --v
+        echo "Exports for $localVolume1"
+        volume exports $PROJECT/$localVolume1 --v
+        echo "Exports for $localVolume2"
+        volume exports $PROJECT/$localVolume2 --v
 
-	echo "**** Restoring VPLEX volume snapshots"
+        if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "exported" ] ; then
+            vplex_ingest_exported
+        fi
+
+        echo "**** Restoring VPLEX volume snapshots"
         # Must deactivate mirrors before restoring snapshots now.
-	run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
-	run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
-	run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-	run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
+        run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
+        run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
+        if [ $VPLEX_USE_XIO -eq 0 ]; then
+            run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
+        else
+            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
+        fi
 
-	echo "**** Deleting VPLEX volume snapshots"
-	run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
-	run blocksnapshot delete $PROJECT/$distVolume1/$distSnapshot
+        echo "**** Deleting VPLEX volume snapshots"
+        run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
+        run blocksnapshot delete $PROJECT/$distVolume1/$distSnapshot
 
-	echo "**** Deleting VPLEX exports"
-	run export_group delete $PROJECT/$hname-1$host
-	# run export_group delete $PROJECT/$hname-2$host
+        echo "**** Deleting VPLEX local mirror for local volume $localVolume2"
+        run blockmirror deactivate $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
+    
+        echo "**** Deleting local mirror for the VPLEX Distributed volume $distVolume2"
+        run blockmirror deactivate $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 
-	echo "**** Deleting VPLEX volumes"
-	run volume delete $PROJECT/$localVolume1 --wait
-	run volume delete $PROJECT/$localVolume2-1 --wait
-        run volume delete $PROJECT/$localVolume2-2 --wait
+        echo "**** Deleting VPLEX exports"
+        # this is likely a shared export group, so we need to turn validation_check flag off
+        # so that the volumes added by sanity will be removed without a validation exception thrown.
+        set_validation_check false
+        run export_group delete $PROJECT/$hname-1$host
+        set_validation_check true
+        # run export_group delete $PROJECT/$hname-2$host
 
-	run volume delete $PROJECT/$distVolume1 --wait
-	run volume delete $PROJECT/$distVolume2 --wait
+        echo "**** Deleting VPLEX volumes"
+        run volume delete $PROJECT/$localVolume1 --wait
+        run volume delete $PROJECT/$localVolume2 --wait
+        run volume delete $PROJECT/$localVolume3 --wait
 
-	echo "**** Deleting Host"
-	hosts delete $hostLbl
+        run volume delete $PROJECT/$distVolume1 --wait
+        run volume delete $PROJECT/$distVolume2 --wait
 
-	echo "**** Completed VPLEX Tests"
+        echo "**** Deleting Host"
+        hosts delete $hostLbl
+
+        echo "**** Completed VPLEX Tests"
     fi
 }
 
@@ -2757,6 +2878,115 @@ vplex_tests()
 vplexexport_setup() {
     vplex_setup_once
 }
+
+vplex_ingest_unexported() {
+
+    # 
+    # NOTE: some stuff is commented out here until the vplex-simulator can support it, works on hardware
+    # 1) second backend volume of distributed vols gets a "connection refused" from the sim provider, so no distributed yet
+    # 2) snapshots are not detected correctly on the backend volumes, so can't ingest volumes with snapshots yet
+    # 3) the snapshot label detected doesn't seem to be correct either, but haven't been able to get that far to find out for sure
+    # 
+
+    echo "**** Running VPLEX Unexported Volume Ingestion Tests......."
+    echo "****"
+    echo "**** Inventory Deleting Everything..."
+    echo "****"
+
+    echo "**** saving off unexported Volume data for debug purposes to /tmp/vipr_unexported_greenfield_vols.txt"
+    /opt/storageos/bin/dbcli list Volume > /tmp/vipr_unexported_greenfield_vols.txt
+
+    #run_noundo volume delete $PROJECT/$localVolume1 --vipronly --force    
+    run_noundo volume delete $PROJECT/$localVolume2 --vipronly --force
+    run_noundo volume delete $PROJECT/$localVolume3 --vipronly --force
+    #run_noundo volume delete $PROJECT/$distVolume1 --vipronly --force
+    #run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
+
+    # NOTE: snapshot ingestion testing disabled until the vplex-simulator can support it, works on hardware
+    # VPLEX_LOCAL_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    # echo "**** VPLEX_LOCAL_SNAP_ARRAY_LABEL is $VPLEX_LOCAL_SNAP_ARRAY_LABEL"
+    # run_noundo blocksnapshot delete ${PROJECT}/${localVolume1}/${localSnapshot} --vipronly
+
+    # VPLEX_DIST_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    # echo "**** VPLEX_DIST_SNAP_ARRAY_LABEL is $VPLEX_DIST_SNAP_ARRAY_LABEL"
+    # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
+
+    echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
+    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
+
+    echo "**** saving off unexported UnManagedVolume data for debug purposes to /tmp/vipr_unexported_unmanaged_vols.txt"
+    /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_unexported_unmanaged_vols.txt
+
+    #echo "**** Ingesting $localVolume1 (has backend snapshot)"
+    #run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1"
+    echo "**** Ingesting $localVolume2$sourceSideSuffix (has backend mirror)"
+    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2$sourceSideSuffix"
+    echo "**** Ingesting $localVolume3$sourceSideSuffix"
+    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3$sourceSideSuffix"
+    #echo "**** Ingesting $distVolume2"
+    #run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume2"
+
+    #echo "**** Ingesting $localVolume1 with snap"
+    #fail unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1"
+    #echo "**** Ingesting $distVolume1 with snap"
+    #fail unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume1"
+
+    #echo "**** Ingesting snapshot $VPLEX_LOCAL_SNAP_ARRAY_LABEL of $localVolume1"
+    #run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "${VPLEX_LOCAL_SNAP_ARRAY_LABEL}"
+    #echo "**** Ingesting snapshot $VPLEX_DIST_SNAP_ARRAY_LABEL of $distVolume1"
+    #run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "${VPLEX_DIST_SNAP_ARRAY_LABEL}"
+
+    echo "**** Completed VPLEX Unexported Ingestion Tests......."
+}
+
+vplex_ingest_exported() {
+
+    # 
+    # NOTE: some stuff is commented out here until the vplex-simulator can support it, works on hardware
+    # 
+
+    echo "**** Running VPLEX Exported Volume Ingestion Tests......."
+    echo "****"
+    echo "**** Inventory Deleting Everything..."
+    echo "****"
+
+    echo "**** saving off exported Volume data for debug purposes to /tmp/vipr_exported_greenfield_vols.txt"
+    /opt/storageos/bin/dbcli list Volume > /tmp/vipr_exported_greenfield_vols.txt
+
+    #run_noundo volume delete $PROJECT/$localVolume1 --vipronly --force
+    run_noundo volume delete $PROJECT/$localVolume2 --vipronly --force
+    run_noundo volume delete $PROJECT/$localVolume3 --vipronly --force
+    #run_noundo volume delete $PROJECT/$distVolume1 --vipronly --force
+    #run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
+
+    echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
+    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
+
+    echo "**** saving off exported UnManagedVolume data for debug purposes to /tmp/vipr_exported_unmanaged_vols.txt"
+    /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_exported_unmanaged_vols.txt
+    echo "**** saving off UnManagedExportMask data for debug purposes to /tmp/vipr_exported_unmanaged_export_masks.txt"
+    /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_unmanaged_export_masks.txt
+
+    #echo "**** Ingesting Exported $localVolume2 (has backend snapshot)"
+    #run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1" --host $hostLbl
+    echo "**** Ingesting Exported $localVolume2$sourceSideSuffix (has backend mirror)"
+    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2$sourceSideSuffix" --host $hostLbl
+    echo "**** Ingesting Exported $localVolume3$sourceSideSuffix"
+    run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3$sourceSideSuffix" --host $hostLbl
+    #echo "**** Ingesting Exported $distVolume1"
+    #run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume1" --host $hostLbl
+    #echo "**** Ingesting Exported $distVolume2"
+    #run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume2" --host $hostLbl
+
+    echo "**** Completed VPLEX Exported Volume Ingestion Tests......."
+}
+
 vplexexport_tests() {
     echo "************* Running export-tests/vplexexport.sh  *****************"
     run export-tests/vplexexport.sh test1
@@ -4271,19 +4501,19 @@ recoverpoint_auto_snapshot_cleanup_test()
         fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
 
         secho 'Creating RP bookmark'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap}2 --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray} | grep inactive | grep false       
 
         # do a restore before swap to show that the lock is removed after restore
         secho 'Performing restore of RP bookmark'
-        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
         sleep 10
 
         secho 'Performing swap operation to verify auto snapshot cleanup'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
         secho 'Verifying that RP bookmark was removed after swap'
-        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}2-${tgt_varray}
 
         secho 'Performing swap back'
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
@@ -9432,39 +9662,41 @@ blockconsistencygroup_update_tests()
 
     cg2=$3
     cg2_vpool=$4
+    vnx_vol=vnx-vol${RANDOM}
+    vmax_vol=vmax-vol${RANDOM}
 
-    run volume create vnx-vol $PROJECT $NH cosvnxb 1GB
-    run volume create vmax-vol $PROJECT $NH cosvmaxb 1GB
+    run volume create ${vnx_vol} $PROJECT $NH cosvnxb 1GB
+    run volume create ${vmax_vol} $PROJECT $NH cosvmaxb 1GB
 
     blockconsistencygroup create $PROJECT $cg1
     blockconsistencygroup create $PROJECT $cg2
 
     secho "Trying to update CG that is not on array"
-    blockconsistencygroup update $cg1 --add $PROJECT/vnx-vol
-    blockconsistencygroup update $cg2 --add $PROJECT/vmax-vol
+    blockconsistencygroup update $cg1 --add $PROJECT/${vnx_vol}
+    blockconsistencygroup update $cg2 --add $PROJECT/${vmax_vol}
 
     secho "Creating volumes and adding them to the CG"
-    run volume create vnx-vol-cg $PROJECT $NH $cg1_vpool 1GB --count=2 --consistencyGroup=$cg1
-    run volume create vmax-vol-cg $PROJECT $NH $cg2_vpool 1GB --count=2 --consistencyGroup=$cg2
+    run volume create ${vnx_vol}-cg $PROJECT $NH $cg1_vpool 1GB --count=2 --consistencyGroup=$cg1
+    run volume create ${vmax_vol}-cg $PROJECT $NH $cg2_vpool 1GB --count=2 --consistencyGroup=$cg2
 
     blockconsistencygroup show $cg1
     blockconsistencygroup show $cg2
 
     secho "Creating volumes to update"
-    run volume create vnx-update $PROJECT $NH $cg1_vpool 1GB --count=3
-    run volume create vmax-update $PROJECT $NH $cg2_vpool 1GB --count=3
+    run volume create ${vnx_vol}-update $PROJECT $NH $cg1_vpool 1GB --count=3
+    run volume create ${vmax_vol}-update $PROJECT $NH $cg2_vpool 1GB --count=3
 
     secho "Adding volumes to CG"
-    run blockconsistencygroup update $cg1 --add $PROJECT/vnx-update-1,$PROJECT/vnx-update-2,$PROJECT/vnx-update-3
-    run blockconsistencygroup update $cg2 --add $PROJECT/vmax-update-1,$PROJECT/vmax-update-2,$PROJECT/vmax-update-3
+    run blockconsistencygroup update $cg1 --add $PROJECT/${vnx_vol}-update-1,$PROJECT/${vnx_vol}-update-2,$PROJECT/${vnx_vol}-update-3
+    run blockconsistencygroup update $cg2 --add $PROJECT/${vmax_vol}-update-1,$PROJECT/${vmax_vol}-update-2,$PROJECT/${vmax_vol}-update-3
 
     secho "Remove volumes from CG"
-    run blockconsistencygroup update $cg1 --remove $PROJECT/vnx-update-1
-    run blockconsistencygroup update $cg2 --remove $PROJECT/vmax-update-1
+    run blockconsistencygroup update $cg1 --remove $PROJECT/${vnx_vol}-update-1
+    run blockconsistencygroup update $cg2 --remove $PROJECT/${vmax_vol}-update-1
 
     secho "Add and Remove volumes from CG"
-    run blockconsistencygroup update $cg1 --remove $PROJECT/vnx-update-2 --add $PROJECT/vnx-update-3
-    run blockconsistencygroup update $cg2 --remove $PROJECT/vmax-update-2 --add $PROJECT/vmax-update-3
+    run blockconsistencygroup update $cg1 --remove $PROJECT/${vnx_vol}-update-2 --add $PROJECT/${vnx_vol}-update-3
+    run blockconsistencygroup update $cg2 --remove $PROJECT/${vmax_vol}-update-2 --add $PROJECT/${vmax_vol}-update-3
 
     secho "Cleaning up after CG update tests"
     volume delete $PROJECT --project --wait
@@ -11156,6 +11388,7 @@ _failure() {
     echo "***"                                                   >&2
     date
     run_undo_commands
+    task check_for_pending 
     save_token_file
     exit 1
 }
@@ -11445,6 +11678,7 @@ application_sim_vpool_setup()
         run cos update block $APP_VPOOL_VMAX2_VPLEX_DIST --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_VPLEX_DIST block $TENANT
 
+        # Create CoS for VMAX2 RP target
         run cos create block $APP_VPOOL_VMAX2_BLOCK_RPTGT               \
             --description 'Consistency-Group-Block-rp-tgt-VMAX2-CoS' false   \
                             --protocols FC        \
@@ -11456,6 +11690,7 @@ application_sim_vpool_setup()
         run cos update block $APP_VPOOL_VMAX2_BLOCK_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID2
         run cos allow $APP_VPOOL_VMAX2_BLOCK_RPTGT block $TENANT
 
+        # Create CoS for VMAX2 + RP block
         run cos create block $APP_VPOOL_VMAX2_BLOCK_RPSRC               \
             --description 'Consistency-Group-Block-rp-src-VMAX2-CoS' false   \
                             --protocols FC        \
@@ -11471,6 +11706,60 @@ application_sim_vpool_setup()
 
         run cos update block $APP_VPOOL_VMAX2_BLOCK_RPSRC --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_BLOCK_RPSRC block $TENANT
+
+        # Create CoS for VMAX2 + vplex local RP target
+        run cos create block $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT \
+            --description 'Consistency-Group-Block-VMAX2-VPLEX-local-rptgt-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY3        \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID3
+        run cos allow $APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT block $TENANT
+
+        # Create CoS for VMAX2 + RP + vplex local
+        run cos create block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL \
+            --description 'Consistency-Group-Block-VMAX2-RP-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency	\
+                            --protectionCoS $APP_VARRAY3':'$APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+                            #--neighborhoods $APP_VARRAY2        \
+                            #--protectionCoS $APP_VARRAY1':'$APP_VPOOL_VMAX2_VPLEX_LOCAL':min' \
+        #run cos update block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID2
+        run cos update block $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_RP_VPLEX_LOCAL block $TENANT
+
+        # Create CoS for VMAX2 + metropoint
+        run cos create block $APP_VPOOL_VMAX2_METROPOINT \
+            --description 'Consistency-Group-Block-VMAX2-Metropoint-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_distributed \
+                            --haNeighborhood $APP_VARRAY2 \
+                            --haCos $APP_VPOOL_VMAX2_HA \
+                            --multiVolumeConsistency	\
+                            --protectionCoS $APP_VARRAY3':'$APP_VPOOL_VMAX2_VPLEX_LOCAL_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+        run cos update block $APP_VPOOL_VMAX2_METROPOINT --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_METROPOINT block $TENANT
 
     fi
 
@@ -11552,6 +11841,7 @@ application_setup()
         APPLICATION_VNX1_NATIVEGUID=$APP_SIMULATOR_VNX_NATIVEGUID
         APPLICATION_VMAX2_NATIVEGUID1=$APP_SIMULATOR_VMAX2_NATIVEGUID1
         APPLICATION_VMAX2_NATIVEGUID2=$APP_SIMULATOR_VMAX2_NATIVEGUID2
+        APPLICATION_VMAX2_NATIVEGUID3=$APP_SIMULATOR_VMAX2_NATIVEGUID3
         APPLICATION_VMAX3_NATIVEGUID1=$APP_SIMULATOR_VMAX3_NATIVEGUID1
         APPLICATION_VMAX3_NATIVEGUID2=$APP_SIMULATOR_VMAX3_NATIVEGUID2
         recoverpoint_simulator_varsetup
@@ -12020,6 +12310,50 @@ application_tests()
             secho "completed running block rp tests"
             APP_RESTORE_SUPPORTED=1
         fi
+        if [ $APPLICATION_TEST_RP_VPLEX_LOCAL -eq 1 ]; then
+            secho "running rp vplex local tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_RP_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            # issue is RP never sees the CG come back to active after adding rsets backafter retore
+            APP_RESTORE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running rp vplex local tests"
+            APP_RESTORE_SUPPORTED=1
+        fi
+        if [ $APPLICATION_TEST_RP_METROPOINT -eq 1 ]; then
+            secho "running metropoint vplex  tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_METROPOINT
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            # issue is RP never sees the CG come back to active after adding rsets backafter retore
+            APP_RESTORE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running metropoint tests"
+            APP_RESTORE_SUPPORTED=1
+        fi
     fi
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
         APPLICATION_CLONE_SUPPORTED=1
@@ -12193,7 +12527,7 @@ vplexsnap_tests()
 snapvx_vpool_setup()
 {
     secho "Creating snapvx virtual pools"
-    run cos create block $COS_VMAX3BLOCK_FC true \
+    run cos create block $COS_VMAX3BLOCK_FC false \
 	--description 'Virtual-Pool-for-VMAX3-block-FC' \
                       --protocols FC \
                       --numpaths 2 \
@@ -12202,6 +12536,8 @@ snapvx_vpool_setup()
                       --provisionType 'Thin' \
 			 --neighborhoods $NH \
                          --multiVolumeConsistency
+
+    run cos update block $COS_VMAX3BLOCK_FC --storage ${VMAX3_NATIVEGUID}
 }
 
 snapvx_setup_once()
@@ -12244,6 +12580,16 @@ snapvx_setup_once()
 snapvx_setup()
 {
     secho "Executing snapvx setup"
+    if [ "$SNAPVX_QUICK_PARAM" = "quick" ]; then
+        echo "Test with simulator"
+        VMAX3_SMIS_IP=${VMAX3_SIMULATOR_SMIS_IP}
+        VMAX3_SMIS_PORT=${VMAX3_SIMULATOR_SMIS_PORT}
+        VMAX3_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
+        VMAX3_SN=${VMAX3_SIMULATOR_SN}
+        VMAX3_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
+        VMAX3_PORTS_A=${VMAX3_SIMULATOR_PORTS_A}
+    fi
+
     snapvx_setup_once
     cos allow $COS_VMAX3BLOCK_FC block $TENANT
 }
@@ -13235,4 +13581,8 @@ if [ $WS_SETUP_MODE -eq 1 ] ; then
     output_conf
 fi
 
+# check for pending before completing succesful sanity run
+task check_for_pending --fail
+
 _success
+

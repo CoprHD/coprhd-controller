@@ -316,24 +316,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         }
                     }
 
-                    // Update the list of volumes and initiators for the mask
-                    Map<URI, Integer> volumeMapForExistingMask = existingMasksToUpdateWithNewVolumes
-                            .get(mask.getId());
-                    if (volumeMapForExistingMask != null && !volumeMapForExistingMask.isEmpty()) {
-                        mask.addVolumes(volumeMapForExistingMask);
-                    }
-
-                    Set<Initiator> initiatorSetForExistingMask = existingMasksToUpdateWithNewInitiators
-                            .get(mask.getId());
-                    if (initiatorSetForExistingMask != null && !initiatorSetForExistingMask.isEmpty()) {
-                        mask.addInitiators(initiatorSetForExistingMask);
-                    }
-
-                    updateZoningMap(exportGroup, mask);
-                    _dbClient.updateAndReindexObject(mask);
-                    // TODO: All export group modifications should be moved to completers
-                    exportGroup.addExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    updateZoningMap(exportGroup, mask, true);
                 }
             }
 

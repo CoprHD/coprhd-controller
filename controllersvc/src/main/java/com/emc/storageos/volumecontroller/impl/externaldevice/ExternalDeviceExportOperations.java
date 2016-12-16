@@ -119,7 +119,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             // Prepare ports for driver call. Populate lists of recommended and available ports.
             Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap = new HashMap<>();
             preparePorts(storage, exportMaskUri, targetURIList, recommendedPorts, availablePorts, nativeIdToAvailablePortMap);
-
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(volumeUris, exportGroup.getNumPaths(),
                     storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
@@ -130,7 +129,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             // Ready to call driver
             DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap, recommendedPorts,
                     availablePorts, capabilities, usedRecommendedPorts, selectedPorts);
-
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // If driver used recommended ports, we are done.
@@ -140,6 +138,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 String msg = String.format("createExportMask -- Created export: %s . Used recommended ports: %s .", task.getMessage(),
                         usedRecommendedPorts);
                 log.info(msg);
+                log.info("Recommended ports: {}", recommendedPorts);
+                log.info("Available ports: {}", availablePorts);
+                log.info("Selected ports: {}", selectedPorts);
+
                 if (usedRecommendedPorts.isFalse()) {
                     // process driver selected ports
                     if (validateSelectedPorts(availablePorts, selectedPorts, pathParams.getMinPaths())) {
@@ -870,13 +872,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         for (URI removeUri : storagePortListFromMask) {
             exportMask.removeTarget(removeUri);
         }
-        exportMask.setStoragePorts(null);
 
         // Add new target ports
         for (com.emc.storageos.db.client.model.StoragePort port : storagePorts) {
             exportMask.addTarget(port.getId());
         }
-
+        log.info("Ports in mask after add new ports: {}", exportMask.getStoragePorts());
         // Update zoning map based on provided storage ports
         blockScheduler.updateZoningMap(exportMask, exportGroup.getVirtualArray(), exportGroup.getId());
 

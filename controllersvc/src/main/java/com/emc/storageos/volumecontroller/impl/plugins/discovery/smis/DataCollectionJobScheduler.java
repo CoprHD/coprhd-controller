@@ -214,6 +214,10 @@ public class DataCollectionJobScheduler {
             }
         }
         
+        // CARA : _dataCollectionExecutorService is a ScheduledExecutorService which takes tasks and runs 
+        // them according to a schedule
+        // task are run sequentially all in the same thread
+        // schedulingProcessor.addScheduledTask puts tasks on _dataCollectionExecutorService
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
                 _dataCollectionExecutorService);
 
@@ -274,24 +278,13 @@ public class DataCollectionJobScheduler {
         discoverySchedulingSelector.autoRequeue();
         discoverySchedulingSelector.start();
 
-        if (!enableAutoScan) {
-            _dataCollectionExecutorService.scheduleAtFixedRate(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                refreshProviderConnections();
-                            } catch (Exception e) {
-                                _logger.info("Failed to refresh connections: {}", e.getMessage(), e);
-                            }
-                        }
-                    }, initialConnectionRefreshDelay, JobIntervals.SCAN_INTERVALS.getInterval(), TimeUnit.SECONDS);
-        }
-
         // recompute storage ports's metrics for all storage system
         // Since traverse through all storage ports in all storage systems may take a while, it best to perform the
         // task in a thread. We definitely do not want all nodes in cluster to do the same task, select a leader to
         // do it there.
+        
+        // CARA : this is bad too; it only happens on the leader node at start up but I think it could prevent
+        // startup if anything in this task was hanging
         computePortMetricsSelector = _coordinator.getLeaderSelector(leaderSelectorComputePortMetricsPath, new LeaderSelectorListenerImpl() {
 
             @Override
@@ -363,7 +356,7 @@ public class DataCollectionJobScheduler {
                     _logger.info("Acquired a lock {} to schedule Jobs", lock.toString());
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
                     for (StorageProvider provider : providers) {
-                        if (!isInProgress(provider)) {
+                        if (!isInProgress(provider) && !isError(provider)) {
                             lastScanTime = provider.getLastScanTime();
                             inProgress = false;
                             break;
@@ -376,6 +369,7 @@ public class DataCollectionJobScheduler {
                 } finally {
                     try {
                         lock.release();
+                        _logger.info("Released a lock {} to schedule Jobs", lock.toString());
                     } catch (Exception e) {
                         _logger.error("Failed to release  Lock {} -->{}", lock.toString(), e.getMessage());
                     }
@@ -797,6 +791,14 @@ public class DataCollectionJobScheduler {
                 && (systemTime - lastTime > refreshInterval * 1000)
                 && nextTime > 0
                 && System.currentTimeMillis() - nextTime >= JobIntervals.getMaxIdleInterval() * 1000) {
+            // CARA : here we should look into the queue to see if this item is queued or active (there's a queue lock)
+            // if it's not queued or active, we don't even need to wait the max idle interval (default 24 hours); we probably just failed to
+            //    reset the discovery status.
+            // if it's queued and not active, don't queue it again. It's turn will come
+            // the question is what to do if it's active; this means its hanging; re-queuing the job will cause the queue to eventually fill up
+            //    I think in this case we should set the storage system to error state
+            //    the customer must fix what's wrong and reboot the node; we could add tooling so they can more easily figure out which node
+            //    we should also consider halting provisioning orders while the storage system is in an error state (maybe we already do?)
             _logger.info("Scheduled {} Job for {} was idle for too long. Reschedule the job", type, id);
         }
         else {

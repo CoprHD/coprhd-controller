@@ -237,6 +237,8 @@ public class DataCollectionJobConsumer extends
         if (ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK
                 .acquire(ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.getRecommendedTimeout())) {
 
+            _logger.info("Acquired a lock {} to run scanning Job", ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString());
+            
             List<URI> cacheProviders = new ArrayList<URI>();
             Map<URI, Exception> cacheErrorProviders = new HashMap<URI, Exception>();
             try {
@@ -267,7 +269,7 @@ public class DataCollectionJobConsumer extends
                             String errMsg = "Failed to establish connection to the storage provider";
                             scanCompleter.error(_dbClient, DeviceControllerErrors.smis.unableToCallStorageProvider(errMsg));
                             provider.setLastScanStatusMessage(errMsg);
-                            _dbClient.persistObject(provider);
+                            _dbClient.updateObject(provider);
                         }
                     }
                     if (!hasProviders) {
@@ -311,7 +313,7 @@ public class DataCollectionJobConsumer extends
                                 job.findProviderTaskCompleter(provider.getId()).
                                         error(_dbClient, DeviceControllerErrors.smis.unableToCallStorageProvider(errMsg));
                             }
-                            _dbClient.persistObject(provider);
+                            _dbClient.updateObject(provider);
                         }
                     }
                     // Perform BooKKeeping
@@ -342,6 +344,8 @@ public class DataCollectionJobConsumer extends
                 }
                 
                 ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.release();
+                _logger.info("Released a lock {} to run scanning Job", ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString());
+                
                 try {
                     if (!exceptionIntercepted /* && job.isSchedulerJob() */) {
                         // Manually trigger discoveries, if any new Arrays detected

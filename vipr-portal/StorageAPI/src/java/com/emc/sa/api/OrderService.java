@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.sa.api.utils.OrderJobStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -575,8 +576,9 @@ public class OrderService extends CatalogTaggedResourceService {
      *            inclusive.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or
      *            datetime in ms.
-     * @param tenantIDs a list of tenant IDs separated by ','
-     * @prereq none
+     * @param tenantIDsStr a list of tenant IDs separated by ','
+     * @param orderIDsStr a list of order IDs separated by ','
+     * @prereq one of tenantIDsStr and orderIDsStr should be empty
      * @return A reference to the StreamingOutput to which the log data is
      *         written.
      * @throws WebApplicationException When an invalid request is made.
@@ -868,9 +870,6 @@ public class OrderService extends CatalogTaggedResourceService {
      * @param endTimeStr the end time of the range (inclusive)
      * @param tenantIDsStr if not empty, it's a list of tenant IDs separated by ','
      *                     which means delete orders (that can be deleted) under those tenants
-     * @param orderIDsStr if not empty, it's a list of order IDs separated by ','
-     *                    which are the IDs of orders to be deleted
-     *                    Note: either tenantIDsStr or orderIDsStr should be empty
      * @return OK if a background job is submitted successfully
      */
     @DELETE
@@ -880,6 +879,11 @@ public class OrderService extends CatalogTaggedResourceService {
     public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                  @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
                                  @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr) {
+
+        if (isJobRunning(OrderServiceJob.JobType.DELETE)) {
+            //TODO throw exceptions here
+        }
+
         StorageOSUser user = getUserFromContext();
 
         log.info("lby0:starTime={} endTime={} tids={} user={}",
@@ -904,9 +908,11 @@ public class OrderService extends CatalogTaggedResourceService {
 
         List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
 
+        saveJobInfo(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
+
         log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
 
-        OrderServiceJob job = new OrderServiceJob(startTimeInMS*1000, endTimeInMS*1000, tids);
+        OrderServiceJob job = new OrderServiceJob(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
         try {
             queue.put(job);
         }catch (Exception e) {
@@ -916,6 +922,21 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         return Response.ok().build();
+    }
+
+    private void saveJobInfo(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
+        OrderJobStatus status = new OrderJobStatus(startTime, endTime, tids);
+        log.info("lbyx0: persist type={}", status);
+        coordinatorClient.persistRuntimeState(type.name(), status);
+    }
+
+    private OrderJobStatus queryJobInfo(OrderServiceJob.JobType type) {
+        return coordinatorClient.queryRuntimeState(type.name(), OrderJobStatus.class);
+    }
+
+    private boolean isJobRunning(OrderServiceJob.JobType type) {
+        //TODO
+        return false;
     }
 
     /**

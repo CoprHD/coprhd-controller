@@ -16,10 +16,11 @@ public class OrderServiceJob implements Serializable {
 
     private static final long serialVersionUID = -3470928289876091965L;
 
-    enum JobType {
+    public enum JobType {
         DELETE
     };
 
+    private JobType type;
     private long startTime;
     private long endTime;
     private List<URI> tenantIDs;
@@ -35,15 +36,17 @@ public class OrderServiceJob implements Serializable {
     public OrderServiceJob() {
     }
 
-    public OrderServiceJob(long start, long end, List<URI> tids) {
+    public OrderServiceJob(JobType type, long start, long end, List<URI> tids) {
         startTime = start;
         endTime = end;
         tenantIDs = tids;
+        this.type = type;
     }
 
     private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
 
+        out.writeUTF(type.name());
         //parameters given by REST API
         out.writeLong(startTime);
         out.writeLong(endTime);
@@ -59,6 +62,9 @@ public class OrderServiceJob implements Serializable {
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
+
+        String s = in.readUTF();
+        type = JobType.valueOf(s);
 
         startTime = in.readLong();
         endTime = in.readLong();

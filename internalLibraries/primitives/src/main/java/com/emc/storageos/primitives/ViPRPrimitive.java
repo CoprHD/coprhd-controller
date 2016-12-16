@@ -16,23 +16,28 @@
  */
 package com.emc.storageos.primitives;
 
+import java.net.URI;
+
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
-
 /**
- *  Base class for a primitive that represents a ViPR API call
+ * Base class for a primitive that represents a ViPR API call
  */
 public abstract class ViPRPrimitive extends Primitive {
-    
-    public ViPRPrimitive(String name, String friendlyName, String description,
-            String successCriteria, InputParameter[] input,
-            OutputParameter[] output) {
-        super(name, friendlyName, description, successCriteria, input, output);
+
+    public ViPRPrimitive(final URI id, final String name,
+            final String friendlyName, final String description,
+            final String successCriteria, final InputParameter[] input,
+            final OutputParameter[] output) {
+        super(id, name, friendlyName, description, successCriteria, input,
+                output);
     }
 
     public abstract String path();
+
     public abstract String method();
+
     public abstract String body();
-    
+
 }

@@ -22,39 +22,44 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RestLinkRep;
+
 @XmlRootElement(name = "primitive")
-public class PrimitiveRestRep {
-    
+public class PrimitiveRestRep extends DataObjectRestRep {
+
     private String name;
     private String friendlyName;
     private String description;
     private String successCriteria;
+    private List<Attribute> attributes;
     private List<InputParameterRestRep> input;
     private List<OutputParameterRestRep> output;
-    
+    private RestLinkRep resource;
+
     @XmlElement(name = "name")
     public String getName() {
         return name;
     }
-    
+
     public void setName(final String name) {
         this.name = name;
     }
-    
+
     @XmlElement(name = "friendly_name")
     public String getFriendlyName() {
         return friendlyName;
     }
-    
+
     public void setFriendlyName(final String friendlyName) {
         this.friendlyName = friendlyName;
     }
-    
+
     @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
-    
+
     public void setDescription(final String description) {
         this.description = description;
     }
@@ -68,7 +73,17 @@ public class PrimitiveRestRep {
         this.successCriteria = successCriteria;
     }
 
-    @XmlElementWrapper(name="input")
+    @XmlElementWrapper(name = "attributes")
+    @XmlElement(name = "attribute")
+    public List<Attribute> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(final List<Attribute> attributes) {
+        this.attributes = attributes;
+    }
+
+    @XmlElementWrapper(name = "input")
     @XmlElement(name = "parameter")
     public List<InputParameterRestRep> getInput() {
         return input;
@@ -77,8 +92,8 @@ public class PrimitiveRestRep {
     public void setInput(final List<InputParameterRestRep> input) {
         this.input = input;
     }
-    
-    @XmlElementWrapper(name="output")
+
+    @XmlElementWrapper(name = "output")
     @XmlElement(name = "parameter")
     public List<OutputParameterRestRep> getOutput() {
         return output;
@@ -86,5 +101,37 @@ public class PrimitiveRestRep {
 
     public void setOutput(final List<OutputParameterRestRep> output) {
         this.output = output;
+    }
+
+    @XmlElement(name = "resource")
+    public RestLinkRep getResource() {
+        return resource;
+    }
+
+    public void setResource(RestLinkRep resource) {
+        this.resource = resource;
+    }
+
+    public static class Attribute {
+        private String name;
+        private List<String> values;
+
+        @XmlElement(name = "name")
+        public String getName() {
+            return name;
+        }
+
+        public void setName(final String name) {
+            this.name = name;
+        }
+
+        @XmlElement(name = "value")
+        public List<String> getValues() {
+            return values;
+        }
+
+        public void setValues(final List<String> values) {
+            this.values = values;
+        }
     }
 }

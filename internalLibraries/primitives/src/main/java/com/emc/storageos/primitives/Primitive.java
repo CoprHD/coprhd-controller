@@ -16,29 +16,31 @@
  */
 package com.emc.storageos.primitives;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
-
-
 /**
  * Abstract Class that contains the base properties of a primitive
  */
 public abstract class Primitive {
 
-    private String name;
-    private String friendlyName;
-    private String description;
-    private String successCriteria;
-    private List<InputParameter> input;
-    private List<OutputParameter> output;
+    private final URI id;
+    private final String name;
+    private final String friendlyName;
+    private final String description;
+    private final String successCriteria;
+    private final List<InputParameter> input;
+    private final List<OutputParameter> output;
 
-    public Primitive(final String name, final String friendlyName,
-            final String description, final String successCriteria,
-            final InputParameter[] input, final OutputParameter[] output) {
+    public Primitive(final URI id, final String name,
+            final String friendlyName, final String description,
+            final String successCriteria, final InputParameter[] input,
+            final OutputParameter[] output) {
+        this.id = id;
         this.name = name;
         this.friendlyName = friendlyName;
         this.description = description;
@@ -47,6 +49,9 @@ public abstract class Primitive {
         this.output = Arrays.asList(output);
     }
 
+    public URI getId() {
+        return id;
+    }
 
     public String getName() {
         return name;
@@ -55,7 +60,7 @@ public abstract class Primitive {
     public String getFriendlyName() {
         return friendlyName;
     }
-    
+
     public String getDescription() {
         return description;
     }
@@ -67,7 +72,7 @@ public abstract class Primitive {
     public List<InputParameter> getInput() {
         return input;
     }
-    
+
     public List<OutputParameter> getOutput() {
         return output;
     }

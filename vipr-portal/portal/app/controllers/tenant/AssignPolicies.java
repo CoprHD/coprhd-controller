@@ -54,7 +54,7 @@ import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("PROJECT_ADMIN"), @Restrict("TENANT_ADMIN") })
-public class SchedulePolicies extends ViprResourceController {
+public class AssignPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "schedule.policies.unknown";
 
@@ -63,22 +63,6 @@ public class SchedulePolicies extends ViprResourceController {
         TenantSelector.addRenderArgs();
         render(dataTable);
     }
-
-    /*
-     * @FlashException(value = "list", keep = true)
-     * public static void listJson() {
-     * String userId = Security.getUserInfo().getIdentifier();
-     * List<SchedulePolicyRestRep> viprSchedulePolicies = getViprClient().schedulePolicies().getByTenant(uri(Models.currentAdminTenant()));
-     * List<ScheculePoliciesDataTable.ScheculePolicy> scheculePolicies = Lists.newArrayList();
-     * for (SchedulePolicyRestRep viprSchedulePolicy : viprSchedulePolicies) {
-     * if (Security.isTenantAdmin()
-     * || Security.isProjectAdmin()) {
-     * scheculePolicies.add(new ScheculePoliciesDataTable.ScheculePolicy(viprSchedulePolicy));
-     * }
-     * }
-     * renderJSON(DataTablesSupport.createJSON(scheculePolicies, params));
-     * }
-     */
 
     @FlashException(value = "list", keep = true)
     public static void listJson() {
@@ -118,12 +102,6 @@ public class SchedulePolicies extends ViprResourceController {
         }
 
     }
-    
-    @FlashException(value = "list", keep = true)
-    public static void assignPolicies(String id){
-        
-    }
-    
 
     @Util
     private static void addRenderArgs() {
@@ -217,7 +195,6 @@ public class SchedulePolicies extends ViprResourceController {
         }
         // Update the ACLs
         FileProtectionPolicies filePolicies = getViprClient().fileProtectionPolicies();
-        schedulePolicy.saveTenantACLs(filePolicies);
         flash.success(MessagesUtils.get("projects.saved", schedulePolicy.policyName));
         if (StringUtils.isNotBlank(schedulePolicy.referrerUrl)) {
             redirect(schedulePolicy.referrerUrl);
@@ -226,44 +203,6 @@ public class SchedulePolicies extends ViprResourceController {
         }
 
     }
-
-    /*
-     * private static PolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
-     * PolicyParam param = new PolicyParam();
-     * param.setPolicyName(schedulePolicy.policyName);
-     * param.setPolicyType(schedulePolicy.policyType);
-     * 
-     * SchedulePolicyParam scheduleParam = new SchedulePolicyParam();
-     * scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
-     * scheduleParam.setScheduleFrequency(schedulePolicy.frequency);
-     * scheduleParam.setScheduleRepeat(schedulePolicy.repeat);
-     * 
-     * if (schedulePolicy.frequency != null && "weeks".equals(schedulePolicy.frequency)) {
-     * if (schedulePolicy.scheduleDayOfWeek != null) {
-     * scheduleParam.setScheduleDayOfWeek(schedulePolicy.scheduleDayOfWeek);
-     * }
-     * 
-     * } else if (schedulePolicy.frequency != null && "months".equals(schedulePolicy.frequency)) {
-     * scheduleParam.setScheduleDayOfMonth(schedulePolicy.scheduleDayOfMonth);
-     * }
-     * param.setPolicySchedule(scheduleParam);
-     * 
-     * ScheduleSnapshotExpireParam expireParam = new ScheduleSnapshotExpireParam();
-     * 
-     * if (schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)) {
-     * expireParam.setExpireType(schedulePolicy.expireType);
-     * expireParam.setExpireValue(schedulePolicy.expireValue);
-     * param.setSnapshotExpire(expireParam);
-     * }
-     * if("NEVER".equals(schedulePolicy.expiration)){
-     * expireParam.setExpireType("never");
-     * param.setSnapshotExpire(expireParam);
-     * }
-     * 
-     * return param;
-     * 
-     * }
-     */
 
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
         FilePolicyParam param = new FilePolicyParam();
@@ -359,54 +298,6 @@ public class SchedulePolicies extends ViprResourceController {
 
         public List<String> tenants;
 
-        /*
-         * public SchedulePolicyForm form(SchedulePolicyRestRep restRep) {
-         * 
-         * this.id = restRep.getPolicyId().toString();
-         * this.tenantId = restRep.getTenant().getId().toString();
-         * this.policyType = restRep.getPolicyType();
-         * this.policyName = restRep.getPolicyName();
-         * this.frequency = restRep.getScheduleFrequency();
-         * this.scheduleTime = restRep.getScheduleTime();
-         * 
-         * if (restRep.getScheduleDayOfMonth() != null) {
-         * this.scheduleDayOfMonth = restRep.getScheduleDayOfMonth().intValue();
-         * }
-         * 
-         * if (restRep.getScheduleDayOfWeek() != null) {
-         * this.scheduleDayOfWeek = restRep.getScheduleDayOfWeek();
-         * }
-         * 
-         * if (restRep.getSnapshotExpireType() != null) {
-         * this.expireType = restRep.getSnapshotExpireType();
-         * }
-         * 
-         * if (restRep.getSnapshotExpireTime() != null) {
-         * this.expireValue = restRep.getSnapshotExpireTime().intValue();
-         * }
-         * if (restRep.getScheduleRepeat() != null) {
-         * this.repeat = restRep.getScheduleRepeat().intValue();
-         * }
-         * String[] hoursMin = this.scheduleTime.split(":");
-         * if (hoursMin.length > 1) {
-         * this.scheduleHour = hoursMin[0];
-         * String[] minWithStrings = hoursMin[1].split(" ");
-         * if (minWithStrings.length > 0) {
-         * this.scheduleMin = minWithStrings[0];
-         * }
-         * 
-         * }
-         * if (this.expireType == null || "never".equals(this.expireType)) {
-         * this.expiration = "NEVER";
-         * }else{
-         * this.expiration = "EXPIRE_TIME";
-         * }
-         * 
-         * return this;
-         * 
-         * }
-         */
-
         public SchedulePolicyForm form(FilePolicyRestRep restRep) {
 
             this.id = restRep.getId().toString();
@@ -443,7 +334,6 @@ public class SchedulePolicies extends ViprResourceController {
                     if (minWithStrings.length > 0) {
                         this.scheduleMin = minWithStrings[0];
                     }
-
                 }
             }
 
@@ -491,28 +381,6 @@ public class SchedulePolicies extends ViprResourceController {
                 }
             }
             this.enableTenants = !tenants.isEmpty();
-        }
-
-        /**
-         * Saves the tenant ACL information using the provided ACLResources.
-         * 
-         * @param resources
-         *            the resources on which to save the tenant ACLs.
-         */
-        protected void saveTenantACLs(ACLResources resources) {
-            // Only allow a user than can read all tenants and update ACLs do this
-            if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
-                URI policyId = ResourceUtils.uri(id);
-                if (policyId != null) {
-                    Set<String> tenantIds = Sets.newHashSet();
-                    if (isTrue(enableTenants) && (tenants != null)) {
-                        tenantIds.addAll(tenants);
-                    }
-                    ACLUpdateBuilder builder = new ACLUpdateBuilder(resources.getACLs(policyId));
-                    builder.setTenants(tenantIds);
-                    resources.updateACLs(policyId, builder.getACLUpdate());
-                }
-            }
         }
 
     }

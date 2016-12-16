@@ -38,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -109,6 +110,7 @@ import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
@@ -1522,4 +1524,13 @@ public class BlockStorageUtils {
         return group != null && group.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name());
     }
 
+    public static void checkVolumeLimit(ViPRCoreClient client, URI project) {
+        ExecutionContext context = ExecutionUtils.currentContext();
+        long limit = context.getResourceLimit(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES);
+        int numOfVolumes = client.blockVolumes().countByProject(project);
+        // Show alert in case of approaching 90% of the limit
+        if (numOfVolumes >= limit * Constants.RESOURCE_LIMIT_ALERT_RATE) {
+            context.logWarn("alert.createVolume.exceedingResourceLimit", numOfVolumes, limit);
+        }
+    }
 }

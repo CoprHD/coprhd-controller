@@ -172,6 +172,13 @@ public class ExportGroup extends DataObject implements ProjectResource {
         getInitiators().addAll(StringSetUtil.uriListToStringSet(initiators));
     }
 
+    public void addInitiators(Set<URI> initiators) {
+        if (getInitiators() == null) {
+            setInitiators(new StringSet());
+        }
+        getInitiators().addAll(StringSetUtil.uriSetToStringSet(initiators));
+    }
+
     public void addHosts(List<URI> hosts) {
         if (getHosts() == null) {
             setHosts(new StringSet());
@@ -179,10 +186,24 @@ public class ExportGroup extends DataObject implements ProjectResource {
         getHosts().addAll(StringSetUtil.uriListToStringSet(hosts));
     }
 
+    public void addHosts(Set<URI> hosts) {
+        if (getHosts() == null) {
+            setHosts(new StringSet());
+        }
+        getHosts().addAll(StringSetUtil.uriSetToStringSet(hosts));
+    }
+
     public void removeHosts(List<URI> hostsToRemove) {
         StringSet hosts = getHosts();
         if (hosts != null) {
             hosts.removeAll(StringSetUtil.uriListToStringSet(hostsToRemove));
+        }
+    }
+
+    public void removeHosts(Set<URI> hostsToRemove) {
+        StringSet hosts = getHosts();
+        if (hosts != null) {
+            hosts.removeAll(StringSetUtil.uriSetToStringSet(hostsToRemove));
         }
     }
 
@@ -193,10 +214,24 @@ public class ExportGroup extends DataObject implements ProjectResource {
         getClusters().addAll(StringSetUtil.uriListToStringSet(clusters));
     }
 
+    public void addClusters(Set<URI> clusters) {
+        if (getClusters() == null) {
+            setClusters(new StringSet());
+        }
+        getClusters().addAll(StringSetUtil.uriSetToStringSet(clusters));
+    }
+
     public void removeClusters(List<URI> clustersToRemove) {
         StringSet clusters = getClusters();
         if (clusters != null) {
             clusters.removeAll(StringSetUtil.uriListToStringSet(clustersToRemove));
+        }
+    }
+
+    public void removeClusters(Set<URI> clustersToRemove) {
+        StringSet clusters = getClusters();
+        if (clusters != null) {
+            clusters.removeAll(StringSetUtil.uriSetToStringSet(clustersToRemove));
         }
     }
 
@@ -234,6 +269,13 @@ public class ExportGroup extends DataObject implements ProjectResource {
         StringSet initiators = getInitiators();
         if (initiators != null) {
             initiators.removeAll(StringSetUtil.uriListToStringSet(initiatorsToRemove));
+        }
+    }
+
+    public void removeInitiators(Set<URI> initiatorsToRemove) {
+        StringSet initiators = getInitiators();
+        if (initiators != null) {
+            initiators.removeAll(StringSetUtil.uriSetToStringSet(initiatorsToRemove));
         }
     }
 

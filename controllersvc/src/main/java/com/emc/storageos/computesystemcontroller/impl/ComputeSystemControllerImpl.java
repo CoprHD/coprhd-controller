@@ -9,14 +9,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
@@ -36,7 +39,6 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
@@ -64,6 +66,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -98,7 +101,7 @@ import com.vmware.vim25.mo.Task;
 
 public class ComputeSystemControllerImpl implements ComputeSystemController {
 
-    private static final Log _log = LogFactory.getLog(ComputeSystemControllerImpl.class);
+    private static final Logger _log = LoggerFactory.getLogger(ComputeSystemControllerImpl.class);
 
     private WorkflowService _workflowService;
     private DbClient _dbClient;
@@ -475,11 +478,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 vCenterDataCenterId = cluster.getVcenterDataCenter();
             }
 
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
+
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
-
-            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
 
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
@@ -502,10 +505,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
-
             waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
                     vCenterDataCenterId);
+
+            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -540,18 +543,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
 
         for (ExportGroup export : exportGroups) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
+
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
 
             List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export, initiators);
             if (!validInitiator.isEmpty()) {
                 boolean update = false;
                 for (Initiator initiator : validInitiator) {
                     // if the initiators is not already in the list add it.
-                    if (!updatedInitiators.contains(initiator.getId())) {
-                        updatedInitiators.add(initiator.getId());
+                    if (!existingInitiators.contains(initiator.getId()) && !addedInitiators.contains(initiator.getId())) {
+                        addedInitiators.add(initiator.getId());
                         update = true;
                     }
                 }
@@ -562,7 +570,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             export.getId(), export.getId().toString(),
                             this.getClass(),
                             updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                    updatedClusters, updatedHosts, updatedInitiators),
+                                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                             null, null);
                 }
             }
@@ -576,13 +584,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
         for (ExportGroup export : exportGroups) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>(initiatorsURI);
+
             // Only update if the list as changed
-            if (updatedInitiators.removeAll(initiatorsURI)) {
+            if (!CollectionUtils.isEmpty(initiatorsURI)) {
                 waitFor = workflow.createStep(
                         UPDATE_EXPORT_GROUP_STEP,
                         String.format("Updating export group %s", export.getId()),
@@ -590,15 +602,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(),
                         export.getId().toString(),
                         this.getClass(),
-                        updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>()
-                                : updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                        updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                         null, null);
             }
         }
         return waitFor;
     }
 
+    /**
+     * Assembles steps to remove a host
+     * 
+     * @param workflow The current workflow
+     * @param waitFor The current waitFor
+     * @param hostIds List of hosts to remove
+     * @param clusterId Cluster ID if this is a clustered host
+     * @param vcenterDataCenter vCenter ID if this is a vCenter
+     * @param isVcenter Boolean flag for determing if vCenter enabled
+     * @return Next step
+     */
     public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, URI vcenterDataCenter,
             boolean isVcenter) {
         List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
@@ -619,21 +641,35 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return newWaitFor;
     }
 
+    /**
+     * Assembles steps to remove a host from an export group
+     * 
+     * @param workflow The current workflow
+     * @param waitFor The current waitFor
+     * @param hostIds List of hosts to remove
+     * @param exportId The ID of the export group to remove the host from
+     * @return Next step
+     */
     public String addStepsForRemoveHostFromExport(Workflow workflow, String waitFor, List<URI> hostIds, URI exportId) {
         ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
         String newWaitFor = waitFor;
+
+        Set<URI> addedClusters = new HashSet<>();
+        Set<URI> removedClusters = new HashSet<>();
+        Set<URI> addedHosts = new HashSet<>();
+        Set<URI> removedHosts = new HashSet<>(hostIds);
+        Set<URI> addedInitiators = new HashSet<>();
+        Set<URI> removedInitiators = new HashSet<>();
+
         if (export != null) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             for (URI hostId : hostIds) {
                 updatedHosts.remove(hostId);
-
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (Initiator initiator : hostInitiators) {
-                    updatedInitiators.remove(initiator.getId());
+                    removedInitiators.add(initiator.getId());
                 }
             }
 
@@ -650,8 +686,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         updateExportGroupMethod(export.getId(),
-                                updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                                CollectionUtils.isEmpty(export.getInitiators()) ? new HashMap<URI, Integer>() : updatedVolumesMap,
+                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                         null, null);
             }
         }
@@ -677,34 +713,41 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             URI clusterId) {
 
         for (ExportGroup export : getSharedExports(_dbClient, clusterId)) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            List<URI> existingHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
+
             // 1. Add all hosts in clusters that are not in the cluster's export groups
             for (URI clusterHost : clusterHostIds) {
-                if (!updatedHosts.contains(clusterHost)) {
+                if (!existingHosts.contains(clusterHost)) {
                     _log.info("Adding host " + clusterHost + " to cluster export group " + export.getId());
-                    updatedHosts.add(clusterHost);
+                    addedHosts.add(clusterHost);
                     List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, clusterHost);
                     for (Initiator initiator : hostInitiators) {
-                        updatedInitiators.add(initiator.getId());
+                        addedInitiators.add(initiator.getId());
                     }
                 }
             }
 
             // 2. Remove all hosts in cluster's export groups that don't belong to the cluster
-            Iterator<URI> updatedHostsIterator = updatedHosts.iterator();
-            while (updatedHostsIterator.hasNext()) {
-                URI hostId = updatedHostsIterator.next();
+            Iterator<URI> existingHostsIterator = existingHosts.iterator();
+            while (existingHostsIterator.hasNext()) {
+                URI hostId = existingHostsIterator.next();
                 if (!clusterHostIds.contains(hostId)) {
-                    updatedHostsIterator.remove();
+                    removedHosts.add(hostId);
                     _log.info("Removing host " + hostId + " from shared export group " + export.getId()
                             + " because this host does not belong to the cluster");
                     List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                     for (Initiator initiator : hostInitiators) {
-                        updatedInitiators.remove(initiator.getId());
+                        removedInitiators.add(initiator.getId());
                     }
                 }
             }
@@ -713,8 +756,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     String.format("Updating export group %s", export.getId()), waitFor,
                     export.getId(), export.getId().toString(),
                     this.getClass(),
-                    updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
+                    updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                     null, null);
         }
         return waitFor;
@@ -725,15 +768,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
 
         for (ExportGroup eg : exportGroups) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(eg.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(eg.getClusters());
+
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
+
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
+            List<URI> existingHosts = StringSetUtil.stringSetToUriList(eg.getHosts());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(eg.getVolumes());
 
             // add host reference to export group
             for (Host host : hosts) {
-                if (!updatedHosts.contains(host.getId())) {
-                    updatedHosts.add(host.getId());
+                if (!existingHosts.contains(host.getId())) {
+                    addedHosts.add(host.getId());
                 }
 
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
@@ -741,19 +791,26 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (!validInitiators.isEmpty()) {
                     // if the initiators is not already in the list add it.
                     for (Initiator initiator : validInitiators) {
-                        if (!updatedInitiators.contains(initiator.getId())) {
-                            updatedInitiators.add(initiator.getId());
+                        if (!existingInitiators.contains(initiator.getId())) {
+                            addedInitiators.add(initiator.getId());
                         }
                     }
                 }
             }
+
+            _log.info("Initiators to add: {}", addedInitiators);
+            _log.info("Initiators to remove: {}", removedInitiators);
+            _log.info("Hosts to add: {}", addedHosts);
+            _log.info("Hosts to remove: {}", removedHosts);
+            _log.info("Clusters to add: {}", addedClusters);
+            _log.info("Clusters to remove: {}", removedClusters);
 
             waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                     String.format("Updating export group %s", eg.getId()), waitFor,
                     eg.getId(), eg.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(eg.getId(), updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                     null, null);
         }
 
@@ -777,7 +834,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     hostId, hostId.toString(),
                     this.getClass(),
                     updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId, vCenterDataCenterId),
-                    null, null);
+                    rollbackMethodNullMethod(), null);
         }
         return waitFor;
     }
@@ -866,19 +923,27 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
         for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            List<URI> existingHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
-            updatedHosts.remove(hostId);
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
+
+            existingHosts.remove(hostId);
 
             for (Initiator initiator : hostInitiators) {
-                updatedInitiators.remove(initiator.getId());
+                existingInitiators.remove(initiator.getId());
+                removedInitiators.add(initiator.getId());
             }
 
-            if ((updatedInitiators.isEmpty() && export.getType().equals(ExportGroupType.Initiator.name())) ||
-                    (updatedHosts.isEmpty() && export.getType().equals(ExportGroupType.Host.name()))) {
+            if ((existingInitiators.isEmpty() && export.getType().equals(ExportGroupType.Initiator.name())) ||
+                    (existingHosts.isEmpty() && export.getType().equals(ExportGroupType.Host.name()))) {
                 waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                         String.format("Deleting export group %s", export.getId()), waitFor,
                         export.getId(), export.getId().toString(),
@@ -893,9 +958,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(),
                         export.getId().toString(),
                         this.getClass(),
-                        updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>()
-                                : updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                        updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                         null, null);
             }
         }
@@ -903,31 +967,34 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method updateExportGroupMethod(URI exportGroupURI, Map<URI, Integer> newVolumesMap,
-            Collection<URI> newClusters, Collection<URI> newHosts, Collection<URI> newInitiators) {
+            Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> adedHosts, Set<URI> removedHosts,
+            Set<URI> addedInitiators, Set<URI> removedInitiators) {
         return new Workflow.Method("updateExportGroup", exportGroupURI, newVolumesMap,
-                newClusters, newHosts, newInitiators);
+                addedClusters, removedClusters, adedHosts, removedHosts, addedInitiators,
+                removedInitiators);
     }
 
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
-            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) throws Exception {
-        Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
-        Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
-        ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
-        ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
-        BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-
+            Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> adedHosts, Set<URI> removedHosts,
+            Set<URI> addedInitiators,
+            Set<URI> removedInitiators, String stepId) throws Exception {
         try {
-            if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-                throw new Exception("Export group is being updated by another operation");
-            }
-            exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
-            _dbClient.updateObject(exportGroupObject);
+            Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
+            Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
+            ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
+            ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
+            BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
 
             _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
-            blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
-                    newHosts, newInitiators, stepId);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_026);
+
+            blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
+                    removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
         } catch (Exception ex) {
+            _log.error("Exception occured while updating export group {}", exportGroup, ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
     }
@@ -1108,7 +1175,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
-
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     if (blockObject != null && blockObject.getTag() != null) {
                         for (ScopedLabel tag : blockObject.getTag()) {
@@ -1124,6 +1190,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                 }
             }
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_029);
+            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1161,7 +1231,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
-
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     if (blockObject != null && blockObject.getTag() != null) {
                         for (ScopedLabel tag : blockObject.getTag()) {
@@ -1184,6 +1253,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             }
                         }
                     }
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
+                    
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
@@ -1192,8 +1264,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                     storageAPI.refreshStorage();
 
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_031);
                 }
-            }
+            }            
+            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1301,10 +1376,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public void deleteExportGroup(URI exportGroup, String stepId) {
-        BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
-                stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
-        blockController.exportGroupDelete(exportGroup, stepId);
+        try {
+            BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
+            _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                    stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_027);
+            
+            blockController.exportGroupDelete(exportGroup, stepId);
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_028);
+        } catch (Exception ex) {
+            _log.error("Exception occured while deleting export group {}", exportGroup, ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
     }
 
     @Override
@@ -1350,17 +1437,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         for (ExportGroup export : exportGroups) {
 
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
+
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
-            updatedClusters.remove(clusterId);
+            removedClusters.add(clusterId);
 
             List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
             for (URI hosturi : hostUris) {
-                updatedHosts.remove(hosturi);
+                removedHosts.add(hosturi);
                 updatedInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
+                removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
             }
 
             if (updatedInitiators.isEmpty()) {
@@ -1376,7 +1469,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                         null, null);
             }
         }
@@ -1387,11 +1480,36 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId, vCenterDataCenterId);
     }
 
+    /**
+     * Updates the host and initiator references for the cluster
+     * 
+     * @param hostId Host ID
+     * @param clusterId Cluster ID
+     * @param vCenterDataCenterId vCenter ID
+     * @param stepId Current step ID 
+     */
     public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
-        ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
-        WorkflowStepCompleter.stepSucceded(stepId);
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_042);
+            
+            ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_032);
+            
+            ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
+            
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_033);
+            
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception occured while updating host and initiator cluster references {} - {}", hostId, clusterId, ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
     }
 
     /**
@@ -1576,24 +1694,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     private String generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export.getId());
-
-        if (add) {
-            export.getAddDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
-                    StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
-        } else {
-            export.getRemoveDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
-                    StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
-
-        }
 
         _log.info("ExportGroupState for " + export.getId() + " = " + export);
 
         if (export.getInitiators().isEmpty()) {
+            /**
+             * TODO if Two threads accessing the same EG.
+             * Thread 1. Removing all initiators from EG.
+             * Thread 2. Adding a new set of Initiators to same EG
+             * In this case, we should not delete the EG
+             */
             waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                     String.format("Deleting export group %s", export.getId()), waitFor,
                     export.getId(), export.getId().toString(),
@@ -1601,12 +1711,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     deleteExportGroupMethod(export.getId()),
                     null, null);
         } else {
+
             waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                     String.format("Updating export group %s", export.getId()), waitFor,
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), export.getVolumesMap(),
-                            export.getClusters(), export.getHosts(), export.getInitiators()),
+                            new HashSet<>(export.getAddedClusters()), new HashSet<>(export.getRemovedClusters()),
+                            new HashSet<>(export.getAddedHosts()), new HashSet<>(export.getRemovedHosts()),
+                            new HashSet<>(export.getAddedInitiators()), new HashSet<>(export.getRemovedInitiators())),
                     null, null);
         }
 

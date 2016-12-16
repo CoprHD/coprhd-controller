@@ -91,6 +91,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException unableToSetLanBoot(final String computeElement, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToSetNoBoot(final String computeElement, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToSetSanBootTarget(final String computeElement, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

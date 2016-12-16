@@ -22,6 +22,7 @@ public class TimeUtils {
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
     
     public static final String DATE_TIME_PATTERN = "{datetime}";
+    public static final String SNAPSHOT_DATE_TIME_FORMAT = "yyyyMMdd_HHmmss";
     
     public static long getCurrentTime() {
         return Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTimeInMillis();
@@ -84,7 +85,7 @@ public class TimeUtils {
      */
     public static String formatDateForCurrent(String source) {
         if (source.contains(DATE_TIME_PATTERN)) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
+            SimpleDateFormat dateFormat = new SimpleDateFormat(SNAPSHOT_DATE_TIME_FORMAT);
             Date current = getCurrentDate();
             String formattedDate = dateFormat.format(current);
             return source.replace(DATE_TIME_PATTERN, formattedDate);

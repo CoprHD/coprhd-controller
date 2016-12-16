@@ -43,6 +43,8 @@ public interface ComputeDevice extends Controller {
 
     public void setLanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId, boolean waitForReboot) throws InternalException;
 
+    public void setNoBoot(ComputeSystem cs, URI computeElementId, URI hostId, boolean waitForReboot) throws InternalException;
+
     public void setSanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId, URI volumeId, boolean waitForReboot)
             throws InternalException;
 

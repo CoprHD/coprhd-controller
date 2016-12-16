@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
@@ -37,6 +38,7 @@ public class StorageSystemTypes {
     public static final String DATA_DOMAIN = "datadomain";
     public static final String ECS = "ecs";
     public static final String CEPH = "ceph";
+    public static final String DELLSCSYSTEM = "dellscsystem";
     private static final String SMIS = "smis";
     private static final String HP3PAR = "hp3par";
 
@@ -53,7 +55,7 @@ public class StorageSystemTypes {
 
     public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX, HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV, CEPH, UNITY, HP3PAR };
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
-    public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
+    public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH, DELLSCSYSTEM};
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
     public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
@@ -210,14 +212,15 @@ public class StorageSystemTypes {
             if (provider != null) {
                 if (StringUtils.equals(VMAX, typeName)) {
                     options.add(new StringOption(SMIS, provider));
-                } 
+                }
                 else if (StringUtils.equals(XTREMIO, typeName)) {
                     options.add(new StringOption(XTREMIO, provider));
                 }
-            } else if (StringUtils.equals(UNITY, typeName)) { 
+            } else if (StringUtils.equals(UNITY, typeName)) {
                 options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
+        Collections.sort(options);
         return options;
     }
 

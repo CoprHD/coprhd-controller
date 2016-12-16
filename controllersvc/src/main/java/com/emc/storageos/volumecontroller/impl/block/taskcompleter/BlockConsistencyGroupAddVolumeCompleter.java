@@ -52,9 +52,22 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
                         volume.setReplicationGroupInstance(groupName);
                         volume.setConsistencyGroup(this.getConsistencyGroupURI());
 
-                        if (volumeGroup != null && !Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+                        boolean isVplexBackendVolume = Volume.checkForVplexBackEndVolume(dbClient, volume);
+                        if (volumeGroup != null && !isVplexBackendVolume) {
                             // do not set Application Id on VPLEX backend volume
                             volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                        }
+
+                        // if this is a vplex backend volume, update the backing replication group 
+                        // instance on the parent virtual volume
+                        if (isVplexBackendVolume) {
+                            Volume virtualVolume = Volume.fetchVplexVolume(dbClient, volume);
+                            if (null != virtualVolume) {
+                                if (!groupName.equals(virtualVolume.getBackingReplicationGroupInstance())) {
+                                    virtualVolume.setBackingReplicationGroupInstance(groupName);
+                                    dbClient.updateObject(virtualVolume);
+                                }
+                            }
                         }
 
                         dbClient.updateObject(volume);

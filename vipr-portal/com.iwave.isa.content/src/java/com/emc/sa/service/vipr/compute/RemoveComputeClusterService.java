@@ -58,7 +58,15 @@ public class RemoveComputeClusterService extends ViPRService {
         for (URI hostURI : hostURIs) {
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
             if (bootVolURI != null) {
-                bootVolsToBeDeleted.add(bootVolURI);
+                BlockObjectRestRep bootVolRep = null;
+                try{
+                    bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
+                } catch(Exception e){
+                    //Invalid boot volume reference. Ignore
+                }
+                if (bootVolRep!=null && !bootVolRep.getInactive()) {
+                    bootVolsToBeDeleted.add(bootVolURI);
+                }
             }
         }
 

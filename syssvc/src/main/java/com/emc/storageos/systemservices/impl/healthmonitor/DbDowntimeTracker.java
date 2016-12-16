@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.security.dbInfo.DbInfoUtils;
+import com.emc.storageos.systemservices.impl.util.MailHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,8 @@ public class DbDowntimeTracker {
 
     @Autowired
     private CoordinatorClientExt coordinator;
+    @Autowired
+    private MailHandler mailHandler;
 
     public DbDowntimeTracker() {
     }
@@ -138,11 +141,13 @@ public class DbDowntimeTracker {
                             "please power on the node in timely manner",
                             serviceName, nodeId, offLineTimeInDay));
                     //send alert
+                    sendDbsvcOfflineMail(nodeId, serviceName, offLineTimeInDay, false);
                 }else {
                     //send alert with link
                     _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days" +
                             "node recovery would be needed to recovery it back",
                             serviceName, nodeId, offLineTimeInDay));
+                    sendDbsvcOfflineMail(nodeId, serviceName, offLineTimeInDay, true);
                 }
                 dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, offLineTimeInDay);
             }
@@ -153,5 +158,13 @@ public class DbDowntimeTracker {
             dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, offLineTimeInDay);
         }
 
+    }
+
+    private void sendDbsvcOfflineMail(String nodeId , String serviceNames, long offlineDays, boolean nodeRecoverable) {
+        try {
+            mailHandler.sendDbsvcOfflineMail(nodeId, serviceNames, offlineDays, nodeRecoverable);
+        }catch (Exception e ) {
+            log.error("Failed to sending mail for db offline alert", e);
+        }
     }
 }

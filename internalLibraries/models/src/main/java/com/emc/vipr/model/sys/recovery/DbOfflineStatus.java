@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DbOfflineStatus {
     private boolean outageTimeExceed;
 
+    public DbOfflineStatus () {}
     public DbOfflineStatus (boolean OutageTimeExceeded) {
         outageTimeExceed = OutageTimeExceeded;
     }

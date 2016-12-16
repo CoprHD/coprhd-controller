@@ -67,7 +67,7 @@ public class DbOfflineEventInfo {
     }
 
     public Long getOfflineAlertInDay(String nodeId) {
-        String keyOfflineTime = String.format(KEY_FORMAT, nodeId, KEY_OFFLINE_TIME_IN_MS);
+        String keyOfflineTime = String.format(KEY_FORMAT, nodeId, KEY_OFFLINE_ALERT_IN_DAY);
         return this.eventInfo.get(keyOfflineTime);
 
     }

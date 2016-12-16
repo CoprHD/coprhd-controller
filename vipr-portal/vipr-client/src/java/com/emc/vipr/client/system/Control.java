@@ -183,7 +183,7 @@ public class Control {
      */
     public RecoveryStatus getRecoveryStatus() {
         RecoveryStatus status = null;
-        UriBuilder builder = client.uriBuilder(CLUSTER_RECOVERY_PRECHECK_URL);
+        UriBuilder builder = client.uriBuilder(CLUSTER_NODE_RECOVERY_URL);
 
         try {
             status = client.getURI(RecoveryStatus.class, builder.build());

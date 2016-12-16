@@ -12,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 /*
  * Copyright (c) 2016 EMC Corporation
@@ -27,14 +29,13 @@ public class DbInfoUtils {
     // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
     // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.
     public static final long MAX_SERVICE_OUTAGE_TIME = 4 * TimeUtils.DAYS;
+    public static final List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
     /**
      * Check offline event info to see if dbsvc/geodbsvc on this node could get started
      */
     public static void checkDBOfflineInfo(CoordinatorClient _coordinator, String serviceName ,String dbDir, boolean enableAlert) {
 
-        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
-                serviceName);
-        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
+        DbOfflineEventInfo dbOfflineEventInfo = getDbOfflineEventInfo(_coordinator, serviceName);
 
         String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
         Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
@@ -65,4 +66,17 @@ public class DbInfoUtils {
             throw new java.lang.IllegalStateException(errMsg);
         }
     }
+
+    public static Long getDbOfflineTime (CoordinatorClient _coordinator, String serviceName, String nodeId) {
+        DbOfflineEventInfo dbOfflineEventInfo = getDbOfflineEventInfo(_coordinator, serviceName);
+        return dbOfflineEventInfo.getOfflineTimeInMS(nodeId);
+    }
+
+    private static DbOfflineEventInfo getDbOfflineEventInfo (CoordinatorClient _coordinator, String serviceName) {
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
+                serviceName);
+        return new DbOfflineEventInfo(config);
+    }
+
+
 }

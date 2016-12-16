@@ -20,11 +20,13 @@ public class RecoveryPrecheckStatus {
         VAPP_IN_DR_OR_GEO,
         NODE_UNREACHABLE,
         CORRUPTED_NODE_COUNT_MORE_THAN_QUORUM,
+        CORRUPTED_NODE_FOR_OTHER_REASON,
         RECOVERY_NEEDED
     }
 
     private Status status ;
     private ArrayList<String> unavailables ;
+    private ArrayList<String> recoverables;
     /*public RecoveryPrecheckStatus (boolean status) {
         this.status = status;
     }*/
@@ -45,6 +47,18 @@ public class RecoveryPrecheckStatus {
             unavailables = new ArrayList<String>();
         }
         return unavailables;
+    }
+    @XmlElementWrapper(name="recoverable_nodes")
+    @XmlElement(name="recoverable_node")
+    public ArrayList<String> getRecoverables() {
+        if (recoverables == null) {
+            recoverables = new ArrayList<>();
+        }
+        return recoverables;
+    }
+
+    public void setRecoverables (ArrayList<String> nodes) {
+        this.recoverables = nodes;
     }
 
     public void setUnavailables (ArrayList<String> nodes) {

@@ -75,9 +75,4 @@ task SecurityUtilTest(type: Test, dependsOn: compileTestJava) {
     jvmArgs "-DbuildType=" + buildType
 }
 
-task nrScripts(type: Copy) {
-    from "src/scripts"
-    into "${buildDir}/bin"
-    fileMode = 0755
-}
 

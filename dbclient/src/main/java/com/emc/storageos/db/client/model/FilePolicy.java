@@ -246,7 +246,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     @Name("applyToAllFS")
-    public Boolean isApplyToAllFS() {
+    public Boolean getApplyToAllFS() {
         return this.applyToAllFS;
     }
 
@@ -264,4 +264,16 @@ public class FilePolicy extends DataObjectWithACLs {
         this.filePolicyVpool = filePolicyVpool;
         setChanged("filePolicyVpool");
     }
+
+    @Override
+    public String toString() {
+        return "FilePolicy [filePolicyType=" + filePolicyType + ", filePolicyName=" + filePolicyName + ", filePolicyDescription="
+                + filePolicyDescription + ", applyAt=" + applyAt + ", assignedResources=" + assignedResources + ", accessTenants="
+                + accessTenants + ", scheduleFrequency=" + scheduleFrequency + ", scheduleRepeat=" + scheduleRepeat + ", scheduleTime="
+                + scheduleTime + ", scheduleDayOfWeek=" + scheduleDayOfWeek + ", scheduleDayOfMonth=" + scheduleDayOfMonth
+                + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", fileReplicationType="
+                + fileReplicationType + ", fileReplicationCopyMode=" + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool
+                + ", applyToAllFS=" + applyToAllFS + "]";
+    }
+
 }

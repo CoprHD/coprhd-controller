@@ -596,6 +596,7 @@ public class FilePolicyService extends TaskResourceService {
 
         filepolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
         filepolicy.setFilePolicyVpool(param.getFileSystemAssignParams().getVpool());
+        
         filepolicy.setApplyToAllFS(param.getFileSystemAssignParams().getAssigntoAll());
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,

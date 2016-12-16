@@ -4349,8 +4349,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /**
+     * 
+     * @param sourceFS
+     * @param filePolicies
+     * @param taskId
+     */
     public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) {
-
         FileShare fsObj = null;
         StorageSystem storageObj = null;
         try {
@@ -4364,9 +4369,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FilePolicy> fileSnapshotPolicies = new ArrayList<FilePolicy>();
 
             for (FilePolicy policy : filePolicies) {
-                if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication)) {
+                if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                     fileReplicationPolicies.add(policy);
-                } else if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot)) {
+                } else if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
                     fileSnapshotPolicies.add(policy);
                 }
             }
@@ -4378,9 +4383,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setProject(project);
             WorkflowStepCompleter.stepExecuting(taskId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
-
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                _log.info("File polices applied successfully");
+                WorkflowStepCompleter.stepSucceded(taskId);
+            }
         } catch (Exception e) {
-
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
         }
     }
 }

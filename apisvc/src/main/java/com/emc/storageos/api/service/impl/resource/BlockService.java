@@ -2102,9 +2102,6 @@ public class BlockService extends TaskResourceService {
             checkForPendingTasks(tenantSet, volumes);
         }
 
-        // Make sure we have task identifier.
-        String task = UUID.randomUUID().toString();
-
         // Volumes on different storage systems need to be deleted with
         // separate, individual calls to the controller. Therefore, we
         // need to map the volumes passed to the storage systems on
@@ -2156,6 +2153,12 @@ public class BlockService extends TaskResourceService {
             }
         }
 
+        // since we issue one controller request per storage system, we must give each storage system
+        // a separate task id. Otherwise, we will create multiple workflows with the same task id
+        // which is not allowed.
+        // this maps task ids to their storage systems
+        Map<URI, String> systemURITaskIdMap = new HashMap<URI, String>();
+
         // Now loop over the volumes, initializing the above constructs.
         for (Volume volume : volumes) {
             URI volumeURI = volume.getId();
@@ -2172,6 +2175,11 @@ public class BlockService extends TaskResourceService {
                 } else {
                     systemURI = volume.getStorageController();
                 }
+
+                if (systemURITaskIdMap.get(systemURI) == null) {
+                    systemURITaskIdMap.put(systemURI, UUID.randomUUID().toString());
+                }
+                String task = systemURITaskIdMap.get(systemURI);
 
                 // Create a task resource response for this volume and
                 // set the initial task state to pending.
@@ -2220,6 +2228,7 @@ public class BlockService extends TaskResourceService {
         Iterator<URI> systemsURIIter = systemVolumesMap.keySet().iterator();
         while (systemsURIIter.hasNext()) {
             URI systemURI = systemsURIIter.next();
+            String task = systemURITaskIdMap.get(systemURI);
             try {
                 List<URI> systemVolumes = systemVolumesMap.get(systemURI);
                 BlockServiceApi blockServiceApi = getBlockServiceImpl(queryVolumeResource(systemVolumes.get(0)));

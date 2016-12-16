@@ -37,6 +37,7 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
+    
     #{field 'schedulePolicy.snapshotPattern'}
       %{
         field.required = true
@@ -44,6 +45,16 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
+    
+     #{field 'schedulePolicy.replicationType'}
+       #{Form.selectOneControlGroup field:field, options:replicationTypeOptions, select:schedulePolicy.replicationType, cssClass:'span3' /}
+     #{/field}
+      #{field 'schedulePolicy.replicationCopyType'}
+       #{Form.selectOneControlGroup field:field, options:replicationCopyTypeOptions, select:schedulePolicy.replicationCopyType, cssClass:'span3' /}
+     #{/field}
+      #{field 'schedulePolicy.priority'}
+       #{Form.selectOneControlGroup field:field, options:policyPriorityOptions, select:schedulePolicy.priority, cssClass:'span3' /}
+     #{/field}
     
     <!-- - -->
     #{field 'schedulePolicy.scheduleTime'}
@@ -125,6 +136,7 @@
     #{/Form.controlGroup}
   #{/field}
   
+  *{ expire parameters belongs to snapshot policy }*
    #{field 'schedulePolicy.expiration'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%
@@ -151,7 +163,7 @@
       
     #{/Form.controlGroup}
   #{/field}
-
+  
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
   #{if tenantOptions}
     #{collapse 'schedulePolicy.group.accessControl', icon:'user'}
@@ -189,6 +201,36 @@
 		}
 		
 		
+		$('#schedulePolicy_policyType').on('change', showPolicyPage);
+		showPolicyPage();
+		//
+        // for edit mode, do not allow "type" change
+        //
+		if ( editMode ) { 			
+     		$('#schedulePolicy_policyType').prop("disabled", true); 
+        } else {
+            showPolicyPage();
+        }
+     		
+		
     });
+    
+     function showPolicyPage() {
+          var policyType = $('#schedulePolicy_policyType').val();
+          if(policyType == 'file_snapshot') {
+               $('#schedulePolicy_snapshotPatternControlGroup').show();
+               $('#schedulePolicy_replicationTypeControlGroup').hide();
+               $('#schedulePolicy_replicationCopyTypeControlGroup').hide();
+               $('#schedulePolicy_priorityControlGroup').hide();
+               $('#schedulePolicy_expirationControlGroup').show();
+          } else if (policyType == 'file_replication') {
+          	   $('#schedulePolicy_snapshotPatternControlGroup').hide();
+               $('#schedulePolicy_replicationTypeControlGroup').show();
+               $('#schedulePolicy_replicationCopyTypeControlGroup').show();
+               $('#schedulePolicy_priorityControlGroup').show();
+               $('#schedulePolicy_expirationControlGroup').hide();
+          }
+     }
+    
    </script>
 #{/set}

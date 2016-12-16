@@ -55,6 +55,9 @@ public class FilePolicy extends DataObjectWithACLs {
     // Snapshot expire at
     private Long snapshotExpireTime;
 
+    // Snapshot name pattern
+    private String snapshotNamePattern;
+
     // File Replication type
     private String fileReplicationType;
 
@@ -63,6 +66,9 @@ public class FilePolicy extends DataObjectWithACLs {
 
     // File Policy associated Virtual Pool - this is being used for project and file system policy
     private URI filePolicyVpool;
+
+    // Policy priority Low/High
+    private String priority;
 
     /**
      * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
@@ -76,7 +82,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum FileReplicationCopyMode {
-        SYNC, ASYNC;
+        SYNC, ASYNC, SEMISYNC;
     }
 
     public static enum ScheduleFrequency {
@@ -225,6 +231,16 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("snapshotExpireTime");
     }
 
+    @Name("snapshotNamePattern")
+    public String getSnapshotNamePattern() {
+        return this.snapshotNamePattern;
+    }
+
+    public void setSnapshotNamePattern(String snapshotNamePattern) {
+        this.snapshotNamePattern = snapshotNamePattern;
+        setChanged("snapshotNamePattern");
+    }
+
     @Name("accessTenants")
     public StringSet getTenantOrg() {
         return this.accessTenants;
@@ -263,6 +279,15 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setFilePolicyVpool(URI filePolicyVpool) {
         this.filePolicyVpool = filePolicyVpool;
         setChanged("filePolicyVpool");
+    }
+
+    @Name("priority")
+    public String getPriority() {
+        return priority;
+    }
+
+    public String setPriority(String priority) {
+        return this.priority = priority;
     }
 
     @Override

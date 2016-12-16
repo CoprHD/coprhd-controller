@@ -1563,13 +1563,13 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
 	var startDate = $scope.startDate;
 	var endDate = $scope.endDate;
 	var current = new Date().getTime();
-	
+		
     angular.element("#myOrderSelector").ready(function () {
-        $scope.$apply(function () {
+        $scope.$apply(function () {        	
             $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
             $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
-        });
-    });
+        });  
+    });   
     
     $scope.$watch('rangeEndDate', function (newVal, oldVal) {
     	//TODO: check the end date should be not later than today
@@ -1577,6 +1577,10 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
     	console.info("vals "+newVal+"\t|"+oldVal);
         var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
         			"&endDate="+encodeURIComponent($scope.rangeEndDate);
+        //TODO: should disabled when go to new url
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+        
         console.info(url);
         window.location.href = url;
     });

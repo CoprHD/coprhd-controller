@@ -49,7 +49,7 @@ function addParams(aoData) {
 }
 
 $(document).ready(function() {
-    console.info("${orderCount}");
+    console.info("ordercount"+"${orderCount}");
     var requestMaxDays = "${maxDays}";
     if(requestMaxDays != 0) {
         $(".forRange").hide();
@@ -66,9 +66,3 @@ $(document).ready(function() {
         }
     });
 });
-</script>
-<style type="text/css">
-    .forRange input[readonly]{
-        background-color: #fff;
-    }
-</style>

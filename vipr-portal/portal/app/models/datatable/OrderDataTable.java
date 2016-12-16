@@ -32,8 +32,8 @@ public class OrderDataTable extends DataTable {
     protected UserInfo userInfo;
     protected String tenantId;
 
-    protected Date startDate; // should be "yyyy-MM-dd 00:00:00" in local time zone
-    protected Date endDate;   // should be "yyyy-MM-dd 23:59:59" in local time zone
+    protected Date startDate; //"yyyy-MM-dd 00:00:00" in local time zone
+    protected Date endDate;   //"yyyy-MM-dd 23:59:59" in local time zone
 
     private void setStartDate(Date startDate) {
         this.startDate = getStartTimeOfADay(startDate);
@@ -143,7 +143,7 @@ public class OrderDataTable extends DataTable {
 
     public static Date getDateDaysAgo(int daysAgo) {
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, -daysAgo);
+        cal.add(Calendar.DAY_OF_YEAR, -daysAgo + 1);
         return cal.getTime();
     }
 

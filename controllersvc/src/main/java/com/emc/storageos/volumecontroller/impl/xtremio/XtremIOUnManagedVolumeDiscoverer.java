@@ -594,7 +594,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 StringSet hostHlu = new StringSet();
                                 hostHlu.add(hostname + "=" + hlu);
                                 StringSet existingHostHlu = (StringSet) hostUnManagedVol.getVolumeInformation().get(
-                                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP);
+                                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString());
                                 if (existingHostHlu != null) {
                                     hostHlu.addAll(existingHostHlu);
                                 }

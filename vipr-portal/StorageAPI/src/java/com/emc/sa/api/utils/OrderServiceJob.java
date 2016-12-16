@@ -17,7 +17,8 @@ public class OrderServiceJob implements Serializable {
     private static final long serialVersionUID = -3470928289876091965L;
 
     public enum JobType {
-        DELETE
+        DELETE,
+        DOWNLOAD
     };
 
     private JobType type;
@@ -76,6 +77,10 @@ public class OrderServiceJob implements Serializable {
 
         nOrdersDeletedWithinPeriod = in.readLong();
         startTimeInThisRound = in.readLong();
+    }
+
+    public JobType getType() {
+        return type;
     }
 
     public long getStartTime() {

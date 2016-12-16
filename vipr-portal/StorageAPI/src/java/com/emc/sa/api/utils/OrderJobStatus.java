@@ -26,20 +26,20 @@ public class OrderJobStatus implements CoordinatorSerializable {
     private long endTime;
     private List<URI> tids;
 
-    private long total;
-    private long nCompleted; // Number of Orders has been deleted or downloaded so far
-    private long nFailed;  // Number of Orders failed to be deleted or downloaded so far
-    private long timeUsedPerOrder;  //The time used to delete or download an order
+    private long total = -1;
+    private long nCompleted =0; // Number of Orders has been deleted or downloaded so far
+    private long nFailed = 0;  // Number of Orders failed to be deleted or downloaded so far
+    private long timeUsedPerOrder = -1;  //The time used to delete or download an order
+
+    // used to deserialize from ZK
+    public OrderJobStatus() {
+
+    }
 
     public OrderJobStatus(long startTime, long endTime, List<URI> tids) {
         this.startTime = startTime;
         this.endTime = endTime;
         this.tids = tids;
-
-        total = 0;
-        nCompleted = 0;
-        nFailed = 0;
-        timeUsedPerOrder = -1;
     }
 
     public long getStartTime() {
@@ -70,16 +70,16 @@ public class OrderJobStatus implements CoordinatorSerializable {
         return nCompleted;
     }
 
-    public void setnCompleted(long nCompleted) {
-        this.nCompleted = nCompleted;
+    public void increaseCompleted(long inc) {
+        nCompleted += inc;
     }
 
-    public long getnFailed() {
+    public long getFailed() {
         return nFailed;
     }
 
-    public void setnFailed(long nFailed) {
-        this.nFailed = nFailed;
+    public void setFailed(long n) {
+        nFailed = n;
     }
 
     public long getTimeUsedPerOrder() {

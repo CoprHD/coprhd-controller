@@ -204,12 +204,12 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     private void startJobQueue() {
-        log.info("Starting oder service job queue");
+        log.info("Starting order service job queue");
         try {
-            // no job consumer in geoclient
-            queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, new OrderServiceJobConsumer(_dbClient, orderManager), new OrderServiceJobSerializer(), 1);
+            OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _dbClient, orderManager);
+            queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, consumer, new OrderServiceJobSerializer(), 1);
         } catch (Exception e) {
-            log.error("can not startup geosvc job queue", e);
+            log.error("Failed to start order job queue", e);
         }
     }
 
@@ -924,13 +924,18 @@ public class OrderService extends CatalogTaggedResourceService {
         return Response.ok().build();
     }
 
-    private void saveJobInfo(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
+    public void saveJobInfo(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
         OrderJobStatus status = new OrderJobStatus(startTime, endTime, tids);
         log.info("lbyx0: persist type={}", status);
         coordinatorClient.persistRuntimeState(type.name(), status);
     }
 
-    private OrderJobStatus queryJobInfo(OrderServiceJob.JobType type) {
+    public void saveJobInfo(OrderServiceJob.JobType type, OrderJobStatus status) {
+        log.info("lbyx0: persist type={}", status);
+        coordinatorClient.persistRuntimeState(type.name(), status);
+    }
+
+    public OrderJobStatus queryJobInfo(OrderServiceJob.JobType type) {
         return coordinatorClient.queryRuntimeState(type.name(), OrderJobStatus.class);
     }
 

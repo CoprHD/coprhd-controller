@@ -411,16 +411,11 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
-    public void canBeDeleted(Order order, String tenantId) {
+    public void canBeDeleted(Order order) {
         log.info("lbyj0");
 
         if (order.getScheduledEventId()!=null) {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
-        }
-
-        log.info("lbyj1");
-        if (!tenantId.isEmpty() && !tenantId.equals(order.getTenant())) {
-            throw APIException.badRequests.orderNotInTenant(order.getId(), tenantId);
         }
 
         if (createdWithinOneMonth(order)) {
@@ -454,7 +449,7 @@ public class OrderManagerImpl implements OrderManager {
 
         log.info("lbyh0 order={} tid={}", order, tenantId);
 
-        canBeDeleted(order, tenantId);
+        canBeDeleted(order);
 
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         log.info("lbyh0: approvalRequests={}", approvalRequests);

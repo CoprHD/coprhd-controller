@@ -1389,6 +1389,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
         String path = String.format("%s/%s",ZkPath.STATE, key);
 
+        log.info("lbyx: path={}", path);
         try {
             byte[] data = _zkConnection.curator().getData().forPath(path);
 
@@ -1396,7 +1397,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             return (T) state.decodeFromString(new String(data, "UTF-8"));
         } catch (KeeperException.NoNodeException ignore) {
             // Ignore exception, don't re-throw
-            log.debug("Caught exception but ignoring it: " + ignore);
+            log.info("Caught exception but ignoring it: " + ignore);
             return null;
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToFindTheState(key, e);

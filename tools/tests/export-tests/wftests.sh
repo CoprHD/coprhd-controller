@@ -2484,7 +2484,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
+    # failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
 
     for failure in ${failure_injections}
     do

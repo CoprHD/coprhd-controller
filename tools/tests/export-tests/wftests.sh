@@ -1847,7 +1847,7 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask"
+	cfs="Volume ExportGroup ExportMask FCZoneReference"
     else
 	cfs="Volume"
     fi
@@ -1987,7 +1987,7 @@ test_2() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference"
     else
 	cfs="Volume BlockConsistencyGroup"
     fi
@@ -2118,9 +2118,9 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask"
+	cfs="Volume ExportGroup ExportMask FCZoneReference"
     else
-	cfs="Volume ExportGroup ExportMask"
+	cfs="Volume"
     fi
 
     for failure in ${failure_injections}
@@ -2241,7 +2241,7 @@ test_4() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 4 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2329,7 +2329,7 @@ test_5() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 5 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2407,7 +2407,7 @@ test_6() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2493,7 +2493,7 @@ test_7() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 7 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2604,7 +2604,12 @@ test_8() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
-      cfs="Volume ExportGroup ExportMask"
+      if [ "${SS}" = "vplex" ]
+      then
+	  cfs="Volume ExportGroup ExportMask FCZoneReference"
+      else
+	  cfs="Volume"
+      fi
       reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}

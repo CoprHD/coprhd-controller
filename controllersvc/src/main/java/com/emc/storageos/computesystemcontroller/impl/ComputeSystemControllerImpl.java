@@ -844,7 +844,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
                     oldvCenterDataCenterId = host.getVcenterDataCenter();
                 }
-            }            
+            }
 
             waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
                     String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
@@ -1426,7 +1426,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         } catch (Exception ex) {
             _log.error("Exception occured while deleting export group {}", exportGroup, ex);
             // Fail the step
-            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));        
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
     }
 
@@ -1621,7 +1621,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 this.getClass(),
                                 unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
                                         vcenterDataCenter.getId()),
-                                rollbackMethodNullMethod(), null);
+                                attachAndMountMethod(export, esxHost.getId(), vCenterId,
+                                        vcenterDataCenter.getId()), null);
                     }
                 }
             }

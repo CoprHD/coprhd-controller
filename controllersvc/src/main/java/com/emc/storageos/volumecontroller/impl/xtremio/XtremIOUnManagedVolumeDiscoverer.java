@@ -314,6 +314,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                             log.info("Found HLU {}", hlu);
                             List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
                             igHLUMap.put(igDetails.get(1).toString(), hlu.toString()); // key value IG-HLU
+                        }
+                        if (igHLUMap != null) {
                             volumeIGHLUMap.put(unManagedVolumeNatvieGuid, igHLUMap);
                         }
                     }
@@ -596,7 +598,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 if (existingHostHlu != null) {
                                     hostHlu.addAll(existingHostHlu);
                                 }
-                                hostUnManagedVol.putVolumeInfo(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
+                                hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
                             }
                         }
                         if (isVplexBackendMask) {

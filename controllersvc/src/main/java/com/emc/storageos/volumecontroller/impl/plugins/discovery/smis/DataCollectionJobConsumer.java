@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,7 +31,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -237,6 +237,8 @@ public class DataCollectionJobConsumer extends
         if (ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK
                 .acquire(ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.getRecommendedTimeout())) {
 
+            List<URI> cacheProviders = new ArrayList<URI>();
+            Map<URI, Exception> cacheErrorProviders = new HashMap<URI, Exception>();
             try {
                 boolean scanIsNeeded = false;
                 boolean hasProviders = false;
@@ -259,7 +261,7 @@ public class DataCollectionJobConsumer extends
                             continue;
                         }
                         if (provider.connected() || provider.initializing()) {
-                            scanCompleter.statusReady(_dbClient, "SCAN is not needed");
+                            scanCompleter.ready(_dbClient);
                         }
                         else {
                             String errMsg = "Failed to establish connection to the storage provider";
@@ -274,7 +276,6 @@ public class DataCollectionJobConsumer extends
                     _logger.info("Scan is not needed");
                 }
                 else {
-                    List<URI> cacheProviders = new ArrayList<URI>();
                     // If scan is needed for a single system,
                     // it must be performed for all available providers in the database at the same time.
                     for (StorageProvider provider : allProviders) {
@@ -286,6 +287,7 @@ public class DataCollectionJobConsumer extends
                                 job.addCompleter(scanCompleter);
                             }
                             try {
+                                scanCompleter.createDefaultOperation(_dbClient);
                                 scanCompleter.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
                                 scanCompleter.setNextRunTime(_dbClient, System.currentTimeMillis()
                                         + DataCollectionJobScheduler.JobIntervals.get(ControllerServiceImpl.SCANNER).getInterval() * 1000);
@@ -296,10 +298,9 @@ public class DataCollectionJobConsumer extends
                                 cacheProviders.add(provider.getId());
                             } catch (Exception ex) {
                                 _logger.error("Scan failed for {}--->", provider.getId(), ex);
-                                scanCompleter.error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
+                                cacheErrorProviders.put(provider.getId(), ex);
                             }
-                        }
-                        else {
+                        } else {
                             if (null != provider.getStorageSystems() &&
                                     !provider.getStorageSystems().isEmpty()) {
                                 provider.getStorageSystems().clear();
@@ -318,16 +319,28 @@ public class DataCollectionJobConsumer extends
                     // for now we assume that this operation can not fail.
                     _util.performBookKeeping(storageSystemsCache, allProviderURI);
 
+                }
+            } catch (final Exception ex) {
+                _logger.error("Scan failed for {} ", ex.getMessage());
+                exceptionIntercepted = true;
+                for (URI provider : cacheProviders) {
+                    job.findProviderTaskCompleter(provider).error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
+                    _logger.error("Scan failed for {}--->", provider, ex);
+                }
+                throw ex;
+            } finally {
+                if (!exceptionIntercepted) {
                     for (URI provider : cacheProviders) {
                         job.findProviderTaskCompleter(provider).ready(_dbClient);
                         _logger.info("Scan complete successfully for " + provider);
                     }
                 }
-            } catch (final Exception ex) {
-                _logger.error("Scan failed for {} ", ex.getMessage());
-                exceptionIntercepted = true;
-                throw ex;
-            } finally {
+                for (Entry<URI, Exception> entry : cacheErrorProviders.entrySet()) {
+                    URI provider = entry.getKey();
+                    Exception ex = entry.getValue();
+                    job.findProviderTaskCompleter(provider).error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
+                }
+                
                 ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.release();
                 try {
                     if (!exceptionIntercepted /* && job.isSchedulerJob() */) {
@@ -417,5 +430,4 @@ public class DataCollectionJobConsumer extends
             NetworkDeviceController networkDeviceController) {
         this._networkDeviceController = networkDeviceController;
     }
-
 }

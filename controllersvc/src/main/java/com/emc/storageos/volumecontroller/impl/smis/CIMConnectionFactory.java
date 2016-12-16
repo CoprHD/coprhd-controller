@@ -13,7 +13,6 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +23,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConnectionInfo;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -279,7 +280,7 @@ public class CIMConnectionFactory {
             // If Provider Connection is active then do the scanner
             // otherwise no point of doing the scanner.
             try {
-                if (checkConnectionliveness(connection)) {
+                if (ConnectivityUtil.ping(smisProvider.getIPAddress()) && checkConnectionliveness(connection)) {
                     if (StorageProvider.ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
                             smisProvider.getConnectionStatus())) {
                         recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,

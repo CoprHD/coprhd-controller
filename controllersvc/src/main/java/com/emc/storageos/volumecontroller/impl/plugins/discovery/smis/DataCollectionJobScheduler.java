@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +51,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 import com.emc.storageos.volumecontroller.impl.datadomain.DataDomainUtils;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice;
@@ -274,17 +274,19 @@ public class DataCollectionJobScheduler {
         discoverySchedulingSelector.autoRequeue();
         discoverySchedulingSelector.start();
 
-        _dataCollectionExecutorService.scheduleAtFixedRate(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            refreshProviderConnections();
-                        } catch (Exception e) {
-                            _logger.info("Failed to refresh connections: {}", e.getMessage(), e);
+        if (!enableAutoScan) {
+            _dataCollectionExecutorService.scheduleAtFixedRate(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                refreshProviderConnections();
+                            } catch (Exception e) {
+                                _logger.info("Failed to refresh connections: {}", e.getMessage(), e);
+                            }
                         }
-                    }
-                }, initialConnectionRefreshDelay, JobIntervals.SCAN_INTERVALS.getInterval(), TimeUnit.SECONDS);
+                    }, initialConnectionRefreshDelay, JobIntervals.SCAN_INTERVALS.getInterval(), TimeUnit.SECONDS);
+        }
 
         // recompute storage ports's metrics for all storage system
         // Since traverse through all storage ports in all storage systems may take a while, it best to perform the
@@ -471,8 +473,8 @@ public class DataCollectionJobScheduler {
                 StorageProvider provider = null;
                 if (URIUtil.isType(systemURI, StorageSystem.class)) {
                     StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, systemURI);
-                    if (systemObj == null) {
-                        _logger.warn(String.format("StorageSystem %s is no longer in the DB. It could have been deleted or decommissioned",
+                    if (systemObj == null || !systemObj.getInactive()) {
+                        _logger.warn(String.format("StorageSystem %s is no longer in the DB or is inactive. It could have been deleted or decommissioned",
                                 systemURI));
                         continue;
                     }

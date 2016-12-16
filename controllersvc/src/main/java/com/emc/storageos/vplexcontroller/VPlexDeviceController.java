@@ -324,6 +324,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
     private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String VALIDATE_VPLEX_VOLUME_METHOD = "validateVPlexVolume";
+    private static final String EXPORT_MASK_ADD_VOLUMES_METHOD = "exportMaskAddVolumes";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -1079,6 +1080,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param description
      *            The event description
      */
+    // TODO this contents of this method should probably just never be called except by a completer
     private void recordBourneVolumeEvent(URI volumeId, String evtType, Operation.Status status,
             String description) {
         try {
@@ -1861,7 +1863,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
                 srcExportStepId = assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, createCompleter, null, opId);
             }
 
             // If possible, do the HA side export. To do this we must have both
@@ -1871,7 +1873,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, null, opId);
+                        workflow, createCompleter, null, opId);
             }
 
             // Initiate the workflow.
@@ -1928,6 +1930,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            the key (URI) of this map can reference either the volume itself or a snapshot.
      * @param workflow
      *            the controller workflow
+     * @param completer
+     *            the controller workflow ExportTaskCompleter
      * @param waitFor
      *            -- If non-null, will wait on previous workflow step
      * @param opId
@@ -1936,7 +1940,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws Exception
      */
     private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
-            Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
+            Map<URI, Integer> blockObjectMap, Workflow workflow, ExportTaskCompleter completer, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
 
@@ -2135,6 +2139,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
 
+        // TODO move to completer, may not even be needed here
         _dbClient.updateObject(exportGroup);
 
         _log.info("updating zoning if necessary for both new and updated export masks");
@@ -2394,6 +2399,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create zoningMap for the matched initiators and storagePorts
             _networkDeviceController.updateZoningMap(exportGroup, exportMask, false);
 
+            // TODO move to completer
             _dbClient.createObject(exportMask);
             
             if (!initsToAdd.isEmpty()) {
@@ -2406,6 +2412,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
                 if (assignments != null && !assignments.isEmpty()) {
                     // Update zoningMap if there are new assignments
+                    // TODO move to completer
                     exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
                             exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
@@ -2413,6 +2420,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
             exportMasksToUpdateOnDevice.add(exportMask);
             exportGroup.addExportMask(exportMask.getId());
+            // TODO move to completer
             _dbClient.updateObject(exportGroup);
 
             // add the initiators to the map for the exportMask that do not exist
@@ -2460,6 +2468,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
+        // TODO move to completer
         _dbClient.updateObject(exportGroup);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
@@ -2477,6 +2486,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoning Map with these new assignments
+                // TODO move to completer
                 viprExportMask = ExportUtils.updateZoningMap(_dbClient, viprExportMask, assignments,
                         exportMasksToUpdateOnDeviceWithStoragePorts);
             }
@@ -2523,6 +2533,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // add the initiators to the user added list.
             exportMask.addToUserCreatedInitiators(inits);
+            // TODO move to completer
             _dbClient.updateObject(exportMask);
             _log.info("VPLEX ExportMask name is now: " + exportMask.getMaskName());
         }
@@ -2582,6 +2593,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
 
+        // TODO move to completer
         _dbClient.updateObject(sharedVplexExportMask);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
@@ -2591,6 +2603,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 inits, sharedVplexExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
         if (assignments != null && !assignments.isEmpty()) {
             // Update zoningMap if there are new assignments
+            // TODO move to completer
             sharedVplexExportMask = ExportUtils.updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
                     exportMasksToUpdateOnDeviceWithStoragePorts);
         }
@@ -2741,7 +2754,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("adding step to update export mask: " + exportMask.getMaskName());
 
         // Add a step to update export mask on the VPlex.
-        Workflow.Method storageViewExecuteMethod = new Workflow.Method("exportMaskAddVolumes",
+        Workflow.Method storageViewExecuteMethod = new Workflow.Method(EXPORT_MASK_ADD_VOLUMES_METHOD,
                 vplexSystem.getId(), export, exportMask.getId(), blockObjectMap);
         Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         storageViewStepId = workflow.createStep("storageView",
@@ -2856,6 +2869,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (BlockObject bo : blockObjects) {
                 String deviceLabel = bo.getDeviceLabel();
                 bo.setWWN(svInfo.getWWNForStorageViewVolume(deviceLabel));
+                // TODO move to completer
                 _dbClient.updateObject(bo);
 
                 updatedBlockObjectMap.put(bo.getId(),
@@ -2877,8 +2891,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // this column being set to non-null can be used to indicate a storage view that 
             // has been successfully created on the VPLEX device
             exportMask.setNativeId(svInfo.getPath());
+            // TODO move to completer
             _dbClient.updateObject(exportMask);
-
+            // TODO move to completer
             _dbClient.updateObject(exportGroup);
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -2993,6 +3008,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (ExportMask exportMask : exportMasks) {
                     exportGroup.removeExportMask(exportMask.getId());
                 }
+                // TODO move to completer
                 _dbClient.updateObject(exportGroup);
                 completer.ready(_dbClient);
                 return;
@@ -3281,6 +3297,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (ExportGroup exportGroup : exportGroups) {
                     _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
                     exportGroup.removeExportMask(exportMaskURI);
+                    // TODO move to completer
                     _dbClient.updateObject(exportGroup);
                 }
             } else {
@@ -3368,7 +3385,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 srcExportStepId = assembleExportMasksWorkflow(vplexURI, exportURI, srcVarray,
                         varrayToInitiators.get(srcVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes),
-                        workflow, null, opId);
+                        workflow, completer, null, opId);
             }
 
             // IF the haVarray has been set, and we have initiators with connectivity to the ha varray,
@@ -3379,7 +3396,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 assembleExportMasksWorkflow(vplexURI, exportURI, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, srcExportStepId, opId);
+                        workflow, completer, srcExportStepId, opId);
             }
 
             // Initiate the workflow.
@@ -3480,6 +3497,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Add volumes to exportmask, so that rollback works in case of any errors
             exportMask.addVolumes(volumesToAdd);
+            // TODO move to completer
             _dbClient.updateObject(exportMask);
 
             // If duplicate HLU are found then return, completer is set to error above
@@ -3504,6 +3522,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String deviceLabel = volume.getDeviceLabel();
                 String wwn = svInfo.getWWNForStorageViewVolume(volume.getDeviceLabel());
                 volume.setWWN(wwn);
+                // TODO move to completer
                 _dbClient.updateObject(volume);
 
                 updatedVolumeMap.put(volume.getId(),
@@ -3524,6 +3543,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // to those assigned by the VPLEX.
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
+            // TODO move to completer
             _dbClient.updateObject(exportMask);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
@@ -4041,7 +4061,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create the ExportMask if there are volumes in this varray.
             if (!varrayVolumeMap.isEmpty()) {
                 lastStepId = assembleExportMasksWorkflow(vplexURI, exportURI, varrayURI,
-                        hostInitiatorURIs, varrayVolumeMap, workflow, previousStepId, opId);
+                        hostInitiatorURIs, varrayVolumeMap, workflow, completer, previousStepId, opId);
             }
         } else {
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -4346,6 +4366,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
 
+                        // TODO move to completer
                         if (updateExportMask) {
                             _dbClient.updateObject(exportMask);
                         }
@@ -4466,6 +4487,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.addTarget(target);
                         }
+                        // TODO move to completer
                         _dbClient.updateObject(exportMask);
                     }
                 }
@@ -4577,6 +4599,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         for (URI target : targetsToRemoveFromStorageView) {
                             exportMask.removeTarget(target);
                         }
+                        // TODO move to completer
                         _dbClient.updateObject(exportMask);
                     }
                 }
@@ -5240,6 +5263,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.removeTarget(target);
                         }
+                        // TODO move to completer
                         _dbClient.updateObject(exportMask);
                     }
                 }
@@ -9500,7 +9524,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
                 initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, token);
         List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-        // TODO
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.updateObject(exportMask);
 
@@ -11664,6 +11687,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage,
                 exportGroup, initiators, volumeMap, targets, assignments, maskName, _dbClient);
+        // TODO move to completer
         _dbClient.updateObject(exportMask);
         return exportMask;
     }

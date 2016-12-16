@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.COMPUTE_IMAGE;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.DATACENTER;
 import static com.emc.sa.service.ServiceParams.DNS_SERVERS;
+import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.GATEWAY;
 import static com.emc.sa.service.ServiceParams.HOST_PASSWORD;
 import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
@@ -78,6 +79,9 @@ public class CreateComputeClusterService extends ViPRService {
 
     @Param(SIZE_IN_GB)
     protected Double size;
+
+    @Param(value = HLU, required = false)
+    protected Integer hlu;
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
@@ -272,7 +276,7 @@ public class CreateComputeClusterService extends ViPRService {
             logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray);
+            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
             logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
 

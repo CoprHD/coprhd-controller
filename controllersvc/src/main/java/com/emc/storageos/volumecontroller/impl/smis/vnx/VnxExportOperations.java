@@ -687,7 +687,6 @@ public class VnxExportOperations implements ExportMaskOperations {
                             : Collections.emptySet();
                     Set existingVolumes = (exportMask.getExistingVolumes() != null) ? exportMask.getExistingVolumes().keySet()
                             : Collections.emptySet();
-
                     builder.append(String.format("XM:%s is matching. " +
                             "EI: { %s }, EV: { %s }",
                             name,

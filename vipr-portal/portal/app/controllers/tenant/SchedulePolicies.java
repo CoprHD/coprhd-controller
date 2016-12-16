@@ -16,10 +16,13 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
+import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
+import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.vipr.client.core.ACLResources;
@@ -63,22 +66,6 @@ public class SchedulePolicies extends ViprResourceController {
         TenantSelector.addRenderArgs();
         render(dataTable);
     }
-
-    /*
-     * @FlashException(value = "list", keep = true)
-     * public static void listJson() {
-     * String userId = Security.getUserInfo().getIdentifier();
-     * List<SchedulePolicyRestRep> viprSchedulePolicies = getViprClient().schedulePolicies().getByTenant(uri(Models.currentAdminTenant()));
-     * List<ScheculePoliciesDataTable.ScheculePolicy> scheculePolicies = Lists.newArrayList();
-     * for (SchedulePolicyRestRep viprSchedulePolicy : viprSchedulePolicies) {
-     * if (Security.isTenantAdmin()
-     * || Security.isProjectAdmin()) {
-     * scheculePolicies.add(new ScheculePoliciesDataTable.ScheculePolicy(viprSchedulePolicy));
-     * }
-     * }
-     * renderJSON(DataTablesSupport.createJSON(scheculePolicies, params));
-     * }
-     */
 
     @FlashException(value = "list", keep = true)
     public static void listJson() {
@@ -131,6 +118,22 @@ public class SchedulePolicies extends ViprResourceController {
         policyTypeOptions.add(new StringOption("file_snapshot", MessagesUtils.get("schedulePolicy.snapshot")));
         policyTypeOptions.add(new StringOption("file_replication", MessagesUtils.get("schedulePolicy.replication")));
         renderArgs.put("policyTypeOptions", policyTypeOptions);
+
+        List<StringOption> replicationTypeOptions = Lists.newArrayList();
+        replicationTypeOptions.add(new StringOption("REMOTE", MessagesUtils.get("schedulePolicy.replicationRemote")));
+        replicationTypeOptions.add(new StringOption("LOCAL", MessagesUtils.get("schedulePolicy.replicationLocal")));
+        renderArgs.put("replicationTypeOptions", replicationTypeOptions);
+
+        List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
+        replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
+        replicationCopyTypeOptions.add(new StringOption("SEMISYNC", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
+        replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
+        renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
+
+        List<StringOption> policyPriorityOptions = Lists.newArrayList();
+        policyPriorityOptions.add(new StringOption("HIGH", MessagesUtils.get("schedulePolicy.priorityHigh")));
+        policyPriorityOptions.add(new StringOption("LOW", MessagesUtils.get("schedulePolicy.priorityLow")));
+        renderArgs.put("policyPriorityOptions", policyPriorityOptions);
 
     }
 
@@ -206,18 +209,21 @@ public class SchedulePolicies extends ViprResourceController {
             Common.handleError();
         }
         schedulePolicy.id = params.get("id");
+        URI policyId = null;
         if (schedulePolicy.isNew()) {
             schedulePolicy.tenantId = Models.currentAdminTenant();
             FilePolicyParam policyParam = updatePolicyParam(schedulePolicy);
-            getViprClient().fileProtectionPolicies().create(policyParam);
+            FilePolicyCreateResp createdPolicy = getViprClient().fileProtectionPolicies().create(policyParam);
+            policyId = createdPolicy.getId();
         } else {
             FilePolicyRestRep schedulePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(schedulePolicy.id));
             FilePolicyParam input = updatePolicyParam(schedulePolicy);
             getViprClient().fileProtectionPolicies().update(schedulePolicyRestRep.getId(), input);
+            policyId = schedulePolicyRestRep.getId();
         }
         // Update the ACLs
         FileProtectionPolicies filePolicies = getViprClient().fileProtectionPolicies();
-        schedulePolicy.saveTenantACLs(filePolicies);
+        schedulePolicy.saveTenantACLs(filePolicies, policyId);
         flash.success(MessagesUtils.get("projects.saved", schedulePolicy.policyName));
         if (StringUtils.isNotBlank(schedulePolicy.referrerUrl)) {
             redirect(schedulePolicy.referrerUrl);
@@ -226,44 +232,6 @@ public class SchedulePolicies extends ViprResourceController {
         }
 
     }
-
-    /*
-     * private static PolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
-     * PolicyParam param = new PolicyParam();
-     * param.setPolicyName(schedulePolicy.policyName);
-     * param.setPolicyType(schedulePolicy.policyType);
-     * 
-     * SchedulePolicyParam scheduleParam = new SchedulePolicyParam();
-     * scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
-     * scheduleParam.setScheduleFrequency(schedulePolicy.frequency);
-     * scheduleParam.setScheduleRepeat(schedulePolicy.repeat);
-     * 
-     * if (schedulePolicy.frequency != null && "weeks".equals(schedulePolicy.frequency)) {
-     * if (schedulePolicy.scheduleDayOfWeek != null) {
-     * scheduleParam.setScheduleDayOfWeek(schedulePolicy.scheduleDayOfWeek);
-     * }
-     * 
-     * } else if (schedulePolicy.frequency != null && "months".equals(schedulePolicy.frequency)) {
-     * scheduleParam.setScheduleDayOfMonth(schedulePolicy.scheduleDayOfMonth);
-     * }
-     * param.setPolicySchedule(scheduleParam);
-     * 
-     * ScheduleSnapshotExpireParam expireParam = new ScheduleSnapshotExpireParam();
-     * 
-     * if (schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)) {
-     * expireParam.setExpireType(schedulePolicy.expireType);
-     * expireParam.setExpireValue(schedulePolicy.expireValue);
-     * param.setSnapshotExpire(expireParam);
-     * }
-     * if("NEVER".equals(schedulePolicy.expiration)){
-     * expireParam.setExpireType("never");
-     * param.setSnapshotExpire(expireParam);
-     * }
-     * 
-     * return param;
-     * 
-     * }
-     */
 
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
         FilePolicyParam param = new FilePolicyParam();
@@ -285,18 +253,27 @@ public class SchedulePolicies extends ViprResourceController {
         }
         param.setPolicySchedule(scheduleParam);
 
-        FileSnapshotPolicyParam snapshotParam = new FileSnapshotPolicyParam();
-        FileSnapshotPolicyExpireParam snapExpireParam = new FileSnapshotPolicyExpireParam();
-        if (schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)) {
-            snapExpireParam.setExpireType(schedulePolicy.expireType);
-            snapExpireParam.setExpireValue(schedulePolicy.expireValue);
-            snapshotParam.setSnapshotExpireParams(snapExpireParam);
-            param.setSnapshotPolicyPrams(snapshotParam);
-        }
-        if ("NEVER".equals(schedulePolicy.expiration)) {
-            snapExpireParam.setExpireType("never");
-            snapshotParam.setSnapshotExpireParams(snapExpireParam);
-            param.setSnapshotPolicyPrams(snapshotParam);
+        if (schedulePolicy.policyType.equalsIgnoreCase("file_snapshot")) {
+            FileSnapshotPolicyParam snapshotParam = new FileSnapshotPolicyParam();
+            snapshotParam.setSnapshotNamePattern(schedulePolicy.snapshotNamePattern);
+            FileSnapshotPolicyExpireParam snapExpireParam = new FileSnapshotPolicyExpireParam();
+            if (schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)) {
+                snapExpireParam.setExpireType(schedulePolicy.expireType);
+                snapExpireParam.setExpireValue(schedulePolicy.expireValue);
+                snapshotParam.setSnapshotExpireParams(snapExpireParam);
+                param.setSnapshotPolicyPrams(snapshotParam);
+            }
+            if ("NEVER".equals(schedulePolicy.expiration)) {
+                snapExpireParam.setExpireType("never");
+                snapshotParam.setSnapshotExpireParams(snapExpireParam);
+                param.setSnapshotPolicyPrams(snapshotParam);
+            }
+        } else if (schedulePolicy.policyType.equalsIgnoreCase("file_replication")) {
+            FileReplicationPolicyParam replicationPolicyParams = new FileReplicationPolicyParam();
+            replicationPolicyParams.setReplicationCopyMode(schedulePolicy.replicationCopyType);
+            replicationPolicyParams.setReplicationType(schedulePolicy.replicationType);
+            param.setPriority(schedulePolicy.priority);
+            param.setReplicationPolicyParams(replicationPolicyParams);
         }
 
         return param;
@@ -343,6 +320,8 @@ public class SchedulePolicies extends ViprResourceController {
         // Day of the month
         public Long scheduleDayOfMonth;
 
+        public String snapshotNamePattern;
+
         // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;
 
@@ -359,53 +338,13 @@ public class SchedulePolicies extends ViprResourceController {
 
         public List<String> tenants;
 
-        /*
-         * public SchedulePolicyForm form(SchedulePolicyRestRep restRep) {
-         * 
-         * this.id = restRep.getPolicyId().toString();
-         * this.tenantId = restRep.getTenant().getId().toString();
-         * this.policyType = restRep.getPolicyType();
-         * this.policyName = restRep.getPolicyName();
-         * this.frequency = restRep.getScheduleFrequency();
-         * this.scheduleTime = restRep.getScheduleTime();
-         * 
-         * if (restRep.getScheduleDayOfMonth() != null) {
-         * this.scheduleDayOfMonth = restRep.getScheduleDayOfMonth().intValue();
-         * }
-         * 
-         * if (restRep.getScheduleDayOfWeek() != null) {
-         * this.scheduleDayOfWeek = restRep.getScheduleDayOfWeek();
-         * }
-         * 
-         * if (restRep.getSnapshotExpireType() != null) {
-         * this.expireType = restRep.getSnapshotExpireType();
-         * }
-         * 
-         * if (restRep.getSnapshotExpireTime() != null) {
-         * this.expireValue = restRep.getSnapshotExpireTime().intValue();
-         * }
-         * if (restRep.getScheduleRepeat() != null) {
-         * this.repeat = restRep.getScheduleRepeat().intValue();
-         * }
-         * String[] hoursMin = this.scheduleTime.split(":");
-         * if (hoursMin.length > 1) {
-         * this.scheduleHour = hoursMin[0];
-         * String[] minWithStrings = hoursMin[1].split(" ");
-         * if (minWithStrings.length > 0) {
-         * this.scheduleMin = minWithStrings[0];
-         * }
-         * 
-         * }
-         * if (this.expireType == null || "never".equals(this.expireType)) {
-         * this.expiration = "NEVER";
-         * }else{
-         * this.expiration = "EXPIRE_TIME";
-         * }
-         * 
-         * return this;
-         * 
-         * }
-         */
+        // Replication policy specific fields
+        // Replication type local / remote
+        public String replicationType;
+        // Replication copy type - sync / async / demi-sync
+        public String replicationCopyType;
+        // Replication policy priority low /high
+        public String priority;
 
         public SchedulePolicyForm form(FilePolicyRestRep restRep) {
 
@@ -451,6 +390,21 @@ public class SchedulePolicies extends ViprResourceController {
                 this.expiration = "NEVER";
             } else {
                 this.expiration = "EXPIRE_TIME";
+            }
+
+            if (restRep.getPriority() != null) {
+                this.priority = restRep.getPriority();
+            }
+
+            // Update replication fileds
+            if (restRep.getReplicationSettings() != null) {
+                ReplicationSettingsRestRep replSetting = restRep.getReplicationSettings();
+                if (replSetting.getMode() != null) {
+                    this.replicationCopyType = replSetting.getMode();
+                }
+                if (replSetting.getType() != null) {
+                    this.replicationType = replSetting.getType();
+                }
             }
 
             // Get the ACLs
@@ -499,10 +453,9 @@ public class SchedulePolicies extends ViprResourceController {
          * @param resources
          *            the resources on which to save the tenant ACLs.
          */
-        protected void saveTenantACLs(ACLResources resources) {
+        protected void saveTenantACLs(ACLResources resources, URI policyId) {
             // Only allow a user than can read all tenants and update ACLs do this
             if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
-                URI policyId = ResourceUtils.uri(id);
                 if (policyId != null) {
                     Set<String> tenantIds = Sets.newHashSet();
                     if (isTrue(enableTenants) && (tenants != null)) {

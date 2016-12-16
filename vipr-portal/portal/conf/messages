@@ -1334,6 +1334,16 @@ schedulePolicy.snapshotPattern=Snapshot Name Pattern
 schedulePolicy.group.accessControl=Access Control
 schedulePolicy.enableTenants=Grant Access to Tenants
 schedulePolicy.tenants=Tenants
+schedulePolicy.replicationType=Replication Type
+schedulePolicy.replicationCopyType=Copy Type
+schedulePolicy.priority=Priority
+schedulePolicy.replicationLocal=Local
+schedulePolicy.replicationRemote=Remote
+schedulePolicy.replicationAsync=Asynchronous
+schedulePolicy.replicationSemiSync=Semi Synchronous
+schedulePolicy.replicationSync=Synchronous
+schedulePolicy.priorityLow=Low
+schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
 
 assignPolicy.title=Policy Assignment

@@ -26,6 +26,9 @@ public class FilePolicyParam implements Serializable {
     // Description of the policy
     private String policyDescription;
 
+    // Priority of the policy
+    private String priority;
+
     // Policy schedule
     private FilePolicyScheduleParams policySchedule;
 
@@ -77,6 +80,20 @@ public class FilePolicyParam implements Serializable {
 
     public void setPolicyDescription(String policyDescription) {
         this.policyDescription = policyDescription;
+    }
+
+    /**
+     * Priority of the policy
+     * 
+     * @return
+     */
+    @XmlElement(required = true, name = "priority")
+    public String getPriority() {
+        return this.priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
     }
 
     @XmlElement(name = "policy_schedule")

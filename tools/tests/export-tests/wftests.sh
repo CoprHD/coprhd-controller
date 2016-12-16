@@ -2203,7 +2203,11 @@ test_4() {
     echot "Test 4 Begins"
     expname=${EXPORT_GROUP_NAME}t0
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
+                               failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
+                               failure_004:failure_020_Export_zoneRollback_before_delete \
+                               failure_004:failure_021_Export_zoneRollback_after_delete"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2212,23 +2216,16 @@ test_4() {
 
     if [ "${SS}" = "vnx" ]
     then
-        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID"
     fi
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
-                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
-                                    failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
-                                    failure_004:failure_020_Export_zoneRollback_before_delete \
-                                    failure_004:failure_021_Export_zoneRollback_after_delete"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
     if [ "${SS}" = "unity" ]; then
-      storage_failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
-                                  failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
-                                  failure_004:failure_020_Export_zoneRollback_before_delete \
-                                  failure_004:failure_021_Export_zoneRollback_after_delete"
+      storage_failure_injections=""
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2316,13 +2313,14 @@ test_5() {
 
     if [ "${SS}" = "vnx" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController \
+                                    failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_007 failure_008"
+    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2486,7 +2484,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_024"
+    failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
 
     for failure in ${failure_injections}
     do

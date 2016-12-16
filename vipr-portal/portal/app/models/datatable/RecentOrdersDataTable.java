@@ -44,18 +44,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
         this.maxAgeInDays = daysAgo;
     }
 
-    protected Date calculateStartTime() {
-        return this.getDateDaysAgo(maxAgeInDays);
-    }
-
-    protected Date now() {
-        return new Date();
-    }
-
     @Override
     public List<OrderInfo> fetchAll() {
-        Date startTime = calculateStartTime();
-        Date endTime = now();
+        Date startTime = super.getDateDaysAgo(maxAgeInDays);
+        Date endTime = super.now();
 
         List<OrderRestRep> orders = OrderUtils.findByTimeRange(startTime, endTime, tenantId);
         if (userInfo != null) {

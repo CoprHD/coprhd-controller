@@ -124,7 +124,7 @@ public class Orders extends OrderExecution {
         TenantSelector.addRenderArgs();
         addMaxDaysRenderArgs();
         flash.put("warning", "Totally 9700 orders are found in database, "
-                + "but only 6000 entries are loaded and displayed here for performance concern.");//for mockup
+                + "but only 6000 entries are loaded and displayed here for performance concern.");// for mockup
         render(dataTable);
     }
 
@@ -140,13 +140,17 @@ public class Orders extends OrderExecution {
         Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
-        dataTable.setStartDate(params.get("startDate"));
-        dataTable.setEndDate(params.get("endDate"));
-        if (params.get("startDate") != null && params.get("endDate") != null) { 
-            renderArgs.put("orderCount", dataTable.fetchCount());
+        String startDate = params.get("startDate");
+        String endDate = params.get("endDate");
+        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
+            dataTable.setStartDate(startDate);
+            dataTable.setEndDate(endDate);
+            renderArgs.put("orderCount",
+                    DataTablesSupport.toJson(dataTable.fetchCount()));
+            renderArgs.put("startDate", startDate);
+            renderArgs.put("endDate", endDate);
         }
-        renderArgs.put("startDate", params.get("startDate"));
-        renderArgs.put("endDate", params.get("endDate"));
+
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();
         render(dataTable);
@@ -156,8 +160,14 @@ public class Orders extends OrderExecution {
         Logger.info("hlj, start to call listJson()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
-        dataTable.setStartDate(params.get("startDate"));
-        dataTable.setEndDate(params.get("endDate"));
+        if (StringUtils.isNotEmpty(params.get("startDate"))
+                && StringUtils.isNotEmpty(params.get("endDate"))) {
+            dataTable.setStartDate(params.get("startDate"));
+            dataTable.setEndDate(params.get("endDate"));
+        } else {
+            dataTable.setStartAndEndDatesByMaxDays(params.get("maxDays", Integer.class));
+        }
+
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchAll(), params));
     }
 

@@ -90,6 +90,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
 
             long nDeleted = 0;
             long nFailed = 0;
+            long start = System.currentTimeMillis();
             for (URI tid : tids) {
                 AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(tid, startTime, endTime);
                 NamedElementQueryResultList ids = new NamedElementQueryResultList();
@@ -111,9 +112,13 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                     }
                 }
             }
+            long end = System.currentTimeMillis();
+            long speed = (end-start)/(nDeleted+nFailed);
 
             jobStatus.increaseCompleted(nDeleted);
             jobStatus.setFailed(nFailed);
+            jobStatus.setTimeUsedPerOrder(speed);
+
             orderService.saveJobInfo(OrderServiceJob.JobType.DELETE, jobStatus);
 
             if (!error) {

@@ -48,8 +48,7 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
                             "Delete of Consistency group %s failed. Since this is during rollback, cleaning up the BlockConsistencyGroup object - "
                             + "replicationGroupName [%s], keepRGName [%s], markInactive [%s] ", consistencyGroup.getLabel(),
                             replicationGroupName, keepRGName, markInactive));
-                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storageSystem, replicationGroupName, markInactive, dbClient);
-                    dbClient.updateObject(consistencyGroup);
+                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storageSystem, replicationGroupName, markInactive, dbClient);
                 }
 
                 switch (status) {
@@ -73,9 +72,10 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
                 recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(), eventType(status),
                         status, eventMessage(status, consistencyGroup));
             }
-            super.complete(dbClient, status, coded);
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupDelete {}, for task " + getOpId(), getId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

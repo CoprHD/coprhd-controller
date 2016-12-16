@@ -1,6 +1,8 @@
 package com.emc.storageos.api.service.impl.resource.remotereplication;
 
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,21 +10,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Task;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.api.service.impl.placement.RemoteReplicationScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -30,17 +44,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.api.service.impl.placement.RemoteReplicationScheduler;
-import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RemoteReplicationScheduler> {
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationBlockServiceApiImpl.class);
@@ -64,12 +67,19 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
 
         // Get target volumes from remote replication pairs
         List<URI> targetVolumeURIs = new ArrayList<>();
-        remoteReplicationPairs.stream().forEach(n -> targetVolumeURIs.add(n.getTargetElement().getURI()));
-
+        for (RemoteReplicationPair pair : remoteReplicationPairs) {
+            targetVolumeURIs.add(pair.getTargetElement().getURI());
+        }
+        //remoteReplicationPairs.forEach(p -> {
+        //    targetVolumeURIs.add(p.getTargetElement().getURI());
+        //});
         // Build block descriptors for source and target volumes
         List<VolumeDescriptor> sourceVolumeDescriptors = new ArrayList<>();
-        volumeURIs.stream().forEach(uri -> sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                systemURI, uri, null, null)));
+        for (URI uri : volumeURIs) {
+            sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, systemURI, uri, null, null));
+        }
+      //  volumeURIs.forEach(uri -> sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+       //         systemURI, uri, null, null)));
         _log.info("Source volume descriptors: \n \t\t {}", sourceVolumeDescriptors);
 
         // Target volumes may belong to different storage systems.
@@ -86,16 +96,24 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
 
         List<VolumeDescriptor> targetVolumeDescriptors = new ArrayList<>();
         for (URI sysURI : targetSystemToVolumeMap.keySet()) {
-            targetSystemToVolumeMap.get(sysURI).stream().forEach(uri -> targetVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                    sysURI, uri, null, null)));
+            List<URI> volURIs = targetSystemToVolumeMap.get(sysURI);
+            for (URI uri : volURIs) {
+                targetVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, systemURI, uri, null, null));
+            }
+       //    targetSystemToVolumeMap.get(sysURI).forEach(uri -> targetVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+       //           sysURI, uri, null, null)));
         }
         _log.info("Target volume descriptors: \n \t\t {}", targetVolumeDescriptors);
 
         // Build descriptors for source remote replication volumes
         List<VolumeDescriptor> sourceRRVolumeDescriptors = new ArrayList<>();
-        volumeURIs.stream().forEach(uri -> sourceRRVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
-                systemURI, uri, null, null)));
-        _log.info("Remote replication source volume descriptors: \n \t\t {}", sourceVolumeDescriptors);
+        for (URI uri : volumeURIs) {
+            sourceRRVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
+                   systemURI, uri, null, null));
+        }
+       // volumeURIs.forEach(uri -> sourceRRVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
+      //          systemURI, uri, null, null)));
+        _log.info("Remote replication source volume descriptors: \n \t\t {}", sourceRRVolumeDescriptors);
 
         List<VolumeDescriptor> result = new ArrayList<>(sourceVolumeDescriptors);
         result.addAll(targetVolumeDescriptors);
@@ -268,4 +286,38 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
+        URI objectURI = object.getId();
+        List<Class<? extends DataObject>> excludes = new ArrayList<>();
+        if (excludeTypes != null) {
+            excludes.addAll(excludeTypes);
+        }
+        excludes.add(Task.class);
+
+        if (object instanceof Volume) {
+            List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, objectURI, RemoteReplicationPair.class, "targetElement");
+            if (rrPairs != null && !rrPairs.isEmpty()) {
+                // target rr volume, do not allow delete by direct request
+                String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludes);
+                if (depMsg != null) {
+                    return depMsg;
+                }
+            }
+        }
+        // The dependency checker does not pick up dependencies on
+        // BlockSnapshotSession because the containment constraint
+        // use the base class BlockObject as the parent i.e., source
+        // for a BlockSnapshotSession could be a Volume or BlockSnapshot.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(objectURI));
+        if (!snapSessions.isEmpty()) {
+            return BlockSnapshotSession.class.getSimpleName();
+        }
+
+        return object.canBeDeleted();
+    }
 }

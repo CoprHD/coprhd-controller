@@ -1551,7 +1551,7 @@ class Bourne:
                             rrEntries.append(rr_params)
                         cos_protection_remote_replication_params = dict()
                         cos_protection_remote_replication_params['remote_replication_settings'] = rrEntries
-                        cos_protection_params['remote_replicication'] = cos_protection_remote_replication_params
+                        cos_protection_params['remote_replication'] = cos_protection_remote_replication_params
 
                 # remote replication end
 

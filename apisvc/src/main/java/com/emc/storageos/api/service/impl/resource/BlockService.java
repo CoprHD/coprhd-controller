@@ -41,6 +41,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
@@ -1249,6 +1250,14 @@ public class BlockService extends TaskResourceService {
 
         if (Volume.checkForSRDF(dbClient, volume.getId())) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        }
+
+        // check for remote replication target
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volume.getId(),
+                                                          RemoteReplicationPair.class, "targetElement");
+        if (rrPairs != null && !rrPairs.isEmpty()) {
+            // target rr volume
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         }
 
         // Otherwise the volume sent in is assigned to a virtual pool that tells us what block service to return

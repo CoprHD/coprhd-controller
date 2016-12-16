@@ -1966,6 +1966,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
              driverTargetVolume.setNativeId(systemTargetVolume.getNativeId());
              driverTargetVolume.setStorageSystemId(targetSystem.getNativeId());
 
+             if (systemPair.getNativeId() != null) {
+                 driverPair.setNativeId(systemPair.getNativeId());
+             }
              driverPair.setSourceVolume(driverSourceVolume);
              driverPair.setTargetVolume(driverTargetVolume);
 

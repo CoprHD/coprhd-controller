@@ -186,7 +186,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
         String stepId = workflow.createStep(null,
                 String.format("Creating remote replication links for source-target pairs: %s", getVolumePairs(sourceURIs, targetURIs)),
-                waitFor, null,   // volume.getStorageController(): pairs are not storage system objects, passing null
+                waitFor, volume.getStorageController(), //  pairs are not storage system objects, but passing null is not working
                 system.getSystemType(),
                 this.getClass(),
                 createRemoteReplicationLinksMethod(system.getSystemType(), sourceDescriptors, targetDescriptors),
@@ -207,7 +207,10 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         // Get rr pairs for the source volumes
         List<URI> volumeURIs = new ArrayList<>();
-        volumeDescriptors.stream().forEach(n->volumeURIs.add(n.getVolumeURI()));
+        for (VolumeDescriptor descriptor : volumeDescriptors) {
+            volumeURIs.add(descriptor.getVolumeURI());
+        }
+        //volumeDescriptors.forEach(n->volumeURIs.add(n.getVolumeURI()));
 
         List<RemoteReplicationPair> remoteReplicationPairs = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
@@ -217,7 +220,10 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         _log.info("Remote replication pairs to delete: {}", remoteReplicationPairs);
         List<URI> pairURIs = new ArrayList<>();
-        remoteReplicationPairs.stream().forEach(p -> pairURIs.add(p.getId()));
+        for (RemoteReplicationPair pair : remoteReplicationPairs) {
+            pairURIs.add(pair.getId());
+        }
+        //remoteReplicationPairs.forEach(p -> pairURIs.add(p.getId()));
         // all volumes belong to the same device type
         VolumeDescriptor descriptor = sourceDescriptors.get(0);
         Volume volume = dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
@@ -226,7 +232,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         // For remote pairs storage system URI is not important. Should we pass null instead of system URI?
         String stepId = workflow.createStep(null,
                 String.format("Deleting remote replication links for source-target pairs: %s", remoteReplicationPairs),
-                waitFor, null,  // pairs span two systems, passing null
+                waitFor, system.getId(),  // pairs span two systems, however passing null results in NPE  in dispatcher
                 system.getSystemType(),
                 this.getClass(),
                 deleteRemoteReplicationLinksMethod(pairURIs),
@@ -327,8 +333,14 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         List<URI> targetVolumes = new ArrayList<>();
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            sourceDescriptors.stream().forEach(n -> sourceVolumes.add(n.getVolumeURI()));
-            targetDescriptors.stream().forEach(n -> targetVolumes.add(n.getVolumeURI()));
+            //sourceDescriptors.forEach(n -> sourceVolumes.add(n.getVolumeURI()));
+            for (VolumeDescriptor descriptor : sourceDescriptors) {
+                sourceVolumes.add(descriptor.getVolumeURI());
+            }
+            //targetDescriptors.stream().forEach(n -> targetVolumes.add(n.getVolumeURI()));
+            for (VolumeDescriptor descriptor : targetDescriptors) {
+                targetVolumes.add(descriptor.getVolumeURI());
+            }
             //List<URI> sourceVolumes = sourceDescriptors.stream().map(descriptor -> descriptor.getVolumeURI()).collect(Collectors.toList());
             //List<URI> targetVolumes = targetDescriptors.stream().map(descriptor -> descriptor.getVolumeURI()).collect(Collectors.toList());
 
@@ -337,10 +349,17 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
                     Joiner.on(',').join(targetVolumes));
             _log.info(logMsg);
 
-            List<URI> targetVolumeURIs = targetDescriptors.stream().map(descriptor -> descriptor.getVolumeURI()).collect(Collectors.toList());
+            List<URI> targetVolumeURIs = new ArrayList<>();
+            for (VolumeDescriptor descriptor : targetDescriptors) {
+                targetVolumeURIs.add(descriptor.getVolumeURI());
+            }
+            //List<URI> targetVolumeURIs = targetDescriptors.stream().map(VolumeDescriptor::getVolumeURI).collect(Collectors.toList());
             List<RemoteReplicationPair> pairs = prepareRemoteReplicationPairs(sourceDescriptors, targetVolumeURIs);
             List<URI> pairsURIs = new ArrayList<>();
-            pairs.stream().forEach(n->pairsURIs.add(n.getId()));
+            //pairs.forEach(n -> pairsURIs.add(n.getId()));
+            for (RemoteReplicationPair pair : pairs) {
+                pairsURIs.add(pair.getId());
+            }
             deleteReplicationPairs(pairsURIs, opId);
             logMsg = String.format(
                     "rollbackCreateRemoteReplicationLinks end - System type :%s, Source volumes: %s, Target volumes: %s", systemType, Joiner.on(',').join(sourceVolumes),

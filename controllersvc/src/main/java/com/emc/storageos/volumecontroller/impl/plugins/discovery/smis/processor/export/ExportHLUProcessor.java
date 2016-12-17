@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +30,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 
 public class ExportHLUProcessor extends StorageProcessor {
     private Logger logger = LoggerFactory.getLogger(ExportHLUProcessor.class);
@@ -73,7 +73,9 @@ public class ExportHLUProcessor extends StorageProcessor {
             }
 
         } catch (Exception e) {
-            logger.error("Extracting HLU for exported Volumes failed", e);
+            String errMsg = "Extracting HLU for exported Volumes failed: " + e.getMessage();
+            logger.error(errMsg, e);
+            throw SmisException.exceptions.hluRetrievalFailed(errMsg, e);
         } finally {
             if (null != protocolControllerForUnitInstances) {
                 protocolControllerForUnitInstances.close();
@@ -99,29 +101,24 @@ public class ExportHLUProcessor extends StorageProcessor {
             UnManagedExportMask uem, Map<String, StringSet> volumeToExportMasksHLUMap) {
         while (protocolControllerForUnitInstances.hasNext()) {
             CIMInstance protocolControllerForUnitInstance = protocolControllerForUnitInstances.next();
-            try {
-                String deviceNumber = protocolControllerForUnitInstance
-                        .getPropertyValue(SmisConstants.CP_DEVICE_NUMBER).toString();
-                Integer hlu = Integer.parseInt(deviceNumber, 16);
+            String deviceNumber = protocolControllerForUnitInstance
+                    .getPropertyValue(SmisConstants.CP_DEVICE_NUMBER).toString();
+            Integer hlu = Integer.parseInt(deviceNumber, 16);
 
-                String volume = protocolControllerForUnitInstance.getPropertyValue(SmisConstants.CP_DEPENDENT).toString();
-                CIMObjectPath volumePath = new CIMObjectPath(volume);
-                logger.debug("Volume path: {}", volumePath.toString());
+            String volume = protocolControllerForUnitInstance.getPropertyValue(SmisConstants.CP_DEPENDENT).toString();
+            CIMObjectPath volumePath = new CIMObjectPath(volume);
+            logger.debug("Volume path: {}", volumePath.toString());
 
-                // Check if unmanaged volume exists in DB
-                String nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
-                String hluEntry = uem.getMaskName() + "=" + hlu.toString();
-                logger.info("HLU {} found for Unmanaged volume {}", hlu, nativeGuid);
-                StringSet volumeHLUs = volumeToExportMasksHLUMap.get(nativeGuid);
-                if (volumeHLUs == null) {
-                    volumeHLUs = new StringSet();
-                    volumeToExportMasksHLUMap.put(nativeGuid, volumeHLUs);
-                }
-                volumeHLUs.add(hluEntry);
-            } catch (Exception e) {
-                logger.warn("Exception occurred while processing ProtocolControllerForUnit {}",
-                        protocolControllerForUnitInstance.getObjectPath().toString());
+            // Check if unmanaged volume exists in DB
+            String nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
+            String hluEntry = uem.getMaskName() + "=" + hlu.toString();
+            logger.info("HLU {} found for Unmanaged volume {}", hlu, nativeGuid);
+            StringSet volumeHLUs = volumeToExportMasksHLUMap.get(nativeGuid);
+            if (volumeHLUs == null) {
+                volumeHLUs = new StringSet();
+                volumeToExportMasksHLUMap.put(nativeGuid, volumeHLUs);
             }
+            volumeHLUs.add(hluEntry);
         }
     }
 

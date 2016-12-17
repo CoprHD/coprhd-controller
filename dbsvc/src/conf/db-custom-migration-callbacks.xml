@@ -141,6 +141,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeBackingReplicationGroupInstanceMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.ExportMaskExistingInitiatorsMigration"/>
             </list>
         </entry>
     </util:map>

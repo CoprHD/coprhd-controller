@@ -512,4 +512,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException removeVolumesValidationError(String volumeNames, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
 }

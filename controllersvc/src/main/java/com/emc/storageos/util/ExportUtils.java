@@ -2017,4 +2017,74 @@ public class ExportUtils {
         }
     }
 
+    /**
+     * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.
+     * 
+     * @param dbClient a reference to the database client
+     * @param exportMaskToRemovedVolumeMap a map of ExportMask URI to Volume URIs to be removed
+     * @param exportGroupId the parent ExportGroup URI (used to determine "other" ExportGroups)
+     */
+    public static void handleExportMaskVolumeRemoval(DbClient dbClient, Map<URI, List<URI>> exportMaskToRemovedVolumeMap, URI exportGroupUri) {
+        if (null != exportMaskToRemovedVolumeMap) {
+
+            Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
+
+            for (Entry<URI, List<URI>> entry : exportMaskToRemovedVolumeMap.entrySet()) {
+                List<URI> volumeURIList = entry.getValue();
+                for (URI boURI : volumeURIList) {
+                    if (!blockObjectCache.containsKey(boURI)) {
+                        BlockObject blockObject = Volume.fetchExportMaskBlockObject(dbClient, boURI);
+                        blockObjectCache.put(blockObject.getId(), blockObject);
+                    }
+                }
+                ExportMask exportMask = dbClient.queryObject(ExportMask.class, entry.getKey());
+
+                if (null != exportMask && !exportMask.getInactive()) {
+                    // Remove the volumes from the Export Mask.
+                    exportMask.removeVolumes(volumeURIList);
+                    for (URI volumeURI : volumeURIList) {
+                        BlockObject blockObject = blockObjectCache.get(volumeURI);
+                        if (blockObject != null) {
+                            if (blockObject.getWWN() != null) {
+                                exportMask.removeFromUserCreatedVolumes(blockObject);
+                            } else {
+                                _log.warn("Could not remove volume " + blockObject.getId() + " from export mask " + exportMask.getLabel() +
+                                        " because it does not have a WWN.  Assumed not in mask, likely part of a rollback operation");
+                            }
+                        }
+                    }
+
+                    // if the ExportMask no longer has any user added volumes,
+                    // remove it from any other ExportGroups it's associated with
+                    // besides the exportGroupUri argument given to this method,
+                    // and mark the ExportMask for deletion.  the caller should
+                    // do the work of removing the ExportMask from the ExportGroup
+                    // it's working on because it likely has other operations that
+                    // need to be saved as well to the ExportGroup.
+                    if (!exportMask.hasAnyUserAddedVolumes()) {
+                        _log.info("updating ExportGroups containing this ExportMask");
+                        List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
+                        for (ExportGroup eg : exportGroups) {
+                            // only update ExportGroups besides the exportGroupUri argument --
+                            // The reason being that the caller (the completer class) has an 
+                            // ExportGroup object loaded from the database for that URI already, 
+                            // and has already called removeExportMask. We don't want to update 
+                            // it here and then save it again at the end of the complete method.
+                            if (!eg.getId().equals(exportGroupUri)) {
+                                _log.info("Removing mask from ExportGroup " + eg.getGeneratedName());
+                                eg.removeExportMask(exportMask.getId());
+                                dbClient.updateObject(eg);
+                            }
+                        }
+                        _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
+                        dbClient.markForDeletion(exportMask);
+                    }
+
+                    dbClient.updateObject(exportMask);
+                }
+            }
+        }
+    }
+
+    
 }

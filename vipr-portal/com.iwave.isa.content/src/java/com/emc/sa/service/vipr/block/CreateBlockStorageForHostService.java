@@ -43,6 +43,7 @@ public class CreateBlockStorageForHostService extends ViPRService {
         for (CreateBlockVolumeForHostHelper helper : createBlockVolumeHelpers) {
             helper.precheck();
         }
+        BlockStorageUtils.checkVolumeLimit(getClient(), hostVolumeParams.project);
     }
 
     @Override

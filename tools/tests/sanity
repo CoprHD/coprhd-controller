@@ -581,6 +581,10 @@ ssleep() {
     sleep $1
 }
 
+set_validation_check() {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop validation_check $1
+}
+
 srdf_ssh(){
     SRDF_SSH_ERROR=0
     SRDF_SSH_RESULT=""
@@ -1688,6 +1692,21 @@ xtremio_blockconsistencygroup_snapshot_tests()
     run volume delete $PROJECT/volume-${cg_name}   
 }
 
+VERIFY_EXPORT_COUNT=0
+VERIFY_EXPORT_FAIL_COUNT=0
+verify_export() {
+    # Parameters: Initiator group Name, Number of Initiators, Number of Luns, HLU
+    # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
+    IG_name=$1
+    masking_view_name=${IG_name}.lss.emc.com
+    run ${BASEDIR}/\export-tests/xiohelper.sh verify_export $masking_view_name $2 $3 $4
+    if [ $? -ne "0" ]; then
+       echo There was a failure
+       VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+    fi
+    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
 xtremio_block_tests()
 {
     export_name=$XTREMIOEXPORT_GROUP
@@ -1701,11 +1720,15 @@ xtremio_block_tests()
 
     run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${XTREMIOVOL}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run blocksnapshot create $PROJECT/${v1} ${snap1_label}
     run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
 
     xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
+    xtremio_export_test_hlu
 
     run blocksnapshot restore $snap2
     run volume bulkget
@@ -1714,6 +1737,11 @@ xtremio_block_tests()
     run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
+    run volume delete $PROJECT/${XTREMIOVOL}3 --wait
+    run volume delete $PROJECT/${XTREMIOVOL}4 --wait
+    run volume delete $PROJECT/${XTREMIOVOL}5 --wait
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 
@@ -1758,7 +1786,132 @@ xtremio_export_test()
     run export_group delete $exp
 }
 
+xtremio_export_test_hlu() {
+	xtremio_export_test_hlu1
+	xtremio_export_test_hlu2
+}
 
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Export a new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU.
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+xtremio_export_test_hlu1()
+{
+    expname=${XTREMIOEXPORT_GROUP}
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
+	volname=${XTREMIOVOL}
+	
+	echo "XTREMIO Consistent HLU Test1"
+	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
+	verify_export ${HOST1} 4 1 0
+	verify_export ${HOST2} 4 1 0
+	
+	run export_group create $proj ${expname}2 $NH --type Host --volspec "${proj}/${volname}"2 --hosts "${HOST1}"
+	verify_export ${HOST1} 4 2 0,1
+	verify_export ${HOST2} 4 1 0
+	
+	run export_group update $proj/${expname}1 --addVolspec "${proj}/${volname}"3
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 2 0,2
+	
+	run export_group create $proj ${expname}3 $NH --type Host --volspec "${proj}/${volname}"4 --hosts "${HOST2}"
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 3 0,1,2
+	
+	run export_group delete $proj/${expname}2
+	verify_export ${HOST1} 4 2 0,2
+    verify_export ${HOST2} 4 3 0,1,2
+	
+	run export_group update $proj/${expname}1 --remHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 0,2
+    verify_export ${HOST2} 4 1 1
+
+    run export_group update $proj/${expname}1 --addVols "${proj}/${volname}"5
+    verify_export ${HOST1} 4 3 0,2,3
+    verify_export ${HOST2} 4 1 1
+
+    run export_group update $proj/${expname}1 --remVols "${proj}/${volname}"1
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 1 1
+
+	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 3 1,2,3
+
+    run export_group delete $proj/${expname}3
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 2 2,3
+
+    run export_group delete $proj/${expname}1
+}
+
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-2: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-3: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Export a new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU.
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+xtremio_export_test_hlu2()
+{
+	HOST1=$hostbase${tenant}11
+	HOST2=$hostbase${tenant}12
+	expname=${XTREMIOEXPORT_GROUP}
+	volname=${XTREMIOVOL}
+	cluster=sanityCluster1
+	echo "XTREMIO Consistent HLU Test2"
+	
+	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
+	verify_export ${HOST1} 4 1 0
+	
+	run export_group create $proj ${expname}2 $NH --type Cluster --volspec "${proj}/${volname}"2 --cluster ${tenant}/${cluster}
+	verify_export ${HOST1} 4 2 0,1
+	verify_export ${HOST2} 4 1 1
+	
+	run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"3
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 2 1,2
+	
+	run export_group create $proj ${expname}3 $NH --type Host --volspec "${proj}/${volname}"4 --hosts "${HOST2}"
+	verify_export ${HOST2} 4 3 0,1,2
+	
+	run export_group delete $proj/${expname}1
+	verify_export ${HOST1} 4 2 1,2
+	verify_export ${HOST2} 4 3 0,1,2
+	
+	run export_group update $proj/${expname}2 --remHosts "${HOST2}"
+	verify_export ${HOST1} 4 2 1,2
+	verify_export ${HOST2} 4 1 0
+    
+    run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"5
+    verify_export ${HOST1} 4 3 1,2,3
+    verify_export ${HOST2} 4 1 0
+
+    run export_group update $proj/${expname}2 --remVols "${proj}/${volname}"2
+    verify_export ${HOST1} 4 2 2,3
+
+	run export_group update $proj/${expname}2 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 3 0,2,3
+
+    run export_group delete $proj/${expname}3
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 2 2,3
+
+    run export_group delete $proj/${expname}2
+}
 #
 # SRDF
 #
@@ -2848,7 +3001,11 @@ vplex_tests()
         run blockmirror deactivate $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 
         echo "**** Deleting VPLEX exports"
+        # this is likely a shared export group, so we need to turn validation_check flag off
+        # so that the volumes added by sanity will be removed without a validation exception thrown.
+        set_validation_check false
         run export_group delete $PROJECT/$hname-1$host
+        set_validation_check true
         # run export_group delete $PROJECT/$hname-2$host
 
         echo "**** Deleting VPLEX volumes"

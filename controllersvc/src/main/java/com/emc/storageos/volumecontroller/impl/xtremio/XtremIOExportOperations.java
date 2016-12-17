@@ -71,7 +71,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
 
     // Max HLU number allowed on array. TODO Find it out
-    private static final int MAX_HLU = 512;
+    // XtremIO 4.0 Maximum limits: Number of Volumes mappings per Initiator Group = 2048
+    private static final int MAX_HLU = 2048;
 
     private ValidatorFactory validator;
 

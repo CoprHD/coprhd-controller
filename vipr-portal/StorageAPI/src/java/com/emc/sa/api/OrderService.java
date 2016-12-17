@@ -107,6 +107,8 @@ public class OrderService extends CatalogTaggedResourceService {
     private static Charset UTF_8 = Charset.forName("UTF-8");
 
     private static String ORDER_SERVICE_QUEUE_NAME="OrderService";
+    private static long INDEX_GC_GRACE_PERIOD=432000*1000;
+    private static long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -215,12 +217,12 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * List data for the specified orders.
-     * 
+     *
      * @param param POST data containing the id list.
      * @prereq none
      * @brief List data of specified orders
      * @return list of representations.
-     * 
+     *
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
@@ -272,7 +274,7 @@ public class OrderService extends CatalogTaggedResourceService {
      * parameter: 'orderStatus' The status for the order
      * parameter: 'startTime' Start time to search for orders
      * parameter: 'endTime' End time to search for orders
-     * 
+     *
      * @return Return a list of matching orders or an empty list if no match was found.
      */
     @Override
@@ -471,7 +473,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the order logs
-     * 
+     *
      * @param orderId the URN of an order
      * @brief List Order Logs
      * @return a list of order logs
@@ -495,7 +497,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the order execution
-     * 
+     *
      * @param orderId the URN of an order
      * @brief Get Order Execution
      * @return an order execution
@@ -517,7 +519,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the order execution logs
-     * 
+     *
      * @param orderId the URN of an order
      * @brief Get Order Execution Logs
      * @return order execution logs
@@ -906,6 +908,7 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+
         List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
 
         saveJobInfo(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
@@ -940,13 +943,35 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     private boolean isJobRunning(OrderServiceJob.JobType type) {
-        //TODO
-        return false;
+        OrderJobStatus jobStatus = queryJobInfo(OrderServiceJob.JobType.DELETE);
+
+        if (jobStatus == null ) {
+            return false; // no job running
+        }
+
+        long now = System.currentTimeMillis();
+        Map<Long, Long> completedMap = jobStatus.getCompleted();
+
+        long deletedOrdersInCurrentPeriod = 0;
+        for (Map.Entry<Long, Long> entry : completedMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
+                continue; // have been recycled by Cassandra
+            }
+            deletedOrdersInCurrentPeriod +=entry.getValue();
+        }
+
+        if (deletedOrdersInCurrentPeriod > MAX_DELETED_ORDERS_PER_GC_PERIOD) {
+            // There are already max number of orders deleted within the current GC
+            return true;
+        }
+
+        return !jobStatus.isFinished();
     }
 
     /**
      * Deactivates the order
-     * 
+     *
      * @param id the URN of an catalog order to be deactivated
      * @brief Deactivate Order
      * @return OK if deactivation completed successfully

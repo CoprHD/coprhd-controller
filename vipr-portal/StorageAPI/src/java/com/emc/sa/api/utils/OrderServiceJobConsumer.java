@@ -112,16 +112,18 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                     }
                 }
             }
+
+            jobStatus.addCompleted(nDeleted);
+            jobStatus.setFailed(nFailed);
+
             long end = System.currentTimeMillis();
             long speed = (end-start)/(nDeleted+nFailed);
 
-            jobStatus.increaseCompleted(nDeleted);
-            jobStatus.setFailed(nFailed);
             jobStatus.setTimeUsedPerOrder(speed);
 
             orderService.saveJobInfo(OrderServiceJob.JobType.DELETE, jobStatus);
 
-            if (!error) {
+            if (jobStatus.isFinished()) {
                 log.info("lbyh9: remove order job from the queue");
                 callback.itemProcessed();
             }

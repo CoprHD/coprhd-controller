@@ -16,24 +16,29 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.TreeMap;
 
 public class OrderJobStatus implements CoordinatorSerializable {
     private static final Logger log = LoggerFactory.getLogger(OrderJobStatus.class);
 
     private static final ObjectMapper mapper = new ObjectMapper().enableDefaultTyping();
 
-    private long startTime;
-    private long endTime;
+    private long startTime = -1;
+    private long endTime = -1;
     private List<URI> tids;
 
+    // Total number orders to be deleted in this job
     private long total = -1;
-    private long nCompleted =0; // Number of Orders has been deleted or downloaded so far
+
+    // key=timestamp when this round of deleting happens
+    // value = number of orders deleted in this round
+    private TreeMap<Long, Long> completedMap = new TreeMap<>();
+
     private long nFailed = 0;  // Number of Orders failed to be deleted or downloaded so far
     private long timeUsedPerOrder = -1;  //The time used to delete or download an order
 
     // used to deserialize from ZK
     public OrderJobStatus() {
-
     }
 
     public OrderJobStatus(long startTime, long endTime, List<URI> tids) {
@@ -66,12 +71,23 @@ public class OrderJobStatus implements CoordinatorSerializable {
         this.total = total;
     }
 
-    public long getnCompleted() {
-        return nCompleted;
+    public TreeMap<Long, Long> getCompleted() {
+        return completedMap;
     }
 
-    public void increaseCompleted(long inc) {
-        nCompleted += inc;
+    public void addCompleted(long n) {
+        long now = System.currentTimeMillis();
+        completedMap.put(now, n);
+    }
+
+    @JsonIgnore
+    public boolean isFinished() {
+        long nCompleted = 0;
+        for (long n : completedMap.values()) {
+            nCompleted += n;
+        }
+
+        return (nCompleted + nFailed) == total;
     }
 
     public long getFailed() {

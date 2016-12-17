@@ -43,8 +43,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -87,6 +85,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -104,6 +103,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+
+import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -192,6 +193,8 @@ public class SmisCommandHelper implements SmisConstants {
                 }
             }
         }
+
+        InvokeTestFailure.internalOnlyInvokeSmisTestFailure(methodName, InvokeTestFailure.ARTIFICIAL_FAILURE_015);
         _log.info(inputInfoBuffer.toString());
         long start = System.nanoTime();
         Object obj = client.invokeMethod(objectPath, methodName, inArgs, outArgs);
@@ -336,10 +339,11 @@ public class SmisCommandHelper implements SmisConstants {
         }
         JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this);
         long startTime = System.currentTimeMillis();
+        int sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(SYNC_WRAPPER_TIME_OUT);
         while (true) {
             JobPollResult result = job.poll(jobContext, SYNC_WRAPPER_WAIT);
             if (!result.isJobInTerminalState()) {
-                if (System.currentTimeMillis() - startTime > SYNC_WRAPPER_TIME_OUT) {
+                if (System.currentTimeMillis() - startTime > sync_wrapper_time_out) {
                     throw new SmisException(
                             "Timed out waiting on smis job to complete after " +
                                     (System.currentTimeMillis() - startTime) + " milliseconds");
@@ -6828,8 +6832,9 @@ public class SmisCommandHelper implements SmisConstants {
      *            [in] - Locking service to protect access across
      * @param parkingSLOStorageGroups
      *            [in] - Set of SE_DeviceMaskingGroup CIMInstance objects
+     * @throws Exception if there is a issue in deleting ParikingSLOStorageGroup
      */
-    public void deleteParkingSLOStorageGroupsIfEmpty(StorageSystem storage, Set<CIMInstance> parkingSLOStorageGroups) {
+    public void deleteParkingSLOStorageGroupsIfEmpty(StorageSystem storage, Set<CIMInstance> parkingSLOStorageGroups) throws Exception {
         String currentHeldLockName = null;
         CloseableIterator<CIMObjectPath> volumeIterator = null;
         try {
@@ -6862,6 +6867,7 @@ public class SmisCommandHelper implements SmisConstants {
             callRefreshSystem(storage, null);
         } catch (Exception e) {
             _log.error("An exception while processing deleteParkingSLOStorageGroupsIfEmpty", e);
+            throw e;
         } finally {
             // Cleanup any iterator that may have been open but not yet closed
             if (volumeIterator != null) {

@@ -308,7 +308,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 "");
                     }
                     if (isExported) {
-                        Map<String,Integer> igHLUMap = new HashMap<String, Integer>();
+                        Map<String, Integer> igHLUMap = new HashMap<String, Integer>();
                         for (List<Object> lunMapEntries : volume.getLunMaps()) {
                             Double hlu = (Double) lunMapEntries.get(2);
                             log.info("Found HLU {}", hlu);

@@ -467,7 +467,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * @param xtremIOClient
      * @param dbClient
      * @param partitionManager
-     * @param igHLUMap TODO
+     * @param volumeIGHLUMap
      * @throws Exception
      */
     private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap,

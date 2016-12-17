@@ -1572,9 +1572,13 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
     });   
     
     $scope.$watch('rangeEndDate', function (newVal, oldVal) {
-    	//TODO: check the end date should be not later than today
     	if(oldVal === undefined) return;
     	console.info("vals "+newVal+"\t|"+oldVal);
+    	if(newVal < $scope.rangeStartDate) {
+    		alert("The End Date must be not earlier than the Start Date, please re-select.");
+    		return;
+    	}
+    	
         var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
         			"&endDate="+encodeURIComponent($scope.rangeEndDate);
         //TODO: should disabled when go to new url

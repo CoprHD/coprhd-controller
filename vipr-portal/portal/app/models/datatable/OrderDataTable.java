@@ -35,11 +35,11 @@ public class OrderDataTable extends DataTable {
     protected Date startDate; //"yyyy-MM-dd 00:00:00" in local time zone
     protected Date endDate;   //"yyyy-MM-dd 23:59:59" in local time zone
 
-    private void setStartDate(Date startDate) {
+    private void setStartDate(Date startDate) {//set to "yyyy-MM-dd 00:00:00"
         this.startDate = getStartTimeOfADay(startDate);
     }
 
-    private void setEndDate(Date endDate) {
+    private void setEndDate(Date endDate) {//set to "yyyy-MM-dd 23:59:59"
         this.endDate = getEndTimeOfADay(endDate);
     }
 

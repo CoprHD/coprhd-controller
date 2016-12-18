@@ -97,7 +97,8 @@ public class Orders extends OrderExecution {
     private static void addMaxDaysRenderArgs() {
         Integer maxDays = params.get("maxDays", Integer.class);
         if (maxDays == null) {
-            if (params.get("startDate") != null && params.get("endDate") != null) {
+            if (StringUtils.isNotEmpty(params.get("startDate"))
+                    && StringUtils.isNotEmpty(params.get("endDate"))) {
                 maxDays = 0;
             } else {
                 maxDays = 1;
@@ -122,9 +123,20 @@ public class Orders extends OrderExecution {
     public static void allOrders() {
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
+
+        String startDate = params.get("startDate");
+        String endDate = params.get("endDate");
+        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
+            dataTable.setStartDate(startDate);
+            dataTable.setEndDate(endDate);
+            renderArgs.put("orderCount",
+                    DataTablesSupport.toJson(dataTable.fetchCount()));
+            renderArgs.put("startDate", startDate);
+            renderArgs.put("endDate", endDate);
+        }
         addMaxDaysRenderArgs();
-        flash.put("warning", "Totally 9700 orders are found in database, "
-                + "but only 6000 entries are loaded and displayed here for performance concern.");// for mockup
+        /*flash.put("warning", "Totally 9700 orders are found in database, "
+                + "but only 6000 entries are loaded and displayed here for performance concern.");// for mockup*/
         render(dataTable);
     }
 
@@ -132,11 +144,18 @@ public class Orders extends OrderExecution {
     public static void allOrdersJson(Integer maxDays) {
         DataTableParams dataTableParams = DataTablesSupport.createParams(params);
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
-        dataTable.setMaxAgeInDays(maxDays != null ? Math.max(maxDays, 1) : 1);
+        if (StringUtils.isNotEmpty(params.get("startDate"))
+                && StringUtils.isNotEmpty(params.get("endDate"))) {
+            dataTable.setStartDate(params.get("startDate"));
+            dataTable.setEndDate(params.get("endDate"));
+        } else {
+            dataTable.setStartAndEndDatesByMaxDays(maxDays != null ? Math.max(maxDays, 1) : 1);
+        }
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchData(dataTableParams), params));
     }
 
     public static void list() {
+        //TODO should handle the case more than 6K
         Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());

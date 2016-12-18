@@ -4,7 +4,6 @@
  */
 package models.datatable;
 
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -46,15 +45,16 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     @Override
     public List<OrderInfo> fetchAll() {
-        Date startTime = super.getDateDaysAgo(maxAgeInDays);
-        Date endTime = super.now();
-
-        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startTime, endTime, tenantId);
-        if (userInfo != null) {
-            filterByUserId(orders);
+        if (startDate == null && endDate == null) {
+            super.setStartAndEndDatesByMaxDays(maxAgeInDays);
         }
-        else {
-            filterByTenant(orders);
+
+        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId);
+        if (userInfo != null) {// used for DashboardOrdersDataTable
+            filterByUserId(orders);
+        } else {
+            // no need to filter by tenant, because already find by tenantId
+            // filterByTenant(orders);
         }
         return convert(orders);
     }

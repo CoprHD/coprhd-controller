@@ -289,4 +289,9 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         }
         return result;
     }
+
+    @Override
+    public String forDisplay() {
+        return this.toString();
+    }
 }

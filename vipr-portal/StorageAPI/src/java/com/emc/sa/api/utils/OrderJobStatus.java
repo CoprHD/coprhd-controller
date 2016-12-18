@@ -8,6 +8,7 @@ import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
+import com.emc.vipr.model.catalog.OrderJobInfo;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -81,13 +83,18 @@ public class OrderJobStatus implements CoordinatorSerializable {
     }
 
     @JsonIgnore
-    public boolean isFinished() {
+    private long getCompletedNumber() {
         long nCompleted = 0;
         for (long n : completedMap.values()) {
             nCompleted += n;
         }
 
-        return (nCompleted + nFailed) == total;
+        return nCompleted;
+    }
+
+    @JsonIgnore
+    public boolean isFinished() {
+        return (getCompletedNumber() + nFailed) == total;
     }
 
     public long getFailed() {
@@ -106,6 +113,10 @@ public class OrderJobStatus implements CoordinatorSerializable {
         this.timeUsedPerOrder = timeUsedPerOrder;
     }
 
+    public List<URI> getTids() {
+        return tids;
+    }
+
     @Override
     public String encodeAsString() {
         return toString();
@@ -114,6 +125,7 @@ public class OrderJobStatus implements CoordinatorSerializable {
     @Override
     public OrderJobStatus decodeFromString(String infoStr) throws FatalCoordinatorException {
         try {
+            log.info("lbyt1: str={}", infoStr);
             mapper.readerForUpdating(this).readValue(infoStr);
             return this;
         } catch (IOException e) {
@@ -125,16 +137,33 @@ public class OrderJobStatus implements CoordinatorSerializable {
     @Override
     public String toString() {
         try {
-            return mapper.writeValueAsString(this);
+            String str = mapper.writeValueAsString(this);
+            log.info("lbyt: str={}", str);
+            return str;
         } catch (IOException e) {
             log.error("Failed to serialize this object", e);
-            return null;
         }
+        return null;
     }
 
     @Override
     @JsonIgnore
     public CoordinatorClassInfo getCoordinatorClassInfo() {
         return null;
+    }
+
+    @JsonIgnore
+    public OrderJobInfo toOrderJobInfo() {
+        OrderJobInfo info = new OrderJobInfo();
+
+        info.setTotal(total);
+        info.setStartTime(startTime);
+        info.setEndTime(endTime);
+        info.setCompleted(getCompletedNumber());
+        info.setFailed(getFailed());
+        info.setTimeUsedPerOrder(timeUsedPerOrder);
+        info.setTids(Collections.unmodifiableList(tids));
+
+        return info;
     }
 }

@@ -867,6 +867,32 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      *
+     * @brief Query status of deleting/downloading orders
+     * @param typeStr the type of the job which can be 'DELETE' or 'DOWNLOAD'
+     * @return job status
+     */
+    @GET
+    @Path("/job-status")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public OrderJobInfo getJobStatus(@DefaultValue("DELETE") @QueryParam(SearchConstants.JOB_TYPE) String typeStr) {
+
+        log.info("lbyc0:type={}", typeStr);
+
+        OrderServiceJob.JobType type;
+        try {
+            type = OrderServiceJob.JobType.valueOf(typeStr);
+        }catch(Exception e) {
+            log.error("Failed to get job type e=", e);
+            throw APIException.badRequests.invalidParameter(SearchConstants.JOB_TYPE, typeStr, e);
+        }
+
+        OrderJobStatus status = queryJobInfo(type);
+        return status.toOrderJobInfo();
+    }
+
+    /**
+     *
      * @brief delete orders (that can be deleted) within a time range
      * @param startTimeStr the start time of the range (exclusive)
      * @param endTimeStr the end time of the range (inclusive)
@@ -883,7 +909,7 @@ public class OrderService extends CatalogTaggedResourceService {
                                  @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr) {
 
         if (isJobRunning(OrderServiceJob.JobType.DELETE)) {
-            //TODO throw exceptions here
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
         }
 
         StorageOSUser user = getUserFromContext();

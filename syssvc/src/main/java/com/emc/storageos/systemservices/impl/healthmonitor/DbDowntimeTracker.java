@@ -7,6 +7,9 @@ package com.emc.storageos.systemservices.impl.healthmonitor;
 import java.util.Arrays;
 import java.util.List;
 
+import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.security.dbInfo.DbInfoUtils;
+import com.emc.storageos.systemservices.impl.util.MailHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,7 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
  */
 public class DbDowntimeTracker {
     private static final Logger log = LoggerFactory.getLogger(DbDowntimeTracker.class);
+    private AlertsLogger _alertLog = AlertsLogger.getAlertsLogger();
     private List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
     private static final String DB_TRACKER_LOCK = "dbDowntimeTracker";
     // Tracker check service status every 15 mins by default
@@ -35,6 +39,9 @@ public class DbDowntimeTracker {
 
     @Autowired
     private CoordinatorClientExt coordinator;
+
+    @Autowired
+    private MailHandler mailHandler;
 
     public DbDowntimeTracker() {
     }
@@ -107,6 +114,7 @@ public class DbDowntimeTracker {
 
                 if (dbOfflineEventInfo.getOfflineTimeInMS(nodeId) != null) {
                     dbOfflineEventInfo.setOfflineTimeInMS(nodeId, null);
+                    dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, null);
                     log.info("Service({}) of node({}) is recovered", serviceName, nodeId);
                 }
             } else {
@@ -114,6 +122,7 @@ public class DbDowntimeTracker {
                 lastOfflineInMS = (lastOfflineInMS == null) ? 0 : lastOfflineInMS;
                 long newOfflineTime = lastOfflineInMS + interval;
                 dbOfflineEventInfo.setOfflineTimeInMS(nodeId, newOfflineTime);
+                alertStatusCheck(nodeId, serviceName, dbOfflineEventInfo, newOfflineTime / TimeUtils.DAYS);
                 log.info(String.format("Service(%s) of node(%s) has been unavailable for %s mins",
                         serviceName, nodeId, newOfflineTime / TimeUtils.MINUTES));
             }
@@ -121,5 +130,41 @@ public class DbDowntimeTracker {
         config = dbOfflineEventInfo.toConfiguration(serviceName);
         coordinator.getCoordinatorClient().persistServiceConfiguration(siteId, config);
         log.info("Persist db tracker info to zk successfully");
+    }
+    private void alertStatusCheck(String nodeId, String serviceName, DbOfflineEventInfo dbOfflineEventInfo, long offLineTimeInDay) {
+        if (offLineTimeInDay < 1) return ;
+        Long alertDays = dbOfflineEventInfo.getOfflineAlertInDay(nodeId);
+        if (alertDays != null) {
+            if (offLineTimeInDay > alertDays) {
+                if (offLineTimeInDay <= DbInfoUtils.MAX_SERVICE_OUTAGE_TIME) {
+                    _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days," +
+                                    "please power on the node in timely manner",
+                            serviceName, nodeId, offLineTimeInDay));
+                    //send alert
+                    sendDbsvcOfflineMail(nodeId, serviceName, offLineTimeInDay, false);
+                }else {
+                    //send alert with link
+                    _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days" +
+                                    "node recovery would be needed to recovery it back",
+                            serviceName, nodeId, offLineTimeInDay));
+                    sendDbsvcOfflineMail(nodeId, serviceName, offLineTimeInDay, true);
+                }
+                dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, offLineTimeInDay);
+            }
+        }else {
+            _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days," +
+                            "please power on the node in timely manner",
+                    serviceName, nodeId, offLineTimeInDay));
+            dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, offLineTimeInDay);
+        }
+
+    }
+
+    private void sendDbsvcOfflineMail(String nodeId , String serviceNames, long offlineDays, boolean nodeRecoverable) {
+        try {
+            mailHandler.sendDbsvcOfflineMail(nodeId, serviceNames, offlineDays, nodeRecoverable);
+        }catch (Exception e ) {
+            log.error("Failed to sending mail for db offline alert", e);
+        }
     }
 }

@@ -89,6 +89,36 @@ public class MailHandler {
         content = MailHelper.parseTemplate(params, content);
         getMailHelper().sendMailMessage(to, title, content);
     }
+    /**
+     * Send alert mail that dbsvc offline more than 1 day
+     * @param nodeId node id of the dbsvc offline
+     * @param serviceName dbsvc or geodbsvc
+     * @param offlineDays days of offline
+     * @param nodeRecoveryRequired  if need to node recovery,true will send the mail with recovery link
+     * */
+    public void sendDbsvcOfflineMail(String nodeId, String serviceName, long offlineDays, boolean nodeRecoveryRequired) {
+        String to = getMailAddressOfUser("root");
+        if (to == null || to.isEmpty()) {
+            log.warn("Can't send mail alert, no email address for root user");
+            return;
+        }
+        Map<String, String> params = Maps.newHashMap();
+        params.put("nodeId", nodeId);
+        params.put("serviceName",serviceName);
+        params.put("offlineDays", Long.toString(offlineDays));
+        if (nodeRecoveryRequired) params.put("url",coordinator.getPropertyInfo().getProperty("NETWORK_VIP"));
+        String titile = String.format("ATTENTION - DataBase service(%s) of %s has been down for %s days",
+                nodeId, serviceName, offlineDays);
+
+        String content;
+        if (nodeRecoveryRequired){
+            content = MailHelper.readTemplate("DbsvcOfflineFivedaysEmail.html");
+        }else {
+            content = MailHelper.readTemplate("DbsvcOfflineEmail.html");
+        }
+        content = MailHelper.parseTemplate(params, content);
+        getMailHelper().sendMailMessage(to, titile, content);
+    }
 
     private MailHelper getMailHelper() {
         if (mailHelper == null) {

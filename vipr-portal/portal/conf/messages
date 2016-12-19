@@ -1086,7 +1086,15 @@ nodeRecovery.status.heading=Recovery Status
 nodeRecovery.status=Status
 nodeRecovery.start.time=Start Time
 nodeRecovery.end.time=End Time
-
+#System node Recovery Vapp
+nodeRecovery.noderecoveryVapp.title=Node Recovery  <small>Only support the scenario of database service can't join back after down over 5 days</small>
+nodeRecovery.recovering.status=System is recovering database service on %s
+nodeRecovery.precheck.fail.allgood=All nodes and services are active, no need node recovery
+nodeRecovery.precheck.fail.drorgeo=Don't support node recovery on vApp in DR/GEO environment
+nodeRecovery.precheck.fail.unreachable=There is node unreachable, please power it on and refresh this page
+nodeRecovery.precheck.fail.quorum=Can't do node recovery because that the count of node with db service corrupted is more than quorum node count of this site
+nodeRecovery.precheck.fail.other=Can't do node recovery because node corrupted for other reason.
+nodeRecovery.precheck.success=DB service on node %s need to be recovere
 
 # System Health Dashboard
 system.healthdashboard.title=System Health

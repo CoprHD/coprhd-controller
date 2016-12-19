@@ -302,11 +302,11 @@ public class ClusterService extends TaskResourceService {
             List<Host> hosts = _dbClient.queryObject(Host.class, clusterHosts);
             if (null != hosts && !hosts.isEmpty()) {
                 for (Host host : hosts) {
-                    if (resourceHasPendingTasks(host.getId())) {
+                    if (null != host && resourceHasPendingTasks(host.getId())) {
                         // throw exception and do not proceed with
                         // cluster delete...
                         throw APIException.badRequests.resourceCannotBeDeleted(
-                                "Cluster has host(s) with another operation in progress.  " + cluster.getLabel());
+                                "Cluster has host - "+ host.getLabel() +" with another operation in progress.  " + cluster.getLabel());
                     }
                 }
             }
@@ -551,7 +551,7 @@ public class ClusterService extends TaskResourceService {
         boolean hasPendingTasks = false;
         List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
         for (Task task : taskList) {
-            if (task.isPending()) {
+            if (!task.getInactive() && task.isPending()) {
                 hasPendingTasks = true;
                 break;
             }

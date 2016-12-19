@@ -655,6 +655,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId) throws InternalException {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
 
+        if(null == cluster) {
+            log.info("Could not find cluster instance for cluster id {}", clusterId.toString());
+            return waitFor;
+        }
+
         if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
             log.info("cluster is not synced to vcenter");
             return waitFor;

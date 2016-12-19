@@ -1372,3 +1372,84 @@ test_cluster_remove_discovered_host() {
     secho "Turning ViPR validation ON"
     syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 }
+
+test_delete_host() {
+    test_name="test_delete_host"
+    echot "Test test_delete_host"
+    host=fakehost-${RANDOM}
+    exclusive_export=${host}
+ 
+    cfs="ExportGroup ExportMask Network Host Initiator"
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+
+    volume1=${VOLNAME}-1
+
+    # Add initator WWNs to the network
+    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
+            
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            secho "Running happy path test for delete host..."
+        else    
+            secho "Running delete host with failure scenario: ${failure}..."
+        fi    
+       
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        #cluster1_export=clusterexport-${item}
+
+        snap_db 1 ${cfs}
+
+        # Create fake host
+        runcmd hosts create $host $TENANT Esx ${host}.lss.emc.com --port 1
+
+        # Create new initators and add to fakehost
+        runcmd initiator create $host FC ${fake_pwwn1} --node ${fake_nwwn1}
+
+        runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts ${host}
+ 
+        snap_db 2 ${cfs}
+
+        move_host="false"
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Move the host to first cluster
+            #runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}
+            runcmd hosts delete ${host} --detachstorage true
+        else    
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+            
+            # Move the host to the cluster
+            fail hosts delete ${host} --detachstorage true
+    
+            # Snap the DB after rollback
+            snap_db 3 ${cfs}
+
+            # Validate nothing was left behind
+            validate_db 2 3 ${cfs}
+                
+            # Rerun the command
+            set_artificial_failure none
+
+            # Retry move the host to first cluster
+            runcmd hosts delete ${host} --detachstorage true          
+        fi
+        
+        snap_db 4 ${cfs}  
+
+        # Validate that nothing was left behind
+        validate_db 1 4 ${cfs}          
+
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+}

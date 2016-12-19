@@ -524,7 +524,7 @@ public class StorageDriverService {
     private void precheckForDupField(String existingValue, String newValue, String fieldName) {
         if (StringUtils.equals(existingValue, newValue)) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                    String.format("Duplicate %s: %s", fieldName, newValue));
+                    String.format("duplicate %s: %s", fieldName, newValue));
         }
     }
 
@@ -572,7 +572,7 @@ public class StorageDriverService {
         precheckForNotEmptyField("driver_name", name);
         if (name.length() > MAX_DISPLAY_STRING_LENGTH) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(
-                    String.format("driver name is longger than %s", MAX_DISPLAY_STRING_LENGTH));
+                    String.format("driver name is longer than %s", MAX_DISPLAY_STRING_LENGTH));
         }
         for (int i = 0; i < name.length(); i ++) {
             char c = name.charAt(i);

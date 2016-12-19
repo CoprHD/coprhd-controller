@@ -1,6 +1,7 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
@@ -17,7 +18,8 @@ import java.net.URI;
 /**
  * Alternate ID constraint implementation
  */
-public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColumnName> implements AlternateIdConstraint {
+public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColumnName>
+        implements TimeSeriesConstraint {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesConstraintImpl.class);
 
     private final ColumnFamily<String, TimeSeriesIndexColumnName> indexCF;
@@ -72,6 +74,7 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
         return query;
     }
 
+    @Override
     public long count() throws ConnectionException {
         try {
             OperationResult<Integer> countResult = _keyspace.prepareQuery(indexCF).getKey(entryType.getSimpleName())

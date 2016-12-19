@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.sa.api.utils.OrderJobStatus;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -636,7 +637,7 @@ public class OrderService extends CatalogTaggedResourceService {
     private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream) {
         PrintStream out = new PrintStream(outputStream);
         for (URI tid : tids) {
-            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(tid, startTime, endTime);
+            TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
             NamedElementQueryResultList ids = new NamedElementQueryResultList();
             _dbClient.queryByConstraint(constraint, ids);
             for (NamedElementQueryResultList.NamedElement namedID : ids) {
@@ -699,6 +700,7 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         log.info("lby00 start={} end={} max={}", startTimeInMS, endTimeInMS, max);
+
         List<Order> orders = orderManager.getUserOrders(user, startTimeInMS, endTimeInMS, max);
         log.info("lby0 done0");
 

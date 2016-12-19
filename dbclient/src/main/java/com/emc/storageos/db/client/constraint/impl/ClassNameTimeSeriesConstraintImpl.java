@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,8 @@ import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 
-public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameTimeSeriesIndexColumnName> implements AlternateIdConstraint {
+public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameTimeSeriesIndexColumnName>
+        implements TimeSeriesConstraint {
     private static final Logger log = LoggerFactory.getLogger(ClassNameTimeSeriesConstraintImpl.class);
 
     private final ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> _altIdCf;
@@ -75,6 +77,7 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
         return query;
     }
 
+    @Override
     public long count() throws ConnectionException {
         try {
             OperationResult<Integer> countResult = genQuery().getCount().execute();

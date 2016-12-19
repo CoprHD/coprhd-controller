@@ -7,6 +7,8 @@ package com.emc.sa.api.utils;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
+import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +61,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 //It's the first time to run the job, so get the total number of orders to be deleted
                 long total = 0;
                 for (URI tid : tids) {
-                    AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(tid, startTime, endTime);
+                    TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
                     NamedElementQueryResultList ids = new NamedElementQueryResultList();
                     dbClient.queryByConstraint(constraint, ids);
                     for (NamedElementQueryResultList.NamedElement namedID : ids) {
@@ -92,7 +94,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
             long nFailed = 0;
             long start = System.currentTimeMillis();
             for (URI tid : tids) {
-                AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getOrders(tid, startTime, endTime);
+                TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
                 NamedElementQueryResultList ids = new NamedElementQueryResultList();
                 dbClient.queryByConstraint(constraint, ids);
                 for (NamedElementQueryResultList.NamedElement namedID : ids) {

@@ -785,6 +785,7 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
 
+        /*
         public static AlternateIdConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
@@ -796,5 +797,6 @@ public interface AlternateIdConstraint extends Constraint {
             ColumnField field = doType.getColumnField(Order.SUBMITTED);
             return new TimeSeriesConstraintImpl(tid.toString(), field, startTimeInMS, endTimeInMS);
         }
+        */
     }
 }

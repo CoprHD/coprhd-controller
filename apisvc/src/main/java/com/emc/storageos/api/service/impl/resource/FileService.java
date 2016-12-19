@@ -14,6 +14,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -67,6 +68,7 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -3402,6 +3404,29 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Returns the bean responsible for servicing the request
+     * 
+     * @param vpool
+     *            Virtual Pool
+     * @param dbClient
+     *            db client
+     * @return file service implementation object
+     */
+    private static FileServiceApi getFileServiceImpl(VirtualPool vpool, FilePolicy filePolicy) {
+        // Mutually exclusive logic that selects an implementation of the file service
+
+        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
+            if (filePolicy.getFileReplicationType().equals(FilePolicy.FileReplicationType.LOCAL.name())) {
+                return getFileServiceApis("localmirror");
+            } else if (filePolicy.getFileReplicationType().equals(FilePolicy.FileReplicationType.REMOTE.name())) {
+                return getFileServiceApis("remotemirror");
+            }
+        }
+
+        return getFileServiceApis("default");
+    }
+
+    /**
      * 
      * Assign existing file system to file policy.
      * 
@@ -3437,6 +3462,26 @@ public class FileService extends TaskResourceService {
         // verify the file system tenant is same as policy tenant
         if (!filePolicy.getTenantOrg().contains(fs.getTenant().getURI().toString())) {
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
+        }
+
+        FilePolicyApplyLevel appliedAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        StringSet assignedResources = filePolicy.getAssignedResources();
+
+        switch (appliedAt) {
+            case project:
+                if (assignedResources.contains(filePolicyUri.toString())) {
+                    _log.error("File policy {} is already applied at project.", filePolicy.getFilePolicyName());
+                    throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
+                }
+                break;
+            case vpool:
+                if (assignedResources.contains(filePolicyUri.toString())) {
+                    _log.error("File policy {} is already applied at virtual pool.", filePolicy.getFilePolicyName());
+                    throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
+                }
+                break;
+            default:
+                break;
         }
 
         StringSet existingFSPolicies = fs.getFilePolicies();
@@ -3481,9 +3526,11 @@ public class FileService extends TaskResourceService {
             // Check for VirtualPool support snapshot or not
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
             if (!vpool.getScheduleSnapshots()) {
-                throw APIException.methodNotAllowed.notSupportedWithReason("Snapshot schedule is not supported by vpool: "
+                throw APIException.methodNotAllowed.notSupportedWithReason("Snapshot file policy is not supported by vpool: "
                         + vpool.getLabel());
             }
+
+            // TODO Check if this policy can be applied by tenants of this file system
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -3497,13 +3544,10 @@ public class FileService extends TaskResourceService {
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
 
-            if (FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
+            controller.applyFilePolicy(fs.getId(), Collections.singletonList(filePolicy), task);
 
-                controller.assignFileSystemSnapshotPolicy(device.getId(), fs.getId(), filePolicy.getId(), task);
-
-                auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
-                        fs.getId().toString(), device.getId().toString(), filePolicy.getId());
-            }
+            auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), filePolicy.getId());
 
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);

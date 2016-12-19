@@ -15,7 +15,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 
-public class StorageDriverMapper {
+public final class StorageDriverMapper {
 
     private StorageDriverMapper() {}
 

@@ -306,6 +306,19 @@ public class VNXeApiClient {
         return req.getHostLun(hostlunId);
     }
 
+    /**
+     * Get hostLun based on host id & Lun id.
+     *
+     * @param hostId the host id
+     * @param lunId the lun id
+     * @param idCharSequence the id char sequence
+     * @return HostLun
+     */
+    public HostLun getHostLun(String hostId, String lunId, String idCharSequence) {
+        HostLunRequests req = new HostLunRequests(_khClient);
+        return req.getHostLun(lunId, hostId, idCharSequence);
+    }
+
     public String getNetBios() {
         return netBios;
     }

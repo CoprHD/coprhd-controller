@@ -58,6 +58,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
@@ -70,6 +71,7 @@ import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXeNfsShare;
+import com.emc.storageos.vnxe.requests.HostLunRequests;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -898,6 +900,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
         unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
 
+        // clear the mask to HLU map. Fresh data gets persisted during UnManagedExportMask discovery
+        if (unManagedVolume.getVolumeInformation().get(
+                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString()) != null) {
+            unManagedVolume.getVolumeInformation().get(
+                    SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString()).clear();
+        }
+
         if (created) {
             unManagedVolumesInsert.add(unManagedVolume);
         } else {
@@ -1482,6 +1491,27 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             Boolean.TRUE.toString());
                 }
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
+
+                // update mask to HLU information
+                StringSet nativeId = hostUnManagedVol.getVolumeInformation().get(SupportedVolumeInformation.NATIVE_ID.toString());
+                String nativeGuid = hostUnManagedVol.getNativeGuid();
+                String lunId = nativeId != null ? nativeId.iterator().next()
+                        : nativeGuid.substring(nativeGuid.lastIndexOf(Constants.PLUS) + 1);
+                String idCharSequence = HostLunRequests.ID_SEQUENCE_LUN;
+                if (Boolean.getBoolean(hostUnManagedVol.getVolumeCharacterstics()
+                        .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString()))) {
+                    idCharSequence = HostLunRequests.ID_SEQUENCE_SNAP;
+                }
+                HostLun hostLun = apiClient.getHostLun(hostId, lunId, idCharSequence);
+                String hostHlu = host.getName() + "=" + hostLun.getHlu();
+                StringSet existingHostHlu = (StringSet) hostUnManagedVol.getVolumeInformation().get(
+                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString());
+                if (existingHostHlu != null) {
+                    existingHostHlu.add(hostHlu);
+                } else {
+                    hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
+                }
+
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
             }
 

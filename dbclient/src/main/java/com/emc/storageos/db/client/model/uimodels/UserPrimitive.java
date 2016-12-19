@@ -88,4 +88,7 @@ public abstract class UserPrimitive extends ModelObject {
     public void setOutput(final StringSet output) {
         this.output = output;
     }
+
+    public abstract boolean isAnsiblePackage();
+    public abstract AnsiblePackage asAnsiblePackage(); 
 }

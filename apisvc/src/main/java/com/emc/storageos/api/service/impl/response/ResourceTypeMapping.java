@@ -18,6 +18,7 @@
 package com.emc.storageos.api.service.impl.response;
 
 import static com.emc.storageos.model.ResourceTypeEnum.ACTIONABLE_EVENT;
+import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE_PACKAGE;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
@@ -82,9 +83,9 @@ import static com.emc.storageos.model.ResourceTypeEnum.VOLUME;
 import static com.emc.storageos.model.ResourceTypeEnum.VOLUME_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.WF_DIRECTORY;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
-import static com.emc.storageos.model.ResourceTypeEnum.WF_DIRECTORY;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -150,6 +151,7 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
@@ -161,7 +163,8 @@ import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
 public class ResourceTypeMapping {
-    private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
+    private static final Logger _log = LoggerFactory
+            .getLogger(ResourceTypeMapping.class);
     // Mapping of Resource Type -> DB Class
     private static final Map<ResourceTypeEnum, Class<? extends DataObject>> classMapping = new HashMap<>();
     // Reverse mapping of DB Class -> Resource Type
@@ -236,14 +239,17 @@ public class ResourceTypeMapping {
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
         classMapping.put(ORCHESTRATION_WORKFLOW, OrchestrationWorkflow.class);
+        classMapping.put(ANSIBLE_PACKAGE, AnsiblePackage.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
-        
-        for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
+
+        for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
+                .entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());
         }
     }
 
-    public static Class<? extends DataObject> getDataObjectClass(ResourceTypeEnum type) {
+    public static Class<? extends DataObject> getDataObjectClass(
+            ResourceTypeEnum type) {
         return classMapping.get(type);
     }
 

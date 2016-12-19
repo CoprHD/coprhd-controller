@@ -44,5 +44,4 @@ public class InputUpdateParam {
     public void setRemove(final List<String> remove) {
         this.remove = remove;
     }
-
 }

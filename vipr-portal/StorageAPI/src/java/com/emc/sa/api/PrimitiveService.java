@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +42,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.PrimitiveMapper;
@@ -79,6 +85,8 @@ public class PrimitiveService {
 
     private final PrimitiveList PRIMITIVE_LIST;
     private final ImmutableMap<URI, PrimitiveRestRep> PRIMITIVE_MAP;
+    private static final Logger _log = LoggerFactory
+            .getLogger(PrimitiveManager.class);
 
     private enum PrimitiveResourceType {
         ANSIBLE, SCRIPT;
@@ -218,13 +226,38 @@ public class PrimitiveService {
             while ((nRead = in.read(buffer)) > 0) {
                 file.write(buffer, 0, nRead);
             }
+
             switch (resourceType) {
             case ANSIBLE:
+                final TarArchiveInputStream tarIn = new TarArchiveInputStream(
+                        new GzipCompressorInputStream(new ByteArrayInputStream(
+                                file.toByteArray())));
+                TarArchiveEntry entry = tarIn.getNextTarEntry();
+                final StringSet entryPoints = new StringSet();
+
+                while (entry != null) {
+                    if (entry.isFile()
+                            && entry.getName().toLowerCase().endsWith(".yml")) {
+                        
+                        final java.nio.file.Path path = FileSystems
+                                .getDefault().getPath(entry.getName());
+                        final java.nio.file.Path root = path.getRoot() != null ? path
+                                .getRoot() : FileSystems.getDefault().getPath(
+                                ".");
+                        if (path.getParent() == null
+                                || 0 == path.getParent().compareTo(root)) {
+                            final String playbook = path.getFileName().toString();
+                            _log.info("Top level playbook: " + playbook);
+                            entryPoints.add(playbook);
+                        } 
+                    }
+                    entry = tarIn.getNextTarEntry();
+                }
+
                 final AnsiblePackage ansiblePackage = new AnsiblePackage();
                 ansiblePackage.setLabel(name);
                 ansiblePackage.setId(URIUtil.createId(AnsiblePackage.class));
-                final StringSet entryPoints = new StringSet();
-                entryPoints.add("site.yml");
+
                 ansiblePackage.setEntryPoints(entryPoints);
                 ansiblePackage.setArchive(Base64.encodeBase64(file
                         .toByteArray()));
@@ -237,7 +270,7 @@ public class PrimitiveService {
             }
 
         } catch (final IOException e) {
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
 
     }

@@ -24,4 +24,16 @@ import com.emc.storageos.db.client.model.Cf;
 @Cf("AnsibleRemote")
 public class AnsibleRemote extends AnsibleMetadata {
 
+    @Override
+    public boolean isAnsiblePackage() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public AnsiblePackage asAnsiblePackage() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

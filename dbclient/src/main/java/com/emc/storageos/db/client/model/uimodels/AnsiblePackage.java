@@ -41,4 +41,16 @@ public class AnsiblePackage extends AnsibleMetadata {
         setChanged(ARCHIVE);
     }
 
+    @Override
+    public boolean isAnsiblePackage() {
+        // TODO Auto-generated method stub
+        return true;
+    }
+
+    @Override
+    public AnsiblePackage asAnsiblePackage() {
+        // TODO Auto-generated method stub
+        return this;
+    }
+
 }

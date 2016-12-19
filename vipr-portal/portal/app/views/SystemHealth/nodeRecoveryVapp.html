@@ -147,7 +147,7 @@
 		 $.post("@{SystemHealth.getRecoveryStatus}")
 	        .done(function(result) {
 	        	clearStatusTable();
-	            renderRecoveryStatus(precheckStatus,result.status,result.startTime,result.endTime,result.errorCode);
+	            renderRecoveryStatus(precheckstatus,result.status,result.startTime,result.endTime,result.errorCode);
 	        });
     }
 

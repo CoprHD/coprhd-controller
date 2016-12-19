@@ -626,12 +626,14 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
         <property name="workflowService" ref="workflowService" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
         <property name="workflowService" ref="workflowService" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">
@@ -1714,6 +1716,12 @@
         <property name="cimPath" ref="vmaxCIMObjectPathFactoryAdapter"/>
     </bean>
 
+    <bean id="vnxeValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.vnxe.VNXeSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="config" ref="validatorConfig"/>
+    </bean>
+
     <bean id="xtremioValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremioSystemValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
         <property name="config" ref="validatorConfig"/>
@@ -1738,6 +1746,8 @@
             <map>
                 <entry key="vmax" value-ref="vmaxValidatorFactory"/>
                 <entry key="xtremio" value-ref="xtremioValidatorFactory"/>
+                <entry key="vnxe" value-ref="vnxeValidatorFactory"/>
+                <entry key="unity" value-ref="vnxeValidatorFactory"/>
                 <entry key="vplex" value-ref="vplexValidatorFactory"/>
                 <entry key="vnxblock" value-ref="vnxValidatorFactory"/>
             </map>

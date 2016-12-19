@@ -675,11 +675,15 @@ public class VnxExportOperations implements ExportMaskOperations {
                         }
                     }
 
+                    Set existingInitiators = (exportMask.getExistingInitiators() != null) ? exportMask.getExistingInitiators()
+                            : Collections.emptySet();
+                    Set existingVolumes = (exportMask.getExistingVolumes() != null) ? exportMask.getExistingVolumes().keySet()
+                            : Collections.emptySet();
                     builder.append(String.format("XM:%s is matching. " +
                             "EI: { %s }, EV: { %s }",
                             name,
-                            Joiner.on(',').join(exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));
+                            Joiner.on(',').join(existingInitiators),
+                            Joiner.on(',').join(existingVolumes)));
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);

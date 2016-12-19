@@ -1145,6 +1145,7 @@ system.stats.disk.util=Utilization
 system.stats.disk.avgwait=Average Wait
 system.stats.reboot=Reboot
 system.stats.restart=Restart
+system.stats.recover=Recover
 system.stats.cpu.loadavg= Load Average
 system.stats.services=Services
 system.stats.services.total=Total Services

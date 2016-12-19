@@ -8,7 +8,7 @@
             lockable: true
         },
         virtualArray:{
-            type:"assetType.vipr.blockVirtualArray",
+            type:"assetType.vipr.exportPathVirtualArray",
             lockable: true
         },
         
@@ -42,39 +42,34 @@
           }
         },
         
-        advanced:{
-          type:"group",
-          collapsed:true,
-          items:{ 
-            storageSystem: {
-                type:"assetType.vipr.storageSystem",
-                required: false
-            },       
-            ports:{
-                type:"assetType.vipr.exportPathPorts",
-                select: "many",
-                required: false
-            }
-          }
+        storageSystem: {
+            type:"assetType.vipr.exportPathStorageSystem"
+        },       
+        ports:{
+            type:"assetType.vipr.exportPathPorts",
+            select: "many"
         },
-        
+
 	    exportPathPreview:{
 	       type:"modal",
            items:{
-                addedPorts:{
+                affectedPorts:{
                     type:"assetType.vipr.exportPathAddedPorts",
                     select: "list",
-                    required: false
+                    required: false,
+                    omitNone: true
                 },
                 removedPorts:{
                     type:"assetType.vipr.exportPathRemovedPorts",
                     select: "list",
-                    required: false
+                    required: false,
+                    omitNone: true
                 },
                 affectedExports:{
                     type:"assetType.vipr.exportPathAffectedExports",
                     select: "list",
-                    required: false
+                    required: false,
+                    omitNone: true
                 }
     	    }
         }

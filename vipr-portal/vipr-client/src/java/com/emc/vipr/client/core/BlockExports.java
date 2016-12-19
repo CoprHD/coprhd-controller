@@ -20,6 +20,7 @@ import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPortAllocateParam;
+import com.emc.storageos.model.block.export.ExportPortRebalanceParam;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
@@ -311,9 +312,20 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * @return Port Allocate Preview
      */
     public PortAllocatePreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPortAllocateParam input) {
-        //UriBuilder builder = client.uriBuilder(baseUrl);
-        
-        //return postTask(input, getIdUrl() + "/expand", id);
         return client.post(PortAllocatePreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
+    }
+    
+    /**
+     * TODO: write summary
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/port-rebalance</tt>
+     *
+     * @param id
+     * @param input
+     * @return Port Allocate Preview
+     */
+    public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPortRebalanceParam input) {
+        return putTask(input, getIdUrl() + "/port-rebalance", id);
+        //return client.post(PortAllocatePreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
     }
 }

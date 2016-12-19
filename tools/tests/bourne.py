@@ -355,6 +355,7 @@ URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
 URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
+URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
@@ -8400,9 +8401,12 @@ class Bourne:
         uri = self.host_query(name)
         return self.api('GET', URI_HOST.format(uri))
 
-    def host_delete(self, name):
+    def host_delete(self, name, detachstorage):
         uri = self.host_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_HOST.format(uri)))
+        o = self.api('POST', URI_HOST_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s)
 
     def initiator_show_tasks(self, uri):
         uri_initiator_task = URI_INITIATORS + '/tasks'

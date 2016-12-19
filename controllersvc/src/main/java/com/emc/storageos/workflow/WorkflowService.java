@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,6 +37,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
@@ -52,6 +54,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -592,9 +595,8 @@ public class WorkflowService implements WorkflowController {
                 } 
 
                 // If an error is reported, and we're supposed to suspend on error, suspend
-                // Do not suspend rollback steps.
                 Step step = workflow.getStepMap().get(stepId);
-                if (StepState.ERROR == state && workflow.isSuspendOnError() && !workflow.isRollbackState()) {
+                if (StepState.ERROR == state && workflow.isSuspendOnError()) {
                     state = StepState.SUSPENDED_ERROR;
                     step.suspendStep = false;
                 }
@@ -618,6 +620,31 @@ public class WorkflowService implements WorkflowController {
                 status.updateState(state, code, message);
                 // Persist the updated step state
                 persistWorkflowStep(workflow, step);
+
+                // This try/catch block is a debug facility to allow for testing of full rollback of workflows
+                // given a set system property "artificial_failure" -> "failure_004".
+                // This will change the current (and final) step of the workflow to failure and will cause
+                // rollback to occur. It currently does not treat child or parent workflows any different.
+                try {
+                    if (workflow.allStatesTerminal() && !workflow.isRollbackState()) {
+                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_004);
+                    }
+                } catch (NullPointerException npe) {
+                    // Overwrite the status of the final state
+                    _log.error("Overwriting the state of the final step of a workflow due to artificial failure request");
+                    StepStatus ss = workflow.getStepStatus(stepId);
+                    ss.state = StepState.ERROR;
+                    ss.description = "Artificially thrown exception: " + InvokeTestFailure.ARTIFICIAL_FAILURE_004;
+                    ss.message = "The final step in the workflow was successful, but an artificial failure request is configured to fail the final step to invoke full rollback.";
+                    workflow.getStepStatusMap().put(stepId, ss);
+                    _log.info(String.format("Updating workflow step: %s state %s : %s", stepId, state, ss.message));
+                    WorkflowException ex = WorkflowException.exceptions.workflowInvokedFailure(ss.description);
+                    status.updateState(ss.state, ex.getServiceCode(), ss.message);
+                    step.status = ss;
+                    // Persist the updated step state
+                    persistWorkflowStep(workflow, step);
+                }
+
                 if (status.isTerminalState()) {
                     // release any step level locks held.
                     boolean releasedLocks = _ownerLocker.releaseLocks(stepId);
@@ -836,6 +863,9 @@ public class WorkflowService implements WorkflowController {
      */
     private Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId, URI workflowURI,
             TaskCompleter completer) {
+        if (taskIdInUse(taskId)) {
+            throw WorkflowException.exceptions.workflowTaskIdInUse(taskId);
+        }
         Workflow workflow = new Workflow(this, controller.getClass().getSimpleName(),
                 method, taskId, workflowURI);
         workflow.setRollbackContOnError(rollbackContOnError);
@@ -847,6 +877,35 @@ public class WorkflowService implements WorkflowController {
         // Keep track if it's a nested Workflow
         workflow._nested = associateToParentWorkflow(workflow);
         return workflow;
+    }
+
+    /**
+     * return true if there is another active workflow with the task id
+     * 
+     * @param taskId
+     * @return
+     */
+    private boolean taskIdInUse(String taskId) {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getWorkflowByOrchTaskId(taskId), result);
+        List<URI> workflowIds = new ArrayList<URI>();
+        if (result.iterator().hasNext()) {
+            while (result.iterator().hasNext()) {
+                URI wfId = result.iterator().next();
+                _log.info("Found existing workflow {} with task id {}", wfId.toString(), taskId);
+                workflowIds.add(wfId);
+            }
+            Iterator<com.emc.storageos.db.client.model.Workflow> wfItr = _dbClient
+                    .queryIterativeObjects(com.emc.storageos.db.client.model.Workflow.class, workflowIds);
+            while (wfItr.hasNext()) {
+                com.emc.storageos.db.client.model.Workflow wf = wfItr.next();
+                if (!wf.getCompleted()) {
+                    _log.error("Task id {} is in use; found in progress workflow {}", taskId, wf.getId().toString());
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

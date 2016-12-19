@@ -1121,7 +1121,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         for (RemoteReplicationPair pair : replicationPairs) {
             nativeIds.add(pair.getNativeId());
         }
-        //replicationPairs.forEach(p->nativeIds.add(p.getNativeId()));
         String msg = String.format("%s: %s --- deleted replication pairs %s.", driverName, "deleteReplicationPairs", nativeIds);
         _log.info(msg);
         task.setMessage(msg);

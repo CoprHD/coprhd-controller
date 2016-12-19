@@ -135,6 +135,6 @@ public class RemoteReplicationPair extends DataObject {
 
     @Override
     public String toString() {
-        return String.format("Source volume id: %s, target volume id: %s", sourceElement, targetElement);
+        return String.format("RR Pair id: %s, Source volume id: %s, target volume id: %s", _id, sourceElement, targetElement);
     }
 }

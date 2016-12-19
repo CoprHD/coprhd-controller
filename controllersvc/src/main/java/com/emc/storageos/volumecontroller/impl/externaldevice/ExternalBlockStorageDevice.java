@@ -1755,7 +1755,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             }
         } catch (Exception e) {
             String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs");
-            _log.error(errorMsg);
+            _log.error(errorMsg, e);
             ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed(
                     systemReplicationPairs.get(0).getReplicationGroup().toString(), errorMsg);
             taskCompleter.error(dbClient, serviceError);
@@ -1796,7 +1796,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             }
         } catch (Exception e) {
             String errorMsg = String.format("deleteReplicationPairs -- Failed to delete replication pairs: %s", replicationPairs);
-            _log.error(errorMsg);
+            _log.error(errorMsg, e);
             ServiceError serviceError = ExternalDeviceException.errors.deleteRemoteReplicationPairsFailed(errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }

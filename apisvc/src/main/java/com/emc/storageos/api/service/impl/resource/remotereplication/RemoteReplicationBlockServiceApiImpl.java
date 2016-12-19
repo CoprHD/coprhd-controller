@@ -58,32 +58,40 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         // Build block descriptors for source and target block volumes (to be processed by block device controller)
         // Build descriptors for rr source volumes (to be processed by rr device controller)
 
+        // Build block descriptors for source volumes
+        List<VolumeDescriptor> sourceVolumeDescriptors = new ArrayList<>();
+        for (URI uri : volumeURIs) {
+            sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, systemURI, uri, null, null));
+        }
+        _log.info("Source volume descriptors: \n \t\t {}", sourceVolumeDescriptors);
+
         // List of remote replication pairs with specified source volumes
         List<RemoteReplicationPair> remoteReplicationPairs = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
             List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volumeURI, RemoteReplicationPair.class, "sourceElement");
             remoteReplicationPairs.addAll(rrPairs);
         }
+        if (remoteReplicationPairs.isEmpty()) {
+            // no pairs to delete
+            _log.warn("No remote replication pairs for source volumes \n" +
+                    " \t\t{}", volumeURIs);
+            return sourceVolumeDescriptors;
+        }
+        _log.info("Remote replication pairs for source volumes: \n \t\t {}", remoteReplicationPairs);
 
         // Get target volumes from remote replication pairs
         List<URI> targetVolumeURIs = new ArrayList<>();
         for (RemoteReplicationPair pair : remoteReplicationPairs) {
             targetVolumeURIs.add(pair.getTargetElement().getURI());
         }
-        //remoteReplicationPairs.forEach(p -> {
-        //    targetVolumeURIs.add(p.getTargetElement().getURI());
-        //});
-        // Build block descriptors for source and target volumes
-        List<VolumeDescriptor> sourceVolumeDescriptors = new ArrayList<>();
-        for (URI uri : volumeURIs) {
-            sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, systemURI, uri, null, null));
+
+        List<Volume> targetVolumes = _dbClient.queryObject(Volume.class, targetVolumeURIs);
+        if (targetVolumes == null || targetVolumes.isEmpty()) {
+            _log.warn("No target volumes in database for remote replication pairs \n\t\t {}", remoteReplicationPairs);
+            // continue: should build RR source descriptors to delete rr pairs
         }
-      //  volumeURIs.forEach(uri -> sourceVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-       //         systemURI, uri, null, null)));
-        _log.info("Source volume descriptors: \n \t\t {}", sourceVolumeDescriptors);
 
         // Target volumes may belong to different storage systems.
-        List<Volume> targetVolumes = _dbClient.queryObject(Volume.class, targetVolumeURIs);
         Map<URI, List<URI>> targetSystemToVolumeMap = new HashMap<>();
         for (Volume volume : targetVolumes) {
             List<URI> targetURIs = targetSystemToVolumeMap.get(volume.getStorageController());
@@ -100,8 +108,6 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
             for (URI uri : volURIs) {
                 targetVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, systemURI, uri, null, null));
             }
-       //    targetSystemToVolumeMap.get(sysURI).forEach(uri -> targetVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-       //           sysURI, uri, null, null)));
         }
         _log.info("Target volume descriptors: \n \t\t {}", targetVolumeDescriptors);
 
@@ -111,8 +117,6 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
             sourceRRVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
                    systemURI, uri, null, null));
         }
-       // volumeURIs.forEach(uri -> sourceRRVolumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE,
-      //          systemURI, uri, null, null)));
         _log.info("Remote replication source volume descriptors: \n \t\t {}", sourceRRVolumeDescriptors);
 
         List<VolumeDescriptor> result = new ArrayList<>(sourceVolumeDescriptors);

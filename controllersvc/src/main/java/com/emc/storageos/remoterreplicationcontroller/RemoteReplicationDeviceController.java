@@ -204,13 +204,11 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         }
 
         _log.info("Adding steps to delete remote replication links for volumes");
-
         // Get rr pairs for the source volumes
         List<URI> volumeURIs = new ArrayList<>();
         for (VolumeDescriptor descriptor : volumeDescriptors) {
             volumeURIs.add(descriptor.getVolumeURI());
         }
-        //volumeDescriptors.forEach(n->volumeURIs.add(n.getVolumeURI()));
 
         List<RemoteReplicationPair> remoteReplicationPairs = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
@@ -218,12 +216,18 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             remoteReplicationPairs.addAll(rrPairs);
         }
 
+        if (remoteReplicationPairs.isEmpty()) {
+            // no pairs to delete
+            _log.warn("No remote replication pairs for source volumes {}", volumeURIs);
+            return waitFor;
+        }
+
         _log.info("Remote replication pairs to delete: {}", remoteReplicationPairs);
         List<URI> pairURIs = new ArrayList<>();
         for (RemoteReplicationPair pair : remoteReplicationPairs) {
             pairURIs.add(pair.getId());
         }
-        //remoteReplicationPairs.forEach(p -> pairURIs.add(p.getId()));
+
         // all volumes belong to the same device type
         VolumeDescriptor descriptor = sourceDescriptors.get(0);
         Volume volume = dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
@@ -329,55 +333,60 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     public void rollbackCreateRemoteReplicationLinks(String systemType, List<VolumeDescriptor> sourceDescriptors, List<VolumeDescriptor> targetDescriptors, String opId) {
 
-        List<URI> sourceVolumes = new ArrayList<>();
-        List<URI> targetVolumes = new ArrayList<>();
+        List<URI> sourceVolumesURIs = new ArrayList<>();
+        List<URI> targetVolumesURIs = new ArrayList<>();
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            //sourceDescriptors.forEach(n -> sourceVolumes.add(n.getVolumeURI()));
             for (VolumeDescriptor descriptor : sourceDescriptors) {
-                sourceVolumes.add(descriptor.getVolumeURI());
+                sourceVolumesURIs.add(descriptor.getVolumeURI());
             }
-            //targetDescriptors.stream().forEach(n -> targetVolumes.add(n.getVolumeURI()));
             for (VolumeDescriptor descriptor : targetDescriptors) {
-                targetVolumes.add(descriptor.getVolumeURI());
+                targetVolumesURIs.add(descriptor.getVolumeURI());
             }
-            //List<URI> sourceVolumes = sourceDescriptors.stream().map(descriptor -> descriptor.getVolumeURI()).collect(Collectors.toList());
-            //List<URI> targetVolumes = targetDescriptors.stream().map(descriptor -> descriptor.getVolumeURI()).collect(Collectors.toList());
 
             String logMsg = String.format(
-                    "rollbackCreateRemoteReplicationLinks start - System type :%s, Source volumes: %s, Target volumes: %s", systemType, Joiner.on(',').join(sourceVolumes),
-                    Joiner.on(',').join(targetVolumes));
+                    "rollbackCreateRemoteReplicationLinks start - System type :%s, Source volumes: %s, Target volumes: %s", systemType, Joiner.on(',').join(sourceVolumesURIs),
+                    Joiner.on(',').join(targetVolumesURIs));
             _log.info(logMsg);
 
-            List<URI> targetVolumeURIs = new ArrayList<>();
-            for (VolumeDescriptor descriptor : targetDescriptors) {
-                targetVolumeURIs.add(descriptor.getVolumeURI());
-            }
-            //List<URI> targetVolumeURIs = targetDescriptors.stream().map(VolumeDescriptor::getVolumeURI).collect(Collectors.toList());
-            List<RemoteReplicationPair> pairs = prepareRemoteReplicationPairs(sourceDescriptors, targetVolumeURIs);
             List<URI> pairsURIs = new ArrayList<>();
-            //pairs.forEach(n -> pairsURIs.add(n.getId()));
-            for (RemoteReplicationPair pair : pairs) {
-                pairsURIs.add(pair.getId());
+            for (URI volumeURI : sourceVolumesURIs) {
+                List<RemoteReplicationPair> rrPairsTemp = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volumeURI, RemoteReplicationPair.class, "sourceElement");
+                // select pairs which have target volume from the list
+                if (!rrPairsTemp.isEmpty()) {
+                    for (RemoteReplicationPair rrp : rrPairsTemp) {
+                        if (targetVolumesURIs.contains(rrp.getTargetElement().getURI())) {
+                            pairsURIs.add(rrp.getId());
+                        }
+                    }
+                }
             }
-            deleteReplicationPairs(pairsURIs, opId);
-            logMsg = String.format(
-                    "rollbackCreateRemoteReplicationLinks end - System type :%s, Source volumes: %s, Target volumes: %s", systemType, Joiner.on(',').join(sourceVolumes),
-                    Joiner.on(',').join(targetVolumes));
-            _log.info(logMsg);
+            if (!pairsURIs.isEmpty()) {
+                deleteReplicationPairs(pairsURIs, opId);
+                logMsg = String.format(
+                        "rollbackCreateRemoteReplicationLinks end - System type :%s, Remote Replication Pairs: %s", systemType, Joiner.on(',').join(pairsURIs));
+                _log.info(logMsg);
+            } else {
+                logMsg = String.format(
+                        "rollbackCreateRemoteReplicationLinks end - System type :%s, No remote replication pairs to delete.", systemType);
+                _log.info(logMsg);
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
         } catch (InternalException e) {
-            _log.error(String.format("rollbackCreateRemoteReplicationLinks Failed - System type :%s, Source volumes: %s, Target volumes: %s", systemType, Joiner.on(',').join(sourceVolumes),
-                    Joiner.on(',').join(targetVolumes)));
-            List<URI> volumes = new ArrayList<>(sourceVolumes);
-            volumes.addAll(targetVolumes);
+            _log.error(String.format("rollbackCreateRemoteReplicationLinks Failed - System type :%s, Source volumes: %s, Target volumes: %s",
+                    systemType, Joiner.on(',').join(sourceVolumesURIs),
+                    Joiner.on(',').join(targetVolumesURIs)));
+            List<URI> volumes = new ArrayList<>(sourceVolumesURIs);
+            volumes.addAll(targetVolumesURIs);
             doFailTask(Volume.class, volumes, opId, e);
             WorkflowStepCompleter.stepFailed(opId, e);
         } catch (Exception e) {
-            _log.error(String.format("rollbackCreateRemoteReplicationLinks Failed - System type :%s, Source volumes: %s, Target volumes: %s", systemType, Joiner.on(',').join(sourceVolumes),
-                    Joiner.on(',').join(targetVolumes)));
+            _log.error(String.format("rollbackCreateRemoteReplicationLinks Failed - System type :%s, Source volumes: %s, Target volumes: %s",
+                    systemType, Joiner.on(',').join(sourceVolumesURIs),
+                    Joiner.on(',').join(targetVolumesURIs)));
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            List<URI> volumes = new ArrayList<>(sourceVolumes);
-            volumes.addAll(targetVolumes);
+            List<URI> volumes = new ArrayList<>(sourceVolumesURIs);
+            volumes.addAll(targetVolumesURIs);
             doFailTask(Volume.class, volumes, opId, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
         }

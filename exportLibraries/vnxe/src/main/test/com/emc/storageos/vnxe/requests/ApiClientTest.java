@@ -195,7 +195,8 @@ public class ApiClientTest {
         init.setName("lgly6193.lss.emc.com");
         List<VNXeHostInitiator> inits = new ArrayList<VNXeHostInitiator>();
         inits.add(init);
-        VNXeExportResult result = apiClient.exportLun(lunId, inits, null);
+        VNXeBase host = apiClient.prepareHostsForExport(inits);
+        VNXeExportResult result = apiClient.exportLun(host, lunId, null);
         System.out.println(result.getHlu());
     }
 
@@ -208,7 +209,8 @@ public class ApiClientTest {
         init.setName("lgly6193.lss.emc.com");
         List<VNXeHostInitiator> inits = new ArrayList<VNXeHostInitiator>();
         inits.add(init);
-        apiClient.unexportLun(lunId, inits);
+        VNXeBase host = apiClient.prepareHostsForExport(inits);
+        apiClient.unexportLun(host.getId(), lunId);
 
     }
 

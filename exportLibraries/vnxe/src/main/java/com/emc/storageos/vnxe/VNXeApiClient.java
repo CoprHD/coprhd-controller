@@ -7,6 +7,7 @@ package com.emc.storageos.vnxe;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -102,6 +103,8 @@ import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
 import com.emc.storageos.vnxe.requests.ConsistencyGroupRequests;
+import com.emc.storageos.vnxe.requests.DeleteHostInitiatorRequest;
+import com.emc.storageos.vnxe.requests.DeleteHostRequest;
 import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
 import com.emc.storageos.vnxe.requests.DiskRequest;
@@ -1464,14 +1467,16 @@ public class VNXeApiClient {
     /**
      * Export a lun for a given host
      * 
+     * @param host
+     *            host
      * @param lunId
      *            lun id
-     * @param initiators
-     *            host initiators info
+     * @param newhlu
+     *            HLU
      * @return
      * @throws VNXeException
      */
-    public VNXeExportResult exportLun(String lunId, List<VNXeHostInitiator> initiators, Integer newhlu) throws VNXeException {
+    public VNXeExportResult exportLun(VNXeBase host, String lunId, Integer newhlu) throws VNXeException {
         _logger.info("Exporting lun: {}", lunId);
 
         VNXeLun lun = getLun(lunId);
@@ -1479,7 +1484,6 @@ public class VNXeApiClient {
             _logger.info("Could not find lun in the vxne: {}", lunId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find lun : " + lunId);
         }
-        VNXeBase host = prepareHostsForExport(initiators);
 
         List<BlockHostAccess> hostAccesses = lun.getHostAccess();
         boolean lunHostAccessExists = false;
@@ -1556,26 +1560,18 @@ public class VNXeApiClient {
     /**
      * remove the hosts from the hostAccess list from the lun
      * 
+     * @param host
      * @param lunId
-     * @param initiators
      */
-    public void unexportLun(String lunId, List<VNXeHostInitiator> initiators) {
+    public void unexportLun(String hostId, String lunId) {
         _logger.info("Unexporting lun: {}", lunId);
 
-        for (VNXeHostInitiator initiator : initiators) {
-            _logger.info("removing host: {} ", initiator.getName());
-        }
         VNXeLun lun = getLun(lunId);
         if (lun == null) {
             _logger.info("Could not find lun in the vxne: {}", lunId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find lun : " + lunId);
         }
 
-        Set<String> removingHosts = findHostsByInitiators(initiators);
-        if (removingHosts.isEmpty()) {
-            _logger.info("No host found.");
-            return;
-        }
         List<BlockHostAccess> hostAccesses = lun.getHostAccess();
 
         if (hostAccesses == null || hostAccesses.isEmpty()) {
@@ -1585,8 +1581,7 @@ public class VNXeApiClient {
 
         List<BlockHostAccess> changedHostAccessList = new ArrayList<BlockHostAccess>();
         for (BlockHostAccess hostAccess : hostAccesses) {
-            String hostId = hostAccess.getHost().getId();
-            if (removingHosts.contains(hostId)) {
+            if (hostId.equals(hostAccess.getHost().getId())) {
                 if (hostAccess.getAccessMask() == HostLUNAccessEnum.BOTH.getValue()) {
                     hostAccess.setAccessMask(HostLUNAccessEnum.SNAPSHOT.getValue());
                 } else if (hostAccess.getAccessMask() == HostLUNAccessEnum.PRODUCTION.getValue()) {
@@ -1632,14 +1627,16 @@ public class VNXeApiClient {
     /**
      * Export a snap for a given host
      * 
+     * @param host
+     *            host
      * @param snapId
      *            snap id
-     * @param initiators
-     *            host initiators info
+     * @param newhlu
+     *            HLU
      * @return
      * @throws VNXeException
      */
-    public VNXeExportResult exportSnap(String snapId, List<VNXeHostInitiator> initiators, Integer newhlu) throws VNXeException {
+    public VNXeExportResult exportSnap(VNXeBase host, String snapId, Integer newhlu) throws VNXeException {
         _logger.info("Exporting lun snap: {}", snapId);
 
         String parentLunId = null;
@@ -1674,10 +1671,7 @@ public class VNXeApiClient {
             }
         }
 
-        VNXeBase host = prepareHostsForExport(initiators);
-
         // Get host access info of the parent lun
-
         parentLun = getLun(parentLunId);
 
         List<BlockHostAccess> hostAccesses = parentLun.getHostAccess();
@@ -1752,12 +1746,9 @@ public class VNXeApiClient {
         return result;
     }
 
-    public void unexportSnap(String snapId, List<VNXeHostInitiator> initiators) {
+    public void unexportSnap(String hostId, String snapId) {
         _logger.info("Unexporting snap: {}", snapId);
 
-        for (VNXeHostInitiator initiator : initiators) {
-            _logger.info("removing host: {} ", initiator.getName());
-        }
         String parentLunId = null;
         String groupId = null;
         if (!_khClient.isUnity()) {
@@ -1791,12 +1782,6 @@ public class VNXeApiClient {
         }
 
         VNXeLun parentLun = getLun(parentLunId);
-
-        Set<String> removingHosts = findHostsByInitiators(initiators);
-        if (removingHosts.isEmpty()) {
-            _logger.info("No host found.");
-            return;
-        }
         List<BlockHostAccess> hostAccesses = parentLun.getHostAccess();
 
         if (hostAccesses == null || hostAccesses.isEmpty()) {
@@ -1811,9 +1796,8 @@ public class VNXeApiClient {
          */
         boolean needReattach = false;
         for (BlockHostAccess hostAccess : hostAccesses) {
-            String hostId = hostAccess.getHost().getId();
             int accessMask = hostAccess.getAccessMask();
-            if (removingHosts.contains(hostId)) {
+            if (hostId.equals(hostAccess.getHost().getId())) {
                 if (accessMask == HostLUNAccessEnum.BOTH.getValue()) {
                     hostAccess.setAccessMask(HostLUNAccessEnum.PRODUCTION.getValue());
                 } else if (accessMask == HostLUNAccessEnum.SNAPSHOT.getValue()) {
@@ -1987,7 +1971,6 @@ public class VNXeApiClient {
                             }
                         } else {
                             isValid = false;
-
                         }
                     }
                 } catch (UnknownHostException e) {
@@ -2041,21 +2024,23 @@ public class VNXeApiClient {
      * @param hostInitiators
      * @return
      */
-    private VNXeBase prepareHostsForExport(List<VNXeHostInitiator> hostInitiators) {
+    public VNXeBase prepareHostsForExport(Collection<VNXeHostInitiator> hostInitiators) throws VNXeException {
 
         String hostId = null;
         Set<VNXeHostInitiator> notExistingInits = new HashSet<VNXeHostInitiator>();
         Set<VNXeHostInitiator> existingNoHostInits = new HashSet<VNXeHostInitiator>();
         String hostOsType = null;
+        String hostName = null;
         for (VNXeHostInitiator init : hostInitiators) {
-            VNXeHostInitiator existingInit = null;
-            HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
-
-            existingInit = initReq.getByIQNorWWN(init.getInitiatorId());
+            VNXeHostInitiator existingInit = getInitiatorByWWN(init.getInitiatorId());
 
             if (existingInit != null && existingInit.getParentHost() != null) {
-                hostId = existingInit.getParentHost().getId();
-
+                if (hostId == null) {
+                    hostId = existingInit.getParentHost().getId();
+                } else if (!hostId.equals(existingInit.getParentHost().getId())) {
+                    _logger.error("Initiators belong to different hosts");
+                    throw VNXeException.exceptions.vnxeCommandFailed("Initiators belong to different hosts");
+                }
             } else if (existingInit != null) {
                 existingNoHostInits.add(existingInit);
             } else {
@@ -2064,12 +2049,16 @@ public class VNXeApiClient {
             if (hostOsType == null) {
                 hostOsType = init.getHostOsType();
             }
+
+            if (hostName == null) {
+                hostName = init.getName();
+            }
         }
         if (hostId == null) {
             // create host and hostInitiator
             HostListRequest hostReq = new HostListRequest(_khClient);
             HostCreateParam hostCreateParm = new HostCreateParam();
-            hostCreateParm.setName(hostInitiators.get(0).getName());
+            hostCreateParm.setName(hostName);
 
             hostCreateParm.setType(HostTypeEnum.HOSTMANUAL.getValue());
 
@@ -2305,27 +2294,6 @@ public class VNXeApiClient {
         _logger.info("detaching lun group snap:", snapId);
         LunGroupSnapRequests req = new LunGroupSnapRequests(_khClient);
         return req.detachLunGroupSnap(snapId);
-    }
-
-    /**
-     * find host ids based on passed in host initiator's iqn or wwn
-     * 
-     * @param hostInits
-     * @return
-     */
-    private Set<String> findHostsByInitiators(List<VNXeHostInitiator> hostInits) {
-        Set<String> hosts = new HashSet<String>();
-        for (VNXeHostInitiator init : hostInits) {
-            HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
-            VNXeHostInitiator existingInit = initReq.getByIQNorWWN(init.getInitiatorId());
-
-            if (existingInit != null && existingInit.getParentHost() != null) {
-                String hostId = existingInit.getParentHost().getId();
-                hosts.add(hostId);
-
-            }
-        }
-        return hosts;
     }
 
     /**
@@ -2864,6 +2832,17 @@ public class VNXeApiClient {
     }
 
     /**
+     * Get Initiators using parent host Id
+     *
+     * @param hostId parent host Id
+     * @return host initiator instances
+     */
+    public List<VNXeHostInitiator> getInitiatorsByHostId(String hostId) {
+        HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
+        return initReq.getByHostId(hostId);
+    }
+
+    /**
      * Create host initiator in the array
      * 
      * @param inits
@@ -2885,6 +2864,30 @@ public class VNXeApiClient {
         HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
         req.createHostInitiator(initCreateParam);
 
+    }
+
+    /**
+     * Delete initiator
+     *
+     * @param initiatorId initiator Id (IQN or WWN)
+     */
+    public VNXeCommandResult deleteInitiator(String initiatorId)
+            throws VNXeException {
+        _logger.info("deleting initiator: " + initiatorId);
+        DeleteHostInitiatorRequest req = new DeleteHostInitiatorRequest(_khClient);
+        return req.deleteInitiator(initiatorId);
+    }
+
+    /**
+     * Delete host
+     *
+     * @param hostId host Id
+     */
+    public VNXeCommandResult deleteHost(String hostId)
+            throws VNXeException {
+        _logger.info("deleting host: " + hostId);
+        DeleteHostRequest req = new DeleteHostRequest(_khClient, hostId);
+        return req.deleteHost();
     }
 
     /**

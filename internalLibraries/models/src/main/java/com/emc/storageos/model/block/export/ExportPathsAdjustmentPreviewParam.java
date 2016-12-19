@@ -5,18 +5,22 @@
 package com.emc.storageos.model.block.export;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="block_export_port_allocate")
-public class ExportPortAllocateParam {
+@XmlRootElement(name="block_export_paths_adjustment_preview")
+public class ExportPathsAdjustmentPreviewParam {
     private URI virtualArray;
     private URI storageSystem;
+    private Set<URI> hosts;
     private Boolean useExistingPaths;
     private ExportPathParameters exportPathParameters;
     
-    @XmlElement(name="path_parameters", required=false)
+    @XmlElement(name="path_parameters", required=true)
     public ExportPathParameters getExportPathParameters() {
         return exportPathParameters;
     }
@@ -65,6 +69,22 @@ public class ExportPortAllocateParam {
 
     public void setUseExistingPaths(Boolean useExistingPaths) {
         this.useExistingPaths = useExistingPaths;
+    }
+
+    @XmlElementWrapper(required = false)
+    /**
+     * For cluster export, only adjust paths on hosts specified (optional)
+     */
+    @XmlElement(name = "host")
+    public Set<URI> getHosts() {
+        if (hosts == null) {
+            hosts = new HashSet<URI>();
+        }
+        return hosts;
+    }
+
+    public void setHosts(Set<URI> hosts) {
+        this.hosts = hosts;
     }
 
 }

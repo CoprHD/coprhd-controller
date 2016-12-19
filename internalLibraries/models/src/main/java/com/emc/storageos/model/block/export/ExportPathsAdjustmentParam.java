@@ -12,13 +12,14 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="block_export_port_rebalance")
-public class ExportPortRebalanceParam {
+@XmlRootElement(name="block_export_paths_adjustment")
+public class ExportPathsAdjustmentParam {
     private URI storageSystem;
     private ExportPathParameters exportPathParameters;
     private List<InitiatorPathParam> adjustedPaths;
     private List<InitiatorPathParam> removedPaths;
     private Boolean waitBeforeRemovePaths;
+    private URI virtualArray;
     
     /**
      * Specifies the storage system whose ports will be reallocated.
@@ -33,9 +34,9 @@ public class ExportPortRebalanceParam {
     }
     
     /**
-     * Export path parameter to be used. if not specified, the existing path parameters would be used.
+     * Export path parameter to be used.
      */
-    @XmlElement(name="path_parameters", required=false)
+    @XmlElement(name="path_parameters", required=true)
     public ExportPathParameters getExportPathParameters() {
         return exportPathParameters;
     }
@@ -90,5 +91,18 @@ public class ExportPortRebalanceParam {
 
     public void setWaitBeforeRemovePaths(Boolean wait) {
         waitBeforeRemovePaths = wait;
+    }
+    
+    /**
+     *  Optional virtual_array parameter. Must match the Export Group virtual array or the
+     *  alternate VPLEX high availability virtual array for the storage system.
+     */
+    @XmlElement(name = "virtual_array", required=false)
+    public URI getVirtualArray() {
+        return virtualArray;
+    }
+
+    public void setVirtualArray(URI virtualArray) {
+        this.virtualArray = virtualArray;
     }
 }

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,7 +19,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import static com.google.common.collect.Sets.newHashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,8 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -60,7 +63,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
-import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
@@ -1345,6 +1347,7 @@ public class ExportMaskUtils {
      */
     public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
         ExportMask exportMask = null;
+        ExportMask result = null;
         URIQueryResultList uriQueryList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(name), uriQueryList);
@@ -1355,10 +1358,11 @@ public class ExportMaskUtils {
                     exportMask.getStorageDevice().equals(storageSystemId)) {
                 // We're expecting there to be only one export mask of a
                 // given name for any storage array.
+                result = exportMask;
                 break;
             }
         }
-        return exportMask;
+        return result;
     }
 
     /**
@@ -1534,7 +1538,21 @@ public class ExportMaskUtils {
     }
     
     /**
-     * Get new paths which are not in any of the export masks zoning maps from the giving paths
+     * Given a zone map as a Map of initiators to List of corresponding ports,
+     * return the union of all ports in the map.
+     * @param zoneMap Map<URI initiator, List<URI> portList>
+     * @return Set of all ports.
+     */
+    public static Set<URI> getAllPortsInZoneMap(Map<URI, List<URI>> zoneMap) {
+        Set<URI> result = new HashSet<URI>();
+        for (List<URI> ports : zoneMap.values()) {
+            result.addAll(ports);
+        }
+        return result;
+    }
+
+    /*
+     * Get new paths which are not in any of the export masks zoning maps from the given paths
      * 
      * @param dbClient
      * @param exportMasks
@@ -1576,7 +1594,6 @@ public class ExportMaskUtils {
             
         }
         return newPaths;
-        
     }
     
     /**
@@ -1628,17 +1645,7 @@ public class ExportMaskUtils {
      */
     public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
-        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
-        if (initiators == null || initiators.isEmpty()) {
-            return result;
-        }
-        Set<String> hostsInMask = new HashSet<String> ();
-        for (Initiator init : initiators) {
-            String hostName = init.getHostName();
-            if (hostName != null && !hostName.isEmpty()) {
-                hostsInMask.add(hostName);
-            }
-        }
+        Set<String> hostsInMask = getHostNamesInMask(exportMask, dbClient);
         for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
             URI initURI = entry.getKey();
             if (exportMask.getInitiators().contains(initURI.toString())) {
@@ -1657,4 +1664,93 @@ public class ExportMaskUtils {
         return result;
         
     }
+    
+    /**
+     * Returns the set of Hosts Names in an ExportMask
+     * @param exportMask
+     * @param dbClient
+     * @return Set of Hostnames
+     */
+    public static Set<String> getHostNamesInMask(ExportMask exportMask, DbClient dbClient) {
+        Set<String> hostsInMask = new HashSet<String> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return hostsInMask;
+        }
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        return hostsInMask;
+    }
+    
+    /**
+     * Builds a default zoneMap from the initiators and ports.
+     
+     * For the targets in the mask, they are paired with the initiators they can service,
+     * i.e. that are on the same or a routeable network, and are usable in the varray,
+     * and the corresponding zones are put in the zoning map.
+     * 
+     * 
+     * @param mask -- The ExportMask being manipulated
+     * @param varray -- The Virtual Array (normally from the ExportGroup)
+     * @param dbClient -- DbClient 
+     * 
+     *            Assumption: the export mask has up to date initiators and storage ports
+     */
+    public static StringSetMap buildZoningMapFromInitiatorsAndPorts(ExportMask mask, URI varray, DbClient dbClient) {
+        _log.info(String.format("Creating zoning map for ExportMask %s (%s) from the initiator and port sets",
+                mask.getMaskName(), mask.getId()));
+        StringSetMap zoningMap = new StringSetMap();
+
+        // Loop through the Initiators, looking for ports in the mask
+        // corresponding to the Initiator.
+        for (String initiatorURIStr : mask.getInitiators()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorURIStr));
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            List<URI> storagePortList = ExportUtils.getPortsInInitiatorNetwork(mask, initiator, dbClient);
+            if (storagePortList.isEmpty()) {
+                continue;
+            }
+            StringSet storagePorts = new StringSet();
+            for (URI portURI : storagePortList) {
+                StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
+                URI portNetworkId = port.getNetwork();
+                if (!DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                        .equals(port.getCompatibilityStatus())
+                        || !DiscoveryStatus.VISIBLE.name().equals(port.getDiscoveryStatus())
+                        || NullColumnValueGetter.isNullURI(portNetworkId)
+                        || !port.getRegistrationStatus().equals(
+                                StoragePort.RegistrationStatus.REGISTERED.name())
+                        || StoragePort.PortType.valueOf(port.getPortType()) != StoragePort.PortType.frontend) {
+                    _log.debug(
+                            "Storage port {} is not selected because it is inactive, is not compatible, is not visible, not on a network, "
+                                    + "is not registered, or is not a frontend port",
+                            port.getLabel());
+                    continue;
+                }
+                
+                // If the port can be used in the varray,
+                // include it in the zone map port entries for the initiator.
+                // Network connectivity was checked in getInitiatorPortsInMask()
+                if (port.getTaggedVirtualArrays().contains(varray.toString())) {
+                    storagePorts.add(portURI.toString());
+                } else {
+                    _log.debug(
+                            "Storage port {} is not selected because it is not in the specified varray {}",
+                            port.getLabel(), varray.toString());
+                }
+            }
+            if (!storagePorts.isEmpty()) {
+                zoningMap.put(initiatorURIStr, storagePorts);
+            }
+        }
+        _log.info("Constructed zoningMap -" + zoningMap.toString());
+        return zoningMap;
+    }
+
 }

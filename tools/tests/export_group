@@ -62,7 +62,7 @@ def export_group_update(args):
 	print 'Export group update failed.'
 	sys.exit(1);
 
-def export_group_realloc(args):
+def export_group_pathadj(args):
     bourne.connect(args.ip)
     groupId = bourne.export_group_query(args.groupId)
     storageId = bourne.storagedevice_query(args.storageId)
@@ -91,25 +91,33 @@ def export_group_realloc(args):
                        print "Adding port : ", storagePort, port['id']
                        storage_ports.append(port['id'])
 	    path_param['storage_ports'] = storage_ports
+	hosts = []
+	if (args.hosts):
+	    hostList = args.hosts.split(',')
+	    for hostName in hostList:
+	        hostId = bourne.host_query(hostName)
+		print "Adding host: ", hostName, hostId
+		hosts.append(hostId)
+	    print "hosts: ", hosts
     except:
         print 'No path parameters (optional)'
-    rep = bourne.export_group_realloc(groupId, storageId, varrayId, args.useexisting, path_param);
+    rep = bourne.export_group_pathadj_preview(groupId, storageId, varrayId, args.useexisting, path_param, hosts);
     try:
-        addedpaths=rep['added_paths']
+        adjustedpaths=rep['adjusted_paths']
     except:
         print rep
         return
     print "Added or Retained Paths: "
     adjusted_paths = []
-    for path in addedpaths:
-        added_path = dict();
-        added_path['initiator'] = path['initiator']['id']
-        added_ports = []
+    for path in adjustedpaths:
+        adjusted_path = dict();
+        adjusted_path['initiator'] = path['initiator']['id']
+        adjusted_ports = []
         for port in path['storage_ports']:
             print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
-            added_ports.append(port['id'])
-        added_path['storage_ports'] = added_ports
-        adjusted_paths.append(added_path)   
+            adjusted_ports.append(port['id'])
+        adjusted_path['storage_ports'] = adjusted_ports
+        adjusted_paths.append(adjusted_path)   
     removedPaths=rep['removed_paths']
     removed_paths = []
     print "Removed Paths: "
@@ -134,6 +142,7 @@ def export_group_realloc(args):
         print "Executing..."
         gopayload=dict()
         gopayload['storage_system'] = storageId
+        gopayload['virtual_array'] = varrayId
         gopayload['path_parameters'] = path_param
         gopayload['adjusted_paths'] = adjusted_paths
         gopayload['removed_paths'] = removed_paths
@@ -142,7 +151,7 @@ def export_group_realloc(args):
         else:
             gopayload['wait_before_remove_paths'] = 'false';
         print gopayload
-        (o, s) = bourne.export_group_rebalance(groupId, gopayload) 
+        (o, s) = bourne.export_group_pathadj(groupId, gopayload) 
         if (s['state'] == 'ready'):
 	    print 'Export group updated with id ' + s['resource']['id']
         elif (s['state'] != 'suspended_no_error'):
@@ -279,18 +288,19 @@ update.add_argument('--minpath', help = 'minimum number storage paths')
 update.add_argument('--pathsperinit', help = 'paths per initiator')
 update.add_argument('--ports', help = 'storage ports for export')
 
-# realloc ports
-realloc = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-realloc.add_argument('groupId', help='name of export_group proj/group')
-realloc.add_argument('storageId', help='storage system')
-realloc.add_argument('--varray', help='Varray (neighborhood)')
-realloc.add_argument('--maxpath', help = 'maximum number storage paths')
-realloc.add_argument('--minpath', help = 'minimum number storage paths')
-realloc.add_argument('--pathsperinit', help = 'paths per initiator')
-realloc.add_argument('--ports', help = 'storage ports for export')
-realloc.add_argument('--useexisting', help = 'use the existing paths')
-realloc.add_argument('--go', help = 'execute the rebalance command')
-realloc.add_argument('--wait', help = 'wait before removing paths')
+# pathadj ports
+pathadj = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+pathadj.add_argument('groupId', help='name of export_group proj/group')
+pathadj.add_argument('storageId', help='storage system')
+pathadj.add_argument('--varray', help='Varray (neighborhood)')
+pathadj.add_argument('--maxpath', help = 'maximum number storage paths')
+pathadj.add_argument('--minpath', help = 'minimum number storage paths')
+pathadj.add_argument('--pathsperinit', help = 'paths per initiator')
+pathadj.add_argument('--ports', help = 'storage ports for export')
+pathadj.add_argument('--hosts', help = 'optional list of hosts to process')
+pathadj.add_argument('--useexisting', help = 'use the existing paths')
+pathadj.add_argument('--go', help = 'execute the rebalance command')
+pathadj.add_argument('--wait', help = 'wait before removing paths')
 
 # export_group delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -394,9 +404,9 @@ try:
     elif(cmd == "search"):
         args = search.parse_args()
         export_group_search(args)
-    elif(cmd == "realloc"):
-        args = realloc.parse_args()
-        export_group_realloc(args)
+    elif(cmd == "pathadj"):
+        args = pathadj.parse_args()
+        export_group_pathadj(args)
     else:
         parser.print_help()
 

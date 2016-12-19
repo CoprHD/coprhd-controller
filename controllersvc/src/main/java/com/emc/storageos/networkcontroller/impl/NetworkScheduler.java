@@ -1298,7 +1298,7 @@ public class NetworkScheduler {
      * Returns a list of zoning targets for adding paths to the export mask.
      * 
      * @param exportGroup ExportGroup
-     * @param exportMaskURI export mask URI
+     * @param exportMaskURIs export mask URIs
      * @param path Map of initiator URI to List of storage port URIs
      * @param zonesMap a list of existing zones mapped by the initiator port WWN
      * @param dbClient
@@ -1307,27 +1307,23 @@ public class NetworkScheduler {
      */
     public List<NetworkFCZoneInfo> getZoningTargetsForPaths(
             URI storageSystemURI,
-            ExportGroup exportGroup, Map<URI, List<URI>> paths,
+            ExportGroup exportGroup,
+            Collection<URI> exportMaskURIs,
+            Map<URI, List<URI>> paths,
             Map<String, List<Zone>> zonesMap, DbClient dbClient)
             throws DeviceControllerException {
         List<NetworkFCZoneInfo> zones = new ArrayList<NetworkFCZoneInfo>();
-        //TODO get volumes in the export group matching the systemURI
-        StringMap volumeMap = exportGroup.getVolumes();
+
         List<URI> volumes = new ArrayList<URI>();
-        if (volumeMap == null) {
-            // it should not happen, log
-            _log.info(String.format("There is no volume in the export group %s", exportGroup.getLabel()));
-        } else {
-            Set<String> vols = volumeMap.keySet();
-            for (String volId : vols) {
-                URI volURI = URI.create(volId);
-                Volume volume = dbClient.queryObject(Volume.class, volURI);
-                if (volume != null) {
-                    URI systemURI = volume.getStorageController();
-                    if (systemURI.equals(storageSystemURI)) {
-                        volumes.add(volURI);
-                    }
-                }
+        for (URI maskURI : exportMaskURIs) {
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, maskURI);
+            StringMap volumeMap = mask.getVolumes();
+            if (volumeMap == null) {
+                // it should not happen, log
+                _log.info(String.format("There is no volume in the export mask %s, skip", mask.getMaskName()));
+                continue;
+            } else {
+                volumes.addAll(StringSetUtil.stringSetToUriList(volumeMap.keySet()));
             }
         }
         

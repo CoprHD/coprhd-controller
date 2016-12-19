@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAdd
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -2155,8 +2156,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected Map<URI, Boolean> flagInitiatorsThatArePartOfAFullList(ExportGroup exportGroup,
             List<URI> initiatorURIs) {
         Map<URI, Boolean> initiatorFlagMap = new HashMap<URI, Boolean>();
-        // We only care about Host and Cluster exports for this processing
-        if (exportGroup.forCluster() || exportGroup.forHost()) {
+        /**
+         * TODO Should not remove volume from mask for the EG remove initiator call.
+         */
+        // We only care about Host exports for this processing
+        if (exportGroup.forHost()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
             Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
@@ -2654,7 +2658,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
         
         String maskingStep = workflow.createStepId();
-        ExportTaskCompleter exportTaskCompleter = new ExportOrchestrationTask(exportGroupURI, maskingStep);
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskRemovePathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
 
         Workflow.Method executeMethod = new Workflow.Method(
                 "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI, adjustedPaths, 

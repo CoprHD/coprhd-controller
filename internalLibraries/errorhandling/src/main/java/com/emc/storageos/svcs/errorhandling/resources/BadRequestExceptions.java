@@ -3141,4 +3141,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentAdjustedPathNotValid(final String initiatorOrTargets);
     
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentNoPathAdjustmentAllowed(final String exportGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidParameterWwnBadFormat(String wwn);
 }

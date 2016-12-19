@@ -276,4 +276,16 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
         return new ClusterSearchBuilder(this);
     }
 
+    /**
+     * Updates shared export groups of cluster by ID.
+     * <p>
+     * API Call: <tt>POST /compute/clusters/{id}/update-shared-exports</tt>
+     *
+     * @param id
+     *            the ID of the cluster to update.
+     * @return
+     */
+    public Task<ClusterRestRep> updateExportGroups(URI id) {
+        return postTask(PathConstants.CLUSTER_UPDATE_SHARED_EXPORTS_URL, id);
+    }
 }

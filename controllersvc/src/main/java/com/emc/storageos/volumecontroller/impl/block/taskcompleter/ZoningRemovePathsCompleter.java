@@ -11,9 +11,9 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ZoningRemovePathsCompleter extends ExportTaskCompleter{
 
@@ -35,19 +35,18 @@ public class ZoningRemovePathsCompleter extends ExportTaskCompleter{
                     URI maskURI = maskPathEntry.getKey();
                     Map<URI, List<URI>> zoningPaths = maskPathEntry.getValue();
                     ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskURI);
-                    log.info("Updating export mask zoning map" + exportMask.toString());
                     // update zoning map
-                    StringSetMap newZoningMap = ExportMaskUtils.getZoneMapFromAssignments(zoningPaths);
-                    exportMask.setZoningMap(newZoningMap);
-                    
+                    StringSetMap zoningMap = exportMask.getZoningMap();
+                    zoningMap.clear();
+                    for (Map.Entry<URI, List<URI>> zoningPath : zoningPaths.entrySet()) {
+                        zoningMap.put(zoningPath.getKey().toString(), StringSetUtil.uriListToStringSet(zoningPath.getValue()));
+                    }
                     dbClient.updateObject(exportMask);
-                    exportMask = dbClient.queryObject(ExportMask.class, maskURI);
-                    log.info("updated export mask: " + exportMask.toString());
                 }
             }
         } catch (Exception e) {
             log.error(String.format(
-                    "Failed updating status for ExportMaskAddPaths - Id: %s, OpId: %s",
+                    "Failed updating status for ZoningRemovePaths - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         } finally {
             super.complete(dbClient, status, coded);

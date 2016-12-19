@@ -2101,9 +2101,6 @@ public class BlockService extends TaskResourceService {
             checkForPendingTasks(tenantSet, volumes);
         }
 
-        // Make sure we have task identifier.
-        String task = UUID.randomUUID().toString();
-
         // Volumes on different storage systems need to be deleted with
         // separate, individual calls to the controller. Therefore, we
         // need to map the volumes passed to the storage systems on
@@ -2155,6 +2152,12 @@ public class BlockService extends TaskResourceService {
             }
         }
 
+        // since we issue one controller request per storage system, we must give each storage system
+        // a separate task id. Otherwise, we will create multiple workflows with the same task id
+        // which is not allowed.
+        // this maps task ids to their storage systems
+        Map<URI, String> systemURITaskIdMap = new HashMap<URI, String>();
+
         // Now loop over the volumes, initializing the above constructs.
         for (Volume volume : volumes) {
             URI volumeURI = volume.getId();
@@ -2171,6 +2174,11 @@ public class BlockService extends TaskResourceService {
                 } else {
                     systemURI = volume.getStorageController();
                 }
+
+                if (systemURITaskIdMap.get(systemURI) == null) {
+                    systemURITaskIdMap.put(systemURI, UUID.randomUUID().toString());
+                }
+                String task = systemURITaskIdMap.get(systemURI);
 
                 // Create a task resource response for this volume and
                 // set the initial task state to pending.
@@ -2219,6 +2227,7 @@ public class BlockService extends TaskResourceService {
         Iterator<URI> systemsURIIter = systemVolumesMap.keySet().iterator();
         while (systemsURIIter.hasNext()) {
             URI systemURI = systemsURIIter.next();
+            String task = systemURITaskIdMap.get(systemURI);
             try {
                 List<URI> systemVolumes = systemVolumesMap.get(systemURI);
                 BlockServiceApi blockServiceApi = getBlockServiceImpl(queryVolumeResource(systemVolumes.get(0)));
@@ -4815,9 +4824,9 @@ public class BlockService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param vid
-     *            Volume identifier
      * @param id
+     *            Volume identifier
+     * @param pid
      *            the URN of a ViPR ProtectionSet
      *
      * @brief Show protection set
@@ -4825,12 +4834,12 @@ public class BlockService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{vid}/protection/protection-sets/{id}")
+    @Path("/{id}/protection/protection-sets/{pid}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public ProtectionSetRestRep getProtectionSet(@PathParam("vid") URI vid, @PathParam("id") URI id) {
-        validateProtectionSetUri(vid, id);
-        _log.info("Getting protection set for ID: " + id);
-        ProtectionSet protectionSet = queryProtectionSetResource(id);
+    public ProtectionSetRestRep getProtectionSet(@PathParam("id") URI id, @PathParam("pid") URI pid) {
+        validateProtectionSetUri(id, pid);
+        _log.info("Getting protection set for ID: " + pid);
+        ProtectionSet protectionSet = queryProtectionSetResource(pid);
         _log.info("Protection set status: " + protectionSet.getProtectionStatus());
         return map(protectionSet);
     }
@@ -4851,7 +4860,6 @@ public class BlockService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/protection/addJournalCapacity")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
         ArgValidator.checkFieldNotNull(param, "volume_create");
 

@@ -47,10 +47,12 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -292,7 +294,22 @@ public class ClusterService extends TaskResourceService {
 
         if (ComputeSystemHelper.isClusterInExport(_dbClient, cluster.getId()) && !detachStorage) {
             throw APIException.badRequests.resourceHasActiveReferences(Cluster.class.getSimpleName(), id);
+        } else if (resourceHasPendingTasks(id)) {
+            throw APIException.badRequests
+                    .resourceCannotBeDeleted("Cluster has another operation in progress.  " + cluster.getLabel());
         } else {
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, id, Host.class, "cluster");
+            List<Host> hosts = _dbClient.queryObject(Host.class, clusterHosts);
+            if (null != hosts && !hosts.isEmpty()) {
+                for (Host host : hosts) {
+                    if (null != host && resourceHasPendingTasks(host.getId())) {
+                        // throw exception and do not proceed with
+                        // cluster delete...
+                        throw APIException.badRequests.resourceCannotBeDeleted(
+                                "Cluster has host - "+ host.getLabel() +" with another operation in progress.  " + cluster.getLabel());
+                    }
+                }
+            }
             String taskId = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                     ResourceOperationTypeEnum.DELETE_CLUSTER);
@@ -494,5 +511,51 @@ public class ClusterService extends TaskResourceService {
         }
 
         return list;
+    }
+
+    /**
+     * Updates the shared export groups of the give cluster
+     *
+     * @param id the URN of a ViPR cluster
+     *
+     * @return the representation of the updated cluster.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-shared-exports")
+    public TaskResourceRep updateClusterSharedExports(@PathParam("id") URI id) {
+        // query the cluster
+        Cluster cluster = queryObject(Cluster.class, id, true);
+
+        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, null, cluster.auditParameters());
+
+        String taskId = UUID.randomUUID().toString();
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
+                ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+        controller.synchronizeSharedExports(cluster.getId(), taskId);
+        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, op.getStatus(), cluster.auditParameters());
+
+        return toTask(cluster, taskId, op);
+    }
+
+    /**
+     * Verify if the given resource has pending/running tasks associated.
+     * @param id URI of resource to check for task
+     *
+     * @return true if resource has tasks running/pending else false.
+     */
+    private boolean resourceHasPendingTasks(URI id) {
+        boolean hasPendingTasks = false;
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        for (Task task : taskList) {
+            if (!task.getInactive() && task.isPending()) {
+                hasPendingTasks = true;
+                break;
+            }
+        }
+        return hasPendingTasks;
     }
 }

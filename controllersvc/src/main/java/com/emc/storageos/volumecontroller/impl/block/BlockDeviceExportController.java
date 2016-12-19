@@ -134,10 +134,10 @@ public class BlockDeviceExportController implements BlockExportController {
                     _log.info(String.format(
                             "Generating exportGroupCreates steps for objects %s associated with storage system [%s]",
                             objectsToAdd, entry.getKey()));
-                    _wfUtils.
+                _wfUtils.
                             generateExportGroupCreateWorkflow(workflow, null, waitFor,
                                     entry.getKey(), export, objectsToAdd, initiatorURIs);
-                }
+            }
             }
 
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
@@ -170,7 +170,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask tempExportMask : tempExportMasks) {
+                for (ExportMask tempExportMask : tempExportMasks) {               
                     List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                             _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                             StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), tempExportMask.getStorageDevice());
@@ -558,9 +558,9 @@ public class BlockDeviceExportController implements BlockExportController {
 
     private ExportMask getExportMask(URI exportGroupUri, URI storageUri) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-
+    
         for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
-            try {
+            try {               
                 if (exportMask.getStorageDevice().equals(storageUri)) {
                     return exportMask;
                 }
@@ -569,7 +569,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
             }
         }
-
+        
         return null;
     }
 
@@ -895,5 +895,5 @@ public class BlockDeviceExportController implements BlockExportController {
      */
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, _wfUtils);
-    }
+}
 }

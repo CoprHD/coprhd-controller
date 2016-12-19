@@ -426,6 +426,7 @@ public class NetworkDeviceController implements NetworkController {
                 }
 
             } else { /* Adding zones */
+                // WJEIV
                 result = networkDevice.addZones(device, zones, fabricId, fabricWwn, true);
                 if (result.isCommandSuccess()) {
                     String refKey = null;
@@ -1027,8 +1028,10 @@ public class NetworkDeviceController implements NetworkController {
                 result = BiosCommandResult.createSuccessfulResult();
             } else {
                 // Now call addZones to add all the required zones.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_047);
                 result = addRemoveZones(exportGroup.getId(),
                         context.getZoneInfos(), false);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_048);
             }
 
             // Save our zone infos in case we want to rollback.

@@ -92,11 +92,11 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                 recordBlockVolumeOperation(dbClient, OperationTypeEnum.DELETE_BLOCK_VOLUME, status, volume.getId().toString());
             }
 
-            if (status.equals(Operation.Status.error) && isRollingBack()) {
+            if (status.equals(Operation.Status.ready) || (status.equals(Operation.Status.error) && isRollingBack())) {
                 for (Volume volume : volumes) {
-                    volume.setInactive(true);
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 }
-                dbClient.updateObject(volumes);
+                dbClient.markForDeletion(volumes);
             }
 
         } catch (Exception e) {

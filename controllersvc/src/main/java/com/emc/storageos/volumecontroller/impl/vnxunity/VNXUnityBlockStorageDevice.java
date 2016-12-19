@@ -344,12 +344,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
             }
 
-            // TODO: This'll likely need to move to the completer OR the update object needs to also be done in the
-            // exception blocks
-            for (Volume vol : volumes) {
-                vol.setInactive(true);
-                dbClient.updateObject(vol);
-            }
             for (URI pool : updateStoragePools) {
                 VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, pool, null);
             }
@@ -689,15 +683,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 logger.info("Consistency group {} created", label);
             } else {
                 logger.error("No storage resource Id returned");
-                BlockConsistencyGroupUtils.cleanUpCG(consistencyGroupObj, storage.getId(), null, false, dbClient);
-                dbClient.updateObject(consistencyGroupObj);
+                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroupObj, storage.getId(), null, false, dbClient);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateConsistencyGroup failed");
                 taskCompleter.error(dbClient, error);
             }
         } catch (Exception e) {
             logger.error("Exception caught when creating consistency group ", e);
-            BlockConsistencyGroupUtils.cleanUpCG(consistencyGroupObj, storage.getId(), null, false, dbClient);
-            dbClient.updateObject(consistencyGroupObj);
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroupObj, storage.getId(), null, false, dbClient);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateConsistencyGroup", e.getMessage());
             taskCompleter.error(dbClient, error);
         }
@@ -720,8 +712,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 if (cgNames == null || cgNames.isEmpty()) {
                     logger.info("There is no array consistency group to be deleted.");
                     // Clean up the system consistency group references
-                    BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), null, markInactive, dbClient);
-                    dbClient.updateObject(consistencyGroup);
+                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), null, markInactive, dbClient);
                     taskCompleter.ready(dbClient);
                     return;
                 }
@@ -739,11 +730,10 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     apiClient.deleteConsistencyGroup(id, false, false);
                     if (!keepRGName) {
                         // Clean up the system consistency group references
-                        BlockConsistencyGroupUtils.cleanUpCG(consistencyGroup, storage.getId(), cgName, markInactive, dbClient);
+                        BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), cgName, markInactive, dbClient);
                         if (consistencyGroup.getInactive()) {
                             logger.info("CG is deleted");
                         }
-                        dbClient.updateObject(consistencyGroup);
                     }
                 }
             }

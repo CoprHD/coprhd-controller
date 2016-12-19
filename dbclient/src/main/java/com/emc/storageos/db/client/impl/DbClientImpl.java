@@ -1336,7 +1336,7 @@ public class DbClientImpl implements DbClient {
         while (it.hasNext()) {
             it.next().setInactive(true);
         }
-        persistObject(objects);
+        updateObject(objects);
     }
 
     @Override

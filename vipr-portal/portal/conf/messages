@@ -1094,7 +1094,7 @@ nodeRecovery.precheck.fail.drorgeo=Don't support node recovery on vApp in DR/GEO
 nodeRecovery.precheck.fail.unreachable=There is node unreachable, please power it on and refresh this page
 nodeRecovery.precheck.fail.quorum=Can't do node recovery because that the count of node with db service corrupted is more than quorum node count of this site
 nodeRecovery.precheck.fail.other=Can't do node recovery because node corrupted for other reason.
-nodeRecovery.precheck.success=DB service on node %s need to be recovere
+nodeRecovery.precheck.success=DB service on node %s need to be recovered
 
 # System Health Dashboard
 system.healthdashboard.title=System Health

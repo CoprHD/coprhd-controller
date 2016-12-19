@@ -699,17 +699,13 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
-        log.info("lby00 start={} end={} max={}", startTimeInMS, endTimeInMS, max);
+        log.info("start={} end={} max={}", startTimeInMS, endTimeInMS, max);
 
         List<Order> orders = orderManager.getUserOrders(user, startTimeInMS, endTimeInMS, max);
-        log.info("lby0 done0");
 
         List<OrderRestRep> list = toOrders(orders, user);
 
-        OrderBulkRep resp = new OrderBulkRep(list);
-        log.info("lby0 done1");
-
-        return resp;
+        return new OrderBulkRep(list);
     }
 
     private long getTime(String timeStr, long defaultTime) {
@@ -760,11 +756,12 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
-        log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
+        log.info("start={} end={}", startTimeInMS, endTimeInMS);
         long count = orderManager.getOrderCount(user, startTimeInMS, endTimeInMS);
-        log.info("lbyb0 count={} done0", count);
+        log.info("count={}", count);
 
         OrderCount resp = new OrderCount();
+
         resp.put(user.getName(), count);
 
         return resp;

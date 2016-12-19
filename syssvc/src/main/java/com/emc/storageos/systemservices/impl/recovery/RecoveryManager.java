@@ -456,7 +456,6 @@ public class RecoveryManager implements Runnable {
         try {
             lock = getRecoveryLock();
 
-            validatePlatform();
             validateNodeRecoveryStatus();
             validateClusterState();
 

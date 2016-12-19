@@ -103,6 +103,7 @@ public class URIUtil {
         try {
             return isValid(new URI(uri));
         } catch (URISyntaxException e) {
+            log.error("URISyntaxException : uri passed is {} ", uri, e);
             return false;
         }
     }

@@ -93,7 +93,6 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
@@ -127,7 +126,6 @@ import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
-import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
@@ -341,6 +339,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         "If you rollback the deletion of the migration source, it will be inventory deleted from ViPR, "
         + "and you should rename the source volume on the array as ViPR uses a temporary name that may " 
         + "conflict with future migrations.";
+    // Maximum HLU TODO find out the value from array
+    public static final int MAX_HLU = 2048;
 
     // migration speed to transfer size map
     private static final Map<String, String> migrationSpeedToTransferSizeMap;
@@ -1821,6 +1821,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Hosts may have connectivity to one varray (local or HA), or both.
             // Only one HA varray is allowed (technically one Varray not matching the ExportGroup).
             // It is persisted in the exportGroup.altVirtualArray map with the Vplex System ID as key.
+
+            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
 
             // Get a mapping of Virtual Array to the Volumes visible in each Virtual Array.
             Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient, volumeMap.keySet(),
@@ -5305,9 +5307,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        // ExportUtils.findAndUpdateFreeHLUsForClusterExport(getInstance(), getDevice(), storage, exportGroup, initiatorURIs, volumeMap,
-        // _dbClient);
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
     }
+
+
 
     public void setVplexApiFactory(VPlexApiFactory _vplexApiFactory) {
         this._vplexApiFactory = _vplexApiFactory;

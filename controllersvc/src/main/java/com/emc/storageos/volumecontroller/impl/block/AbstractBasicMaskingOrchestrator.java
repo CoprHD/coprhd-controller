@@ -41,6 +41,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCom
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -110,8 +111,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
              * Update the new values in the VolumeHLU Map.
              */
             Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
-
-            Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+            Integer maxHLU = null;
+            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                maxHLU = VPlexDeviceController.MAX_HLU;
+            } else {
+                maxHLU = getDevice().getMaximumAllowedHLU(storage);
+            }
 
             Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
@@ -141,8 +146,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             List<URI> hostURIs = new ArrayList<URI>();
             processInitiators(exportGroup, hostInitiatorURIs, initiatorNames, portNameToInitiatorURI, hostURIs);
             queryHostInitiatorsAndAddToList(initiatorNames, portNameToInitiatorURI, initiatorURIs, hostURIs);
-
-            Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);
+            Set<Integer> hostUsedHlus = null;
+            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                hostUsedHlus = VPlexControllerUtils.findHLUsForInitiators(storage, initiatorNames, false);
+            } else {
+                hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);
+            }
             usedHlus.addAll(hostUsedHlus);
         }
         return usedHlus;

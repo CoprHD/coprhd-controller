@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,9 +58,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -1557,7 +1556,7 @@ public class ExportUtils {
      * @return the free HLUs to use
      */
     public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
-        Set<Integer> freeHLUs = new HashSet<Integer>();
+        Set<Integer> freeHLUs = new LinkedHashSet<>();
         for (int i = 0; i < maxHLU; i++) {
             if (!usedHlus.contains(i)) {
                 freeHLUs.add(i);

@@ -658,19 +658,6 @@ public class UcsComputeDevice implements ComputeDevice {
                     .toString(), e);
         }
 
-        try {
-            ucsmService.setServiceProfileToLanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                    ce.getDn());
-            /*
-             * Wait for the reboot that happens on setting the lan boot policy on the ServiceProfile
-             */
-            pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), ce.getDn(), LsServer.class);
-        } catch (ClientGeneralException e) {
-            LOGGER.error("Unable to set lan boot On computeElement : " + ce.getId(), e);
-            throw ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(osInstallVlan, ce.getId()
-                    .toString(), e);
-        }
-
         return vlanMap;
 
     }
@@ -1021,6 +1008,30 @@ public class UcsComputeDevice implements ComputeDevice {
         return networkIdNetworkMapInVarray;
 
     }
+
+    public void setNoBoot(ComputeSystem cs, URI computeElementId, URI hostId,
+            boolean waitForServerRestart) throws InternalException {
+
+        ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, computeElementId);
+
+        try {
+            ucsmService.setServiceProfileToNoBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                    computeElement.getDn());
+
+            if (waitForServerRestart) {
+                pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                        computeElement.getDn(), LsServer.class);
+            }
+        } catch (ClientGeneralException e) {
+            if (computeElement == null){
+                throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElementId.toString(), e);
+            } else {
+                throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElement.getLabel(), e);
+            }
+        }
+
+    }
+
 
     @Override
     public void setLanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId,

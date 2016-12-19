@@ -635,6 +635,7 @@ public class ControllerServiceImpl implements ControllerService {
 
     public static void enqueueJob(QueueJob job) throws Exception {
         _jobQueue.put(job);
+        job.getJob().getTaskCompleter().setAsynchronous(true);
     }
 
     public static Object getBean(String name) {

@@ -542,7 +542,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
 
                     // Get a list of the ExportMasks that were matched to the initiator
-                    // go through the initiators and figure out the proper intiator and volume ramifications
+                    // go through the initiators and figure out the proper initiator and volume ramifications
                     // to the existing masks.
                     List<URI> exportMaskURIs = new ArrayList<URI>();
                     exportMaskURIs.addAll(entry.getValue());

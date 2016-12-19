@@ -70,6 +70,9 @@ public class FilePolicy extends DataObjectWithACLs {
     // Policy priority Low/High
     private String priority;
 
+    // Actual resources where is being applied
+    private StringSet policyStorageResources;
+
     /**
      * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
      * provisioning.
@@ -286,19 +289,19 @@ public class FilePolicy extends DataObjectWithACLs {
         return priority;
     }
 
-    public String setPriority(String priority) {
-        return this.priority = priority;
+    public void setPriority(String priority) {
+        this.priority = priority;
+        setChanged("priority");
     }
 
-    @Override
-    public String toString() {
-        return "FilePolicy [filePolicyType=" + filePolicyType + ", filePolicyName=" + filePolicyName + ", filePolicyDescription="
-                + filePolicyDescription + ", applyAt=" + applyAt + ", assignedResources=" + assignedResources + ", accessTenants="
-                + accessTenants + ", scheduleFrequency=" + scheduleFrequency + ", scheduleRepeat=" + scheduleRepeat + ", scheduleTime="
-                + scheduleTime + ", scheduleDayOfWeek=" + scheduleDayOfWeek + ", scheduleDayOfMonth=" + scheduleDayOfMonth
-                + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", fileReplicationType="
-                + fileReplicationType + ", fileReplicationCopyMode=" + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool
-                + ", applyToAllFS=" + applyToAllFS + "]";
+    @Name("policyStorageResources")
+    public StringSet getPolicyStorageResources() {
+        return policyStorageResources;
+    }
+
+    public void setPolicyStorageResources(StringSet policyStorageResources) {
+        this.policyStorageResources = policyStorageResources;
+        setChanged("policyStorageResources");
     }
 
 }

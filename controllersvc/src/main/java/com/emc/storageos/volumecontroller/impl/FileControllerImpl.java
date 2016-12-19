@@ -16,6 +16,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
@@ -198,7 +199,7 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void updateShareACLs(URI storageURI, URI fsURI, String shareName,
             CifsShareACLUpdateParams param, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         execFS("updateShareACLs", storageURI, fsURI, shareName, param, opId);
 
     }
@@ -242,6 +243,12 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void listSanpshotByPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
         execFS("listSanpshotByPolicy", storageURI, fsURI, policy, opId);
+
+    }
+
+    @Override
+    public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) throws InternalException {
+        execFS("applyFilePolicy", sourceFS, filePolicies, taskId);
 
     }
 }

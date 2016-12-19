@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
@@ -2616,7 +2617,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     _log.info("File Policy : {} creation started", snapshotPolicy.toString());
                     try {
-                        isi.createSnapshotSchedule(snapshotScheduleName, path, ScheduleValue, pattern, expireValue);
+                        String scheduleId = isi.createSnapshotSchedule(snapshotScheduleName, path, ScheduleValue, pattern, expireValue);
+
+                        if (scheduleId != null) {
+                            PolicyStorageResource policyStorageResource = new PolicyStorageResource(snapshotPolicy.getId(),
+                                    storageObj.getId(), scheduleId);
+                            policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
+                            _dbClient.createObject(policyStorageResource);
+
+                            StringSet assignedResources = new StringSet();
+                            assignedResources.add(policyStorageResource.getId().toString());
+                            snapshotPolicy.setPolicyStorageResources(assignedResources);
+                            _dbClient.updateObject(snapshotPolicy);
+
+                        }
                     } catch (IsilonException e) {
                         _log.error("create file policy failed.", e);
                         return BiosCommandResult.createErrorResult(e);

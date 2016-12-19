@@ -184,7 +184,9 @@ public class ControlService {
             lock.notifyAll();
         }
     }
-
+    /**
+    * Internal call to reset db data for vapp node recovery include cleanup db file,stop db service,create startup file.
+    */
     @POST
     @Path("internal/node/db-reset")
     @Produces({ MediaType.APPLICATION_JSON })
@@ -197,12 +199,17 @@ public class ControlService {
         return Response.ok().build();
     }
 
+    /**
+     * clean up database file and create hibernate file
+     */
     private void purgeDbData () {
-        final String startupMode="startupmode=hibernate";
-        final String dbFile="/data/db/startupmode";
-        final String geodbFile="/data/geodb/startupmode";
-        final String dbDir="/data/db";
-        final String geodbDir="/data/geodb";
+        final String startupModeFile = "starupmode";
+        final String startupModeContent = startupModeFile +"=hibernate";
+        final String dataDir = "/data/";
+        final String dbDir = dataDir + "db/";
+        final String geodbDir=dataDir +"geodb/";
+        final String dbFile= dbDir + startupModeFile;
+        final String geodbFile=geodbDir + startupModeContent;
 
         ArrayList<String> cleanDb = new ArrayList<>();
         cleanDb.add("/usr/bin/rm");
@@ -224,8 +231,8 @@ public class ControlService {
         _log.info("result code is {}",result.getExitValue());
         //String [] clean_db = {"/usr/bin/rm","-fr"};
         try {
-            FileUtils.writePlainFile(dbFile,startupMode.getBytes());
-            FileUtils.writePlainFile(geodbFile,startupMode.getBytes());
+            FileUtils.writePlainFile(dbFile,startupModeContent.getBytes());
+            FileUtils.writePlainFile(geodbFile,startupModeContent.getBytes());
         }catch (IOException e ) {
             _log.error("Error when create db startup mode file {}",e);
         }

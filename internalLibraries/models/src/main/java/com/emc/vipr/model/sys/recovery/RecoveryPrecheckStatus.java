@@ -27,9 +27,6 @@ public class RecoveryPrecheckStatus {
     private Status status ;
     private ArrayList<String> unavailables ;
     private ArrayList<String> recoverables;
-    /*public RecoveryPrecheckStatus (boolean status) {
-        this.status = status;
-    }*/
 
     @XmlElement(name="status")
     public  Status getStatus() {
@@ -39,7 +36,10 @@ public class RecoveryPrecheckStatus {
     public void setStatus(Status status) {
         this.status = status;
     }
-    /*dbsvc available node list*/
+
+    /**
+     * dbsvc available node list
+     */
     @XmlElementWrapper(name="unavailable_nodes")
     @XmlElement(name="unavailable_node")
     public ArrayList<String> getUnavailables() {
@@ -48,6 +48,9 @@ public class RecoveryPrecheckStatus {
         }
         return unavailables;
     }
+    /**
+     * dbsvc recoverable node list
+     */
     @XmlElementWrapper(name="recoverable_nodes")
     @XmlElement(name="recoverable_node")
     public ArrayList<String> getRecoverables() {

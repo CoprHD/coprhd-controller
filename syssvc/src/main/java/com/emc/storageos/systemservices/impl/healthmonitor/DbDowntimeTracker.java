@@ -140,10 +140,10 @@ public class DbDowntimeTracker {
                     _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days," +
                                     "please power on the node in timely manner",
                             serviceName, nodeId, offLineTimeInDay));
-                    //send alert
+                    //send mail alert
                     sendDbsvcOfflineMail(nodeId, serviceName, offLineTimeInDay, false);
                 }else {
-                    //send alert with link
+                    //send mail alert with link
                     _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days" +
                                     "node recovery would be needed to recovery it back",
                             serviceName, nodeId, offLineTimeInDay));

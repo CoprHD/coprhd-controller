@@ -247,7 +247,7 @@ public class RecoveryManager implements Runnable {
             runDbRepair();
 
             if (isVMwareVapp()) {
-                restartDatabaseService();
+                restartServices();
             }
             setRecoveryStatus(RecoveryStatus.Status.SYNCING);
             waitDbsvcStarted();
@@ -799,11 +799,9 @@ public class RecoveryManager implements Runnable {
     * */
     private void closeRecoveryLeaderSelector() {
         log.info ("close the leaderSelect on the node as dbsvc need to recover");
-       /* LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(
-                RecoveryConstants.RECOVERY_LEADER_PATH,
-                new RecoveryLeaderSelectorListener());*/
+
         leaderSelector.close();
-        /*make sure continue after stopLeadership exectued */
+        /*make sure continue after stopLeadership executed */
         try {
             Thread.sleep(RecoveryConstants.RECOVERY_CONNECT_INTERVAL);
         } catch (InterruptedException e) {
@@ -868,7 +866,10 @@ public class RecoveryManager implements Runnable {
         log.info("Alive nodes:{}, corrupted nodes: {}", aliveNodes, corruptedNodes);
     }
 
-    private void restartDatabaseService() {
+    /**
+    * restart dbsvc/geosvc/syssvc after repairing for vapp
+    */
+    private void restartServices() {
         for (String nodeId : corruptedNodes) {
             for (String serviceName : serviceNames) {
                 SysClientFactory.getSysClient(coordinator.getNodeEndpoint(nodeId)).

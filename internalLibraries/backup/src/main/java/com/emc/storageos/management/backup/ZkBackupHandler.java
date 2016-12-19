@@ -32,18 +32,27 @@ import org.apache.commons.io.FileUtils;
 import com.emc.storageos.management.backup.util.ValidationUtil;
 import com.emc.storageos.management.backup.util.ValidationUtil.*;
 import com.emc.storageos.management.backup.exceptions.BackupException;
-import com.emc.storageos.services.util.Exec;
 
 public class ZkBackupHandler extends BackupHandler {
     private static final Logger log = LoggerFactory.getLogger(ZkBackupHandler.class);
     private static final String ZK_ACCEPTED_EPOCH = "acceptedEpoch";
     private static final String ZK_CURRENT_EPOCH = "currentEpoch";
     private static final String CONNECT_ZK_HOST = "localhost";
+    private static final String DRIVERS_FOLDER_NAME = "drivers";
     private static final int CONNECT_ZK_PORT = 2181;
     private int nodeCount = 0;
     private File zkDir;
     private List<String> fileTypeList;
     private File siteIdFile;
+    private File driverPath;
+
+    public File getDriverPath() {
+        return driverPath;
+    }
+
+    public void setDriverPath(File driverPath) {
+        this.driverPath = driverPath;
+    }
 
     public void setNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
@@ -313,6 +322,21 @@ public class ZkBackupHandler extends BackupHandler {
         FileUtils.copyFileToDirectory(siteIdFile, targetDir);
     }
 
+    private void backupDrivers(File targetDir) throws IOException {
+        if (driverPath == null || !driverPath.exists() || !driverPath.isDirectory()) {
+            log.error("Driver path is not configured, or does not exist, or is not a directory");
+            return;
+        }
+        File driverFolder = new File(targetDir, DRIVERS_FOLDER_NAME);
+        driverFolder.mkdir();
+        for (File driver : driverPath.listFiles()) {
+            if (!driver.getName().endsWith(".jar")) {
+                continue;
+            }
+            FileUtils.copyFileToDirectory(driver, driverFolder);
+        }
+    }
+
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
@@ -326,6 +350,7 @@ public class ZkBackupHandler extends BackupHandler {
                     NotExistEnum.NOT_EXSIT_CREATE);
             backupFolder(targetFolder, zkDir);
             backupSiteId(targetFolder);
+            backupDrivers(targetFolder);
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }

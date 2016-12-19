@@ -76,10 +76,10 @@ import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.model.block.export.ExportPortAllocateParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
-import com.emc.storageos.model.block.export.PortAllocatePreviewRestRep;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -783,8 +783,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathPorts" })
     public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI storageSystemId, String ports) {
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        PortAllocatePreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
-        List<InitiatorPortMapRestRep> addedList = portPreview.getAddedPaths();
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
+        List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
         
         return buildPathOptions(addedList, "exportPathAdjustment.addedPorts");
     }
@@ -793,7 +793,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathPorts" })
     public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI storageSystemId, String ports) {
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        PortAllocatePreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
         
         return buildPathOptions(removedList, "exportPathAdjustment.removedPorts");
@@ -848,7 +848,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        PortAllocatePreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
         
         List<NamedRelatedResourceRep> affectedList = portPreview.getAffectedExportGroups();
         
@@ -860,10 +860,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
-    private PortAllocatePreviewRestRep generateExportPathPreview(AssetOptionsContext ctx, URI hostOrClusterId, 
+    private ExportPathsAdjustmentPreviewRestRep generateExportPathPreview(AssetOptionsContext ctx, URI hostOrClusterId, 
             URI storageSystemId, List<URI> exportPathPorts) {
         ViPRCoreClient client = api(ctx);
-        ExportPortAllocateParam param = new ExportPortAllocateParam();
+        ExportPathsAdjustmentPreviewParam param = new ExportPathsAdjustmentPreviewParam();
         ExportPathParameters exportPathParameters = new ExportPathParameters();
         
         List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, null, null);

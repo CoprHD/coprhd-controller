@@ -85,7 +85,7 @@ public class ExportPathAdjustmentService extends ViPRService {
             exportId = exports.get(0).getId();
         }
 
-//        PortAllocatePreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, minPaths, maxPaths, 
+//        ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, minPaths, maxPaths, 
 //                pathsPerInitiator, storageSystem, ports, exportId));
 //        List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAddedPaths();
 //        List<InitiatorPortMapRestRep> removedPaths = previewRestRep.getRemovedPaths();

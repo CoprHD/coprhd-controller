@@ -6,7 +6,7 @@ import java.util.List;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.model.block.export.ExportPortRebalanceParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentParam;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.vipr.client.Task;
 
@@ -39,7 +39,7 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
     
     @Override
     protected Task<ExportGroupRestRep> doExecute() throws Exception {
-        ExportPortRebalanceParam param = new ExportPortRebalanceParam();
+        ExportPathsAdjustmentParam param = new ExportPathsAdjustmentParam();
         ExportPathParameters exportPathParameters = new ExportPathParameters();
         
         exportPathParameters.setMinPaths(minPaths);

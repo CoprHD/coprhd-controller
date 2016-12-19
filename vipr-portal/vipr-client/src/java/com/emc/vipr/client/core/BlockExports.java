@@ -19,12 +19,12 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.block.export.ExportPortAllocateParam;
-import com.emc.storageos.model.block.export.ExportPortRebalanceParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
-import com.emc.storageos.model.block.export.PortAllocatePreviewRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.vipr.client.Task;
@@ -311,8 +311,8 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * @param input
      * @return Port Allocate Preview
      */
-    public PortAllocatePreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPortAllocateParam input) {
-        return client.post(PortAllocatePreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
+    public ExportPathsAdjustmentPreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPathsAdjustmentPreviewParam input) {
+        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
     }
     
     /**
@@ -324,8 +324,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * @param input
      * @return Port Allocate Preview
      */
-    public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPortRebalanceParam input) {
+    public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
         return putTask(input, getIdUrl() + "/port-rebalance", id);
-        //return client.post(PortAllocatePreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
     }
 }

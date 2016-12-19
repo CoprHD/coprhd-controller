@@ -4,12 +4,11 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.model.block.export.ExportPortAllocateParam;
-import com.emc.storageos.model.block.export.PortAllocatePreviewRestRep;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 
-public class ExportPathsPreview extends ViPRExecutionTask<PortAllocatePreviewRestRep> {
+public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentPreviewRestRep> {
     
     private URI hostOrClusterId;
     private URI virtualArray;
@@ -37,8 +36,8 @@ public class ExportPathsPreview extends ViPRExecutionTask<PortAllocatePreviewRes
     }
     
     @Override
-    public PortAllocatePreviewRestRep executeTask() throws Exception {
-        ExportPortAllocateParam param = new ExportPortAllocateParam();
+    public ExportPathsAdjustmentPreviewRestRep executeTask() throws Exception {
+        ExportPathsAdjustmentPreviewParam param = new ExportPathsAdjustmentPreviewParam();
         ExportPathParameters exportPathParameters = new ExportPathParameters();
         
         exportPathParameters.setMinPaths(minPaths);
